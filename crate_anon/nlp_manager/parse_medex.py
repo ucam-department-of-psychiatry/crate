@@ -490,6 +490,8 @@ class PseudoTempDir(object):
 
 class Medex(BaseNlpParser):
     """
+    EXTERNAL.
+
     Class controlling a Medex-UIMA external process, via our custom Java
     interface, ``CrateMedexPipeline.java``.
 

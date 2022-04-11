@@ -78,9 +78,11 @@ log = logging.getLogger(__name__)
 
 class Gate(BaseNlpParser):
     """
-    [SPECIAL.] Abstract NLP processor controlling an external process,
-    typically our Java interface to GATE programs, ``CrateGatePipeline.java``
-    (but it could be any external program).
+    EXTERNAL.
+
+    Abstract NLP processor controlling an external process, typically our Java
+    interface to GATE programs, ``CrateGatePipeline.java`` (but it could be any
+    external program).
 
     We send text to it, it parses the text, and it sends us back results, which
     we return as dictionaries. The specific text sought depends on the

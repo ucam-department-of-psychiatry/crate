@@ -83,6 +83,8 @@ log = logging.getLogger(__name__)
 
 class Haemoglobin(SimpleNumericalResultParser):
     """
+    HAEMATOLOGY (FBC).
+
     Haemoglobin (Hb). Default units are g/L; also supports g/dL.
 
     UK reporting for haemoglobin switched in 2013 from g/dL to g/L; see
@@ -178,6 +180,8 @@ class HaemoglobinValidator(ValidatorBase):
 
 class Haematocrit(SimpleNumericalResultParser):
     """
+    HAEMATOLOGY (FBC).
+
     Haematocrit (Hct).
     A dimensionless quantity (but supports L/L notation).
     """
@@ -260,6 +264,8 @@ class HaematocritValidator(ValidatorBase):
 
 class RBC(SimpleNumericalResultParser):
     """
+    HAEMATOLOGY (FBC).
+
     Red blood cell count.
     Default units are 10^12/L; also supports cells/mm^3 = cells/μL.
 
@@ -386,6 +392,8 @@ class RBCValidator(ValidatorBase):
 
 class Esr(SimpleNumericalResultParser):
     """
+    HAEMATOLOGY (ESR).
+
     Erythrocyte sedimentation rate (ESR), in mm/h.
     """
 
@@ -565,6 +573,8 @@ class WbcBase(SimpleNumericalResultParser, ABC):
 
 class Wbc(WbcBase):
     """
+    HAEMATOLOGY (FBC).
+
     White cell count (WBC, WCC).
     Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
@@ -657,6 +667,8 @@ class WbcValidator(ValidatorBase):
 
 class Neutrophils(WbcBase):
     """
+    HAEMATOLOGY (FBC).
+
     Neutrophil (polymorphonuclear leukoocte) count (absolute).
     Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
@@ -735,6 +747,8 @@ class NeutrophilsValidator(ValidatorBase):
 
 class Lymphocytes(WbcBase):
     """
+    HAEMATOLOGY (FBC).
+
     Lymphocyte count (absolute).
     Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
@@ -813,6 +827,8 @@ class LymphocytesValidator(ValidatorBase):
 
 class Monocytes(WbcBase):
     """
+    HAEMATOLOGY (FBC).
+
     Monocyte count (absolute).
     Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
@@ -889,6 +905,8 @@ class MonocytesValidator(ValidatorBase):
 
 class Basophils(WbcBase):
     """
+    HAEMATOLOGY (FBC).
+
     Basophil count (absolute).
     Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
@@ -965,6 +983,8 @@ class BasophilsValidator(ValidatorBase):
 
 class Eosinophils(WbcBase):
     """
+    HAEMATOLOGY (FBC).
+
     Eosinophil count (absolute).
     Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
     """
@@ -1042,6 +1062,8 @@ class EosinophilsValidator(ValidatorBase):
 
 class Platelets(WbcBase):
     """
+    HAEMATOLOGY (FBC).
+
     Platelet count.
     Default units are 10^9 / L; also supports cells/mm^3 = cells/μL.
 

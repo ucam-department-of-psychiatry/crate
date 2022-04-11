@@ -69,6 +69,8 @@ Options:
     :language: none
 
 
+.. _crate_nlp_describeprocessors:
+
 Current NLP processors
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -76,6 +78,13 @@ NLP processors (from ``crate_nlp --describeprocessors``):
 
 ..  literalinclude:: _crate_nlp_describeprocessors.txt
     :language: none
+
+Abbreviations not otherwise explained:
+
+- BFTs: bone function tests.
+- FBC: full blood count.
+- LFTs: liver function tests.
+- U&E, urea and electrolytes.
 
 
 .. _crate_nlp_multiprocess:

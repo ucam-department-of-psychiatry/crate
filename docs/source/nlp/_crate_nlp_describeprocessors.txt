@@ -1,7 +1,9 @@
 +---------------------------+-------------------------------------------------+
 | NLP name                  | Description                                     |
 +---------------------------+-------------------------------------------------+
-| Ace                       | Addenbrooke's Cognitive Examination (ACE,       |
+| Ace                       | COGNITIVE.                                      |
+|                           |                                                 |
+|                           | Addenbrooke's Cognitive Examination (ACE,       |
 |                           | ACE-R, ACE-III) total score.                    |
 |                           |                                                 |
 |                           | The default denominator is 100 but it supports  |
@@ -10,18 +12,24 @@
 +---------------------------+-------------------------------------------------+
 | AceValidator              | Validator for Ace (see help for explanation).   |
 +---------------------------+-------------------------------------------------+
-| Albumin                   | Albumin (Alb). Units are g/L.                   |
+| Albumin                   | BIOCHEMISTRY (LFTs).                            |
+|                           |                                                 |
+|                           | Albumin (Alb). Units are g/L.                   |
 +---------------------------+-------------------------------------------------+
 | AlbuminValidator          | Validator for Albumin (see help for             |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| AlkPhos                   | Alkaline phosphatase (ALP, AlkP, AlkPhos).      |
+| AlkPhos                   | BIOCHEMISTRY (LFTs/BFTs).                       |
+|                           |                                                 |
+|                           | Alkaline phosphatase (ALP, AlkP, AlkPhos).      |
 |                           | Units are U/L.                                  |
 +---------------------------+-------------------------------------------------+
 | AlkPhosValidator          | Validator for AlkPhos (see help for             |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| ALT                       | Alanine aminotransferase (ALT), a.k.a. alanine  |
+| ALT                       | BIOCHEMISTRY (LFTs).                            |
+|                           |                                                 |
+|                           | Alanine aminotransferase (ALT), a.k.a. alanine  |
 |                           | transaminase (ALT).                             |
 |                           | Units are U/L.                                  |
 |                           |                                                 |
@@ -33,40 +41,54 @@
 +---------------------------+-------------------------------------------------+
 | ALTValidator              | Validator for ALT (see help for explanation).   |
 +---------------------------+-------------------------------------------------+
-| Basophils                 | Basophil count (absolute).                      |
+| Basophils                 | HAEMATOLOGY (FBC).                              |
+|                           |                                                 |
+|                           | Basophil count (absolute).                      |
 |                           | Default units are 10^9 / L; also supports       |
 |                           | cells/mm^3 = cells/μL.                          |
 +---------------------------+-------------------------------------------------+
 | BasophilsValidator        | Validator for Basophils (see help for           |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Bilirubin                 | Total bilirubin. Units are μM.                  |
+| Bilirubin                 | BIOCHEMISTRY (LFTs).                            |
+|                           |                                                 |
+|                           | Total bilirubin. Units are μM.                  |
 +---------------------------+-------------------------------------------------+
 | BilirubinValidator        | Validator for Bilirubin (see help for           |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Bmi                       | Body mass index (BMI), in kg / m^2.             |
+| Bmi                       | CLINICAL EXAMINATION.                           |
+|                           |                                                 |
+|                           | Body mass index (BMI), in kg / m^2.             |
 +---------------------------+-------------------------------------------------+
 | BmiValidator              | Validator for Bmi (see help for explanation).   |
 +---------------------------+-------------------------------------------------+
-| Bp                        | Blood pressure, in mmHg. (Systolic and          |
+| Bp                        | CLINICAL EXAMINATION.                           |
+|                           |                                                 |
+|                           | Blood pressure, in mmHg. (Systolic and          |
 |                           | diastolic.)                                     |
 +---------------------------+-------------------------------------------------+
 | BpValidator               | Validator for Bp (see help for explanation).    |
 +---------------------------+-------------------------------------------------+
-| Cloud                     | [SPECIAL.] Abstract NLP processor that passes   |
-|                           | information to a remote                         |
-|                           | (cloud-based) NLP system via the NLPRP          |
-|                           | protocol. The processor at the other            |
-|                           | end might be of any kind.                       |
+| Cloud                     | EXTERNAL.                                       |
+|                           |                                                 |
+|                           | Abstract NLP processor that passes information  |
+|                           | to a remote (cloud-based)                       |
+|                           | NLP system via the NLPRP protocol. The          |
+|                           | processor at the other end might be             |
+|                           | of any kind.                                    |
 +---------------------------+-------------------------------------------------+
-| Creatinine                | Creatinine. Default units are micromolar (SI);  |
+| Creatinine                | BIOCHEMISTRY (U&E).                             |
+|                           |                                                 |
+|                           | Creatinine. Default units are micromolar (SI);  |
 |                           | also supports mg/dL.                            |
 +---------------------------+-------------------------------------------------+
 | CreatinineValidator       | Validator for Creatinine (see help for          |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Crp                       | C-reactive protein (CRP). Default units are     |
+| Crp                       | BIOCHEMISTRY.                                   |
+|                           |                                                 |
+|                           | C-reactive protein (CRP). Default units are     |
 |                           | mg/L; also supports mg/dL.                      |
 |                           |                                                 |
 |                           | CRP units:                                      |
@@ -90,27 +112,35 @@
 +---------------------------+-------------------------------------------------+
 | CrpValidator              | Validator for Crp (see help for explanation).   |
 +---------------------------+-------------------------------------------------+
-| Eosinophils               | Eosinophil count (absolute).                    |
+| Eosinophils               | HAEMATOLOGY (FBC).                              |
+|                           |                                                 |
+|                           | Eosinophil count (absolute).                    |
 |                           | Default units are 10^9 / L; also supports       |
 |                           | cells/mm^3 = cells/μL.                          |
 +---------------------------+-------------------------------------------------+
 | EosinophilsValidator      | Validator for Eosinophils (see help for         |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Esr                       | Erythrocyte sedimentation rate (ESR), in mm/h.  |
+| Esr                       | HAEMATOLOGY (ESR).                              |
+|                           |                                                 |
+|                           | Erythrocyte sedimentation rate (ESR), in mm/h.  |
 +---------------------------+-------------------------------------------------+
 | EsrValidator              | Validator for Esr (see help for explanation).   |
 +---------------------------+-------------------------------------------------+
-| GammaGT                   | Gamma-glutamyl transferase (gGT), in U/L.       |
+| GammaGT                   | BIOCHEMISTRY (LFTs).                            |
+|                           |                                                 |
+|                           | Gamma-glutamyl transferase (gGT), in U/L.       |
 +---------------------------+-------------------------------------------------+
 | GammaGTValidator          | Validator for GammaGT (see help for             |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Gate                      | [SPECIAL.] Abstract NLP processor controlling   |
-|                           | an external process,                            |
-|                           | typically our Java interface to GATE programs,  |
-|                           | ``CrateGatePipeline.java``                      |
-|                           | (but it could be any external program).         |
+| Gate                      | EXTERNAL.                                       |
+|                           |                                                 |
+|                           | Abstract NLP processor controlling an external  |
+|                           | process, typically our Java                     |
+|                           | interface to GATE programs,                     |
+|                           | ``CrateGatePipeline.java`` (but it could be any |
+|                           | external program).                              |
 |                           |                                                 |
 |                           | We send text to it, it parses the text, and it  |
 |                           | sends us back results, which                    |
@@ -122,20 +152,26 @@
 |                           | For details of GATE, see                        |
 |                           | https://www.gate.ac.uk/.                        |
 +---------------------------+-------------------------------------------------+
-| Glucose                   | Glucose. Default units are mM; also supports    |
+| Glucose                   | BIOCHEMISTRY.                                   |
+|                           |                                                 |
+|                           | Glucose. Default units are mM; also supports    |
 |                           | mg/dL.                                          |
 +---------------------------+-------------------------------------------------+
 | GlucoseValidator          | Validator for Glucose (see help for             |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Haematocrit               | Haematocrit (Hct).                              |
+| Haematocrit               | HAEMATOLOGY (FBC).                              |
+|                           |                                                 |
+|                           | Haematocrit (Hct).                              |
 |                           | A dimensionless quantity (but supports L/L      |
 |                           | notation).                                      |
 +---------------------------+-------------------------------------------------+
 | HaematocritValidator      | Validator for Haematocrit (see help for         |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Haemoglobin               | Haemoglobin (Hb). Default units are g/L; also   |
+| Haemoglobin               | HAEMATOLOGY (FBC).                              |
+|                           |                                                 |
+|                           | Haemoglobin (Hb). Default units are g/L; also   |
 |                           | supports g/dL.                                  |
 |                           |                                                 |
 |                           | UK reporting for haemoglobin switched in 2013   |
@@ -157,7 +193,9 @@
 | HaemoglobinValidator      | Validator for Haemoglobin (see help for         |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| HbA1c                     | Glycosylated (glycated) haemoglobin (HbA1c).    |
+| HbA1c                     | BIOCHEMISTRY.                                   |
+|                           |                                                 |
+|                           | Glycosylated (glycated) haemoglobin (HbA1c).    |
 |                           | Default units are mmol/mol; also supports %.    |
 |                           |                                                 |
 |                           | Note: HbA1 is different                         |
@@ -166,45 +204,59 @@
 +---------------------------+-------------------------------------------------+
 | HbA1cValidator            | Validator for HbA1c (see help for explanation). |
 +---------------------------+-------------------------------------------------+
-| HDLCholesterol            | High-density lipoprotein (HDL) cholesterol.     |
+| HDLCholesterol            | BIOCHEMISTRY (LIPID PROFILE).                   |
+|                           |                                                 |
+|                           | High-density lipoprotein (HDL) cholesterol.     |
 |                           | Default units are mM; also supports mg/dL.      |
 +---------------------------+-------------------------------------------------+
 | HDLCholesterolValidator   | Validator for HDLCholesterol (see help for      |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Height                    | Height. Handles metric (e.g. "1.8m") and        |
+| Height                    | CLINICAL EXAMINATION.                           |
+|                           |                                                 |
+|                           | Height. Handles metric (e.g. "1.8m") and        |
 |                           | imperial (e.g. "5 ft 2 in").                    |
 +---------------------------+-------------------------------------------------+
 | HeightValidator           | Validator for Height (see help for              |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| LDLCholesterol            | Low density lipoprotein (LDL) cholesterol.      |
+| LDLCholesterol            | BIOCHEMISTRY (LIPID PROFILE).                   |
+|                           |                                                 |
+|                           | Low density lipoprotein (LDL) cholesterol.      |
 |                           | Default units are mM; also supports mg/dL.      |
 +---------------------------+-------------------------------------------------+
 | LDLCholesterolValidator   | Validator for LDLCholesterol (see help for      |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Lithium                   | Lithium (Li) levels (for blood tests, not       |
+| Lithium                   | BIOCHEMISTRY (THERAPEUTIC DRUG MONITORING).     |
+|                           |                                                 |
+|                           | Lithium (Li) levels (for blood tests, not       |
 |                           | doses), in mM.                                  |
 +---------------------------+-------------------------------------------------+
 | LithiumValidator          | Validator for Lithium (see help for             |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Lymphocytes               | Lymphocyte count (absolute).                    |
+| Lymphocytes               | HAEMATOLOGY (FBC).                              |
+|                           |                                                 |
+|                           | Lymphocyte count (absolute).                    |
 |                           | Default units are 10^9 / L; also supports       |
 |                           | cells/mm^3 = cells/μL.                          |
 +---------------------------+-------------------------------------------------+
 | LymphocytesValidator      | Validator for Lymphocytes (see help for         |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Medex                     | Class controlling a Medex-UIMA external         |
+| Medex                     | EXTERNAL.                                       |
+|                           |                                                 |
+|                           | Class controlling a Medex-UIMA external         |
 |                           | process, via our custom Java                    |
 |                           | interface, ``CrateMedexPipeline.java``.         |
 |                           |                                                 |
 |                           | MedEx-UIMA is a medication-finding tool:        |
 |                           | https://www.ncbi.nlm.nih.gov/pubmed/25954575.   |
 +---------------------------+-------------------------------------------------+
-| MiniAce                   | Mini-Addenbrooke's Cognitive Examination        |
+| MiniAce                   | COGNITIVE.                                      |
+|                           |                                                 |
+|                           | Mini-Addenbrooke's Cognitive Examination        |
 |                           | (M-ACE).                                        |
 |                           |                                                 |
 |                           | The default denominator is 30, but it supports  |
@@ -214,7 +266,9 @@
 | MiniAceValidator          | Validator for MiniAce (see help for             |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Mmse                      | Mini-mental state examination (MMSE).           |
+| Mmse                      | COGNITIVE.                                      |
+|                           |                                                 |
+|                           | Mini-mental state examination (MMSE).           |
 |                           |                                                 |
 |                           | The default denominator is 30, but it supports  |
 |                           | other values if given                           |
@@ -222,7 +276,9 @@
 +---------------------------+-------------------------------------------------+
 | MmseValidator             | Validator for Mmse (see help for explanation).  |
 +---------------------------+-------------------------------------------------+
-| Moca                      | Montreal Cognitive Assessment (MOCA).           |
+| Moca                      | COGNITIVE.                                      |
+|                           |                                                 |
+|                           | Montreal Cognitive Assessment (MOCA).           |
 |                           |                                                 |
 |                           | The default denominator is 30, but it supports  |
 |                           | other values if given                           |
@@ -230,14 +286,18 @@
 +---------------------------+-------------------------------------------------+
 | MocaValidator             | Validator for Moca (see help for explanation).  |
 +---------------------------+-------------------------------------------------+
-| Monocytes                 | Monocyte count (absolute).                      |
+| Monocytes                 | HAEMATOLOGY (FBC).                              |
+|                           |                                                 |
+|                           | Monocyte count (absolute).                      |
 |                           | Default units are 10^9 / L; also supports       |
 |                           | cells/mm^3 = cells/μL.                          |
 +---------------------------+-------------------------------------------------+
 | MonocytesValidator        | Validator for Monocytes (see help for           |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Neutrophils               | Neutrophil (polymorphonuclear leukoocte) count  |
+| Neutrophils               | HAEMATOLOGY (FBC).                              |
+|                           |                                                 |
+|                           | Neutrophil (polymorphonuclear leukoocte) count  |
 |                           | (absolute).                                     |
 |                           | Default units are 10^9 / L; also supports       |
 |                           | cells/mm^3 = cells/μL.                          |
@@ -245,7 +305,9 @@
 | NeutrophilsValidator      | Validator for Neutrophils (see help for         |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Platelets                 | Platelet count.                                 |
+| Platelets                 | HAEMATOLOGY (FBC).                              |
+|                           |                                                 |
+|                           | Platelet count.                                 |
 |                           | Default units are 10^9 / L; also supports       |
 |                           | cells/mm^3 = cells/μL.                          |
 |                           |                                                 |
@@ -259,12 +321,16 @@
 | PlateletsValidator        | Validator for Platelets (see help for           |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Potassium                 | Potassium (K), in mM.                           |
+| Potassium                 | BIOCHEMISTRY (U&E).                             |
+|                           |                                                 |
+|                           | Potassium (K), in mM.                           |
 +---------------------------+-------------------------------------------------+
 | PotassiumValidator        | Validator for Potassium (see help for           |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| RBC                       | Red blood cell count.                           |
+| RBC                       | HAEMATOLOGY (FBC).                              |
+|                           |                                                 |
+|                           | Red blood cell count.                           |
 |                           | Default units are 10^12/L; also supports        |
 |                           | cells/mm^3 = cells/μL.                          |
 |                           |                                                 |
@@ -277,39 +343,53 @@
 +---------------------------+-------------------------------------------------+
 | RBCValidator              | Validator for RBC (see help for explanation).   |
 +---------------------------+-------------------------------------------------+
-| Sodium                    | Sodium (Na), in mM.                             |
+| Sodium                    | BIOCHEMISTRY (U&E).                             |
+|                           |                                                 |
+|                           | Sodium (Na), in mM.                             |
 +---------------------------+-------------------------------------------------+
 | SodiumValidator           | Validator for Sodium (see help for              |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| TotalCholesterol          | Total or undifferentiated cholesterol.          |
+| TotalCholesterol          | BIOCHEMISTRY (LIPID PROFILE).                   |
+|                           |                                                 |
+|                           | Total or undifferentiated cholesterol.          |
 |                           | Default units are mM; also supports mg/dL.      |
 +---------------------------+-------------------------------------------------+
 | TotalCholesterolValidator | Validator for TotalCholesterol (see help for    |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Triglycerides             | Triglycerides.                                  |
+| Triglycerides             | BIOCHEMISTRY (LIPID PROFILE).                   |
+|                           |                                                 |
+|                           | Triglycerides.                                  |
 |                           | Default units are mM; also supports mg/dL.      |
 +---------------------------+-------------------------------------------------+
 | TriglyceridesValidator    | Validator for Triglycerides (see help for       |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
-| Tsh                       | Thyroid-stimulating hormone (TSH), in mIU/L (or |
+| Tsh                       | BIOCHEMISTRY (ENDOCRINOLOGY).                   |
+|                           |                                                 |
+|                           | Thyroid-stimulating hormone (TSH), in mIU/L (or |
 |                           | μIU/mL).                                        |
 +---------------------------+-------------------------------------------------+
 | TshValidator              | Validator for TSH (see help for explanation).   |
 +---------------------------+-------------------------------------------------+
-| Urea                      | Urea, in mM.                                    |
+| Urea                      | BIOCHEMISTRY (U&E).                             |
+|                           |                                                 |
+|                           | Urea, in mM.                                    |
 +---------------------------+-------------------------------------------------+
 | UreaValidator             | Validator for Urea (see help for explanation).  |
 +---------------------------+-------------------------------------------------+
-| Wbc                       | White cell count (WBC, WCC).                    |
+| Wbc                       | HAEMATOLOGY (FBC).                              |
+|                           |                                                 |
+|                           | White cell count (WBC, WCC).                    |
 |                           | Default units are 10^9 / L; also supports       |
 |                           | cells/mm^3 = cells/μL.                          |
 +---------------------------+-------------------------------------------------+
 | WbcValidator              | Validator for Wbc (see help for explanation).   |
 +---------------------------+-------------------------------------------------+
-| Weight                    | Weight. Handles metric (e.g. "57kg") and        |
+| Weight                    | CLINICAL EXAMINATION.                           |
+|                           |                                                 |
+|                           | Weight. Handles metric (e.g. "57kg") and        |
 |                           | imperial (e.g. "10 st 2 lb").                   |
 |                           | Requires units to be specified.                 |
 +---------------------------+-------------------------------------------------+

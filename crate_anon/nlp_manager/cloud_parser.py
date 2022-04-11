@@ -54,9 +54,11 @@ log = logging.getLogger(__name__)
 
 class Cloud(TableMaker):
     """
-    [SPECIAL.] Abstract NLP processor that passes information to a remote
-    (cloud-based) NLP system via the NLPRP protocol. The processor at the other
-    end might be of any kind.
+    EXTERNAL.
+
+    Abstract NLP processor that passes information to a remote (cloud-based)
+    NLP system via the NLPRP protocol. The processor at the other end might be
+    of any kind.
     """
 
     _is_cloud_processor = True

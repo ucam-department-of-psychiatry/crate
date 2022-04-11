@@ -64,6 +64,8 @@ log = logging.getLogger(__name__)
 
 class Mmse(NumeratorOutOfDenominatorParser):
     """
+    COGNITIVE.
+
     Mini-mental state examination (MMSE).
 
     The default denominator is 30, but it supports other values if given
@@ -132,6 +134,8 @@ class MmseValidator(ValidatorBase):
 
 class Ace(NumeratorOutOfDenominatorParser):
     """
+    COGNITIVE.
+
     Addenbrooke's Cognitive Examination (ACE, ACE-R, ACE-III) total score.
 
     The default denominator is 100 but it supports other values if given
@@ -265,6 +269,8 @@ class AceValidator(ValidatorBase):
 
 class MiniAce(NumeratorOutOfDenominatorParser):
     """
+    COGNITIVE.
+
     Mini-Addenbrooke's Cognitive Examination (M-ACE).
 
     The default denominator is 30, but it supports other values if given
@@ -338,6 +344,8 @@ class MiniAceValidator(ValidatorBase):
 
 class Moca(NumeratorOutOfDenominatorParser):
     """
+    COGNITIVE.
+
     Montreal Cognitive Assessment (MOCA).
 
     The default denominator is 30, but it supports other values if given

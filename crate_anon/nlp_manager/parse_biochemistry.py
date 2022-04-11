@@ -93,6 +93,8 @@ log = logging.getLogger(__name__)
 
 class Crp(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY.
+
     C-reactive protein (CRP). Default units are mg/L; also supports mg/dL.
 
     CRP units:
@@ -213,6 +215,8 @@ class CrpValidator(ValidatorBase):
 
 class Sodium(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY (U&E).
+
     Sodium (Na), in mM.
     """
 
@@ -316,6 +320,8 @@ class SodiumValidator(ValidatorBase):
 
 class Potassium(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY (U&E).
+
     Potassium (K), in mM.
     """
 
@@ -416,6 +422,8 @@ class PotassiumValidator(ValidatorBase):
 
 class Urea(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY (U&E).
+
     Urea, in mM.
     """
 
@@ -518,6 +526,8 @@ class UreaValidator(ValidatorBase):
 
 class Creatinine(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY (U&E).
+
     Creatinine. Default units are micromolar (SI); also supports mg/dL.
     """
 
@@ -640,6 +650,8 @@ class CreatinineValidator(ValidatorBase):
 
 class Lithium(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY (THERAPEUTIC DRUG MONITORING).
+
     Lithium (Li) levels (for blood tests, not doses), in mM.
     """
 
@@ -740,6 +752,8 @@ class LithiumValidator(ValidatorBase):
 
 class Tsh(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY (ENDOCRINOLOGY).
+
     Thyroid-stimulating hormone (TSH), in mIU/L (or μIU/mL).
     """
 
@@ -837,6 +851,8 @@ class TshValidator(ValidatorBase):
 
 class AlkPhos(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY (LFTs/BFTs).
+
     Alkaline phosphatase (ALP, AlkP, AlkPhos). Units are U/L.
     """
 
@@ -928,6 +944,8 @@ class AlkPhosValidator(ValidatorBase):
 
 class ALT(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY (LFTs).
+
     Alanine aminotransferase (ALT), a.k.a. alanine transaminase (ALT).
     Units are U/L.
 
@@ -1011,6 +1029,8 @@ class ALTValidator(ValidatorBase):
 
 class GammaGT(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY (LFTs).
+
     Gamma-glutamyl transferase (gGT), in U/L.
     """
 
@@ -1096,6 +1116,8 @@ class GammaGTValidator(ValidatorBase):
 
 class Bilirubin(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY (LFTs).
+
     Total bilirubin. Units are μM.
     """
 
@@ -1193,6 +1215,8 @@ class BilirubinValidator(ValidatorBase):
 
 class Albumin(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY (LFTs).
+
     Albumin (Alb). Units are g/L.
     """
 
@@ -1271,6 +1295,8 @@ class AlbuminValidator(ValidatorBase):
 
 class Glucose(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY.
+
     Glucose. Default units are mM; also supports mg/dL.
     """
 
@@ -1403,6 +1429,8 @@ class GlucoseValidator(ValidatorBase):
 
 class LDLCholesterol(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY (LIPID PROFILE).
+
     Low density lipoprotein (LDL) cholesterol.
     Default units are mM; also supports mg/dL.
     """
@@ -1529,6 +1557,8 @@ class LDLCholesterolValidator(ValidatorBase):
 
 class HDLCholesterol(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY (LIPID PROFILE).
+
     High-density lipoprotein (HDL) cholesterol.
     Default units are mM; also supports mg/dL.
     """
@@ -1655,6 +1685,8 @@ class HDLCholesterolValidator(ValidatorBase):
 
 class TotalCholesterol(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY (LIPID PROFILE).
+
     Total or undifferentiated cholesterol.
     Default units are mM; also supports mg/dL.
     """
@@ -1774,6 +1806,8 @@ class TotalCholesterolValidator(ValidatorBase):
 
 class Triglycerides(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY (LIPID PROFILE).
+
     Triglycerides.
     Default units are mM; also supports mg/dL.
     """
@@ -1942,6 +1976,8 @@ def hba1c_mmol_per_mol_from_percent(
 
 class HbA1c(SimpleNumericalResultParser):
     """
+    BIOCHEMISTRY.
+
     Glycosylated (glycated) haemoglobin (HbA1c).
     Default units are mmol/mol; also supports %.
 

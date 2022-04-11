@@ -126,6 +126,8 @@ log = logging.getLogger(__name__)
 
 class Height(NumericalResultParser):
     """
+    CLINICAL EXAMINATION.
+
     Height. Handles metric (e.g. "1.8m") and imperial (e.g. "5 ft 2 in").
     """
 
@@ -351,6 +353,8 @@ class HeightValidator(ValidatorBase):
 
 class Weight(NumericalResultParser):
     """
+    CLINICAL EXAMINATION.
+
     Weight. Handles metric (e.g. "57kg") and imperial (e.g. "10 st 2 lb").
     Requires units to be specified.
     """
@@ -563,6 +567,8 @@ class WeightValidator(ValidatorBase):
 
 class Bmi(SimpleNumericalResultParser):
     """
+    CLINICAL EXAMINATION.
+
     Body mass index (BMI), in kg / m^2.
     """
 
@@ -630,6 +636,8 @@ class BmiValidator(ValidatorBase):
 
 class Bp(BaseNlpParser):
     """
+    CLINICAL EXAMINATION.
+
     Blood pressure, in mmHg. (Systolic and diastolic.)
     """
 
