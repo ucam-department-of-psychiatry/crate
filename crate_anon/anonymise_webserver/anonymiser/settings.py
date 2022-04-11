@@ -27,6 +27,7 @@ crate_anon/anonymise_webserver/anonymiser/settings.py
 
 """
 
+import os
 from pathlib import Path
 from typing import List
 
@@ -77,7 +78,9 @@ ROOT_URLCONF = "crate_anon.anonymise_webserver.anonymiser.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [
+            os.path.join(BASE_DIR, "templates"),
+        ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

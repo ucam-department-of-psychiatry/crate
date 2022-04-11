@@ -144,6 +144,7 @@ class ScrubSerializer(Serializer):
             "The lines of text to be scrubbed, each keyed on a unique "
             "ID supplied by the caller"
         ),
+        style={"base_template": "json.html"},
     )
     patient = SpecificSerializer(
         required=False,
