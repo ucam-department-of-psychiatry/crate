@@ -80,9 +80,10 @@ INSTALL_REQUIRES = [
     "django-debug-toolbar==3.0a2",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
+    "django-jsoneditor==0.2.2",  # Custom API form fields
     "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa: E501
     # "django-silk==4.0.1",  # Django profiler
-    "djangorestframework==3.13.1",
+    "djangorestframework==3.13.1",  # Anonymisation API support
     "django-sslserver==0.22",  # SSL development server for Django
     "drf-spectacular==0.22.0",  # Open API Schema and documentation
     "drf-spectacular-sidecar==2022.3.21",  # Static files for drf-spectacular
