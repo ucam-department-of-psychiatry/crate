@@ -126,14 +126,12 @@ class SpecificSerializer(Serializer):
 class AllowlistSerializer(Serializer):
     words = JsonListField(
         child=CharField(),
-        write_only=True,
         help_text="Do not scrub these specific words.",
         default=[],
         initial=[],
     )
     files = JsonListField(
         child=CharField(),
-        write_only=True,
         help_text=(
             "Do not scrub words from these files "
             "(aliased from Django settings)."
@@ -146,14 +144,12 @@ class AllowlistSerializer(Serializer):
 class DenylistSerializer(Serializer):
     words = JsonListField(
         child=CharField(),
-        write_only=True,
         help_text="Scrub these specific words.",
         default=[],
         initial=[],
     )
     files = JsonListField(
         child=CharField(),
-        write_only=True,
         help_text=(
             "Scrub words from these files " "(aliased from Django settings)."
         ),
@@ -163,12 +159,10 @@ class DenylistSerializer(Serializer):
 
 
 class ScrubSerializer(Serializer):
-    # Input fields
-    # write_only means they aren't returned in the response
+    # Input/Output fields
     # default implies required=False
     text = JsonDictField(
         child=CharField(help_text=("Text to be scrubbed")),
-        write_only=True,
         help_text=(
             "The lines of text to be scrubbed, each keyed on a unique "
             "ID supplied by the caller"
@@ -176,16 +170,13 @@ class ScrubSerializer(Serializer):
     )
     patient = SpecificSerializer(
         required=False,
-        write_only=True,
         help_text="Specific patient data to be scrubbed.",
     )
     third_party = SpecificSerializer(
         required=False,
-        write_only=True,
         help_text="Third party (e.g. family members') data to be scrubbed.",
     )
     anonymise_codes_at_word_boundaries_only = BooleanField(
-        write_only=True,
         default=Defaults.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,
         initial=Defaults.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,
         help_text=(
@@ -194,7 +185,6 @@ class ScrubSerializer(Serializer):
         ),
     )
     anonymise_dates_at_word_boundaries_only = BooleanField(
-        write_only=True,
         default=Defaults.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,
         initial=Defaults.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,
         help_text=(
@@ -202,10 +192,7 @@ class ScrubSerializer(Serializer):
             "boundary."
         ),
     )
-    # TODO: These can't both be True (in fact this is the default for
-    # PersonalizedScrubber but word boundaries take precedence).
     anonymise_numbers_at_word_boundaries_only = BooleanField(
-        write_only=True,
         default=Defaults.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,
         initial=Defaults.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,
         help_text=(
@@ -214,7 +201,6 @@ class ScrubSerializer(Serializer):
         ),
     )
     anonymise_numbers_at_numeric_boundaries_only = BooleanField(
-        write_only=True,
         default=Defaults.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY,
         initial=Defaults.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY,
         help_text=(
@@ -223,7 +209,6 @@ class ScrubSerializer(Serializer):
         ),
     )
     anonymise_strings_at_word_boundaries_only = BooleanField(
-        write_only=True,
         default=Defaults.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY,
         initial=Defaults.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY,
         help_text=(
@@ -232,7 +217,6 @@ class ScrubSerializer(Serializer):
         ),
     )
     string_max_regex_errors = IntegerField(
-        write_only=True,
         default=Defaults.STRING_MAX_REGEX_ERRORS,
         initial=Defaults.STRING_MAX_REGEX_ERRORS,
         help_text=(
@@ -241,7 +225,6 @@ class ScrubSerializer(Serializer):
         ),
     )
     min_string_length_for_errors = IntegerField(
-        write_only=True,
         default=Defaults.MIN_STRING_LENGTH_FOR_ERRORS,
         initial=Defaults.MIN_STRING_LENGTH_FOR_ERRORS,
         help_text=(
@@ -250,14 +233,12 @@ class ScrubSerializer(Serializer):
         ),
     )
     min_string_length_to_scrub_with = IntegerField(
-        write_only=True,
         default=Defaults.MIN_STRING_LENGTH_TO_SCRUB_WITH,
         initial=Defaults.MIN_STRING_LENGTH_TO_SCRUB_WITH,
         help_text=("Do not scrub strings shorter than this length."),
     )
     scrub_string_suffixes = JsonListField(
         child=CharField(),
-        write_only=True,
         help_text=(
             'A list of suffixes to permit on strings. e.g. ["s"] '
             "for plural forms."
@@ -266,19 +247,17 @@ class ScrubSerializer(Serializer):
         initial=[],
     )
     allowlist = AllowlistSerializer(
-        required=False, write_only=True, help_text="Allowlist options."
+        required=False, help_text="Allowlist options."
     )
     denylist = DenylistSerializer(
-        required=False, write_only=True, help_text="Denylist options."
+        required=False, help_text="Denylist options."
     )
     replace_patient_info_with = CharField(
-        write_only=True,
         default=Defaults.REPLACE_PATIENT_INFO_WITH,
         initial=Defaults.REPLACE_PATIENT_INFO_WITH,
         help_text=("Replace sensitive patient content with this."),
     )
     replace_third_party_info_with = CharField(
-        write_only=True,
         default=Defaults.REPLACE_THIRD_PARTY_INFO_WITH,
         initial=Defaults.REPLACE_THIRD_PARTY_INFO_WITH,
         help_text=(
@@ -287,14 +266,12 @@ class ScrubSerializer(Serializer):
         ),
     )
     replace_nonspecific_info_with = CharField(
-        write_only=True,
         default=Defaults.REPLACE_NONSPECIFIC_INFO_WITH,
         initial=Defaults.REPLACE_NONSPECIFIC_INFO_WITH,
         help_text=("Replace any other sensitive content with this."),
     )
     scrub_all_numbers_of_n_digits = JsonListField(
         child=IntegerField(),
-        write_only=True,
         help_text=(
             "Scrub all numbers with these lengths. "
             "e.g. [10] for all UK NHS numbers."
@@ -303,13 +280,11 @@ class ScrubSerializer(Serializer):
         initial=[],
     )
     scrub_all_uk_postcodes = BooleanField(
-        write_only=True,
         default=Defaults.SCRUB_ALL_UK_POSTCODES,
         initial=Defaults.SCRUB_ALL_UK_POSTCODES,
         help_text=("Scrub all UK postcodes."),
     )
     scrub_all_dates = BooleanField(
-        write_only=True,
         default=Defaults.SCRUB_ALL_DATES,
         initial=Defaults.SCRUB_ALL_DATES,
         help_text=(
@@ -319,7 +294,6 @@ class ScrubSerializer(Serializer):
     )
     alternatives = JsonListField(
         child=ListField(child=CharField()),
-        write_only=True,
         help_text=(
             "List of alternative words to scrub. "
             'e.g.: [["Street", "St"], ["Road", "Rd"], ["Avenue", "Ave"]]'
@@ -328,7 +302,7 @@ class ScrubSerializer(Serializer):
         initial=[[]],
     )
 
-    # Output fields
+    # Output-only fields
     # SerializerMethodField is read-only by default
     anonymised = SerializerMethodField(
         help_text=(
