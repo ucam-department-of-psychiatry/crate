@@ -160,7 +160,7 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": (
         "Clinical Records Anonymisation and Text Extraction (CRATE)"
     ),
-    "VERSION": "1.0.0",
+    "VERSION": "0.0.1",  # TODO: Allow breaking changes until 1.0.0?
 }
 
 CRATE = {
