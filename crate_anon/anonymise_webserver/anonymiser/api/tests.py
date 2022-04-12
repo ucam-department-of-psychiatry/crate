@@ -124,19 +124,6 @@ class AnonymisationTests(TestCase):
 
         self.assertEqual(anonymised.count("[REDACTED]"), 1)
 
-    def test_expected_fields_returned(self) -> None:
-        text = self.fake.text()
-
-        payload = {
-            "text": {"test": text},
-        }
-
-        response = self.client.post("/scrub/", payload, format="json")
-        self.assertEqual(response.status_code, 200, msg=response.data)
-
-        self.assertIn("anonymised", response.data.keys())
-        self.assertEqual(len(response.data), 1)
-
     def test_patient_date_replaced(self) -> None:
         date_of_birth = self.fake.date_of_birth().strftime("%d %b %Y")
         text = f"{date_of_birth} {self.fake.text()}"
