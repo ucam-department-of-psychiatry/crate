@@ -717,3 +717,40 @@ class AnonymisationTests(TestCase):
 
         self.assertNotIn(dob, anonymised)
         self.assertEqual(anonymised.count("[~~~]"), 1)
+
+    def test_bad_request_when_posting_non_json_rubbish(self) -> None:
+        payload = {
+            "allowlist": "\u0000\u0000",
+            "alternatives": "",
+            "anonymise_codes_at_word_boundaries_only": "\u0000",
+            "anonymise_dates_at_word_boundaries_only": "\u0000",
+            "anonymise_numbers_at_numeric_boundaries_only": "\u0000",
+            "anonymise_numbers_at_word_boundaries_only": "\u0000",
+            "anonymise_strings_at_word_boundaries_only": "\u0000",
+            "anonymised": "",
+            "denylist": "\u0000\u0000",
+            "min_string_length_for_errors": "\u0000\u0000\u0000",
+            "min_string_length_to_scrub_with": "\u0000\u0000",
+            "patient": "\u0000",
+            "replace_nonspecific_info_with": (
+                "[\u0000~\u0000~\u0000~\u0000]\u0000"
+            ),
+            "replace_patient_info_with": (
+                "[\u0000_\u0000_\u0000P\u0000P\u0000_\u0000_\u0000]\u0000"
+            ),
+            "replace_third_party_info_with": (
+                "[\u0000_\u0000_\u0000T\u0000T\u0000_\u0000_\u0000]\u0000"
+            ),
+            "scrub_all_dates": "[\u0000~\u0000~\u0000~\u0000]\u0000",
+            "scrub_all_numbers_of_n_digits": (
+                "[\u0000~\u0000~\u0000~\u0000]\u0000"
+            ),
+            "scrub_all_uk_postcodes": ("[\u0000~\u0000~\u0000~\u0000]\u0000"),
+            "scrub_string_suffixes": "\u0000\u0000",
+            "string_max_regex_errors": "\u0000",
+            "text": "\u0000",
+            "third_party": "\u0000",
+        }
+
+        response = self.client.post("/scrub/", payload)
+        self.assertEqual(response.status_code, 400, msg=response.data)

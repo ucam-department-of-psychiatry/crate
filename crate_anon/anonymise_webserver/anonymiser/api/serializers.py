@@ -72,7 +72,10 @@ class JsonListField(ListField):
         is_querydict = hasattr(dictionary, "getlist")
 
         if value and is_querydict:
-            value = json.loads(value[0])
+            try:
+                value = json.loads(value[0])
+            except ValueError:
+                pass
 
         return value
 
