@@ -240,6 +240,7 @@ setup(
             "crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main",  # noqa: E501
             "crate_test_extract_text=crate_anon.anonymise.test_extract_text:main",  # noqa: E501
             # Anonymisation API
+            "crate_anon_web_create_private_settings=crate_anon.anonymise_webserver.tools.create_private_settings:main",  # noqa: E501
             "crate_anon_web_django_manage=crate_anon.anonymise_webserver.manage:main",  # noqa: E501
             # NLP
             "crate_nlp=crate_anon.nlp_manager.nlp_manager:main",

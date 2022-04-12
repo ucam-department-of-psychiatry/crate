@@ -28,6 +28,8 @@ Index of CRATE commands
 
 :ref:`crate_anon_summarize_dd <crate_anon_summarize_dd>`
 
+:ref:`crate_anon_web_create_private_settings <crate_anon_web_create_private_settings>`
+
 :ref:`crate_anon_web_django_manage <crate_anon_web_django_manage>`
 
 :ref:`crate_anonymise <crate_anonymise>`

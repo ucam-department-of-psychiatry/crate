@@ -31,16 +31,15 @@ import os
 from pathlib import Path
 from typing import List
 
+from .private_settings import SECRET_KEY
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-# TODO: Override in local settings
-SECRET_KEY = "django-insecure-he##k)+1fip%wmpv27vve)462o9*r35+3_w%u79iu76_6aa@s-"  # noqa: E501
+SECRET_KEY = SECRET_KEY
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

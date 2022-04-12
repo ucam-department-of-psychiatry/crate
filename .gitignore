@@ -42,3 +42,4 @@ celerybeat.pid
 
 # Django
 db.sqlite3
+private_settings.py

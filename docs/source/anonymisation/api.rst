@@ -18,10 +18,36 @@
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 .. _Django: https://www.djangoproject.com/
+.. _Django Rest Framework: https://www.django-rest-framework.org
 
 
-Using CRATE's anonymisation web server
---------------------------------------
+============================================
+ Using CRATE's anonymisation API web server
+============================================
+
+The CRATE anonymisation API uses Django_, with `Django Rest Framework`_. To
+create the secret key required by Django:
+
+.. code-block:: none
+
+    crate_anon_web_create_private_settings
+
+Next, to set up the SQLite database:
+
+.. code-block:: none
+
+    crate_anon_web_django_manage migrate
+
+Create the superuser:
+
+.. code-block:: none
+
+    crate_anon_web_django_manage createsuperuser
+
+
+.. _crate_anon_web_create_private_settings:
+
+Creates any private settings required by the Django app such as the Django secret key.
 
 .. _crate_anon_web_django_manage:
 
@@ -38,8 +64,9 @@ The available commands are:
     :language: none
 
 
-Anonymisation API documentation
--------------------------------
+=================================
+ Anonymisation API documentation
+=================================
 
 .. raw:: html
    :file: _crate_api.html
