@@ -35,8 +35,10 @@ from cardinal_pythonlib.nhs import generate_random_nhs_number
 from faker import Faker
 from rest_framework.test import APIClient
 
+DEFAULT_SETTINGS = {"HASH_KEY": secrets.token_urlsafe(16)}
 
-@override_settings(CRATE={"HASH_KEY": secrets.token_urlsafe(16)})
+
+@override_settings(CRATE=DEFAULT_SETTINGS)
 class AnonymisationTests(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -90,14 +92,11 @@ class AnonymisationTests(TestCase):
             f.write("private\n")
             f.write("confidential\n")
 
-        with override_settings(
-            CRATE={
-                "HASH_KEY": "swn4nio4uzV1iO6O",
-                "DENYLIST_FILENAMES": {
-                    "test": filename,
-                },
-            }
-        ):
+        filename_map = {"test": filename}
+        settings = DEFAULT_SETTINGS
+        settings.update(DENYLIST_FILENAMES=filename_map)
+
+        with override_settings(CRATE=settings):
             response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
@@ -553,12 +552,11 @@ class AnonymisationTests(TestCase):
             filename = f.name
             f.write("secret\n")
 
-        with override_settings(
-            CRATE={
-                "HASH_KEY": "swn4nio4uzV1iO6O",
-                "ALLOWLIST_FILENAMES": {"test": filename},
-            }
-        ):
+        filename_map = {"test": filename}
+        settings = DEFAULT_SETTINGS
+        settings.update(ALLOWLIST_FILENAMES=filename_map)
+
+        with override_settings(CRATE=settings):
             response = self.client.post("/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
