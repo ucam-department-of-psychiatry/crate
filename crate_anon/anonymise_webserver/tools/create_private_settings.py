@@ -38,10 +38,14 @@ SETTINGS_DIR = os.path.join(WEBSERVER_DIR, "anonymiser")
 
 def main() -> None:
     secret_key = secrets.token_urlsafe()
+    hash_key = secrets.token_urlsafe(16)
 
     contents = f"""#!/usr/bin/env python
 
 SECRET_KEY = "{secret_key}"
+CRATE = {{
+    "HASH_KEY": "{hash_key}",
+}}
 """
 
     with open(os.path.join(SETTINGS_DIR, "private_settings.py"), "w") as f:

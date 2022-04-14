@@ -26,6 +26,7 @@ End-to-end API tests. Not an exhaustive test of anonymisation.
 
 """
 
+import secrets
 from tempfile import NamedTemporaryFile
 
 from django.test import override_settings, TestCase
@@ -35,6 +36,7 @@ from faker import Faker
 from rest_framework.test import APIClient
 
 
+@override_settings(CRATE={"HASH_KEY": secrets.token_urlsafe(16)})
 class AnonymisationTests(TestCase):
     def setUp(self) -> None:
         super().setUp()
