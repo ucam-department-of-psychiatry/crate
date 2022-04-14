@@ -109,6 +109,7 @@ SKIP_GLOBS = [
     "**/jquery*/*",
     "**/static_collected/*",
     "**/compiled_nlp_classes/*",
+    "private_settings.py",
 ]
 
 PYGMENTS_LANGUAGE_OVERRIDE = {".html": "html+django", ".css": "css+django"}
