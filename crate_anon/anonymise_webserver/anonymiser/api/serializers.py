@@ -28,8 +28,7 @@ Django REST Framework serializer to anonymise the data.
 
 
 from collections import OrderedDict
-import json
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Dict, List, Optional
 
 from django.conf import settings
 
@@ -37,7 +36,6 @@ from cardinal_pythonlib.hash import GenericHasher, make_hasher
 from rest_framework.serializers import (
     BooleanField,
     CharField,
-    DictField,
     IntegerField,
     ListField,
     Serializer,
@@ -53,46 +51,10 @@ from crate_anon.anonymise.scrub import (
     PersonalizedScrubber,
     WordList,
 )
-
-
-class JsonDictField(DictField):
-    """
-    This class is only needed to display JSON editors in the browseable API
-    HTML form.
-    """
-
-    def __init__(self, *args, **kwargs):
-        style = {"base_template": "json.html"}
-        super().__init__(*args, style=style, **kwargs)
-
-
-class JsonListField(ListField):
-    """
-    This class is only needed to display JSON editors in the browseable API
-    HTML form.
-    """
-
-    def __init__(self, *args, **kwargs):
-        style = {"base_template": "json.html"}
-        super().__init__(*args, style=style, **kwargs)
-
-    def get_value(self, dictionary: Mapping[Any, Any]) -> Any:
-        """
-        If the JSON editor is used in the browseable API, convert the value
-        from the input element into a list.
-
-        https://github.com/encode/django-rest-framework/issues/5495
-        """
-        value = super().get_value(dictionary)
-        is_querydict = hasattr(dictionary, "getlist")
-
-        if value and is_querydict:
-            try:
-                value = json.loads(value[0])
-            except ValueError:
-                pass
-
-        return value
+from crate_anon.anonymise_webserver.anonymiser.api.fields import (
+    JsonDictField,
+    JsonListField,
+)
 
 
 class SpecificSerializer(Serializer):
