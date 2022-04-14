@@ -113,8 +113,8 @@ class AllowlistSerializer(Serializer):
     files = JsonListField(
         child=CharField(),
         help_text=(
-            "Do not scrub words from these files "
-            "(aliased from Django settings)."
+            "Do not scrub words from these filename aliases "
+            "(defined on the server)."
         ),
         default=[],
         initial=[],
@@ -131,7 +131,7 @@ class DenylistSerializer(Serializer):
     files = JsonListField(
         child=CharField(),
         help_text=(
-            "Scrub words from these files " "(aliased from Django settings)."
+            "Scrub words from these filename aliases (defined on the server)."
         ),
         default=[],
         initial=[],
@@ -142,10 +142,10 @@ class ScrubSerializer(Serializer):
     # Input/Output fields
     # default implies required=False
     text = JsonDictField(
-        child=CharField(help_text=("Text to be scrubbed")),
+        child=CharField(help_text=("Text to be scrubbed.")),
         help_text=(
             "The lines of text to be scrubbed, each keyed on a unique "
-            "ID supplied by the caller"
+            "ID supplied by the caller."
         ),
     )
     patient = SpecificSerializer(

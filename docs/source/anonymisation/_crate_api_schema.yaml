@@ -192,7 +192,8 @@ components:
           items:
             type: string
           default: []
-          description: Do not scrub words from these files (aliased from Django settings).
+          description: Do not scrub words from these filename aliases (defined on
+            the server).
     Denylist:
       type: object
       properties:
@@ -207,7 +208,7 @@ components:
           items:
             type: string
           default: []
-          description: Scrub words from these files (aliased from Django settings).
+          description: Scrub words from these filename aliases (defined on the server).
     Scrub:
       type: object
       properties:
@@ -215,9 +216,9 @@ components:
           type: object
           additionalProperties:
             type: string
-            description: Text to be scrubbed
+            description: Text to be scrubbed.
           description: The lines of text to be scrubbed, each keyed on a unique ID
-            supplied by the caller
+            supplied by the caller.
         patient:
           allOf:
           - $ref: '#/components/schemas/Specific'
