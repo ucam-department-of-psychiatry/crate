@@ -705,7 +705,7 @@ class AnonymisationTests(TestCase):
         self.assertNotIn(dob, anonymised)
         self.assertEqual(anonymised.count("[~~~]"), 1)
 
-    def test_bad_request_when_posting_non_json_rubbish(self) -> None:
+    def test_bad_request_when_posting_multipart_rubbish(self) -> None:
         payload = {
             "allowlist": "\u0000\u0000",
             "alternatives": "",
