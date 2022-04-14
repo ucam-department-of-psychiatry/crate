@@ -26,7 +26,7 @@
 ============================================
 
 The CRATE anonymisation API uses Django_, with `Django Rest Framework`_. To
-create the secret key required by Django:
+create the secrets required by Django:
 
 .. code-block:: none
 
