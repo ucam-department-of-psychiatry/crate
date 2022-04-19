@@ -27,6 +27,6 @@ crate_anon/anonymise_webserver/anonymiser/api/apps.py
 from django.apps import AppConfig
 
 
-class ApiConfig(AppConfig):
+class MainConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "crate_anon.anonymise_webserver.anonymiser.api"
+    name = "crate_anon.anonymise_webserver.anonymiser.main"

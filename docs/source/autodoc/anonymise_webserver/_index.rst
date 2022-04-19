@@ -36,10 +36,15 @@ crate_anon/anonymise_webserver
     anonymiser/api/tests.py.rst
     anonymiser/api/views.py.rst
     anonymiser/asgi.py.rst
+    anonymiser/main/__init__.py.rst
+    anonymiser/main/apps.py.rst
+    anonymiser/main/static/main/css/base.css.rst
+    anonymiser/main/views.py.rst
     anonymiser/settings.py.rst
     anonymiser/urls.py.rst
     anonymiser/wsgi.py.rst
     manage.py.rst
+    templates/main/home.html.rst
     templates/rest_framework/api.html.rst
     templates/rest_framework/horizontal/json.html.rst
     tools/create_private_settings.py.rst

@@ -1,5 +1,5 @@
 """
-crate_anon/anonymise_webserver/anonymiser/api/apps.py
+crate_anon/anonymise_webserver/anonymiser/main/views.py
 
 ===============================================================================
 
@@ -22,11 +22,14 @@ crate_anon/anonymise_webserver/anonymiser/api/apps.py
 
 ===============================================================================
 
+Display the main menu.
+
 """
 
-from django.apps import AppConfig
+from django.views.generic import TemplateView
 
 
-class ApiConfig(AppConfig):
-    default_auto_field = "django.db.models.BigAutoField"
-    name = "crate_anon.anonymise_webserver.anonymiser.api"
+class HomeView(TemplateView):
+    """Displays the main menu"""
+
+    template_name = "main/home.html"

@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "drf_spectacular_sidecar",
     "jsoneditor",
+    "crate_anon.anonymise_webserver.anonymiser.main",
+    "crate_anon.anonymise_webserver.anonymiser.api",
 ]
 
 MIDDLEWARE = [
@@ -143,6 +145,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
 STATIC_URL = "/static/"
+STATIC_ROOT = os.path.join(BASE_DIR, "static_collected")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
