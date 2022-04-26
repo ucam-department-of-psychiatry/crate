@@ -2,6 +2,10 @@
 Clinical Records Anonymisation and Text Extraction (CRATE)
 ==========================================================
 
+.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://github.com/psf/black
+
+
 Purpose
 -------
 
@@ -21,16 +25,19 @@ Purpose
   - querying the anonymised database
   - managing a consent-to-contact process
 
+
 Documentation
 -------------
 
 See https://crateanon.readthedocs.io
+
 
 Sources
 -------
 
 - Python package: https://pypi.org/project/crate-anon/
 - Source code: https://github.com/RudolfCardinal/crate
+
 
 Licence
 -------
