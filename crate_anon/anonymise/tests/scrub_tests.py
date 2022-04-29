@@ -43,10 +43,13 @@ from cardinal_pythonlib.hash import HmacMD5Hasher
 
 from crate_anon.anonymise.constants import ScrubMethod
 from crate_anon.anonymise.scrub import (
+    NonspecificScrubber,
     PersonalizedScrubber,
     WordList,
 )
 from crate_anon.common.bugfix_flashtext import KeywordProcessorFixed
+
+from faker import Faker
 
 log = logging.getLogger(__name__)
 
@@ -218,15 +221,21 @@ class WordListTests(TestCase):
         self._test_wordlist(regex_method=True)
 
 
+class ScrubberTestCase(TestCase):
+    def setUp(self) -> None:
+        self.key = TEST_KEY
+        self.hasher = HmacMD5Hasher(self.key)
+
+
 # =============================================================================
 # Test PersonalizedScrubber
 # =============================================================================
 
 
-class PersonalizedScrubberTests(TestCase):
+class PersonalizedScrubberTests(ScrubberTestCase):
     def setUp(self) -> None:
-        self.key = TEST_KEY
-        self.hasher = HmacMD5Hasher(self.key)
+        super().setUp()
+
         self.anonpatient = PATIENT_REPLACEMENT
         self.anonthird = THIRD_PARTY_REPLACEMENT
 
@@ -299,3 +308,33 @@ class PersonalizedScrubberTests(TestCase):
                     f"Failure for scrubvalue: {scrubvalue!r}; regex elements "
                     f"are {scrubber.re_patient_elements}",
                 )
+
+
+class NonspecificScrubberTests(ScrubberTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.fake = Faker(["en-GB"])
+        self.fake.seed_instance(1234)
+
+    def test_scrub_all_dates(self) -> None:
+        date_of_birth_1 = self.fake.date_of_birth()
+        date_string_1 = date_of_birth_1.strftime("%d %b %Y")
+
+        date_of_birth_2 = self.fake.date_of_birth()
+        date_string_2 = date_of_birth_2.strftime("%d %b %Y")
+
+        text = (
+            f"{self.fake.text()} {date_string_1} "
+            f"{self.fake.text()} {date_string_2}"
+        )
+
+        scrubber = NonspecificScrubber(
+            "[REDACTED]",
+            self.hasher,
+            scrub_all_dates=True,
+        )
+
+        scrubbed = scrubber.scrub(text)
+
+        self.assertEqual(scrubbed.count("[REDACTED]"), 2)

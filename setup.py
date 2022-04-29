@@ -130,6 +130,7 @@ INSTALL_REQUIRES = [
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
     # For development only:
     "black==22.3.0",  # auto code formatter
+    "faker==13.3.1",  # test data creation
     "flake8==3.8.4",  # code checks
     "docutils==0.17",  # documentation, 0.18 not compatible with Sphinx
     # Sphinx 4.4.0 gives "more than one target for cross-reference" warning
