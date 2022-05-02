@@ -31,7 +31,10 @@ import os
 from pathlib import Path
 from typing import List
 
-from .private_settings import SECRET_KEY
+from crate_anon.anonymise_webserver.anonymiser.private_settings import (  # noqa: F401,E501
+    CRATE,
+    SECRET_KEY,
+)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,7 +47,8 @@ SECRET_KEY = SECRET_KEY
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS: List[str] = []
+# https://docs.djangoproject.com/en/4.0/ref/settings/#allowed-hosts
+ALLOWED_HOSTS: List[str] = ["*"]
 
 
 # Application definition
