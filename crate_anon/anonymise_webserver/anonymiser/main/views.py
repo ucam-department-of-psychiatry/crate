@@ -30,6 +30,8 @@ from django.views.generic import TemplateView
 
 
 class HomeView(TemplateView):
-    """Displays the main menu"""
+    """
+    Displays the main menu.
+    """
 
     template_name = "main/home.html"

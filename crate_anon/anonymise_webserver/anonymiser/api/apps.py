@@ -22,6 +22,8 @@ crate_anon/anonymise_webserver/anonymiser/api/apps.py
 
 ===============================================================================
 
+Django application (and its configuration) for the anonymiser API.
+
 """
 
 from django.apps import AppConfig

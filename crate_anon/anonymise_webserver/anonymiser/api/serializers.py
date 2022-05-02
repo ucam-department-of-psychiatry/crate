@@ -58,6 +58,11 @@ from crate_anon.anonymise_webserver.anonymiser.api.fields import (
 
 
 class SpecificSerializer(Serializer):
+    """
+    Represents scrubbing information about a specific person or group of people
+    (e.g. patient data, third-party data).
+    """
+
     dates = JsonListField(
         child=CharField(),
         help_text="List of dates to be scrubbed.",
@@ -104,6 +109,10 @@ class SpecificSerializer(Serializer):
 
 
 class AllowlistSerializer(Serializer):
+    """
+    Represents allowlist options.
+    """
+
     words = JsonListField(
         child=CharField(),
         help_text="Do not scrub these specific words.",
@@ -122,6 +131,10 @@ class AllowlistSerializer(Serializer):
 
 
 class DenylistSerializer(Serializer):
+    """
+    Represents denylist options.
+    """
+
     words = JsonListField(
         child=CharField(),
         help_text="Scrub these specific words.",
@@ -139,18 +152,22 @@ class DenylistSerializer(Serializer):
 
 
 class ScrubSerializer(Serializer):
+    """
+    Represents all scrubber settings, including data to be scrubbed and
+    scrubber configuration settings.
+    """
+
     # Input/Output fields
     # default implies required=False
     text = JsonDictField(
-        child=CharField(help_text=("Text to be scrubbed.")),
+        child=CharField(help_text="Text to be scrubbed."),
         help_text=(
             "The lines of text to be scrubbed, each keyed on a unique "
             "ID supplied by the caller."
         ),
     )
     patient = SpecificSerializer(
-        required=False,
-        help_text="Specific patient data to be scrubbed.",
+        required=False, help_text="Specific patient data to be scrubbed."
     )
     third_party = SpecificSerializer(
         required=False,
@@ -200,7 +217,7 @@ class ScrubSerializer(Serializer):
         default=Defaults.STRING_MAX_REGEX_ERRORS,
         initial=Defaults.STRING_MAX_REGEX_ERRORS,
         help_text=(
-            "The maximum number of typographical insertion / deletion / "
+            "The maximum number of typographical insertion/deletion/"
             "substitution errors to permit."
         ),
     )
@@ -215,7 +232,7 @@ class ScrubSerializer(Serializer):
     min_string_length_to_scrub_with = IntegerField(
         default=Defaults.MIN_STRING_LENGTH_TO_SCRUB_WITH,
         initial=Defaults.MIN_STRING_LENGTH_TO_SCRUB_WITH,
-        help_text=("Do not scrub strings shorter than this length."),
+        help_text="Do not scrub strings shorter than this length.",
     )
     scrub_string_suffixes = JsonListField(
         child=CharField(),
@@ -235,7 +252,7 @@ class ScrubSerializer(Serializer):
     replace_patient_info_with = CharField(
         default=Defaults.REPLACE_PATIENT_INFO_WITH,
         initial=Defaults.REPLACE_PATIENT_INFO_WITH,
-        help_text=("Replace sensitive patient content with this."),
+        help_text="Replace sensitive patient content with this.",
     )
     replace_third_party_info_with = CharField(
         default=Defaults.REPLACE_THIRD_PARTY_INFO_WITH,
@@ -248,13 +265,13 @@ class ScrubSerializer(Serializer):
     replace_nonspecific_info_with = CharField(
         default=Defaults.REPLACE_NONSPECIFIC_INFO_WITH,
         initial=Defaults.REPLACE_NONSPECIFIC_INFO_WITH,
-        help_text=("Replace any other sensitive content with this."),
+        help_text="Replace any other sensitive content with this.",
     )
     scrub_all_numbers_of_n_digits = JsonListField(
         child=IntegerField(),
         help_text=(
-            "Scrub all numbers with these lengths. "
-            "e.g. [10] for all UK NHS numbers."
+            "Scrub all numbers with these lengths "
+            "(e.g. [10] for all UK NHS numbers)."
         ),
         default=[],
         initial=[],
@@ -262,7 +279,7 @@ class ScrubSerializer(Serializer):
     scrub_all_uk_postcodes = BooleanField(
         default=Defaults.SCRUB_ALL_UK_POSTCODES,
         initial=Defaults.SCRUB_ALL_UK_POSTCODES,
-        help_text=("Scrub all UK postcodes."),
+        help_text="Scrub all UK postcodes.",
     )
     scrub_all_dates = BooleanField(
         default=Defaults.SCRUB_ALL_DATES,
@@ -308,6 +325,10 @@ class ScrubSerializer(Serializer):
     def _get_personalized_scrubber(
         self, data: OrderedDict
     ) -> PersonalizedScrubber:
+        """
+        Create a CRATE scrubber representing patient and third-party scrubbing
+        settings.
+        """
         hasher = make_hasher("HMAC_MD5", settings.CRATE["HASH_KEY"])
 
         options = (
@@ -343,9 +364,13 @@ class ScrubSerializer(Serializer):
 
         return scrubber
 
-    def _get_alternatives(
-        self, data: OrderedDict
-    ) -> Optional[List[List[str]]]:
+    @staticmethod
+    def _get_alternatives(data: OrderedDict) -> Optional[List[List[str]]]:
+        """
+        Returns a list of list of equivalents; see
+        :func:`crate_anon.anonymise.config.get_word_alternatives` and
+        :class:`crate_anon.anonymise.scrub.PersonalizedScrubber`.
+        """
         try:
             return [
                 [word.upper() for word in words]
@@ -354,10 +379,14 @@ class ScrubSerializer(Serializer):
         except KeyError:
             return None
 
+    @staticmethod
     def _get_allowlist(
-        self, data: OrderedDict, hasher: GenericHasher
+        data: OrderedDict, hasher: GenericHasher
     ) -> Optional[WordList]:
-
+        """
+        Returns a :class:`crate_anon.anonymise.scrub.WordList` of words to be
+        allowed through.
+        """
         try:
             allowlist_data = data["allowlist"]
         except KeyError:
@@ -381,6 +410,9 @@ class ScrubSerializer(Serializer):
     def _get_nonspecific_scrubber(
         self, data: OrderedDict, hasher: GenericHasher
     ) -> NonspecificScrubber:
+        """
+        Returns a nonspecific scrubber for the current settings.
+        """
         denylist = self._get_denylist(data, hasher)
         options = (
             "scrub_all_numbers_of_n_digits",
@@ -397,9 +429,14 @@ class ScrubSerializer(Serializer):
             replacement_text, hasher, denylist=denylist, **kwargs
         )
 
+    @staticmethod
     def _get_denylist(
-        self, data: OrderedDict, hasher: GenericHasher
+        data: OrderedDict, hasher: GenericHasher
     ) -> Optional[WordList]:
+        """
+        Returns a :class:`crate_anon.anonymise.scrub.WordList` of words to be
+        scrubbed.
+        """
         try:
             denylist_data = data["denylist"]
         except KeyError:
@@ -429,9 +466,14 @@ class ScrubSerializer(Serializer):
         # regex_method: True
         return WordList(hasher=hasher, **kwargs)
 
+    @staticmethod
     def _add_values_to_scrubber(
-        self, scrubber: PersonalizedScrubber, label: str, data: OrderedDict
+        scrubber: PersonalizedScrubber, label: str, data: OrderedDict
     ) -> None:
+        """
+        Adds values to be scrubbed to either the patient or the third-party
+        component of a scrubber.
+        """
         method_lookup = {
             "dates": ScrubMethod.DATE,
             "phrases": ScrubMethod.PHRASE,

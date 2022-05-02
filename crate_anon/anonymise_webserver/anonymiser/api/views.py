@@ -43,6 +43,7 @@ class ScrubView(APIView):
     # Only needed by drf_spectacular to generate documentation
     serializer_class = ScrubSerializer
 
+    # noinspection PyMethodMayBeStatic
     def post(self, request: Request) -> Response:
         serializer = ScrubSerializer(data=request.data)
 

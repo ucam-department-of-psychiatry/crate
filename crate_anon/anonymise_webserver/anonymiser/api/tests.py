@@ -732,7 +732,7 @@ class AnonymisationTests(TestCase):
             "scrub_all_numbers_of_n_digits": (
                 "[\u0000~\u0000~\u0000~\u0000]\u0000"
             ),
-            "scrub_all_uk_postcodes": ("[\u0000~\u0000~\u0000~\u0000]\u0000"),
+            "scrub_all_uk_postcodes": "[\u0000~\u0000~\u0000~\u0000]\u0000",
             "scrub_string_suffixes": "\u0000\u0000",
             "string_max_regex_errors": "\u0000",
             "text": "\u0000",
