@@ -31,3 +31,4 @@ Anonymisation
     data_dictionary.rst
     anonymise.rst
     anon_specific.rst
+    api.rst

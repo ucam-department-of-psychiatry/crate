@@ -29,11 +29,17 @@ docs/rebuild_docs.py
 """
 
 import argparse
+import logging
 import os
 import shutil
 import subprocess
 
 from typing import List
+
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+
+log = logging.getLogger(__name__)
+
 
 # Work out directories
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -43,6 +49,7 @@ DEST_DIRS = []  # type: List[str]
 
 
 if __name__ == "__main__":
+    main_only_quicksetup_rootlogger()
     # Remove anything old
     for destdir in [BUILD_HTML_DIR] + DEST_DIRS:
         print(f"Deleting directory {destdir!r}")
@@ -81,7 +88,20 @@ if __name__ == "__main__":
     cmdargs = ["make", "html"]
     if args.warnings_as_errors:
         cmdargs.append('SPHINXOPTS="-W"')
-    subprocess.check_call(cmdargs)
+
+    try:
+        subprocess.check_call(cmdargs)
+    except subprocess.CalledProcessError as e:
+        log.debug(
+            "\n\nTroubleshooting Sphinx/docutils errors:\n\n"
+            "Document may not end with a transition\n"
+            "--------------------------------------\n"
+            "For auto-generated code docs, ensure there is a description "
+            "beneath the row of '=' in the copyright block of the python "
+            "file.\n"
+        )
+
+        raise e
 
     # Copy
     for destdir in DEST_DIRS:
