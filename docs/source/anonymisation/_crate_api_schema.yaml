@@ -180,6 +180,7 @@ components:
   schemas:
     Allowlist:
       type: object
+      description: Represents allowlist options.
       properties:
         words:
           type: array
@@ -196,6 +197,7 @@ components:
             the server).
     Denylist:
       type: object
+      description: Represents denylist options.
       properties:
         words:
           type: array
@@ -211,6 +213,9 @@ components:
           description: Scrub words from these filename aliases (defined on the server).
     Scrub:
       type: object
+      description: |-
+        Represents all scrubber settings, including data to be scrubbed and
+        scrubber configuration settings.
       properties:
         text:
           type: object
@@ -253,8 +258,8 @@ components:
         string_max_regex_errors:
           type: integer
           default: 0
-          description: The maximum number of typographical insertion / deletion /
-            substitution errors to permit.
+          description: The maximum number of typographical insertion/deletion/substitution
+            errors to permit.
         min_string_length_for_errors:
           type: integer
           default: 3
@@ -297,8 +302,8 @@ components:
           items:
             type: integer
           default: []
-          description: Scrub all numbers with these lengths. e.g. [10] for all UK
-            NHS numbers.
+          description: Scrub all numbers with these lengths (e.g. [10] for all UK
+            NHS numbers).
         scrub_all_uk_postcodes:
           type: boolean
           default: false
@@ -330,6 +335,9 @@ components:
       - text
     Specific:
       type: object
+      description: |-
+        Represents scrubbing information about a specific person or group of people
+        (e.g. patient data, third-party data).
       properties:
         dates:
           type: array
