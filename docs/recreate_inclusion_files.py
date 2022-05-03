@@ -296,6 +296,102 @@ def main():
     log.info("Manually generated: minimal_anonymiser_config.ini")
 
     # -------------------------------------------------------------------------
+    # Anonymisation API
+    # -------------------------------------------------------------------------
+    run_cmd(
+        ["crate_anon_web_django_manage", "--help"],
+        join(DevPath.DOCS_ANON_DIR, "_crate_anon_web_django_manage_help.txt"),
+    )
+    api_schema_file = join(DevPath.DOCS_ANON_DIR, "_crate_api_schema.yaml")
+    run_cmd(["crate_anon_web_django_manage", "spectacular"], api_schema_file)
+
+    # Ideally we would use https://github.com/sphinx-contrib/openapi but it
+    # hasn't been maintained since 2020 and doesn't work with our schema.
+    # Plus the lead contributor is based in Ukraine and probably has more
+    # important things to worry about right now.
+    #
+    # So we create a static HTML page of the API docs and include this in
+    # docs/source/anonymisation/api.rst
+    try:
+        subprocess.run(
+            [
+                # npx runs npm package binaries, installing anything necessary.
+                "npx",
+                # Command, version:
+                "redoc-cli@0.13.10",
+                # ... https://www.npmjs.com/package/redoc-cli
+                # ... https://github.com/Redocly/redoc
+                # ... https://redocly.com/
+                # Args to redoc-cli:
+                "build",
+                api_schema_file,
+                # Output file:
+                "-o",
+                join(DevPath.DOCS_ANON_DIR, "_crate_api.html"),
+                # Don't display search box
+                "--options.disableSearch=true",
+                # Force single column layout
+                # https://boyter.org/static/books/CfYA-8BXEAAtz2k.jpg
+                "--options.theme.breakpoints.small=999999rem",
+                "--options.theme.breakpoints.medium=1000000rem",
+                "--options.theme.breakpoints.large=1000000rem",
+                # Do not inject Authentication section automatically:
+                "--options.noAutoAuth=true",
+                # Do not collapse response documentation:
+                "--options.expandResponses=all",
+            ],
+            check=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        log.error(
+            """Error advice:
+GENERAL SOLUTION: Install recent version of nvm:
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
+    source ~/.bashrc
+    nvm install lts/erbium
+
+IF ERROR: [Errno 2] No such file or directory: 'npx'
+EXPLANATION: You don't have (a modern version of) npm installed.
+SOLUTION: sudo apt install npm
+
+IF ERROR: Cannot find module 'libnpx'
+EXPLANATION: Your node.js installation is out of date.
+SOLUTION: sudo n stable  # update npm
+
+IF ERROR: TypeError: log.gauge.isEnabled is not a function
+EXPLANATION: Your npm/node.js installation is broken
+    (https://github.com/npm/npmlog/issues/48). Check with:
+    nodejs --version
+    npm --version
+SOLUTION: Clean/reinstall it; see https://askubuntu.com/questions/1152570/;
+    e.g.
+    sudo apt-get purge nodejs npm
+    sudo apt autoremove
+    sudo rm -rf /usr/local/bin/npm /usr/local/share/man/man1/node* ~/.npm
+    sudo rm -rf /usr/lib/node*
+    sudo rm -rf /usr/local/lib/node*
+    sudo rm -rf /usr/local/bin/node*
+    sudo rm -rf /usr/local/include/node*
+    sudo apt update
+    sudo apt install nodejs npm
+
+IF ERROR: yargs parser supports a minimum Node.js version of 12
+EXPLANATION: Out-of-date node.js
+SOLUTION:
+    sudo npm cache clean -f
+        # ... if you get:
+        #     ERROR: npm is known not to run on Node.js v10.19.0
+        # ... then do [https://askubuntu.com/questions/1382565/]:
+        #     curl -fsSL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+        #     sudo apt-get install -y nodejs
+    sudo npm install -g n
+    sudo n stable
+    sudo npm install npm@latest -g
+"""  # noqa
+        )
+        raise
+
+    # -------------------------------------------------------------------------
     # NLP
     # -------------------------------------------------------------------------
     run_cmd(
