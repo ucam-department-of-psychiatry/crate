@@ -42,8 +42,12 @@ from typing import (
     Pattern,
     Set,
     Tuple,
+    TYPE_CHECKING,
     Union,
 )
+
+if TYPE_CHECKING:
+    from re import Match
 
 from cardinal_pythonlib.datetimefunc import coerce_to_datetime
 from cardinal_pythonlib.file_io import gen_lines_without_comments
@@ -378,6 +382,24 @@ class WordList(ScrubberBase):
 # =============================================================================
 
 
+class Replacer:
+    def __init__(self, replacement_text: str) -> None:
+        self.replacement_text = replacement_text
+
+    def replace(self, match: "Match") -> str:
+        return self.replacement_text
+
+
+class CustomDateReplacer(Replacer):
+    def replace(self, match: "Match") -> str:
+        if match.group("day_month_year") is not None:
+            return datetime.datetime.strptime(
+                match.group(0), "%d %b %Y"
+            ).strftime(self.replacement_text)
+
+        return self.replacement_text
+
+
 class NonspecificScrubber(ScrubberBase):
     """
     Scrubs a bunch of things that are independent of any patient-specific data,
@@ -386,8 +408,8 @@ class NonspecificScrubber(ScrubberBase):
 
     def __init__(
         self,
-        replacement_text: str,
         hasher: GenericHasher,
+        replacement_text: str = DA.REPLACE_NONSPECIFIC_INFO_WITH,
         anonymise_codes_at_word_boundaries_only: bool = DA.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,  # noqa
         anonymise_dates_at_word_boundaries_only: bool = DA.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,  # noqa
         anonymise_numbers_at_word_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,  # noqa
@@ -395,6 +417,7 @@ class NonspecificScrubber(ScrubberBase):
         scrub_all_numbers_of_n_digits: List[int] = None,
         scrub_all_uk_postcodes: bool = DA.SCRUB_ALL_UK_POSTCODES,
         scrub_all_dates: bool = DA.SCRUB_ALL_DATES,
+        replacement_text_all_dates: Optional[str] = None,
         extra_regexes: Optional[List[str]] = None,
     ) -> None:
         """
@@ -446,6 +469,11 @@ class NonspecificScrubber(ScrubberBase):
         self.scrub_all_numbers_of_n_digits = scrub_all_numbers_of_n_digits
         self.scrub_all_uk_postcodes = scrub_all_uk_postcodes
         self.scrub_all_dates = scrub_all_dates
+
+        if replacement_text_all_dates is None:
+            replacement_text_all_dates = replacement_text
+
+        self.replacement_text_all_dates = replacement_text_all_dates
         self.extra_regexes = extra_regexes
 
         self._cached_hash = None  # type: Optional[str]
@@ -476,7 +504,10 @@ class NonspecificScrubber(ScrubberBase):
             text = self.denylist.scrub(text)
         if not self._regex:  # possible; may be blank
             return text
-        return self._regex.sub(self.replacement_text, text)
+
+        replacer = CustomDateReplacer(self.replacement_text_all_dates)
+
+        return self._regex.sub(replacer.replace, text)
 
     def build_regex(self) -> None:
         """

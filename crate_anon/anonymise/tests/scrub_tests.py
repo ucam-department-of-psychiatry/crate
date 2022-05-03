@@ -330,11 +330,26 @@ class NonspecificScrubberTests(ScrubberTestCase):
         )
 
         scrubber = NonspecificScrubber(
-            "[REDACTED]",
             self.hasher,
+            replacement_text="[REDACTED]",
             scrub_all_dates=True,
         )
 
         scrubbed = scrubber.scrub(text)
 
         self.assertEqual(scrubbed.count("[REDACTED]"), 2)
+
+    def test_scrub_all_dates_with_custom_placeholders(self) -> None:
+        custom_placeholder_tests = [
+            ("01 Feb 2022", "[%Y-%m]", "[2022-02]"),
+        ]
+
+        for (date, replacement, expected) in custom_placeholder_tests:
+            scrubber = NonspecificScrubber(
+                self.hasher,
+                replacement_text="[REDACTED]",
+                scrub_all_dates=True,
+                replacement_text_all_dates=replacement,
+            )
+
+            self.assertEqual(scrubber.scrub(date), expected)
