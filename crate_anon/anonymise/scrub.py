@@ -392,12 +392,43 @@ class Replacer:
 
 class CustomDateReplacer(Replacer):
     def replace(self, match: "Match") -> str:
-        if "day_month_year" in match.groupdict():
-            return datetime.datetime.strptime(
-                match.group(0), "%d %b %Y"
-            ).strftime(self.replacement_text)
+        date = self.parse_date(match)
+
+        if date is not None:
+            return date.strftime(self.replacement_text)
 
         return self.replacement_text
+
+    def parse_date(self, match: "Match") -> Optional[datetime.datetime]:
+        isodate_no_sep = match.groupdict().get("isodate_no_sep")
+        if isodate_no_sep is not None:
+            return datetime.datetime.strptime(match.group(0), "%Y-%m-%d")
+
+        year = match.groupdict().get("year")
+        if year is None:
+            return None
+
+        numeric_day = match.groupdict().get("numeric_day")
+        if numeric_day is None:
+            return None
+
+        numeric_month = match.groupdict().get("numeric_month")
+        if numeric_month is not None:
+            return datetime.datetime(
+                int(year), int(numeric_month), int(numeric_day)
+            )
+
+        alphabetical_month = match.groupdict().get("alphabetical_month")
+        if alphabetical_month is None:
+            return None
+
+        numeric_month = datetime.datetime.strptime(
+            alphabetical_month[:3], "%b"
+        ).month
+
+        return datetime.datetime(
+            int(year), int(numeric_month), int(numeric_day)
+        )
 
 
 class NonspecificScrubber(ScrubberBase):

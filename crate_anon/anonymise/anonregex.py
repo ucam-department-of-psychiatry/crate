@@ -228,12 +228,14 @@ def get_generic_date_regex_elements(
     two_digit_day = noncapture_group(r"0[1-9]|[12]\d|30|31")
     two_digit_month = noncapture_group(r"0[1-9]|1[0-2]")
     isodate_no_sep = year + two_digit_month + two_digit_day
+
     # Then for months as words:
+    alphabetical_months = named_capture_group(
+        "|".join([_month_word_regex_fragment(m) for m in all_month_names]),
+        "alphabetical_month",
+    )
     month = named_capture_group(
-        "|".join(
-            [numeric_month]
-            + [_month_word_regex_fragment(m) for m in all_month_names]
-        ),
+        "|".join([numeric_month] + [alphabetical_months]),
         "month",
     )
 
