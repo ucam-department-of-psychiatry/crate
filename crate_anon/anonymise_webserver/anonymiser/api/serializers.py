@@ -426,7 +426,10 @@ class ScrubSerializer(Serializer):
         # TODO: extra_regexes (might be a security no-no)
         replacement_text = data["replace_nonspecific_info_with"]
         return NonspecificScrubber(
-            replacement_text, hasher, denylist=denylist, **kwargs
+            hasher,
+            replacement_text=replacement_text,
+            denylist=denylist,
+            **kwargs
         )
 
     @staticmethod

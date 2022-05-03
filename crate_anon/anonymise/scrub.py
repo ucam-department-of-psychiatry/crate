@@ -392,7 +392,7 @@ class Replacer:
 
 class CustomDateReplacer(Replacer):
     def replace(self, match: "Match") -> str:
-        if match.group("day_month_year") is not None:
+        if "day_month_year" in match.groupdict():
             return datetime.datetime.strptime(
                 match.group(0), "%d %b %Y"
             ).strftime(self.replacement_text)
