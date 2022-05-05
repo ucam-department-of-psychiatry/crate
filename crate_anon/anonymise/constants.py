@@ -250,6 +250,7 @@ class AnonymiseConfigKeys:
     MIN_STRING_LENGTH_TO_SCRUB_WITH = "min_string_length_to_scrub_with"
     NONSPECIFIC_SCRUBBER_FIRST = "nonspecific_scrubber_first"
     PHRASE_ALTERNATIVE_WORD_FILENAMES = "phrase_alternative_word_filenames"
+    REPLACE_ALL_DATES_WITH = "replace_all_dates_with"
     REPLACE_NONSPECIFIC_INFO_WITH = "replace_nonspecific_info_with"
     REPLACE_PATIENT_INFO_WITH = "replace_patient_info_with"
     REPLACE_THIRD_PARTY_INFO_WITH = "replace_third_party_info_with"
@@ -314,6 +315,7 @@ class AnonymiseConfigDefaults:
     MIN_STRING_LENGTH_FOR_ERRORS = 3
     MIN_STRING_LENGTH_TO_SCRUB_WITH = 2
     NONSPECIFIC_SCRUBBER_FIRST = False
+    REPLACE_ALL_DATES_WITH = "[~~~]"
     REPLACE_NONSPECIFIC_INFO_WITH = "[~~~]"
     REPLACE_PATIENT_INFO_WITH = "[__PPP__]"
     REPLACE_THIRD_PARTY_INFO_WITH = "[__TTT__]"
@@ -495,6 +497,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 # -----------------------------------------------------------------------------
 
 {_AK.ALLOW_NO_PATIENT_INFO} = {_DA.ALLOW_NO_PATIENT_INFO}
+{_AK.REPLACE_ALL_DATES_WITH} = {_DA.REPLACE_ALL_DATES_WITH}
 {_AK.REPLACE_PATIENT_INFO_WITH} = {_DA.REPLACE_PATIENT_INFO_WITH}
 {_AK.REPLACE_THIRD_PARTY_INFO_WITH} = {_DA.REPLACE_THIRD_PARTY_INFO_WITH}
 {_AK.REPLACE_NONSPECIFIC_INFO_WITH} = {_DA.REPLACE_NONSPECIFIC_INFO_WITH}

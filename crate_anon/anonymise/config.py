@@ -733,6 +733,9 @@ class Config(object):
         self.phrase_alternative_word_filenames = cfg.opt_multiline(
             AK.PHRASE_ALTERNATIVE_WORD_FILENAMES
         )
+        self.replace_all_dates_with = cfg.opt_str(
+            AK.REPLACE_ALL_DATES_WITH, DA.REPLACE_ALL_DATES_WITH
+        )
         self.replace_patient_info_with = cfg.opt_str(
             AK.REPLACE_PATIENT_INFO_WITH, DA.REPLACE_PATIENT_INFO_WITH
         )
@@ -812,6 +815,7 @@ class Config(object):
             scrub_all_numbers_of_n_digits=self.scrub_all_numbers_of_n_digits,
             scrub_all_uk_postcodes=self.scrub_all_uk_postcodes,
             scrub_all_dates=self.scrub_all_dates,
+            replacement_text_all_dates=self.replace_all_dates_with,
             extra_regexes=self.extra_regexes,
         )
         self.phrase_alternative_words = get_word_alternatives(

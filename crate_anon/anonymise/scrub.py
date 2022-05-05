@@ -392,13 +392,17 @@ class Replacer:
 
 
 class CustomDateReplacer(Replacer):
+    def __init__(self, replacement_text: str, replacement_text_all_dates: str):
+        super().__init__(replacement_text)
+
+        self.replacement_text_all_dates = replacement_text_all_dates
+
     def replace(self, match: "Match") -> str:
         date = self.parse_date(match)
-
         if date is not None:
-            return date.strftime(self.replacement_text)
+            return date.strftime(self.replacement_text_all_dates)
 
-        return self.replacement_text
+        return super().replace(match)
 
     def parse_date(self, match: "Match") -> Optional[datetime.datetime]:
         isodate_no_sep = match.groupdict().get("isodate_no_sep")
@@ -449,7 +453,7 @@ class NonspecificScrubber(ScrubberBase):
         scrub_all_numbers_of_n_digits: List[int] = None,
         scrub_all_uk_postcodes: bool = DA.SCRUB_ALL_UK_POSTCODES,
         scrub_all_dates: bool = DA.SCRUB_ALL_DATES,
-        replacement_text_all_dates: Optional[str] = None,
+        replacement_text_all_dates: str = DA.REPLACE_ALL_DATES_WITH,
         extra_regexes: Optional[List[str]] = None,
     ) -> None:
         """
@@ -502,9 +506,6 @@ class NonspecificScrubber(ScrubberBase):
         self.scrub_all_uk_postcodes = scrub_all_uk_postcodes
         self.scrub_all_dates = scrub_all_dates
 
-        if replacement_text_all_dates is None:
-            replacement_text_all_dates = replacement_text
-
         self.replacement_text_all_dates = replacement_text_all_dates
         self.check_replacement_text_all_dates()
 
@@ -551,7 +552,9 @@ class NonspecificScrubber(ScrubberBase):
         if not self._regex:  # possible; may be blank
             return text
 
-        replacer = CustomDateReplacer(self.replacement_text_all_dates)
+        replacer = CustomDateReplacer(
+            self.replacement_text, self.replacement_text_all_dates
+        )
 
         return self._regex.sub(replacer.replace, text)
 
