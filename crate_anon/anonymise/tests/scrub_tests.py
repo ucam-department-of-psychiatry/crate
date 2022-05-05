@@ -317,7 +317,7 @@ class NonspecificScrubberTests(ScrubberTestCase):
         self.fake = Faker(["en-GB"])
         self.fake.seed_instance(1234)
 
-    def test_scrub_all_dates(self) -> None:
+    def test_all_dates_scrubbed(self) -> None:
         date_of_birth_1 = self.fake.date_of_birth()
         date_string_1 = date_of_birth_1.strftime("%d %b %Y")
 
@@ -339,23 +339,68 @@ class NonspecificScrubberTests(ScrubberTestCase):
 
         self.assertEqual(scrubbed.count("[REDACTED]"), 2)
 
-    def test_scrub_all_dates_with_custom_placeholders(self) -> None:
+    def test_all_dates_in_supported_formats_blurred(self) -> None:
+        text = "01 Feb 2003, 4/5/2006, 7/31/2008, 8th Sept 2010, 2011-12-13"
+        expected = "Feb 2003, May 2006, Jul 2008, Sep 2010, Dec 2011"
+
+        scrubber = NonspecificScrubber(
+            self.hasher,
+            scrub_all_dates=True,
+            replacement_text_all_dates="%b %Y",
+        )
+
+        self.assertEqual(scrubber.scrub(text), expected)
+
+    def test_scrub_all_dates_with_(self) -> None:
         custom_placeholder_tests = [
-            ("01 Feb 2022", "[%Y-%m]", "[2022-02]"),
-            ("1/2/2022", "[%B, %Y]", "[February, 2022]"),
-            ("2/28/2022", "[%b '%y]", "[Feb '22]"),
-            ("1st Sept 2022", "[%Y]", "[2022]"),
-            ("2022-02-01", "[%b %Y]", "[Feb 2022]"),
+            ("[%Y-%m]", "[2022-02]"),
+            ("[%B, %Y]", "[February, 2022]"),
+            ("[%b '%y]", "[Feb '22]"),
+            ("[%Y]", "[2022]"),
+            ("[%b %Y]", "[Feb 2022]"),
         ]
 
-        for (date, replacement, expected) in custom_placeholder_tests:
+        for (replacement, expected) in custom_placeholder_tests:
             scrubber = NonspecificScrubber(
                 self.hasher,
                 scrub_all_dates=True,
                 replacement_text_all_dates=replacement,
             )
 
-            self.assertEqual(scrubber.scrub(date), expected)
+            self.assertEqual(scrubber.scrub("2022-02-28"), expected)
 
-    # TODO: Don't allow format string to be too precise
+    def test_raises_for_unsupported_date_formats(self) -> None:
+        bad_formats = [
+            "%a",
+            "%A",
+            "%w",
+            "%d",
+            "%H",
+            "%I",
+            "%p",
+            "%M",
+            "%S",
+            "%f",
+            "%z",
+            "%Z",
+            "%j",
+            "%U",
+            "%W",
+            "%c",
+            "%x",
+            "%X",
+            "%G",
+            "%u",
+            "%V",
+        ]
+
+        for replacement in bad_formats:
+            with self.assertRaises(ValueError):
+                NonspecificScrubber(
+                    self.hasher,
+                    scrub_all_dates=True,
+                    replacement_text_all_dates=replacement,
+                )
+
     # TODO: Optimisation
+    # TODO: API

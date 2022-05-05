@@ -31,6 +31,7 @@ crate_anon/anonymise/scrub.py
 from collections import OrderedDict
 import datetime
 import logging
+import re
 import string
 from typing import (
     Any,
@@ -505,12 +506,26 @@ class NonspecificScrubber(ScrubberBase):
             replacement_text_all_dates = replacement_text
 
         self.replacement_text_all_dates = replacement_text_all_dates
+        self.check_replacement_text_all_dates()
+
         self.extra_regexes = extra_regexes
 
         self._cached_hash = None  # type: Optional[str]
         self._regex = None  # type: Optional[Pattern[str]]
         self._regex_built = False
         self.build_regex()
+
+    def check_replacement_text_all_dates(self) -> None:
+        allowed_directives = ("b", "B", "m", "Y", "y")
+        allowed_csv = ", ".join([f"%{d}" for d in allowed_directives])
+
+        if re.match(
+            rf"%[^{allowed_directives}]", self.replacement_text_all_dates
+        ):
+            raise ValueError(
+                f"Bad format '{self.replacement_text_all_dates}' "
+                f"for date scrubbing. Allowed directives are: {allowed_csv}"
+            )
 
     def get_hash(self) -> str:
         # docstring in parent class
