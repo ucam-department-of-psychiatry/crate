@@ -403,7 +403,7 @@ class CustomDateReplacer(Replacer):
     def parse_date(self, match: "Match") -> Optional[datetime.datetime]:
         isodate_no_sep = match.groupdict().get("isodate_no_sep")
         if isodate_no_sep is not None:
-            return datetime.datetime.strptime(match.group(0), "%Y-%m-%d")
+            return datetime.datetime.strptime(match.group(0), "%Y%m%d")
 
         year = match.groupdict().get("year")
         if year is None:
