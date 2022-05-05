@@ -404,3 +404,4 @@ class NonspecificScrubberTests(ScrubberTestCase):
 
     # TODO: Optimisation
     # TODO: API
+    # TODO: Config option

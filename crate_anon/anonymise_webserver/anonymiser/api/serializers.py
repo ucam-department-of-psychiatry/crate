@@ -267,6 +267,15 @@ class ScrubSerializer(Serializer):
         initial=Defaults.REPLACE_NONSPECIFIC_INFO_WITH,
         help_text="Replace any other sensitive content with this.",
     )
+    replace_all_dates_with = CharField(
+        required=False,
+        help_text=(
+            "When scrubbing all dates, replace with this text. If the "
+            "replacement text includes supported datetime.directives "
+            "(%b, %B, %m, %Y, %y), the date is 'blurred' to include just "
+            "those components."
+        ),
+    )
     scrub_all_numbers_of_n_digits = JsonListField(
         child=IntegerField(),
         help_text=(
@@ -425,6 +434,14 @@ class ScrubSerializer(Serializer):
 
         # TODO: extra_regexes (might be a security no-no)
         replacement_text = data["replace_nonspecific_info_with"]
+
+        try:
+            kwargs["replacement_text_all_dates"] = data[
+                "replace_all_dates_with"
+            ]
+        except KeyError:
+            pass
+
         return NonspecificScrubber(
             hasher,
             replacement_text=replacement_text,

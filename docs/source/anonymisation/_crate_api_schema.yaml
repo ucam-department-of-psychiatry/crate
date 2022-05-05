@@ -297,6 +297,11 @@ components:
           type: string
           default: '[~~~]'
           description: Replace any other sensitive content with this.
+        replace_all_dates_with:
+          type: string
+          description: When scrubbing all dates, replace with this text. If the replacement
+            text includes supported datetime.directives (%b, %B, %m, %Y, %y), the
+            date is 'blurred' to include just those components.
         scrub_all_numbers_of_n_digits:
           type: array
           items:
