@@ -393,18 +393,39 @@ class Replacer:
         return self.replacement_text
 
 
-class CustomDateReplacer(Replacer):
+class NonspecificReplacer(Replacer):
     def __init__(self, replacement_text: str, replacement_text_all_dates: str):
         super().__init__(replacement_text)
 
         self.replacement_text_all_dates = replacement_text_all_dates
+        self.slow_date_replacement = "%" in replacement_text_all_dates
 
     def replace(self, match: "Match") -> str:
-        date = self.parse_date(match)
-        if date is not None:
-            return date.strftime(self.replacement_text_all_dates)
+        if self.slow_date_replacement:
+            date = self.parse_date(match)
+            if date is not None:
+                return date.strftime(self.replacement_text_all_dates)
+
+        else:
+            if self.is_a_date(match):
+                return self.replacement_text_all_dates
 
         return super().replace(match)
+
+    def is_a_date(self, match: "Match") -> bool:
+        if "day_month_year" in match.groupdict():
+            return True
+
+        if "month_day_year" in match.groupdict():
+            return True
+
+        if "year_month_day" in match.groupdict():
+            return True
+
+        if "isodate_no_sep" in match.groupdict():
+            return True
+
+        return False
 
     def parse_date(self, match: "Match") -> Optional[datetime.datetime]:
         isodate_no_sep = match.groupdict().get("isodate_no_sep")
@@ -510,6 +531,7 @@ class NonspecificScrubber(ScrubberBase):
 
         self.replacement_text_all_dates = replacement_text_all_dates
         self.check_replacement_text_all_dates()
+        self.replacer = self.get_replacer()
 
         self.extra_regexes = extra_regexes
 
@@ -517,6 +539,14 @@ class NonspecificScrubber(ScrubberBase):
         self._regex = None  # type: Optional[Pattern[str]]
         self._regex_built = False
         self.build_regex()
+
+    def get_replacer(self) -> Replacer:
+        if self.replacement_text == self.replacement_text_all_dates:
+            return Replacer(self.replacement_text)
+
+        return NonspecificReplacer(
+            self.replacement_text, self.replacement_text_all_dates
+        )
 
     def check_replacement_text_all_dates(self) -> None:
         if re.match(
@@ -552,11 +582,7 @@ class NonspecificScrubber(ScrubberBase):
         if not self._regex:  # possible; may be blank
             return text
 
-        replacer = CustomDateReplacer(
-            self.replacement_text, self.replacement_text_all_dates
-        )
-
-        return self._regex.sub(replacer.replace, text)
+        return self._regex.sub(self.replacer.replace, text)
 
     def build_regex(self) -> None:
         """
