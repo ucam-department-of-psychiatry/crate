@@ -340,8 +340,11 @@ class NonspecificScrubberTests(ScrubberTestCase):
         self.assertEqual(scrubbed.count("[REDACTED]"), 2)
 
     def test_all_dates_in_supported_formats_blurred(self) -> None:
-        text = "01 Feb 2003, 4/5/2006, 7/31/2008, 8th Sept 2010, 20111213"
-        expected = "Feb 2003, May 2006, Jul 2008, Sep 2010, Dec 2011"
+        text = (
+            "01 Feb 2003, 4/5/2006, 7/31/2008, 8th Sept 2010, 2011-12-13, "
+            "20160718"
+        )
+        expected = "Feb 2003, May 2006, Jul 2008, Sep 2010, Dec 2011, Jul 2016"
 
         scrubber = NonspecificScrubber(
             self.hasher,
