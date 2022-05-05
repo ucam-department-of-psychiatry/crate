@@ -108,6 +108,21 @@ MAX_TRID = 2**31 - 1
 #                            +9223372036854775807 == 2 ** 64 - 1
 
 
+# When scrub_all_dates is True and the replacement text is a date format
+# string, allow these directives.
+# https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
+DATE_BLURRING_DIRECTIVES = (
+    "b",  # Month as locale's abbreviated name
+    "B",  # Month as locale's full name
+    "m",  # Month as zero-padded decimal number
+    "Y",  # Year with century as decimal number
+    "y",  # Year without century as zero-padded decimal number
+)
+DATE_BLURRING_DIRECTIVES_CSV = ", ".join(
+    [f"%{d}" for d in DATE_BLURRING_DIRECTIVES]
+)
+
+
 @unique
 class AlterMethodType(StrEnum):
     BINARY_TO_TEXT = "binary_to_text"

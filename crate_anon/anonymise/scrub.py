@@ -67,6 +67,8 @@ from crate_anon.common.bugfix_flashtext import KeywordProcessorFixed
 # noinspection PyPep8Naming
 from crate_anon.anonymise.constants import (
     AnonymiseConfigDefaults as DA,
+    DATE_BLURRING_DIRECTIVES,
+    DATE_BLURRING_DIRECTIVES_CSV,
     ScrubMethod,
 )
 from crate_anon.anonymise.anonregex import (
@@ -517,15 +519,13 @@ class NonspecificScrubber(ScrubberBase):
         self.build_regex()
 
     def check_replacement_text_all_dates(self) -> None:
-        allowed_directives = ("b", "B", "m", "Y", "y")
-        allowed_csv = ", ".join([f"%{d}" for d in allowed_directives])
-
         if re.match(
-            rf"%[^{allowed_directives}]", self.replacement_text_all_dates
+            rf"%[^{DATE_BLURRING_DIRECTIVES}]", self.replacement_text_all_dates
         ):
             raise ValueError(
-                f"Bad format '{self.replacement_text_all_dates}' "
-                f"for date scrubbing. Allowed directives are: {allowed_csv}"
+                f"Bad format '{self.replacement_text_all_dates}' for date "
+                "scrubbing. Allowed directives are: "
+                f"{DATE_BLURRING_DIRECTIVES_CSV}"
             )
 
     def get_hash(self) -> str:

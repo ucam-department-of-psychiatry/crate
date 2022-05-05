@@ -44,6 +44,7 @@ from rest_framework.serializers import (
 
 from crate_anon.anonymise.constants import (
     AnonymiseConfigDefaults as Defaults,
+    DATE_BLURRING_DIRECTIVES_CSV,
     ScrubMethod,
 )
 from crate_anon.anonymise.scrub import (
@@ -272,8 +273,8 @@ class ScrubSerializer(Serializer):
         help_text=(
             "When scrubbing all dates, replace with this text. If the "
             "replacement text includes supported datetime.directives "
-            "(%b, %B, %m, %Y, %y), the date is 'blurred' to include just "
-            "those components."
+            f"({DATE_BLURRING_DIRECTIVES_CSV}), the date is 'blurred' "
+            "to include just those components."
         ),
     )
     scrub_all_numbers_of_n_digits = JsonListField(
@@ -364,7 +365,7 @@ class ScrubSerializer(Serializer):
             nonspecific_scrubber=self._get_nonspecific_scrubber(data, hasher),
             allowlist=self._get_allowlist(data, hasher),
             alternatives=self._get_alternatives(data),
-            **kwargs
+            **kwargs,
         )
 
         for label in ("patient", "third_party"):
@@ -446,7 +447,7 @@ class ScrubSerializer(Serializer):
             hasher,
             replacement_text=replacement_text,
             denylist=denylist,
-            **kwargs
+            **kwargs,
         )
 
     @staticmethod
