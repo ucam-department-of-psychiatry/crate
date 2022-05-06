@@ -387,6 +387,12 @@ class WordList(ScrubberBase):
 
 
 class Replacer:
+    """
+    Custom regex replacement called from regex.sub().
+    This base class doesn't do much and is the equivalent of just passing the
+    replacement text to regex.sub().
+    """
+
     def __init__(self, replacement_text: str) -> None:
         self.replacement_text = replacement_text
 
@@ -395,6 +401,12 @@ class Replacer:
 
 
 class NonspecificReplacer(Replacer):
+    """
+    Custom regex replacement for the Nonspecific scrubber. Currently this
+    will "blur" dates if replacement_text_all_dates contains any formatting
+    directives.
+    """
+
     def __init__(self, replacement_text: str, replacement_text_all_dates: str):
         super().__init__(replacement_text)
 
@@ -605,7 +617,6 @@ class NonspecificScrubber(ScrubberBase):
             text = self.denylist.scrub(text)
         if not self._regex:  # possible; may be blank
             return text
-
         return self._regex.sub(self.replacer.replace, text)
 
     def build_regex(self) -> None:
