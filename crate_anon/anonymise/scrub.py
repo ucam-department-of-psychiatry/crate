@@ -401,39 +401,38 @@ class NonspecificReplacer(Replacer):
         self.slow_date_replacement = "%" in replacement_text_all_dates
 
     def replace(self, match: "Match") -> str:
+        if not self.is_a_date(match):
+            return super().replace(match)
+
         if self.slow_date_replacement:
             date = self.parse_date(match)
             if date is not None:
                 return date.strftime(self.replacement_text_all_dates)
 
-        else:
-            if self.is_a_date(match):
-                return self.replacement_text_all_dates
-
-        return super().replace(match)
+        return self.replacement_text_all_dates
 
     def is_a_date(self, match: "Match") -> bool:
-        if "day_month_year" in match.groupdict():
+        if match.groupdict().get("day_month_year") is not None:
             return True
 
-        if "month_day_year" in match.groupdict():
+        if match.groupdict().get("month_day_year") is not None:
             return True
 
-        if "year_month_day" in match.groupdict():
+        if match.groupdict().get("year_month_day") is not None:
             return True
 
-        if "isodate_no_sep" in match.groupdict():
+        if match.groupdict().get("isodate_no_sep") is not None:
             return True
 
         return False
 
     def parse_date(self, match: "Match") -> Optional[datetime.datetime]:
         """
-        If we're scrubbing a date, retrieve it for blurring.
+        Retrieve a date from the Match object for blurring.
 
         Valid regex group name combinations:
 
-        "isodate_no_sep": "four_digit_year"
+        "isodate_no_sep": "four_digit_year",
 
         "day_month_year": "numeric_day", "numeric_month", "two_digit_year",
         "day_month_year": "numeric_day", "numeric_month", "four_digit_year",
@@ -456,15 +455,14 @@ class NonspecificReplacer(Replacer):
 
         year = match.groupdict().get("four_digit_year")
         if year is None:
-            two_digit_year = match.groupdict().get("two_digit_year")
-            if two_digit_year is None:
-                return None
+            two_digit_year = match.group("two_digit_year")
 
+            # Will convert:
+            #    00-68 -> 2000-2068
+            #    69-99 -> 1969-1999
             year = datetime.datetime.strptime(two_digit_year, "%y").year
 
-        numeric_day = match.groupdict().get("numeric_day")
-        if numeric_day is None:
-            return None
+        numeric_day = match.group("numeric_day")
 
         numeric_month = match.groupdict().get("numeric_month")
         if numeric_month is not None:
@@ -472,10 +470,7 @@ class NonspecificReplacer(Replacer):
                 int(year), int(numeric_month), int(numeric_day)
             )
 
-        alphabetical_month = match.groupdict().get("alphabetical_month")
-        if alphabetical_month is None:
-            return None
-
+        alphabetical_month = match.group("alphabetical_month")
         numeric_month = datetime.datetime.strptime(
             alphabetical_month[:3], "%b"
         ).month

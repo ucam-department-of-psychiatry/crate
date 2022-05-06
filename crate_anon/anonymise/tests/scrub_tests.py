@@ -369,6 +369,17 @@ class NonspecificScrubberTests(ScrubberTestCase):
                 scrubber.scrub(text), expected, msg=f"test: {text}"
             )
 
+    def test_non_dates_scrubbed(self) -> None:
+        scrubber = NonspecificScrubber(
+            self.hasher,
+            scrub_all_uk_postcodes=True,
+            scrub_all_dates=True,
+            replacement_text="[REDACTED]",
+            replacement_text_all_dates="%b %Y",
+        )
+
+        self.assertEqual(scrubber.scrub(self.fake.postcode()), "[REDACTED]")
+
     def test_scrub_all_dates_with_replacement(self) -> None:
         custom_placeholder_tests = [
             ("[%Y-%m]", "[2022-02]"),
