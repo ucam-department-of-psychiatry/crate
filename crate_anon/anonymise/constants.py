@@ -28,6 +28,7 @@ crate_anon/anonymise/constants.py
 
 """
 
+import calendar
 from enum import unique
 
 from sqlalchemy import Integer
@@ -121,6 +122,15 @@ DATE_BLURRING_DIRECTIVES = (
 DATE_BLURRING_DIRECTIVES_CSV = ", ".join(
     [f"%{d}" for d in DATE_BLURRING_DIRECTIVES]
 )
+
+# https://stackoverflow.com/questions/3418050/month-name-to-month-number-and-vice-versa-in-python
+MONTH_3_LETTER_INDEX = {
+    # See _month_word_regex_fragment() in anonregex.py
+    # Assuming this may not be the same as calendar.month_abbr in some locales
+    month[:3]: index
+    for index, month in enumerate(calendar.month_name)
+    if month
+}
 
 
 @unique

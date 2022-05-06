@@ -69,6 +69,7 @@ from crate_anon.anonymise.constants import (
     AnonymiseConfigDefaults as DA,
     DATE_BLURRING_DIRECTIVES,
     DATE_BLURRING_DIRECTIVES_CSV,
+    MONTH_3_LETTER_INDEX,
     ScrubMethod,
 )
 from crate_anon.anonymise.anonregex import (
@@ -474,10 +475,8 @@ class NonspecificReplacer(Replacer):
                 int(year), int(numeric_month), int(numeric_day)
             )
 
-        alphabetical_month = match.group("alphabetical_month")
-        numeric_month = datetime.datetime.strptime(
-            alphabetical_month[:3], "%b"
-        ).month
+        three_letter_month = match.group("alphabetical_month")[:3]
+        numeric_month = MONTH_3_LETTER_INDEX.get(three_letter_month)
 
         return datetime.datetime(
             int(year), int(numeric_month), int(numeric_day)

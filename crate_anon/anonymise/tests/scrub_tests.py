@@ -341,6 +341,7 @@ class NonspecificScrubberTests(ScrubberTestCase):
 
     def test_all_dates_in_supported_formats_blurred(self) -> None:
         tests = (
+            ("01 February 2003", "Feb 2003"),
             ("01 Feb 2003", "Feb 2003"),
             ("01 Feb 00", "Feb 2000"),
             ("01 Feb 69", "Feb 1969"),
