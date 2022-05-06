@@ -340,11 +340,23 @@ class NonspecificScrubberTests(ScrubberTestCase):
         self.assertEqual(scrubbed.count("[REDACTED]"), 2)
 
     def test_all_dates_in_supported_formats_blurred(self) -> None:
-        text = (
-            "01 Feb 2003, 4/5/2006, 7/31/2008, 8th Sept 2010, 2011-12-13, "
-            "20160718"
+        tests = (
+            ("01 Feb 2003", "Feb 2003"),
+            ("01 Feb 00", "Feb 2000"),
+            ("01 Feb 69", "Feb 1969"),
+            ("01 Feb 99", "Feb 1999"),
+            ("4/5/2006", "May 2006"),
+            ("4/5/99", "May 1999"),
+            ("7/31/2008", "Jul 2008"),
+            ("7/31/99", "Jul 1999"),
+            ("8th Sept 2010", "Sep 2010"),
+            ("8th Sept 99", "Sep 1999"),
+            ("7/31/2008", "Jul 2008"),
+            ("7/31/99", "Jul 1999"),
+            ("2011-12-13", "Dec 2011"),
+            ("99-12-13", "Dec 1999"),
+            ("20160718", "Jul 2016"),
         )
-        expected = "Feb 2003, May 2006, Jul 2008, Sep 2010, Dec 2011, Jul 2016"
 
         scrubber = NonspecificScrubber(
             self.hasher,
@@ -352,7 +364,10 @@ class NonspecificScrubberTests(ScrubberTestCase):
             replacement_text_all_dates="%b %Y",
         )
 
-        self.assertEqual(scrubber.scrub(text), expected)
+        for (text, expected) in tests:
+            self.assertEqual(
+                scrubber.scrub(text), expected, msg=f"test: {text}"
+            )
 
     def test_scrub_all_dates_with_replacement(self) -> None:
         custom_placeholder_tests = [

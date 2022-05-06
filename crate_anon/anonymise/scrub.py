@@ -428,13 +428,39 @@ class NonspecificReplacer(Replacer):
         return False
 
     def parse_date(self, match: "Match") -> Optional[datetime.datetime]:
+        """
+        If we're scrubbing a date, retrieve it for blurring.
+
+        Valid regex group name combinations:
+
+        "isodate_no_sep": "four_digit_year"
+
+        "day_month_year": "numeric_day", "numeric_month", "two_digit_year",
+        "day_month_year": "numeric_day", "numeric_month", "four_digit_year",
+        "day_month_year": "numeric_day", "alphabetical_month", "two_digit_year",
+        "day_month_year": "numeric_day", "alphabetical_month", "four_digit_year",
+
+        "month_day_year": "numeric_day", "numeric_month", "two_digit_year",
+        "month_day_year": "numeric_day", "numeric_month", "four_digit_year",
+        "month_day_year": "numeric_day", "alphabetical_month", "two_digit_year",
+        "month_day_year": "numeric_day", "alphabetical_month", "four_digit_year",
+
+        "year_month_day": "numeric_day", "numeric_month", "two_digit_year",
+        "year_month_day": "numeric_day", "numeric_month", "four_digit_year",
+        "year_month_day": "numeric_day", "alphabetical_month", "two_digit_year",
+        "year_month_day": "numeric_day", "alphabetical_month", "four_digit_year",
+        """  # noqa: E501
         isodate_no_sep = match.groupdict().get("isodate_no_sep")
         if isodate_no_sep is not None:
             return datetime.datetime.strptime(match.group(0), "%Y%m%d")
 
-        year = match.groupdict().get("year")
+        year = match.groupdict().get("four_digit_year")
         if year is None:
-            return None
+            two_digit_year = match.groupdict().get("two_digit_year")
+            if two_digit_year is None:
+                return None
+
+            year = datetime.datetime.strptime(two_digit_year, "%y").year
 
         numeric_day = match.groupdict().get("numeric_day")
         if numeric_day is None:

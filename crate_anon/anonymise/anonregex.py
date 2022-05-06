@@ -210,7 +210,9 @@ def get_generic_date_regex_elements(
     # range [1, 12]
     numeric_month = named_capture_group(r"0?[1-9]|1[0-2]", "numeric_month")
     # a 2-digit or 4-digit number
-    year = named_capture_group(r"\d{4}|\d{2}", "year")
+    two_digit_year = named_capture_group(r"\d{2}", "two_digit_year")
+    four_digit_year = named_capture_group(r"\d{4}", "four_digit_year")
+    year = named_capture_group(rf"{two_digit_year}|{four_digit_year}", "year")
     sep = r"[^\w\d\r\n:]"  # an active separator
     # ^ = anything not in the set
     # \w = word (alphanumeric and underscore)
@@ -227,7 +229,7 @@ def get_generic_date_regex_elements(
     # ISO dates:
     two_digit_day = noncapture_group(r"0[1-9]|[12]\d|30|31")
     two_digit_month = noncapture_group(r"0[1-9]|1[0-2]")
-    isodate_no_sep = year + two_digit_month + two_digit_day
+    isodate_no_sep = four_digit_year + two_digit_month + two_digit_day
 
     # Then for months as words:
     alphabetical_months = named_capture_group(
