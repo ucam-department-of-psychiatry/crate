@@ -240,13 +240,13 @@ def get_generic_date_regex_elements(
 
     basic_regexes = [
         named_capture_group(
-            f"{day}{sep}{month}{sep}{year}", "day_month_year"  # e.g. UK
+            day + sep + month + sep + year, "day_month_year"  # e.g. UK
         ),
         named_capture_group(
-            f"{month}{sep}{day}{sep}{year}", "month_day_year"  # e.g. USA
+            month + sep + day + sep + year, "month_day_year"  # e.g. USA
         ),
         named_capture_group(
-            f"{year}{sep}{month}{sep}{day}", "year_month_day"  # e.g. ISO
+            year + sep + month + sep + day, "year_month_day"  # e.g. ISO
         ),
         named_capture_group(
             isodate_no_sep, "isodate_no_sep"  # ISO with no separators
