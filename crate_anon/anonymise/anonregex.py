@@ -240,10 +240,18 @@ def get_generic_date_regex_elements(
     )
 
     basic_regexes = [
-        f"(?P<day_month_year>{day}{sep}{month}{sep}{year})",  # e.g. UK
-        f"(?P<month_day_year>{month}{sep}{day}{sep}{year})",  # e.g. USA
-        f"(?P<year_month_day>{year}{sep}{month}{sep}{day})",  # e.g. ISO
-        f"(?P<isodate_no_sep>{isodate_no_sep})",  # ISO with no separators
+        named_capture_group(
+            f"{day}{sep}{month}{sep}{year}", "day_month_year"  # e.g. UK
+        ),
+        named_capture_group(
+            f"{month}{sep}{day}{sep}{year}", "month_day_year"  # e.g. USA
+        ),
+        named_capture_group(
+            f"{year}{sep}{month}{sep}{day}", "year_month_day"  # e.g. ISO
+        ),
+        named_capture_group(
+            isodate_no_sep, "isodate_no_sep"  # ISO with no separators
+        ),
     ]
     if at_word_boundaries_only:
         return [WB + x + WB for x in basic_regexes]
