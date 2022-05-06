@@ -528,6 +528,10 @@ class NonspecificScrubber(ScrubberBase):
             scrub_all_dates:
                 Scrub all dates? (Currently assumes the default locale for
                 month names and ordinal suffixes.)
+            replacement_text_all_dates:
+                When scrub_all_dates is True, replace with this text.
+                Supports limited datetime.strftime directives for "blurring" of
+                dates. Example: "%b %Y" for abbreviated month and year.
             extra_regexes:
                 List of user-defined extra regexes to scrub.
         """  # noqa

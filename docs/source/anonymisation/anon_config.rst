@@ -366,6 +366,18 @@ replaced by this. For example, ``YYYYYY`` or ``[...]`` or ``[__TTT__]`` or
 ``[__QQQ__]``.
 
 
+.. _replace_all_dates_with:
+
+replace_all_dates_with
+######################
+
+*String.* Default: ``[~~~]``.
+
+When scrub_all_dates_ is True, replace with this text.
+Supports limited ``datetime.strftime`` directives for "blurring" of
+dates. Example: ``%b %Y`` for abbreviated month and year.
+
+
 thirdparty_xref_max_depth
 #########################
 
@@ -672,7 +684,9 @@ removed, including:
     At present, the ordinal suffixes ("st", "nd", "rd", "th") are fixed to
     English, as are the month names ("January", "February", ...).
 
-See also anonymise_dates_at_word_boundaries_only_.
+See also:
+  * replace_all_dates_with_
+  * anonymise_dates_at_word_boundaries_only_.
 
 
 .. _nonspecific_scrubber_first:
