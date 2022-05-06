@@ -402,19 +402,19 @@ class NonspecificReplacer(Replacer):
         self.slow_date_replacement = "%" in replacement_text_all_dates
 
     def replace(self, match: "Match") -> str:
-        if not self.is_a_date(match):
+        groupdict = match.groupdict()
+        if not self.is_a_date(groupdict):
             return super().replace(match)
 
         if self.slow_date_replacement:
-            date = self.parse_date(match)
+            date = self.parse_date(match, groupdict)
             if date is not None:
                 return date.strftime(self.replacement_text_all_dates)
 
         return self.replacement_text_all_dates
 
-    def is_a_date(self, match: "Match") -> bool:
-        groupdict = match.groupdict()
-
+    @staticmethod
+    def is_a_date(groupdict: Dict[str, Any]) -> bool:
         if groupdict.get("day_month_year") is not None:
             return True
 
@@ -429,7 +429,10 @@ class NonspecificReplacer(Replacer):
 
         return False
 
-    def parse_date(self, match: "Match") -> Optional[datetime.datetime]:
+    @staticmethod
+    def parse_date(
+        match: "Match", groupdict: Dict[str, Any]
+    ) -> Optional[datetime.datetime]:
         """
         Retrieve a date from the Match object for blurring.
 
@@ -452,8 +455,6 @@ class NonspecificReplacer(Replacer):
         "year_month_day": "numeric_day", "alphabetical_month", "two_digit_year",
         "year_month_day": "numeric_day", "alphabetical_month", "four_digit_year",
         """  # noqa: E501
-        groupdict = match.groupdict()
-
         isodate_no_sep = groupdict.get("isodate_no_sep")
         if isodate_no_sep is not None:
             return datetime.datetime.strptime(match.group(0), "%Y%m%d")
