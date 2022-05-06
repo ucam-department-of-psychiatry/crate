@@ -470,13 +470,9 @@ class NonspecificReplacer(Replacer):
         numeric_day = match.group("numeric_day")
 
         numeric_month = groupdict.get("numeric_month")
-        if numeric_month is not None:
-            return datetime.datetime(
-                int(year), int(numeric_month), int(numeric_day)
-            )
-
-        three_letter_month = match.group("alphabetical_month")[:3]
-        numeric_month = MONTH_3_LETTER_INDEX.get(three_letter_month)
+        if numeric_month is None:
+            three_letter_month = match.group("alphabetical_month")[:3]
+            numeric_month = MONTH_3_LETTER_INDEX.get(three_letter_month)
 
         return datetime.datetime(
             int(year), int(numeric_month), int(numeric_day)
