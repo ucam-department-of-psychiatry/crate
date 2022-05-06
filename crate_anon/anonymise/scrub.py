@@ -408,8 +408,7 @@ class NonspecificReplacer(Replacer):
 
         if self.slow_date_replacement:
             date = self.parse_date(match, groupdict)
-            if date is not None:
-                return date.strftime(self.replacement_text_all_dates)
+            return date.strftime(self.replacement_text_all_dates)
 
         return self.replacement_text_all_dates
 
@@ -432,9 +431,9 @@ class NonspecificReplacer(Replacer):
     @staticmethod
     def parse_date(
         match: "Match", groupdict: Dict[str, Any]
-    ) -> Optional[datetime.datetime]:
+    ) -> datetime.datetime:
         """
-        Retrieve a date from the Match object for blurring.
+        Retrieve a valid date from the Match object for blurring.
 
         Valid regex group name combinations:
 
