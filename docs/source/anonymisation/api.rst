@@ -20,6 +20,7 @@
 .. _Django: https://www.djangoproject.com/
 .. _Django Rest Framework: https://www.django-rest-framework.org
 
+.. _anonymisation_api:
 
 ============================================
  Using CRATE's anonymisation API web server
@@ -45,11 +46,21 @@ Create the superuser:
     crate_anon_web_django_manage createsuperuser
 
 
+Create any private settings required by the Django app such as the Django secret key:
+
 .. _crate_anon_web_create_private_settings:
 
-Creates any private settings required by the Django app such as the Django secret key.
+.. code-block:: none
+
+    crate_anon_web_create_private_settings
+
 
 .. _crate_anon_web_django_manage:
+
+.. code-block:: none
+
+    crate_anon_web_django_manage
+
 
 The CRATE anonymisation web front end uses Django_, which comes with a number of built-in
 management comments. These can be run from within the CRATE virtual environment using:

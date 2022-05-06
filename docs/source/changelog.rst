@@ -1541,6 +1541,10 @@ Changes
 
   - Added some more generally sensible details around CRATE table/field naming.
 
+  - :ref:`API for dynamic anonymisation <anonymisation_api>`.
+
+  - Support for blurring of dates with new config option :ref:`replace_all_dates_with <replace_all_dates_with>`
+
 - NLP:
 
   - Improve docstrings and documentation display for NLP processors, also
