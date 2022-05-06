@@ -412,16 +412,18 @@ class NonspecificReplacer(Replacer):
         return self.replacement_text_all_dates
 
     def is_a_date(self, match: "Match") -> bool:
-        if match.groupdict().get("day_month_year") is not None:
+        groupdict = match.groupdict()
+
+        if groupdict.get("day_month_year") is not None:
             return True
 
-        if match.groupdict().get("month_day_year") is not None:
+        if groupdict.get("month_day_year") is not None:
             return True
 
-        if match.groupdict().get("year_month_day") is not None:
+        if groupdict.get("year_month_day") is not None:
             return True
 
-        if match.groupdict().get("isodate_no_sep") is not None:
+        if groupdict.get("isodate_no_sep") is not None:
             return True
 
         return False
@@ -449,11 +451,13 @@ class NonspecificReplacer(Replacer):
         "year_month_day": "numeric_day", "alphabetical_month", "two_digit_year",
         "year_month_day": "numeric_day", "alphabetical_month", "four_digit_year",
         """  # noqa: E501
-        isodate_no_sep = match.groupdict().get("isodate_no_sep")
+        groupdict = match.groupdict()
+
+        isodate_no_sep = groupdict.get("isodate_no_sep")
         if isodate_no_sep is not None:
             return datetime.datetime.strptime(match.group(0), "%Y%m%d")
 
-        year = match.groupdict().get("four_digit_year")
+        year = groupdict.get("four_digit_year")
         if year is None:
             two_digit_year = match.group("two_digit_year")
 
@@ -464,7 +468,7 @@ class NonspecificReplacer(Replacer):
 
         numeric_day = match.group("numeric_day")
 
-        numeric_month = match.groupdict().get("numeric_month")
+        numeric_month = groupdict.get("numeric_month")
         if numeric_month is not None:
             return datetime.datetime(
                 int(year), int(numeric_month), int(numeric_day)
