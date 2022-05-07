@@ -121,12 +121,7 @@ class WordListTests(TestCase):
 
             pytest -k test_wordlist --log-cli-level=INFO
         """
-        denylist_phrases = [
-            "Alice",
-            "Bob",
-            "Charlie Brown",
-            "Daisy",
-        ]
+        denylist_phrases = ["Alice", "Bob", "Charlie Brown", "Daisy"]
         anon_text = PATIENT_REPLACEMENT
         test_source_text = """
             I met Alice in the street.
@@ -241,18 +236,8 @@ class PersonalizedScrubberTests(ScrubberTestCase):
 
     def test_phrase_unless_numeric(self) -> None:
         tests = [
-            (
-                "5",
-                {
-                    "blah 5 blah": "blah 5 blah",
-                },
-            ),
-            (
-                " 5 ",
-                {
-                    "blah 5 blah": "blah 5 blah",
-                },
-            ),
+            ("5", {"blah 5 blah": "blah 5 blah"}),
+            (" 5 ", {"blah 5 blah": "blah 5 blah"}),
             (
                 " 5.0 ",
                 {
@@ -283,12 +268,7 @@ class PersonalizedScrubberTests(ScrubberTestCase):
                     "blah 5 Tree Road blah": f"blah {self.anonpatient} blah",
                 },
             ),
-            (
-                " 5b ",
-                {
-                    "blah 5b blah": f"blah {self.anonpatient} blah",
-                },
-            ),
+            (" 5b ", {"blah 5b blah": f"blah {self.anonpatient} blah"}),
         ]
         for scrubvalue, mapping in tests:
             scrubber = PersonalizedScrubber(
@@ -311,6 +291,10 @@ class PersonalizedScrubberTests(ScrubberTestCase):
 
 
 class NonspecificScrubberTests(ScrubberTestCase):
+    """
+    Tests nonspecific scrubbing.
+    """
+
     def setUp(self) -> None:
         super().setUp()
 
@@ -318,6 +302,10 @@ class NonspecificScrubberTests(ScrubberTestCase):
         self.fake.seed_instance(1234)
 
     def test_all_dates_scrubbed(self) -> None:
+        """
+        Check we can remove arbitrary dates. (See also anonregex_tests.py for
+        tests of the date detection regexes.)
+        """
         date_of_birth_1 = self.fake.date_of_birth()
         date_string_1 = date_of_birth_1.strftime("%d %b %Y")
 
@@ -340,7 +328,11 @@ class NonspecificScrubberTests(ScrubberTestCase):
         self.assertEqual(scrubbed.count("[REDACTED]"), 2)
 
     def test_all_dates_in_supported_formats_blurred(self) -> None:
+        """
+        Check we can blur dates.
+        """
         tests = (
+            # Using "%b %Y" format:
             ("01 February 2003", "Feb 2003"),
             ("01 Feb 2003", "Feb 2003"),
             ("01 Feb 00", "Feb 2000"),
@@ -371,6 +363,10 @@ class NonspecificScrubberTests(ScrubberTestCase):
             )
 
     def test_non_dates_scrubbed(self) -> None:
+        """
+        Test that non-date things are scrubbed with non-date replacement text,
+        even if we have special date replacements configured.
+        """
         scrubber = NonspecificScrubber(
             self.hasher,
             scrub_all_uk_postcodes=True,
@@ -400,6 +396,11 @@ class NonspecificScrubberTests(ScrubberTestCase):
             self.assertEqual(scrubber.scrub("2022-02-28"), expected)
 
     def test_raises_for_unsupported_date_formats(self) -> None:
+        """
+        Check we can detect bad % directives that we will not allow through to
+        datetime.date.strftime(). Compare DATE_BLURRING_DIRECTIVES, the stuff
+        we do allow.
+        """
         bad_formats = [
             "%a",
             "%A",
@@ -422,6 +423,7 @@ class NonspecificScrubberTests(ScrubberTestCase):
             "%G",
             "%u",
             "%V",
+            "hello %V world",
         ]
 
         for replacement in bad_formats:
@@ -431,5 +433,3 @@ class NonspecificScrubberTests(ScrubberTestCase):
                     scrub_all_dates=True,
                     replacement_text_all_dates=replacement,
                 )
-
-    # TODO: Documentation

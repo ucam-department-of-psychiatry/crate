@@ -366,6 +366,18 @@ replaced by this. For example, ``YYYYYY`` or ``[...]`` or ``[__TTT__]`` or
 ``[__QQQ__]``.
 
 
+.. _anon_config_replace_nonspecific_info_with:
+
+replace_nonspecific_info_with
+#############################
+
+*String.* Default: ``[~~~]``.
+
+Things to be removed irrespective of patient-specific information will be
+replaced by this (for example, if you opt to remove all things looking like
+telephone numbers). For example, ``[~~~]``.
+
+
 .. _replace_all_dates_with:
 
 replace_all_dates_with
@@ -374,8 +386,28 @@ replace_all_dates_with
 *String.* Default: ``[~~~]``.
 
 When scrub_all_dates_ is True, replace with this text.
-Supports limited ``datetime.strftime`` directives for "blurring" of
-dates. Example: ``%b %Y`` for abbreviated month and year.
+
+Supports limited ``datetime.strftime`` directives for "blurring" of dates. The
+supported directives are:
+
+.. code-block:: none
+
+    %b      # Month as locale's abbreviated name, e.g. "Sep"
+    %B      # Month as locale's full name, e.g. "September
+    %m      # Month as zero-padded decimal number, e.g. "09"
+    %Y      # Year with century as decimal number, e.g. "2022"
+    %y      # Year without century as zero-padded decimal number, e.g. "22"
+
+Note that day-of-the-month directives are not supported, because this is all
+about blurring dates. Examples:
+
+.. code-block:: none
+
+    This...         Gives, for example...
+
+    %b %Y           Sep 2020
+    [%b %Y]         [Sep 2020] -- making the editorial changes more apparent
+    [01-%m-%Y]      [01-09-2020] -- blurring to the first of the month
 
 
 thirdparty_xref_max_depth
@@ -387,18 +419,6 @@ For fields marked as ``scrub_src = thirdparty_xref_pid`` (see :ref:`scrub_src
 <dd_scrub_src>`), how deep should we recurse? Beware making this too large; the
 recursion trawls a lot of information (and also uses an extra simultaneous
 database cursor for each recursion).
-
-
-.. _anon_config_replace_nonspecific_info_with:
-
-replace_nonspecific_info_with
-#############################
-
-*String.* Default: ``[~~~]``.
-
-Things to be removed irrespective of patient-specific information will be
-replaced by this (for example, if you opt to remove all things looking like
-telephone numbers). For example, ``[~~~]``.
 
 
 scrub_string_suffixes
