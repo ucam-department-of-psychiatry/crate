@@ -24,7 +24,6 @@ crate_anon/anonymise_webserver/anonymiser/settings.py
 
 **Django settings for CRATE anonymiser project.**
 
-
 """
 
 import os

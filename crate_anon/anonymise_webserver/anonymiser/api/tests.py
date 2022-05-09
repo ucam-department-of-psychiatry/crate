@@ -705,6 +705,29 @@ class AnonymisationTests(TestCase):
         self.assertNotIn(dob, anonymised)
         self.assertEqual(anonymised.count("[~~~]"), 1)
 
+    def test_blur_all_dates(self) -> None:
+        dob = self.fake.date_of_birth()
+        dob_string = dob.strftime("%d %b %Y")
+
+        text = f"{self.fake.text()} {dob_string} {self.fake.text()}"
+
+        self.assertIn(dob_string, text)
+
+        payload = {
+            "scrub_all_dates": True,
+            "replace_all_dates_with": "%b '%y",
+            "text": {"test": text},
+        }
+
+        response = self.client.post("/scrub/", payload, format="json")
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]["test"]
+
+        self.assertNotIn(dob_string, anonymised)
+        expected = dob.strftime("%b '%y")
+        self.assertEqual(anonymised.count(expected), 1)
+
     def test_bad_request_when_posting_multipart_rubbish(self) -> None:
         payload = {
             "allowlist": "\u0000\u0000",

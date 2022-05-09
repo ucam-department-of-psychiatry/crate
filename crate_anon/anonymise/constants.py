@@ -28,6 +28,7 @@ crate_anon/anonymise/constants.py
 
 """
 
+import calendar
 from enum import unique
 
 from sqlalchemy import Integer
@@ -106,6 +107,30 @@ MAX_TRID = 2**31 - 1
 # Maximum BIGINT UNSIGNED is 18446744073709551615 == 2 ** 64 - 1.
 # BIGINT range is            -9223372036854775808 == -(2 ** 63) to
 #                            +9223372036854775807 == 2 ** 64 - 1
+
+
+# When scrub_all_dates is True and the replacement text is a date format
+# string, allow these directives.
+# https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
+DATE_BLURRING_DIRECTIVES = (
+    "b",  # Month as locale's abbreviated name
+    "B",  # Month as locale's full name
+    "m",  # Month as zero-padded decimal number
+    "Y",  # Year with century as decimal number
+    "y",  # Year without century as zero-padded decimal number
+)
+DATE_BLURRING_DIRECTIVES_CSV = ", ".join(
+    [f"%{d}" for d in DATE_BLURRING_DIRECTIVES]
+)
+
+# https://stackoverflow.com/questions/3418050/month-name-to-month-number-and-vice-versa-in-python
+MONTH_3_LETTER_INDEX = {
+    # See _month_word_regex_fragment() in anonregex.py
+    # Assuming this may not be the same as calendar.month_abbr in some locales
+    month[:3]: index
+    for index, month in enumerate(calendar.month_name)
+    if month
+}
 
 
 @unique
@@ -250,6 +275,7 @@ class AnonymiseConfigKeys:
     MIN_STRING_LENGTH_TO_SCRUB_WITH = "min_string_length_to_scrub_with"
     NONSPECIFIC_SCRUBBER_FIRST = "nonspecific_scrubber_first"
     PHRASE_ALTERNATIVE_WORD_FILENAMES = "phrase_alternative_word_filenames"
+    REPLACE_ALL_DATES_WITH = "replace_all_dates_with"
     REPLACE_NONSPECIFIC_INFO_WITH = "replace_nonspecific_info_with"
     REPLACE_PATIENT_INFO_WITH = "replace_patient_info_with"
     REPLACE_THIRD_PARTY_INFO_WITH = "replace_third_party_info_with"
@@ -314,6 +340,7 @@ class AnonymiseConfigDefaults:
     MIN_STRING_LENGTH_FOR_ERRORS = 3
     MIN_STRING_LENGTH_TO_SCRUB_WITH = 2
     NONSPECIFIC_SCRUBBER_FIRST = False
+    REPLACE_ALL_DATES_WITH = "[~~~]"
     REPLACE_NONSPECIFIC_INFO_WITH = "[~~~]"
     REPLACE_PATIENT_INFO_WITH = "[__PPP__]"
     REPLACE_THIRD_PARTY_INFO_WITH = "[__TTT__]"
@@ -495,6 +522,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 # -----------------------------------------------------------------------------
 
 {_AK.ALLOW_NO_PATIENT_INFO} = {_DA.ALLOW_NO_PATIENT_INFO}
+{_AK.REPLACE_ALL_DATES_WITH} = {_DA.REPLACE_ALL_DATES_WITH}
 {_AK.REPLACE_PATIENT_INFO_WITH} = {_DA.REPLACE_PATIENT_INFO_WITH}
 {_AK.REPLACE_THIRD_PARTY_INFO_WITH} = {_DA.REPLACE_THIRD_PARTY_INFO_WITH}
 {_AK.REPLACE_NONSPECIFIC_INFO_WITH} = {_DA.REPLACE_NONSPECIFIC_INFO_WITH}

@@ -31,6 +31,7 @@ crate_anon/anonymise/scrub.py
 from collections import OrderedDict
 import datetime
 import logging
+import re
 import string
 from typing import (
     Any,
@@ -42,8 +43,12 @@ from typing import (
     Pattern,
     Set,
     Tuple,
+    TYPE_CHECKING,
     Union,
 )
+
+if TYPE_CHECKING:
+    from re import Match
 
 from cardinal_pythonlib.datetimefunc import coerce_to_datetime
 from cardinal_pythonlib.file_io import gen_lines_without_comments
@@ -62,9 +67,13 @@ from crate_anon.common.bugfix_flashtext import KeywordProcessorFixed
 # noinspection PyPep8Naming
 from crate_anon.anonymise.constants import (
     AnonymiseConfigDefaults as DA,
+    DATE_BLURRING_DIRECTIVES,
+    DATE_BLURRING_DIRECTIVES_CSV,
+    MONTH_3_LETTER_INDEX,
     ScrubMethod,
 )
 from crate_anon.anonymise.anonregex import (
+    DateRegexNames,
     get_anon_fragments_from_string,
     get_code_regex_elements,
     get_date_regex_elements,
@@ -378,6 +387,130 @@ class WordList(ScrubberBase):
 # =============================================================================
 
 
+class Replacer:
+    """
+    Custom regex replacement called from regex.sub().
+    This base class doesn't do much and is the equivalent of just passing the
+    replacement text to regex.sub().
+    """
+
+    def __init__(self, replacement_text: str) -> None:
+        self.replacement_text = replacement_text
+
+    def replace(self, match: "Match") -> str:
+        """
+        When re.sub() or regex.sub() is called, the "repl" argument can be
+        a function. If so, it's a function that takes a :class:`re.Match`
+        argument and returns the replacement text.
+        """
+        return self.replacement_text
+
+
+class NonspecificReplacer(Replacer):
+    """
+    Custom regex replacement for the Nonspecific scrubber. Currently this
+    will "blur" dates if replacement_text_all_dates contains any formatting
+    directives.
+    """
+
+    def __init__(self, replacement_text: str, replacement_text_all_dates: str):
+        """
+        Args:
+            replacement_text:
+                Generic text to use.
+            replacement_text_all_dates:
+                Replacement text to use if the matched text is a date. Can
+                include format specifiers to blur the date rather than
+                scrubbing it out entirely.
+        """
+        super().__init__(replacement_text)
+
+        self.replacement_text_all_dates = replacement_text_all_dates
+        self.slow_date_replacement = "%" in replacement_text_all_dates
+
+    def replace(self, match: "Match") -> str:
+        groupdict = match.groupdict()
+        if not self.is_a_date(groupdict):
+            return super().replace(match)
+
+        if self.slow_date_replacement:
+            date = self.parse_date(match, groupdict)
+            return date.strftime(self.replacement_text_all_dates)
+
+        return self.replacement_text_all_dates
+
+    @staticmethod
+    def is_a_date(groupdict: Dict[str, Any]) -> bool:
+        """
+        Is the match result a date? We detect this via our named regex groups.
+        """
+        return any(
+            groupdict.get(groupname) is not None
+            for groupname in (
+                DateRegexNames.DAY_MONTH_YEAR,
+                DateRegexNames.MONTH_DAY_YEAR,
+                DateRegexNames.YEAR_MONTH_DAY,
+                DateRegexNames.ISODATE_NO_SEP,
+            )
+        )
+
+    @staticmethod
+    def parse_date(
+        match: "Match", groupdict: Dict[str, Any]
+    ) -> datetime.datetime:
+        """
+        Retrieve a valid date from the Match object for blurring.
+
+        Valid regex group name combinations, where D == DateRegexNames:
+
+        D.ISODATE_NO_SEP: D.FOUR_DIGIT_YEAR,
+
+        D.DAY_MONTH_YEAR: D.NUMERIC_DAY, D.NUMERIC_MONTH, D.TWO_DIGIT_YEAR,
+        D.DAY_MONTH_YEAR: D.NUMERIC_DAY, D.NUMERIC_MONTH, D.FOUR_DIGIT_YEAR,
+        D.DAY_MONTH_YEAR: D.NUMERIC_DAY, D.ALPHABETICAL_MONTH, D.TWO_DIGIT_YEAR,
+        D.DAY_MONTH_YEAR: D.NUMERIC_DAY, D.ALPHABETICAL_MONTH, D.FOUR_DIGIT_YEAR,
+
+        D.MONTH_DAY_YEAR: D.NUMERIC_DAY, D.NUMERIC_MONTH, D.TWO_DIGIT_YEAR,
+        D.MONTH_DAY_YEAR: D.NUMERIC_DAY, D.NUMERIC_MONTH, D.FOUR_DIGIT_YEAR,
+        D.MONTH_DAY_YEAR: D.NUMERIC_DAY, D.ALPHABETICAL_MONTH, D.TWO_DIGIT_YEAR,
+        D.MONTH_DAY_YEAR: D.NUMERIC_DAY, D.ALPHABETICAL_MONTH, D.FOUR_DIGIT_YEAR,
+
+        D.YEAR_MONTH_DAY: D.NUMERIC_DAY, D.NUMERIC_MONTH, D.TWO_DIGIT_YEAR,
+        D.YEAR_MONTH_DAY: D.NUMERIC_DAY, D.NUMERIC_MONTH, D.FOUR_DIGIT_YEAR,
+        D.YEAR_MONTH_DAY: D.NUMERIC_DAY, D.ALPHABETICAL_MONTH, D.TWO_DIGIT_YEAR,
+        D.YEAR_MONTH_DAY: D.NUMERIC_DAY, D.ALPHABETICAL_MONTH, D.FOUR_DIGIT_YEAR,
+        """  # noqa: E501
+
+        # Simple special handling for ISO date format without separators.
+        isodate_no_sep = groupdict.get(DateRegexNames.ISODATE_NO_SEP)
+        if isodate_no_sep is not None:
+            return datetime.datetime.strptime(isodate_no_sep, "%Y%m%d")
+
+        # For all others, extract D/M/Y information.
+
+        year = groupdict.get(DateRegexNames.FOUR_DIGIT_YEAR)
+        if year is None:
+            two_digit_year = match.group(DateRegexNames.TWO_DIGIT_YEAR)
+
+            # Will convert:
+            #    00-68 -> 2000-2068
+            #    69-99 -> 1969-1999
+            year = datetime.datetime.strptime(two_digit_year, "%y").year
+
+        numeric_day = match.group(DateRegexNames.NUMERIC_DAY)
+
+        numeric_month = groupdict.get(DateRegexNames.NUMERIC_MONTH)
+        if numeric_month is None:
+            three_letter_month = match.group(
+                DateRegexNames.ALPHABETICAL_MONTH
+            )[:3]
+            numeric_month = MONTH_3_LETTER_INDEX.get(three_letter_month)
+
+        return datetime.datetime(
+            int(year), int(numeric_month), int(numeric_day)
+        )
+
+
 class NonspecificScrubber(ScrubberBase):
     """
     Scrubs a bunch of things that are independent of any patient-specific data,
@@ -386,8 +519,8 @@ class NonspecificScrubber(ScrubberBase):
 
     def __init__(
         self,
-        replacement_text: str,
         hasher: GenericHasher,
+        replacement_text: str = DA.REPLACE_NONSPECIFIC_INFO_WITH,
         anonymise_codes_at_word_boundaries_only: bool = DA.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,  # noqa
         anonymise_dates_at_word_boundaries_only: bool = DA.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,  # noqa
         anonymise_numbers_at_word_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,  # noqa
@@ -395,6 +528,7 @@ class NonspecificScrubber(ScrubberBase):
         scrub_all_numbers_of_n_digits: List[int] = None,
         scrub_all_uk_postcodes: bool = DA.SCRUB_ALL_UK_POSTCODES,
         scrub_all_dates: bool = DA.SCRUB_ALL_DATES,
+        replacement_text_all_dates: str = DA.REPLACE_ALL_DATES_WITH,
         extra_regexes: Optional[List[str]] = None,
     ) -> None:
         """
@@ -426,6 +560,10 @@ class NonspecificScrubber(ScrubberBase):
             scrub_all_dates:
                 Scrub all dates? (Currently assumes the default locale for
                 month names and ordinal suffixes.)
+            replacement_text_all_dates:
+                When scrub_all_dates is True, replace with this text.
+                Supports limited datetime.strftime directives for "blurring" of
+                dates. Example: "%b %Y" for abbreviated month and year.
             extra_regexes:
                 List of user-defined extra regexes to scrub.
         """  # noqa
@@ -446,12 +584,59 @@ class NonspecificScrubber(ScrubberBase):
         self.scrub_all_numbers_of_n_digits = scrub_all_numbers_of_n_digits
         self.scrub_all_uk_postcodes = scrub_all_uk_postcodes
         self.scrub_all_dates = scrub_all_dates
+
+        self.replacement_text_all_dates = replacement_text_all_dates
+        self.check_replacement_text_all_dates()
+        self.replacer = self.get_replacer()
+
         self.extra_regexes = extra_regexes
 
         self._cached_hash = None  # type: Optional[str]
         self._regex = None  # type: Optional[Pattern[str]]
         self._regex_built = False
         self.build_regex()
+
+    def get_replacer(self) -> Replacer:
+        """
+        Return a function that can be used as the "repl" (replacer) argument
+        to a re.sub() or regex.sub() call.
+        """
+        if (
+            self.replacement_text == self.replacement_text_all_dates
+            and "%" not in self.replacement_text_all_dates
+        ):
+            # Fast, simple
+            return Replacer(self.replacement_text)
+
+        # Handle dates in a more complex way, e.g. blurring them:
+        return NonspecificReplacer(
+            self.replacement_text, self.replacement_text_all_dates
+        )
+
+    def check_replacement_text_all_dates(self) -> None:
+        """
+        Ensure our date-replacement text is legitimate in terms of e.g.
+        "%Y"-style directives.
+        """
+        bad = False
+        possible_percent_chars = "".join(DATE_BLURRING_DIRECTIVES)
+        if re.search(
+            rf"%[^{possible_percent_chars}]", self.replacement_text_all_dates
+        ):
+            bad = True
+        else:
+            # Double-check:
+            test_date = datetime.date(2000, 12, 31)
+            try:
+                test_date.strftime(self.replacement_text_all_dates)
+            except ValueError:
+                bad = True
+        if bad:
+            raise ValueError(
+                f"Bad format {self.replacement_text_all_dates!r} for date "
+                "scrubbing. Allowed directives are: "
+                f"{DATE_BLURRING_DIRECTIVES_CSV}"
+            )
 
     def get_hash(self) -> str:
         # docstring in parent class
@@ -476,7 +661,7 @@ class NonspecificScrubber(ScrubberBase):
             text = self.denylist.scrub(text)
         if not self._regex:  # possible; may be blank
             return text
-        return self._regex.sub(self.replacement_text, text)
+        return self._regex.sub(self.replacer.replace, text)
 
     def build_regex(self) -> None:
         """

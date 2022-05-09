@@ -43,10 +43,13 @@ from cardinal_pythonlib.hash import HmacMD5Hasher
 
 from crate_anon.anonymise.constants import ScrubMethod
 from crate_anon.anonymise.scrub import (
+    NonspecificScrubber,
     PersonalizedScrubber,
     WordList,
 )
 from crate_anon.common.bugfix_flashtext import KeywordProcessorFixed
+
+from faker import Faker
 
 log = logging.getLogger(__name__)
 
@@ -118,12 +121,7 @@ class WordListTests(TestCase):
 
             pytest -k test_wordlist --log-cli-level=INFO
         """
-        denylist_phrases = [
-            "Alice",
-            "Bob",
-            "Charlie Brown",
-            "Daisy",
-        ]
+        denylist_phrases = ["Alice", "Bob", "Charlie Brown", "Daisy"]
         anon_text = PATIENT_REPLACEMENT
         test_source_text = """
             I met Alice in the street.
@@ -218,32 +216,28 @@ class WordListTests(TestCase):
         self._test_wordlist(regex_method=True)
 
 
+class ScrubberTestCase(TestCase):
+    def setUp(self) -> None:
+        self.key = TEST_KEY
+        self.hasher = HmacMD5Hasher(self.key)
+
+
 # =============================================================================
 # Test PersonalizedScrubber
 # =============================================================================
 
 
-class PersonalizedScrubberTests(TestCase):
+class PersonalizedScrubberTests(ScrubberTestCase):
     def setUp(self) -> None:
-        self.key = TEST_KEY
-        self.hasher = HmacMD5Hasher(self.key)
+        super().setUp()
+
         self.anonpatient = PATIENT_REPLACEMENT
         self.anonthird = THIRD_PARTY_REPLACEMENT
 
     def test_phrase_unless_numeric(self) -> None:
         tests = [
-            (
-                "5",
-                {
-                    "blah 5 blah": "blah 5 blah",
-                },
-            ),
-            (
-                " 5 ",
-                {
-                    "blah 5 blah": "blah 5 blah",
-                },
-            ),
+            ("5", {"blah 5 blah": "blah 5 blah"}),
+            (" 5 ", {"blah 5 blah": "blah 5 blah"}),
             (
                 " 5.0 ",
                 {
@@ -274,12 +268,7 @@ class PersonalizedScrubberTests(TestCase):
                     "blah 5 Tree Road blah": f"blah {self.anonpatient} blah",
                 },
             ),
-            (
-                " 5b ",
-                {
-                    "blah 5b blah": f"blah {self.anonpatient} blah",
-                },
-            ),
+            (" 5b ", {"blah 5b blah": f"blah {self.anonpatient} blah"}),
         ]
         for scrubvalue, mapping in tests:
             scrubber = PersonalizedScrubber(
@@ -298,4 +287,149 @@ class PersonalizedScrubberTests(TestCase):
                     end,
                     f"Failure for scrubvalue: {scrubvalue!r}; regex elements "
                     f"are {scrubber.re_patient_elements}",
+                )
+
+
+class NonspecificScrubberTests(ScrubberTestCase):
+    """
+    Tests nonspecific scrubbing.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.fake = Faker(["en-GB"])
+        self.fake.seed_instance(1234)
+
+    def test_all_dates_scrubbed(self) -> None:
+        """
+        Check we can remove arbitrary dates. (See also anonregex_tests.py for
+        tests of the date detection regexes.)
+        """
+        date_of_birth_1 = self.fake.date_of_birth()
+        date_string_1 = date_of_birth_1.strftime("%d %b %Y")
+
+        date_of_birth_2 = self.fake.date_of_birth()
+        date_string_2 = date_of_birth_2.strftime("%d %b %Y")
+
+        text = (
+            f"{self.fake.text()} {date_string_1} "
+            f"{self.fake.text()} {date_string_2}"
+        )
+
+        scrubber = NonspecificScrubber(
+            self.hasher,
+            replacement_text_all_dates="[REDACTED]",
+            scrub_all_dates=True,
+        )
+
+        scrubbed = scrubber.scrub(text)
+
+        self.assertEqual(scrubbed.count("[REDACTED]"), 2)
+
+    def test_all_dates_in_supported_formats_blurred(self) -> None:
+        """
+        Check we can blur dates.
+        """
+        tests = (
+            # Using "%b %Y" format:
+            ("01 February 2003", "Feb 2003"),
+            ("01 Feb 2003", "Feb 2003"),
+            ("01 Feb 00", "Feb 2000"),
+            ("01 Feb 69", "Feb 1969"),
+            ("01 Feb 99", "Feb 1999"),
+            ("4/5/2006", "May 2006"),
+            ("4/5/99", "May 1999"),
+            ("7/31/2008", "Jul 2008"),
+            ("7/31/99", "Jul 1999"),
+            ("8th Sept 2010", "Sep 2010"),
+            ("8th Sept 99", "Sep 1999"),
+            ("7/31/2008", "Jul 2008"),
+            ("7/31/99", "Jul 1999"),
+            ("2011-12-13", "Dec 2011"),
+            ("99-12-13", "Dec 1999"),
+            ("20160718", "Jul 2016"),
+        )
+
+        scrubber = NonspecificScrubber(
+            self.hasher,
+            scrub_all_dates=True,
+            replacement_text_all_dates="%b %Y",
+        )
+
+        for (text, expected) in tests:
+            self.assertEqual(
+                scrubber.scrub(text), expected, msg=f"test: {text}"
+            )
+
+    def test_non_dates_scrubbed(self) -> None:
+        """
+        Test that non-date things are scrubbed with non-date replacement text,
+        even if we have special date replacements configured.
+        """
+        scrubber = NonspecificScrubber(
+            self.hasher,
+            scrub_all_uk_postcodes=True,
+            scrub_all_dates=True,
+            replacement_text="[REDACTED]",
+            replacement_text_all_dates="%b %Y",
+        )
+
+        self.assertEqual(scrubber.scrub(self.fake.postcode()), "[REDACTED]")
+
+    def test_scrub_all_dates_with_replacement(self) -> None:
+        custom_placeholder_tests = [
+            ("[%Y-%m]", "[2022-02]"),
+            ("[%B, %Y]", "[February, 2022]"),
+            ("[%b '%y]", "[Feb '22]"),
+            ("[%Y]", "[2022]"),
+            ("[%b %Y]", "[Feb 2022]"),
+        ]
+
+        for (replacement, expected) in custom_placeholder_tests:
+            scrubber = NonspecificScrubber(
+                self.hasher,
+                scrub_all_dates=True,
+                replacement_text_all_dates=replacement,
+            )
+
+            self.assertEqual(scrubber.scrub("2022-02-28"), expected)
+
+    def test_raises_for_unsupported_date_formats(self) -> None:
+        """
+        Check we can detect bad % directives that we will not allow through to
+        datetime.date.strftime(). Compare DATE_BLURRING_DIRECTIVES, the stuff
+        we do allow.
+        """
+        bad_formats = [
+            "%a",
+            "%A",
+            "%w",
+            "%d",
+            "%H",
+            "%I",
+            "%p",
+            "%M",
+            "%S",
+            "%f",
+            "%z",
+            "%Z",
+            "%j",
+            "%U",
+            "%W",
+            "%c",
+            "%x",
+            "%X",
+            "%G",
+            "%u",
+            "%V",
+            "hello %V world",
+        ]
+
+        for replacement in bad_formats:
+            with self.assertRaises(ValueError):
+                NonspecificScrubber(
+                    self.hasher,
+                    scrub_all_dates=True,
+                    replacement_text_all_dates=replacement,
                 )

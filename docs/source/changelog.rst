@@ -1520,7 +1520,8 @@ Changes
 
 - Installer for CRATE running within Docker
 
-  - The Docker version of CRATE can now be :ref:`installed with a single script <quick_start>`.
+  - The Docker version of CRATE can now be :ref:`installed with a single script
+    <quick_start>`.
 
 **0.19.4, in progress**
 
@@ -1540,6 +1541,11 @@ Changes
     <min_string_length_for_errors>` changed from 1 to 3.
 
   - Added some more generally sensible details around CRATE table/field naming.
+
+  - :ref:`API for dynamic anonymisation <anonymisation_api>`.
+
+  - Support for blurring of dates with new config option
+    :ref:`replace_all_dates_with <replace_all_dates_with>`.
 
 - NLP:
 

@@ -44,6 +44,7 @@ from rest_framework.serializers import (
 
 from crate_anon.anonymise.constants import (
     AnonymiseConfigDefaults as Defaults,
+    DATE_BLURRING_DIRECTIVES_CSV,
     ScrubMethod,
 )
 from crate_anon.anonymise.scrub import (
@@ -267,6 +268,15 @@ class ScrubSerializer(Serializer):
         initial=Defaults.REPLACE_NONSPECIFIC_INFO_WITH,
         help_text="Replace any other sensitive content with this.",
     )
+    replace_all_dates_with = CharField(
+        required=False,
+        help_text=(
+            "When scrubbing all dates, replace with this text. If the "
+            "replacement text includes supported datetime.directives "
+            f"({DATE_BLURRING_DIRECTIVES_CSV}), the date is 'blurred' "
+            "to include just those components."
+        ),
+    )
     scrub_all_numbers_of_n_digits = JsonListField(
         child=IntegerField(),
         help_text=(
@@ -355,7 +365,7 @@ class ScrubSerializer(Serializer):
             nonspecific_scrubber=self._get_nonspecific_scrubber(data, hasher),
             allowlist=self._get_allowlist(data, hasher),
             alternatives=self._get_alternatives(data),
-            **kwargs
+            **kwargs,
         )
 
         for label in ("patient", "third_party"):
@@ -425,8 +435,19 @@ class ScrubSerializer(Serializer):
 
         # TODO: extra_regexes (might be a security no-no)
         replacement_text = data["replace_nonspecific_info_with"]
+
+        try:
+            kwargs["replacement_text_all_dates"] = data[
+                "replace_all_dates_with"
+            ]
+        except KeyError:
+            pass
+
         return NonspecificScrubber(
-            replacement_text, hasher, denylist=denylist, **kwargs
+            hasher,
+            replacement_text=replacement_text,
+            denylist=denylist,
+            **kwargs,
         )
 
     @staticmethod

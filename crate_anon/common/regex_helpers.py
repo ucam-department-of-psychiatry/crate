@@ -185,6 +185,15 @@ def optional_noncapture_group(regex_str: str) -> str:
     return f"(?:{regex_str})?"
 
 
+def named_capture_group(regex_str: str, name: str) -> str:
+    """
+    Wraps the string in an named capture group, ``(?P<name>...)``
+    The P is for Python extensions;
+    https://docs.python.org/3/howto/regex.html#non-capturing-and-named-groups
+    """
+    return f"(?P<{name}>{regex_str})"
+
+
 def regex_or(
     *regex_strings: str,
     wrap_each_in_noncapture_group: bool = False,

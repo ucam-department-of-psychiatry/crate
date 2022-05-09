@@ -52,6 +52,7 @@ from crate_anon.common.regex_helpers import (
     escape_literal_for_regex_giving_charlist,
     escape_literal_string_for_regex,
     first_n_characters_required,
+    named_capture_group,
     NON_ALPHANUMERIC_SPLITTERS,
     noncapture_group,
     NOT_DIGIT_LOOKAHEAD,
@@ -191,6 +192,25 @@ def get_date_regex_elements(
         return basic_regexes
 
 
+class DateRegexNames:
+    """
+    For named groups in date regexes.
+    """
+
+    # Components that we might need to preserve for blurring, and thus
+    # capture:
+    ALPHABETICAL_MONTH = "alphabetical_month"
+    FOUR_DIGIT_YEAR = "four_digit_year"
+    NUMERIC_DAY = "numeric_day"
+    NUMERIC_MONTH = "numeric_month"
+    TWO_DIGIT_YEAR = "two_digit_year"
+    # Grouped:
+    DAY_MONTH_YEAR = "day_month_year"
+    MONTH_DAY_YEAR = "month_day_year"
+    YEAR_MONTH_DAY = "year_month_day"
+    ISODATE_NO_SEP = "isodate_no_sep"
+
+
 def get_generic_date_regex_elements(
     at_word_boundaries_only: bool = True,
     ordinal_suffixes: Iterable[str] = ORDINAL_SUFFIXES_ENGLISH,
@@ -204,9 +224,22 @@ def get_generic_date_regex_elements(
     """
     # https://stackoverflow.com/questions/51224/regular-expression-to-match-valid-dates  # noqa
 
-    numeric_day = noncapture_group(r"0?[1-9]|[12]\d|30|31")  # range [1, 31]
-    numeric_month = noncapture_group(r"0?[1-9]|1[0-2]")  # range [1, 12]
-    year = noncapture_group(r"\d{4}|\d{2}")  # a 2-digit or 4-digit number
+    # range [1, 31]
+    numeric_day = named_capture_group(
+        r"0?[1-9]|[12]\d|30|31", DateRegexNames.NUMERIC_DAY
+    )
+    # range [1, 12]
+    numeric_month = named_capture_group(
+        r"0?[1-9]|1[0-2]", DateRegexNames.NUMERIC_MONTH
+    )
+    # a 2-digit or 4-digit number
+    two_digit_year = named_capture_group(
+        r"\d{2}", DateRegexNames.TWO_DIGIT_YEAR
+    )
+    four_digit_year = named_capture_group(
+        r"\d{4}", DateRegexNames.FOUR_DIGIT_YEAR
+    )
+    year = noncapture_group(rf"{two_digit_year}|{four_digit_year}")
     sep = r"[^\w\d\r\n:]"  # an active separator
     # ^ = anything not in the set
     # \w = word (alphanumeric and underscore)
@@ -223,20 +256,32 @@ def get_generic_date_regex_elements(
     # ISO dates:
     two_digit_day = noncapture_group(r"0[1-9]|[12]\d|30|31")
     two_digit_month = noncapture_group(r"0[1-9]|1[0-2]")
-    isodate_no_sep = year + two_digit_month + two_digit_day
+    isodate_no_sep = four_digit_year + two_digit_month + two_digit_day
+
     # Then for months as words:
-    month = noncapture_group(
-        "|".join(
-            [numeric_month]
-            + [_month_word_regex_fragment(m) for m in all_month_names]
-        )
+    alphabetical_months = named_capture_group(
+        "|".join([_month_word_regex_fragment(m) for m in all_month_names]),
+        DateRegexNames.ALPHABETICAL_MONTH,
     )
+    month = noncapture_group("|".join([numeric_month] + [alphabetical_months]))
 
     basic_regexes = [
-        day + sep + month + sep + year,  # e.g. UK
-        month + sep + day + sep + year,  # e.g. USA
-        year + sep + month + sep + day,  # e.g. ISO
-        isodate_no_sep,  # ISO with no separators
+        named_capture_group(
+            day + sep + month + sep + year,
+            DateRegexNames.DAY_MONTH_YEAR,  # e.g. UK
+        ),
+        named_capture_group(
+            month + sep + day + sep + year,
+            DateRegexNames.MONTH_DAY_YEAR,  # e.g. USA
+        ),
+        named_capture_group(
+            year + sep + month + sep + day,
+            DateRegexNames.YEAR_MONTH_DAY,  # e.g. ISO
+        ),
+        named_capture_group(
+            isodate_no_sep,
+            DateRegexNames.ISODATE_NO_SEP,  # ISO with no separators
+        ),
     ]
     if at_word_boundaries_only:
         return [WB + x + WB for x in basic_regexes]
