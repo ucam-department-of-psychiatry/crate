@@ -13,13 +13,16 @@ jobs:
         permissions:
             contents: write
         steps:
-            - name: Work out tag
+            - name: Check out repository
               uses: actions/checkout@v2
+            - name: Work out tag
               id: vars
               run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
             - name: Create tar file
               run: |
                 set -eux -o pipefail
+                cd ${GITHUB_WORKSPACE}
+                ls -l
                 git archive --format=tar.gz -o /tmp/crate.tar.gz --prefix=crate/ ${{ steps.vars.outputs.tags }}
             - name: Create release with artifacts
               uses: ncipollo/release-action@v1
