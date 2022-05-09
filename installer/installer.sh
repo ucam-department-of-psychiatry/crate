@@ -83,10 +83,10 @@ if [ ${PRODUCTION} -eq 1 ]; then
     CRATE_GITHUB_REPOSITORY=https://github.com/RudolfCardinal/crate
     CRATE_TAR_FILE=crate.tar.gz
 
-    # TODO: This doesn't work with GitHub generated assets for some reason
-    # CRATE_DOWNLOAD_URL=${CRATE_GITHUB_REPOSITORY}/releases/latest/download/${CRATE_TAR_FILE}
-    # for now, hardcode the version and remember to update
-    CRATE_DOWNLOAD_URL=${CRATE_GITHUB_REPOSITORY}/archive/refs/tags/v0.19.3/${CRATE_TAR_FILE}
+    # This doesn't work with GitHub generated assets for some reason so we rely
+    # on the "release" GitHub action (.github/workflows/release.yml) to create
+    # and upload the tar file so that it can be accessed as "latest".
+    CRATE_DOWNLOAD_URL=${CRATE_GITHUB_REPOSITORY}/releases/latest/download/${CRATE_TAR_FILE}
 
     # Make directories
     mkdir -p "${CRATE_HOME}"
