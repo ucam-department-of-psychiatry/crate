@@ -23,7 +23,7 @@ jobs:
                 set -eux -o pipefail
                 cd ${GITHUB_WORKSPACE}
                 ls -l
-                git archive --format=tar.gz -o /tmp/crate.tar.gz --prefix=crate/ ${{ steps.vars.outputs.tags }}
+                git archive --format=tar.gz -o /tmp/crate.tar.gz --prefix=crate/ ${{ steps.vars.outputs.tag }}
             - name: Create release with artifacts
               uses: ncipollo/release-action@v1
               with:
