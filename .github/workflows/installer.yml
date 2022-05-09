@@ -14,7 +14,8 @@ jobs:
     installer:
         runs-on: ubuntu-latest
         steps:
-            - name: Build
+            - uses: actions/checkout@v2
+            - name: Run installer
               run: |
                   set -euxo pipefail
                   sudo apt-get update
@@ -32,13 +33,8 @@ jobs:
                   export CRATE_DOCKER_CRATEWEB_HOST_PORT=8000
                   export CRATE_DOCKER_CRATEWEB_USE_HTTPS=0
                   mkdir ${CRATE_DOCKER_CONFIG_HOST_DIR}
-                  cd ${HOME}
-                  # Development:
-                  # curl -L --retry 10 --fail https://github.com/RudolfCardinal/crate/releases/download/installer-test-9/installer.sh --output crate_docker_installer.sh
-                  # Production:
-                  curl -L --retry 10 --fail https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh --output crate_docker_installer.sh
-                  chmod u+x crate_docker_installer.sh
-                  ./crate_docker_installer.sh
+                  cd ${GITHUB_WORKSPACE}/installer
+                  ./installer.sh -d
                   # Check Django app is running
                   cd ${HOME}/crate/docker/dockerfiles
                   docker compose logs

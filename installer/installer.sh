@@ -27,7 +27,7 @@
 # Do as little as possible in this script.
 # Do as much as possible in installer.py.
 
-set -euxo pipefail
+set -eux -o pipefail
 
 # - Prerequisites for Windows:
 #   - Install WSL2
@@ -38,17 +38,36 @@ set -euxo pipefail
 #     sudo apt-get update
 #     sudo apt -y install python3-virtualenv python3-venv
 
-# When we move to production the installation process will be as in docker.rst
+# When called with no arguments, the installation process is as in docker.rst
+# With the -d (development) option, the installer runs on the local copy of the
+# source code.
+
+PRODUCTION=1
+
+while getopts 'dh' OPT; do
+  case "$OPT" in
+    d)
+        PRODUCTION=0
+        ;;
+    h)
+        echo "Usage: $(basename $0) [-d]"
+        exit 0
+        ;;
+  esac
+done
+
 
 # -----------------------------------------------------------------------------
 # Directories
 # -----------------------------------------------------------------------------
-
-CRATE_HOME=${HOME}/crate
 CRATE_INSTALLER_VENV=${HOME}/.virtualenvs/crate-installer
-INSTALLER_HOME=${CRATE_HOME}/installer
-# Development
-# INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
+
+if [ ${PRODUCTION} -eq 1 ]; then
+    CRATE_HOME=${HOME}/crate
+    INSTALLER_HOME=${CRATE_HOME}/installer
+else
+    INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
+fi
 
 # -----------------------------------------------------------------------------
 # System Python to use
@@ -57,35 +76,31 @@ INSTALLER_HOME=${CRATE_HOME}/installer
 CRATE_INSTALLER_PYTHON=${CRATE_INSTALLER_PYTHON:-python3}
 
 # -----------------------------------------------------------------------------
-# Fetching CRATE
+# Fetching CRATE and boostrap the installer
 # -----------------------------------------------------------------------------
 
-CRATE_GITHUB_REPOSITORY=https://github.com/RudolfCardinal/crate
-CRATE_TAR_FILE=crate.tar.gz
-# Development example:
-# CRATE_DOWNLOAD_URL=${CRATE_GITHUB_REPOSITORY}/archive/refs/tags/installer-test-9/${CRATE_TAR_FILE}
-# Production:
-# TODO: This doesn't work with GitHub generated assets for some reason
-# CRATE_DOWNLOAD_URL=${CRATE_GITHUB_REPOSITORY}/releases/latest/download/${CRATE_TAR_FILE}
-# for now, hardcode the version and remember to update
-CRATE_DOWNLOAD_URL=${CRATE_GITHUB_REPOSITORY}/archive/refs/tags/v0.19.3/${CRATE_TAR_FILE}
+if [ ${PRODUCTION} -eq 1 ]; then
+    CRATE_GITHUB_REPOSITORY=https://github.com/RudolfCardinal/crate
+    CRATE_TAR_FILE=crate.tar.gz
 
+    # TODO: This doesn't work with GitHub generated assets for some reason
+    # CRATE_DOWNLOAD_URL=${CRATE_GITHUB_REPOSITORY}/releases/latest/download/${CRATE_TAR_FILE}
+    # for now, hardcode the version and remember to update
+    CRATE_DOWNLOAD_URL=${CRATE_GITHUB_REPOSITORY}/archive/refs/tags/v0.19.3/${CRATE_TAR_FILE}
 
-# -----------------------------------------------------------------------------
-# Bootstrap the installer
-# -----------------------------------------------------------------------------
+    # Make directories
+    mkdir -p "${CRATE_HOME}"
 
-# Make directories
-mkdir -p "${CRATE_HOME}"
+    # Fetch and unpack CRATE
+    cd "${CRATE_HOME}"
+    curl -L --retry 10 --fail "${CRATE_DOWNLOAD_URL}"  --output "${CRATE_TAR_FILE}"
+    tar xzf "${CRATE_TAR_FILE}" --strip-components=1
+fi
 
-# Fetch and unpack CRATE
-cd "${CRATE_HOME}"
-curl -L --retry 10 --fail "${CRATE_DOWNLOAD_URL}"  --output "${CRATE_TAR_FILE}"
-tar xzf "${CRATE_TAR_FILE}" --strip-components=1
 
 # Create virtual environment
 if [ ! -d "${CRATE_INSTALLER_VENV}" ]; then
-    # TOOO: Option to rebuild venv
+    # TODO: Option to rebuild venv
     "${CRATE_INSTALLER_PYTHON}" -m venv "${CRATE_INSTALLER_VENV}"
 fi
 
