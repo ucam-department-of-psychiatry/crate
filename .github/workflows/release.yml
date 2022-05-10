@@ -30,6 +30,8 @@ jobs:
                   token: ${{ secrets.GITHUB_TOKEN }}
             - name: Test installer
               run: |
+                set -eux -o pipefail
+                source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
                 ${GITHUB_WORKSPACE}/github_action_scripts/installer_setup.sh
                 cd ${HOME}
                 curl -L --retry 10 --fail https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh --output crate_docker_installer.sh

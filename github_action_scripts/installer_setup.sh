@@ -8,14 +8,4 @@ sudo apt-get update
 sudo apt -y install python3-virtualenv python3-venv wait-for-it
 docker --version
 docker compose version
-export CRATE_DOCKER_MYSQL_CRATE_HOST_PORT=3307
-export CRATE_DOCKER_CONFIG_HOST_DIR=${HOME}/crate_config
-export CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR=${HOME}/bioyodie_resources
-export CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD=ramalamadingdong
-export CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD=shoobydoobydoo
-export CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME=admin
-export CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD=servisolironcamera
-export CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL=admin@example.com
-export CRATE_DOCKER_CRATEWEB_HOST_PORT=8000
-export CRATE_DOCKER_CRATEWEB_USE_HTTPS=0
 mkdir ${CRATE_DOCKER_CONFIG_HOST_DIR}

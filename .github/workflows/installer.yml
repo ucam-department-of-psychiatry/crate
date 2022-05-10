@@ -9,6 +9,7 @@ on:
             - .github/workflows/installer.yml
             - github_action_scripts/installer_setup.sh
             - github_action_scripts/post_installation_checks.sh
+            - github_action_scripts/set_crate_docker_environment
             - 'docker/**'
             - 'installer/**'
             - setup.py
@@ -20,6 +21,7 @@ jobs:
             - name: Run installer
               run: |
                 set -eux -o pipefail
+                source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
                 ${GITHUB_WORKSPACE}/github_action_scripts/installer_setup.sh
                 cd ${GITHUB_WORKSPACE}/installer
                 ./installer.sh -d
