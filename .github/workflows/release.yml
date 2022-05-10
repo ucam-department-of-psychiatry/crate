@@ -37,5 +37,5 @@ jobs:
                 curl -L --retry 10 --fail https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh --output crate_docker_installer.sh
                 chmod u+x crate_docker_installer.sh
                 ./crate_docker_installer.sh
-                export CRATE_HOME=${HOME}
+                export CRATE_HOME=${HOME}/crate
                 ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh
