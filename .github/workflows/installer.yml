@@ -7,6 +7,9 @@ on:
         paths:
             - 'crate_anon/**'
             - .github/workflows/installer.yml
+            - github_action_scripts/installer_setup.sh
+            - github_action_scripts/post_installation_checks.sh
+            - github_action_scripts/set_crate_docker_environment
             - 'docker/**'
             - 'installer/**'
             - setup.py
@@ -14,40 +17,13 @@ jobs:
     installer:
         runs-on: ubuntu-latest
         steps:
-            - name: Build
+            - uses: actions/checkout@v2
+            - name: Run installer
               run: |
-                  set -euxo pipefail
-                  sudo apt-get update
-                  sudo apt -y install python3-virtualenv python3-venv wait-for-it
-                  docker --version
-                  docker compose version
-                  export CRATE_DOCKER_MYSQL_CRATE_HOST_PORT=3307
-                  export CRATE_DOCKER_CONFIG_HOST_DIR=${HOME}/crate_config
-                  export CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR=${HOME}/bioyodie_resources
-                  export CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD=ramalamadingdong
-                  export CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD=shoobydoobydoo
-                  export CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME=admin
-                  export CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD=servisolironcamera
-                  export CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL=admin@example.com
-                  export CRATE_DOCKER_CRATEWEB_HOST_PORT=8000
-                  export CRATE_DOCKER_CRATEWEB_USE_HTTPS=0
-                  mkdir ${CRATE_DOCKER_CONFIG_HOST_DIR}
-                  cd ${HOME}
-                  # Development:
-                  # curl -L --retry 10 --fail https://github.com/RudolfCardinal/crate/releases/download/installer-test-9/installer.sh --output crate_docker_installer.sh
-                  # Production:
-                  curl -L --retry 10 --fail https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh --output crate_docker_installer.sh
-                  chmod u+x crate_docker_installer.sh
-                  ./crate_docker_installer.sh
-                  # Check Django app is running
-                  cd ${HOME}/crate/docker/dockerfiles
-                  docker compose logs
-                  SERVER_IP=$(docker inspect crate_crate_server --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
-                  wait-for-it $SERVER_IP:8000 --timeout=300
-                  curl -I -L --retry 10 --fail $SERVER_IP:8000/crate/
-                  # Check static files collected
-                  curl -I -L --fail $SERVER_IP:8000/crate_static/scrubber.png
-                  cd ${HOME}/crate/docker/dockerfiles
-                  # Check anonymiser worked
-                  anonymised=$(docker compose exec -T research_db mysql -Ns -u research -presearch research -e "SELECT SUBSTR(note, 1, 36) FROM note LIMIT 1")
-                  [ "${anonymised}" = "\n[__PPP__] [__PPP__] lived on a farm" ]
+                set -eux -o pipefail
+                source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
+                ${GITHUB_WORKSPACE}/github_action_scripts/installer_setup.sh
+                cd ${GITHUB_WORKSPACE}/installer
+                ./installer.sh -d
+                export CRATE_HOME=${GITHUB_WORKSPACE}
+                ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh
