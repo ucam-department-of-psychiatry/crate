@@ -529,6 +529,7 @@ class S1Table:
 
     PATIENT = "Patient"  # e.g. SRPatient (SRE), S1_Patient (CPFT)
     ADDRESS_HISTORY = "PatientAddressHistory"
+    CARE_PLAN_REVIEW = "CarePlanReview"
     CONTACT_DETAILS = "PatientContactDetails"
     RELATIONSHIPS = "PatientRelationship"
 
@@ -709,7 +710,8 @@ CONTEXT_TO_CORE_TABLE_TRANSLATIONS = {
 TABLES_REQUIRING_CRATE_PK_REGEX = (
     # Tables go here if we have to add a PK-style column/index -- usually
     # because we want to apply a FULLTEXT index.
-    S1Table.FREETEXT,  # unterminated, so includes  FreeText (S1) and FreeText_* (CPFT)  # noqa
+    S1Table.FREETEXT,
+    # ... unterminated, so includes  FreeText (S1) and FreeText_* (CPFT)
 )
 
 
@@ -731,19 +733,24 @@ class S1GenericCol:
     EVENT_OCCURRED_WHEN = "DateEvent"  # when event happened
     EVENT_RECORDED_WHEN = "DateEventRecorded"  # when event recorded
     FREETEXT = "FreeText"
-    NOTES_SUFFIX = "Notes"  # "Notes", but also "ends with 'Notes'", e.g. AdmissionNotes, IncidentNotes, LocationNotes  # noqa
+    NOTES_SUFFIX = "Notes"
+    # ... "Notes", but also "ends with 'Notes'", e.g. AdmissionNotes,
+    # IncidentNotes, LocationNotes
     ORG_ID_DONE_AT = "IDOrganisationDoneAt"  # FK to SROrganisation.ID
     ORG_ID_ENTERED_AT = "IDOrganisation"  # org at which the data was entered
     ORG_ID_VISIBLE_TO = "IDOrganisationVisibleTo"  # FK to SROrganisation.ID
-    ORG_REGISTERED_AT = "IDOrganisationRegisteredAt"  # org where the patient was registered when the data was entered  # noqa
+    ORG_REGISTERED_AT = "IDOrganisationRegisteredAt"
+    # ...  org where the patient was registered when the data was entered
     PATIENT_ID = "IDPatient"  # FK to SRPatient.RowIdentifier
-    PK = "RowIdentifier"  # PK for nearly all SystmOne original tables
-    QUESTIONNAIRE_ID = "IDAnsweredQuestionnaire"  # FK to SRAnsweredQuestionnaire.RowIdentifier  # noqa
+    ROW_ID = "RowIdentifier"  # PK for nearly all SystmOne original tables
+    QUESTIONNAIRE_ID = "IDAnsweredQuestionnaire"
+    # ... FK to SRAnsweredQuestionnaire.RowIdentifier
     REFERRAL_ID = "IDReferralIn"  # FK to SRReferralIn.RowIdentifier
     SNOMED_CODE = "SNOMEDCode"  # SNOMED-CT code
     SNOMED_TEXT = "SNOMEDText"  # ... and corresponding description
     STAFF_ID_DONE_BY = "IDDoneBy"  # FK to SRStaffMember.RowIdentifier
-    STAFF_PROFILE_ID_RECORDED_BY = "IDProfileEnteredBy"  # FK to SRStaffMemberProfile.RowIdentifier  # noqa
+    STAFF_PROFILE_ID_RECORDED_BY = "IDProfileEnteredBy"
+    # ... FK to SRStaffMemberProfile.RowIdentifier
 
 
 class CPFTGenericCol:
@@ -781,7 +788,7 @@ class S1PatientCol:
     Columns in the Patient table.
     """
 
-    PK = S1GenericCol.PK  # RowIdentifier
+    PK = S1GenericCol.ROW_ID  # RowIdentifier
     NHSNUM = "NHSNumber"
     TITLE = "Title"
     FORENAME = "FirstName"
@@ -1079,7 +1086,8 @@ _COLS_GENERIC_EXCLUDE_S1 = (
     S1PatientCol.MIDDLE_NAMES,
     S1PatientCol.PREV_SURNAME,
     S1PatientCol.SURNAME,
-    S1PatientCol.TITLE,  # unnecessary -- and might be rare, e.g. Lord High Admiral  # noqa
+    S1PatientCol.TITLE,
+    # ... unnecessary -- and might be rare, e.g. Lord High Admiral
     S1AddressCol.BUILDING_NAME,
     S1AddressCol.BUILDING_NUMBER,
     S1AddressCol.COUNTY,
@@ -1132,7 +1140,7 @@ OMIT_TABLENAME_COLNAME_PAIRS_S1 = (
     (
         "OohAction",
         "Details",
-    ),  # Out-of-hours calls; details can sometimes contain phone numbers  # noqa
+    ),  # Out-of-hours calls; details can sometimes contain phone numbers
     ("OohThirdPartyCall", "Contact"),  # free text
     ("SafeguardingIncidentDetails", "PoliceReference"),
 )
@@ -1268,7 +1276,7 @@ _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
     (
         "SafeguardingAllegationDetails$",
         "Outcome$",
-    ),  # only 100 chars -- but OMIT whole table, as above  # noqa
+    ),  # only 100 chars -- but OMIT whole table, as above
     ("SpecialNotes$", "Note$"),  # 8000 char free text
 )
 _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
@@ -1290,7 +1298,7 @@ _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     (
         S1Table.FREETEXT,
         ANYTHING,
-    ),  # table name not terminated so allows anything starting with this  # noqa
+    ),  # table name not terminated so allows anything starting with this
     # - any field named "FreeText..." (e.g. S1_Honos_Scores.FreeText)
     (ANYTHING, S1GenericCol.FREETEXT),
     # - S1_CYPFRS_TelephoneTriage links in a bunch of things from S1_FreeText.
@@ -1330,7 +1338,9 @@ _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     (ANYTHING, "Ethnicity$"),
 )
 EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS = {
-    SystmOneContext.TPP_SRE: _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_S1,  # noqa: E501
+    SystmOneContext.TPP_SRE: (
+        _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_S1
+    ),
     SystmOneContext.CPFT_DW: (
         _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_S1
         + _EXEMPT_FROM_SCRUBBING_TABLENAME_COLNAME_REGEX_PAIRS_CPFT
@@ -1376,7 +1386,7 @@ GENERIC_COLS_TO_INDEX = {
 }
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Columns that are PKs
+# Columns that are (or are not) PKs
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 _PK_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
@@ -1394,7 +1404,7 @@ _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     (
         "CarePlan",
         "CarePlanID",
-    ),  # includes CarePlanDetail, modified from the source  # noqa
+    ),  # includes CarePlanDetail, modified from the source
     # ... CarePlanReview has IDCarePlan but that is not unique.
     ("Caseload", "IDReferralIn"),
     # ClinicalDashboard*: a bunch of CPFT things; no obvious PK.
@@ -1407,14 +1417,16 @@ _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     ("Contacts_CarerStatus_MH", S1GenericCol.PATIENT_ID),
     ("Contacts_CarerStatus_PH", S1GenericCol.PATIENT_ID),
     # CoronaVirus: no obvious PK (maybe combination of IDPatient, IDReferralIn)
-    # CurrentInpatientDashboard_Doctors: *almost* IDPatient, IDReferralIn but one extra row  # noqa
+    # CurrentInpatientDashboard_Doctors: *almost* IDPatient, IDReferralIn but
+    #   one extra row
     # Deaths: no obvious PK, despite "ClientID" (not unique)
     (CPFTTable.DEMOGRAPHICS, S1GenericCol.PATIENT_ID),
     # DischargeDelay_Fact: no obvious PK.
     # EuroQol*: no PKs
     # FACT_Inp_Data: no obvious PK.
     # Falls_AtRiskState*: no PKs
-    # FreeText_* [CPFT derived free text tables]: none in the first, not all explored  # noqa
+    # FreeText_* [CPFT derived free text tables]: none in the first, not all
+    #   explored
     # GateKeeping: no obvious PK.
     # Honos_Scores: no PK
     # ICW_PTL: no PK
@@ -1428,22 +1440,25 @@ _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     ("MDT_Caseload", S1GenericCol.REFERRAL_ID),
     # OutOfHoursSRCodeInformation: no PK
     # PRISM_ReReferral: no PK
-    # PatientAnsweredQuestionnaireInformation: IDPatient currently unique but I strongly suspect only temporarily  # noqa
+    # PatientAnsweredQuestionnaireInformation: IDPatient currently unique but I
+    #   strongly suspect only temporarily
     # PatientContact: no PK
     # PatientEthnicity: no PK
     ("PatientGPPractice", S1GenericCol.PATIENT_ID),
     # PatientLanguageDeathOptions: no PK
-    # PatientLetterInformation: IDPatient currently unique but I strongly suspect only temporarily  # noqa
+    # PatientLetterInformation: IDPatient currently unique but I strongly
+    #   suspect only temporarily
     ("PatientOverview", S1GenericCol.REFERRAL_ID),
     # PatientRelationship: no PK (modified from the source)
     ("PatientRelationshipMother", S1GenericCol.PATIENT_ID),
     # PatientSRCodeInformation: no PK
-    # PhysicalHealthChecks*: no PK (IDPatient currently unique in S1_PhysicalHealthChecks_CQUIN but unlikely to remain so)  # noqa
+    # PhysicalHealthChecks*: no PK (IDPatient currently unique in
+    #   S1_PhysicalHealthChecks_CQUIN but unlikely to remain so)
     # QRisk: no PK
     (
         "ReferralInIntervention",
         S1GenericCol.REFERRAL_ID,
-    ),  # modified from the source  # noqa
+    ),  # modified from the source
     ("Vanguard", "ReferralNumber"),
     # eDSM: no PK
 )
@@ -1456,15 +1471,19 @@ PK_TABLENAME_COLNAME_REGEX_PAIRS = {
 _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
     (
         S1Table.FREETEXT,
-        S1GenericCol.PK,
-    ),  # not unique; see TABLES_REQUIRING_CRATE_PK_REGEX above  # noqa
+        S1GenericCol.ROW_ID,  # "RowIdentifier"
+    ),  # not unique; see instead TABLES_REQUIRING_CRATE_PK_REGEX above
+    (
+        S1Table.CARE_PLAN_REVIEW,
+        S1GenericCol.ROW_ID,  # "RowIdentifier"
+    ),  # not unique
 )
 _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # These look like PKs, but gave rise to a "Violation of PRIMARY KEY
     # constraint" error, so they aren't. This happens when someone in CPFT
     # maps e.g. "RowIdentifier" in an unusual way.
-    ("Child_At_Risk$", S1GenericCol.PK),  # not unique
-    ("InpatientBedStay", S1GenericCol.PK),  # not unique
+    ("Child_At_Risk$", S1GenericCol.ROW_ID),  # not unique
+    ("InpatientBedStay", S1GenericCol.ROW_ID),  # not unique
     # ... includes InpatientBedStay_Old, etc., now excluded
 )
 NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS = {
@@ -1865,7 +1884,7 @@ def is_pk(
         return True
     # 3. If it has the standard column name, i.e. RowIdentifier, then it's
     #    a PK.
-    if eq(colname, S1GenericCol.PK):
+    if eq(colname, S1GenericCol.ROW_ID):
         return True
     # 4. If it's a specifically noted PK.
     return is_pair_in_re(
@@ -2056,7 +2075,7 @@ def get_scrub_alter_details(
     # Deal with the core patient table. Many details here.
     # -------------------------------------------------------------------------
     if eq(tablename, S1Table.PATIENT):
-        if eq(colname, S1GenericCol.PK):
+        if eq(colname, S1GenericCol.ROW_ID):
             # RowIdentifier: SystmOne patient ID in the master patient table.
             # Hash and scrub SystmOne IDs.
             ssi.add_src_flag(SrcFlag.PK)

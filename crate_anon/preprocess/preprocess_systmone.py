@@ -153,7 +153,7 @@ def add_postcode_geography_view(
             -- Original columns that are not identifying:
 
             -- ... PK and patient ID:
-            {a}.{S1GenericCol.PK},
+            {a}.{S1GenericCol.ROW_ID},
             {a}.{S1GenericCol.PATIENT_ID},
 
             -- ... Admin fields:
@@ -213,7 +213,7 @@ def add_testpatient_view(
     """
     select_sql = f"""
         SELECT
-            {S1GenericCol.PK},
+            {S1GenericCol.ROW_ID},
             {S1GenericCol.PATIENT_ID},
             1 AS {CrateS1ViewCol.IS_TEST_PATIENT}
         FROM
