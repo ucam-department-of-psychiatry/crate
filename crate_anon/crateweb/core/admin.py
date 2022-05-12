@@ -57,7 +57,7 @@ from django.template.defaultfilters import yesno
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy
+from django.utils.translation import gettext_lazy
 
 from crate_anon.crateweb.config.constants import UrlNames, AdminSiteNames
 from crate_anon.crateweb.consent.forms import TeamRepAdminForm
@@ -1750,13 +1750,13 @@ class MgrAdminSite(admin.AdminSite):
     """
 
     # Text to put at the end of each page's <title>.
-    site_title = ugettext_lazy(settings.RESEARCH_DB_TITLE + " manager admin")
+    site_title = gettext_lazy(settings.RESEARCH_DB_TITLE + " manager admin")
     # Text to put in each page's <h1>.
-    site_header = ugettext_lazy(settings.RESEARCH_DB_TITLE + ": manager admin")
+    site_header = gettext_lazy(settings.RESEARCH_DB_TITLE + ": manager admin")
     # URL for the "View site" link at the top of each admin page.
     site_url = settings.FORCE_SCRIPT_NAME + "/"
     # Text to put at the top of the admin index page.
-    index_title = ugettext_lazy(
+    index_title = gettext_lazy(
         settings.RESEARCH_DB_TITLE + " site administration for RDBM"
     )
     index_template = "admin/viewchange_admin_index.html"
@@ -1795,12 +1795,12 @@ class DevAdminSite(admin.AdminSite):
     Developer admin site.
     """
 
-    site_title = ugettext_lazy(settings.RESEARCH_DB_TITLE + " dev admin")
-    site_header = ugettext_lazy(
+    site_title = gettext_lazy(settings.RESEARCH_DB_TITLE + " dev admin")
+    site_header = gettext_lazy(
         settings.RESEARCH_DB_TITLE + ": developer admin"
     )
     site_url = settings.FORCE_SCRIPT_NAME + "/"
-    index_title = ugettext_lazy(
+    index_title = gettext_lazy(
         settings.RESEARCH_DB_TITLE + " developer administration"
     )
     index_template = "admin/viewchange_admin_index.html"
@@ -1839,14 +1839,14 @@ class ResearcherAdminSite(admin.AdminSite):
     Researcher admin site.
     """
 
-    site_title = ugettext_lazy(
+    site_title = gettext_lazy(
         settings.RESEARCH_DB_TITLE + " researcher admin views"
     )
-    site_header = ugettext_lazy(
+    site_header = gettext_lazy(
         settings.RESEARCH_DB_TITLE + ": researcher admin"
     )
     site_url = settings.FORCE_SCRIPT_NAME + "/"
-    index_title = ugettext_lazy("View/manage your studies")
+    index_title = gettext_lazy("View/manage your studies")
     index_template = "admin/viewchange_admin_index.html"
     app_index_template = "admin/viewchange_admin_app_index.html"
 
