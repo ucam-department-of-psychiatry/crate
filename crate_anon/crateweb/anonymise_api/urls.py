@@ -40,7 +40,7 @@ urlpatterns = [
     path("schema/", SpectacularAPIView.as_view(), name="anon_api_schema"),
     path(
         "schema/doc/",
-        SpectacularRedocView.as_view(url_name="schema"),
+        SpectacularRedocView.as_view(url_name="anon_api_schema"),
         name="anon_api_doc",
     ),
 ]
