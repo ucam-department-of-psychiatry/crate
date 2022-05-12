@@ -39,7 +39,3 @@ celerybeat.pid
 
 # Emacs
 .dir-locals.el
-
-# Django
-db.sqlite3
-private_settings.py

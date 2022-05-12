@@ -1,5 +1,5 @@
 """
-crate_anon/anonymise_webserver/anonymiser/main/views.py
+crate_anon/anonymise_webserver/anonymiser/urls.py
 
 ===============================================================================
 
@@ -22,16 +22,25 @@ crate_anon/anonymise_webserver/anonymiser/main/views.py
 
 ===============================================================================
 
-Display the main menu.
+**Django URL configuration for CRATE anonymiser project.**
 
 """
 
-from django.views.generic import TemplateView
+from django.urls import path
 
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+)
 
-class HomeView(TemplateView):
-    """
-    Displays the main menu.
-    """
+from crate_anon.crateweb.anonymise_api.views import ScrubView
 
-    template_name = "main/home.html"
+urlpatterns = [
+    path("scrub/", ScrubView.as_view(), name="anon_api"),
+    path("schema/", SpectacularAPIView.as_view(), name="anon_api_schema"),
+    path(
+        "schema/doc/",
+        SpectacularRedocView.as_view(url_name="schema"),
+        name="anon_api_doc",
+    ),
+]

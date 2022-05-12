@@ -75,7 +75,10 @@ import crate_anon.crateweb.userprofile.views as userprofile_views
 # This is the place for one-time startup code.
 # https://stackoverflow.com/questions/6791911/execute-code-when-django-starts-once-only  # noqa
 # So we cache things here that we don't want the user to have to wait for:
-if EnvVar.GENERATING_CRATE_DOCS not in os.environ:
+if (
+    EnvVar.GENERATING_CRATE_DOCS not in os.environ
+    and EnvVar.RUNNING_TESTS not in os.environ
+):
     from crate_anon.crateweb.research.research_db_info import (
         research_database_info,
     )  # noqa

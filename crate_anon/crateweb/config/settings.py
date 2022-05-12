@@ -107,6 +107,10 @@ INSTALLED_APPS = (
     "debug_toolbar",  # for debugging
     "django_extensions",  # for graph_models, show_urls etc.
     "sslserver",  # for SSL testing
+    "rest_framework",
+    "drf_spectacular",
+    "drf_spectacular_sidecar",
+    "jsoneditor",
     # 'kombu.transport.django',  # for Celery with Django database as broker
     # 'template_profiler_panel',
     # 'silk',
@@ -114,6 +118,7 @@ INSTALLED_APPS = (
     "crate_anon.crateweb.config.apps.ResearchAppConfig",  # the research database query app  # noqa
     "crate_anon.crateweb.config.apps.ConsentAppConfig",  # the consent-to-contact app  # noqa
     "crate_anon.crateweb.config.apps.CoreAppConfig",  # for e.g. the runcpserver command  # noqa
+    "crate_anon.crateweb.config.apps.ApiConfig",  # for the anonymisation API
 )
 
 MIDDLEWARE = (
@@ -143,7 +148,9 @@ MIDDLEWARE = (
 
 LOGIN_URL = "/login/"  # for LoginRequiredMiddleware
 LOGIN_VIEW_NAME = UrlNames.LOGIN  # for LoginRequiredMiddleware
-LOGIN_EXEMPT_URLS = []  # for LoginRequiredMiddleware
+LOGIN_EXEMPT_URLS = [
+    "^anon_api/",
+]  # for LoginRequiredMiddleware
 
 ROOT_URLCONF = "crate_anon.crateweb.config.urls"
 
@@ -482,6 +489,23 @@ _ = """
 """
 RESEARCHER_FONTSIZE = "10pt"
 
+
+# =============================================================================
+# Anonymisation API settings
+# =============================================================================
+
+REST_FRAMEWORK = {"DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema"}
+
+SPECTACULAR_SETTINGS = {
+    "SWAGGER_UI_DIST": "SIDECAR",  # shorthand to use the sidecar instead
+    "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
+    "REDOC_DIST": "SIDECAR",
+    "TITLE": "CRATE API",
+    "DESCRIPTION": (
+        "Clinical Records Anonymisation and Text Extraction (CRATE)"
+    ),
+    "VERSION": "0.0.1",  # TODO: Allow breaking changes until 1.0.0?
+}
 
 # =============================================================================
 # Import from a site-specific file

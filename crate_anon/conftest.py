@@ -1,5 +1,7 @@
+#!/usr/bin/env python
+
 """
-crate_anon/anonymise_webserver/anonymiser/urls.py
+crate_anon/conftest.py
 
 ===============================================================================
 
@@ -22,29 +24,35 @@ crate_anon/anonymise_webserver/anonymiser/urls.py
 
 ===============================================================================
 
-**Django URL configuration for CRATE anonymiser project.**
+pytest configuration
 
 """
 
-from django.contrib import admin
-from django.urls import path
 
-from drf_spectacular.views import (
-    SpectacularAPIView,
-    SpectacularRedocView,
-)
+import os
 
-from crate_anon.anonymise_webserver.anonymiser.main.views import HomeView
-from crate_anon.anonymise_webserver.anonymiser.api.views import ScrubView
+import pytest
 
-urlpatterns = [
-    path("scrub/", ScrubView.as_view()),
-    path("admin/", admin.site.urls),
-    path("schema/", SpectacularAPIView.as_view(), name="schema"),
-    path(
-        "schema/doc/",
-        SpectacularRedocView.as_view(url_name="schema"),
-        name="doc",
-    ),
-    path(r"", HomeView.as_view()),
-]
+from crate_anon.common.constants import EnvVar
+
+os.environ[EnvVar.RUNNING_TESTS] = "True"
+
+
+@pytest.fixture(scope="session")
+def django_db_setup():
+    """
+    We avoid creating/setting up the test database completely because none of
+    our Django tests require a database.
+
+    Should this ever change, we could create a duplicate settings.py file with
+    the minimum configuration to run tests and change DJANGO_SETTINGS_MODULE
+    in setup.cfg. We could use sqlite for the various databases.
+    """
+
+
+@pytest.fixture
+def db_access_without_rollback_and_truncate(
+    request, django_db_setup, django_db_blocker
+):
+    django_db_blocker.unblock()
+    request.addfinalizer(django_db_blocker.restore)

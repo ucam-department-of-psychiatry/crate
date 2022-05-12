@@ -1,5 +1,5 @@
 """
-crate_anon/anonymise_webserver/anonymiser/api/tests.py
+crate_anon/crateweb/anonymise_api/tests.py
 
 ===============================================================================
 
@@ -38,7 +38,7 @@ from rest_framework.test import APIClient
 DEFAULT_SETTINGS = {"HASH_KEY": secrets.token_urlsafe(16)}
 
 
-@override_settings(CRATE=DEFAULT_SETTINGS)
+@override_settings(ANONYMISE_API=DEFAULT_SETTINGS)
 class AnonymisationTests(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -69,7 +69,7 @@ class AnonymisationTests(TestCase):
         self.assertIn(address, text)
         self.assertIn(str(nhs_number), text)
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -96,8 +96,10 @@ class AnonymisationTests(TestCase):
         settings = DEFAULT_SETTINGS
         settings.update(DENYLIST_FILENAMES=filename_map)
 
-        with override_settings(CRATE=settings):
-            response = self.client.post("/scrub/", payload, format="json")
+        with override_settings(ANONYMISE_API=settings):
+            response = self.client.post(
+                "/anon_api/scrub/", payload, format="json"
+            )
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -118,7 +120,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": word},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -138,7 +140,7 @@ class AnonymisationTests(TestCase):
 
         self.assertIn(date_of_birth, text)
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -164,7 +166,7 @@ class AnonymisationTests(TestCase):
         self.assertIn("two", all_words)
         self.assertIn("three", all_words)
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -186,7 +188,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": word},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -206,7 +208,7 @@ class AnonymisationTests(TestCase):
 
         self.assertIn(address, text)
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -226,7 +228,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": "Address is 5 High Street haloperidol 5 mg"},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -247,7 +249,7 @@ class AnonymisationTests(TestCase):
 
         self.assertIn(phone, text)
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -269,7 +271,7 @@ class AnonymisationTests(TestCase):
 
         self.assertIn(postcode, text)
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -291,7 +293,7 @@ class AnonymisationTests(TestCase):
 
         self.assertIn(postcode, text)
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -311,7 +313,7 @@ class AnonymisationTests(TestCase):
             "replace_third_party_info_with": "[REDACTED]",
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -334,7 +336,7 @@ class AnonymisationTests(TestCase):
 
         self.assertIn(postcode, text)
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -357,7 +359,7 @@ class AnonymisationTests(TestCase):
 
         self.assertIn(date_of_birth, text)
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -381,7 +383,7 @@ class AnonymisationTests(TestCase):
 
         self.assertIn(phone, text)
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -404,7 +406,7 @@ class AnonymisationTests(TestCase):
 
         self.assertIn(phone, text)
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -426,7 +428,7 @@ class AnonymisationTests(TestCase):
 
         self.assertIn(word, text)
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -447,7 +449,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": text},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -472,7 +474,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": text},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -490,7 +492,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": "Craig Buchanan"},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -510,7 +512,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": "secrets"},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -529,7 +531,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": "secret private confidential"},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -556,8 +558,10 @@ class AnonymisationTests(TestCase):
         settings = DEFAULT_SETTINGS
         settings.update(ALLOWLIST_FILENAMES=filename_map)
 
-        with override_settings(CRATE=settings):
-            response = self.client.post("/scrub/", payload, format="json")
+        with override_settings(ANONYMISE_API=settings):
+            response = self.client.post(
+                "/anon_api/scrub/", payload, format="json"
+            )
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -576,7 +580,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": "22 Acacia Ave"},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -596,7 +600,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": text},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -619,7 +623,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": text},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -639,7 +643,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": text},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -660,7 +664,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": text},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -677,7 +681,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": postcode},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -697,7 +701,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": text},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -719,7 +723,7 @@ class AnonymisationTests(TestCase):
             "text": {"test": text},
         }
 
-        response = self.client.post("/scrub/", payload, format="json")
+        response = self.client.post("/anon_api/scrub/", payload, format="json")
         self.assertEqual(response.status_code, 200, msg=response.data)
 
         anonymised = response.data["anonymised"]["test"]
@@ -762,5 +766,5 @@ class AnonymisationTests(TestCase):
             "third_party": "\u0000",
         }
 
-        response = self.client.post("/scrub/", payload)
+        response = self.client.post("/anon_api/scrub/", payload)
         self.assertEqual(response.status_code, 400, msg=response.data)

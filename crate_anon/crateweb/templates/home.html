@@ -39,7 +39,7 @@
                 <div class="item-row">
                     <p class="item"><a href="{% url 'highlight' %}">Highlighting</a></p>
                     <div class="separator"> --- </div>
-                    <p class="explanation">Set highlight colours for particular words.</p> 
+                    <p class="explanation">Set highlight colours for particular words.</p>
                 </div>
             </div>
             <div class="item-row">
@@ -72,7 +72,7 @@
                 <div class="item-row">
                     <p class="item"><a href="{% url 'highlight' %}">Highlighting</a></p>
                     <div class="separator"> --- </div>
-                    <p class="explanation">Set highlight colours for particular words.</p> 
+                    <p class="explanation">Set highlight colours for particular words.</p>
                 </div>
             </div>
             <p>
@@ -228,6 +228,14 @@
                 </ul>
             </div>
         {% endif %}
+            <div class="{% cycle box_colours %}">
+                <h1>Anonymisation API</h1>
+                <ul>
+                    <li><a href="{% url 'anon_api' %}">Scrubbing API test area</a></li>
+                    <li><a href="{% url 'anon_api_schema' %}">Download the OpenAPI schema (YAML format)</a></li>
+                    <li><a href="{% url 'anon_api_doc' %}">API documentation</a></li>
+                </ul>
+            </div>
 
         {% if is_developer %}
             <div class="{% cycle box_colours %}">

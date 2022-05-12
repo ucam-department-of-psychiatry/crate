@@ -1,5 +1,5 @@
 """
-crate_anon/anonymise_webserver/anonymiser/api/serializers.py
+crate_anon/crateweb/anonymise_api/serializers.py
 
 ===============================================================================
 
@@ -52,7 +52,7 @@ from crate_anon.anonymise.scrub import (
     PersonalizedScrubber,
     WordList,
 )
-from crate_anon.anonymise_webserver.anonymiser.api.fields import (
+from crate_anon.crateweb.anonymise_api.fields import (
     JsonDictField,
     JsonListField,
 )
@@ -339,7 +339,7 @@ class ScrubSerializer(Serializer):
         Create a CRATE scrubber representing patient and third-party scrubbing
         settings.
         """
-        hasher = make_hasher("HMAC_MD5", settings.CRATE["HASH_KEY"])
+        hasher = make_hasher("HMAC_MD5", settings.ANONYMISE_API["HASH_KEY"])
 
         options = (
             "anonymise_codes_at_word_boundaries_only",
@@ -406,7 +406,7 @@ class ScrubSerializer(Serializer):
 
         kwargs = {k: v for (k, v) in allowlist_data.items() if k in options}
         files = allowlist_data["files"]
-        filename_lookup = settings.CRATE.get("ALLOWLIST_FILENAMES", {})
+        filename_lookup = settings.ANONYMISE_API.get("ALLOWLIST_FILENAMES", {})
 
         filenames = [
             filename
@@ -469,7 +469,7 @@ class ScrubSerializer(Serializer):
         kwargs["replacement_text"] = data["replace_nonspecific_info_with"]
 
         files = denylist_data["files"]
-        filename_lookup = settings.CRATE.get("DENYLIST_FILENAMES", {})
+        filename_lookup = settings.ANONYMISE_API.get("DENYLIST_FILENAMES", {})
 
         filenames = [
             filename

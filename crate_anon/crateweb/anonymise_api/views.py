@@ -1,7 +1,5 @@
-#!/usr/bin/env python
-
 """
-crate_anon/anonymise_webserver/anonymiser/__init__.py
+crate_anon/crateweb/anonymise_api/views.py
 
 ===============================================================================
 
@@ -24,6 +22,32 @@ crate_anon/anonymise_webserver/anonymiser/__init__.py
 
 ===============================================================================
 
-The mere existence of this file makes Python treat the directory as a package.
+Django REST Framework view. This is the anonymisation API end point.
 
 """
+
+from rest_framework.request import Request
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from crate_anon.crateweb.anonymise_api.serializers import (
+    ScrubSerializer,
+)
+
+
+class ScrubView(APIView):
+    """
+    Main CRATE anonymisation end-point.
+    """
+
+    # Only needed by drf_spectacular to generate documentation
+    serializer_class = ScrubSerializer
+
+    # noinspection PyMethodMayBeStatic
+    def post(self, request: Request) -> Response:
+        serializer = ScrubSerializer(data=request.data)
+
+        # If the input is valid, this will do the anonymisation
+        serializer.is_valid(raise_exception=True)
+
+        return Response(serializer.data)
