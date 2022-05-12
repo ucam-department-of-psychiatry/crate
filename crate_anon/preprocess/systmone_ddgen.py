@@ -33,6 +33,19 @@ Notes
 - SystmOne is a general-purpose electronic health record (EHR) system from TPP
   (The Phoenix Partnership): https://tpp-uk.com/products/.
 
+- It's widely used in general practice (GP), and in
+  Cambridgeshire/Peterborough, ~80% of GP surgeries use it (2018 data,
+  https://pubmed.ncbi.nlm.nih.gov/29490968/, Figure 2).
+
+- Cambridgeshire & Peterborough NHS Foundation Trust (CPFT) used to use
+  SystmOne for community services, and then moved nearly all the rest of its
+  services to SystmOne (from RiO, in the case of mental health services):
+  Children's Directorate (12 Oct 2020), Community Hospital wards (30 Nov 2020),
+  the rest of the Older People, Adults, and Community Directorate (7 Dec 2020),
+  and finally the Adult and Specialist Directorate (14 Jun 2021).
+
+- SystmOne is centrally hosted by TPP.
+
 - TPP provide a nightly "Strategic Reporting extract" (SRE) of SystmOne data.
 
 - Its primary coding mechanisms are (1) CTV3 (Read) codes, and (2) SNOMED
