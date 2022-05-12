@@ -98,6 +98,12 @@ Available subcommands:
     update_permissions
     validate_templates
 
+[drf_spectacular]
+    spectacular
+
+[rest_framework]
+    generateschema
+
 [sessions]
     clearsessions
 

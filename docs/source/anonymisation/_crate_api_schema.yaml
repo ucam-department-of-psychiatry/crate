@@ -4,7 +4,7 @@ info:
   version: 0.0.1
   description: Clinical Records Anonymisation and Text Extraction (CRATE)
 paths:
-  /schema/:
+  /anon_api/schema/:
     get:
       operationId: schema_retrieve
       description: |-
@@ -147,7 +147,7 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
-  /scrub/:
+  /anon_api/scrub/:
     post:
       operationId: scrub_create
       description: Main CRATE anonymisation end-point.

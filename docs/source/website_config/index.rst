@@ -17,6 +17,8 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
+.. _configuring_the_crate_web_interface:
+
 Configuring the CRATE web interface
 ===================================
 

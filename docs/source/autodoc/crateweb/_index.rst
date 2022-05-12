@@ -28,6 +28,12 @@ crate_anon/crateweb
     :maxdepth: 1
 
     __init__.py.rst
+    anonymise_api/__init__.py.rst
+    anonymise_api/fields.py.rst
+    anonymise_api/serializers.py.rst
+    anonymise_api/tests.py.rst
+    anonymise_api/urls.py.rst
+    anonymise_api/views.py.rst
     config/__init__.py.rst
     config/apps.py.rst
     config/constants.py.rst
@@ -268,6 +274,8 @@ crate_anon/crateweb
     templates/page_nav.html.rst
     templates/password_change.html.rst
     templates/pdf.css.rst
+    templates/rest_framework/api.html.rst
+    templates/rest_framework/horizontal/json.html.rst
     templates/shortlist_studies.html.rst
     templates/show_form_errors.html.rst
     templates/show_hide_buttons.html.rst

@@ -298,12 +298,8 @@ def main():
     # -------------------------------------------------------------------------
     # Anonymisation API
     # -------------------------------------------------------------------------
-    run_cmd(
-        ["crate_anon_web_django_manage", "--help"],
-        join(DevPath.DOCS_ANON_DIR, "_crate_anon_web_django_manage_help.txt"),
-    )
     api_schema_file = join(DevPath.DOCS_ANON_DIR, "_crate_api_schema.yaml")
-    run_cmd(["crate_anon_web_django_manage", "spectacular"], api_schema_file)
+    run_cmd(["crate_django_manage", "spectacular"], api_schema_file)
 
     # Ideally we would use https://github.com/sphinx-contrib/openapi but it
     # hasn't been maintained since 2020 and doesn't work with our schema.

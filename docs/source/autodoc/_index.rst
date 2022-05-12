@@ -28,7 +28,6 @@ Automatic documentation of source code
     :maxdepth: 2
 
     anonymise/_index.rst
-    anonymise_webserver/_index.rst
     common/_index.rst
     crateweb/_index.rst
     linkage/_index.rst
