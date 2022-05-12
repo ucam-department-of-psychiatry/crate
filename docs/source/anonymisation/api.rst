@@ -30,6 +30,9 @@ The CRATE anonymisation API uses the CRATE web interface. See :ref:`Configuring
 the CRATE web interface <configuring_the_crate_web_interface>` and :ref:`Using
 the CRATE web interface <using_the_crate_web_interface>`.
 
+You can access the anonymisation API menu at ``/anon_api/``. You do not need to
+be logged in.
+
 The API endpoint is at ``/anon_api/scrub/``
 
 =================================

@@ -1,0 +1,14 @@
+{# crate_anon/crateweb/templates/anonymise_api/home.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+            <h1>CRATE Anonymisation API</h1>
+            <nav>
+              <ul>
+                <li><a href="{% url 'anon_api' %}">Scrubbing API test area</a></li>
+                <li><a href="{% url 'anon_api_schema' %}">Download the OpenAPI schema (YAML format)</a></li>
+                <li><a href="{% url 'anon_api_doc' %}">API documentation</a></li>
+              </ul>
+            </nav>
+{% endblock %}

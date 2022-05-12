@@ -26,6 +26,8 @@ Django REST Framework view. This is the anonymisation API end point.
 
 """
 
+from django.views.generic import TemplateView
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -33,6 +35,14 @@ from rest_framework.views import APIView
 from crate_anon.crateweb.anonymise_api.serializers import (
     ScrubSerializer,
 )
+
+
+class HomeView(TemplateView):
+    """
+    Displays the API menu.
+    """
+
+    template_name = "anonymise_api/home.html"
 
 
 class ScrubView(APIView):

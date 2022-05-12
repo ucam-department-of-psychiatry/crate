@@ -26,16 +26,17 @@ crate_anon/anonymise_webserver/anonymiser/urls.py
 
 """
 
-from django.urls import path
+from django.urls import path, re_path
 
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularRedocView,
 )
 
-from crate_anon.crateweb.anonymise_api.views import ScrubView
+from crate_anon.crateweb.anonymise_api.views import HomeView, ScrubView
 
 urlpatterns = [
+    re_path("^$", HomeView.as_view(), name="anon_api_home"),
     path("scrub/", ScrubView.as_view(), name="anon_api"),
     path("schema/", SpectacularAPIView.as_view(), name="anon_api_schema"),
     path(
