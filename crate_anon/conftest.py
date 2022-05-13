@@ -38,18 +38,6 @@ from crate_anon.common.constants import EnvVar
 os.environ[EnvVar.RUNNING_TESTS] = "True"
 
 
-@pytest.fixture(scope="session")
-def django_db_setup():
-    """
-    We avoid creating/setting up the test database completely because none of
-    our Django tests require a database.
-
-    Should this ever change, we could create a duplicate settings.py file with
-    the minimum configuration to run tests and change DJANGO_SETTINGS_MODULE
-    in setup.cfg. We could use sqlite for the various databases.
-    """
-
-
 @pytest.fixture
 def db_access_without_rollback_and_truncate(
     request, django_db_setup, django_db_blocker
