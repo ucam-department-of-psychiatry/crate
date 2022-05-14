@@ -5,7 +5,8 @@ crate_anon/crateweb/consent/migrations/0007_auto_20170228_1052.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015, University of Cambridge, Department of Psychiatry.
+    Created by Rudolf Cardinal (rnc1001@cam.ac.uk).
 
     This file is part of CRATE.
 

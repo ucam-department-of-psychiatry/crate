@@ -1,4 +1,5 @@
-..  Copyright © 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
+..  Copyright (C) 2015, University of Cambridge, Department of Psychiatry.
+    Created by Rudolf Cardinal (rnc1001@cam.ac.uk).
     .
     This file is part of CRATE.
     .
