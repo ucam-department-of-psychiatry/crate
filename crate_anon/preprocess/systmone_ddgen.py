@@ -540,6 +540,10 @@ class S1Table:
     SystmOne "core" table names, with no prefix.
     """
 
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Tables containing a range of patient identifiers
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     PATIENT = "Patient"  # e.g. SRPatient (SRE), S1_Patient (CPFT)
     ADDRESS_HISTORY = "PatientAddressHistory"
     CARE_PLAN_REVIEW = "CarePlanReview"
@@ -558,7 +562,6 @@ class S1Table:
     #   preferred pharmacy; but no direct identifiers.
 
     HOSP_AE_NUMBERS = "HospitalAAndENumber"
-    MEDIA = "Media"  # todo: binary documents -- how?
     SAFEGUARDING_PERSON_AT_RISK = "SafeguardingPersonAtRisk"
 
     # See also OMIT_TABLENAME_COLNAME_PAIRS below.
@@ -572,7 +575,29 @@ class S1Table:
     # - SROohTransport -- very structured.
     # - SROohVisit -- very structured.
 
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Tables containing free text
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     FREETEXT = "FreeText"
+    MEDIA = "Media"  # todo: binary documents -- how?
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Others requiring special treatment
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    ACTIVITY_EVENT = "ActivityEvent"
+    BED_CLOSURE = "BedClosure"
+    CONTACTS = "Contacts"
+    DISCHARGE_DELAY = "DischargeDelay"
+    MENTAL_HEALTH_ACT_APPEAL = "SectionAppeal"
+    MENTAL_HEALTH_ACT_AWOL = "MHAWOL"
+    NOMIS_NUMBER = "NomisNumber"  # National Offender Management Info. System
+    OUT_OF_HOURS_ACTION = "OohAction"
+    OUT_OF_HOURS_THIRD_PARTY_CALL = "OohThirdPartyCall"
+    SAFEGUARDING_ALLEGATION_DETAILS = "SafeguardingAllegationDetails"
+    SAFEGUARDING_INCIDENT_DETAILS = "SafeguardingIncidentDetails"
+    TASK = "Task"
 
 
 class CPFTTable:
@@ -580,11 +605,30 @@ class CPFTTable:
     Selected tables that CPFT have renamed or created.
     """
 
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Tables containing a range of patient identifiers
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     ADDRESS = "PatientAddress"
     CONTACT_DETAILS = "PatientContact"
-    CYP_FRS_TELEPHONE_TRIAGE = "CYPFRS_TelephoneTriage"
     DEMOGRAPHICS = "Demographics"
     REL_MOTHER = "PatientRelationshipMother"
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Tables containing free text
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    CYP_FRS_TELEPHONE_TRIAGE = "CYPFRS_TelephoneTriage"
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Others requiring special treatment
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    BED_CLOSURE = "InpatientBedClosure"
+    CONTACTS_ARCHIVE = "ContactsArchive"
+    CONTACTS_ARCHIVE_CLIENT_SEQUENCE = "ContactsArchive_ClientSequence"
+    MENTAL_HEALTH_ACT_APPEAL = "MentalHealthAct_SectionAppeal"
+    MENTAL_HEALTH_ACT_AWOL = "MentalHealthAct_Awol"
 
 
 class CrateView:
@@ -624,11 +668,9 @@ INCLUDE_TABLES_REGEX = {
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 _OMIT_AND_IGNORE_TABLES_S1 = (
-    "NomisNumber",  # Prison NOMIS numbers
-    "SafeguardingAllegationDetails",  # sensitive and no patient ID column
-    # CPFT extras:
-    "gr_workings",  # no idea
-    "InpatientAvailableBeds",  # RowIdentifier very far from unique; ?no PK; no patient info  # noqa
+    S1Table.NOMIS_NUMBER,  # NOMIS (prison) numbers
+    S1Table.SAFEGUARDING_ALLEGATION_DETAILS,
+    # ... sensitive and no patient ID column
 )
 _OMIT_AND_IGNORE_TABLES_CPFT = (
     # CPFT extras:
@@ -701,7 +743,10 @@ _S1_TO_CPFT_TABLE_TRANSLATION = {
     # Where CPFT has renamed a S1 SRE table directly.
     S1Table.ADDRESS_HISTORY: CPFTTable.ADDRESS,
     # ... i.e. CPFT have renamed SRPatientAddressHistory to S1_PatientAddress.
+    S1Table.BED_CLOSURE: CPFTTable.BED_CLOSURE,
     S1Table.CONTACT_DETAILS: CPFTTable.CONTACT_DETAILS,
+    S1Table.MENTAL_HEALTH_ACT_APPEAL: CPFTTable.MENTAL_HEALTH_ACT_APPEAL,
+    S1Table.MENTAL_HEALTH_ACT_AWOL: CPFTTable.MENTAL_HEALTH_ACT_AWOL,
 }
 CORE_TO_CONTEXT_TABLE_TRANSLATIONS = {
     # Key: destination context.
@@ -1148,14 +1193,12 @@ COLS_GENERIC_EXCLUDE = {
 
 OMIT_TABLENAME_COLNAME_PAIRS_S1 = (
     # Other specific fields to omit.
-    ("Contacts", "ContactWith"),
+    (S1Table.CONTACTS, "ContactWith"),
     (S1Table.HOSP_AE_NUMBERS, S1HospNumCol.COMMENTS),
-    (
-        "OohAction",
-        "Details",
-    ),  # Out-of-hours calls; details can sometimes contain phone numbers
-    ("OohThirdPartyCall", "Contact"),  # free text
-    ("SafeguardingIncidentDetails", "PoliceReference"),
+    (S1Table.OUT_OF_HOURS_ACTION, "Details"),
+    # ... out-of-hours calls; details can sometimes contain phone numbers
+    (S1Table.OUT_OF_HOURS_THIRD_PARTY_CALL, "Contact"),  # free text
+    (S1Table.SAFEGUARDING_INCIDENT_DETAILS, "PoliceReference"),
 )
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1481,23 +1524,31 @@ PK_TABLENAME_COLNAME_REGEX_PAIRS = {
     + _PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT,
 }
 
-_NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
-    (
-        S1Table.FREETEXT,
-        S1GenericCol.ROW_ID,  # "RowIdentifier"
-    ),  # not unique; see instead TABLES_REQUIRING_CRATE_PK_REGEX above
-    (
+_NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1 = tuple(
+    # Tables in which "RowIdentifier" (S1GenericCol.ROW_ID) is not unique.
+    (t, S1GenericCol.ROW_ID)
+    for t in (
+        S1Table.ACTIVITY_EVENT,
         S1Table.CARE_PLAN_REVIEW,
-        S1GenericCol.ROW_ID,  # "RowIdentifier"
-    ),  # not unique
+        S1Table.DISCHARGE_DELAY,
+        S1Table.FREETEXT,  # see instead TABLES_REQUIRING_CRATE_PK_REGEX above
+        S1Table.BED_CLOSURE,
+        S1Table.MENTAL_HEALTH_ACT_APPEAL,
+        S1Table.MENTAL_HEALTH_ACT_AWOL,
+        S1Table.TASK,
+    )
 )
-_NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
-    # These look like PKs, but gave rise to a "Violation of PRIMARY KEY
-    # constraint" error, so they aren't. This happens when someone in CPFT
-    # maps e.g. "RowIdentifier" in an unusual way.
-    ("Child_At_Risk$", S1GenericCol.ROW_ID),  # not unique
-    ("InpatientBedStay", S1GenericCol.ROW_ID),  # not unique
-    # ... includes InpatientBedStay_Old, etc., now excluded
+_NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = tuple(
+    # Similarly. These tables have things that look like PKs, but gave rise to
+    # a "Violation of PRIMARY KEY constraint" error, so they aren't. This
+    # happens when someone in CPFT maps e.g. "RowIdentifier" in an unusual way.
+    (t, S1GenericCol.ROW_ID)
+    for t in (
+        "Child_At_Risk$",
+        "InpatientBedStay",  # includes InpatientBedStay_Old, etc.
+        CPFTTable.CONTACTS_ARCHIVE,
+        CPFTTable.CONTACTS_ARCHIVE_CLIENT_SEQUENCE,
+    )
 )
 NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS = {
     SystmOneContext.TPP_SRE: _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1,
