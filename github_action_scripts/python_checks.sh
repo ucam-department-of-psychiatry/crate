@@ -30,5 +30,5 @@ black --line-length 79 --diff --check .
 echo checking python for style and errors
 flake8 --config=setup.cfg .
 echo running tests
-export CRATE_ANON_CONFIG=${HOME}/crate_anon_config.ini
+export CRATE_RUN_WITHOUT_LOCAL_SETTINGS=True
 pytest -v
