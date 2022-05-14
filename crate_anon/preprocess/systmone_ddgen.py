@@ -1526,7 +1526,7 @@ PK_TABLENAME_COLNAME_REGEX_PAIRS = {
 
 _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1 = tuple(
     # Tables in which "RowIdentifier" (S1GenericCol.ROW_ID) is not unique.
-    (t, S1GenericCol.ROW_ID)
+    (terminate(t), S1GenericCol.ROW_ID)
     for t in (
         S1Table.ACTIVITY_EVENT,
         S1Table.CARE_PLAN_REVIEW,
@@ -1544,10 +1544,10 @@ _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = tuple(
     # happens when someone in CPFT maps e.g. "RowIdentifier" in an unusual way.
     (t, S1GenericCol.ROW_ID)
     for t in (
-        "Child_At_Risk$",
+        terminate("Child_At_Risk"),
         "InpatientBedStay",  # includes InpatientBedStay_Old, etc.
-        CPFTTable.CONTACTS_ARCHIVE,
-        CPFTTable.CONTACTS_ARCHIVE_CLIENT_SEQUENCE,
+        terminate(CPFTTable.CONTACTS_ARCHIVE),
+        terminate(CPFTTable.CONTACTS_ARCHIVE_CLIENT_SEQUENCE),
     )
 )
 NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS = {
