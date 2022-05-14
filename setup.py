@@ -143,7 +143,7 @@ INSTALL_REQUIRES = [
     # when resolving crate_anon.anonymise.patient.Patient in
     # crate_anon.anonymise.altermethod.py
     "sphinx==4.2.0",  # documentation
-    "sphinx_rtd_theme==0.5.0",  # documentation
+    "sphinx_rtd_theme==1.0.0",  # documentation
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
     # ---------------------------------------------------------------------
