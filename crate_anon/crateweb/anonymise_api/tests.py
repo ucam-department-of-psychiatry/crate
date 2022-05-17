@@ -768,3 +768,24 @@ class AnonymisationTests(TestCase):
 
         response = self.client.post("/anon_api/scrub/", payload)
         self.assertEqual(response.status_code, 400, msg=response.data)
+
+    def test_multipart_request(self) -> None:
+        dob = self.fake.date_of_birth()
+        dob_string = dob.strftime("%d %b %Y")
+        dob_iso = dob.strftime("%Y-%m-%d")
+
+        text1 = self.fake.text()
+        text2 = self.fake.text()
+
+        text = f"{text1} {dob_string} {text2}"
+
+        payload = {
+            "text": f'{{"test": "{text}"}}',
+            "patient.dates": f'["{dob_iso}"]',
+        }
+
+        response = self.client.post("/anon_api/scrub/", payload)
+        self.assertEqual(response.status_code, 200, msg=response.data)
+
+        anonymised = response.data["anonymised"]["test"]
+        self.assertEqual(anonymised, f"{text1} [__PPP__] {text2}")
