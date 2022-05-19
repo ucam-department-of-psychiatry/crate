@@ -36,6 +36,7 @@ from cardinal_pythonlib.hash import GenericHasher, make_hasher
 from rest_framework.serializers import (
     BooleanField,
     CharField,
+    DictField,
     IntegerField,
     ListField,
     Serializer,
@@ -52,10 +53,6 @@ from crate_anon.anonymise.scrub import (
     PersonalizedScrubber,
     WordList,
 )
-from crate_anon.crateweb.anonymise_api.fields import (
-    JsonDictField,
-    JsonListField,
-)
 
 
 class SpecificSerializer(Serializer):
@@ -64,13 +61,13 @@ class SpecificSerializer(Serializer):
     (e.g. patient data, third-party data).
     """
 
-    dates = JsonListField(
+    dates = ListField(
         child=CharField(),
         help_text="List of dates to be scrubbed.",
         default=[],
         initial=[],
     )
-    phrases = JsonListField(
+    phrases = ListField(
         child=CharField(),
         help_text=(
             "List of phrases (words appearing consecutively) to "
@@ -79,7 +76,7 @@ class SpecificSerializer(Serializer):
         default=[],
         initial=[],
     )
-    non_numeric_phrases = JsonListField(
+    non_numeric_phrases = ListField(
         child=CharField(),
         help_text=(
             "List of phrases (words appearing consecutively) to "
@@ -89,19 +86,19 @@ class SpecificSerializer(Serializer):
         default=[],
         initial=[],
     )
-    words = JsonListField(
+    words = ListField(
         child=CharField(),
         help_text="List of words to be scrubbed.",
         default=[],
         initial=[],
     )
-    numbers = JsonListField(
+    numbers = ListField(
         child=CharField(),
         help_text="List of numbers to be scrubbed.",
         default=[],
         initial=[],
     )
-    codes = JsonListField(
+    codes = ListField(
         child=CharField(),
         help_text="List of codes (e.g. postcodes) to be scrubbed.",
         default=[],
@@ -114,13 +111,13 @@ class AllowlistSerializer(Serializer):
     Represents allowlist options.
     """
 
-    words = JsonListField(
+    words = ListField(
         child=CharField(),
         help_text="Do not scrub these specific words.",
         default=[],
         initial=[],
     )
-    files = JsonListField(
+    files = ListField(
         child=CharField(),
         help_text=(
             "Do not scrub words from these filename aliases "
@@ -136,13 +133,13 @@ class DenylistSerializer(Serializer):
     Represents denylist options.
     """
 
-    words = JsonListField(
+    words = ListField(
         child=CharField(),
         help_text="Scrub these specific words.",
         default=[],
         initial=[],
     )
-    files = JsonListField(
+    files = ListField(
         child=CharField(),
         help_text=(
             "Scrub words from these filename aliases (defined on the server)."
@@ -160,7 +157,7 @@ class ScrubSerializer(Serializer):
 
     # Input/Output fields
     # default implies required=False
-    text = JsonDictField(
+    text = DictField(
         child=CharField(help_text="Text to be scrubbed."),
         help_text=(
             "The lines of text to be scrubbed, each keyed on a unique "
@@ -235,7 +232,7 @@ class ScrubSerializer(Serializer):
         initial=Defaults.MIN_STRING_LENGTH_TO_SCRUB_WITH,
         help_text="Do not scrub strings shorter than this length.",
     )
-    scrub_string_suffixes = JsonListField(
+    scrub_string_suffixes = ListField(
         child=CharField(),
         help_text=(
             'A list of suffixes to permit on strings. e.g. ["s"] '
@@ -277,7 +274,7 @@ class ScrubSerializer(Serializer):
             "to include just those components."
         ),
     )
-    scrub_all_numbers_of_n_digits = JsonListField(
+    scrub_all_numbers_of_n_digits = ListField(
         child=IntegerField(),
         help_text=(
             "Scrub all numbers with these lengths "
@@ -299,7 +296,7 @@ class ScrubSerializer(Serializer):
             "for month names and ordinal suffixes."
         ),
     )
-    alternatives = JsonListField(
+    alternatives = ListField(
         child=ListField(child=CharField()),
         help_text=(
             "List of alternative words to scrub. "

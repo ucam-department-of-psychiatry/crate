@@ -28,6 +28,7 @@ Django REST Framework view. This is the anonymisation API end point.
 
 from django.views.generic import TemplateView
 
+from rest_framework.parsers import JSONParser
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -52,6 +53,7 @@ class ScrubView(APIView):
 
     # Only needed by drf_spectacular to generate documentation
     serializer_class = ScrubSerializer
+    parser_classes = [JSONParser]
 
     # noinspection PyMethodMayBeStatic
     def post(self, request: Request) -> Response:
