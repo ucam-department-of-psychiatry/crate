@@ -27,20 +27,8 @@ crate_anon/conftest.py
 pytest configuration
 
 """
-
-
 import os
-
-import pytest
 
 from crate_anon.common.constants import EnvVar
 
 os.environ[EnvVar.RUNNING_TESTS] = "True"
-
-
-@pytest.fixture
-def db_access_without_rollback_and_truncate(
-    request, django_db_setup, django_db_blocker
-):
-    django_db_blocker.unblock()
-    request.addfinalizer(django_db_blocker.restore)
