@@ -65,7 +65,6 @@ INSTALLED_APPS = (
     "rest_framework",
     "drf_spectacular",
     "drf_spectacular_sidecar",
-    "jsoneditor",
     # 'kombu.transport.django',  # for Celery with Django database as broker
     # 'template_profiler_panel',
     # 'silk',

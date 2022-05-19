@@ -1,5 +1,5 @@
 """
-crate_anon/anonymise_webserver/anonymiser/urls.py
+crate_anon/crateweb/anonymise_api/anonymiser/urls.py
 
 ===============================================================================
 
@@ -22,7 +22,7 @@ crate_anon/anonymise_webserver/anonymiser/urls.py
 
 ===============================================================================
 
-**Django URL configuration for CRATE anonymiser project.**
+**Django URL configuration for CRATE anonymisation API.**
 
 """
 

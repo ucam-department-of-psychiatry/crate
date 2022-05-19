@@ -158,12 +158,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Scrub'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Scrub'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/Scrub'
         required: true
       security:
       - cookieAuth: []

@@ -53,6 +53,10 @@ class ScrubView(APIView):
 
     # Only needed by drf_spectacular to generate documentation
     serializer_class = ScrubSerializer
+
+    # Not currently supporting MultiPartParser for multipart/form-data.
+    # Requires some work to get the nested serializers handling the data
+    # correctly, particularly in the Browseable API form. See git history.
     parser_classes = [JSONParser]
 
     # noinspection PyMethodMayBeStatic
