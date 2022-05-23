@@ -22,7 +22,7 @@ usage: crate_fuzzy_id_match [-h] [--version] [--allhelp] [--verbose]
                             [--p_gender_error P_GENDER_ERROR]
                             [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
                             [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
-                            {selftest,speedtest,print_demo_sample,validate1,validate2_fetch_cdl,validate2_fetch_rio,hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,show_metaphone,show_forename_freq,show_forename_metaphone_freq,show_surname_freq,show_surname_metaphone_freq,show_dob_freq}
+                            {print_demo_sample,hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,show_metaphone,show_forename_freq,show_forename_metaphone_freq,show_surname_freq,show_surname_metaphone_freq,show_dob_freq}
                             ...
 
 Identity matching via hashed fuzzy identifiers
@@ -147,18 +147,9 @@ matching rules:
 commands:
   Valid commands are as follows.
 
-  {selftest,speedtest,print_demo_sample,validate1,validate2_fetch_cdl,validate2_fetch_rio,hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,show_metaphone,show_forename_freq,show_forename_metaphone_freq,show_surname_freq,show_surname_metaphone_freq,show_dob_freq}
+  {print_demo_sample,hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,show_metaphone,show_forename_freq,show_forename_metaphone_freq,show_surname_freq,show_surname_metaphone_freq,show_dob_freq}
                         Specify one command.
-    selftest            Run self-tests and stop
-    speedtest           Run speed tests and stop
     print_demo_sample   Print a demo sample .CSV file (#1).
-    validate1           Run validation test 1 and stop. In this test, a list
-                        of people is compared to a version of itself, at times
-                        with elements deleted or with typos introduced.
-    validate2_fetch_cdl
-                        Validation 2A: fetch people from CPFT CDL database
-    validate2_fetch_rio
-                        Validation 2B: fetch people from CPFT RiO database
     hash                STEP 1 OF DE-IDENTIFIED LINKAGE. Hash an identifiable
                         CSV file into an encrypted one.
     compare_plaintext   IDENTIFIABLE LINKAGE COMMAND. Compare a list of
@@ -183,194 +174,12 @@ commands:
     show_dob_freq       Show the frequency of any DOB
 
 ===============================================================================
-Help for command 'selftest'
-===============================================================================
-usage: crate_fuzzy_id_match selftest [-h]
-
-This will run a bunch of self-tests and crash out if one fails.
-
-optional arguments:
-  -h, --help  show this help message and exit
-
-===============================================================================
-Help for command 'speedtest'
-===============================================================================
-usage: crate_fuzzy_id_match speedtest [-h] [--profile]
-
-This will run several comparisons to test hashing and comparison speed.
-Results are reported as microseconds per comparison.
-
-optional arguments:
-  -h, --help  show this help message and exit
-  --profile   Profile (makes things slower but shows you what's taking the
-              time). (default: False)
-
-===============================================================================
 Help for command 'print_demo_sample'
 ===============================================================================
 usage: crate_fuzzy_id_match print_demo_sample [-h]
 
 optional arguments:
   -h, --help  show this help message and exit
-
-===============================================================================
-Help for command 'validate1'
-===============================================================================
-usage: crate_fuzzy_id_match validate1 [-h] --people PEOPLE --output OUTPUT
-                                      [--seed SEED]
-
-    Takes an identifiable list of people (typically a short list of imaginary
-    people!) and validates the matching process.
-
-    This is done by splitting the input list into two groups (alternating),
-    then comparing a list of probands either against itself (there should be
-    matches) or against the other group (there should generally not be).
-    The process is carried out in cleartext (plaintext) and hashed. At times
-    it's made harder by introducing deletions or mutations (typos) into one of
-    the groups.
-
-    Here's a specimen test CSV file to use, with entirely made-up people and
-    institutional (not personal) postcodes in Cambridge:
-
-original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
-1,r1,Alice,Zara,Smith,1931-01-01,F,CB2 0QQ/2000-01-01/2010-12-31
-2,r2,Bob,Yorick,Jones,1932-01-01,M,CB2 3EB/2000-01-01/2010-12-31
-3,r3,Celia,Xena,Wright,1933-01-01,F,CB2 1TP/2000-01-01/2010-12-31
-4,r4,David,William;Wallace,Cartwright,1934-01-01,M,CB2 8PH/2000-01-01/2010-12-31;CB2 1TP/2000-01-01/2010-12-31
-5,r5,Emily,Violet,Fisher,1935-01-01,F,CB3 9DF/2000-01-01/2010-12-31
-6,r6,Frank,Umberto,Williams,1936-01-01,M,CB2 1TQ/2000-01-01/2010-12-31
-7,r7,Greta,Tilly,Taylor,1937-01-01,F,CB2 1DQ/2000-01-01/2010-12-31
-8,r8,Harry,Samuel,Davies,1938-01-01,M,CB3 9ET/2000-01-01/2010-12-31
-9,r9,Iris,Ruth,Evans,1939-01-01,F,CB3 0DG/2000-01-01/2010-12-31
-10,r10,James,Quentin,Thomas,1940-01-01,M,CB2 0SZ/2000-01-01/2010-12-31
-11,r11,Alice,,Smith,1931-01-01,F,CB2 0QQ/2000-01-01/2010-12-31
-
-    Explanation of the output format:
-
-    - 'collection_name' is a human-readable name summarizing the next four;
-    - 'in_sample' (boolean) is whether the probands are in the sample;
-    - 'deletions' (boolean) is whether random items have been deleted from
-       the probands;
-    - 'typos' (boolean) is whether random typos have been made in the
-       probands;
-
-    - 'is_hashed' (boolean) is whether the proband and sample are hashed;
-    - 'original_id' is the gold-standard ID of the proband;
-    - 'winner_id' is the ID of the best-matching person in the sample if they
-      were a good enough match to win;
-    - 'best_match_id' is the ID of the best-matching person in the sample;
-    - 'best_log_odds' is the calculated log (ln) odds that the proband and the
-      sample member identified by 'winner_id' are the sample person (ideally
-      high if there is a true match, low if not);
-    - 'second_best_log_odds' is the calculated log odds of the proband and the
-      runner-up being the same person (ideally low);
-    - 'second_best_match_id' is the ID of the second-best matching person, if
-      there is one;
-
-    - 'correct_if_winner' is whether the proband and winner IDs are te same
-      (ideally true);
-    - 'leader_advantage' is the log odds by which the winner beats the
-      runner-up (ideally high indicating a strong preference for the winner
-      over the runner-up).
-
-    Clearly, if the probands are in the sample, then a match may occur; if not,
-    no match should occur. If hashing is in use, this tests de-identified
-    linkage; if not, this tests identifiable linkage. Deletions and typos
-    may reduce (but we hope not always eliminate) the likelihood of a match,
-    and we don't want to see mismatches.
-
-    For n input rows, each basic set test involves n^2/2 comparisons.
-    Then we repeat for typos and deletions. (There is no point in DOB typos
-    as our rules preclude that.)
-
-    Examine:
-    - P(unique plaintext match | proband in sample) -- should be close to 1.
-    - P(unique plaintext match | proband in others) -- should be close to 0.
-    - P(unique hashed match | proband in sample) -- should be close to 1.
-    - P(unique hashed match | proband in others) -- should be close to 0.
-
-optional arguments:
-  -h, --help       show this help message and exit
-  --people PEOPLE  CSV filename for validation 1 data. Header row present.
-                   Columns: ['original_id', 'research_id', 'first_name',
-                   'middle_names', 'surname', 'dob', 'gender', 'postcodes'].
-                   The fields ['postcodes'] are in TemporalIdentifier format.
-                   TemporalIdentifier format: IDENTIFIER/STARTDATE/ENDDATE,
-                   where dates are in YYYY-MM-DD format or one of ['none',
-                   'null', '?'] (case-insensitive). Semicolon-separated values
-                   are allowed within ['middle_names', 'postcodes']. (default:
-                   None)
-  --output OUTPUT  Output CSV file for validation. Header row present.
-                   Columns: ['collection_name', 'in_sample', 'deletions',
-                   'typos', 'is_hashed', 'original_id', 'winner_id',
-                   'best_match_id', 'best_log_odds', 'second_best_log_odds',
-                   'second_best_match_id', 'correct_if_winner',
-                   'leader_advantage']. (default: None)
-  --seed SEED      Random number seed, for introducing deliberate errors in
-                   validation test 1 (default: 1234)
-
-===============================================================================
-Help for command 'validate2_fetch_cdl'
-===============================================================================
-usage: crate_fuzzy_id_match validate2_fetch_cdl [-h] --url URL [--echo]
-                                                --output OUTPUT
-
-    Validation #2. Sequence:
-
-    1. Fetch
-
-    - crate_fuzzy_id_match validate2_fetch_cdl --output validate2_cdl_DANGER_IDENTIFIABLE.csv --url <SQLALCHEMY_URL_CDL>
-    - crate_fuzzy_id_match validate2_fetch_rio --output validate2_rio_DANGER_IDENTIFIABLE.csv --url <SQLALCHEMY_URL_RIO>
-
-    2. Hash
-
-    - crate_fuzzy_id_match hash --input validate2_cdl_DANGER_IDENTIFIABLE.csv --output validate2_cdl_hashed.csv --include_original_id --allow_default_hash_key
-    - crate_fuzzy_id_match hash --input validate2_rio_DANGER_IDENTIFIABLE.csv --output validate2_rio_hashed.csv --include_original_id --allow_default_hash_key
-
-    3. Compare
-
-    - crate_fuzzy_id_match compare_plaintext --population_size 852523 --probands validate2_cdl_DANGER_IDENTIFIABLE.csv --sample validate2_rio_DANGER_IDENTIFIABLE.csv --output cdl_to_rio_plaintext.csv --extra_validation_output
-    - crate_fuzzy_id_match compare_hashed_to_hashed --population_size 852523 --probands validate2_cdl_hashed.csv --sample validate2_rio_hashed.csv --output cdl_to_rio_hashed.csv --extra_validation_output
-    - crate_fuzzy_id_match compare_plaintext --population_size 852523 --probands validate2_rio_DANGER_IDENTIFIABLE.csv --sample validate2_cdl_DANGER_IDENTIFIABLE.csv --output rio_to_cdl_plaintext.csv --extra_validation_output
-    - crate_fuzzy_id_match compare_hashed_to_hashed --population_size 852523 --probands validate2_rio_hashed.csv --sample validate2_cdl_hashed.csv --output rio_to_cdl_hashed.csv --extra_validation_output
-
-optional arguments:
-  -h, --help       show this help message and exit
-  --url URL        SQLAlchemy URL for CPFT CDL source (IDENTIFIABLE) database
-                   (default: None)
-  --echo           Echo SQL? (default: False)
-  --output OUTPUT  CSV filename for output (plaintext, IDENTIFIABLE) data.
-                   Header row present. Columns: ['original_id', 'research_id',
-                   'first_name', 'middle_names', 'surname', 'dob', 'gender',
-                   'postcodes']. The fields ['postcodes'] are in
-                   TemporalIdentifier format. TemporalIdentifier format:
-                   IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-MM-DD
-                   format or one of ['none', 'null', '?'] (case-insensitive).
-                   Semicolon-separated values are allowed within
-                   ['middle_names', 'postcodes']. (default: None)
-
-===============================================================================
-Help for command 'validate2_fetch_rio'
-===============================================================================
-usage: crate_fuzzy_id_match validate2_fetch_rio [-h] --url URL [--echo]
-                                                --output OUTPUT
-
-See validate2_fetch_cdl command.
-
-optional arguments:
-  -h, --help       show this help message and exit
-  --url URL        SQLAlchemy URL for CPFT RiO source (IDENTIFIABLE) database
-                   (default: None)
-  --echo           Echo SQL? (default: False)
-  --output OUTPUT  CSV filename for output (plaintext, IDENTIFIABLE) data.
-                   Header row present. Columns: ['original_id', 'research_id',
-                   'first_name', 'middle_names', 'surname', 'dob', 'gender',
-                   'postcodes']. The fields ['postcodes'] are in
-                   TemporalIdentifier format. TemporalIdentifier format:
-                   IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-MM-DD
-                   format or one of ['none', 'null', '?'] (case-insensitive).
-                   Semicolon-separated values are allowed within
-                   ['middle_names', 'postcodes']. (default: None)
 
 ===============================================================================
 Help for command 'hash'
