@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/linkage/test_hash_speed.py
+crate_anon/linkage/validation/test_hash_speed.py
 
 ===============================================================================
 
@@ -29,6 +29,8 @@ crate_anon/linkage/test_hash_speed.py
 The question is: if someone malicious learned a secret hash key, how long would
 it take them to generate a reverse map from a known identifier space?
 
+The test uses a single CPU core.
+
 Specimen results, for padding length 9 and the HMAC_MD5 algorithm, on Wombat
 (3.5 GHz CPU), tested with 100000 (1e5) iterations (which took 0.72 s, piping
 to ``/dev/null``):
@@ -46,7 +48,9 @@ to ``/dev/null``):
   a century (1e9 for NHS number * 365 days/year * 100 years).
 
 The hash algorithm isn't a major factor; moving from HMAC_MD5 to HMAC_SHA512,
-for example, only takes the time for 1e5 iterations from 0.72s to 0.86.
+for example, only takes the time for 1e5 iterations from 0.72 s to 0.86 s.
+
+(A subsequent test: faster, at 5443 s = 1.5 h, 1.25 y, and 6.3 y respectively.)
 
 """
 
@@ -102,7 +106,7 @@ def test_hash_speed(
     """
     log.info(f"Writing to: {output_filename}")
     log.info(f"Using hash method: {hash_method}")
-    log.info(f"Hashing some random data {ntests} times, using one CPU")
+    log.info(f"Hashing some random data {ntests} times, using one CPU core")
     log.info(f"Padding length: {n_padding_chars}")
     log.debug(f"Using key: {key!r}")  # NB security warning in help
 
@@ -122,7 +126,7 @@ def test_hash_speed(
     for intended in intended_possibilities:
         estimated_time_s = intended * time_taken_s / ntests
         log.info(
-            f"For {intended} operations (on a single CPU), "
+            f"For {intended} operations (on a single CPU core), "
             f"estimated time (s): {estimated_time_s}"
         )
 
@@ -133,14 +137,15 @@ def main() -> None:
     """
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        description="Hash IDs in bulk, using a cryptographic hash function.",
+        description="Test the speed of a hash method.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--outfile",
         type=str,
         default="-",
-        help="Output file; can use '-' for stdout (and pipe to /dev/null).",
+        help="Output file; can use '-' for stdout (and redirect to "
+        "/dev/null, which you should do for 'core' speed testing).",
     )
     parser.add_argument(
         "--key",

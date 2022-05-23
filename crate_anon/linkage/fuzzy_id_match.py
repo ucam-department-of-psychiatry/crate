@@ -41,6 +41,8 @@ patient identifiers.**
 Other approaches to fuzzy matching of reduced data
 --------------------------------------------------
 
+[COVERED IN THE PAPER. FURTHER DETAIL HERE.]
+
 Note the unsuitability of fuzzy hashing algorithms designed for long streams of
 bytes or text. In general, these chop the input up into blocks, hash each
 block, and then compare the sequence of mini-hashes for similarity.
@@ -58,9 +60,14 @@ block, and then compare the sequence of mini-hashes for similarity.
     triggered piecewise hashing", *Digital Investigation* 3S: S91-S97,
     https://doi.org/10.1016/j.diin.2006.06.015.
 
+... cited in the paper via Kornblum (2006) and Lee & Atkinson (2017), which
+covers SSDEEP, TLSH, sdhash, and others.
+
 
 Geography
 ---------
+
+[COVERED IN THE PAPER. FURTHER DETAIL HERE.]
 
 UK postcodes have this format:
 
@@ -90,68 +97,22 @@ postcode sector? Smaller, I think.
 - this allows you to look up *from* output area *to* postcode sector, implying
   that postcode sectors must be larger.
 
-
-Speed of "validate1" test
--------------------------
-
-On a test 3 GHz desktop, this code takes approximately 100 μs to hash a person
-record, and 14-40 μs to compare two records (see timing tests).
-
-A comparison of 1000 pre-hashed subjects to 50m records requiring hashing,
-without any caching, is going to take about 1000 * 50m * 120 μs, or quite a
-long time -- a big part of which would be pointless re-hashing. A reasonable
-strategy for a large database would therefore be to:
-
-- pre-hash the sample with the agreed key (e.g. about 1.8 hours for 66m
-  records);
-- for each hashed proband, restrict the comparison to those with a matching
-  hashed DOB, and either a partial or a full match on surname (e.g. for
-  "SMITH", with a frequency of about 0.01, this would give about 1800 records
-  to check; checking would take up to about 40 μs each (so up to 72 ms per
-  proband) -- plus some query time;
-- checking 1000 probands would therefore take about 72 seconds; checking
-  200k probands about 4 hours.
-- So we'd be talking about a time of the order of 6 hours to compare an NHS
-  Trust's entire data set to a UK national database.
-
-For validation, we are thinking about a much larger, :math:`n^2`, comparison.
-Again, we should pre-hash. So if :math:`h` is the hashing time and :math:`c` is
-the comparison time, we're talking about :math:`hn + cn^2`. If we work
-backwards and say :math:`h` is 100 μs, :math:`c` is 20 μs on average, and we
-want this achievable in 1 hour, then that gives a value for n of about 19,000,
-so let's say 20,000 (sample size 10,000, "other" size 10,000).
-
-Subsequent speedup 2020-04-24: see comments in timing tests; ``h`` now down
-from 100 to 71; ``c`` now down from 14-40 to 6-22 (6 for DOB mismatch, 22 for
-match). So realistically ``c = 10`` or thereabouts.
-
-.. code-block:: r
-
-    h <- 71 / 1e6  # microseconds to seconds
-    c <- 10 / 1e6  # 20 microseconds
-    t <- function(n) { h * n + c * n^2 / 2 }  # function relating time to n
-    target <- 60 * 60  # target time: 1 hour = 3600 seconds
-    errfunc <- function(n) { (t(n) - target) ^ 2 }  # function giving error
-    result <- optim(par=50, fn=errfunc)  # minimize error, start n=50; gives 26825
-
 """  # noqa
 
 import argparse
-from collections import Counter, defaultdict, OrderedDict
+from collections import Counter, defaultdict
 import copy
 import csv
 import logging
 import math
 from multiprocessing import cpu_count, Pool
 import os
-import pdb
 import pickle
 import random
 import re
 import string
 import sys
 import time
-import timeit
 from typing import (
     Any,
     Dict,
@@ -164,7 +125,6 @@ from typing import (
     TYPE_CHECKING,
     Union,
 )
-import unittest
 
 import appdirs
 from cardinal_pythonlib.argparse_func import (
@@ -187,10 +147,6 @@ from fuzzy import DMetaphone
 import pendulum
 from pendulum.parsing.exceptions import ParserError
 from pendulum import Date
-from sqlalchemy.engine import create_engine
-from sqlalchemy.engine.base import Engine
-from sqlalchemy.engine.result import ResultProxy
-from sqlalchemy.sql import text
 
 from crate_anon.anonymise.anonregex import get_uk_postcode_regex_string
 from crate_anon.common.constants import (
@@ -213,30 +169,110 @@ log = logging.getLogger(__name__)
 
 CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = False  # for debugging only
 
-dmeta = DMetaphone()
-
+CPU_COUNT = 8 if EnvVar.GENERATING_CRATE_DOCS in os.environ else cpu_count()
 CRATE_FETCH_WORDLISTS = "crate_fetch_wordlists"
-
-if EnvVar.GENERATING_CRATE_DOCS in os.environ:
-    CPU_COUNT = 8
-else:
-    CPU_COUNT = cpu_count()
-
 DAYS_PER_YEAR = 365.25  # approximately!
-DEFAULT_HASH_KEY = "fuzzy_id_match_default_hash_key_DO_NOT_USE_FOR_LIVE_DATA"
-DEFAULT_MAX_CHUNKSIZE = 500
-DEFAULT_MIN_PROBANDS_FOR_PARALLEL = 100
-# ... a machine that takes ~30s to set up a basic parallel run (and 107.9s for
-# a 10k-to-10k comparison) processes single results at about 37/s... so the
-# break-even point is probably around 1000. But that does depend on the sample
-# size too. Call it 100 just to speed up short tests.
-
 HIGHDEBUG = 15  # in between logging.DEBUG (10) and logging.INFO (20)
 MINUS_INFINITY = -math.inf
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
-UK_POPULATION_2017 = 66040000  # 2017 figure, 66.04m
 UK_MEAN_OA_POPULATION_2011 = 309
 # ... https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography  # noqa
+UK_POPULATION_2017 = 66040000  # 2017 figure, 66.04m
+
+DEMO_SAMPLE = """
+original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
+1,r1,Alice,Zara,Smith,1931-01-01,F,CB2 0QQ/2000-01-01/2010-12-31
+2,r2,Bob,Yorick,Jones,1932-01-01,M,CB2 3EB/2000-01-01/2010-12-31
+3,r3,Celia,Xena,Wright,1933-01-01,F,CB2 1TP/2000-01-01/2010-12-31
+4,r4,David,William;Wallace,Cartwright,1934-01-01,M,CB2 8PH/2000-01-01/2010-12-31;CB2 1TP/2000-01-01/2010-12-31
+5,r5,Emily,Violet,Fisher,1935-01-01,F,CB3 9DF/2000-01-01/2010-12-31
+6,r6,Frank,Umberto,Williams,1936-01-01,M,CB2 1TQ/2000-01-01/2010-12-31
+7,r7,Greta,Tilly,Taylor,1937-01-01,F,CB2 1DQ/2000-01-01/2010-12-31
+8,r8,Harry,Samuel,Davies,1938-01-01,M,CB3 9ET/2000-01-01/2010-12-31
+9,r9,Iris,Ruth,Evans,1939-01-01,F,CB3 0DG/2000-01-01/2010-12-31
+10,r10,James,Quentin,Thomas,1940-01-01,M,CB2 0SZ/2000-01-01/2010-12-31
+11,r11,Alice,,Smith,1931-01-01,F,CB2 0QQ/2000-01-01/2010-12-31
+""".strip()  # noqa
+
+
+class FuzzyDefaults:
+    """
+    Some configuration defaults.
+    """
+
+    # -------------------------------------------------------------------------
+    # Filenames
+    # -------------------------------------------------------------------------
+    _appname = "crate"
+    if EnvVar.GENERATING_CRATE_DOCS in os.environ:
+        DEFAULT_CACHE_DIR = "/path/to/crate/user/data"
+        POSTCODES_CSV = "/path/to/postcodes/file"
+    else:
+        DEFAULT_CACHE_DIR = os.path.join(
+            appdirs.user_data_dir(appname=_appname)
+        )
+        POSTCODES_CSV = os.path.abspath(
+            os.path.expanduser(
+                "~/dev/ons/ONSPD_Nov2019/unzipped/Data/ONSPD_NOV_2019_UK.csv"
+            )
+        )
+    FORENAME_CACHE_FILENAME = os.path.join(
+        DEFAULT_CACHE_DIR, "fuzzy_forename_cache.pickle"
+    )
+    FORENAME_SEX_FREQ_CSV = os.path.join(
+        DEFAULT_CACHE_DIR, "us_forename_sex_freq.csv"
+    )
+    POSTCODE_CACHE_FILENAME = os.path.join(
+        DEFAULT_CACHE_DIR, "fuzzy_postcode_cache.pickle"
+    )
+    SURNAME_CACHE_FILENAME = os.path.join(
+        DEFAULT_CACHE_DIR, "fuzzy_surname_cache.pickle"
+    )
+    SURNAME_FREQ_CSV = os.path.join(DEFAULT_CACHE_DIR, "us_surname_freq.csv")
+
+    # -------------------------------------------------------------------------
+    # Hashing
+    # -------------------------------------------------------------------------
+    HASH_KEY = "fuzzy_id_match_default_hash_key_DO_NOT_USE_FOR_LIVE_DATA"
+
+    # -------------------------------------------------------------------------
+    # Performance
+    # -------------------------------------------------------------------------
+    MAX_CHUNKSIZE = 500
+    MIN_PROBANDS_FOR_PARALLEL = 100
+    # ... a machine that takes ~30s to set up a basic parallel run (and 107.9s
+    # for a 10k-to-10k comparison) processes single results at about 37/s... so
+    # the break-even point is probably around 1000. But that does depend on the
+    # sample size too. Call it 100 just to speed up short tests.
+
+    # -------------------------------------------------------------------------
+    # Priors/error rates/rouding
+    # -------------------------------------------------------------------------
+    # See help below.
+    BIRTH_YEAR_PSEUDO_RANGE = 90
+    MEAN_OA_POPULATION = UK_MEAN_OA_POPULATION_2011
+    NAME_MIN_FREQ = 5e-6
+    P_FEMALE_GIVEN_MALE_OR_FEMALE = 0.51
+    P_GENDER_ERROR = 0.0001
+    P_MIDDLE_NAME_N_PRESENT = (0.8, 0.1375)
+    P_MINOR_FORENAME_ERROR = 0.001
+    P_MINOR_POSTCODE_ERROR = 0.001
+    P_MINOR_SURNAME_ERROR = 0.001
+    P_NOT_MALE_OR_FEMALE = 0.004
+    P_PROBAND_MIDDLE_NAME_MISSING = 0.05
+    P_SAMPLE_MIDDLE_NAME_MISSING = 0.05
+    POPULATION_SIZE = UK_POPULATION_2017
+    ROUNDING_SF = 5
+    # ... number of significant figures for frequency rounding; 3 may be too
+    # small, e.g. surname Smith 0.01006, corresponding metaphone SM0
+    # 0.010129999999999998 would be the same at 3sf.
+
+    # -------------------------------------------------------------------------
+    # Matching process
+    # -------------------------------------------------------------------------
+    MIN_P_FOR_MATCH = 0.999
+    LOG_ODDS_FOR_MATCH = log_odds_from_probability(MIN_P_FOR_MATCH)
+    EXCEEDS_NEXT_BEST_LOG_ODDS = 10
 
 
 # =============================================================================
@@ -244,6 +280,13 @@ UK_MEAN_OA_POPULATION_2011 = 309
 # =============================================================================
 
 Hasher = HmacSHA256Hasher
+
+
+# =============================================================================
+# Metaphones
+# =============================================================================
+
+dmeta = DMetaphone()
 
 
 # =============================================================================
@@ -374,6 +417,66 @@ def get_postcode_sector(postcode_unit: str) -> str:
     3CD" to "AB12 3".
     """
     return postcode_unit[:-2]
+
+
+# =============================================================================
+# Functions to introduce errors (for testing)
+# =============================================================================
+
+
+def mutate_name(name: str) -> str:
+    """
+    Introduces typos into a (standardized, capitalized,
+    no-space-no-punctuation) name.
+    """
+    n = len(name)
+    a = ord("A")
+    z = ord("Z")
+    which = random.randrange(n)
+    start_ord = ord(name[which])
+    while True:
+        replacement_ord = random.randint(a, z)
+        if replacement_ord != start_ord:
+            break
+    return (
+        name[:which] + chr(replacement_ord) + name[which + 1 :]  # noqa: E203
+    )
+
+
+def mutate_postcode(postcode: str, cfg: "MatchConfig") -> str:
+    """
+    Introduces typos into a UK postcode, keeping the letter/digit format.
+
+    Args:
+        postcode: the postcode to alter
+        cfg: the master :class:`MatchConfig` object
+    """
+    n = len(postcode)
+    a = ord("A")
+    z = ord("Z")
+    zero = ord("0")
+    nine = ord("9")
+    while True:
+        while True:
+            which = random.randrange(n)
+            if postcode[which] != " ":
+                break
+        # noinspection PyUnboundLocalVariable
+        start_ord = ord(postcode[which])
+        replacement_ord = start_ord
+        if postcode[which].isdigit():
+            while replacement_ord == start_ord:
+                replacement_ord = random.randint(zero, nine)
+        else:
+            while replacement_ord == start_ord:
+                replacement_ord = random.randint(a, z)
+        mutated = (
+            postcode[:which]
+            + chr(replacement_ord)
+            + postcode[which + 1 :]  # noqa: E203
+        )
+        if cfg.is_valid_postcode(mutated):
+            return mutated
 
 
 # =============================================================================
@@ -777,6 +880,8 @@ class MatchNoMatchComparison(Comparison):
 class FullPartialNoMatchComparison(Comparison):
     """
     Represents a comparison where there can be a full or a partial match.
+    (If there is neither a full nor a partial match, the hypothesis is
+    rejected.)
 
     Again, this is for clarity. Code that produces one of these could equally
     produce one of three :class:`DirectComparison` objects, conditional upon
@@ -861,6 +966,7 @@ def bayes_compare(
 ) -> float:
     """
     Works through multiple comparisons and returns posterior log odds.
+    Ignore comparisons that are ``None``.
 
     Args:
         prior_log_odds: prior log odds
@@ -1019,7 +1125,7 @@ class PostcodeFrequencyInfo(object):
         self,
         csv_filename: str,
         cache_filename: str,
-        mean_oa_population: float = UK_MEAN_OA_POPULATION_2011,
+        mean_oa_population: float = FuzzyDefaults.MEAN_OA_POPULATION,
     ) -> None:
         """
         Initializes the object from a CSV file.
@@ -1190,33 +1296,45 @@ class MatchConfig(object):
     """
     Master config class. It's more convenient to pass one of these round than
     lots of its components.
+
+    Default arguments are there for testing.
     """
 
     def __init__(
         self,
-        hash_key: str,
-        rounding_sf: int,
-        forename_sex_csv_filename: str,
-        forename_cache_filename: str,
-        surname_csv_filename: str,
-        surname_cache_filename: str,
-        min_name_frequency: float,
-        p_middle_name_n_present: List[float],
-        population_size: int,
-        birth_year_pseudo_range: float,
-        postcode_csv_filename: str,
-        postcode_cache_filename: str,
-        mean_oa_population: float,
-        min_log_odds_for_match: float,
-        exceeds_next_best_log_odds: float,
-        p_minor_forename_error: float,
-        p_minor_surname_error: float,
-        p_proband_middle_name_missing: float,
-        p_sample_middle_name_missing: float,
-        p_minor_postcode_error: float,
-        p_gender_error: float,
-        p_not_male_or_female: float,
-        p_female_given_male_or_female: float,
+        hash_key: str = FuzzyDefaults.HASH_KEY,
+        rounding_sf: int = FuzzyDefaults.ROUNDING_SF,
+        forename_sex_csv_filename: str = FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
+        forename_cache_filename: str = FuzzyDefaults.FORENAME_CACHE_FILENAME,
+        surname_csv_filename: str = FuzzyDefaults.SURNAME_FREQ_CSV,
+        surname_cache_filename: str = FuzzyDefaults.SURNAME_CACHE_FILENAME,
+        min_name_frequency: float = FuzzyDefaults.NAME_MIN_FREQ,
+        p_middle_name_n_present: List[float] = (
+            FuzzyDefaults.P_MIDDLE_NAME_N_PRESENT
+        ),
+        population_size: int = FuzzyDefaults.POPULATION_SIZE,
+        birth_year_pseudo_range: float = FuzzyDefaults.BIRTH_YEAR_PSEUDO_RANGE,
+        postcode_csv_filename: str = FuzzyDefaults.POSTCODES_CSV,
+        postcode_cache_filename: str = FuzzyDefaults.POSTCODE_CACHE_FILENAME,
+        mean_oa_population: float = FuzzyDefaults.MEAN_OA_POPULATION,
+        min_log_odds_for_match: float = FuzzyDefaults.LOG_ODDS_FOR_MATCH,
+        exceeds_next_best_log_odds: float = (
+            FuzzyDefaults.EXCEEDS_NEXT_BEST_LOG_ODDS
+        ),
+        p_minor_forename_error: float = FuzzyDefaults.P_MINOR_FORENAME_ERROR,
+        p_minor_surname_error: float = FuzzyDefaults.P_MINOR_SURNAME_ERROR,
+        p_proband_middle_name_missing: float = (
+            FuzzyDefaults.P_PROBAND_MIDDLE_NAME_MISSING
+        ),
+        p_sample_middle_name_missing: float = (
+            FuzzyDefaults.P_SAMPLE_MIDDLE_NAME_MISSING
+        ),
+        p_minor_postcode_error: float = FuzzyDefaults.P_MINOR_POSTCODE_ERROR,
+        p_gender_error: float = FuzzyDefaults.P_GENDER_ERROR,
+        p_not_male_or_female: float = FuzzyDefaults.P_NOT_MALE_OR_FEMALE,
+        p_female_given_male_or_female: float = (
+            FuzzyDefaults.P_FEMALE_GIVEN_MALE_OR_FEMALE
+        ),
         verbose: bool = False,
     ) -> None:
         """
@@ -1581,8 +1699,8 @@ class MatchConfig(object):
 
 class IdFreq(object):
     """
-    Represents a identifier (plaintext or hashed) and its accompanying
-    frequency.
+    Represents an identifier (plaintext or hashed) and its accompanying
+    frequency. Performs comparisons using a match/no-match system.
     """
 
     def __init__(
@@ -1622,6 +1740,7 @@ class IdFreq(object):
         candidate_id = self.identifier
         proband_id = proband.identifier
         if not candidate_id or not proband_id:
+            # Infer no conclusions from missing information.
             return None
         matches = candidate_id == proband_id
         return MatchNoMatchComparison(
@@ -1641,10 +1760,10 @@ class IdFreq(object):
             return False
         return self_id == other_id
 
-    def assert_has_frequency_info(self) -> None:
+    def assert_has_freq_info_if_id_present(self) -> None:
         """
-        Ensures that frequency information is present, or raises
-        :exc:`AssertionError`.
+        If the identifier is present, ensure that frequency information is
+        present, or raise :exc:`AssertionError`.
         """
         if self.identifier:
             assert (
@@ -1654,8 +1773,10 @@ class IdFreq(object):
 
 class FuzzyIdFreq(object):
     """
-    Represents a hashed identifier with its frequency, and a hashed fuzzy
-    version, with its frequency.
+    Represents an identifier (plaintext or hashed) with its frequency, and a
+    fuzzy version, with its frequency. Performs comparisons using a full
+    match/partial match/no match system (rejecting the hypothesis completely if
+    there is no match).
     """
 
     def __init__(
@@ -1704,10 +1825,12 @@ class FuzzyIdFreq(object):
         candidate_exact = self.exact_identifier
         proband_exact = proband.exact_identifier
         if not (candidate_exact and proband_exact):
+            # Infer no conclusions from missing information.
             return None
         candidate_fuzzy = self.fuzzy_identifier
         proband_fuzzy = proband.fuzzy_identifier
         if not (candidate_fuzzy and proband_fuzzy):
+            # Infer no conclusions from missing information.
             return None
         full_match = candidate_exact == proband_exact
         partial_match = candidate_fuzzy == proband_fuzzy
@@ -1746,10 +1869,10 @@ class FuzzyIdFreq(object):
         """
         return self.fully_matches(other) or self.partially_matches(other)
 
-    def assert_has_frequency_info(self) -> None:
+    def assert_has_freq_info_if_id_present(self) -> None:
         """
-        Ensures that frequency information is present, or raises
-        :exc:`AssertionError`.
+        If the identifier is present, ensure that frequency information is
+        present, or raise :exc:`AssertionError`.
         """
         if self.exact_identifier:
             assert (
@@ -2185,13 +2308,13 @@ class Person(object):
                         ].identifier,
                         exact_identifier_frequency=self.postcode_unit_frequencies[  # noqa: E501
                             i
-                        ],  # noqa
+                        ],
                         fuzzy_identifier=self.hashed_postcode_sectors[
                             i
-                        ].identifier,  # noqa
+                        ].identifier,
                         fuzzy_identifier_frequency=self.postcode_sector_frequencies[  # noqa: E501
                             i
-                        ],  # noqa
+                        ],
                         p_error=cfg.p_minor_postcode_error,
                     )
                 )
@@ -2780,14 +2903,14 @@ class Person(object):
         raises :exc:`AssertionError`.
         """
         assert self.has_dob(), "Proband: missing DOB"
-        self.first_name_info.assert_has_frequency_info()
+        self.first_name_info.assert_has_freq_info_if_id_present()
         for mni in self.middle_names_info:
-            mni.assert_has_frequency_info()
-        self.surname_info.assert_has_frequency_info()
-        self.dob_info.assert_has_frequency_info()
-        self.gender_info.assert_has_frequency_info()
+            mni.assert_has_freq_info_if_id_present()
+        self.surname_info.assert_has_freq_info_if_id_present()
+        self.dob_info.assert_has_freq_info_if_id_present()
+        self.gender_info.assert_has_freq_info_if_id_present()
         for pi in self.postcodes_info:
-            pi.assert_has_frequency_info()
+            pi.assert_has_freq_info_if_id_present()
 
     def assert_valid_as_candidate(self) -> None:
         """
@@ -3120,136 +3243,6 @@ class People(object):
 
 
 # =============================================================================
-# Test equivalence
-# =============================================================================
-
-
-class TestCondition(object):
-    """
-    Two representations of a person and whether they should match.
-    """
-
-    def __init__(
-        self,
-        cfg: MatchConfig,
-        person_a: Person,
-        person_b: Person,
-        should_match: bool,
-        debug: bool = True,
-    ) -> None:
-        """
-        Args:
-            cfg: the master :class:`MatchConfig` object
-            person_a: one representation of a person
-            person_b: another representation of a person
-            should_match: should they be treated as the same person?
-            debug: be verbose?
-        """
-        self.cfg = cfg
-        self.person_a = person_a
-        self.person_b = person_b
-        self.should_match = should_match
-        log.info("- Making hashed versions for later")
-        self.hashed_a = self.person_a.hashed()
-        self.hashed_b = self.person_b.hashed()
-        self.debug = debug
-
-    def log_odds_same_plaintext(self) -> float:
-        """
-        Checks whether the plaintext person objects match.
-
-        Returns:
-            float: the log odds that they are the same person
-        """
-        return self.person_a.log_odds_same(self.person_b, debug=self.debug)
-
-    def log_odds_same_hashed(self) -> float:
-        """
-        Checks whether the hashed versions match.
-
-        Returns:
-            float: the log odds that they are the same person
-        """
-        return self.hashed_a.log_odds_same(self.hashed_b, debug=self.debug)
-
-    def matches_plaintext(self) -> Tuple[bool, float]:
-        """
-        Do the plaintext versions match, by threshold?
-
-        Returns:
-            tuple: (matches, log_odds)
-        """
-        log_odds = self.log_odds_same_plaintext()
-        return self.cfg.person_matches(log_odds), log_odds
-
-    def matches_hashed(self) -> Tuple[bool, float]:
-        """
-        Do the raw versions match, by threshold?
-
-        Returns:
-            bool: is there a match?
-        """
-        log_odds = self.log_odds_same_hashed()
-        return self.cfg.person_matches(log_odds), log_odds
-
-    def assert_correct(self) -> None:
-        """
-        Asserts that both the raw and hashed versions match, or don't match,
-        according to ``self.should_match``.
-        """
-        log.info(f"Comparing:\n- {self.person_a!r}\n- {self.person_b!r}")
-
-        log.info("(1) Comparing plaintext")
-        matches_raw, log_odds_plaintext = self.matches_plaintext()
-        p_plaintext = probability_from_log_odds(log_odds_plaintext)
-        p_plain_str = f"P(match | D) = {p_plaintext}"
-        if matches_raw == self.should_match:
-            if matches_raw:
-                log.info(f"... should and does match: {p_plain_str}")
-            else:
-                log.info(f"... should not and does not match: {p_plain_str}")
-        else:
-            log_odds = log_odds_plaintext
-            raise AssertionError(
-                f"Match failure: "
-                f"matches_raw = {matches_raw}, "
-                f"should_match = {self.should_match}, "
-                f"log_odds = {log_odds}, "
-                f"min_log_odds_for_match = {self.cfg.min_log_odds_for_match}, "
-                f"P(match) = {probability_from_log_odds(log_odds)}, "
-                f"person_a = {self.person_a}, "
-                f"person_b = {self.person_b}"
-            )
-
-        log.info(
-            f"(2) Comparing hashed:\n- {self.hashed_a}\n- {self.hashed_b}"
-        )  # noqa
-        matches_hashed, log_odds_hashed = self.matches_hashed()
-        p_hashed = probability_from_log_odds(log_odds_hashed)
-        p_hashed_str = f"P(match | D) = {p_hashed}"
-        if matches_hashed == self.should_match:
-            if matches_hashed:
-                log.info(f"... should and does match: {p_hashed_str}")
-            else:
-                log.info(f"... should not and does not match: {p_hashed_str}")
-        else:
-            log_odds = log_odds_hashed
-            raise AssertionError(
-                f"Match failure: "
-                f"matches_hashed = {matches_hashed}, "
-                f"should_match = {self.should_match}, "
-                f"log_odds = {log_odds}, "
-                f"threshold = {self.cfg.min_log_odds_for_match}, "
-                f"min_log_odds_for_match = {self.cfg.min_log_odds_for_match}, "
-                f"P(match) = {probability_from_log_odds(log_odds)}, "
-                f"person_a = {self.person_a}, "
-                f"person_b = {self.person_b}, "
-                f"hashed_a = {self.hashed_a}, "
-                f"hashed_b = {self.hashed_b}"
-            )
-
-
-# =============================================================================
 # Comparing people
 # =============================================================================
 
@@ -3277,8 +3270,8 @@ def compare_probands_to_sample(
     report_every: int = 100,
     extra_validation_output: bool = False,
     n_workers: int = CPU_COUNT,
-    max_chunksize: int = 100,
-    min_probands_for_parallel: int = DEFAULT_MIN_PROBANDS_FOR_PARALLEL,
+    max_chunksize: int = FuzzyDefaults.MAX_CHUNKSIZE,
+    min_probands_for_parallel: int = FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
 ) -> None:
     r"""
     Compares each proband to the sample. Writes to an output file.
@@ -3476,8 +3469,8 @@ def compare_probands_to_sample_from_csv(
     extra_validation_output: bool = False,
     profile: bool = False,
     n_workers: int = CPU_COUNT,
-    max_chunksize: int = DEFAULT_MAX_CHUNKSIZE,
-    min_probands_for_parallel: int = DEFAULT_MIN_PROBANDS_FOR_PARALLEL,
+    max_chunksize: int = FuzzyDefaults.MAX_CHUNKSIZE,
+    min_probands_for_parallel: int = FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
 ) -> None:
     """
     Compares each of the people in the probands file to the sample file.
@@ -3560,382 +3553,6 @@ def compare_probands_to_sample_from_csv(
 
 
 # =============================================================================
-# Self-testing
-# =============================================================================
-
-
-def selftest(
-    cfg: MatchConfig, set_breakpoint: bool = False, speedtest: bool = False
-) -> None:
-    """
-    Run self-tests or timing tests.
-
-    Args:
-        cfg:
-            the master :class:`MatchConfig` object
-        set_breakpoint:
-            set a pdb breakpoint to explore objects from the Python console?
-        speedtest:
-            run speed tests only?
-    """
-    log.warning("Running basic unit tests...")
-    # https://stackoverflow.com/questions/19087189/python-unittest-testcase-object-has-no-attribute-runtest  # noqa
-    suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-        TestTemporalIdentifier  # noqa: F821
-    )
-    result = unittest.TextTestRunner().run(suite)
-    assert not result.failures
-
-    log.warning("Building test conditions...")
-    p1 = TemporalIdentifier(
-        "CB2 0QQ", Date(2000, 1, 1), Date(2010, 1, 1)  # Addenbrooke's Hospital
-    )
-    p2 = TemporalIdentifier(
-        "CB2 3EB",  # Department of Psychology
-        Date(2000, 1, 1),
-        Date(2010, 1, 1),
-    )
-    alice_bcd_unique_2000_add = Person(
-        cfg=cfg,
-        original_id=1,
-        first_name="Alice",
-        middle_names=["Beatrice", "Celia", "Delilah"],
-        surname="Rarename",
-        dob="2000-01-01",
-        postcodes=[p1],
-    )
-    alec_bcd_unique_2000_add = Person(
-        cfg=cfg,
-        original_id=2,
-        first_name="Alec",  # same metaphone as Alice
-        middle_names=["Beatrice", "Celia", "Delilah"],
-        surname="Rarename",
-        dob="2000-01-01",
-        postcodes=[p1],
-    )
-    bob_bcd_unique_2000_add = Person(
-        cfg=cfg,
-        original_id=3,
-        first_name="Bob",
-        middle_names=["Beatrice", "Celia", "Delilah"],
-        surname="Rarename",
-        dob="2000-01-01",
-        postcodes=[p1],
-    )
-    alice_bc_unique_2000_add = Person(
-        cfg=cfg,
-        original_id=4,
-        first_name="Alice",
-        middle_names=["Beatrice", "Celia"],
-        surname="Rarename",
-        dob="2000-01-01",
-        postcodes=[p1],
-    )
-    alice_b_unique_2000_add = Person(
-        cfg=cfg,
-        original_id=5,
-        first_name="Alice",
-        middle_names=["Beatrice"],
-        surname="Rarename",
-        dob="2000-01-01",
-        postcodes=[p1],
-    )
-    alice_jones_2000_add = Person(
-        cfg=cfg,
-        original_id=6,
-        first_name="Alice",
-        surname="Jones",
-        dob="2000-01-01",
-        postcodes=[p1],
-    )
-    bob_smith_1950_psych = Person(
-        cfg=cfg,
-        original_id=7,
-        first_name="Bob",
-        surname="Smith",
-        dob="1950-05-30",
-        postcodes=[p2],
-    )
-    alice_smith_1930 = Person(
-        cfg=cfg,
-        original_id=8,
-        first_name="Alice",
-        surname="Smith",
-        dob="1930-01-01",
-    )
-    alice_smith_2000 = Person(
-        cfg=cfg,
-        original_id=9,
-        first_name="Alice",
-        surname="Smith",
-        dob="2000-01-01",
-    )
-    alice_smith = Person(
-        cfg=cfg,
-        original_id=10,
-        first_name="Alice",
-        surname="Smith",
-    )
-    middle_test_1 = Person(
-        cfg=cfg,
-        original_id=11,
-        first_name="Alice",
-        middle_names=["Betty", "Caroline"],
-        surname="Smith",
-    )
-    middle_test_2 = Person(
-        cfg=cfg,
-        original_id=12,
-        first_name="Alice",
-        middle_names=["Betty", "Dorothy", "Elizabeth"],
-        surname="Smith",
-    )
-    all_people = [
-        alice_bcd_unique_2000_add,
-        alec_bcd_unique_2000_add,
-        bob_bcd_unique_2000_add,
-        alice_bc_unique_2000_add,
-        alice_b_unique_2000_add,
-        alice_jones_2000_add,
-        bob_smith_1950_psych,
-        alice_smith_1930,
-        alice_smith_2000,
-        alice_smith,
-        middle_test_1,
-        middle_test_2,
-    ]
-    all_people_hashed = [p.hashed() for p in all_people]
-    test_values = [
-        # Very easy match
-        TestCondition(
-            cfg=cfg,
-            person_a=alice_bcd_unique_2000_add,
-            person_b=alice_bcd_unique_2000_add,
-            should_match=True,
-        ),
-        # Easy match
-        TestCondition(
-            cfg=cfg,
-            person_a=alice_bc_unique_2000_add,
-            person_b=alice_b_unique_2000_add,
-            should_match=True,
-        ),
-        # Easy non-match
-        TestCondition(
-            cfg=cfg,
-            person_a=alice_jones_2000_add,
-            person_b=bob_smith_1950_psych,
-            should_match=False,
-        ),
-        # Very ambiguous (1)
-        TestCondition(
-            cfg=cfg,
-            person_a=alice_smith,
-            person_b=alice_smith_1930,
-            should_match=False,
-        ),
-        # Very ambiguous (2)
-        TestCondition(
-            cfg=cfg,
-            person_a=alice_smith,
-            person_b=alice_smith_2000,
-            should_match=False,
-        ),
-        TestCondition(
-            cfg=cfg,
-            person_a=alice_bcd_unique_2000_add,
-            person_b=alec_bcd_unique_2000_add,
-            should_match=True,
-        ),
-        TestCondition(
-            cfg=cfg,
-            person_a=alice_bcd_unique_2000_add,
-            person_b=bob_bcd_unique_2000_add,
-            should_match=False,
-        ),
-    ]  # type: List[TestCondition]
-    people_plaintext = People(cfg=cfg, verbose=True)
-    people_plaintext.add_people(all_people)
-    people_hashed = People(cfg=cfg, verbose=True)
-    people_hashed.add_people(all_people_hashed)
-
-    if set_breakpoint:
-        pdb.set_trace()
-
-    if speedtest:
-        # ---------------------------------------------------------------------
-        # Timing tests
-        # ---------------------------------------------------------------------
-        log.warning("Testing comparison speed (do NOT use verbose logging)...")
-        # NB Python has locals() and globals() but not nonlocals() so it's hard
-        # to make this code work with a temporary function as you might hope.
-        microsec_per_sec = 1e6
-        n_for_speedtest = 10000
-
-        t = (
-            microsec_per_sec
-            * timeit.timeit(
-                "alice_bcd_unique_2000_add.log_odds_same(alice_bcd_unique_2000_add)",  # noqa
-                number=n_for_speedtest,
-                globals=locals(),
-            )
-            / n_for_speedtest
-        )
-        log.info(f"Plaintext full match: {t} μs per comparison")
-        # On Wombat: 146 microseconds.
-        # On Wombat 2020-04-24: 64 microseconds.
-
-        t = (
-            microsec_per_sec
-            * timeit.timeit(
-                "alice_bcd_unique_2000_add.hashed().log_odds_same(alice_bcd_unique_2000_add.hashed())",  # noqa
-                number=n_for_speedtest,
-                globals=locals(),
-            )
-            / n_for_speedtest
-        )
-        log.info(f"Hash two objects + full match: {t} μs per comparison")
-        # On Wombat: 631 microseconds.
-        # On Wombat 2020-04-24: 407 microseconds.
-
-        t = (
-            microsec_per_sec
-            * timeit.timeit(
-                "alice_smith_1930.log_odds_same(alice_smith_2000, )",
-                number=n_for_speedtest,
-                globals=locals(),
-            )
-            / n_for_speedtest
-        )
-        log.info(f"Plaintext DOB mismatch: {t} μs per comparison")
-        # On Wombat: 13.6 microseconds.
-        # On Wombat 2020-04-24: 6.1 microseconds.
-
-        t = (
-            microsec_per_sec
-            * timeit.timeit(
-                "alice_smith_1930.hashed().log_odds_same(alice_smith_2000.hashed())",  # noqa
-                number=n_for_speedtest,
-                globals=locals(),
-            )
-            / n_for_speedtest
-        )
-        log.info(f"Hash two objects + DOB mismatch: {t} μs per comparison")
-        # On Wombat: 240 microseconds.
-        # On Wombat 2020-04-24: 153 microseconds.
-
-        t = (
-            microsec_per_sec
-            * timeit.timeit(
-                "alice_smith_1930.hashed()",
-                number=n_for_speedtest,
-                globals=locals(),
-            )
-            / n_for_speedtest
-        )
-        log.info(f"Hash one object: {t} μs per comparison")
-        # On Wombat: 104 microseconds.
-        # On Wombat 2020-04-24: 71 microseconds.
-
-        hashed_alice_smith_1930 = alice_smith_1930.hashed()
-        hashed_alice_smith_2000 = alice_smith_2000.hashed()
-
-        t = (
-            microsec_per_sec
-            * timeit.timeit(
-                (
-                    "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_1930)"  # noqa: E501
-                ),
-                number=n_for_speedtest,
-                globals=locals(),
-            )
-            / n_for_speedtest
-        )
-        log.info(
-            f"Compare two identical hashed objects: {t} μs per comparison"
-        )  # noqa
-        # On Wombat 2020-04-024: 21.7 microseconds.
-
-        t = (
-            microsec_per_sec
-            * timeit.timeit(
-                (
-                    "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_2000)"  # noqa: E501
-                ),
-                number=n_for_speedtest,
-                globals=locals(),
-            )
-            / n_for_speedtest
-        )
-        log.info(
-            f"Compare two DOB-mismatched hashed objects: {t} μs per comparison"
-        )  # noqa
-        # On Wombat 2020-04-024: 6.4 microseconds.
-
-        return  # timing tests only
-
-    # -------------------------------------------------------------------------
-    # Main self-tests
-    # -------------------------------------------------------------------------
-
-    for surname in ["Smith", "Jones", "Blair", "Cardinal", "XYZ"]:
-        f = cfg.surname_freq(surname)
-        log.info(f"Surname frequency for {surname}: {f}")
-
-    for forename, gender in [
-        ("James", GENDER_MALE),
-        ("Rachel", GENDER_FEMALE),
-        ("Phoebe", GENDER_FEMALE),
-        ("Elizabeth", GENDER_FEMALE),
-        ("Elizabeth", GENDER_MALE),
-        ("Elizabeth", ""),
-        ("Rowan", GENDER_FEMALE),
-        ("Rowan", GENDER_MALE),
-        ("Rowan", ""),
-        ("XYZ", ""),
-    ]:
-        f = cfg.forename_freq(forename, gender)
-        log.info(f"Forename frequency for {forename}, gender {gender}: {f}")
-
-    # Examples are hospitals and colleges in Cambridge (not residential) but
-    # it gives a broad idea.
-    for postcode in ["CB2 0QQ", "CB2 0SZ", "CB2 3EB", "CB3 9DF"]:
-        p = cfg.postcode_unit_population(postcode)
-        log.info(f"Calculated population for postcode unit {postcode}: {p}")
-
-    for ps in ["CB2 0", "CB2 1", "CB2 2", "CB2 3"]:
-        p = cfg.postcode_sector_population(ps)
-        log.info(f"Calculated population for postcode sector {ps}: {p}")
-
-    log.warning("Testing comparisons...")
-    for i, test in enumerate(test_values, start=1):
-        log.warning(f"Comparison {i}...")
-        test.assert_correct()
-
-    log.warning("Testing proband-versus-sample...")
-    for i in range(len(all_people)):
-        proband_plaintext = all_people[i]
-        log.warning(f"Plaintext search with proband: {proband_plaintext}")
-        plaintext_winner = people_plaintext.get_unique_match(proband_plaintext)
-        log.warning(f"... WINNER: {plaintext_winner}")
-        log.warning(f"Hashed search with proband: {proband_plaintext}\n")
-        proband_hashed = all_people_hashed[i]  # same order
-        hashed_winner = people_hashed.get_unique_match(proband_hashed)
-        log.warning(f"... WINNER: {hashed_winner}")
-
-    log.warning(
-        f"Testing middle name comparisons between...\n"
-        f"{middle_test_1}\n"
-        f"{middle_test_2}"
-    )
-    # noinspection PyProtectedMember
-    for comp in middle_test_1._comparisons_middle_names(middle_test_2):
-        log.info(comp)
-
-    log.warning("... tests complete.")
-
-
-# =============================================================================
 # Loading people data
 # =============================================================================
 
@@ -4001,293 +3618,6 @@ def read_people(
 
 
 # =============================================================================
-# Validation 1
-# =============================================================================
-
-
-def make_deletion_data(people: People, cfg: MatchConfig) -> People:
-    """
-    Makes a copy of the supplied data set with deliberate deletions applied.
-
-    Surnames and DOBs are excepted as we require exact matches for those.
-    """
-    deletion_data = People(cfg)
-    log.debug(f"Making deletion data for {people.size()} people")
-    for person in people.people:
-        modified_person = person.copy()
-        modified_person.debug_delete_something()
-        log.debug(f"Deleted:\nFROM: {person}\nTO  : {modified_person}")
-        deletion_data.add_person(modified_person)
-    return deletion_data
-
-
-def make_typo_data(people: People, cfg: MatchConfig) -> People:
-    """
-    Makes a copy of the supplied data set with deliberate typos applied.
-
-    Surnames and DOBs are excepted as we require exact matches for those.
-    """
-    typo_data = People(cfg)
-    log.debug(f"Making typo data for {people.size()} people")
-    for person in people.people:
-        modified_person = person.copy()
-        modified_person.debug_mutate_something()
-        log.debug(f"Mutated:\nFROM: {person}\nTO  : {modified_person}")
-        typo_data.add_person(modified_person)
-    return typo_data
-
-
-def mutate_name(name: str) -> str:
-    """
-    Introduces typos into a (standardized, capitalized,
-    no-space-no-punctuation) name.
-    """
-    n = len(name)
-    a = ord("A")
-    z = ord("Z")
-    which = random.randrange(n)
-    start_ord = ord(name[which])
-    while True:
-        replacement_ord = random.randint(a, z)
-        if replacement_ord != start_ord:
-            break
-    return name[:which] + chr(replacement_ord) + name[which + 1 :]
-
-
-def mutate_postcode(postcode: str, cfg: MatchConfig) -> str:
-    """
-    Introduces typos into a UK postcode, keeping the letter/digit format.
-
-    Args:
-        postcode: the postcode to alter
-        cfg: the master :class:`MatchConfig` object
-    """
-    n = len(postcode)
-    a = ord("A")
-    z = ord("Z")
-    zero = ord("0")
-    nine = ord("9")
-    while True:
-        while True:
-            which = random.randrange(n)
-            if postcode[which] != " ":
-                break
-        # noinspection PyUnboundLocalVariable
-        start_ord = ord(postcode[which])
-        replacement_ord = start_ord
-        if postcode[which].isdigit():
-            while replacement_ord == start_ord:
-                replacement_ord = random.randint(zero, nine)
-        else:
-            while replacement_ord == start_ord:
-                replacement_ord = random.randint(a, z)
-        mutated = (
-            postcode[:which] + chr(replacement_ord) + postcode[which + 1 :]
-        )
-        if cfg.is_valid_postcode(mutated):
-            return mutated
-
-
-VALIDATION_OUTPUT_COLNAMES = [
-    "collection_name",
-    "in_sample",
-    "deletions",
-    "typos",
-    "is_hashed",
-    "original_id",
-    "winner_id",
-    "best_match_id",
-    "best_log_odds",
-    "second_best_log_odds",
-    "second_best_match_id",
-    "correct_if_winner",
-    "leader_advantage",
-]
-VALIDATION_OUTPUT_CSV_HELP = (
-    f"Header row present. Columns: {VALIDATION_OUTPUT_COLNAMES}."
-)
-
-
-def validate_1(
-    cfg: MatchConfig,
-    people_csv: str,
-    output_csv: str,
-    cache_filename: str = None,
-    seed: int = 1234,
-    report_every: int = 100,
-) -> None:
-    """
-    Read data and perform split-half validation.
-
-    Args:
-        cfg: the master :class:`MatchConfig` object
-        people_csv: CSV of people; see :func:`read_people`.
-        cache_filename: cache filename, for faster loading
-        output_csv: output filename
-        seed: RNG seed
-        report_every: report progress every n rows
-    """
-    # -------------------------------------------------------------------------
-    # Load and hash data
-    # -------------------------------------------------------------------------
-    try:
-        if not cache_filename:
-            raise FileNotFoundError
-        (
-            in_plaintext,
-            out_plaintext,
-            in_hashed,
-            out_hashed,
-            in_deletions,
-            out_deletions,
-            in_deletions_hashed,
-            out_deletions_hashed,
-            in_typos,
-            out_typos,
-            in_typos_hashed,
-            out_typos_hashed,
-        ) = cache_load(cache_filename)
-        log.info(f"Read from cache: {cache_filename}")
-    except FileNotFoundError:
-        in_plaintext, out_plaintext = read_people_2(
-            cfg, people_csv, alternate_groups=True
-        )
-        log.info(f"Seeding random number generator with: {seed}")
-        random.seed(seed)
-        log.info("Making copies with deliberate deletions...")
-        in_deletions = make_deletion_data(in_plaintext, cfg)
-        out_deletions = make_deletion_data(out_plaintext, cfg)
-        log.info("Making copies with deliberate typos...")
-        in_typos = make_typo_data(in_plaintext, cfg)
-        out_typos = make_typo_data(out_plaintext, cfg)
-
-        log.info("Hashing...")
-        in_hashed = in_plaintext.hashed()
-        out_hashed = out_plaintext.hashed()
-        in_deletions_hashed = in_deletions.hashed()
-        out_deletions_hashed = out_deletions.hashed()
-        in_typos_hashed = in_typos.hashed()
-        out_typos_hashed = out_typos.hashed()
-        log.info("... done")
-
-        if cache_filename:
-            cache_save(
-                cache_filename,
-                [
-                    in_plaintext,
-                    out_plaintext,
-                    in_hashed,
-                    out_hashed,
-                    in_deletions,
-                    out_deletions,
-                    in_deletions_hashed,
-                    out_deletions_hashed,
-                    in_typos,
-                    out_typos,
-                    in_typos_hashed,
-                    out_typos_hashed,
-                ],
-            )
-    # -------------------------------------------------------------------------
-    # Calculate validation data and save it
-    # -------------------------------------------------------------------------
-    data = [
-        # people, collection_name, sample, in_sample, deletions, typos
-        (in_plaintext, "in_plaintext", in_plaintext, True, False, False),
-        (out_plaintext, "out_plaintext", in_plaintext, False, False, False),
-        (in_hashed, "in_hashed", in_hashed, True, False, False),
-        (out_hashed, "out_hashed", in_hashed, False, False, False),
-        (in_deletions, "in_deletions", in_plaintext, True, True, False),
-        (out_deletions, "out_deletions", in_plaintext, False, True, False),
-        (
-            in_deletions_hashed,
-            "in_deletions_hashed",
-            in_hashed,
-            True,
-            True,
-            False,
-        ),  # noqa
-        (
-            out_deletions_hashed,
-            "out_deletions_hashed",
-            in_hashed,
-            False,
-            True,
-            False,
-        ),  # noqa
-        (in_typos, "in_typos", in_plaintext, True, False, True),
-        (out_typos, "out_typos", in_plaintext, False, False, True),
-        (in_typos_hashed, "in_typos_hashed", in_hashed, True, False, True),
-        (out_typos_hashed, "out_typos_hashed", in_hashed, False, False, True),
-    ]  # type: List[Tuple[People, str, People, bool, bool, bool]]
-    log.info(f"Writing to: {output_csv}")
-    with open(output_csv, "wt") as f:
-        writer = csv.DictWriter(f, fieldnames=VALIDATION_OUTPUT_COLNAMES)
-        writer.writeheader()
-        i = 1  # row 1 is the header
-        for (
-            people,
-            collection_name,
-            sample,
-            in_sample,
-            deletions,
-            typos,
-        ) in data:  # noqa
-            for person in people.people:
-                i += 1
-                if i % report_every == 0:
-                    log.info(f"... creating CSV row {i}")
-                result = sample.get_unique_match_detailed(person)
-
-                if math.isfinite(result.best_log_odds) and math.isfinite(
-                    result.second_best_log_odds
-                ):
-                    leader_advantage = (
-                        result.best_log_odds - result.second_best_log_odds
-                    )
-                else:
-                    leader_advantage = None
-                best_match_id = (
-                    result.best_person.original_id
-                    if result.best_person
-                    else None
-                )
-                correct_if_winner = (
-                    int(best_match_id == person.original_id)
-                    if result.winner
-                    else None
-                )
-
-                rowdata = dict(
-                    # As of Python 3.6, keyword order is preserved:
-                    # https://docs.python.org/3/library/collections.html#collections.OrderedDict  # noqa
-                    # https://www.python.org/dev/peps/pep-0468/
-                    # ... but it doesn't matter since we're using a DictWriter.
-                    collection_name=collection_name,
-                    in_sample=int(in_sample),
-                    deletions=int(deletions),
-                    typos=int(typos),
-                    is_hashed=int(person.is_hashed),
-                    original_id=person.original_id,
-                    winner_id=(
-                        result.winner.original_id if result.winner else None
-                    ),
-                    best_match_id=best_match_id,
-                    best_log_odds=result.best_log_odds,
-                    second_best_log_odds=result.second_best_log_odds,
-                    second_best_match_id=(
-                        result.second_best_person.original_id
-                        if result.second_best_person
-                        else None
-                    ),
-                    correct_if_winner=correct_if_winner,
-                    leader_advantage=leader_advantage,
-                )
-                writer.writerow(rowdata)
-    log.info("... done")
-
-
-# =============================================================================
 # Hash plaintext to encrypted CSV
 # =============================================================================
 
@@ -4331,449 +3661,6 @@ def hash_identity_file(
                     include_original_id=include_original_id,
                 )
             )
-
-
-# =============================================================================
-# Validation 2
-# =============================================================================
-
-# -----------------------------------------------------------------------------
-# CRS/CDL
-# -----------------------------------------------------------------------------
-
-
-def _get_cdl_postcodes(
-    engine: Engine, cdl_m_number: int
-) -> List[TemporalIdentifier]:
-    """
-    Fetches distinct valid time-stamped postcodes for a given person, from
-    CRS/CDL.
-
-    Args:
-        engine:
-            SQLAlchemy engine
-        cdl_m_number:
-            CRS/CDL primary key ("M number")
-
-    Returns:
-        list: of postcodes in :class:`TemporalIdentifier` format
-    """
-    log.critical("_get_cdl_postcodes: needs to be checked")
-    sql = text(
-        """
-
-        SELECT DISTINCT
-            UPPER(PostCode) AS upper_postcode,
-            CAST(StartDate AS DATE) AS start_date,
-            CAST(EndDate AS DATE) AS end_date
-        FROM
-            Addresses A
-        WHERE
-            ClientID = :cdl_m_number
-            AND PostCode IS NOT NULL
-            AND LEN(PostCode) >= 6  -- minimum for valid postcode
-        ORDER BY
-            start_date,
-            end_date,
-            upper_postcode
-
-    """
-    )
-    rows = engine.execute(sql, cdl_m_number=cdl_m_number)
-    postcodes = [
-        TemporalIdentifier(
-            identifier=row[0], start_date=row[1], end_date=row[2]  # postcode
-        )
-        for row in rows
-        if POSTCODE_REGEX.match(row[0])
-    ]
-    return postcodes
-
-
-# noinspection PyUnusedLocal
-def _get_cdl_middle_names(engine: Engine, cdl_m_number: int) -> List[str]:
-    """
-    Fetches distinct middle names for a given person, from CRS/CDL.
-
-    Args:
-        engine:
-            SQLAlchemy engine
-        cdl_m_number:
-            CRS/CDL primary key ("M number")
-
-    Returns:
-        list: of middle names
-
-    """
-    log.critical("_get_cdl_middle_names: needs to be checked")
-    return []  # Information not present in database!
-
-
-def validate_2_fetch_cdl(
-    cfg: MatchConfig, url: str, hash_key: str, echo: bool = False
-) -> Generator[Person, None, None]:
-    """
-    Generates IDENTIFIED people from CPFT's CRS/CRL source database.
-
-    See :func:`validate_2_fetch_rio` for notes.
-    """
-    log.critical("validate_2_fetch_cdl: needs to be checked")
-    sql = text(
-        """
-
-        SELECT
-            p.Patient_ID AS cdl_m_number,
-            CAST(p.NHS_IDENTIFIER AS BIGINT) AS nhs_number,
-            p.FORENAME AS first_name,
-            p.SURNAME AS surname,
-            CASE p.GENDER
-                WHEN 'Female' THEN 'F'
-                WHEN 'Male' THEN 'M'
-                WHEN 'Not Specified' THEN 'X'
-                ELSE ''
-                -- 'Not Known' is the CRS/CDL "unknown" value
-            END AS gender,
-            CAST(p.DTTM_OF_BIRTH, DATE) AS dob,
-            p.ETHNICITY AS ethnicity,  -- see also CDLPatient.Ethnicity
-            CASE
-                WHEN EXISTS(
-                    SELECT
-                        1
-                    FROM
-                        DIAGNOSIS_PROCEDURES dp
-                    WHERE
-                        dp.Patient_ID = p.Patient_ID
-                        AND dc.CODE IS NOT NULL
-                ) THEN 1
-                ELSE 0
-            END AS icd10_dx_present,
-            CAST(p.CREATE_DTTM AS DATE) AS first_registration_date
-        FROM
-            PATIENTS as p
-
-    """
-    )
-    hasher = Hasher(hash_key)
-    _hash = hasher.hash  # hashing function
-    engine = create_engine(url, echo=echo)
-    result = engine.execute(sql)  # type: ResultProxy
-    for row in result:
-        cdl_m_number = row["cdl_m_number"]
-        middle_names = _get_cdl_middle_names(engine, cdl_m_number)
-        postcodes = _get_cdl_postcodes(engine, cdl_m_number)
-        nhs_number = row["nhs_number"]
-        research_id = _hash(nhs_number)
-        other = OrderedDict()
-        dob = row["dob"]
-        first_mh_care_date = row["first_registration_date"]
-        other["first_mh_care_date"] = first_mh_care_date
-        other["age_at_first_mh_care"] = (
-            (first_mh_care_date - dob).in_years()
-            if dob and first_mh_care_date
-            else None
-        )
-        other["ethnicity"] = row["ethnicity"]
-        other["icd10_dx_present"] = row["icd10_dx_present"]
-        p = Person(
-            cfg=cfg,
-            original_id=nhs_number,
-            research_id=research_id,
-            first_name=row["first_name"] or "",
-            middle_names=middle_names,
-            surname=row["surname"] or "",
-            gender=row["gender"] or "",
-            dob=row["dob"] or "",
-            postcodes=postcodes,
-            other=other,
-        )
-        yield p
-
-
-# -----------------------------------------------------------------------------
-# RiO
-# -----------------------------------------------------------------------------
-
-
-def _get_rio_postcodes(
-    engine: Engine, rio_client_id: str
-) -> List[TemporalIdentifier]:
-    """
-    Fetches distinct valid time-stamped postcodes for a given person, from RiO.
-
-    Args:
-        engine:
-            SQLAlchemy engine
-        rio_client_id:
-            RiO primary key (``ClientId``)
-
-    Returns:
-        list: list: of postcodes in :class:`TemporalIdentifier` format
-
-    """
-    log.critical("_get_rio_postcodes: needs to be checked")
-    sql = text(
-        """
-
-        SELECT DISTINCT
-            UPPER(PostCode) AS upper_postcode,
-            CAST(FromDate AS DATE) AS start_date,
-            CAST(ToDate AS DATE) AS end_date
-        FROM
-            ClientAddress
-        WHERE
-            ClientID = :client_id
-            AND PostCode IS NOT NULL
-            AND LEN(PostCode) >= 6  -- minimum for valid postcode
-        ORDER BY
-            start_date,
-            end_date,
-            upper_postcode
-
-    """
-    )
-    rows = engine.execute(sql, client_id=rio_client_id)
-    postcodes = [
-        TemporalIdentifier(
-            identifier=row[0], start_date=row[1], end_date=row[2]  # postcode
-        )
-        for row in rows
-        if POSTCODE_REGEX.match(row[0])
-    ]
-    return postcodes
-
-
-def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
-    """
-    Fetches middle names for a given person, from RiO.
-
-    Args:
-        engine:
-            SQLAlchemy engine
-        rio_client_id:
-            RiO primary key (``ClientId``)
-
-    Returns:
-        list: of middle names
-
-    """
-    log.critical("_get_rio_middle_names: needs to be checked")
-    sql = text(
-        """
-
-        SELECT
-            -- OK to use UPPER() with NULL values. Result is, of course, NULL.
-            -- GivenName1 should be the first name.
-            UPPER(GivenName2) AS middle_name_1,
-            UPPER(GivenName3) AS middle_name_2
-            UPPER(GivenName4) AS middle_name_3
-            UPPER(GivenName5) AS middle_name_4
-        FROM
-            ClientName
-        WHERE
-            ClientID = :client_id
-
-    """
-    )
-    rows = engine.execute(sql, client_id=rio_client_id)
-    assert len(rows) == 1, "Didn't expect >1 row per patient in ClientName"
-    row = rows[0]
-    middle_names = [x for x in row if x]  # remove blanks
-    return middle_names
-
-
-def validate_2_fetch_rio(
-    cfg: MatchConfig, url: str, hash_key: str, echo: bool = False
-) -> Generator[Person, None, None]:
-    """
-    Generates IDENTIFIED people from CPFT's RiO source database.
-
-    The connection to any such database is HIGHLY confidential; it sits on a
-    secure server within a secure network and access to this specific database
-    is very restricted -- to administrators only.
-
-    Args:
-        cfg:
-            Configuration object.
-        url:
-            SQLAlchemy URL.
-        hash_key:
-            Key for hashing NHS number (original ID) to research ID.
-        echo:
-            Echo SQL?
-
-    Yields:
-        :class:`Person` objects
-
-    Generating postcodes in SQL as semicolon-separated values: pretty hard.
-    The challenges are:
-
-    - String concatenation
-
-      - Prior to SQL Server 2017:
-        https://stackoverflow.com/questions/6899/how-to-create-a-sql-server-function-to-join-multiple-rows-from-a-subquery-into
-
-        .. code-block:: none
-
-            SELECT
-                CAST(ci.NNN AS BIGINT) AS original_id,  -- NHS number
-                -- ...
-
-                STUFF(
-                    (
-                        SELECT
-                            ';' + ca.PostCode
-                        FROM
-                            ClientAddress AS ca
-                        WHERE
-                            ca.ClientID = ci.ClientID
-                            AND ca.PostCode IS NOT NULL
-                            AND ca.PostCode != ''
-                        FOR XML PATH('')
-                    ),
-                    1, 1, ''
-                ) AS postcodes
-            FROM
-                ClientIndex AS ci
-
-      - From SQL Server 2017: the ``STRING_AGG(..., ';')`` construct.
-        Still tricky, though.
-
-    - We need to return people with no postcodes.
-
-    - We must deal with a profusion of invalid postcodes -- and SQL Server
-      doesn't support proper regular expressions.
-
-    SQLAlchemy Core query to Python dict:
-
-    - https://stackoverflow.com/questions/1958219/convert-sqlalchemy-row-object-to-python-dict
-
-    SQL Server doesn't permit "SELECT EXISTS":
-
-    - https://stackoverflow.com/questions/2759756/is-it-possible-to-select-exists-directly-as-a-bit
-
-    """  # noqa
-    log.critical("validate_2_fetch_rio: needs to be checked")
-    sql = text(
-        """
-
-        -- We use the original raw RiO database, not the CRATE-processed one.
-
-        SELECT
-            ci.ClientID AS rio_client_id,
-            CAST(ci.NNN AS BIGINT) AS nhs_number,
-            ci.Firstname AS first_name,
-            ci.Surname AS surname,
-            CASE ci.Gender
-                WHEN 'F' THEN 'F'
-                WHEN 'M' THEN 'M'
-                WHEN 'X' THEN 'X'
-                ELSE ''
-                -- 'U' is the RiO "unknown" value
-            END AS gender,
-            CAST(ci.DateOfBirth AS DATE) AS dob,
-            ge.CodeDescription AS ethnicity,
-            CASE
-                WHEN EXISTS(
-                    SELECT
-                        1
-                    FROM
-                        DiagnosisClient dc
-                    WHERE
-                        dc.ClientID = ci.ClientID
-                        AND dc.RemovalDate IS NOT NULL
-                ) THEN 1
-                ELSE 0
-            END AS icd10_dx_present,
-            CAST(ci.FirstCareDate AS DATE) AS first_mh_care_date
-        FROM
-            ClientIndex AS ci
-        LEFT JOIN
-            GenEthnicity ge
-            ON ge.Code = ci.Ethnicity
-            AND ge.Deleted = 0
-        WHERE
-            -- Restrict to patients with NHS numbers:
-            (ci.NNNStatus = 1 OR ci.NNNStatus = 2)
-            AND NOT (ci.NNN IS NULL OR ci.NNN = '')
-            -- 2 = NHS number verified; see table NNNStatus
-            -- Most people have status 1 (about 119k people), compared to
-            -- about 80k for status 2 (on 2020-04-28). Then about 6k have
-            -- status 0 ("trace/verification required"), and about 800 have
-            -- status 3 ("no match found"). Other codes not present.
-            -- A very small number (~40) have a null NHS number despite an
-            -- OK-looking status flag; we'll skip them.
-
-    """
-    )
-    hasher = Hasher(hash_key)
-    _hash = hasher.hash  # hashing function
-    engine = create_engine(url, echo=echo)
-    result = engine.execute(sql)  # type: ResultProxy
-    for row in result:
-        rio_client_id = row["rio_client_id"]
-        middle_names = _get_rio_middle_names(engine, rio_client_id)
-        postcodes = _get_rio_postcodes(engine, rio_client_id)
-        nhs_number = row["nhs_number"]
-        research_id = _hash(nhs_number)
-        other = OrderedDict()
-        dob = row["dob"]
-        first_mh_care_date = row["first_mh_care_date"]
-        other["first_mh_care_date"] = first_mh_care_date
-        other["age_at_first_mh_care"] = (
-            (first_mh_care_date - dob).in_years()
-            if dob and first_mh_care_date
-            else None
-        )
-        other["ethnicity"] = row["ethnicity"]
-        other["icd10_dx_present"] = row["icd10_dx_present"]
-        p = Person(
-            cfg=cfg,
-            original_id=nhs_number,
-            research_id=research_id,
-            first_name=row["first_name"] or "",
-            middle_names=middle_names,
-            surname=row["surname"] or "",
-            gender=row["gender"] or "",
-            dob=row["dob"] or "",
-            postcodes=postcodes,
-            other=other,
-        )
-        yield p
-
-
-# -----------------------------------------------------------------------------
-# Comon functions
-# -----------------------------------------------------------------------------
-
-
-def save_people_from_db(
-    people: Iterable[Person], output_csv: str, report_every: int = 1000
-) -> None:
-    """
-    Saves people (in plaintext) from a function that generates them from a
-    database.
-
-    Args:
-        people:
-            iterable of :class:`Person`
-        output_csv:
-            output filename
-        report_every:
-            report progress every n people
-    """
-    rownum = 0
-    with open(output_csv, "wt") as f:
-        for i, p in enumerate(people):
-            if i == 0:
-                # This allows us to do custom headers for "other" info
-                writer = csv.DictWriter(
-                    f, fieldnames=p.plaintext_csv_columns()
-                )  # noqa
-                writer.writeheader()
-            writer.writerow(p.plaintext_csv_dict())
-            rownum += 1
-            if rownum % report_every == 0:
-                log.info(f"Processing person #{rownum}")
 
 
 # =============================================================================
@@ -4837,107 +3724,270 @@ HELP_COMPARISON = f"""
       (not sorting improves parallel processing efficiency).
 """
 
-DEMO_SAMPLE = """
-original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
-1,r1,Alice,Zara,Smith,1931-01-01,F,CB2 0QQ/2000-01-01/2010-12-31
-2,r2,Bob,Yorick,Jones,1932-01-01,M,CB2 3EB/2000-01-01/2010-12-31
-3,r3,Celia,Xena,Wright,1933-01-01,F,CB2 1TP/2000-01-01/2010-12-31
-4,r4,David,William;Wallace,Cartwright,1934-01-01,M,CB2 8PH/2000-01-01/2010-12-31;CB2 1TP/2000-01-01/2010-12-31
-5,r5,Emily,Violet,Fisher,1935-01-01,F,CB3 9DF/2000-01-01/2010-12-31
-6,r6,Frank,Umberto,Williams,1936-01-01,M,CB2 1TQ/2000-01-01/2010-12-31
-7,r7,Greta,Tilly,Taylor,1937-01-01,F,CB2 1DQ/2000-01-01/2010-12-31
-8,r8,Harry,Samuel,Davies,1938-01-01,M,CB3 9ET/2000-01-01/2010-12-31
-9,r9,Iris,Ruth,Evans,1939-01-01,F,CB3 0DG/2000-01-01/2010-12-31
-10,r10,James,Quentin,Thomas,1940-01-01,M,CB2 0SZ/2000-01-01/2010-12-31
-11,r11,Alice,,Smith,1931-01-01,F,CB2 0QQ/2000-01-01/2010-12-31
-""".strip()  # noqa
 
-HELP_VALIDATE_1 = f"""
-    Takes an identifiable list of people (typically a short list of imaginary
-    people!) and validates the matching process.
+# =============================================================================
+# Helper functions for main argument parser
+# =============================================================================
 
-    This is done by splitting the input list into two groups (alternating),
-    then comparing a list of probands either against itself (there should be
-    matches) or against the other group (there should generally not be).
-    The process is carried out in cleartext (plaintext) and hashed. At times
-    it's made harder by introducing deletions or mutations (typos) into one of
-    the groups.
 
-    Here's a specimen test CSV file to use, with entirely made-up people and
-    institutional (not personal) postcodes in Cambridge:
+def warn_or_fail_if_default_key(args: argparse.Namespace) -> None:
+    """
+    Ensure that we are not using the default (insecure) hash key unless the
+    user has specifically authorized this.
+    """
+    if args.key == FuzzyDefaults.HASH_KEY:
+        if args.allow_default_hash_key:
+            log.warning(
+                "Proceeding with default hash key at user's "
+                "explicit request."
+            )
+        else:
+            log.error(
+                "You have not specified a hash key, so are using the "
+                "default! Stopping, because this is a very bad idea for "
+                "real data. Specify --allow_default_hash_key to use the "
+                "default for testing purposes."
+            )
+            sys.exit(EXIT_FAILURE)
 
-{DEMO_SAMPLE}
 
-    Explanation of the output format:
+def add_common_groups(parser: argparse.ArgumentParser):
+    """
+    Sets up standard argparse groups.
+    """
+    display_group = parser.add_argument_group("display options")
+    display_group.add_argument(
+        "--verbose", action="store_true", help="Be verbose"
+    )
 
-    - 'collection_name' is a human-readable name summarizing the next four;
-    - 'in_sample' (boolean) is whether the probands are in the sample;
-    - 'deletions' (boolean) is whether random items have been deleted from
-       the probands;
-    - 'typos' (boolean) is whether random typos have been made in the
-       probands;
+    hasher_group = parser.add_argument_group("hasher (secrecy) options")
+    hasher_group.add_argument(
+        "--key",
+        type=str,
+        default=FuzzyDefaults.HASH_KEY,
+        help="Key (passphrase) for hasher",
+    )
+    hasher_group.add_argument(
+        "--allow_default_hash_key",
+        action="store_true",
+        help=(
+            "Allow the default hash key to be used beyond tests. INADVISABLE!"
+        ),
+    )
+    hasher_group.add_argument(
+        "--rounding_sf",
+        type=int,
+        default=FuzzyDefaults.ROUNDING_SF,
+        help="Number of significant figures to use when rounding frequencies "
+        "in hashed version",
+    )
 
-    - 'is_hashed' (boolean) is whether the proband and sample are hashed;
-    - 'original_id' is the gold-standard ID of the proband;
-    - 'winner_id' is the ID of the best-matching person in the sample if they
-      were a good enough match to win;
-    - 'best_match_id' is the ID of the best-matching person in the sample;
-    - 'best_log_odds' is the calculated log (ln) odds that the proband and the
-      sample member identified by 'winner_id' are the sample person (ideally
-      high if there is a true match, low if not);
-    - 'second_best_log_odds' is the calculated log odds of the proband and the
-      runner-up being the same person (ideally low);
-    - 'second_best_match_id' is the ID of the second-best matching person, if
-      there is one;
+    priors_group = parser.add_argument_group(
+        "frequency information for prior probabilities"
+    )
+    priors_group.add_argument(
+        "--forename_sex_freq_csv",
+        type=str,
+        default=FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
+        help=f'CSV file of "name, sex, frequency" pairs for forenames. '
+        f"You can generate one via {CRATE_FETCH_WORDLISTS}.",
+    )
+    priors_group.add_argument(
+        "--forename_cache_filename",
+        type=str,
+        default=FuzzyDefaults.FORENAME_CACHE_FILENAME,
+        help="File in which to store cached forename info (to speed loading)",
+    )
+    priors_group.add_argument(
+        "--surname_freq_csv",
+        type=str,
+        default=FuzzyDefaults.SURNAME_FREQ_CSV,
+        help=f'CSV file of "name, frequency" pairs for forenames. '
+        f"You can generate one via {CRATE_FETCH_WORDLISTS}.",
+    )
+    priors_group.add_argument(
+        "--surname_cache_filename",
+        type=str,
+        default=FuzzyDefaults.SURNAME_CACHE_FILENAME,
+        help="File in which to store cached surname info (to speed loading)",
+    )
+    priors_group.add_argument(
+        "--name_min_frequency",
+        type=float,
+        default=FuzzyDefaults.NAME_MIN_FREQ,
+        help="Minimum base frequency for names. If a frequency is less than "
+        "this, use this minimum. Allowing extremely low frequencies may "
+        "increase the chances of a spurious match. Note also that "
+        "typical name frequency tables don't give very-low-frequency "
+        "information. For example, for US census forename/surname "
+        "information, below 0.001 percent they report 0.000 percent; so "
+        "a reasonable minimum is 0.0005 percent or 0.000005 or 5e-6.",
+    )
+    priors_group.add_argument(
+        "--p_middle_name_n_present",
+        type=str,
+        default=",".join(
+            str(x) for x in FuzzyDefaults.P_MIDDLE_NAME_N_PRESENT
+        ),
+        help="CSV list of probabilities that a randomly selected person has a "
+        "certain number of middle names. The first number is P(has a "
+        "first middle name). The second number is P(has a second middle "
+        "name | has a first middle name), and so on. The last number "
+        "present will be re-used ad infinitum if someone has more names.",
+    )
+    priors_group.add_argument(
+        "--population_size",
+        type=int,
+        default=FuzzyDefaults.POPULATION_SIZE,
+        help="Size of the whole population, from which we calculate the "
+        "baseline log odds that two people, randomly selected (and "
+        "replaced) from the population are the same person.",
+    )
+    priors_group.add_argument(
+        "--birth_year_pseudo_range",
+        type=float,
+        default=FuzzyDefaults.BIRTH_YEAR_PSEUDO_RANGE,
+        help=f"Birth year pseudo-range. The sole purpose is to calculate the "
+        f"probability of two random people sharing a DOB, which is taken "
+        f"as 1/({DAYS_PER_YEAR} * b). This option is b.",
+    )
+    priors_group.add_argument(
+        "--postcode_csv_filename",
+        type=str,
+        default=FuzzyDefaults.POSTCODES_CSV,
+        help="CSV file of postcode geography from UK Census/ONS data",
+    )
+    # noinspection PyUnresolvedReferences
+    priors_group.add_argument(
+        "--postcode_cache_filename",
+        type=str,
+        default=FuzzyDefaults.POSTCODE_CACHE_FILENAME,
+        help="File in which to store cached postcodes (to speed loading)",
+    )
+    priors_group.add_argument(
+        "--mean_oa_population",
+        type=float,
+        default=FuzzyDefaults.MEAN_OA_POPULATION,
+        help="Mean population of a UK Census Output Area, from which we "
+        "estimate the population of postcode-based units.",
+    )
+    priors_group.add_argument(
+        "--p_not_male_or_female",
+        type=float,
+        default=FuzzyDefaults.P_NOT_MALE_OR_FEMALE,
+        help="Probability that a person in the population has gender 'X'.",
+    )
+    priors_group.add_argument(
+        "--p_female_given_male_or_female",
+        type=float,
+        default=FuzzyDefaults.P_FEMALE_GIVEN_MALE_OR_FEMALE,
+        help="Probability that a person in the population is female, given "
+        "that they are either male or female.",
+    )
 
-    - 'correct_if_winner' is whether the proband and winner IDs are te same
-      (ideally true);
-    - 'leader_advantage' is the log odds by which the winner beats the
-      runner-up (ideally high indicating a strong preference for the winner
-      over the runner-up).
+    error_p_group = parser.add_argument_group("error probabilities")
+    error_p_group.add_argument(
+        "--p_minor_forename_error",
+        type=float,
+        default=FuzzyDefaults.P_MINOR_FORENAME_ERROR,
+        help="Assumed probability that a forename has an error in that means "
+        "it fails a full match but satisfies a partial (metaphone) match.",
+    )
+    error_p_group.add_argument(
+        "--p_minor_surname_error",
+        type=float,
+        default=FuzzyDefaults.P_MINOR_SURNAME_ERROR,
+        help="Assumed probability that a surname has an error in that means "
+        "it fails a full match but satisfies a partial (metaphone) match.",
+    )
+    error_p_group.add_argument(
+        "--p_proband_middle_name_missing",
+        type=float,
+        default=FuzzyDefaults.P_PROBAND_MIDDLE_NAME_MISSING,
+        help="Probability that a middle name, present in the sample, is "
+        "missing from the proband.",
+    )
+    error_p_group.add_argument(
+        "--p_sample_middle_name_missing",
+        type=float,
+        default=FuzzyDefaults.P_SAMPLE_MIDDLE_NAME_MISSING,
+        help="Probability that a middle name, present in the proband, is "
+        "missing from the sample.",
+    )
+    error_p_group.add_argument(
+        "--p_minor_postcode_error",
+        type=float,
+        default=FuzzyDefaults.P_MINOR_POSTCODE_ERROR,
+        help="Assumed probability that a postcode has an error in that means "
+        "it fails a full (postcode unit) match but satisfies a partial "
+        "(postcode sector) match.",
+    )
+    error_p_group.add_argument(
+        "--p_gender_error",
+        type=float,
+        default=FuzzyDefaults.P_GENDER_ERROR,
+        help="Assumed probability that a gender is wrong leading to a "
+        "proband/candidate mismatch.",
+    )
 
-    Clearly, if the probands are in the sample, then a match may occur; if not,
-    no match should occur. If hashing is in use, this tests de-identified
-    linkage; if not, this tests identifiable linkage. Deletions and typos
-    may reduce (but we hope not always eliminate) the likelihood of a match,
-    and we don't want to see mismatches.
+    match_rule_group = parser.add_argument_group("matching rules")
+    match_rule_group.add_argument(
+        "--min_log_odds_for_match",
+        type=float,
+        default=FuzzyDefaults.LOG_ODDS_FOR_MATCH,
+        help=f"Minimum natural log (ln) odds of two people being the same, "
+        f"before a match will be considered. (Default is equivalent to "
+        f"p = {FuzzyDefaults.MIN_P_FOR_MATCH}.)",
+    )
+    match_rule_group.add_argument(
+        "--exceeds_next_best_log_odds",
+        type=float,
+        default=FuzzyDefaults.EXCEEDS_NEXT_BEST_LOG_ODDS,
+        help="Minimum log (ln) odds by which a best match must exceed the "
+        "next-best match to be considered a unique match.",
+    )
 
-    For n input rows, each basic set test involves n^2/2 comparisons.
-    Then we repeat for typos and deletions. (There is no point in DOB typos
-    as our rules preclude that.)
 
-    Examine:
-    - P(unique plaintext match | proband in sample) -- should be close to 1.
-    - P(unique plaintext match | proband in others) -- should be close to 0.
-    - P(unique hashed match | proband in sample) -- should be close to 1.
-    - P(unique hashed match | proband in others) -- should be close to 0.
-"""
+def get_cfg_from_args(args: argparse.Namespace) -> MatchConfig:
+    """
+    Return a MatchConfig object from our standard arguments.
+    """
+    p_middle_name_n_present = [
+        float(x) for x in args.p_middle_name_n_present.split(",")
+    ]
+    min_p_for_match = probability_from_log_odds(args.min_log_odds_for_match)
 
-DEFAULT_CDL_PLAINTEXT = "validate2_cdl_DANGER_IDENTIFIABLE.csv"
-DEFAULT_RIO_PLAINTEXT = "validate2_rio_DANGER_IDENTIFIABLE.csv"
-DEFAULT_CDL_HASHED = "validate2_cdl_hashed.csv"
-DEFAULT_RIO_HASHED = "validate2_rio_hashed.csv"
-CAMBS_POPULATION = 852523  # 2018 estimate; https://cambridgeshireinsight.org.uk/population/  # noqa
-HELP_VALIDATE_2_CDL = f"""
-    Validation #2. Sequence:
-
-    1. Fetch
-
-    - crate_fuzzy_id_match validate2_fetch_cdl --output {DEFAULT_CDL_PLAINTEXT} --url <SQLALCHEMY_URL_CDL>
-    - crate_fuzzy_id_match validate2_fetch_rio --output {DEFAULT_RIO_PLAINTEXT} --url <SQLALCHEMY_URL_RIO>
-
-    2. Hash
-
-    - crate_fuzzy_id_match hash --input {DEFAULT_CDL_PLAINTEXT} --output {DEFAULT_CDL_HASHED} --include_original_id --allow_default_hash_key
-    - crate_fuzzy_id_match hash --input {DEFAULT_RIO_PLAINTEXT} --output {DEFAULT_RIO_HASHED} --include_original_id --allow_default_hash_key
-
-    3. Compare
-
-    - crate_fuzzy_id_match compare_plaintext --population_size {CAMBS_POPULATION} --probands {DEFAULT_CDL_PLAINTEXT} --sample {DEFAULT_RIO_PLAINTEXT} --output cdl_to_rio_plaintext.csv --extra_validation_output
-    - crate_fuzzy_id_match compare_hashed_to_hashed --population_size {CAMBS_POPULATION} --probands {DEFAULT_CDL_HASHED} --sample {DEFAULT_RIO_HASHED} --output cdl_to_rio_hashed.csv --extra_validation_output
-    - crate_fuzzy_id_match compare_plaintext --population_size {CAMBS_POPULATION} --probands {DEFAULT_RIO_PLAINTEXT} --sample {DEFAULT_CDL_PLAINTEXT} --output rio_to_cdl_plaintext.csv --extra_validation_output
-    - crate_fuzzy_id_match compare_hashed_to_hashed --population_size {CAMBS_POPULATION} --probands {DEFAULT_RIO_HASHED} --sample {DEFAULT_CDL_HASHED} --output rio_to_cdl_hashed.csv --extra_validation_output
-"""  # noqa
+    log.debug(f"Using population size: {args.population_size}")
+    log.debug(
+        f"Using min_log_odds_for_match: {args.min_log_odds_for_match} "
+        f"(p = {min_p_for_match})"
+    )
+    return MatchConfig(
+        hash_key=args.key,
+        rounding_sf=args.rounding_sf,
+        forename_sex_csv_filename=args.forename_sex_freq_csv,
+        forename_cache_filename=args.forename_cache_filename,
+        surname_csv_filename=args.surname_freq_csv,
+        surname_cache_filename=args.surname_cache_filename,
+        min_name_frequency=args.name_min_frequency,
+        p_middle_name_n_present=p_middle_name_n_present,
+        population_size=args.population_size,
+        birth_year_pseudo_range=args.birth_year_pseudo_range,
+        postcode_csv_filename=args.postcode_csv_filename,
+        postcode_cache_filename=args.postcode_cache_filename,
+        mean_oa_population=args.mean_oa_population,
+        min_log_odds_for_match=args.min_log_odds_for_match,
+        exceeds_next_best_log_odds=args.exceeds_next_best_log_odds,
+        p_minor_forename_error=args.p_minor_forename_error,
+        p_minor_surname_error=args.p_minor_surname_error,
+        p_proband_middle_name_missing=args.p_proband_middle_name_missing,
+        p_sample_middle_name_missing=args.p_sample_middle_name_missing,
+        p_minor_postcode_error=args.p_minor_postcode_error,
+        p_gender_error=args.p_gender_error,
+        p_not_male_or_female=args.p_not_male_or_female,
+        p_female_given_male_or_female=args.p_female_given_male_or_female,
+        verbose=args.verbose,
+    )
 
 
 # =============================================================================
@@ -4952,20 +4002,6 @@ def main() -> int:
     Returns:
         program exit status code
     """
-
-    appname = "crate"
-    if EnvVar.GENERATING_CRATE_DOCS in os.environ:
-        default_cache_dir = "/path/to/crate/user/data"
-        default_postcodes_csv = "/path/to/postcodes/file"
-    else:
-        default_cache_dir = os.path.join(
-            appdirs.user_data_dir(appname=appname)
-        )
-        default_postcodes_csv = os.path.abspath(
-            os.path.expanduser(
-                "~/dev/ons/ONSPD_Nov2019/unzipped/Data/ONSPD_NOV_2019_UK.csv"
-            )
-        )
 
     # -------------------------------------------------------------------------
     # Argument parser
@@ -4989,202 +4025,7 @@ def main() -> int:
     # Common arguments
     # -------------------------------------------------------------------------
 
-    display_group = parser.add_argument_group("display options")
-    display_group.add_argument(
-        "--verbose", action="store_true", help="Be verbose"
-    )
-
-    hasher_group = parser.add_argument_group("hasher (secrecy) options")
-    hasher_group.add_argument(
-        "--key",
-        type=str,
-        default=DEFAULT_HASH_KEY,
-        help="Key (passphrase) for hasher",
-    )
-    hasher_group.add_argument(
-        "--allow_default_hash_key",
-        action="store_true",
-        help=(
-            "Allow the default hash key to be used beyond tests. INADVISABLE!"
-        ),
-    )
-    hasher_group.add_argument(
-        "--rounding_sf",
-        type=int,
-        default=5,
-        help="Number of significant figures to use when rounding frequencies "
-        "in hashed version"
-        # 3 may be too small, e.g.
-        # surname Smith 0.01006, metaphone SM0 0.010129999999999998
-        # ... would be the same at 3sf.
-    )
-
-    priors_group = parser.add_argument_group(
-        "frequency information for prior probabilities"
-    )
-    priors_group.add_argument(
-        "--forename_sex_freq_csv",
-        type=str,
-        default=os.path.join(default_cache_dir, "us_forename_sex_freq.csv"),
-        help=f'CSV file of "name, sex, frequency" pairs for forenames. '
-        f"You can generate one via {CRATE_FETCH_WORDLISTS}.",
-    )
-    priors_group.add_argument(
-        "--forename_cache_filename",
-        type=str,
-        default=os.path.join(default_cache_dir, "fuzzy_forename_cache.pickle"),
-        help="File in which to store cached forename info (to speed loading)",
-    )
-    priors_group.add_argument(
-        "--surname_freq_csv",
-        type=str,
-        default=os.path.join(default_cache_dir, "us_surname_freq.csv"),
-        help=f'CSV file of "name, frequency" pairs for forenames. '
-        f"You can generate one via {CRATE_FETCH_WORDLISTS}.",
-    )
-    priors_group.add_argument(
-        "--surname_cache_filename",
-        type=str,
-        default=os.path.join(default_cache_dir, "fuzzy_surname_cache.pickle"),
-        help="File in which to store cached surname info (to speed loading)",
-    )
-    priors_group.add_argument(
-        "--name_min_frequency",
-        type=float,
-        default=5e-6,
-        help="Minimum base frequency for names. If a frequency is less than "
-        "this, use this minimum. Allowing extremely low frequencies may "
-        "increase the chances of a spurious match. Note also that "
-        "typical name frequency tables don't give very-low-frequency "
-        "information. For example, for US census forename/surname "
-        "information, below 0.001 percent they report 0.000 percent; so "
-        "a reasonable minimum is 0.0005 percent or 0.000005 or 5e-6.",
-    )
-    priors_group.add_argument(
-        "--p_middle_name_n_present",
-        type=str,
-        default="0.8,0.1375",
-        help="CSV list of probabilities that a randomly selected person has a "
-        "certain number of middle names. The first number is P(has a "
-        "first middle name). The second number is P(has a second middle "
-        "name | has a first middle name), and so on. The last number "
-        "present will be re-used ad infinitum if someone has more names.",
-    )
-    priors_group.add_argument(
-        "--population_size",
-        type=int,
-        default=UK_POPULATION_2017,
-        help="Size of the whole population, from which we calculate the "
-        "baseline log odds that two people, randomly selected (and "
-        "replaced) from the population are the same person.",
-    )
-    priors_group.add_argument(
-        "--birth_year_pseudo_range",
-        type=float,
-        default=90,
-        help=f"Birth year pseudo-range. The sole purpose is to calculate the "
-        f"probability of two random people sharing a DOB, which is taken "
-        f"as 1/({DAYS_PER_YEAR} * b). This option is b.",
-    )
-    priors_group.add_argument(
-        "--postcode_csv_filename",
-        type=str,
-        default=default_postcodes_csv,
-        help="CSV file of postcode geography from UK Census/ONS data",
-    )
-    # noinspection PyUnresolvedReferences
-    priors_group.add_argument(
-        "--postcode_cache_filename",
-        type=str,
-        default=os.path.join(default_cache_dir, "fuzzy_postcode_cache.pickle"),
-        help="File in which to store cached postcodes (to speed loading)",
-    )
-    priors_group.add_argument(
-        "--mean_oa_population",
-        type=float,
-        default=UK_MEAN_OA_POPULATION_2011,
-        help="Mean population of a UK Census Output Area, from which we "
-        "estimate the population of postcode-based units.",
-    )
-    priors_group.add_argument(
-        "--p_not_male_or_female",
-        type=float,
-        default=0.004,
-        help="Probability that a person in the population has gender 'X'.",
-    )
-    priors_group.add_argument(
-        "--p_female_given_male_or_female",
-        type=float,
-        default=0.51,
-        help="Probability that a person in the population is female, given "
-        "that they are either male or female.",
-    )
-
-    error_p_group = parser.add_argument_group("error probabilities")
-    error_p_group.add_argument(
-        "--p_minor_forename_error",
-        type=float,
-        default=0.001,
-        help="Assumed probability that a forename has an error in that means "
-        "it fails a full match but satisfies a partial (metaphone) match.",
-    )
-    error_p_group.add_argument(
-        "--p_minor_surname_error",
-        type=float,
-        default=0.001,
-        help="Assumed probability that a surname has an error in that means "
-        "it fails a full match but satisfies a partial (metaphone) match.",
-    )
-    error_p_group.add_argument(
-        "--p_proband_middle_name_missing",
-        type=float,
-        default=0.05,
-        help="Probability that a middle name, present in the sample, is "
-        "missing from the proband.",
-    )
-    error_p_group.add_argument(
-        "--p_sample_middle_name_missing",
-        type=float,
-        default=0.05,
-        help="Probability that a middle name, present in the proband, is "
-        "missing from the sample.",
-    )
-    error_p_group.add_argument(
-        "--p_minor_postcode_error",
-        type=float,
-        default=0.001,
-        help="Assumed probability that a postcode has an error in that means "
-        "it fails a full (postcode unit) match but satisfies a partial "
-        "(postcode sector) match.",
-    )
-    error_p_group.add_argument(
-        "--p_gender_error",
-        type=float,
-        default=0.0001,
-        help="Assumed probability that a gender is wrong leading to a "
-        "proband/candidate mismatch.",
-    )
-
-    match_rule_group = parser.add_argument_group("matching rules")
-    default_min_p_for_match = 0.999
-    default_log_odds_for_match = log_odds_from_probability(
-        default_min_p_for_match
-    )  # noqa
-    match_rule_group.add_argument(
-        "--min_log_odds_for_match",
-        type=float,
-        default=default_log_odds_for_match,
-        help=f"Minimum natural log (ln) odds of two people being the same, "
-        f"before a match will be considered. (Default is equivalent to "
-        f"p = {default_min_p_for_match}.)",
-    )
-    match_rule_group.add_argument(
-        "--exceeds_next_best_log_odds",
-        type=float,
-        default=10,
-        help="Minimum log (ln) odds by which a best match must exceed the "
-        "next-best match to be considered a unique match.",
-    )
+    add_common_groups(parser)
 
     # -------------------------------------------------------------------------
     # Subcommand subparser
@@ -5199,127 +4040,11 @@ def main() -> int:
     subparsers.required = True  # requires a command
 
     # -------------------------------------------------------------------------
-    # selftest command
-    # -------------------------------------------------------------------------
-
-    subparsers.add_parser(
-        "selftest",
-        help="Run self-tests and stop",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="""
-        This will run a bunch of self-tests and crash out if one fails.
-        """,
-    )
-
-    # -------------------------------------------------------------------------
-    # speedtest command
-    # -------------------------------------------------------------------------
-
-    speedtest_parser = subparsers.add_parser(
-        "speedtest",
-        help="Run speed tests and stop",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="""
-        This will run several comparisons to test hashing and comparison
-        speed. Results are reported as microseconds per comparison.
-        """,
-    )
-    speedtest_parser.add_argument(
-        "--profile",
-        action="store_true",
-        help="Profile (makes things slower but shows you what's taking the "
-        "time).",
-    )
-
-    # -------------------------------------------------------------------------
     # commands to print demo sample files
     # -------------------------------------------------------------------------
 
     _ = subparsers.add_parser(
         "print_demo_sample", help="Print a demo sample .CSV file (#1)."
-    )
-
-    # -------------------------------------------------------------------------
-    # validate1 command
-    # -------------------------------------------------------------------------
-
-    validate1_parser = subparsers.add_parser(
-        "validate1",
-        help="Run validation test 1 and stop. In this test, a list of people "
-        "is compared to a version of itself, at times with elements "
-        "deleted or with typos introduced.",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
-        description=HELP_VALIDATE_1,
-    )
-    validate1_parser.add_argument(
-        "--people",
-        type=str,
-        required=True,
-        help="CSV filename for validation 1 data. "
-        + Person.PLAINTEXT_CSV_FORMAT_HELP,
-    )
-    validate1_parser.add_argument(
-        "--output",
-        type=str,
-        required=True,
-        help="Output CSV file for validation. " + VALIDATION_OUTPUT_CSV_HELP,
-    )
-    validate1_parser.add_argument(
-        "--seed",
-        type=int,
-        default=1234,
-        help="Random number seed, for introducing deliberate errors in "
-        "validation test 1",
-    )
-
-    # -------------------------------------------------------------------------
-    # validate2 and ancillary commands
-    # -------------------------------------------------------------------------
-
-    validate2_cdl_parser = subparsers.add_parser(
-        "validate2_fetch_cdl",
-        help="Validation 2A: fetch people from CPFT CDL database",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
-        description=HELP_VALIDATE_2_CDL,
-    )
-    validate2_cdl_parser.add_argument(
-        "--url",
-        type=str,
-        required=True,
-        help="SQLAlchemy URL for CPFT CDL source (IDENTIFIABLE) database",
-    )
-    validate2_cdl_parser.add_argument(
-        "--echo", action="store_true", help="Echo SQL?"
-    )
-    validate2_cdl_parser.add_argument(
-        "--output",
-        type=str,
-        required=True,
-        help="CSV filename for output (plaintext, IDENTIFIABLE) data. "
-        + Person.PLAINTEXT_CSV_FORMAT_HELP,
-    )
-
-    validate2_rio_parser = subparsers.add_parser(
-        "validate2_fetch_rio",
-        help="Validation 2B: fetch people from CPFT RiO database",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
-        description="See validate2_fetch_cdl command.",
-    )
-    validate2_rio_parser.add_argument(
-        "--url",
-        type=str,
-        required=True,
-        help="SQLAlchemy URL for CPFT RiO source (IDENTIFIABLE) database",
-    )
-    validate2_rio_parser.add_argument(
-        "--echo", action="store_true", help="Echo SQL?"
-    )
-    validate2_rio_parser.add_argument(
-        "--output",
-        type=str,
-        required=True,
-        help="CSV filename for output (plaintext, IDENTIFIABLE) data. "
-        + Person.PLAINTEXT_CSV_FORMAT_HELP,
     )
 
     # -------------------------------------------------------------------------
@@ -5431,14 +4156,14 @@ def main() -> int:
         p.add_argument(
             "--max_chunksize",
             type=int,
-            default=DEFAULT_MAX_CHUNKSIZE,
+            default=FuzzyDefaults.MAX_CHUNKSIZE,
             help="Maximum chunk size (number of probands to pass to a "
             "subprocess each time).",
         )
         p.add_argument(
             "--min_probands_for_parallel",
             type=int,
-            default=DEFAULT_MIN_PROBANDS_FOR_PARALLEL,
+            default=FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
             help="Minimum number of probands for which we will bother to use "
             "parallel processing.",
         )
@@ -5558,61 +4283,13 @@ def main() -> int:
         level=logging.DEBUG if args.verbose else logging.INFO,
         with_process_id=True,
     )
-    log.debug(f"Ensuring default cache directory exists: {default_cache_dir}")
-    os.makedirs(default_cache_dir, exist_ok=True)
-
-    p_middle_name_n_present = [
-        float(x) for x in args.p_middle_name_n_present.split(",")
-    ]
-    min_p_for_match = probability_from_log_odds(args.min_log_odds_for_match)
-
-    log.debug(f"Using population size: {args.population_size}")
     log.debug(
-        f"Using min_log_odds_for_match: {args.min_log_odds_for_match} "
-        f"(p = {min_p_for_match})"
+        f"Ensuring default cache directory exists: "
+        f"{FuzzyDefaults.DEFAULT_CACHE_DIR}"
     )
-    cfg = MatchConfig(
-        hash_key=args.key,
-        rounding_sf=args.rounding_sf,
-        forename_sex_csv_filename=args.forename_sex_freq_csv,
-        forename_cache_filename=args.forename_cache_filename,
-        surname_csv_filename=args.surname_freq_csv,
-        surname_cache_filename=args.surname_cache_filename,
-        min_name_frequency=args.name_min_frequency,
-        p_middle_name_n_present=p_middle_name_n_present,
-        population_size=args.population_size,
-        birth_year_pseudo_range=args.birth_year_pseudo_range,
-        postcode_csv_filename=args.postcode_csv_filename,
-        postcode_cache_filename=args.postcode_cache_filename,
-        mean_oa_population=args.mean_oa_population,
-        min_log_odds_for_match=args.min_log_odds_for_match,
-        exceeds_next_best_log_odds=args.exceeds_next_best_log_odds,
-        p_minor_forename_error=args.p_minor_forename_error,
-        p_minor_surname_error=args.p_minor_surname_error,
-        p_proband_middle_name_missing=args.p_proband_middle_name_missing,
-        p_sample_middle_name_missing=args.p_sample_middle_name_missing,
-        p_minor_postcode_error=args.p_minor_postcode_error,
-        p_gender_error=args.p_gender_error,
-        p_not_male_or_female=args.p_not_male_or_female,
-        p_female_given_male_or_female=args.p_female_given_male_or_female,
-        verbose=args.verbose,
-    )
+    os.makedirs(FuzzyDefaults.DEFAULT_CACHE_DIR, exist_ok=True)
 
-    def warn_or_fail_if_default_key() -> None:
-        if args.key == DEFAULT_HASH_KEY:
-            if args.allow_default_hash_key:
-                log.warning(
-                    "Proceeding with default hash key at user's "
-                    "explicit request."
-                )
-            else:
-                log.error(
-                    "You have not specified a hash key, so are using the "
-                    "default! Stopping, because this is a very bad idea for "
-                    "real data. Specify --allow_default_hash_key to use the "
-                    "default for testing purposes."
-                )
-                sys.exit(EXIT_FAILURE)
+    cfg = get_cfg_from_args(args)
 
     # pdb.set_trace()
 
@@ -5621,46 +4298,12 @@ def main() -> int:
     # -------------------------------------------------------------------------
 
     log.info(f"Command: {args.command}")
-    if args.command == "selftest":
-        selftest(cfg, speedtest=False)
 
-    elif args.command == "speedtest":
-        fn = do_cprofile(selftest) if args.profile else selftest
-        fn(cfg, speedtest=True)
-
-    elif args.command == "print_demo_sample":
+    if args.command == "print_demo_sample":
         print(DEMO_SAMPLE)
 
-    elif args.command == "validate1":
-        log.info("Running validation test 1.")
-        validate_1(
-            cfg,
-            people_csv=args.people,
-            output_csv=args.output,
-            seed=args.seed,
-        )
-        log.warning("Validation test 1 complete.")
-
-    elif args.command == "validate2_fetch_cdl":
-        warn_or_fail_if_default_key()
-        save_people_from_db(
-            people=validate_2_fetch_cdl(
-                cfg=cfg, url=args.url, hash_key=args.key, echo=args.echo
-            ),
-            output_csv=args.output,
-        )
-
-    elif args.command == "validate2_fetch_rio":
-        warn_or_fail_if_default_key()
-        save_people_from_db(
-            people=validate_2_fetch_rio(
-                cfg=cfg, url=args.url, hash_key=args.key, echo=args.echo
-            ),
-            output_csv=args.output,
-        )
-
     elif args.command == "hash":
-        warn_or_fail_if_default_key()
+        warn_or_fail_if_default_key(args)
         log.info(f"Hashing identity file: {args.input}")
         hash_identity_file(
             cfg=cfg,
@@ -5715,7 +4358,7 @@ def main() -> int:
         log.info(f"... comparison finished; results are in {args.output}")
 
     elif args.command == "compare_hashed_to_plaintext":
-        warn_or_fail_if_default_key()
+        warn_or_fail_if_default_key(args)
         log.info(
             f"Comparing files:\n"
             f"- hashed probands: {args.probands}\n"
