@@ -1524,7 +1524,7 @@ Changes
   - The Docker version of CRATE can now be :ref:`installed with a single script
     <quick_start>`.
 
-**0.19.4, in progress**
+**0.19.4, 2022-05-24**
 
 - Anonymisation:
 
