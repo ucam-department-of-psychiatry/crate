@@ -4,7 +4,8 @@
 
 # ==============================================================================
 #
-#     Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
+#     Copyright (C) 2015, University of Cambridge, Department of Psychiatry.
+#     Created by Rudolf Cardinal (rnc1001@cam.ac.uk).
 #
 #     This file is part of CRATE.
 #
@@ -28,8 +29,8 @@
 set -euxo pipefail
 
 CRATE_INSTALLER_VENV=${HOME}/.virtualenvs/crate-installer
-source ${CRATE_INSTALLER_VENV}/bin/activate
+source "${CRATE_INSTALLER_VENV}/bin/activate"
 
 INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
 
-python $INSTALLER_HOME/installer.py enter_crate_container "$@"
+python "${INSTALLER_HOME}/installer.py" enter_crate_container "$@"

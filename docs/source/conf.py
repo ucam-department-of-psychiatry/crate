@@ -5,7 +5,8 @@ docs/source/conf.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015, University of Cambridge, Department of Psychiatry.
+    Created by Rudolf Cardinal (rnc1001@cam.ac.uk).
 
     This file is part of CRATE.
 
@@ -100,7 +101,7 @@ from crate_anon.version import CRATE_VERSION
 
 project = "CRATE"
 # noinspection PyShadowingBuiltins
-copyright = "2015-2020, Rudolf Cardinal"
+copyright = "2015, University of Cambridge, Department of Psychiatry"
 author = "Rudolf Cardinal"
 
 # The short X.Y version

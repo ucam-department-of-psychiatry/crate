@@ -5,9 +5,9 @@
 
 set -eux -o pipefail
 
-cd ${GITHUB_WORKSPACE}
-python -m venv ${HOME}/venv
-source ${HOME}/venv/bin/activate
+cd "${GITHUB_WORKSPACE}"
+python -m venv "${HOME}/venv"
+source "${HOME}/venv/bin/activate"
 python -VV
 python -m site
 python -m pip install -U pip
