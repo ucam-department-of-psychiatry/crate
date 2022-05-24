@@ -1,4 +1,5 @@
-..  Copyright © 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
+..  Copyright (C) 2015, University of Cambridge, Department of Psychiatry.
+    Created by Rudolf Cardinal (rnc1001@cam.ac.uk).
     .
     This file is part of CRATE.
     .
@@ -27,10 +28,6 @@ Index of CRATE commands
 :ref:`crate_anon_show_counts <crate_anon_show_counts>`
 
 :ref:`crate_anon_summarize_dd <crate_anon_summarize_dd>`
-
-:ref:`crate_anon_web_create_private_settings <crate_anon_web_create_private_settings>`
-
-:ref:`crate_anon_web_django_manage <crate_anon_web_django_manage>`
 
 :ref:`crate_anonymise <crate_anonymise>`
 

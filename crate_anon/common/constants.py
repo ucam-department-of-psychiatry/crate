@@ -5,7 +5,8 @@ crate_anon/common/constants.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015, University of Cambridge, Department of Psychiatry.
+    Created by Rudolf Cardinal (rnc1001@cam.ac.uk).
 
     This file is part of CRATE.
 
@@ -111,14 +112,15 @@ class EnvVar(object):
     CRATE_GATE_PLUGIN_FILE = "CRATE_GATE_PLUGIN_FILE"
     # ... environment variable whose presence shows that we are generating
     # docs.
-    GENERATING_CRATE_DOCS = "GENERATING_CRATE_DOCS"
     GATE_HOME = "GATE_HOME"
+    GENERATING_CRATE_DOCS = "GENERATING_CRATE_DOCS"
     JAVA_HOME = "JAVA_HOME"
+    KCL_KCONNECT_DIR = "KCL_KCONNECT_DIR"
     KCL_LEWY_BODY_DIAGNOSIS_DIR = "KCL_LEWY_BODY_DIAGNOSIS_DIR"
     KCL_PHARMACOTHERAPY_DIR = "KCL_PHARMACOTHERAPY_DIR"
-    KCL_KCONNECT_DIR = "KCL_KCONNECT_DIR"
     MEDEX_HOME = "MEDEX_HOME"
     PATH = "PATH"
+    RUNNING_TESTS = "RUNNING_TESTS"
     RUN_WITHOUT_CONFIG = "CRATE_RUN_WITHOUT_LOCAL_SETTINGS"
 
 

@@ -1,6 +1,7 @@
 ..  crate_anon/docs/source/anonymisation/api.rst
 
-..  Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
+..  Copyright (C) 2015, University of Cambridge, Department of Psychiatry.
+    Created by Rudolf Cardinal (rnc1001@cam.ac.uk).
     .
     This file is part of CRATE.
     .
@@ -15,7 +16,7 @@
     GNU General Public License for more details.
     .
     You should have received a copy of the GNU General Public License
-    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 .. _Django: https://www.djangoproject.com/
 .. _Django Rest Framework: https://www.django-rest-framework.org
@@ -26,49 +27,14 @@
  Using CRATE's anonymisation API web server
 ============================================
 
-The CRATE anonymisation API uses Django_, with `Django Rest Framework`_. To
-create the secrets required by Django:
+The CRATE anonymisation API uses the CRATE web interface. See :ref:`Configuring
+the CRATE web interface <configuring_the_crate_web_interface>` and :ref:`Using
+the CRATE web interface <using_the_crate_web_interface>`.
 
-.. code-block:: none
+You can access the anonymisation API menu at ``/anon_api/``. You do not need to
+be logged in.
 
-    crate_anon_web_create_private_settings
-
-Next, to set up the SQLite database:
-
-.. code-block:: none
-
-    crate_anon_web_django_manage migrate
-
-Create the superuser:
-
-.. code-block:: none
-
-    crate_anon_web_django_manage createsuperuser
-
-
-Create any private settings required by the Django app such as the Django secret key:
-
-.. _crate_anon_web_create_private_settings:
-
-.. code-block:: none
-
-    crate_anon_web_create_private_settings
-
-
-.. _crate_anon_web_django_manage:
-
-The CRATE anonymisation web front end uses Django_, which comes with a number of built-in
-management comments. These can be run from within the CRATE virtual environment using:
-
-.. code-block:: bash
-
-    crate_anon_web_django_manage
-
-The available commands are:
-
-..  literalinclude:: _crate_anon_web_django_manage_help.txt
-    :language: none
-
+The API endpoint is at ``/anon_api/scrub/``
 
 =================================
  Anonymisation API documentation

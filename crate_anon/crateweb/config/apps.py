@@ -5,7 +5,8 @@ crate_anon/crateweb/config/apps.py
 
 ===============================================================================
 
-    Copyright (C) 2015-2021 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015, University of Cambridge, Department of Psychiatry.
+    Created by Rudolf Cardinal (rnc1001@cam.ac.uk).
 
     This file is part of CRATE.
 
@@ -63,3 +64,12 @@ class CoreAppConfig(AppConfig):
     """
 
     name = "crate_anon.crateweb.core"
+
+
+class ApiConfig(AppConfig):
+    """
+    Django :class:`django.apps.AppConfig` for the anonymiser API.
+    """
+
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "crate_anon.crateweb.anonymise_api"
