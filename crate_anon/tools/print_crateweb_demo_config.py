@@ -503,6 +503,13 @@ CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 LEAFLET_URL_CPFTRD_CLINRES_SHORT = (
     "www.cpft.nhs.uk/research.htm > CPFT Research Database"
 )
+
+ANONYMISE_API = {
+    "HASH_KEY": "@@hash_key@@",
+    "ALLOWLIST_FILENAMES": {},
+    "DENYLIST_FILENAMES": {},
+}
+
 """
 
 
@@ -539,6 +546,7 @@ def main() -> None:
         "dest_db_user": "researcher",
         "django_site_root_absolute_url": "http://mymachine.mydomain",
         "force_script_name": "",
+        "hash_key": "aaaa CHANGE THIS! aaaa",
         "mysql_db": "crate_db",
         "mysql_host": "127.0.0.1",
         "mysql_password": "somepassword",

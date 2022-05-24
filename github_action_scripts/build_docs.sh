@@ -13,7 +13,6 @@ python -m pip install -U pip
 echo installing pip packages
 python -m pip install -e .
 python -m pip install mysqlclient
-crate_anon_web_create_private_settings
 export CRATE_ANON_CONFIG=${HOME}/crate_anon_config.ini
 export CRATE_WEB_LOCAL_SETTINGS=${HOME}/crateweb_local_settings.py
 wget --progress=dot:giga -O "${HOME}/gate-installer.jar" https://github.com/GateNLP/gate-core/releases/download/v8.6.1/gate-developer-8.6.1-installer.jar

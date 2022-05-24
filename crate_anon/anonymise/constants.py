@@ -119,6 +119,7 @@ DATE_BLURRING_DIRECTIVES = (
     "m",  # Month as zero-padded decimal number
     "Y",  # Year with century as decimal number
     "y",  # Year without century as zero-padded decimal number
+    # Among things that are not currently supported: %% (literal %).
 )
 DATE_BLURRING_DIRECTIVES_CSV = ", ".join(
     [f"%{d}" for d in DATE_BLURRING_DIRECTIVES]

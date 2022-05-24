@@ -424,7 +424,8 @@ class NonspecificScrubberTests(ScrubberTestCase):
             "%G",
             "%u",
             "%V",
-            "hello %V world",
+            "hello %V world",  # detect not just at the start/end
+            "%%",  # "%%" (literal %) currently unsupported
         ]
 
         for replacement in bad_formats:

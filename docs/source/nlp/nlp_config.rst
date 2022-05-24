@@ -177,11 +177,11 @@ Config file section: NLP definition
 These are config file sections named ``[nlpdef:XXX]`` where ``XXX`` is the name
 of one of your NLP definitions.
 
-These map from *inputs (from your database)* to *processors* and a
-*progress-tracking database*, and give names to those mappings.
-
 **These are the "top-level" configuration sections, referred to when you launch
 CRATE's NLP tools from the command line. Start here.**
+
+These config sections map *inputs* (from your database) to *processors* and a
+*progress-tracking database*, and give names to those mappings.
 
 
 inputfielddefs

@@ -111,7 +111,6 @@ SKIP_GLOBS = [
     "**/jquery*/*",
     "**/static_collected/*",
     "**/compiled_nlp_classes/*",
-    "private_settings.py",
 ]
 
 PYGMENTS_LANGUAGE_OVERRIDE = {".html": "html+django", ".css": "css+django"}
@@ -167,7 +166,6 @@ def make_autodoc(make: bool, destroy_first: bool) -> None:
     top_idx.add_indexes(
         [
             make_subindex("anonymise"),
-            make_subindex("anonymise_webserver"),
             make_subindex("common"),
             make_subindex("crateweb"),
             make_subindex("linkage"),

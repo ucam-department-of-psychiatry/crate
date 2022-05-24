@@ -464,3 +464,9 @@ CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 LEAFLET_URL_CPFTRD_CLINRES_SHORT = (
     "www.cpft.nhs.uk/research.htm > CPFT Research Database"
 )
+
+ANONYMISE_API = {
+    "HASH_KEY": "aaaa CHANGE THIS! aaaa",
+    "ALLOWLIST_FILENAMES": {},
+    "DENYLIST_FILENAMES": {},
+}

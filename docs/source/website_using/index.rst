@@ -18,6 +18,8 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
+.. _using_the_crate_web_interface:
+
 Using the CRATE web interface
 =============================
 

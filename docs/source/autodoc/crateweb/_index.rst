@@ -29,10 +29,16 @@ crate_anon/crateweb
     :maxdepth: 1
 
     __init__.py.rst
+    anonymise_api/__init__.py.rst
+    anonymise_api/serializers.py.rst
+    anonymise_api/tests.py.rst
+    anonymise_api/urls.py.rst
+    anonymise_api/views.py.rst
     config/__init__.py.rst
     config/apps.py.rst
     config/constants.py.rst
     config/settings.py.rst
+    config/test_settings.py.rst
     config/urls.py.rst
     config/wsgi.py.rst
     consent/__init__.py.rst
@@ -254,6 +260,7 @@ crate_anon/crateweb
     templates/admin/save_only_submit_row.html.rst
     templates/admin/viewchange_admin_app_index.html.rst
     templates/admin/viewchange_admin_index.html.rst
+    templates/anonymise_api/home.html.rst
     templates/base.html.rst
     templates/base_email.html.rst
     templates/base_pdf.html.rst
