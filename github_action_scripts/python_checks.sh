@@ -25,10 +25,10 @@ echo checking packages for vulnerabilities
 # 44716 numpy fixed in 1.22 https://github.com/numpy/numpy/issues/19000
 # 44717 numpy fixed in 1.22 https://github.com/numpy/numpy/issues/18993
 safety check --full-report -i 44715 -i 44716 -i 44717
-crate_anon_web_create_private_settings
 echo checking python formatting
 black --line-length 79 --diff --check .
 echo checking python for style and errors
 flake8 --config=setup.cfg .
 echo running tests
+export CRATE_RUN_WITHOUT_LOCAL_SETTINGS=True
 pytest -v

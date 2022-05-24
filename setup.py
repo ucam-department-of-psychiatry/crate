@@ -80,7 +80,6 @@ INSTALL_REQUIRES = [
     "django-debug-toolbar==3.0a2",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
-    "django-jsoneditor==0.2.2",  # Custom API form fields
     "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa: E501
     # "django-silk==4.0.1",  # Django profiler
     "djangorestframework==3.13.1",  # Anonymisation API support
@@ -239,9 +238,6 @@ setup(
             "crate_make_demo_database=crate_anon.anonymise.make_demo_database:main",  # noqa: E501
             "crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main",  # noqa: E501
             "crate_test_extract_text=crate_anon.anonymise.test_extract_text:main",  # noqa: E501
-            # Anonymisation API
-            "crate_anon_web_create_private_settings=crate_anon.anonymise_webserver.tools.create_private_settings:main",  # noqa: E501
-            "crate_anon_web_django_manage=crate_anon.anonymise_webserver.manage:main",  # noqa: E501
             # NLP
             "crate_nlp=crate_anon.nlp_manager.nlp_manager:main",
             "crate_nlp_build_gate_java_interface=crate_anon.nlp_manager.build_gate_java_interface:main",  # noqa: E501

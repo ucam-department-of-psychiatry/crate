@@ -63,3 +63,12 @@ class CoreAppConfig(AppConfig):
     """
 
     name = "crate_anon.crateweb.core"
+
+
+class ApiConfig(AppConfig):
+    """
+    Django :class:`django.apps.AppConfig` for the anonymiser API.
+    """
+
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "crate_anon.crateweb.anonymise_api"
