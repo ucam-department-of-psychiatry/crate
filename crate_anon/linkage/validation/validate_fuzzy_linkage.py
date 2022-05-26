@@ -27,6 +27,7 @@ crate_anon/linkage/validation/validate_fuzzy_linkage.py
 
 **Highly specific code to develop/validate fuzzy linkage.**
 
+
 Speed of "validate1" test
 -------------------------
 
@@ -190,6 +191,7 @@ Sort order involving NULL
         start_date,  -- (ASC) then by start date: NULL -> older -> newer
         end_date,  -- (ASC) then by end date: older -> newer
         postcode  -- tiebreaker
+
 
 SQL Server error notes
 ----------------------
