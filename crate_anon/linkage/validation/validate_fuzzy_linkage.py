@@ -1918,7 +1918,7 @@ def help_v2_fetch() -> str:
     Help string for fetching data from all sources.
     """
     return "\n".join(
-        f"""        crate_fuzzy_id_match validate2_fetch_{db} ^
+        f"""        validate_fuzzy_linkage.py validate2_fetch_{db} ^
             --output {v2_plaintext(db)} ^
             --url <SQLALCHEMY_URL>"""
         for db in ALL_DATABASES
