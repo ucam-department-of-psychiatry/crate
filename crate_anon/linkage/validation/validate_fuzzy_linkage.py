@@ -265,20 +265,6 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-
-# =============================================================================
-# Constants
-# =============================================================================
-
-DEFAULT_CDL_PLAINTEXT = "validate2_cdl_DANGER_IDENTIFIABLE.csv"
-DEFAULT_RIO_PLAINTEXT = "validate2_rio_DANGER_IDENTIFIABLE.csv"
-DEFAULT_CDL_HASHED = "validate2_cdl_hashed.csv"
-DEFAULT_RIO_HASHED = "validate2_rio_hashed.csv"
-
-CAMBS_POPULATION = 852523
-# ... 2018 estimate; https://cambridgeshireinsight.org.uk/population/
-
-
 # =============================================================================
 # Speed testing
 # =============================================================================
@@ -698,7 +684,7 @@ class PostcodeInfo:
     postcode: str
     start_date: Optional[datetime.date]
     end_date: Optional[datetime.date]
-    index_of_multiple_deprivation: int
+    index_of_multiple_deprivation: Optional[int]
 
     def __post_init__(self) -> None:
         nonetype = type(None)
@@ -817,8 +803,11 @@ class QueryColnames:
     FIRST_NAME = "first_name"
     GENDER = "gender"
     INDEX_OF_MULTIPLE_DEPRIVATION = "index_of_multiple_deprivation"
+    PREV_INDEX_OF_MULTIPLE_DEPRIVATION = "prev_index_of_multiple_deprivation"
+    MIDDLE_NAME = "middle_name"
     NHS_NUMBER = "nhs_number"
     POSTCODE = "postcode"
+    PREV_POSTCODE = "prev_postcode"
     SMI_ICD10_DX_PRESENT = "smi_icd10_dx_present"
     START_DATE = "start_date"
     SURNAME = "surname"
@@ -830,7 +819,7 @@ class QueryColnames:
 
 
 def _get_rio_postcodes(
-    engine: Engine, rio_client_id: str
+    engine: Engine, rio_patient_id: str
 ) -> List[PostcodeInfo]:
     """
     Fetches distinct valid time-stamped postcodes for a given person, from RiO.
@@ -839,8 +828,8 @@ def _get_rio_postcodes(
     Args:
         engine:
             SQLAlchemy engine
-        rio_client_id:
-            RiO primary key (``ClientId``)
+        rio_patient_id:
+            RiO patient ID
 
     Returns:
         list: of postcodes in :class:`PostcodeInfo` format
@@ -870,9 +859,9 @@ def _get_rio_postcodes(
             onspd.dbo.postcode AS ons  -- Office for National Statistics
             ON ons.pcd_nospace = REPLACE(UPPER(a.PostCode), ' ', '')
         WHERE
-            a.ClientID = :client_id
+            a.ClientID = :patient_id
             AND a.PostCode IS NOT NULL
-            AND LEN(a.PostCode) >= 6  -- minimum for valid postcode
+            AND LEN(a.PostCode) >= 5  -- minimum for valid postcode
         ORDER BY
             -- You can use aliases in ORDER BY from SQL Server 2008 onwards.
             end_date_is_null,
@@ -881,7 +870,7 @@ def _get_rio_postcodes(
             postcode
     """
     )
-    rows = engine.execute(sql, client_id=rio_client_id)
+    rows = engine.execute(sql, patient_id=rio_patient_id)
     q = QueryColnames
     postcodes = [
         PostcodeInfo(
@@ -958,12 +947,8 @@ def validate_2_fetch_rio(
     Yields:
         :class:`Person` objects
     """
-    log.critical("validate_2_fetch_rio: needs to be checked")
     sql = text(
         """
-
-        -- We use the original raw RiO database, not the CRATE-processed one.
-
         SELECT
         
             -- From the main patient index:
@@ -971,6 +956,7 @@ def validate_2_fetch_rio(
             CAST(ci.NNN AS BIGINT) AS nhs_number,
             ci.Firstname AS first_name,
             ci.Surname AS surname,
+            CAST(ci.DateOfBirth AS DATE) AS dob,
             CASE ci.Gender
                 WHEN 'F' THEN 'F'
                 WHEN 'M' THEN 'M'
@@ -978,7 +964,6 @@ def validate_2_fetch_rio(
                 ELSE ''
                 -- 'U' is the RiO "unknown" value
             END AS gender,
-            CAST(ci.DateOfBirth AS DATE) AS dob,
             CAST(ci.FirstCareDate AS DATE) AS first_mh_care_date,
 
             -- From the ethnicity table:
@@ -1043,6 +1028,8 @@ def validate_2_fetch_rio(
 
         FROM
             RiO62CAMLive.dbo.ClientIndex AS ci  -- identifiable patient table
+            -- We use the original raw RiO database, not the CRATE-processed 
+            -- one.
         LEFT JOIN
             RiO62CAMLive.dbo.GenEthnicity ge
             ON ge.Code = ci.Ethnicity
@@ -1050,10 +1037,6 @@ def validate_2_fetch_rio(
         WHERE
             -- Restrict to patients with NHS numbers:
             (ci.NNNStatus = 1 OR ci.NNNStatus = 2)
-            AND (
-                TRY_CAST(REPLACE(ci.NNN, ' ', '') AS BIGINT) IS NOT NULL
-                AND LEN(REPLACE(ci.NNN, ' ', '')) = 10
-            )
             -- 2 = NHS number verified; see table NNNStatus
             -- Most people have status 1 (about 119k people), compared to
             -- about 80k for status 2 (on 2020-04-28). Then about 6k have
@@ -1061,7 +1044,12 @@ def validate_2_fetch_rio(
             -- status 3 ("no match found"). Other codes not present.
             -- A very small number (~40) have a null NHS number despite an
             -- OK-looking status flag; we'll skip them.
+            AND (
+                TRY_CAST(REPLACE(ci.NNN, ' ', '') AS BIGINT) IS NOT NULL
+                AND LEN(REPLACE(ci.NNN, ' ', '')) = 10
+            )
 
+        -- Final count: 208538 (on 2022-05-26).
     """  # noqa
     )
     _hash = Hasher(hash_key).hash  # hashing function
@@ -1268,7 +1256,7 @@ def validate_2_fetch_cdl(
             )
             -- Successful double-check: no change with: v.EPJS_ID != 'xNx'.
 
-        -- Final count: 152888.
+        -- Final count: 152888 (on 2022-05-26).
     """  # noqa
     )
     _hash = Hasher(hash_key).hash  # hashing function
@@ -1331,6 +1319,516 @@ def validate_2_fetch_cdl(
 
 
 # -----------------------------------------------------------------------------
+# PCMIS
+# -----------------------------------------------------------------------------
+
+
+def validate_2_fetch_pcmis(
+    cfg: MatchConfig, url: str, hash_key: str, echo: bool = False
+) -> Generator[Person, None, None]:
+    """
+    Generates IDENTIFIED people from CPFT's PCMIS source database.
+
+    Args:
+        cfg:
+            Configuration object.
+        url:
+            SQLAlchemy URL.
+        hash_key:
+            Key for hashing NHS number (original ID) to research ID.
+        echo:
+            Echo SQL?
+
+    Yields:
+        :class:`Person` objects
+
+    Before running:
+
+    .. code-block:: sql
+
+        CREATE INDEX _crateidx_fuzzy_pcmis_pd_pid
+            ON rawPCMIS.dbo.PatientDetails (PatientID);
+        CREATE INDEX _crateidx_fuzzy_pcmis_pd_nhsn
+            ON rawPCMIS.dbo.PatientDetails (NHSNumber);
+
+        CREATE INDEX _crateidx_fuzzy_pcmis_ref_pid
+            ON rawPCMIS.dbo.CPFT_Referrals (PatientID);
+        CREATE INDEX _crateidx_fuzzy_pcmis_ref_case
+            ON rawPCMIS.dbo.CPFT_Referrals (CaseNumber);
+        CREATE INDEX _crateidx_fuzzy_pcmis_ref_dx1
+            ON rawPCMIS.dbo.CPFT_Referrals (PrimaryDiagnosis);
+        CREATE INDEX _crateidx_fuzzy_pcmis_ref_dx2
+            ON rawPCMIS.dbo.CPFT_Referrals (SecondaryDiagnosis);
+
+    """
+    sql = text(
+        """
+        SELECT
+            -- TOP 0  -- for debugging
+
+            -- From the main patient index:
+            p.PatientID as pcmis_patient_id,
+            CAST(p.NHSNumber AS BIGINT) AS nhs_number,
+            p.FirstName AS first_name,
+            p.MiddleName AS middle_name,
+            p.LastName AS surname,
+            CAST(p.DOB AS DATE) AS dob,
+            CASE p.Gender
+                -- VARCHAR; possible values '0', '1', '2', '9'.
+                -- https://www.datadictionary.nhs.uk/attributes/person_gender_code.html
+                WHEN '1' THEN 'M'
+                WHEN '2' THEN 'F'
+                ELSE ''
+                -- '0' = "not known"
+                -- '9' = "not specified"
+            END AS gender,
+            p.Ethnicity AS ethnicity,  -- as a code
+            p.PostCode AS postcode,
+            p.PreviousPostCode AS prev_postcode,
+
+            -- From the ONS postcode table:
+            ons_current.imd AS index_of_multiple_deprivation,
+            ons_previous.imd AS prev_index_of_multiple_deprivation,
+
+            -- From the referrals table:
+            CAST(r.ReferralDate AS DATE) AS first_mh_care_date,
+
+            -- From diagnostic codes:
+            -- Possibilities:
+            -- CaseContactDetails.PrimaryDiagnosis -- ICD-10 with dot 
+            -- IAPTDataReferral.ProvDiag -- empty
+            -- CPFT_Referrals.PrimaryDiagnosis -- ICD-10 with dot
+            -- ReferralDetails.PrimaryDiagnosis -- ICD-10 with dot
+            -- ... and likewise SecondaryDiagnosis
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        rawPCMIS.dbo.CPFT_Referrals dx_any
+                    WHERE
+                        dx_any.PatientId = p.PatientId
+                        AND (
+                            dx_any.PrimaryDiagnosis IS NOT NULL
+                            OR dx_any.SecondaryDiagnosis IS NOT NULL
+                        )
+                ) THEN 1
+                ELSE 0
+            END AS any_icd10_dx_present,
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        rawPCMIS.dbo.CPFT_Referrals dx_f
+                    WHERE
+                        dx_f.PatientId = p.PatientId
+                        AND (
+                            dx_f.PrimaryDiagnosis LIKE 'F%'
+                            OR dx_f.SecondaryDiagnosis LIKE 'F%'
+                        )
+                ) THEN 1
+                ELSE 0
+            END AS chapter_f_icd10_dx_present,
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        rawPCMIS.dbo.CPFT_Referrals dx_smi
+                    WHERE
+                        dx_smi.PatientId = p.PatientId
+                        AND (
+                            -- To be more efficient: the dots are predictable,
+                            -- so include in the query strings rather than 
+                            -- using REPLACE().
+                            dx_smi.PrimaryDiagnosis LIKE 'F20%'  -- schizophrenia
+                            OR dx_smi.PrimaryDiagnosis LIKE 'F21%'  -- schizotypal
+                            OR dx_smi.PrimaryDiagnosis LIKE 'F22%'  -- persistent delusional
+                            OR dx_smi.PrimaryDiagnosis LIKE 'F25%'  -- schizoaffective
+                            OR dx_smi.PrimaryDiagnosis LIKE 'F31%'  -- bipolar
+                            OR dx_smi.PrimaryDiagnosis LIKE 'F32.2%'  -- severe depressive episode, not psychotic
+                            OR dx_smi.PrimaryDiagnosis LIKE 'F32.3%'  -- severe depressive episode, psychotic
+                            OR dx_smi.PrimaryDiagnosis LIKE 'F33.2%'  -- rec. dep, severe, not psychotic
+                            OR dx_smi.PrimaryDiagnosis LIKE 'F33.3%'  -- rec. dep, severe, psychotic
+
+                            OR dx_smi.SecondaryDiagnosis LIKE 'F20%'  -- schizophrenia
+                            OR dx_smi.SecondaryDiagnosis LIKE 'F21%'  -- schizotypal
+                            OR dx_smi.SecondaryDiagnosis LIKE 'F22%'  -- persistent delusional
+                            OR dx_smi.SecondaryDiagnosis LIKE 'F25%'  -- schizoaffective
+                            OR dx_smi.SecondaryDiagnosis LIKE 'F31%'  -- bipolar
+                            OR dx_smi.SecondaryDiagnosis LIKE 'F32.2%'  -- severe depressive episode, not psychotic
+                            OR dx_smi.SecondaryDiagnosis LIKE 'F32.3%'  -- severe depressive episode, psychotic
+                            OR dx_smi.SecondaryDiagnosis LIKE 'F33.2%'  -- rec. dep, severe, not psychotic
+                            OR dx_smi.SecondaryDiagnosis LIKE 'F33.3%'  -- rec. dep, severe, psychotic
+                        )
+                ) THEN 1
+                ELSE 0
+            END AS smi_icd10_dx_present
+
+        FROM
+            rawPCMIS.dbo.PatientDetails AS p  -- identifiable patient table
+        LEFT OUTER JOIN
+            onspd.dbo.postcode AS ons_current
+            ON ons_current.pcd_nospace = REPLACE(UPPER(p.PostCode), ' ', '')
+        LEFT OUTER JOIN
+            onspd.dbo.postcode AS ons_previous
+            ON ons_previous.pcd_nospace = REPLACE(
+                UPPER(p.PreviousPostCode), ' ', ''
+            )
+        LEFT OUTER JOIN
+            -- Finding the first referral.
+            -- When ReferralDetails had 131973 records, so did CPFT_Referrals.
+            -- ReferralDetails.CaseNumber is alphanumeric but unique.
+            -- ReferralDetails.DateOfOnset is NULL much more often than not.
+            -- ReferralDetails.ReferredToService is a service name, not a date.
+            -- ReferralDetails contains no clear date field.
+            -- CPFT_Referrals does.
+            rawPCMIS.dbo.CPFT_Referrals AS r
+            ON r.CaseNumber = (
+                SELECT TOP 1
+                    CaseNumber
+                FROM
+                    rawPCMIS.dbo.CPFT_Referrals AS r2
+                WHERE
+                    r2.PatientID = p.PatientID
+                ORDER BY
+                    r2.ReferralDate
+            )
+        WHERE
+            -- Restrict to patients with NHS numbers:
+            p.NHSNumber IS NOT NULL
+            AND LEN(p.NHSNumber) = 10
+            -- ... non-NULL values only have lengths 0 or 10
+            AND TRY_CAST(p.NHSNumber AS BIGINT) IS NOT NULL
+
+        -- Final count: 93347 (on 2022-05-26).
+        -- Compare: SELECT COUNT(*) FROM rawPCMIS.dbo.PatientDetails = 94344.
+    """  # noqa
+    )
+    _hash = Hasher(hash_key).hash  # hashing function
+    engine = create_engine(url, echo=echo)
+    result = engine.execute(sql)  # type: ResultProxy
+    q = QueryColnames
+    for row in result:
+        pcmis_patient_id = row["pcmis_patient_id"]
+        nhs_number = row[q.NHS_NUMBER]
+        middle_name = row[q.MIDDLE_NAME]
+        dob = row[q.DOB]
+        gender = row[q.GENDER]
+        first_mh_care_date = row[q.FIRST_MH_CARE_DATE]
+
+        postcodes = []  # type: List[PostcodeInfo]
+        if row[q.PREV_POSTCODE] and POSTCODE_REGEX.match(row[q.PREV_POSTCODE]):
+            postcodes.append(
+                PostcodeInfo(
+                    postcode=row[q.PREV_POSTCODE].upper(),
+                    start_date=None,
+                    end_date=None,
+                    index_of_multiple_deprivation=row[
+                        q.PREV_INDEX_OF_MULTIPLE_DEPRIVATION
+                    ],
+                )
+            )
+        if row[q.POSTCODE] and POSTCODE_REGEX.match(row[q.POSTCODE]):
+            postcodes.append(
+                PostcodeInfo(
+                    postcode=row[q.POSTCODE].upper(),
+                    start_date=None,
+                    end_date=None,
+                    index_of_multiple_deprivation=row[
+                        q.INDEX_OF_MULTIPLE_DEPRIVATION
+                    ],
+                )
+            )
+
+        other = CPFTValidationExtras(
+            hashed_nhs_number=_hash(nhs_number),
+            blurred_dob=truncate_date_to_first_of_month(dob),
+            gender=gender,
+            ethnicity=row[q.ETHNICITY],
+            index_of_multiple_deprivation=(
+                # The most recent IMD.
+                postcodes[-1].index_of_multiple_deprivation
+                if postcodes
+                else None
+            ),
+            first_mh_care_date=first_mh_care_date,
+            age_at_first_mh_care=(
+                (first_mh_care_date - dob).in_years()
+                if dob and first_mh_care_date
+                else None
+            ),
+            any_icd10_dx_present=row[q.ANY_ICD10_DX_PRESENT],
+            chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
+            severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
+        )
+        p = Person(
+            cfg=cfg,
+            local_id=pcmis_patient_id,
+            other_info=other.json,
+            first_name=row[q.FIRST_NAME] or "",
+            middle_names=[middle_name] if middle_name else [],
+            surname=row[q.SURNAME] or "",
+            gender=gender,
+            dob=dob,
+            postcodes=[p.temporal_identifier for p in postcodes],
+        )
+        yield p
+
+
+# -----------------------------------------------------------------------------
+# SystmOne
+# -----------------------------------------------------------------------------
+
+
+def _get_systmone_postcodes(
+    engine: Engine, systmone_patient_id: int
+) -> List[PostcodeInfo]:
+    """
+    Fetches distinct valid time-stamped postcodes for a given person, from RiO.
+    The most recent should be last.
+
+    Args:
+        engine:
+            SQLAlchemy engine
+        systmone_patient_id:
+            SystmOne patient ID
+
+    Returns:
+        list: of postcodes in :class:`PostcodeInfo` format
+
+    """
+    sql = text(
+        """
+        SELECT DISTINCT
+            TOP 0  -- for debugging
+
+            -- From the identifiable address table:
+            a.PostCode_NoSpaces AS postcode,
+            CAST(a.DateEvent AS DATE) AS start_date,
+            CAST(a.DateTo AS DATE) AS end_date,
+
+            -- From the ONS postcode-to-IMD lookup:
+            ons.imd AS index_of_multiple_deprivation,
+
+            CASE
+                WHEN CAST(a.DateTo AS DATE) IS NULL THEN 1 ELSE 0
+            END AS end_date_is_null
+        FROM
+            SystmOne.dbo.S1_PatientAddress a
+        LEFT OUTER JOIN
+            onspd.dbo.postcode AS ons  -- Office for National Statistics
+            ON ons.pcd_nospace = a.PostCode_NoSpaces
+        WHERE
+            a.IDPatient = :patient_id
+            AND a.PostCode_NoSpaces IS NOT NULL
+            AND LEN(a.PostCode_NoSpaces) >= 5  -- minimum for valid postcode
+        ORDER BY
+            -- You can use aliases in ORDER BY from SQL Server 2008 onwards.
+            end_date_is_null,
+            start_date,
+            end_date,
+            postcode
+    """
+    )
+    rows = engine.execute(sql, patient_id=systmone_patient_id)
+    q = QueryColnames
+    postcodes = [
+        PostcodeInfo(
+            postcode=row[q.POSTCODE],
+            start_date=row[q.START_DATE],
+            end_date=row[q.END_DATE],
+            index_of_multiple_deprivation=row[q.INDEX_OF_MULTIPLE_DEPRIVATION],
+        )
+        for row in rows
+        if POSTCODE_REGEX.match(row[0])
+    ]
+    return postcodes
+
+
+def validate_2_fetch_systmone(
+    cfg: MatchConfig, url: str, hash_key: str, echo: bool = False
+) -> Generator[Person, None, None]:
+    """
+    Generates IDENTIFIED people from CPFT's SystmOne source database.
+
+    Args:
+        cfg:
+            Configuration object.
+        url:
+            SQLAlchemy URL.
+        hash_key:
+            Key for hashing NHS number (original ID) to research ID.
+        echo:
+            Echo SQL?
+
+    Yields:
+        :class:`Person` objects
+    """
+    sql = text(
+        """
+        SELECT
+            -- TOP 0  -- for debugging
+        
+            -- From the main patient index:
+            p.IDPatient as systmone_patient_id,
+            CAST(p.NHSNumber AS BIGINT) AS nhs_number,
+            p.FirstName AS first_name,
+            p.GivenName2 AS middle_name,
+            p.Surname AS surname,
+            CAST(p.DOB AS DATE) AS dob,
+            CASE p.Gender
+                WHEN 'F' THEN 'F'
+                WHEN 'M' THEN 'M'
+                WHEN 'I' THEN 'X'
+                ELSE ''
+                -- 'U' = "unknown"
+            END AS gender,
+
+            -- From the demographics table:
+            d.Ethnicity AS ethnicity,
+
+            -- From the referrals table:
+            CAST(r.ReferralDateTime AS DATE) AS first_mh_care_date,
+
+            -- From diagnostic codes:
+            -- There are no dots in ICD-10 codes.
+            -- Length is 4 or 5. Codes can be like this: 'F03X-'.
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        SystmOne.dbo.S1_Diagnosis dx_any
+                    WHERE
+                        dx_any.IDPatient = p.IDPatient
+                        AND dx_any.CodeScheme = 'ICD-10'
+                        AND dx_any.DateEnded IS NOT NULL  -- none in practice
+                        -- DateEpisodeEnd is separate; that is sometimes
+                        -- populated.
+                        AND dx_any.CODE IS NOT NULL  -- none in practice
+                ) THEN 1
+                ELSE 0
+            END AS any_icd10_dx_present,
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        SystmOne.dbo.S1_Diagnosis dx_f
+                    WHERE
+                        dx_f.IDPatient = p.IDPatient
+                        AND dx_f.CodeScheme = 'ICD-10'
+                        AND dx_f.DateEnded IS NOT NULL  -- none in practice
+                        AND dx_f.CODE LIKE 'F%'
+                ) THEN 1
+                ELSE 0
+            END AS chapter_f_icd10_dx_present,
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        SystmOne.dbo.S1_Diagnosis dx_smi
+                    WHERE
+                        dx_smi.IDPatient = p.IDPatient
+                        AND dx_smi.CodeScheme = 'ICD-10'
+                        AND dx_smi.DateEnded IS NOT NULL  -- none in practice
+                        AND (
+                            dx_smi.CODE LIKE 'F20%'  -- schizophrenia
+                            OR dx_smi.CODE LIKE 'F21%'  -- schizotypal
+                            OR dx_smi.CODE LIKE 'F22%'  -- persistent delusional
+                            OR dx_smi.CODE LIKE 'F25%'  -- schizoaffective
+                            OR dx_smi.CODE LIKE 'F31%'  -- bipolar
+                            OR dx_smi.CODE LIKE 'F322%'  -- severe depressive episode, not psychotic
+                            OR dx_smi.CODE LIKE 'F323%'  -- severe depressive episode, psychotic
+                            OR dx_smi.CODE LIKE 'F332%'  -- rec. dep, severe, not psychotic
+                            OR dx_smi.CODE LIKE 'F333%'  -- rec. dep, severe, psychotic
+                        )
+                ) THEN 1
+                ELSE 0
+            END AS smi_icd10_dx_present
+
+        FROM
+            SystmOne.dbo.S1_Patient AS p  -- identifiable patient table
+        LEFT OUTER JOIN
+            SystmOne.dbo.S1_Demographics AS d
+            ON d.IDPatient = p.IDPatient  -- 1:1 mapping
+        LEFT OUTER JOIN
+            SystmOne.dbo.S1_ReferralsIn AS r
+            ON r.RowIdentifier = (
+                -- The first mental health referral.
+                SELECT TOP 1
+                    RowIdentifier
+                FROM
+                    SystmOne.dbo.S1_ReferralsIn AS r2
+                WHERE
+                    r2.IDPatient = p.IDPatient
+                    AND r2.IsMentalHealth = 1  -- 0 or 1
+                ORDER BY
+                    r2.ReferralDateTime
+            )
+        WHERE
+            -- Restrict to patients with NHS numbers:
+            p.NHSNumber IS NOT NULL
+            AND LEN(p.NHSNumber) = 10
+            AND TRY_CAST(p.NHSNumber AS BIGINT) IS NOT NULL
+
+        -- Final count: 601755 (2022-05-26).
+        -- Compare: SELECT COUNT(*) FROM SystmOne.dbo.S1_Patient = 607605.
+    """  # noqa
+    )
+    _hash = Hasher(hash_key).hash  # hashing function
+    engine = create_engine(url, echo=echo)
+    result = engine.execute(sql)  # type: ResultProxy
+    q = QueryColnames
+    for row in result:
+        systmone_patient_id = row["systmone_patient_id"]
+        nhs_number = row[q.NHS_NUMBER]
+        middle_name = row[q.MIDDLE_NAME]
+        dob = row[q.DOB]
+        gender = row[q.GENDER]
+        first_mh_care_date = row[q.FIRST_MH_CARE_DATE]
+
+        postcodes = _get_rio_postcodes(engine, systmone_patient_id)
+
+        other = CPFTValidationExtras(
+            hashed_nhs_number=_hash(nhs_number),
+            blurred_dob=truncate_date_to_first_of_month(dob),
+            gender=gender,
+            ethnicity=row[q.ETHNICITY],
+            index_of_multiple_deprivation=(
+                # The most recent IMD.
+                postcodes[-1].index_of_multiple_deprivation
+                if postcodes
+                else None
+            ),
+            first_mh_care_date=first_mh_care_date,
+            age_at_first_mh_care=(
+                (first_mh_care_date - dob).in_years()
+                if dob and first_mh_care_date
+                else None
+            ),
+            any_icd10_dx_present=row[q.ANY_ICD10_DX_PRESENT],
+            chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
+            severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
+        )
+        p = Person(
+            cfg=cfg,
+            local_id=systmone_patient_id,
+            other_info=other.json,
+            first_name=row[q.FIRST_NAME] or "",
+            middle_names=[middle_name] if middle_name else [],
+            surname=row[q.SURNAME] or "",
+            gender=gender,
+            dob=dob,
+            postcodes=[p.temporal_identifier for p in postcodes],
+        )
+        yield p
+
+
+# -----------------------------------------------------------------------------
 # Common functions
 # -----------------------------------------------------------------------------
 
@@ -1368,6 +1866,100 @@ def save_people_from_db(
 # =============================================================================
 # Command-line entry point
 # =============================================================================
+
+# -----------------------------------------------------------------------------
+# Constants and helper functions for help text
+# -----------------------------------------------------------------------------
+
+CAMBS_POPULATION = 852523
+# ... 2018 estimate; https://cambridgeshireinsight.org.uk/population/
+
+CDL = "cdl"
+RIO = "rio"
+PCMIS = "pcmis"
+SYSTMONE = "systmone"
+ALL_DATABASES = (CDL, RIO, PCMIS, SYSTMONE)
+HASHKEY_ENVVAR = "CRATE_FUZZY_HASH_KEY"
+
+
+def v2_plaintext(database: str) -> str:
+    """
+    A default filename.
+    """
+    return f"fuzzy_data_{database}_DANGER_IDENTIFIABLE.csv"
+
+
+def v2_hashed(database: str) -> str:
+    """
+    A default filename.
+    """
+    return f"fuzzy_data_{database}_hashed.csv"
+
+
+def v2_outplain(probands: str, sample: str) -> str:
+    """
+    A default filename.
+    """
+    return f"fuzzy_compare_{probands}_to_{sample}_plaintext.csv"
+
+
+def v2_outhashed(probands: str, sample: str) -> str:
+    """
+    A default filename.
+    """
+    return f"fuzzy_compare_{probands}_to_{sample}_hashed.csv"
+
+
+def help_v2_fetch() -> str:
+    """
+    Help string for fetching data from all sources.
+    """
+    return "\n".join(
+        f"""        crate_fuzzy_id_match validate2_fetch_{db} ^
+            --output {v2_plaintext(db)} ^
+            --url <SQLALCHEMY_URL>"""
+        for db in ALL_DATABASES
+    )
+
+
+def help_v2_hash() -> str:
+    """
+    Help string for hashing data from all sources.
+    """
+    return "\n".join(
+        f'''        crate_fuzzy_id_match hash ^
+            --input {v2_plaintext(db)} ^
+            --output {v2_hashed(db)} ^
+            --include_other_info ^
+            --key "%{HASHKEY_ENVVAR}%"'''
+        for db in ALL_DATABASES
+    )
+
+
+def help_v2_compare(plaintext: bool) -> str:
+    """
+    Help string for comparing data from all sources.
+    """
+    if plaintext:
+        command = "compare_plaintext"
+        source_fn = v2_plaintext
+        out_fn = v2_outplain
+    else:
+        command = "compare_hashed_to_hashed"
+        source_fn = v2_hashed
+        out_fn = v2_outhashed
+    return "\n".join(
+        f"""        crate_fuzzy_id_match {command} ^
+            --population_size {CAMBS_POPULATION} ^
+            --probands {source_fn(db1)} ^
+            --sample {source_fn(db2)} ^
+            --output {out_fn(db1, db2)} ^
+            --extra_validation_output"""
+        for db1 in ALL_DATABASES
+        for db2 in ALL_DATABASES
+        if db1 != db2
+    )
+
 
 # -----------------------------------------------------------------------------
 # Long help strings
@@ -1444,24 +2036,25 @@ HELP_VALIDATE_1 = f"""
 """
 
 HELP_VALIDATE_2_CDL = f"""
-    Validation #2. Sequence:
+    Validation #2. Sequence (using Windows command-line syntax):
+
+    0. Setup
+
+        set {HASHKEY_ENVVAR}=<SOME_SECRET_KEY>
 
     1. Fetch
 
-    - crate_fuzzy_id_match validate2_fetch_cdl --output {DEFAULT_CDL_PLAINTEXT} --url <SQLALCHEMY_URL_CDL>
-    - crate_fuzzy_id_match validate2_fetch_rio --output {DEFAULT_RIO_PLAINTEXT} --url <SQLALCHEMY_URL_RIO>
+{help_v2_fetch()}
 
     2. Hash
 
-    - crate_fuzzy_id_match hash --input {DEFAULT_CDL_PLAINTEXT} --output {DEFAULT_CDL_HASHED} --include_original_id --allow_default_hash_key
-    - crate_fuzzy_id_match hash --input {DEFAULT_RIO_PLAINTEXT} --output {DEFAULT_RIO_HASHED} --include_original_id --allow_default_hash_key
+{help_v2_hash()}
 
-    3. Compare
+    3. Compare.
 
-    - crate_fuzzy_id_match compare_plaintext --population_size {CAMBS_POPULATION} --probands {DEFAULT_CDL_PLAINTEXT} --sample {DEFAULT_RIO_PLAINTEXT} --output cdl_to_rio_plaintext.csv --extra_validation_output
-    - crate_fuzzy_id_match compare_hashed_to_hashed --population_size {CAMBS_POPULATION} --probands {DEFAULT_CDL_HASHED} --sample {DEFAULT_RIO_HASHED} --output cdl_to_rio_hashed.csv --extra_validation_output
-    - crate_fuzzy_id_match compare_plaintext --population_size {CAMBS_POPULATION} --probands {DEFAULT_RIO_PLAINTEXT} --sample {DEFAULT_CDL_PLAINTEXT} --output rio_to_cdl_plaintext.csv --extra_validation_output
-    - crate_fuzzy_id_match compare_hashed_to_hashed --population_size {CAMBS_POPULATION} --probands {DEFAULT_RIO_HASHED} --sample {DEFAULT_CDL_HASHED} --output rio_to_cdl_hashed.csv --extra_validation_output
+{help_v2_compare(plaintext=True)}
+
+{help_v2_compare(plaintext=False)}
 """  # noqa
 
 
@@ -1568,51 +2161,60 @@ def main() -> int:
     # validate2 and ancillary commands
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    def _add_validate2_elements(parser_: argparse.ArgumentParser) -> None:
+        """
+        Adds common options.
+        """
+        parser_.add_argument(
+            "--url",
+            type=str,
+            required=True,
+            help="SQLAlchemy URL for source (IDENTIFIABLE) database",
+        )
+        parser_.add_argument("--echo", action="store_true", help="Echo SQL?")
+        parser_.add_argument(
+            "--output",
+            type=str,
+            required=True,
+            help="CSV filename for output (plaintext, IDENTIFIABLE) data. "
+            + Person.PLAINTEXT_CSV_FORMAT_HELP,
+        )
+
+    # CDL
     validate2_cdl_parser = subparsers.add_parser(
         "validate2_fetch_cdl",
         help="Validation 2A: fetch people from CPFT CDL database",
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
         description=HELP_VALIDATE_2_CDL,
     )
-    validate2_cdl_parser.add_argument(
-        "--url",
-        type=str,
-        required=True,
-        help="SQLAlchemy URL for CPFT CDL source (IDENTIFIABLE) database",
-    )
-    validate2_cdl_parser.add_argument(
-        "--echo", action="store_true", help="Echo SQL?"
-    )
-    validate2_cdl_parser.add_argument(
-        "--output",
-        type=str,
-        required=True,
-        help="CSV filename for output (plaintext, IDENTIFIABLE) data. "
-        + Person.PLAINTEXT_CSV_FORMAT_HELP,
-    )
+    _add_validate2_elements(validate2_cdl_parser)
 
+    # RiO
     validate2_rio_parser = subparsers.add_parser(
         "validate2_fetch_rio",
         help="Validation 2B: fetch people from CPFT RiO database",
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
         description="See validate2_fetch_cdl command.",
     )
-    validate2_rio_parser.add_argument(
-        "--url",
-        type=str,
-        required=True,
-        help="SQLAlchemy URL for CPFT RiO source (IDENTIFIABLE) database",
+    _add_validate2_elements(validate2_rio_parser)
+
+    # PCMIS
+    validate2_pcmis_parser = subparsers.add_parser(
+        "validate2_fetch_pcmis",
+        help="Validation 2C: fetch people from CPFT PCMIS database",
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        description="See validate2_fetch_cdl command.",
     )
-    validate2_rio_parser.add_argument(
-        "--echo", action="store_true", help="Echo SQL?"
+    _add_validate2_elements(validate2_pcmis_parser)
+
+    # SystmOne
+    validate2_systmone_parser = subparsers.add_parser(
+        "validate2_fetch_systmone",
+        help="Validation 2B: fetch people from CPFT SystmOne database",
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        description="See validate2_fetch_cdl command.",
     )
-    validate2_rio_parser.add_argument(
-        "--output",
-        type=str,
-        required=True,
-        help="CSV filename for output (plaintext, IDENTIFIABLE) data. "
-        + Person.PLAINTEXT_CSV_FORMAT_HELP,
-    )
+    _add_validate2_elements(validate2_systmone_parser)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Parse arguments and set up
@@ -1662,8 +2264,23 @@ def main() -> int:
             output_csv=args.output,
         )
 
-    # todo:: PCMIS
-    # todo:: SystmOne
+    elif args.command == "validate2_fetch_pcmis":
+        warn_or_fail_if_default_key(args)
+        save_people_from_db(
+            people=validate_2_fetch_pcmis(
+                cfg=cfg, url=args.url, hash_key=args.key, echo=args.echo
+            ),
+            output_csv=args.output,
+        )
+
+    elif args.command == "validate2_fetch_systmone":
+        warn_or_fail_if_default_key(args)
+        save_people_from_db(
+            people=validate_2_fetch_systmone(
+                cfg=cfg, url=args.url, hash_key=args.key, echo=args.echo
+            ),
+            output_csv=args.output,
+        )
 
     else:
         # Shouldn't get here.
