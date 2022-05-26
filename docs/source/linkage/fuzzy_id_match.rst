@@ -1,4 +1,4 @@
-..  crate_anon/docs/source/linkage/index.rst
+..  crate_anon/docs/source/linkage/fuzzy_id_match.rst
 
 ..  Copyright (C) 2015, University of Cambridge, Department of Psychiatry.
     Created by Rudolf Cardinal (rnc1001@cam.ac.uk).
@@ -19,12 +19,22 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 
-Linkage tools
-=============
+.. _crate_fuzzy_id_match:
 
-..  toctree::
-    :maxdepth: 2
+crate_fuzzy_id_match
+~~~~~~~~~~~~~~~~~~~~
 
-    overview_linkage.rst
-    crate_bulk_hash.rst
-    fuzzy_id_match.rst
+A tool to match people from two databases that don't share a person-unique
+identifier, using information from names, dates of birth, sex/gender, and
+address information. This is a probability-based ("fuzzy") matching technique.
+It can operate using either identifiable information or in de-identified
+fashion.
+
+**In development.**
+
+.. todo:: fuzzy_id_match: expand on method
+
+.. todo:: fuzzy_id_match: cite paper when published
+
+.. literalinclude:: _crate_fuzzy_id_match_help.txt
+    :language: none

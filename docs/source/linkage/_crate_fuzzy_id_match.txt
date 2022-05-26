@@ -149,7 +149,7 @@ commands:
 
   {print_demo_sample,hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,show_metaphone,show_forename_freq,show_forename_metaphone_freq,show_surname_freq,show_surname_metaphone_freq,show_dob_freq}
                         Specify one command.
-    print_demo_sample   Print a demo sample .CSV file (#1).
+    print_demo_sample   Print a demo sample .CSV file.
     hash                STEP 1 OF DE-IDENTIFIED LINKAGE. Hash an identifiable
                         CSV file into an encrypted one.
     compare_plaintext   IDENTIFIABLE LINKAGE COMMAND. Compare a list of
@@ -186,32 +186,32 @@ Help for command 'hash'
 ===============================================================================
 usage: crate_fuzzy_id_match hash [-h] --input INPUT --output OUTPUT
                                  [--without_frequencies]
-                                 [--include_original_id]
+                                 [--include_other_info]
 
     Takes an identifiable list of people (with name, DOB, and postcode
     information) and creates a hashed, de-identified equivalent.
 
-    The research ID (presumed not to be a direct identifier) is preserved.
-    Optionally, the unique original ID (e.g. NHS number, presumed to be a
-    direct identifier) is preserved, but you have to ask for that explicitly.
-        
+    The local ID (presumed not to be a direct identifier) is preserved exactly.
+
+    Optionally, the "other" information (you can choose, e.g. attaching a
+    direct identifier) is preserved, but you have to ask for that explicitly;
+    that is normally for testing.
 
 optional arguments:
   -h, --help            show this help message and exit
   --input INPUT         CSV filename for input (plaintext) data. Header row
-                        present. Columns: ['original_id', 'research_id',
-                        'first_name', 'middle_names', 'surname', 'dob',
-                        'gender', 'postcodes']. The fields ['postcodes'] are
-                        in TemporalIdentifier format. TemporalIdentifier
+                        present. Columns: ['local_id', 'first_name',
+                        'middle_names', 'surname', 'dob', 'gender',
+                        'postcodes', 'other_info']. The fields ['postcodes']
+                        are in TemporalIdentifier format. TemporalIdentifier
                         format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
                         in YYYY-MM-DD format or one of ['none', 'null', '?']
                         (case-insensitive). Semicolon-separated values are
                         allowed within ['middle_names', 'postcodes'].
                         (default: None)
   --output OUTPUT       Output CSV file for hashed version. Header row
-                        present. Columns: ['original_id', 'research_id',
-                        'hashed_first_name', 'first_name_frequency',
-                        'hashed_first_name_metaphone',
+                        present. Columns: ['local_id', 'hashed_first_name',
+                        'first_name_frequency', 'hashed_first_name_metaphone',
                         'first_name_metaphone_frequency',
                         'hashed_middle_names', 'middle_name_frequencies',
                         'hashed_middle_name_metaphones',
@@ -221,13 +221,14 @@ optional arguments:
                         'hashed_gender', 'gender_frequency',
                         'hashed_postcode_units', 'postcode_unit_frequencies',
                         'hashed_postcode_sectors',
-                        'postcode_sector_frequencies']. The fields
-                        ['hashed_postcode_sectors', 'hashed_postcode_units']
-                        are in TemporalIdentifier format. TemporalIdentifier
-                        format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
-                        in YYYY-MM-DD format or one of ['none', 'null', '?']
-                        (case-insensitive). Semicolon-separated values are
-                        allowed within ['hashed_middle_name_metaphones',
+                        'postcode_sector_frequencies', 'other_info']. The
+                        fields ['hashed_postcode_sectors',
+                        'hashed_postcode_units'] are in TemporalIdentifier
+                        format. TemporalIdentifier format:
+                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
+                        MM-DD format or one of ['none', 'null', '?'] (case-
+                        insensitive). Semicolon-separated values are allowed
+                        within ['hashed_middle_name_metaphones',
                         'hashed_middle_names', 'hashed_postcode_sectors',
                         'hashed_postcode_units', 'middle_name_frequencies',
                         'middle_name_metaphone_frequencies',
@@ -237,8 +238,7 @@ optional arguments:
                         Do not include frequency information. This makes the
                         result suitable for use as a sample file, but not a
                         proband file. (default: False)
-  --include_original_id
-                        Include the (potentially identifying) 'original_id'
+  --include_other_info  Include the (potentially identifying) 'other_info'
                         data? Usually False; may be set to True for
                         validation. (default: False)
 
@@ -259,72 +259,62 @@ usage: crate_fuzzy_id_match compare_plaintext [-h] --probands PROBANDS
 
     - People MUST match on DOB and surname (or surname metaphone), or hashed
       equivalents, to be considered a plausible match.
+
     - Only plausible matches proceed to the Bayesian comparison.
 
-    Output file format:
+    The output file is a CSV (comma-separated value) file with a header and
+    these columns:
 
-    - CSV file with header.
-    - Columns: ['proband_original_id', 'proband_research_id', 'matched', 'log_odds_match', 'p_match', 'sample_match_original_id', 'sample_match_research_id', 'second_best_log_odds']
+    - proband_local_id
+      Local ID (identifiable or de-identified as the user chooses) of the
+      proband. Taken from the input.
 
-      - proband_original_id
-        Original (identifiable?) ID of the proband. Taken from the input.
-        Optional -- may be blank for de-identified comparisons.
+    - matched
+      Boolean. Was a matching person (a "winner") found in the sample, who is
+      to be considered a match to the proband? To give a match requires (a)
+      that the log odds for the winner reaches a threshold, and (b) that the
+      log odds for the winner exceeds the log odds for the runner-up by a
+      certain amount (because a mismatch may be worse than a failed match).
 
-      - proband_research_id
-        Research ID (de-identified?) of the proband. Taken from the input.
+    - log_odds_match
+      Log (ln) odds that the winner in the sample is a match to the proband.
 
-      - matched
-        Boolean. Was a matching person (a "winner") found in the sample, who
-        is to be considered a match to the proband? To give a match requires
-        (a) that the log odds for the winner reaches a threshold, and (b) that
-        the log odds for the winner exceeds the log odds for the runner-up by
-        a certain amount (because a mismatch may be worse than a failed match).
+    - p_match
+      Probability that the winner in the sample is a match.
 
-      - log_odds_match
-        Log (ln) odds that the winner in the sample is a match to the proband.
+    - sample_match_local_id
+      Original local ID of the "winner" in the sample (the candidate who is the
+      closest match to the proband).
 
-      - p_match
-        Probability that the winner in the sample is a match.
+    - second_best_log_odds
+      Log odds of the runner up (the candidate from the sample who is the
+      second-closest match) being the same person as the proband.
 
-      - sample_match_original_id
-        Original ID of the "winner" in the sample (the closest match to the
-        proband). Optional -- may be blank for de-identified comparisons.
+    If '--extra_validation_output' is used, the following columns are
+    added:
 
-      - sample_match_research_id
-        Research ID of the winner in the sample.
+    - best_candidate_local_id
+      Local ID of the closest-matching person (candidate) in the sample, EVEN
+      IF THEY DID NOT WIN.
 
-      - second_best_log_odds
-        Log odds of the runner up (the second-closest match) being the same
-        person as the proband.
-
-    - If '--extra_validation_output' is used, the following columns are added:
-
-      - best_person_original_id
-        Original ID of the closest-matching person in the sample, EVEN IF THEY
-        DID NOT WIN.
-
-      - best_person_research_id
-        Research ID of the closest-matching person in the sample, EVEN IF THEY
-        DID NOT WIN.
-
-    - The results file is NOT necessarily sorted as the input proband file was
-      (not sorting improves parallel processing efficiency).
+    The results file is NOT necessarily sorted as the input proband file was
+    (not sorting improves parallel processing efficiency).
 
 optional arguments:
   -h, --help            show this help message and exit
   --probands PROBANDS   CSV filename for probands data. Header row present.
-                        Columns: ['original_id', 'research_id', 'first_name',
-                        'middle_names', 'surname', 'dob', 'gender',
-                        'postcodes']. The fields ['postcodes'] are in
+                        Columns: ['local_id', 'first_name', 'middle_names',
+                        'surname', 'dob', 'gender', 'postcodes',
+                        'other_info']. The fields ['postcodes'] are in
                         TemporalIdentifier format. TemporalIdentifier format:
                         IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
                         MM-DD format or one of ['none', 'null', '?'] (case-
                         insensitive). Semicolon-separated values are allowed
                         within ['middle_names', 'postcodes']. (default: None)
   --sample SAMPLE       CSV filename for sample data. Header row present.
-                        Columns: ['original_id', 'research_id', 'first_name',
-                        'middle_names', 'surname', 'dob', 'gender',
-                        'postcodes']. The fields ['postcodes'] are in
+                        Columns: ['local_id', 'first_name', 'middle_names',
+                        'surname', 'dob', 'gender', 'postcodes',
+                        'other_info']. The fields ['postcodes'] are in
                         TemporalIdentifier format. TemporalIdentifier format:
                         IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
                         MM-DD format or one of ['none', 'null', '?'] (case-
@@ -367,63 +357,52 @@ usage: crate_fuzzy_id_match compare_hashed_to_hashed [-h] --probands PROBANDS
 
     - People MUST match on DOB and surname (or surname metaphone), or hashed
       equivalents, to be considered a plausible match.
+
     - Only plausible matches proceed to the Bayesian comparison.
 
-    Output file format:
+    The output file is a CSV (comma-separated value) file with a header and
+    these columns:
 
-    - CSV file with header.
-    - Columns: ['proband_original_id', 'proband_research_id', 'matched', 'log_odds_match', 'p_match', 'sample_match_original_id', 'sample_match_research_id', 'second_best_log_odds']
+    - proband_local_id
+      Local ID (identifiable or de-identified as the user chooses) of the
+      proband. Taken from the input.
 
-      - proband_original_id
-        Original (identifiable?) ID of the proband. Taken from the input.
-        Optional -- may be blank for de-identified comparisons.
+    - matched
+      Boolean. Was a matching person (a "winner") found in the sample, who is
+      to be considered a match to the proband? To give a match requires (a)
+      that the log odds for the winner reaches a threshold, and (b) that the
+      log odds for the winner exceeds the log odds for the runner-up by a
+      certain amount (because a mismatch may be worse than a failed match).
 
-      - proband_research_id
-        Research ID (de-identified?) of the proband. Taken from the input.
+    - log_odds_match
+      Log (ln) odds that the winner in the sample is a match to the proband.
 
-      - matched
-        Boolean. Was a matching person (a "winner") found in the sample, who
-        is to be considered a match to the proband? To give a match requires
-        (a) that the log odds for the winner reaches a threshold, and (b) that
-        the log odds for the winner exceeds the log odds for the runner-up by
-        a certain amount (because a mismatch may be worse than a failed match).
+    - p_match
+      Probability that the winner in the sample is a match.
 
-      - log_odds_match
-        Log (ln) odds that the winner in the sample is a match to the proband.
+    - sample_match_local_id
+      Original local ID of the "winner" in the sample (the candidate who is the
+      closest match to the proband).
 
-      - p_match
-        Probability that the winner in the sample is a match.
+    - second_best_log_odds
+      Log odds of the runner up (the candidate from the sample who is the
+      second-closest match) being the same person as the proband.
 
-      - sample_match_original_id
-        Original ID of the "winner" in the sample (the closest match to the
-        proband). Optional -- may be blank for de-identified comparisons.
+    If '--extra_validation_output' is used, the following columns are
+    added:
 
-      - sample_match_research_id
-        Research ID of the winner in the sample.
+    - best_candidate_local_id
+      Local ID of the closest-matching person (candidate) in the sample, EVEN
+      IF THEY DID NOT WIN.
 
-      - second_best_log_odds
-        Log odds of the runner up (the second-closest match) being the same
-        person as the proband.
-
-    - If '--extra_validation_output' is used, the following columns are added:
-
-      - best_person_original_id
-        Original ID of the closest-matching person in the sample, EVEN IF THEY
-        DID NOT WIN.
-
-      - best_person_research_id
-        Research ID of the closest-matching person in the sample, EVEN IF THEY
-        DID NOT WIN.
-
-    - The results file is NOT necessarily sorted as the input proband file was
-      (not sorting improves parallel processing efficiency).
+    The results file is NOT necessarily sorted as the input proband file was
+    (not sorting improves parallel processing efficiency).
 
 optional arguments:
   -h, --help            show this help message and exit
   --probands PROBANDS   CSV filename for probands data. Header row present.
-                        Columns: ['original_id', 'research_id',
-                        'hashed_first_name', 'first_name_frequency',
-                        'hashed_first_name_metaphone',
+                        Columns: ['local_id', 'hashed_first_name',
+                        'first_name_frequency', 'hashed_first_name_metaphone',
                         'first_name_metaphone_frequency',
                         'hashed_middle_names', 'middle_name_frequencies',
                         'hashed_middle_name_metaphones',
@@ -433,22 +412,22 @@ optional arguments:
                         'hashed_gender', 'gender_frequency',
                         'hashed_postcode_units', 'postcode_unit_frequencies',
                         'hashed_postcode_sectors',
-                        'postcode_sector_frequencies']. The fields
-                        ['hashed_postcode_sectors', 'hashed_postcode_units']
-                        are in TemporalIdentifier format. TemporalIdentifier
-                        format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
-                        in YYYY-MM-DD format or one of ['none', 'null', '?']
-                        (case-insensitive). Semicolon-separated values are
-                        allowed within ['hashed_middle_name_metaphones',
+                        'postcode_sector_frequencies', 'other_info']. The
+                        fields ['hashed_postcode_sectors',
+                        'hashed_postcode_units'] are in TemporalIdentifier
+                        format. TemporalIdentifier format:
+                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
+                        MM-DD format or one of ['none', 'null', '?'] (case-
+                        insensitive). Semicolon-separated values are allowed
+                        within ['hashed_middle_name_metaphones',
                         'hashed_middle_names', 'hashed_postcode_sectors',
                         'hashed_postcode_units', 'middle_name_frequencies',
                         'middle_name_metaphone_frequencies',
                         'postcode_sector_frequencies',
                         'postcode_unit_frequencies']. (default: None)
   --sample SAMPLE       CSV filename for sample data. Header row present.
-                        Columns: ['original_id', 'research_id',
-                        'hashed_first_name', 'first_name_frequency',
-                        'hashed_first_name_metaphone',
+                        Columns: ['local_id', 'hashed_first_name',
+                        'first_name_frequency', 'hashed_first_name_metaphone',
                         'first_name_metaphone_frequency',
                         'hashed_middle_names', 'middle_name_frequencies',
                         'hashed_middle_name_metaphones',
@@ -458,13 +437,14 @@ optional arguments:
                         'hashed_gender', 'gender_frequency',
                         'hashed_postcode_units', 'postcode_unit_frequencies',
                         'hashed_postcode_sectors',
-                        'postcode_sector_frequencies']. The fields
-                        ['hashed_postcode_sectors', 'hashed_postcode_units']
-                        are in TemporalIdentifier format. TemporalIdentifier
-                        format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
-                        in YYYY-MM-DD format or one of ['none', 'null', '?']
-                        (case-insensitive). Semicolon-separated values are
-                        allowed within ['hashed_middle_name_metaphones',
+                        'postcode_sector_frequencies', 'other_info']. The
+                        fields ['hashed_postcode_sectors',
+                        'hashed_postcode_units'] are in TemporalIdentifier
+                        format. TemporalIdentifier format:
+                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
+                        MM-DD format or one of ['none', 'null', '?'] (case-
+                        insensitive). Semicolon-separated values are allowed
+                        within ['hashed_middle_name_metaphones',
                         'hashed_middle_names', 'hashed_postcode_sectors',
                         'hashed_postcode_units', 'middle_name_frequencies',
                         'middle_name_metaphone_frequencies',
@@ -508,63 +488,52 @@ usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] --probands
 
     - People MUST match on DOB and surname (or surname metaphone), or hashed
       equivalents, to be considered a plausible match.
+
     - Only plausible matches proceed to the Bayesian comparison.
 
-    Output file format:
+    The output file is a CSV (comma-separated value) file with a header and
+    these columns:
 
-    - CSV file with header.
-    - Columns: ['proband_original_id', 'proband_research_id', 'matched', 'log_odds_match', 'p_match', 'sample_match_original_id', 'sample_match_research_id', 'second_best_log_odds']
+    - proband_local_id
+      Local ID (identifiable or de-identified as the user chooses) of the
+      proband. Taken from the input.
 
-      - proband_original_id
-        Original (identifiable?) ID of the proband. Taken from the input.
-        Optional -- may be blank for de-identified comparisons.
+    - matched
+      Boolean. Was a matching person (a "winner") found in the sample, who is
+      to be considered a match to the proband? To give a match requires (a)
+      that the log odds for the winner reaches a threshold, and (b) that the
+      log odds for the winner exceeds the log odds for the runner-up by a
+      certain amount (because a mismatch may be worse than a failed match).
 
-      - proband_research_id
-        Research ID (de-identified?) of the proband. Taken from the input.
+    - log_odds_match
+      Log (ln) odds that the winner in the sample is a match to the proband.
 
-      - matched
-        Boolean. Was a matching person (a "winner") found in the sample, who
-        is to be considered a match to the proband? To give a match requires
-        (a) that the log odds for the winner reaches a threshold, and (b) that
-        the log odds for the winner exceeds the log odds for the runner-up by
-        a certain amount (because a mismatch may be worse than a failed match).
+    - p_match
+      Probability that the winner in the sample is a match.
 
-      - log_odds_match
-        Log (ln) odds that the winner in the sample is a match to the proband.
+    - sample_match_local_id
+      Original local ID of the "winner" in the sample (the candidate who is the
+      closest match to the proband).
 
-      - p_match
-        Probability that the winner in the sample is a match.
+    - second_best_log_odds
+      Log odds of the runner up (the candidate from the sample who is the
+      second-closest match) being the same person as the proband.
 
-      - sample_match_original_id
-        Original ID of the "winner" in the sample (the closest match to the
-        proband). Optional -- may be blank for de-identified comparisons.
+    If '--extra_validation_output' is used, the following columns are
+    added:
 
-      - sample_match_research_id
-        Research ID of the winner in the sample.
+    - best_candidate_local_id
+      Local ID of the closest-matching person (candidate) in the sample, EVEN
+      IF THEY DID NOT WIN.
 
-      - second_best_log_odds
-        Log odds of the runner up (the second-closest match) being the same
-        person as the proband.
-
-    - If '--extra_validation_output' is used, the following columns are added:
-
-      - best_person_original_id
-        Original ID of the closest-matching person in the sample, EVEN IF THEY
-        DID NOT WIN.
-
-      - best_person_research_id
-        Research ID of the closest-matching person in the sample, EVEN IF THEY
-        DID NOT WIN.
-
-    - The results file is NOT necessarily sorted as the input proband file was
-      (not sorting improves parallel processing efficiency).
+    The results file is NOT necessarily sorted as the input proband file was
+    (not sorting improves parallel processing efficiency).
 
 optional arguments:
   -h, --help            show this help message and exit
   --probands PROBANDS   CSV filename for probands data. Header row present.
-                        Columns: ['original_id', 'research_id',
-                        'hashed_first_name', 'first_name_frequency',
-                        'hashed_first_name_metaphone',
+                        Columns: ['local_id', 'hashed_first_name',
+                        'first_name_frequency', 'hashed_first_name_metaphone',
                         'first_name_metaphone_frequency',
                         'hashed_middle_names', 'middle_name_frequencies',
                         'hashed_middle_name_metaphones',
@@ -574,22 +543,23 @@ optional arguments:
                         'hashed_gender', 'gender_frequency',
                         'hashed_postcode_units', 'postcode_unit_frequencies',
                         'hashed_postcode_sectors',
-                        'postcode_sector_frequencies']. The fields
-                        ['hashed_postcode_sectors', 'hashed_postcode_units']
-                        are in TemporalIdentifier format. TemporalIdentifier
-                        format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
-                        in YYYY-MM-DD format or one of ['none', 'null', '?']
-                        (case-insensitive). Semicolon-separated values are
-                        allowed within ['hashed_middle_name_metaphones',
+                        'postcode_sector_frequencies', 'other_info']. The
+                        fields ['hashed_postcode_sectors',
+                        'hashed_postcode_units'] are in TemporalIdentifier
+                        format. TemporalIdentifier format:
+                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
+                        MM-DD format or one of ['none', 'null', '?'] (case-
+                        insensitive). Semicolon-separated values are allowed
+                        within ['hashed_middle_name_metaphones',
                         'hashed_middle_names', 'hashed_postcode_sectors',
                         'hashed_postcode_units', 'middle_name_frequencies',
                         'middle_name_metaphone_frequencies',
                         'postcode_sector_frequencies',
                         'postcode_unit_frequencies']. (default: None)
   --sample SAMPLE       CSV filename for sample data. Header row present.
-                        Columns: ['original_id', 'research_id', 'first_name',
-                        'middle_names', 'surname', 'dob', 'gender',
-                        'postcodes']. The fields ['postcodes'] are in
+                        Columns: ['local_id', 'first_name', 'middle_names',
+                        'surname', 'dob', 'gender', 'postcodes',
+                        'other_info']. The fields ['postcodes'] are in
                         TemporalIdentifier format. TemporalIdentifier format:
                         IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
                         MM-DD format or one of ['none', 'null', '?'] (case-

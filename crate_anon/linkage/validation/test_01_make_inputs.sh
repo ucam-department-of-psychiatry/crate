@@ -19,16 +19,16 @@ done
 
 echo - Creating "${WORKDIR}/crate_fuzzy_demo_fig3_sample.csv"
 cat <<EOT > "${WORKDIR}/crate_fuzzy_demo_fig3_sample.csv"
-original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
-1,,Alice,,Jones,1950-01-01,F,
-2,,Alice,,Smith,1994-07-29,F,
-3,,Alice,,Smith,1950-01-01,F,
-4,,Alys,,Smith,1950-01-01,F,
-5,,Alys,,Smythe,1950-01-01,F,
+local_id,first_name,middle_names,surname,dob,gender,postcodes,other
+1,Alice,,Jones,1950-01-01,F,,
+2,Alice,,Smith,1994-07-29,F,,
+3,Alice,,Smith,1950-01-01,F,,
+4,Alys,,Smith,1950-01-01,F,,
+5,Alys,,Smythe,1950-01-01,F,,
 EOT
 
 echo - Creating "${WORKDIR}/crate_fuzzy_demo_fig3_probands.csv"
 cat <<EOT > "${WORKDIR}/crate_fuzzy_demo_fig3_probands.csv"
-original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
-3,,Alice,,Smith,1950-01-01,F,
+local_id,first_name,middle_names,surname,dob,gender,postcodes,other
+3,Alice,,Smith,1950-01-01,F,,
 EOT

@@ -268,7 +268,7 @@ class FuzzyLinkageTests(unittest.TestCase):
         )
         self.alice_bcd_unique_2000_add = Person(
             cfg=self.cfg,
-            original_id=1,
+            local_id="1",
             first_name="Alice",
             middle_names=["Beatrice", "Celia", "Delilah"],
             surname="Rarename",
@@ -277,7 +277,7 @@ class FuzzyLinkageTests(unittest.TestCase):
         )
         self.alec_bcd_unique_2000_add = Person(
             cfg=self.cfg,
-            original_id=2,
+            local_id="2",
             first_name="Alec",  # same metaphone as Alice
             middle_names=["Beatrice", "Celia", "Delilah"],
             surname="Rarename",
@@ -286,7 +286,7 @@ class FuzzyLinkageTests(unittest.TestCase):
         )
         self.bob_bcd_unique_2000_add = Person(
             cfg=self.cfg,
-            original_id=3,
+            local_id="3",
             first_name="Bob",
             middle_names=["Beatrice", "Celia", "Delilah"],
             surname="Rarename",
@@ -295,7 +295,7 @@ class FuzzyLinkageTests(unittest.TestCase):
         )
         self.alice_bc_unique_2000_add = Person(
             cfg=self.cfg,
-            original_id=4,
+            local_id="4",
             first_name="Alice",
             middle_names=["Beatrice", "Celia"],
             surname="Rarename",
@@ -304,7 +304,7 @@ class FuzzyLinkageTests(unittest.TestCase):
         )
         self.alice_b_unique_2000_add = Person(
             cfg=self.cfg,
-            original_id=5,
+            local_id="5",
             first_name="Alice",
             middle_names=["Beatrice"],
             surname="Rarename",
@@ -313,7 +313,7 @@ class FuzzyLinkageTests(unittest.TestCase):
         )
         self.alice_jones_2000_add = Person(
             cfg=self.cfg,
-            original_id=6,
+            local_id="6",
             first_name="Alice",
             surname="Jones",
             dob="2000-01-01",
@@ -321,7 +321,7 @@ class FuzzyLinkageTests(unittest.TestCase):
         )
         self.bob_smith_1950_psych = Person(
             cfg=self.cfg,
-            original_id=7,
+            local_id="7",
             first_name="Bob",
             surname="Smith",
             dob="1950-05-30",
@@ -329,34 +329,34 @@ class FuzzyLinkageTests(unittest.TestCase):
         )
         self.alice_smith_1930 = Person(
             cfg=self.cfg,
-            original_id=8,
+            local_id="8",
             first_name="Alice",
             surname="Smith",
             dob="1930-01-01",
         )
         self.alice_smith_2000 = Person(
             cfg=self.cfg,
-            original_id=9,
+            local_id="9",
             first_name="Alice",
             surname="Smith",
             dob="2000-01-01",
         )
         self.alice_smith = Person(
             cfg=self.cfg,
-            original_id=10,
+            local_id="10",
             first_name="Alice",
             surname="Smith",
         )
         self.middle_test_1 = Person(
             cfg=self.cfg,
-            original_id=11,
+            local_id="11",
             first_name="Alice",
             middle_names=["Betty", "Caroline"],
             surname="Smith",
         )
         self.middle_test_2 = Person(
             cfg=self.cfg,
-            original_id=12,
+            local_id="12",
             first_name="Alice",
             middle_names=["Betty", "Dorothy", "Elizabeth"],
             surname="Smith",

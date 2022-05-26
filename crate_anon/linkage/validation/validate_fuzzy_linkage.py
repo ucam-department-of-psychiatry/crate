@@ -67,13 +67,150 @@ match). So realistically ``c = 10`` or thereabouts.
     t <- function(n) { h * n + c * n^2 / 2 }  # function relating time to n
     target <- 60 * 60  # target time: 1 hour = 3600 seconds
     errfunc <- function(n) { (t(n) - target) ^ 2 }  # function giving error
-    result <- optim(par=50, fn=errfunc)  # minimize error, start n=50; gives 26825
+    result <- optim(par = 50, fn = errfunc)  # minimize error, start n = 50
+    # ... gives 26825
 
-"""  # noqa
+
+JSON encoding
+-------------
+
+There's no reason that fuzzy_id_match.py needs to be specific about JSON
+handling; it can just treat the "other_info" column as a string. We can
+use JSON encoding here, and decode it in R later:
+https://stackoverflow.com/questions/31599299/expanding-a-json-column-in-r.
+
+
+Finding columns across databases
+--------------------------------
+
+In SQL Server, if you select from ``information_schema.columns``, you only see
+columns from the database selected with the ``USE <database>`` statement or
+equivalent.
+
+There are approaches that iterate over databases
+(https://stackoverflow.com/questions/2729126/,
+https://web.archive.org/web/20220326112007/https://www.mssqltips.com/sqlservertip/4039/search-all-string-columns-in-all-sql-server-databases/).
+The latter is *very* slow (as acknowledged).
+
+A nasty but effective (and reasonably quick) approach is:
+
+.. code-block:: sql
+
+    sp_MSforeachdb '
+        -- Double up single quotes within this section.
+        -- Question mark stands for the current database name.
+        SELECT
+            ''?'' AS [database_name],
+            s.name AS [schema_name],
+            t.name AS [table_name],
+            c.name AS [column_name]
+        FROM sys.columns c
+        INNER JOIN sys.objects t ON t.object_id = c.object_id
+            -- sys.objects is per-column, not per-table, but this allows
+            -- WHERE clauses to say "t.name", which is clearer.
+        INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+        WHERE ''?'' NOT IN (''master'', ''msdb'', ''tempdb'', ''model'')
+        AND c.name LIKE ''%post%''  -- e.g. look for postcodes
+        ORDER BY s.name, t.name, c.column_id
+    '
+
+
+SMI definition
+--------------
+
+NICE SMI definition of severe mental illness: see Chen et al. (2020) PMID
+33035957, which is from NICE (2016) NG58:
+
+    "Severe mental illness includes a clinical diagnosis of: schizophrenia,
+    schizotypal and delusional disorders, or bipolar affective disorder, or
+    severe depressive episodes with or without psychotic episodes."
+
+Thus, codes:
+
+.. code-block:: none
+
+    dx_smi.CODE LIKE 'F20%'  -- schizophrenia
+    OR dx_smi.CODE LIKE 'F21%'  -- schizotypal
+    OR dx_smi.CODE LIKE 'F22%'  -- persistent delusional
+    OR dx_smi.CODE LIKE 'F25%'  -- schizoaffective
+    OR dx_smi.CODE LIKE 'F31%'  -- bipolar
+    OR dx_smi.CODE LIKE 'F322%'  -- severe depressive episode, not psychotic
+    OR dx_smi.CODE LIKE 'F323%'  -- severe depressive episode, psychotic
+    OR dx_smi.CODE LIKE 'F332%'  -- rec. dep, severe, not psychotic
+    OR dx_smi.CODE LIKE 'F333%'  -- rec. dep, severe, psychotic
+
+
+Sort order involving NULL
+-------------------------
+
+.. code-block:: sql
+
+    -- Test sort order involving NULL.
+
+    CREATE DATABASE testdb;
+    USE testdb;
+    CREATE TABLE test_sort_postcode_dates (
+        postcode VARCHAR(8) NOT NULL,
+        start_date DATE,
+        end_date DATE
+    );
+
+    INSERT INTO test_sort_postcode_dates
+        (postcode, start_date, end_date)
+    VALUES
+        ('AA11 1AA', NULL,         NULL),
+        ('AA11 1AA', NULL,         '2020-01-01'),
+        ('AA11 1AA', NULL,         '2025-01-01'),
+        ('AA11 1AA', '1990-01-01', NULL),
+        ('AA11 1AA', '1990-01-01', '2020-01-01'),
+        ('AA11 1AA', '1990-01-01', '2025-01-01'),
+        ('AA11 1AA', '1995-01-01', NULL),
+        ('AA11 1AA', '1995-01-01', '2020-01-01'),
+        ('AA11 1AA', '1995-01-01', '2025-01-01'),
+        ('BB22 2BB', NULL,         NULL),
+        ('BB22 2BB', NULL,         '2020-01-01'),
+        ('BB22 2BB', NULL,         '2025-01-01'),
+        ('BB22 2BB', '1990-01-01', NULL),
+        ('BB22 2BB', '1990-01-01', '2020-01-01'),
+        ('BB22 2BB', '1990-01-01', '2025-01-01'),
+        ('BB22 2BB', '1995-01-01', NULL),
+        ('BB22 2BB', '1995-01-01', '2020-01-01'),
+        ('BB22 2BB', '1995-01-01', '2025-01-01');
+
+    SELECT
+        *,
+        CASE WHEN end_date IS NULL THEN 1 ELSE 0 END AS debug_end_date_sorter
+    FROM test_sort_postcode_dates
+    ORDER BY
+        -- By default, NULL is smaller than any other value.
+        -- We want any current postcodes (NULL end date) last. So:
+        CASE WHEN end_date IS NULL THEN 1 ELSE 0 END,
+        -- ... (ASC) past (NOT NULL) -> current (NULL)
+        start_date,  -- (ASC) then by start date: NULL -> older -> newer
+        end_date,  -- (ASC) then by end date: older -> newer
+        postcode  -- tiebreaker
+
+SQL Server error notes
+----------------------
+
+Sometimes when comparing two columns in SQL with ``a = b``, you may get this
+error: Collation error: Cannot resolve the collation conflict between
+"Latin1_General_CI_AS" and "SQL_Latin1_General_CP1_CI_AS" in the equal to
+operation. This is easily resolved
+(https://stackoverflow.com/questions/1607560/) by comparing e.g. ``a = b
+COLLATE Latin1_General_CI_AS`` (forcing ``b`` to the right collation, in this
+example).
+
+CAST() doesn't return NULL on failure (e.g. converting characters to integer);
+it produces an error. Use TRY_CAST() to return NULL on failure.
+
+"""
 
 import argparse
-from collections import OrderedDict
 import csv
+from dataclasses import asdict, dataclass
+import datetime
+import json
 import logging
 import math
 import pdb
@@ -84,6 +221,7 @@ from typing import (
     Generator,
     Iterable,
     List,
+    Optional,
     Tuple,
     TYPE_CHECKING,
 )
@@ -92,6 +230,7 @@ from cardinal_pythonlib.argparse_func import (
     RawDescriptionArgumentDefaultsHelpFormatter,
     ShowAllSubparserHelpAction,
 )
+from cardinal_pythonlib.datetimefunc import truncate_date_to_first_of_month
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.profile import do_cprofile
 from pendulum import Date
@@ -108,8 +247,8 @@ from crate_anon.linkage.fuzzy_id_match import (
     add_common_groups,
     cache_load,
     cache_save,
-    DEMO_SAMPLE,
     get_cfg_from_args,
+    get_demo_csv,
     Hasher,
     MatchConfig,
     People,
@@ -125,6 +264,19 @@ if TYPE_CHECKING:
     from argparse import _SubParsersAction
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+DEFAULT_CDL_PLAINTEXT = "validate2_cdl_DANGER_IDENTIFIABLE.csv"
+DEFAULT_RIO_PLAINTEXT = "validate2_rio_DANGER_IDENTIFIABLE.csv"
+DEFAULT_CDL_HASHED = "validate2_cdl_hashed.csv"
+DEFAULT_RIO_HASHED = "validate2_rio_hashed.csv"
+
+CAMBS_POPULATION = 852523
+# ... 2018 estimate; https://cambridgeshireinsight.org.uk/population/
 
 
 # =============================================================================
@@ -148,7 +300,7 @@ def speedtest(cfg: MatchConfig, set_breakpoint: bool = False) -> None:
     )
     alice_bcd_unique_2000_add = Person(
         cfg=cfg,
-        original_id=1,
+        local_id="1",
         first_name="Alice",
         middle_names=["Beatrice", "Celia", "Delilah"],
         surname="Rarename",
@@ -157,21 +309,21 @@ def speedtest(cfg: MatchConfig, set_breakpoint: bool = False) -> None:
     )
     alice_smith_1930 = Person(
         cfg=cfg,
-        original_id=8,
+        local_id="8",
         first_name="Alice",
         surname="Smith",
         dob="1930-01-01",
     )
     alice_smith_2000 = Person(
         cfg=cfg,
-        original_id=9,
+        local_id="9",
         first_name="Alice",
         surname="Smith",
         dob="2000-01-01",
     )
     alice_smith = Person(
         cfg=cfg,
-        original_id=10,
+        local_id="10",
         first_name="Alice",
         surname="Smith",
     )
@@ -300,7 +452,7 @@ def make_deletion_data(people: People, cfg: MatchConfig) -> People:
 
     Surnames and DOBs are excepted as we require exact matches for those.
     """
-    deletion_data = People(cfg)
+    deletion_data = People(cfg)  # start a new empty collection
     log.debug(f"Making deletion data for {people.size()} people")
     for person in people.people:
         modified_person = person.copy()
@@ -316,7 +468,7 @@ def make_typo_data(people: People, cfg: MatchConfig) -> People:
 
     Surnames and DOBs are excepted as we require exact matches for those.
     """
-    typo_data = People(cfg)
+    typo_data = People(cfg)  # start a new empty collection
     log.debug(f"Making typo data for {people.size()} people")
     for person in people.people:
         modified_person = person.copy()
@@ -326,24 +478,30 @@ def make_typo_data(people: People, cfg: MatchConfig) -> People:
     return typo_data
 
 
+class ValidationOutputColnames:
+    COLLECTION_NAME = "collection_name"
+    IN_SAMPLE = "in_sample"
+    DELETIONS = "deletions"
+    TYPOS = "typos"
+
+    IS_HASHED = "is_hashed"
+    PROBAND_ID = "proband_id"
+    WINNER_ID = "winner_id"
+    BEST_MATCH_ID = "best_match_id"
+    BEST_LOG_ODDS = "best_log_odds"
+    SECOND_BEST_LOG_ODDS = "second_best_log_odds"
+    SECOND_BEST_MATCH_ID = "second_best_match_id"
+
+    CORRECT_IF_WINNER = "correct_if_winner"
+    LEADER_ADVANTAGE = "leader_advantage"
+
+
 VALIDATION_OUTPUT_COLNAMES = [
-    "collection_name",
-    "in_sample",
-    "deletions",
-    "typos",
-    "is_hashed",
-    "original_id",
-    "winner_id",
-    "best_match_id",
-    "best_log_odds",
-    "second_best_log_odds",
-    "second_best_match_id",
-    "correct_if_winner",
-    "leader_advantage",
+    getattr(ValidationOutputColnames, x)
+    for x in vars(ValidationOutputColnames).keys()
+    if not x.startswith("_")
+    # dir() sorts by name; use vars()
 ]
-VALIDATION_OUTPUT_CSV_HELP = (
-    f"Header row present. Columns: {VALIDATION_OUTPUT_COLNAMES}."
-)
 
 
 def validate_1(
@@ -459,6 +617,7 @@ def validate_1(
         (out_typos_hashed, "out_typos_hashed", in_hashed, False, False, True),
     ]  # type: List[Tuple[People, str, People, bool, bool, bool]]
     log.info(f"Writing to: {output_csv}")
+    vc = ValidationOutputColnames
     with open(output_csv, "wt") as f:
         writer = csv.DictWriter(f, fieldnames=VALIDATION_OUTPUT_COLNAMES)
         writer.writeheader()
@@ -486,41 +645,41 @@ def validate_1(
                 else:
                     leader_advantage = None
                 best_match_id = (
-                    result.best_person.original_id
-                    if result.best_person
+                    result.best_candidate.local_id
+                    if result.best_candidate
                     else None
                 )
                 correct_if_winner = (
-                    int(best_match_id == person.original_id)
+                    int(best_match_id == person.local_id)
                     if result.winner
                     else None
                 )
 
-                rowdata = dict(
+                rowdata = {
                     # As of Python 3.6, keyword order is preserved:
                     # https://docs.python.org/3/library/collections.html#collections.OrderedDict  # noqa
                     # https://www.python.org/dev/peps/pep-0468/
                     # ... but it doesn't matter since we're using a DictWriter.
-                    collection_name=collection_name,
-                    in_sample=int(in_sample),
-                    deletions=int(deletions),
-                    typos=int(typos),
-                    is_hashed=int(person.is_hashed),
-                    original_id=person.original_id,
-                    winner_id=(
-                        result.winner.original_id if result.winner else None
+                    vc.COLLECTION_NAME: collection_name,
+                    vc.IN_SAMPLE: int(in_sample),
+                    vc.DELETIONS: int(deletions),
+                    vc.TYPOS: int(typos),
+                    vc.IS_HASHED: int(person.is_hashed),
+                    vc.PROBAND_ID: person.local_id,
+                    vc.WINNER_ID: (
+                        result.winner.local_id if result.winner else None
                     ),
-                    best_match_id=best_match_id,
-                    best_log_odds=result.best_log_odds,
-                    second_best_log_odds=result.second_best_log_odds,
-                    second_best_match_id=(
-                        result.second_best_person.original_id
-                        if result.second_best_person
+                    vc.BEST_MATCH_ID: best_match_id,
+                    vc.BEST_LOG_ODDS: result.best_log_odds,
+                    vc.SECOND_BEST_LOG_ODDS: result.second_best_log_odds,
+                    vc.SECOND_BEST_MATCH_ID: (
+                        result.second_best_candidate.local_id
+                        if result.second_best_candidate
                         else None
                     ),
-                    correct_if_winner=correct_if_winner,
-                    leader_advantage=leader_advantage,
-                )
+                    vc.CORRECT_IF_WINNER: correct_if_winner,
+                    vc.LEADER_ADVANTAGE: leader_advantage,
+                }
                 writer.writerow(rowdata)
     log.info("... done")
 
@@ -529,156 +688,140 @@ def validate_1(
 # Validation 2
 # =============================================================================
 
-# -----------------------------------------------------------------------------
-# CRS/CDL
-# -----------------------------------------------------------------------------
 
-
-def _get_cdl_postcodes(
-    engine: Engine, cdl_m_number: int
-) -> List[TemporalIdentifier]:
+@dataclass
+class PostcodeInfo:
     """
-    Fetches distinct valid time-stamped postcodes for a given person, from
-    CRS/CDL.
-
-    Args:
-        engine:
-            SQLAlchemy engine
-        cdl_m_number:
-            CRS/CDL primary key ("M number")
-
-    Returns:
-        list: of postcodes in :class:`TemporalIdentifier` format
+    Postcode with IMD.
     """
-    log.critical("_get_cdl_postcodes: needs to be checked")
-    sql = text(
-        """
 
-        SELECT DISTINCT
-            UPPER(PostCode) AS upper_postcode,
-            CAST(StartDate AS DATE) AS start_date,
-            CAST(EndDate AS DATE) AS end_date
-        FROM
-            Addresses A
-        WHERE
-            ClientID = :cdl_m_number
-            AND PostCode IS NOT NULL
-            AND LEN(PostCode) >= 6  -- minimum for valid postcode
-        ORDER BY
-            start_date,
-            end_date,
-            upper_postcode
+    postcode: str
+    start_date: Optional[datetime.date]
+    end_date: Optional[datetime.date]
+    index_of_multiple_deprivation: int
 
-    """
-    )
-    rows = engine.execute(sql, cdl_m_number=cdl_m_number)
-    postcodes = [
-        TemporalIdentifier(
-            identifier=row[0], start_date=row[1], end_date=row[2]  # postcode
+    def __post_init__(self) -> None:
+        nonetype = type(None)
+        if not isinstance(self.postcode, str) or not POSTCODE_REGEX.match(
+            self.postcode
+        ):
+            raise ValueError(f"Bad postcode: {self.postcode!r}")
+        if not isinstance(self.start_date, (datetime.date, nonetype)):
+            raise ValueError(f"Bad start_date: {self.start_date!r}")
+        if not isinstance(self.end_date, (datetime.date, nonetype)):
+            raise ValueError(f"Bad end_date: {self.end_date!r}")
+        if not isinstance(self.index_of_multiple_deprivation, (int, nonetype)):
+            raise ValueError(
+                f"Bad index_of_multiple_deprivation: "
+                f"{self.index_of_multiple_deprivation!r}"
+            )
+
+    @property
+    def temporal_identifier(self) -> TemporalIdentifier:
+        return TemporalIdentifier(
+            identifier=self.postcode,
+            start_date=self.start_date,
+            end_date=self.end_date,
         )
-        for row in rows
-        if POSTCODE_REGEX.match(row[0])
-    ]
-    return postcodes
 
 
-# noinspection PyUnusedLocal
-def _get_cdl_middle_names(engine: Engine, cdl_m_number: int) -> List[str]:
+@dataclass
+class CPFTValidationExtras:
     """
-    Fetches distinct middle names for a given person, from CRS/CDL.
+    Extra information for the "other_info" column for validation, as per the
+    approved CPFT protocol.
 
-    Args:
-        engine:
-            SQLAlchemy engine
-        cdl_m_number:
-            CRS/CDL primary key ("M number")
-
-    Returns:
-        list: of middle names
-
+    This class should contain all information that would not otherwise make it
+    into the matching file, i.e. that information required to check the
+    correctness and/or bias of matching. It should not contain anything
+    directly identifiable.
     """
-    log.critical("_get_cdl_middle_names: needs to be checked")
-    return []  # Information not present in database!
+
+    # Gold-standard identifier to compare across databases:
+    hashed_nhs_number: str  # because "local_id" will be per system
+
+    # Demographics:
+    blurred_dob: datetime.date
+    gender: str
+    ethnicity: Optional[str]
+    index_of_multiple_deprivation: Optional[int]
+
+    # MH-related information:
+    first_mh_care_date: Optional[datetime.date]
+    age_at_first_mh_care: Optional[datetime.date]
+    any_icd10_dx_present: int  # binary
+    chapter_f_icd10_dx_present: int  # binary
+    severe_mental_illness_icd10_dx_present: int  # binary
+
+    def __post_init__(self) -> None:
+        binary = (0, 1)
+        nonetype = type(None)
+
+        if not isinstance(self.hashed_nhs_number, str):
+            raise ValueError(
+                f"Bad hashed_nhs_number: {self.hashed_nhs_number!r}"
+            )
+
+        if (
+            not isinstance(self.blurred_dob, datetime.date)
+            or self.blurred_dob.day != 1
+        ):
+            raise ValueError(f"Bad blurred_dob: {self.blurred_dob!r}")
+        if not isinstance(self.gender, str):
+            raise ValueError(f"Bad gender: {self.gender!r}")
+        if not isinstance(self.ethnicity, (str, nonetype)):
+            raise ValueError(f"Bad ethnicity: {self.ethnicity!r}")
+
+        if not isinstance(self.first_mh_care_date, (datetime.date, nonetype)):
+            raise ValueError(
+                f"Bad first_mh_care_date: {self.first_mh_care_date!r}"
+            )
+        if not isinstance(
+            self.age_at_first_mh_care, (datetime.date, nonetype)
+        ):
+            raise ValueError(
+                f"Bad age_at_first_mh_care: {self.age_at_first_mh_care!r}"
+            )
+        if self.any_icd10_dx_present not in binary:
+            raise ValueError(
+                f"Bad any_icd10_dx_present: {self.any_icd10_dx_present!r}"
+            )
+        if self.chapter_f_icd10_dx_present not in binary:
+            raise ValueError(
+                f"Bad chapter_f_icd10_dx_present: "
+                f"{self.chapter_f_icd10_dx_present!r}"
+            )
+        if self.severe_mental_illness_icd10_dx_present not in binary:
+            raise ValueError(
+                f"Bad severe_mental_illness_icd10_dx_present: "
+                f"{self.severe_mental_illness_icd10_dx_present!r}"
+            )
+
+    @property
+    def json(self) -> str:
+        return json.dumps(asdict(self))
 
 
-def validate_2_fetch_cdl(
-    cfg: MatchConfig, url: str, hash_key: str, echo: bool = False
-) -> Generator[Person, None, None]:
+class QueryColnames:
     """
-    Generates IDENTIFIED people from CPFT's CRS/CRL source database.
-
-    See :func:`validate_2_fetch_rio` for notes.
+    Used to reduce some duplication. However, we don't use these within SQL
+    itself simply because copying/pasting is helpful for SQL development.
     """
-    log.critical("validate_2_fetch_cdl: needs to be checked")
-    sql = text(
-        """
 
-        SELECT
-            p.Patient_ID AS cdl_m_number,
-            CAST(p.NHS_IDENTIFIER AS BIGINT) AS nhs_number,
-            p.FORENAME AS first_name,
-            p.SURNAME AS surname,
-            CASE p.GENDER
-                WHEN 'Female' THEN 'F'
-                WHEN 'Male' THEN 'M'
-                WHEN 'Not Specified' THEN 'X'
-                ELSE ''
-                -- 'Not Known' is the CRS/CDL "unknown" value
-            END AS gender,
-            CAST(p.DTTM_OF_BIRTH, DATE) AS dob,
-            p.ETHNICITY AS ethnicity,  -- see also CDLPatient.Ethnicity
-            CASE
-                WHEN EXISTS(
-                    SELECT
-                        1
-                    FROM
-                        DIAGNOSIS_PROCEDURES dp
-                    WHERE
-                        dp.Patient_ID = p.Patient_ID
-                        AND dc.CODE IS NOT NULL
-                ) THEN 1
-                ELSE 0
-            END AS icd10_dx_present,
-            CAST(p.CREATE_DTTM AS DATE) AS first_registration_date
-        FROM
-            PATIENTS as p
-
-    """
-    )
-    hasher = Hasher(hash_key)
-    _hash = hasher.hash  # hashing function
-    engine = create_engine(url, echo=echo)
-    result = engine.execute(sql)  # type: ResultProxy
-    for row in result:
-        cdl_m_number = row["cdl_m_number"]
-        middle_names = _get_cdl_middle_names(engine, cdl_m_number)
-        postcodes = _get_cdl_postcodes(engine, cdl_m_number)
-        nhs_number = row["nhs_number"]
-        research_id = _hash(nhs_number)
-        other = OrderedDict()
-        dob = row["dob"]
-        first_mh_care_date = row["first_registration_date"]
-        other["first_mh_care_date"] = first_mh_care_date
-        other["age_at_first_mh_care"] = (
-            (first_mh_care_date - dob).in_years()
-            if dob and first_mh_care_date
-            else None
-        )
-        other["ethnicity"] = row["ethnicity"]
-        other["icd10_dx_present"] = row["icd10_dx_present"]
-        p = Person(
-            cfg=cfg,
-            original_id=nhs_number,
-            research_id=research_id,
-            first_name=row["first_name"] or "",
-            middle_names=middle_names,
-            surname=row["surname"] or "",
-            gender=row["gender"] or "",
-            dob=row["dob"] or "",
-            postcodes=postcodes,
-            other=other,
-        )
-        yield p
+    ANY_ICD10_DX_PRESENT = "any_icd10_dx_present"
+    CHAPTER_F_ICD10_DX_PRESENT = "chapter_f_icd10_dx_present"
+    DOB = "dob"
+    END_DATE = "end_date"
+    ETHNICITY = "ethnicity"
+    FIRST_MH_CARE_DATE = "first_mh_care_date"
+    FIRST_NAME = "first_name"
+    GENDER = "gender"
+    INDEX_OF_MULTIPLE_DEPRIVATION = "index_of_multiple_deprivation"
+    NHS_NUMBER = "nhs_number"
+    POSTCODE = "postcode"
+    SMI_ICD10_DX_PRESENT = "smi_icd10_dx_present"
+    START_DATE = "start_date"
+    SURNAME = "surname"
 
 
 # -----------------------------------------------------------------------------
@@ -688,9 +831,10 @@ def validate_2_fetch_cdl(
 
 def _get_rio_postcodes(
     engine: Engine, rio_client_id: str
-) -> List[TemporalIdentifier]:
+) -> List[PostcodeInfo]:
     """
     Fetches distinct valid time-stamped postcodes for a given person, from RiO.
+    The most recent should be last.
 
     Args:
         engine:
@@ -699,34 +843,52 @@ def _get_rio_postcodes(
             RiO primary key (``ClientId``)
 
     Returns:
-        list: list: of postcodes in :class:`TemporalIdentifier` format
+        list: of postcodes in :class:`PostcodeInfo` format
 
     """
-    log.critical("_get_rio_postcodes: needs to be checked")
     sql = text(
         """
-
         SELECT DISTINCT
-            UPPER(PostCode) AS upper_postcode,
-            CAST(FromDate AS DATE) AS start_date,
-            CAST(ToDate AS DATE) AS end_date
+            -- TOP 0  -- for debugging
+
+            -- From the identifiable address table:
+            UPPER(a.PostCode) AS postcode,
+            CAST(a.FromDate AS DATE) AS start_date,
+            CAST(a.ToDate AS DATE) AS end_date,
+
+            -- From the ONS postcode-to-IMD lookup:
+            ons.imd AS index_of_multiple_deprivation,
+
+            CASE
+                WHEN CAST(a.ToDate AS DATE) IS NULL THEN 1 ELSE 0
+            END AS end_date_is_null
+            -- "ORDER BY items must appear in the select list if
+            -- SELECT DISTINCT is specified."
         FROM
-            ClientAddress
+            RiO62CAMLive.dbo.ClientAddress a
+        LEFT OUTER JOIN
+            onspd.dbo.postcode AS ons  -- Office for National Statistics
+            ON ons.pcd_nospace = REPLACE(UPPER(a.PostCode), ' ', '')
         WHERE
-            ClientID = :client_id
-            AND PostCode IS NOT NULL
-            AND LEN(PostCode) >= 6  -- minimum for valid postcode
+            a.ClientID = :client_id
+            AND a.PostCode IS NOT NULL
+            AND LEN(a.PostCode) >= 6  -- minimum for valid postcode
         ORDER BY
+            -- You can use aliases in ORDER BY from SQL Server 2008 onwards.
+            end_date_is_null,
             start_date,
             end_date,
-            upper_postcode
-
+            postcode
     """
     )
     rows = engine.execute(sql, client_id=rio_client_id)
+    q = QueryColnames
     postcodes = [
-        TemporalIdentifier(
-            identifier=row[0], start_date=row[1], end_date=row[2]  # postcode
+        PostcodeInfo(
+            postcode=row[q.POSTCODE],
+            start_date=row[q.START_DATE],
+            end_date=row[q.END_DATE],
+            index_of_multiple_deprivation=row[q.INDEX_OF_MULTIPLE_DEPRIVATION],
         )
         for row in rows
         if POSTCODE_REGEX.match(row[0])
@@ -748,10 +910,8 @@ def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
         list: of middle names
 
     """
-    log.critical("_get_rio_middle_names: needs to be checked")
     sql = text(
         """
-
         SELECT
             -- OK to use UPPER() with NULL values. Result is, of course, NULL.
             -- GivenName1 should be the first name.
@@ -759,11 +919,13 @@ def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
             UPPER(GivenName3) AS middle_name_2,
             UPPER(GivenName4) AS middle_name_3,
             UPPER(GivenName5) AS middle_name_4
+            -- None contain a double space.
         FROM
-            ClientName
+            RiO62CAMLive.dbo.ClientName
         WHERE
             ClientID = :client_id
-
+            AND EndDate IS NULL
+            -- AND Deleted = 0  -- redundant
     """
     )
     rows = engine.execute(sql, client_id=rio_client_id)
@@ -795,55 +957,7 @@ def validate_2_fetch_rio(
 
     Yields:
         :class:`Person` objects
-
-    Generating postcodes in SQL as semicolon-separated values: pretty hard.
-    The challenges are:
-
-    - String concatenation
-
-      - Prior to SQL Server 2017:
-        https://stackoverflow.com/questions/6899/how-to-create-a-sql-server-function-to-join-multiple-rows-from-a-subquery-into
-
-        .. code-block:: none
-
-            SELECT
-                CAST(ci.NNN AS BIGINT) AS original_id,  -- NHS number
-                -- ...
-
-                STUFF(
-                    (
-                        SELECT
-                            ';' + ca.PostCode
-                        FROM
-                            ClientAddress AS ca
-                        WHERE
-                            ca.ClientID = ci.ClientID
-                            AND ca.PostCode IS NOT NULL
-                            AND ca.PostCode != ''
-                        FOR XML PATH('')
-                    ),
-                    1, 1, ''
-                ) AS postcodes
-            FROM
-                ClientIndex AS ci
-
-      - From SQL Server 2017: the ``STRING_AGG(..., ';')`` construct.
-        Still tricky, though.
-
-    - We need to return people with no postcodes.
-
-    - We must deal with a profusion of invalid postcodes -- and SQL Server
-      doesn't support proper regular expressions.
-
-    SQLAlchemy Core query to Python dict:
-
-    - https://stackoverflow.com/questions/1958219/convert-sqlalchemy-row-object-to-python-dict
-
-    SQL Server doesn't permit "SELECT EXISTS":
-
-    - https://stackoverflow.com/questions/2759756/is-it-possible-to-select-exists-directly-as-a-bit
-
-    """  # noqa
+    """
     log.critical("validate_2_fetch_rio: needs to be checked")
     sql = text(
         """
@@ -851,6 +965,8 @@ def validate_2_fetch_rio(
         -- We use the original raw RiO database, not the CRATE-processed one.
 
         SELECT
+        
+            -- From the main patient index:
             ci.ClientID AS rio_client_id,
             CAST(ci.NNN AS BIGINT) AS nhs_number,
             ci.Firstname AS first_name,
@@ -863,30 +979,81 @@ def validate_2_fetch_rio(
                 -- 'U' is the RiO "unknown" value
             END AS gender,
             CAST(ci.DateOfBirth AS DATE) AS dob,
+            CAST(ci.FirstCareDate AS DATE) AS first_mh_care_date,
+
+            -- From the ethnicity table:
             ge.CodeDescription AS ethnicity,
+
+            -- From diagnostic codes:
+            -- Codes can be with or without dots, e.g. F321 or F32.1 (!).
+            -- But a dot only as the fourth character, if present.
             CASE
                 WHEN EXISTS(
                     SELECT
                         1
                     FROM
-                        DiagnosisClient dc
+                        RiO62CAMLive.dbo.DiagnosisClient dx_any
                     WHERE
-                        dc.ClientID = ci.ClientID
-                        AND dc.RemovalDate IS NOT NULL
+                        dx_any.ClientID = ci.ClientID
+                        AND dx_any.RemovalDate IS NULL  -- not removed
+                        -- NB RemovalDate indicates deletion and is separate
+                        -- from DiagnosisEndDate, e.g. a real problem now gone. 
+                        -- AND dx_any.CodingScheme = 'ICD10'  -- redundant
+                        -- AND dx_any.Diagnosis IS NOT NULL  -- redundant
+                        -- AND dx_any.Diagnosis != ''  -- redundant
                 ) THEN 1
                 ELSE 0
-            END AS icd10_dx_present,
-            CAST(ci.FirstCareDate AS DATE) AS first_mh_care_date
+            END AS any_icd10_dx_present,
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        RiO62CAMLive.dbo.DiagnosisClient dx_f
+                    WHERE
+                        dx_f.ClientID = ci.ClientID
+                        AND dx_f.RemovalDate IS NULL
+                        AND dx_f.Diagnosis LIKE 'F%'
+                ) THEN 1
+                ELSE 0
+            END AS chapter_f_icd10_dx_present,
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        RiO62CAMLive.dbo.DiagnosisClient dx_smi
+                    WHERE
+                        dx_smi.ClientID = ci.ClientID
+                        AND dx_smi.RemovalDate IS NULL
+                        AND (
+                            dx_smi.Diagnosis LIKE 'F20%'  -- schizophrenia
+                            OR dx_smi.Diagnosis LIKE 'F21%'  -- schizotypal
+                            OR dx_smi.Diagnosis LIKE 'F22%'  -- persistent delusional
+                            OR dx_smi.Diagnosis LIKE 'F25%'  -- schizoaffective
+                            OR dx_smi.Diagnosis LIKE 'F31%'  -- bipolar
+                            OR REPLACE(dx_smi.Diagnosis, '.', '') LIKE 'F322%'  -- severe depressive episode, not psychotic
+                            OR REPLACE(dx_smi.Diagnosis, '.', '') LIKE 'F323%'  -- severe depressive episode, psychotic
+                            OR REPLACE(dx_smi.Diagnosis, '.', '') LIKE 'F332%'  -- rec. dep, severe, not psychotic
+                            OR REPLACE(dx_smi.Diagnosis, '.', '') LIKE 'F333%'  -- rec. dep, severe, psychotic
+                        )
+                ) THEN 1
+                ELSE 0
+            END AS smi_icd10_dx_present
+
         FROM
-            ClientIndex AS ci
+            RiO62CAMLive.dbo.ClientIndex AS ci  -- identifiable patient table
         LEFT JOIN
-            GenEthnicity ge
+            RiO62CAMLive.dbo.GenEthnicity ge
             ON ge.Code = ci.Ethnicity
             AND ge.Deleted = 0
         WHERE
             -- Restrict to patients with NHS numbers:
             (ci.NNNStatus = 1 OR ci.NNNStatus = 2)
-            AND NOT (ci.NNN IS NULL OR ci.NNN = '')
+            AND (
+                TRY_CAST(REPLACE(ci.NNN, ' ', '') AS BIGINT) IS NOT NULL
+                AND LEN(REPLACE(ci.NNN, ' ', '')) = 10
+            )
             -- 2 = NHS number verified; see table NNNStatus
             -- Most people have status 1 (about 119k people), compared to
             -- about 80k for status 2 (on 2020-04-28). Then about 6k have
@@ -895,46 +1062,276 @@ def validate_2_fetch_rio(
             -- A very small number (~40) have a null NHS number despite an
             -- OK-looking status flag; we'll skip them.
 
-    """
+    """  # noqa
     )
-    hasher = Hasher(hash_key)
-    _hash = hasher.hash  # hashing function
+    _hash = Hasher(hash_key).hash  # hashing function
     engine = create_engine(url, echo=echo)
     result = engine.execute(sql)  # type: ResultProxy
+    q = QueryColnames
     for row in result:
         rio_client_id = row["rio_client_id"]
+        nhs_number = row[q.NHS_NUMBER]
+        dob = row[q.DOB]
+        gender = row[q.GENDER]
+        first_mh_care_date = row[q.FIRST_MH_CARE_DATE]
+
         middle_names = _get_rio_middle_names(engine, rio_client_id)
         postcodes = _get_rio_postcodes(engine, rio_client_id)
-        nhs_number = row["nhs_number"]
-        research_id = _hash(nhs_number)
-        other = OrderedDict()
-        dob = row["dob"]
-        first_mh_care_date = row["first_mh_care_date"]
-        other["first_mh_care_date"] = first_mh_care_date
-        other["age_at_first_mh_care"] = (
-            (first_mh_care_date - dob).in_years()
-            if dob and first_mh_care_date
-            else None
+
+        other = CPFTValidationExtras(
+            hashed_nhs_number=_hash(nhs_number),
+            blurred_dob=truncate_date_to_first_of_month(dob),
+            gender=gender,
+            ethnicity=row[q.ETHNICITY],
+            index_of_multiple_deprivation=(
+                # The most recent IMD.
+                postcodes[-1].index_of_multiple_deprivation
+                if postcodes
+                else None
+            ),
+            first_mh_care_date=first_mh_care_date,
+            age_at_first_mh_care=(
+                (first_mh_care_date - dob).in_years()
+                if dob and first_mh_care_date
+                else None
+            ),
+            any_icd10_dx_present=row[q.ANY_ICD10_DX_PRESENT],
+            chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
+            severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
-        other["ethnicity"] = row["ethnicity"]
-        other["icd10_dx_present"] = row["icd10_dx_present"]
         p = Person(
             cfg=cfg,
-            original_id=nhs_number,
-            research_id=research_id,
-            first_name=row["first_name"] or "",
+            local_id=rio_client_id,
+            other_info=other.json,
+            first_name=row[q.FIRST_NAME] or "",
             middle_names=middle_names,
-            surname=row["surname"] or "",
-            gender=row["gender"] or "",
-            dob=row["dob"] or "",
-            postcodes=postcodes,
-            other=other,
+            surname=row[q.SURNAME] or "",
+            gender=gender,
+            dob=dob,
+            postcodes=[p.temporal_identifier for p in postcodes],
         )
         yield p
 
 
 # -----------------------------------------------------------------------------
-# Comon functions
+# CRS/CDL
+# -----------------------------------------------------------------------------
+
+
+def validate_2_fetch_cdl(
+    cfg: MatchConfig, url: str, hash_key: str, echo: bool = False
+) -> Generator[Person, None, None]:
+    """
+    Generates IDENTIFIED people from CPFT's CRS/CRL source database.
+
+    See :func:`validate_2_fetch_rio` for notes.
+
+    Information we do not have:
+
+    - Dates for postcodes; there are address dates in CRS_CDL.dbo.Address but
+      that is de-identified. Not sure where the master identifiable copy is,
+      but maybe no longer available?
+    - Middle names (not present anywhere).
+
+    An older query with columns like ``patients.dttm_of_birth`` is no longer
+    current.
+
+    Column exploration (see non-aliased table names below):
+
+    - v.EJPS_ID is PRIMARY KEY VARCHAR(10) NOT NULL; either 'M<number>' or
+      'number'; length 3/4/6/7.
+    - ip.PatientID is INT NOT NULL, observed length 4/5/6 = ?
+    - ip.Identifier is NVARCHAR(50) NOT NULL, length 4/10/12; deduced (below)
+      to be NHS#
+    - ip.CRSNo is NVARCHAR(50) NOT NULL; length 4/6/7/8; deduced to be CRS/CDL#
+
+    - Linkage combinations that do/do not work:
+
+      - ``v.EPJS_ID = ip.PatientID`` -- type mismatch
+
+      - ``v.EPJS_ID = ip.Identifier COLLATE Latin1_General_CI_AS`` -- matches 0
+
+      - ``v.EPJS_ID = ip.CRSNo COLLATE Latin1_General_CI_AS`` -- matches 154658
+      - ``REPLACE(v.EPJS_ID, 'M', '') = REPLACE(ip.CRSNo COLLATE
+        Latin1_General_CI_AS, 'M', '')`` -- also matches 154658
+
+      - ``v.NHS_ID = ip.Identifier COLLATE Latin1_General_CI_AS`` -- matches
+        152944
+      - ``REPLACE(v.NHS_ID, ' ', '') = REPLACE(ip.Identifier COLLATE
+        Latin1_General_CI_AS, ' ', '')``  -- matches 153060
+
+    - v.NHS_ID: VARCHAR(15) column, can be NULL. Length 3/8/10/12.
+
+      - If 3, is '123' (junk) or 'xNx', i.e. missing. (Note that 'xNx' is/was a
+        common "missing" code in CRIS.)
+      - If 8, is garbage.
+      - If 12, has spaces in (format: xxx xxx xxxx).
+
+    """
+    sql = text(
+        """
+        SELECT
+            -- TOP 0  -- use for debugging; check syntax, no results
+            -- or use COUNT(*) instead of what follows
+
+            -- From the identifiable patient table:
+            ip.PatientID AS cdl_m_number,
+            ip.FirstName AS first_name,
+            ip.LastName AS surname,
+            CAST(ip.DOB AS DATE) as dob,
+            ip.PostCode AS postcode,
+
+            -- From the linkage table:
+            CAST(REPLACE(v.NHS_ID, ' ', '') AS BIGINT) AS nhs_number,
+
+            -- From the research (de-identified) master patient table:
+            CASE rp.GENDER
+                WHEN 'Female' THEN 'F'
+                WHEN 'Male' THEN 'M'
+                WHEN 'Not Specified' THEN 'X'
+                ELSE ''
+                -- 'Not Known' is the CRS/CDL "unknown" value
+            END AS gender,
+            rp.ETHNICITY AS ethnicity,  -- see also CDLPatient.Ethnicity
+            CAST(rp.CREATE_DTTM AS DATE) AS first_mh_care_date,
+            -- ... first registration date
+
+            -- From the diagnosis table in the research database:
+            -- Codes are of the format "F2391", with no space or full stop.
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        CRS_CDL.dbo.Diagnosis dx_any
+                    WHERE
+                        dx_any.BrcId = rp.BrcId
+                        AND dx_any.CODE IS NOT NULL
+                ) THEN 1
+                ELSE 0
+            END AS any_icd10_dx_present,
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        CRS_CDL.dbo.Diagnosis dx_f
+                    WHERE
+                        dx_f.BrcId = rp.BrcId
+                        AND dx_f.CODE LIKE 'F%'
+                ) THEN 1
+                ELSE 0
+            END AS chapter_f_icd10_dx_present,
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        CRS_CDL.dbo.Diagnosis dx_smi
+                    WHERE
+                        dx_smi.BrcId = rp.BrcId
+                        AND (
+                            dx_smi.CODE LIKE 'F20%'  -- schizophrenia
+                            OR dx_smi.CODE LIKE 'F21%'  -- schizotypal
+                            OR dx_smi.CODE LIKE 'F22%'  -- persistent delusional
+                            OR dx_smi.CODE LIKE 'F25%'  -- schizoaffective
+                            OR dx_smi.CODE LIKE 'F31%'  -- bipolar
+                            OR dx_smi.CODE LIKE 'F322%'  -- severe depressive episode, not psychotic
+                            OR dx_smi.CODE LIKE 'F323%'  -- severe depressive episode, psychotic
+                            OR dx_smi.CODE LIKE 'F332%'  -- rec. dep, severe, not psychotic
+                            OR dx_smi.CODE LIKE 'F333%'  -- rec. dep, severe, psychotic
+                        )
+                ) THEN 1
+                ELSE 0
+            END AS smi_icd10_dx_present,
+
+            -- From the ONS postcode-to-IMD lookup:
+            ons.imd AS index_of_multiple_deprivation
+
+        FROM
+            rawCRSCDL.dbo.[CRS_Output_2020 09 21] AS ip
+            -- ... identifiable patient table (only table in that database)
+        INNER JOIN
+            zVaultCRS_CDL.dbo.NHSID_BRC_Lookup AS v  -- vault, linking id/de-id
+            ON v.EPJS_ID = ip.CRSNo COLLATE Latin1_General_CI_AS  -- CRS/CDL#
+        INNER JOIN
+            CRS_CDL.dbo.MPI AS rp  -- research patient table
+            ON rp.BrcId = v.BRC_ID  -- research ID; INT NOT NULL
+        LEFT OUTER JOIN
+            onspd.dbo.postcode AS ons  -- Office for National Statistics
+            ON ons.pcd_nospace = REPLACE(UPPER(ip.PostCode), ' ', '')
+        WHERE
+            -- We require an NHS number to be known.
+            (
+                TRY_CAST(REPLACE(v.NHS_ID, ' ', '') AS BIGINT) IS NOT NULL
+                AND LEN(REPLACE(v.NHS_ID, ' ', '')) = 10
+            )
+            -- Successful double-check: no change with: v.EPJS_ID != 'xNx'.
+
+        -- Final count: 152888.
+    """  # noqa
+    )
+    _hash = Hasher(hash_key).hash  # hashing function
+    engine = create_engine(url, echo=echo)
+    result = engine.execute(sql)  # type: ResultProxy
+    q = QueryColnames
+    for row in result:
+        cdl_m_number = row["cdl_m_number"]
+        nhs_number = row[q.NHS_NUMBER]
+        dob = row[q.DOB]
+        gender = row[q.GENDER]
+        first_mh_care_date = row[q.FIRST_MH_CARE_DATE]
+
+        postcode_str = row[q.POSTCODE]
+        postcode_info = None  # type: Optional[PostcodeInfo]
+        if postcode_str and POSTCODE_REGEX.match(postcode_str):
+            postcode_info = PostcodeInfo(
+                postcode=postcode_str.upper(),
+                start_date=None,
+                end_date=None,
+                index_of_multiple_deprivation=row[
+                    q.INDEX_OF_MULTIPLE_DEPRIVATION
+                ],
+            )
+
+        other = CPFTValidationExtras(
+            hashed_nhs_number=_hash(nhs_number),
+            blurred_dob=truncate_date_to_first_of_month(dob),
+            gender=gender,
+            ethnicity=row[q.ETHNICITY],
+            index_of_multiple_deprivation=(
+                postcode_info.index_of_multiple_deprivation
+                if postcode_info
+                else None
+            ),
+            first_mh_care_date=first_mh_care_date,
+            age_at_first_mh_care=(
+                (first_mh_care_date - dob).in_years()
+                if dob and first_mh_care_date
+                else None
+            ),
+            any_icd10_dx_present=row[q.ANY_ICD10_DX_PRESENT],
+            chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
+            severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
+        )
+        p = Person(
+            cfg=cfg,
+            local_id=cdl_m_number,
+            other_info=other.json,
+            first_name=row[q.FIRST_NAME] or "",
+            middle_names=[],
+            surname=row[q.SURNAME] or "",
+            gender=gender,
+            dob=dob,
+            postcodes=(
+                [postcode_info.temporal_identifier] if postcode_info else []
+            ),
+        )
+        yield p
+
+
+# -----------------------------------------------------------------------------
+# Common functions
 # -----------------------------------------------------------------------------
 
 
@@ -969,8 +1366,12 @@ def save_people_from_db(
 
 
 # =============================================================================
-# Long help strings
+# Command-line entry point
 # =============================================================================
+
+# -----------------------------------------------------------------------------
+# Long help strings
+# -----------------------------------------------------------------------------
 
 HELP_VALIDATE_1 = f"""
     Takes an identifiable list of people (typically a short list of imaginary
@@ -986,42 +1387,42 @@ HELP_VALIDATE_1 = f"""
     Here's a specimen test CSV file to use, with entirely made-up people and
     institutional (not personal) postcodes in Cambridge:
 
-{DEMO_SAMPLE}
+{get_demo_csv()}
 
     Explanation of the output format:
 
-    collection_name:
+    {ValidationOutputColnames.COLLECTION_NAME}:
         A human-readable name summarizing the next four.
-    in_sample:
+    {ValidationOutputColnames.IN_SAMPLE}:
         (Boolean) Whether the probands are in the sample.
-    deletions:
+    {ValidationOutputColnames.DELETIONS}:
         (Boolean) Whether random items have been deleted from the probands.
-    typos:
+    {ValidationOutputColnames.TYPOS}:
         (Boolean) Whether random typos have been made in the probands.
 
-    is_hashed:
+    {ValidationOutputColnames.IS_HASHED}:
         (Boolean) Whether the proband and sample are hashed.
-    original_id:
-        The gold-standard ID of the proband.
-    winner_id:
-        The ID of the best-matching person in the sample if they were a good
-        enough match to win.
-    best_match_id:
-        The ID of the best-matching person in the sample.
-    best_log_odds:
+    {ValidationOutputColnames.PROBAND_ID}:
+        The gold-standard ID of the proband. ***
+    {ValidationOutputColnames.WINNER_ID}:
+        The *** ID of the best-matching person in the sample if they were a
+        good enough match to win.
+    {ValidationOutputColnames.BEST_MATCH_ID}:
+        The *** ID of the best-matching person in the sample.
+    {ValidationOutputColnames.BEST_LOG_ODDS}:
         The calculated log (ln) odds that the proband and the sample member
         identified by 'winner_id' are the sample person (ideally high if there
         is a true match, low if not).
-    second_best_log_odds:
+    {ValidationOutputColnames.SECOND_BEST_LOG_ODDS}:
         The calculated log odds of the proband and the runner-up being the same
         person (ideally low).
-    second_best_match_id:
+    {ValidationOutputColnames.SECOND_BEST_MATCH_ID}:
         The ID of the second-best matching person, if there is one.
 
-    correct_if_winner:
+    {ValidationOutputColnames.CORRECT_IF_WINNER}:
         (Boolean) Whether the proband and winner IDs are the same (ideally
         true).
-    leader_advantage:
+    {ValidationOutputColnames.LEADER_ADVANTAGE}:
         The log odds by which the winner beats the runner-up (ideally high,
         indicating a strong preference for the winner over the runner-up).
 
@@ -1042,11 +1443,6 @@ HELP_VALIDATE_1 = f"""
     - P(unique hashed match | proband in others) -- should be close to 0.
 """
 
-DEFAULT_CDL_PLAINTEXT = "validate2_cdl_DANGER_IDENTIFIABLE.csv"
-DEFAULT_RIO_PLAINTEXT = "validate2_rio_DANGER_IDENTIFIABLE.csv"
-DEFAULT_CDL_HASHED = "validate2_cdl_hashed.csv"
-DEFAULT_RIO_HASHED = "validate2_rio_hashed.csv"
-CAMBS_POPULATION = 852523  # 2018 estimate; https://cambridgeshireinsight.org.uk/population/  # noqa
 HELP_VALIDATE_2_CDL = f"""
     Validation #2. Sequence:
 
@@ -1069,9 +1465,9 @@ HELP_VALIDATE_2_CDL = f"""
 """  # noqa
 
 
-# =============================================================================
+# -----------------------------------------------------------------------------
 # Main
-# =============================================================================
+# -----------------------------------------------------------------------------
 
 
 def main() -> int:
@@ -1079,9 +1475,9 @@ def main() -> int:
     Command-line entry point.
     """
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Argument parser
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
@@ -1094,15 +1490,15 @@ def main() -> int:
         help="show help for all commands and exit",
     )
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Common arguments
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     add_common_groups(parser)
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Subcommand subparser
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     subparsers = parser.add_subparsers(
         title="commands",
@@ -1112,9 +1508,9 @@ def main() -> int:
     )  # type: _SubParsersAction  # noqa
     subparsers.required = True  # requires a command
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # speedtest command
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     speedtest_parser = subparsers.add_parser(
         "speedtest",
@@ -1132,9 +1528,9 @@ def main() -> int:
         "time).",
     )
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # validate1 command
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     validate1_parser = subparsers.add_parser(
         "validate1",
@@ -1155,7 +1551,10 @@ def main() -> int:
         "--output",
         type=str,
         required=True,
-        help="Output CSV file for validation. " + VALIDATION_OUTPUT_CSV_HELP,
+        help=(
+            f"Output CSV file for validation. Header row present. Columns: "
+            f"{VALIDATION_OUTPUT_COLNAMES}."
+        ),
     )
     validate1_parser.add_argument(
         "--seed",
@@ -1165,9 +1564,9 @@ def main() -> int:
         "validation test 1",
     )
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # validate2 and ancillary commands
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     validate2_cdl_parser = subparsers.add_parser(
         "validate2_fetch_cdl",
@@ -1215,20 +1614,19 @@ def main() -> int:
         + Person.PLAINTEXT_CSV_FORMAT_HELP,
     )
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Parse arguments and set up
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     args = parser.parse_args()
     main_only_quicksetup_rootlogger(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        with_process_id=True,
+        level=logging.DEBUG if args.verbose else logging.INFO
     )
     cfg = get_cfg_from_args(args)
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Run a command
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     log.info(f"Command: {args.command}")
 
@@ -1263,6 +1661,9 @@ def main() -> int:
             ),
             output_csv=args.output,
         )
+
+    # todo:: PCMIS
+    # todo:: SystmOne
 
     else:
         # Shouldn't get here.

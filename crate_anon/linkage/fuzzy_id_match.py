@@ -104,6 +104,8 @@ import argparse
 from collections import Counter, defaultdict
 import copy
 import csv
+from io import StringIO
+import json
 import logging
 import math
 from multiprocessing import cpu_count, Pool
@@ -132,6 +134,7 @@ from cardinal_pythonlib.argparse_func import (
     RawDescriptionArgumentDefaultsHelpFormatter,
     ShowAllSubparserHelpAction,
 )
+from cardinal_pythonlib.datetimefunc import coerce_to_pendulum_date
 from cardinal_pythonlib.hash import HmacSHA256Hasher
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.maths_py import round_sf
@@ -170,7 +173,6 @@ log = logging.getLogger(__name__)
 
 CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = False  # for debugging only
 
-CPU_COUNT = 8 if EnvVar.GENERATING_CRATE_DOCS in os.environ else cpu_count()
 CRATE_FETCH_WORDLISTS = "crate_fetch_wordlists"
 DAYS_PER_YEAR = 365.25  # approximately!
 HIGHDEBUG = 15  # in between logging.DEBUG (10) and logging.INFO (20)
@@ -179,21 +181,6 @@ THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 UK_MEAN_OA_POPULATION_2011 = 309
 # ... https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography  # noqa
 UK_POPULATION_2017 = 66040000  # 2017 figure, 66.04m
-
-DEMO_SAMPLE = """
-original_id,research_id,first_name,middle_names,surname,dob,gender,postcodes
-1,r1,Alice,Zara,Smith,1931-01-01,F,CB2 0QQ/2000-01-01/2010-12-31
-2,r2,Bob,Yorick,Jones,1932-01-01,M,CB2 3EB/2000-01-01/2010-12-31
-3,r3,Celia,Xena,Wright,1933-01-01,F,CB2 1TP/2000-01-01/2010-12-31
-4,r4,David,William;Wallace,Cartwright,1934-01-01,M,CB2 8PH/2000-01-01/2010-12-31;CB2 1TP/2000-01-01/2010-12-31
-5,r5,Emily,Violet,Fisher,1935-01-01,F,CB3 9DF/2000-01-01/2010-12-31
-6,r6,Frank,Umberto,Williams,1936-01-01,M,CB2 1TQ/2000-01-01/2010-12-31
-7,r7,Greta,Tilly,Taylor,1937-01-01,F,CB2 1DQ/2000-01-01/2010-12-31
-8,r8,Harry,Samuel,Davies,1938-01-01,M,CB3 9ET/2000-01-01/2010-12-31
-9,r9,Iris,Ruth,Evans,1939-01-01,F,CB3 0DG/2000-01-01/2010-12-31
-10,r10,James,Quentin,Thomas,1940-01-01,M,CB2 0SZ/2000-01-01/2010-12-31
-11,r11,Alice,,Smith,1931-01-01,F,CB2 0QQ/2000-01-01/2010-12-31
-""".strip()  # noqa
 
 
 class FuzzyDefaults:
@@ -208,6 +195,7 @@ class FuzzyDefaults:
     if EnvVar.GENERATING_CRATE_DOCS in os.environ:
         DEFAULT_CACHE_DIR = "/path/to/crate/user/data"
         POSTCODES_CSV = "/path/to/postcodes/file"
+        N_PROCESSES = 8
     else:
         DEFAULT_CACHE_DIR = os.path.join(
             appdirs.user_data_dir(appname=_appname)
@@ -217,6 +205,7 @@ class FuzzyDefaults:
                 "~/dev/ons/ONSPD_Nov2019/unzipped/Data/ONSPD_NOV_2019_UK.csv"
             )
         )
+        N_PROCESSES = cpu_count()
     FORENAME_CACHE_FILENAME = os.path.join(
         DEFAULT_CACHE_DIR, "fuzzy_forename_cache.pickle"
     )
@@ -1898,45 +1887,249 @@ VALID_GENDERS = ["", GENDER_MALE, GENDER_FEMALE, GENDER_OTHER]
 # ... standard three gender codes; "" = missing
 
 
-class Person(object):
+class BasePerson:
+    """
+    Simple information about a person, without frequency calculations.
+    """
+
+    ATTR_OTHER_INFO = "other_info"  # anything the user may want to attach
+
+    _COMMON_ATTRS = [
+        "local_id",  # person ID within the relevant database (proband/sample)
+    ]
+    PLAINTEXT_ATTRS = (
+        _COMMON_ATTRS
+        + [
+            "first_name",
+            "middle_names",
+            "surname",
+            "dob",
+            "gender",
+            "postcodes",
+        ]
+        + [ATTR_OTHER_INFO]
+    )
+
+    # For reading CSV:
+    INT_ATTRS = []
+    FLOAT_ATTRS = []
+    SEMICOLON_DELIMIT = [
+        "middle_names",
+        "postcodes",
+    ]
+    TEMPORAL_IDENTIFIERS = [
+        "postcodes",
+    ]
+    PLAINTEXT_CSV_FORMAT_HELP = (
+        f"Header row present. Columns: {PLAINTEXT_ATTRS}. "
+        f"The fields {sorted(TEMPORAL_IDENTIFIERS)} "
+        f"are in TemporalIdentifier format. {TemporalIdentifier.FORMAT_HELP} "
+        f"Semicolon-separated values are allowed within "
+        f"{sorted(SEMICOLON_DELIMIT)}."
+    )
+
+    # -------------------------------------------------------------------------
+    # Creation
+    # -------------------------------------------------------------------------
+
+    def __init__(
+        self,
+        local_id: str = "",
+        other_info: str = "",
+        first_name: str = "",
+        middle_names: List[str] = None,
+        surname: str = "",
+        dob: str = "",
+        gender: str = "",
+        postcodes: List[TemporalIdentifier] = None,
+        standardize: bool = True,
+    ) -> None:
+        """
+        Args:
+            local_id:
+                Identifier within this person's local database (e.g. proband ID
+                or sample ID). Typically a research pseudonym, not itself
+                identifying.
+            other_info:
+                String containing any other attributes the user may wish to
+                remember (e.g. in JSON). Only used for validation research
+                (e.g. ensuring linkage is not biased by ethnicity).
+
+            first_name:
+                (PLAINTEXT.) The person's first name.
+            middle_names:
+                (PLAINTEXT.) Any middle names.
+            surname:
+                (PLAINTEXT.) The person's surname.
+            dob:
+                (PLAINTEXT.) The date of birth in ISO-8061 "YYYY-MM-DD" string
+                format.
+            gender:
+                (PLAINTEXT.) The gender: 'M', 'F', 'X', or ''.
+            postcodes:
+                (PLAINTEXT.) Any UK postcodes for this person.
+
+            standardize:
+                Standardize names/postcodes etc. internally. Only turn this
+                off for demonstration purposes.
+        """
+        self.local_id = local_id
+        self.other_info = other_info
+        self.first_name = first_name
+        self.middle_names = middle_names or []
+        self.surname = surname
+        self.dob = dob
+        self.gender = gender
+        self.postcodes = postcodes or []
+
+        if standardize:
+            self.first_name = standardize_name(self.first_name)
+            self.middle_names = [
+                standardize_name(x) for x in self.middle_names if x
+            ]
+            self.surname = standardize_name(self.surname)
+            for p in self.postcodes:
+                if p.identifier:
+                    p.identifier = standardize_postcode(p.identifier)
+
+        assert self.local_id, "Need local_id"
+        if self.dob:
+            assert ISO_DATE_REGEX.match(dob), f"Bad date: {dob!r}"
+        assert self.gender in VALID_GENDERS
+        for p in self.postcodes:
+            assert POSTCODE_REGEX.match(
+                p.identifier
+            ), f"Bad postcode: {p.identifier!r}"
+
+    @classmethod
+    def _from_csv(
+        cls,
+        cfg: MatchConfig,
+        rowdict: Dict[str, str],
+        attrs: List[str],
+        is_hashed: bool,
+    ) -> "Person":
+        """
+        Returns a :class:`Person` object from a CSV row.
+
+        Args:
+            cfg: a configuration object
+            rowdict: a CSV row, read via :class:`csv.DictReader`.
+        """
+        kwargs = {}  # type: Dict[str, Any]
+        for attr in attrs:
+            v = rowdict[attr]
+            if attr in cls.SEMICOLON_DELIMIT:
+                v = [x.strip() for x in v.split(";") if x]
+                if attr in cls.INT_ATTRS:
+                    v = [int(x) for x in v]
+                elif attr in cls.FLOAT_ATTRS:
+                    v = [float(x) for x in v]
+                elif attr in cls.TEMPORAL_IDENTIFIERS:
+                    v = [TemporalIdentifier.from_str(x) for x in v]
+            elif attr in cls.INT_ATTRS:
+                v = int(v) if v else None
+            elif attr in cls.FLOAT_ATTRS:
+                v = float(v) if v else None
+            elif attr in cls.TEMPORAL_IDENTIFIERS:
+                v = TemporalIdentifier.from_str(v) if v else None
+            kwargs[attr] = v
+        return Person(cfg=cfg, is_hashed=is_hashed, **kwargs)
+
+    @classmethod
+    def from_plaintext_csv(
+        cls, cfg: MatchConfig, rowdict: Dict[str, str]
+    ) -> "Person":
+        """
+        Returns a :class:`Person` object from a plaintext CSV row.
+
+        Args:
+            cfg: a configuration object
+            rowdict: a CSV row, read via :class:`csv.DictReader`.
+        """
+        return cls._from_csv(
+            cfg, rowdict, cls.PLAINTEXT_ATTRS, is_hashed=False
+        )
+
+    # -------------------------------------------------------------------------
+    # Representation, reading, writing
+    # -------------------------------------------------------------------------
+
+    def __str__(self) -> str:
+        names = " ".join(
+            [self.first_name] + self.middle_names + [self.surname]
+        )
+        postcodes = " - ".join(str(x) for x in self.postcodes)
+        details = ", ".join(
+            [
+                f"local_id={self.local_id}",
+                f"name={names}",
+                f"gender={self.gender}",
+                f"dob={self.dob}",
+                f"postcode={postcodes}",
+                f"other={self.other_info!r}",
+            ]
+        )
+        return f"Person with {details}"
+
+    def _csv_dict(self, attrs: List[str]) -> Dict[str, Any]:
+        """
+        Returns a dictionary suitable for :class:`csv.DictWriter`.
+        """
+        d = {}  # type: Dict[str, Any]
+        for k in attrs:
+            a = getattr(self, k)
+            if k in self.SEMICOLON_DELIMIT:
+                v = ";".join(str(x) for x in a)
+            else:
+                v = a
+            d[k] = v
+        return d
+
+    def plaintext_csv_columns(self) -> List[str]:
+        """
+        CSV column names -- including user-specified "other" information.
+        """
+        return self.PLAINTEXT_ATTRS
+
+    def plaintext_csv_dict(self) -> Dict[str, Any]:
+        """
+        Returns a dictionary suitable for :class:`csv.DictWriter`.
+        """
+        return self._csv_dict(self.PLAINTEXT_ATTRS)
+
+
+class Person(BasePerson):
     """
     Represents a person. The information may be incomplete or slightly wrong.
     """
 
-    _COMMON_ATTRS = [
-        # not: "is_hashed",
-        "original_id",
-        "research_id",
-    ]
-    PLAINTEXT_ATTRS = _COMMON_ATTRS + [
-        "first_name",
-        "middle_names",
-        "surname",
-        "dob",
-        "gender",
-        "postcodes",
-    ]
-    HASHED_ATTRS = _COMMON_ATTRS + [
-        "hashed_first_name",
-        "first_name_frequency",
-        "hashed_first_name_metaphone",
-        "first_name_metaphone_frequency",
-        "hashed_middle_names",
-        "middle_name_frequencies",
-        "hashed_middle_name_metaphones",
-        "middle_name_metaphone_frequencies",
-        "hashed_surname",
-        "surname_frequency",
-        "hashed_surname_metaphone",
-        "surname_metaphone_frequency",
-        "hashed_dob",
-        "hashed_gender",
-        "gender_frequency",
-        "hashed_postcode_units",
-        "postcode_unit_frequencies",
-        "hashed_postcode_sectors",
-        "postcode_sector_frequencies",
-    ]
+    HASHED_ATTRS = (
+        BasePerson._COMMON_ATTRS
+        + [
+            # not: "is_hashed",
+            "hashed_first_name",
+            "first_name_frequency",
+            "hashed_first_name_metaphone",
+            "first_name_metaphone_frequency",
+            "hashed_middle_names",
+            "middle_name_frequencies",
+            "hashed_middle_name_metaphones",
+            "middle_name_metaphone_frequencies",
+            "hashed_surname",
+            "surname_frequency",
+            "hashed_surname_metaphone",
+            "surname_metaphone_frequency",
+            "hashed_dob",
+            "hashed_gender",
+            "gender_frequency",
+            "hashed_postcode_units",
+            "postcode_unit_frequencies",
+            "hashed_postcode_sectors",
+            "postcode_sector_frequencies",
+        ]
+        + [BasePerson.ATTR_OTHER_INFO]
+    )
     HASHED_FREQUENCY_ATTRS = [
         "first_name_frequency",
         "first_name_metaphone_frequency",
@@ -1948,10 +2141,7 @@ class Person(object):
         "postcode_unit_frequencies",
         "postcode_sector_frequencies",
     ]
-    INT_ATTRS = [
-        "original_id",
-    ]
-    FLOAT_ATTRS = [
+    FLOAT_ATTRS = BasePerson.FLOAT_ATTRS + [
         "first_name_frequency",
         "first_name_metaphone_frequency",
         "middle_name_frequencies",
@@ -1962,10 +2152,7 @@ class Person(object):
         "postcode_unit_frequencies",
         "postcode_sector_frequencies",
     ]
-    SEMICOLON_DELIMIT = [
-        # plaintext
-        "middle_names",
-        "postcodes",
+    SEMICOLON_DELIMIT = BasePerson.SEMICOLON_DELIMIT + [
         # hashed
         "hashed_middle_names",
         "middle_name_frequencies",
@@ -1976,19 +2163,10 @@ class Person(object):
         "hashed_postcode_sectors",
         "postcode_sector_frequencies",
     ]
-    TEMPORAL_IDENTIFIERS = [
-        "postcodes",
+    TEMPORAL_IDENTIFIERS = BasePerson.TEMPORAL_IDENTIFIERS + [
         "hashed_postcode_units",
         "hashed_postcode_sectors",
     ]
-    PLAINTEXT_CSV_FORMAT_HELP = (
-        f"Header row present. Columns: {PLAINTEXT_ATTRS}. "
-        f"The fields "
-        f"{sorted(list(set(TEMPORAL_IDENTIFIERS).intersection(PLAINTEXT_ATTRS)))} "  # noqa
-        f"are in TemporalIdentifier format. {TemporalIdentifier.FORMAT_HELP} "
-        f"Semicolon-separated values are allowed within "
-        f"{sorted(list(set(SEMICOLON_DELIMIT).intersection(PLAINTEXT_ATTRS)))}."  # noqa
-    )
     HASHED_CSV_FORMAT_HELP = (
         f"Header row present. Columns: {HASHED_ATTRS}. "
         f"The fields "
@@ -2008,8 +2186,8 @@ class Person(object):
         # State
         is_hashed: bool = False,
         # Reference codes
-        original_id: int = None,
-        research_id: str = "",
+        local_id: str = "",
+        other_info: str = "",
         # Plaintext
         first_name: str = "",
         middle_names: List[str] = None,
@@ -2037,23 +2215,24 @@ class Person(object):
         postcode_unit_frequencies: List[float] = None,
         hashed_postcode_sectors: List[TemporalIdentifier] = None,
         postcode_sector_frequencies: List[float] = None,
-        other: Dict[str, Any] = None,
     ) -> None:
         """
         Args:
             cfg:
                 Configuration object. It is more efficient to use this while
                 creating a Person object; it saves lookup time later.
-
             is_hashed:
                 Is this a hashed representation? If so, matching works
                 differently.
 
-            original_id:
-                Unique integer ID. Not used at all for comparison; simply used
-                to retrieve an identity after a match has been confirmed.
-            research_id:
-                Research pseudonym (not itself identifying).
+            local_id:
+                Identifier within this person's local database (e.g. proband ID
+                or sample ID). Typically a research pseudonym, not itself
+                identifying.
+            other_info:
+                String containing any other attributes the user may wish to
+                remember (e.g. in JSON). Only used for validation research
+                (e.g. ensuring linkage is not biased by ethnicity).
 
             first_name:
                 The person's first name.
@@ -2073,7 +2252,8 @@ class Person(object):
             first_name_frequency:
                 The first name's frequency in the population, range [0, 1].
             hashed_first_name_metaphone:
-                The first name's metaphone ("sounds like"), irreversibly hashed.
+                The first name's metaphone ("sounds like"), irreversibly
+                hashed.
             first_name_metaphone_frequency:
                 The first name metaphone's frequency in the population.
 
@@ -2111,32 +2291,26 @@ class Person(object):
                 Postcode sectors, hashed.
             postcode_sector_frequencies:
                 Frequencies of each postcode sector.
+        """
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Superclass init
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        super().__init__(
+            local_id=local_id,
+            other_info=other_info,
+            first_name=first_name,
+            middle_names=middle_names,
+            surname=surname,
+            dob=dob,
+            gender=gender,
+            postcodes=postcodes,
+        )
 
-            other:
-                Dictionary of other attributes (only used for validation
-                research, e.g. ensuring linkage is not biased by ethnicity).
-        """  # noqa: E501
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Store info
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.cfg = cfg
         self.is_hashed = is_hashed
-        self.original_id = original_id
-        self.research_id = research_id
-
-        self.first_name = standardize_name(first_name)
-        self.middle_names = (
-            [standardize_name(x) for x in middle_names if x]
-            if middle_names
-            else []
-        )
-        self.surname = standardize_name(surname)
-        self.dob = dob
-        self.gender = gender
-        self.postcodes = postcodes or []
-        for p in self.postcodes:
-            if p.identifier:
-                p.identifier = standardize_postcode(p.identifier)
 
         self.hashed_first_name = hashed_first_name
         self.first_name_frequency = first_name_frequency
@@ -2150,7 +2324,7 @@ class Person(object):
         )
         self.hashed_middle_name_metaphones = (
             hashed_middle_name_metaphones or []
-        )  # noqa
+        )
         self.middle_name_metaphone_frequencies = (
             middle_name_metaphone_frequencies or [None] * n_hashed_middle_names
         )
@@ -2175,12 +2349,9 @@ class Person(object):
             postcode_sector_frequencies or [None] * n_hashed_postcodes
         )
 
-        self.other = other or {}  # type: Dict[str, Any]
-
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Validation
-        # ---------------------------------------------------------------------
-        assert self.original_id or self.research_id
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if is_hashed:
             # hashed
             assert (
@@ -2236,17 +2407,10 @@ class Person(object):
                 and not self.hashed_postcode_sectors
                 and not self.postcode_sector_frequencies
             ), "Don't supply hashed information for a plaintext Person"
-            if self.dob:
-                assert ISO_DATE_REGEX.match(dob), f"Bad date: {dob}"
-            assert self.gender in VALID_GENDERS
-            for p in self.postcodes:
-                assert POSTCODE_REGEX.match(
-                    p.identifier
-                ), f"Bad postcode: {p.identifier}"
 
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Precalculate things, for speed
-        # ---------------------------------------------------------------------
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         self.middle_names_info = []  # type: List[FuzzyIdFreq]
         self.postcodes_info = []  # type: List[FuzzyIdFreq]
@@ -2399,15 +2563,6 @@ class Person(object):
                     )
                 )
 
-    def __repr__(self) -> str:
-        """
-        Returns a string representation that can be used for reconstruction.
-        """
-        attrs = ["is_hashed"]
-        attrs += self.HASHED_ATTRS if self.is_hashed else self.PLAINTEXT_ATTRS
-        attrlist = [f"{a}={getattr(self, a)!r}" for a in attrs]
-        return f"Person({', '.join(attrlist)})"
-
     def copy(self) -> "Person":
         """
         Returns a copy of this object.
@@ -2429,135 +2584,6 @@ class Person(object):
             kwargs[attrname] = value
         return Person(cfg=self.cfg, is_hashed=self.is_hashed, **kwargs)
 
-    # -------------------------------------------------------------------------
-    # String and CSV formats
-    # -------------------------------------------------------------------------
-
-    def __str__(self) -> str:
-        if self.is_hashed:
-            return (
-                f"Hashed person with "
-                f"original_id={self.original_id!r}, "
-                f"research_id={self.research_id!r}"
-            )
-        else:
-            details = ", ".join(
-                [
-                    f"original_id={self.original_id}",
-                    f"research_id={self.research_id}",
-                    "name="
-                    + " ".join(
-                        [self.first_name] + self.middle_names + [self.surname]
-                    ),
-                    f"gender={self.gender}",
-                    f"dob={self.dob}",
-                    "postcode=" + " - ".join(str(x) for x in self.postcodes),
-                ]
-            )
-            return f"Person with {details}"
-
-    def _csv_dict(self, attrs: List[str]) -> Dict[str, Any]:
-        """
-        Returns a dictionary suitable for :class:`csv.DictWriter`.
-        """
-        d = {}  # type: Dict[str, Any]
-        for k in attrs:
-            a = getattr(self, k)
-            if k in self.SEMICOLON_DELIMIT:
-                v = ";".join(str(x) for x in a)
-            else:
-                v = a
-            d[k] = v
-        return d
-
-    def plaintext_csv_columns(self) -> List[str]:
-        """
-        CSV column names -- including user-specified "other" information.
-        """
-        return self.PLAINTEXT_ATTRS + list(self.other.keys())
-
-    def plaintext_csv_dict(self) -> Dict[str, Any]:
-        """
-        Returns a dictionary suitable for :class:`csv.DictWriter`.
-        """
-        assert not self.is_hashed
-        return self._csv_dict(self.PLAINTEXT_ATTRS)
-
-    def hashed_csv_dict(
-        self,
-        without_frequencies: bool = False,
-        include_original_id: bool = False,
-    ) -> Dict[str, Any]:
-        """
-        Returns a dictionary suitable for :class:`csv.DictWriter`.
-
-        Args:
-            without_frequencies:
-                Do not include frequency information. This makes the resulting
-                file suitable for use as a sample, but not as a proband file.
-            include_original_id:
-                include the (potentially identifying) ``original_id`` data?
-                Usually ``False``; may be ``True`` for validation.
-        """
-        assert self.is_hashed
-        attrs = self.HASHED_ATTRS.copy()
-        if without_frequencies:
-            for a in self.HASHED_FREQUENCY_ATTRS:
-                attrs.remove(a)
-        if not include_original_id:
-            attrs.remove("original_id")
-        return self._csv_dict(attrs)
-
-    @classmethod
-    def _from_csv(
-        cls,
-        cfg: MatchConfig,
-        rowdict: Dict[str, str],
-        attrs: List[str],
-        is_hashed: bool,
-    ) -> "Person":
-        """
-        Returns a :class:`Person` object from a CSV row.
-
-        Args:
-            cfg: a configuration object
-            rowdict: a CSV row, read via :class:`csv.DictReader`.
-        """
-        kwargs = {}  # type: Dict[str, Any]
-        for attr in attrs:
-            v = rowdict[attr]
-            if attr in cls.SEMICOLON_DELIMIT:
-                v = [x.strip() for x in v.split(";") if x]
-                if attr in cls.INT_ATTRS:
-                    v = [int(x) for x in v]
-                elif attr in cls.FLOAT_ATTRS:
-                    v = [float(x) for x in v]
-                elif attr in cls.TEMPORAL_IDENTIFIERS:
-                    v = [TemporalIdentifier.from_str(x) for x in v]
-            elif attr in cls.INT_ATTRS:
-                v = int(v) if v else None
-            elif attr in cls.FLOAT_ATTRS:
-                v = float(v) if v else None
-            elif attr in cls.TEMPORAL_IDENTIFIERS:
-                v = TemporalIdentifier.from_str(v) if v else None
-            kwargs[attr] = v
-        return Person(cfg=cfg, is_hashed=is_hashed, **kwargs)
-
-    @classmethod
-    def from_plaintext_csv(
-        cls, cfg: MatchConfig, rowdict: Dict[str, str]
-    ) -> "Person":
-        """
-        Returns a :class:`Person` object from a plaintext CSV row.
-
-        Args:
-            cfg: a configuration object
-            rowdict: a CSV row, read via :class:`csv.DictReader`.
-        """
-        return cls._from_csv(
-            cfg, rowdict, cls.PLAINTEXT_ATTRS, is_hashed=False
-        )
-
     @classmethod
     def from_hashed_csv(
         cls, cfg: MatchConfig, rowdict: Dict[str, str]
@@ -2570,6 +2596,50 @@ class Person(object):
             rowdict: a CSV row, read via :class:`csv.DictReader`.
         """
         return cls._from_csv(cfg, rowdict, cls.HASHED_ATTRS, is_hashed=True)
+
+    # -------------------------------------------------------------------------
+    # String and CSV formats
+    # -------------------------------------------------------------------------
+
+    def __repr__(self) -> str:
+        """
+        Returns a string representation that can be used for reconstruction.
+        """
+        attrs = ["is_hashed"]
+        attrs += self.HASHED_ATTRS if self.is_hashed else self.PLAINTEXT_ATTRS
+        attrlist = [f"{a}={getattr(self, a)!r}" for a in attrs]
+        return f"Person({', '.join(attrlist)})"
+
+    def __str__(self) -> str:
+        if self.is_hashed:
+            return f"Hashed person with local_id={self.local_id!r}"
+        else:
+            return super().__str__()
+
+    def hashed_csv_dict(
+        self,
+        without_frequencies: bool = False,
+        include_other_info: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        Returns a dictionary suitable for :class:`csv.DictWriter`.
+
+        Args:
+            without_frequencies:
+                Do not include frequency information. This makes the resulting
+                file suitable for use as a sample, but not as a proband file.
+            include_other_info:
+                include the (potentially identifying) ``other_info`` data?
+                Usually ``False``; may be ``True`` for validation.
+        """
+        assert self.is_hashed
+        attrs = self.HASHED_ATTRS.copy()
+        if without_frequencies:
+            for a in self.HASHED_FREQUENCY_ATTRS:
+                attrs.remove(a)
+        if not include_other_info:
+            attrs.remove(BasePerson.ATTR_OTHER_INFO)
+        return self._csv_dict(attrs)
 
     # -------------------------------------------------------------------------
     # Created hashed version
@@ -2684,8 +2754,8 @@ class Person(object):
         return Person(
             cfg=cfg,
             is_hashed=True,
-            original_id=self.original_id,
-            research_id=self.research_id,
+            local_id=self.local_id,
+            other_info=self.other_info,
             hashed_first_name=hashed_first_name,
             first_name_frequency=first_name_frequency,
             hashed_first_name_metaphone=hashed_first_name_metaphone,
@@ -2997,28 +3067,29 @@ class MatchResult(object):
         winner: Person = None,
         best_log_odds: float = MINUS_INFINITY,
         second_best_log_odds: float = MINUS_INFINITY,
-        best_person: Person = None,
-        second_best_person: Person = None,
+        best_candidate: Person = None,
+        second_best_candidate: Person = None,
         proband: Person = None,
     ):
         """
         Args:
             winner:
-                The person in the sample who matches the proband, if there is
-                a winner by our rules; ``None`` if there is no winner.
+                The person in the sample (candidate) who matches the proband,
+                if there is a winner by our rules; ``None`` if there is no
+                winner.
             best_log_odds:
                 Natural log odds of the best candidate being the same as the
                 proband, –∞ if there are no candidates
             second_best_log_odds:
                 The log odds of the closest other contender, which may be  –∞.
-            best_person:
-                The person in the sample who is the closest match to the
-                proband. May be ``None``. If there is a winner, this is also
-                the best person -- but the best person may not be the winner
-                (if they are not likely enough, or if there is another close
-                contender).
-            second_best_person:
-                The runner-up (second-best) person, or ``None``.
+            best_candidate:
+                The person in the sample (candidate) who is the closest match
+                to the proband. May be ``None``. If there is a winner, this is
+                also the best person -- but the best person may not be the
+                winner (if they are not likely enough, or if there is another
+                close contender).
+            second_best_candidate:
+                The runner-up (second-best) candidate person, or ``None``.
             proband:
                 The proband used for the comparison. (Helpful for parallel
                 processing.)
@@ -3026,8 +3097,8 @@ class MatchResult(object):
         self.winner = winner
         self.best_log_odds = best_log_odds
         self.second_best_log_odds = second_best_log_odds
-        self.best_person = best_person
-        self.second_best_person = second_best_person
+        self.best_candidate = best_candidate
+        self.second_best_candidate = second_best_candidate
         self.proband = proband
 
     @property
@@ -3039,8 +3110,8 @@ class MatchResult(object):
             f"winner={self.winner}",
             f"best_log_odds={self.best_log_odds}",
             f"second_best_log_odds={self.second_best_log_odds}",
-            f"best_person={self.best_person}",
-            f"second_best_person={self.second_best_person}",
+            f"best_candidate={self.best_candidate}",
+            f"second_best_candidate={self.second_best_candidate}",
             f"proband={self.proband}",
         ]
         return f"MatchResult({', '.join(attrs)}"
@@ -3180,13 +3251,13 @@ class People(object):
         result = MatchResult(
             best_log_odds=best_log_odds,
             second_best_log_odds=second_best_log_odds,
-            best_person=shortlist[best_idx] if best_idx >= 0 else None,
-            second_best_person=(
+            best_candidate=shortlist[best_idx] if best_idx >= 0 else None,
+            second_best_candidate=(
                 shortlist[second_best_idx] if second_best_idx >= 0 else None
             ),
             proband=proband,
         )
-        result.winner = result.best_person
+        result.winner = result.best_candidate
 
         if not result.winner:
             if verbose:
@@ -3247,20 +3318,26 @@ class People(object):
 # Comparing people
 # =============================================================================
 
-COMPARISON_OUTPUT_COLNAMES = [
-    "proband_original_id",
-    "proband_research_id",
-    "matched",
-    "log_odds_match",
-    "p_match",
-    "sample_match_original_id",
-    "sample_match_research_id",
-    "second_best_log_odds",
-]
-COMPARISON_EXTRA_COLNAMES = [
-    "best_person_original_id",
-    "best_person_research_id",
-]
+
+class ComparisonOutputColnames:
+    PROBAND_LOCAL_ID = "proband_local_id"
+    MATCHED = "matched"
+    LOG_ODDS_MATCH = "log_odds_match"
+    P_MATCH = "p_match"
+    SAMPLE_MATCH_LOCAL_ID = "sample_match_local_id"
+    SECOND_BEST_LOG_ODDS = "second_best_log_odds"
+
+    BEST_CANDIDATE_LOCAL_ID = "best_candidate_local_id"
+
+    COMPARISON_OUTPUT_COLNAMES = [
+        PROBAND_LOCAL_ID,
+        MATCHED,
+        LOG_ODDS_MATCH,
+        P_MATCH,
+        SAMPLE_MATCH_LOCAL_ID,
+        SECOND_BEST_LOG_ODDS,
+    ]
+    COMPARISON_EXTRA_COLNAMES = [BEST_CANDIDATE_LOCAL_ID]
 
 
 def compare_probands_to_sample(
@@ -3270,7 +3347,7 @@ def compare_probands_to_sample(
     output_csv: str,
     report_every: int = 100,
     extra_validation_output: bool = False,
-    n_workers: int = CPU_COUNT,
+    n_workers: int = FuzzyDefaults.N_PROCESSES,
     max_chunksize: int = FuzzyDefaults.MAX_CHUNKSIZE,
     min_probands_for_parallel: int = FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
 ) -> None:
@@ -3357,23 +3434,18 @@ def compare_probands_to_sample(
         p = r.proband
         w = r.winner
         matched = r.matched
-        rowdata = dict(
-            proband_original_id=p.original_id,
-            proband_research_id=p.research_id,
-            matched=int(matched),
-            log_odds_match=r.best_log_odds,
-            p_match=probability_from_log_odds(r.best_log_odds),
-            sample_match_original_id=w.original_id if matched else None,
-            sample_match_research_id=w.research_id if matched else None,
-            second_best_log_odds=r.second_best_log_odds,
-        )
+        c = ComparisonOutputColnames
+        rowdata = {
+            c.PROBAND_LOCAL_ID: p.local_id,
+            c.MATCHED: int(matched),
+            c.LOG_ODDS_MATCH: r.best_log_odds,
+            c.P_MATCH: probability_from_log_odds(r.best_log_odds),
+            c.SAMPLE_MATCH_LOCAL_ID: w.local_id if matched else None,
+            c.SECOND_BEST_LOG_ODDS: r.second_best_log_odds,
+        }
         if extra_validation_output:
-            best_person = r.best_person
-            rowdata["best_person_original_id"] = (
-                best_person.original_id if best_person else None
-            )
-            rowdata["best_person_research_id"] = (
-                best_person.research_id if best_person else None
+            rowdata[c.BEST_CANDIDATE_LOCAL_ID] = (
+                r.best_candidate.local_id if r.best_candidate else None
             )
         writer.writerow(rowdata)
 
@@ -3397,9 +3469,9 @@ def compare_probands_to_sample(
         f"{n_probands} probands and {n_sample} in the sample."
     )
     parallel = n_workers > 1 and n_probands >= min_probands_for_parallel
-    colnames = COMPARISON_OUTPUT_COLNAMES
+    colnames = ComparisonOutputColnames.COMPARISON_OUTPUT_COLNAMES
     if extra_validation_output:
-        colnames += COMPARISON_EXTRA_COLNAMES
+        colnames += ComparisonOutputColnames.COMPARISON_EXTRA_COLNAMES
     rownum = 0
     time_start = time.time()
     with open(output_csv, "wt") as f:
@@ -3469,7 +3541,7 @@ def compare_probands_to_sample_from_csv(
     sample_cache_filename: str = "",
     extra_validation_output: bool = False,
     profile: bool = False,
-    n_workers: int = CPU_COUNT,
+    n_workers: int = FuzzyDefaults.N_PROCESSES,
     max_chunksize: int = FuzzyDefaults.MAX_CHUNKSIZE,
     min_probands_for_parallel: int = FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
 ) -> None:
@@ -3628,7 +3700,7 @@ def hash_identity_file(
     input_csv: str,
     output_csv: str,
     without_frequencies: bool = False,
-    include_original_id: bool = False,
+    include_other_info: bool = False,
 ) -> None:
     """
     Hash a file of identifiable people to a hashed version.
@@ -3643,12 +3715,12 @@ def hash_identity_file(
         without_frequencies:
             Do not include frequency information. This makes the resulting file
             suitable for use as a sample, but not as a proband file.
-        include_original_id:
-            Include the (potentially identifying) ``original_id`` data? Usually
+        include_other_info:
+            Include the (potentially identifying) ``other_info`` data? Usually
             ``False``; may be ``True`` for validation.
     """
-    if include_original_id:
-        log.warning("include_original_id is set; use this for validation only")
+    if include_other_info:
+        log.warning("include_other_info is set; use this for validation only")
     with open(input_csv, "rt") as infile, open(output_csv, "wt") as outfile:
         reader = csv.DictReader(infile)
         writer = csv.DictWriter(outfile, fieldnames=Person.HASHED_ATTRS)
@@ -3659,76 +3731,242 @@ def hash_identity_file(
             writer.writerow(
                 hashed_person.hashed_csv_dict(
                     without_frequencies=without_frequencies,
-                    include_original_id=include_original_id,
+                    include_other_info=include_other_info,
                 )
             )
 
 
 # =============================================================================
-# Long help strings
+# Demonstration data
 # =============================================================================
+
+
+def get_demo_people() -> List[Person]:
+    """
+    Some demonstration records. All data are fictional. The postcodes are real
+    but are institutional, not residential, addresses in Cambridge.
+    """
+    d = coerce_to_pendulum_date
+
+    def p(postcode: str) -> TemporalIdentifier:
+        return TemporalIdentifier(
+            identifier=postcode,
+            start_date=d("2000-01-01"),
+            end_date=d("2010-12-31"),
+        )
+
+    def mkother(original_id: str) -> str:
+        return json.dumps({"original_id": original_id, "other_info": "?"})
+
+    standardize = False
+
+    return [
+        BasePerson(
+            local_id="r1",
+            other_info=mkother("1"),
+            first_name="Alice",
+            middle_names=["Zara"],
+            surname="Smith",
+            dob="1931-01-01",
+            gender=GENDER_FEMALE,
+            postcodes=[p("CB2 0QQ")],
+            standardize=standardize,
+        ),
+        BasePerson(
+            local_id="r2",
+            other_info=mkother("2"),
+            first_name="Bob",
+            middle_names=["Yorick"],
+            surname="Jones",
+            dob="1932-01-01",
+            gender=GENDER_MALE,
+            postcodes=[p("CB2 3EB")],
+            standardize=standardize,
+        ),
+        BasePerson(
+            local_id="r3",
+            other_info=mkother("3"),
+            first_name="Celia",
+            middle_names=["Xena"],
+            surname="Wright",
+            dob="1933-01-01",
+            gender=GENDER_FEMALE,
+            postcodes=[p("CB2 1TP")],
+            standardize=standardize,
+        ),
+        BasePerson(
+            local_id="r4",
+            other_info=mkother("4"),
+            first_name="David",
+            middle_names=["William", "Wallace"],
+            surname="Cartwright",
+            dob="1934-01-01",
+            gender=GENDER_MALE,
+            postcodes=[p("CB2 8PH"), p("CB2 1TP")],
+            standardize=standardize,
+        ),
+        BasePerson(
+            local_id="r5",
+            other_info=mkother("5"),
+            first_name="Emily",
+            middle_names=["Violet"],
+            surname="Fisher",
+            dob="1935-01-01",
+            gender=GENDER_FEMALE,
+            postcodes=[p("CB3 9DF")],
+            standardize=standardize,
+        ),
+        BasePerson(
+            local_id="r6",
+            other_info=mkother("6"),
+            first_name="Frank",
+            middle_names=["Umberto"],
+            surname="Williams",
+            dob="1936-01-01",
+            gender=GENDER_MALE,
+            postcodes=[p("CB2 1TQ")],
+            standardize=standardize,
+        ),
+        BasePerson(
+            local_id="r7",
+            other_info=mkother("7"),
+            first_name="Greta",
+            middle_names=["Tilly"],
+            surname="Taylor",
+            dob="1937-01-01",
+            gender=GENDER_FEMALE,
+            postcodes=[p("CB2 1DQ")],
+            standardize=standardize,
+        ),
+        BasePerson(
+            local_id="r8",
+            other_info=mkother("8"),
+            first_name="Harry",
+            middle_names=["Samuel"],
+            surname="Davies",
+            dob="1938-01-01",
+            gender=GENDER_MALE,
+            postcodes=[p("CB3 9ET")],
+            standardize=standardize,
+        ),
+        BasePerson(
+            local_id="r9",
+            other_info=mkother("9"),
+            first_name="Iris",
+            middle_names=["Ruth"],
+            surname="Evans",
+            dob="1939-01-01",
+            gender=GENDER_FEMALE,
+            postcodes=[p("CB3 0DG")],
+            standardize=standardize,
+        ),
+        BasePerson(
+            local_id="r10",
+            other_info=mkother("10"),
+            first_name="James",
+            middle_names=["Quentin"],
+            surname="Thomas",
+            dob="1940-01-01",
+            gender=GENDER_MALE,
+            postcodes=[p("CB2 0SZ")],
+            standardize=standardize,
+        ),
+        BasePerson(
+            local_id="r11",
+            other_info=mkother("11"),
+            first_name="Alice",
+            middle_names=[],
+            surname="Smith",
+            dob="1931-01-01",
+            gender=GENDER_FEMALE,
+            postcodes=[p("CB2 0QQ")],
+            standardize=standardize,
+        ),
+    ]
+
+
+def get_demo_csv() -> str:
+    """
+    A demonstration CSV file, as text.
+    """
+    people = get_demo_people()
+    assert len(people) >= 1
+    output = StringIO()
+    writer = csv.DictWriter(output, fieldnames=BasePerson.PLAINTEXT_ATTRS)
+    writer.writeheader()
+    for person in people:
+        writer.writerow(person.plaintext_csv_dict())
+    return output.getvalue()
+
+
+# =============================================================================
+# Command-line entry point
+# =============================================================================
+
+
+class Switches:
+    """
+    Argparse option switches that are used in several places.
+    """
+
+    EXTRA_VALIDATION_OUTPUT = "--extra_validation_output"
+
+
+# -----------------------------------------------------------------------------
+# Long help strings
+# -----------------------------------------------------------------------------
 
 HELP_COMPARISON = f"""
     Comparison rules:
 
     - People MUST match on DOB and surname (or surname metaphone), or hashed
       equivalents, to be considered a plausible match.
+
     - Only plausible matches proceed to the Bayesian comparison.
 
-    Output file format:
+    The output file is a CSV (comma-separated value) file with a header and
+    these columns:
 
-    - CSV file with header.
-    - Columns: {COMPARISON_OUTPUT_COLNAMES}
+    - {ComparisonOutputColnames.PROBAND_LOCAL_ID}
+      Local ID (identifiable or de-identified as the user chooses) of the
+      proband. Taken from the input.
 
-      - proband_original_id
-        Original (identifiable?) ID of the proband. Taken from the input.
-        Optional -- may be blank for de-identified comparisons.
+    - {ComparisonOutputColnames.MATCHED}
+      Boolean. Was a matching person (a "winner") found in the sample, who is
+      to be considered a match to the proband? To give a match requires (a)
+      that the log odds for the winner reaches a threshold, and (b) that the
+      log odds for the winner exceeds the log odds for the runner-up by a
+      certain amount (because a mismatch may be worse than a failed match).
 
-      - proband_research_id
-        Research ID (de-identified?) of the proband. Taken from the input.
+    - {ComparisonOutputColnames.LOG_ODDS_MATCH}
+      Log (ln) odds that the winner in the sample is a match to the proband.
 
-      - matched
-        Boolean. Was a matching person (a "winner") found in the sample, who
-        is to be considered a match to the proband? To give a match requires
-        (a) that the log odds for the winner reaches a threshold, and (b) that
-        the log odds for the winner exceeds the log odds for the runner-up by
-        a certain amount (because a mismatch may be worse than a failed match).
+    - {ComparisonOutputColnames.P_MATCH}
+      Probability that the winner in the sample is a match.
 
-      - log_odds_match
-        Log (ln) odds that the winner in the sample is a match to the proband.
+    - {ComparisonOutputColnames.SAMPLE_MATCH_LOCAL_ID}
+      Original local ID of the "winner" in the sample (the candidate who is the
+      closest match to the proband).
 
-      - p_match
-        Probability that the winner in the sample is a match.
+    - {ComparisonOutputColnames.SECOND_BEST_LOG_ODDS}
+      Log odds of the runner up (the candidate from the sample who is the
+      second-closest match) being the same person as the proband.
 
-      - sample_match_original_id
-        Original ID of the "winner" in the sample (the closest match to the
-        proband). Optional -- may be blank for de-identified comparisons.
+    If {Switches.EXTRA_VALIDATION_OUTPUT!r} is used, the following columns are
+    added:
 
-      - sample_match_research_id
-        Research ID of the winner in the sample.
+    - {ComparisonOutputColnames.BEST_CANDIDATE_LOCAL_ID}
+      Local ID of the closest-matching person (candidate) in the sample, EVEN
+      IF THEY DID NOT WIN.
 
-      - second_best_log_odds
-        Log odds of the runner up (the second-closest match) being the same
-        person as the proband.
-
-    - If '--extra_validation_output' is used, the following columns are added:
-
-      - best_person_original_id
-        Original ID of the closest-matching person in the sample, EVEN IF THEY
-        DID NOT WIN.
-
-      - best_person_research_id
-        Research ID of the closest-matching person in the sample, EVEN IF THEY
-        DID NOT WIN.
-
-    - The results file is NOT necessarily sorted as the input proband file was
-      (not sorting improves parallel processing efficiency).
+    The results file is NOT necessarily sorted as the input proband file was
+    (not sorting improves parallel processing efficiency).
 """
 
 
-# =============================================================================
+# -----------------------------------------------------------------------------
 # Helper functions for main argument parser
-# =============================================================================
+# -----------------------------------------------------------------------------
 
 
 def warn_or_fail_if_default_key(args: argparse.Namespace) -> None:
@@ -3949,6 +4187,85 @@ def add_common_groups(parser: argparse.ArgumentParser):
     )
 
 
+def add_comparison_options(
+    p: argparse.ArgumentParser,
+    proband_is_hashed: bool = True,
+    sample_is_hashed: bool = True,
+) -> None:
+    """
+    Common argparse options for comparison commands.
+    """
+    proband_csv_help = (
+        Person.HASHED_CSV_FORMAT_HELP
+        if proband_is_hashed
+        else Person.PLAINTEXT_CSV_FORMAT_HELP
+    )
+    sample_csv_help = (
+        Person.HASHED_CSV_FORMAT_HELP
+        if sample_is_hashed
+        else Person.PLAINTEXT_CSV_FORMAT_HELP
+    )
+    p.add_argument(
+        "--probands",
+        type=str,
+        required=True,
+        help="CSV filename for probands data. " + proband_csv_help,
+    )
+    p.add_argument(
+        "--sample",
+        type=str,
+        required=True,
+        help="CSV filename for sample data. " + sample_csv_help,
+    )
+    p.add_argument(
+        "--sample_cache",
+        type=str,
+        default=None,
+        # The cache might contain sensitive information; don't offer it by
+        # default.
+        help="File in which to store cached sample info (to speed loading)",
+    )
+    p.add_argument(
+        "--output",
+        type=str,
+        required=True,
+        help="Output CSV file for proband/sample comparison.",
+    )
+    p.add_argument(
+        Switches.EXTRA_VALIDATION_OUTPUT,
+        action="store_true",
+        help="Add extra output for validation purposes.",
+    )
+    p.add_argument(
+        "--n_workers",
+        type=int,
+        default=FuzzyDefaults.N_PROCESSES,
+        help=(
+            "Number of processes to use in parallel. "
+            "Defaults to number of CPUs on your system."
+        ),
+    )
+    p.add_argument(
+        "--max_chunksize",
+        type=int,
+        default=FuzzyDefaults.MAX_CHUNKSIZE,
+        help="Maximum chunk size (number of probands to pass to a "
+        "subprocess each time).",
+    )
+    p.add_argument(
+        "--min_probands_for_parallel",
+        type=int,
+        default=FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
+        help="Minimum number of probands for which we will bother to use "
+        "parallel processing.",
+    )
+    p.add_argument(
+        "--profile",
+        action="store_true",
+        help="Profile the code (for development only).",
+    )
+
+
 def get_cfg_from_args(args: argparse.Namespace) -> MatchConfig:
     """
     Return a MatchConfig object from our standard arguments.
@@ -3991,9 +4308,9 @@ def get_cfg_from_args(args: argparse.Namespace) -> MatchConfig:
     )
 
 
-# =============================================================================
+# -----------------------------------------------------------------------------
 # Main
-# =============================================================================
+# -----------------------------------------------------------------------------
 
 
 def main() -> int:
@@ -4004,9 +4321,9 @@ def main() -> int:
         program exit status code
     """
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Argument parser
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
@@ -4022,15 +4339,15 @@ def main() -> int:
         help="show help for all commands and exit",
     )
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Common arguments
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     add_common_groups(parser)
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Subcommand subparser
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     subparsers = parser.add_subparsers(
         title="commands",
@@ -4040,17 +4357,17 @@ def main() -> int:
     )  # type: _SubParsersAction  # noqa
     subparsers.required = True  # requires a command
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # commands to print demo sample files
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     _ = subparsers.add_parser(
-        "print_demo_sample", help="Print a demo sample .CSV file (#1)."
+        "print_demo_sample", help="Print a demo sample .CSV file."
     )
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # hash command
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     hash_parser = subparsers.add_parser(
         "hash",
@@ -4061,10 +4378,11 @@ def main() -> int:
     Takes an identifiable list of people (with name, DOB, and postcode
     information) and creates a hashed, de-identified equivalent.
 
-    The research ID (presumed not to be a direct identifier) is preserved.
-    Optionally, the unique original ID (e.g. NHS number, presumed to be a
-    direct identifier) is preserved, but you have to ask for that explicitly.
-        """,
+    The local ID (presumed not to be a direct identifier) is preserved exactly.
+
+    Optionally, the "other" information (you can choose, e.g. attaching a
+    direct identifier) is preserved, but you have to ask for that explicitly;
+    that is normally for testing.""",
     )
     hash_parser.add_argument(
         "--input",
@@ -4087,96 +4405,18 @@ def main() -> int:
         "suitable for use as a sample file, but not a proband file.",
     )
     hash_parser.add_argument(
-        "--include_original_id",
+        "--include_other_info",
         action="store_true",
-        help="Include the (potentially identifying) 'original_id' data? "
-        "Usually False; may be set to True for validation.",
+        help=(
+            f"Include the (potentially identifying) "
+            f"{BasePerson.ATTR_OTHER_INFO!r} data? "
+            "Usually False; may be set to True for validation."
+        ),
     )
 
-    # -------------------------------------------------------------------------
-    # Common options for comparison functions
-    # -------------------------------------------------------------------------
-
-    def add_comparison_options(
-        p: argparse.ArgumentParser,
-        proband_is_hashed: bool = True,
-        sample_is_hashed: bool = True,
-    ) -> None:
-        proband_csv_help = (
-            Person.HASHED_CSV_FORMAT_HELP
-            if proband_is_hashed
-            else Person.PLAINTEXT_CSV_FORMAT_HELP
-        )
-        sample_csv_help = (
-            Person.HASHED_CSV_FORMAT_HELP
-            if sample_is_hashed
-            else Person.PLAINTEXT_CSV_FORMAT_HELP
-        )
-        p.add_argument(
-            "--probands",
-            type=str,
-            required=True,
-            help="CSV filename for probands data. " + proband_csv_help,
-        )
-        p.add_argument(
-            "--sample",
-            type=str,
-            required=True,
-            help="CSV filename for sample data. " + sample_csv_help,
-        )
-        p.add_argument(
-            "--sample_cache",
-            type=str,
-            default=None,
-            # The cache might contain sensitive information; don't offer it by
-            # default.
-            help=(
-                "File in which to store cached sample info (to speed loading)"
-            ),
-        )
-        p.add_argument(
-            "--output",
-            type=str,
-            required=True,
-            help="Output CSV file for proband/sample comparison.",
-        )
-        p.add_argument(
-            "--extra_validation_output",
-            action="store_true",
-            help="Add extra output for validation purposes.",
-        )
-        p.add_argument(
-            "--n_workers",
-            type=int,
-            default=CPU_COUNT,
-            help=(
-                "Number of processes to use in parallel. "
-                "Defaults to number of CPUs on your system."
-            ),
-        )
-        p.add_argument(
-            "--max_chunksize",
-            type=int,
-            default=FuzzyDefaults.MAX_CHUNKSIZE,
-            help="Maximum chunk size (number of probands to pass to a "
-            "subprocess each time).",
-        )
-        p.add_argument(
-            "--min_probands_for_parallel",
-            type=int,
-            default=FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
-            help="Minimum number of probands for which we will bother to use "
-            "parallel processing.",
-        )
-        p.add_argument(
-            "--profile",
-            action="store_true",
-            help="Profile the code (for development only).",
-        )
-
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # compare_plaintext command
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     compare_plaintext_parser = subparsers.add_parser(
         "compare_plaintext",
@@ -4192,9 +4432,9 @@ def main() -> int:
         sample_is_hashed=False,
     )
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # compare_hashed_to_hashed command
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     compare_h2h_parser = subparsers.add_parser(
         "compare_hashed_to_hashed",
@@ -4210,9 +4450,9 @@ def main() -> int:
         compare_h2h_parser, proband_is_hashed=True, sample_is_hashed=True
     )
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # compare_hashed_to_plaintext command
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     compare_h2p_parser = subparsers.add_parser(
         "compare_hashed_to_plaintext",
@@ -4230,9 +4470,9 @@ def main() -> int:
         sample_is_hashed=False,
     )
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Debugging commands
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     show_metaphone_parser = subparsers.add_parser(
         "show_metaphone", help="Show metaphones of words"
@@ -4275,9 +4515,9 @@ def main() -> int:
         "show_dob_freq", help="Show the frequency of any DOB"
     )
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Parse arguments and set up
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     args = parser.parse_args()
     main_only_quicksetup_rootlogger(
@@ -4294,14 +4534,14 @@ def main() -> int:
 
     # pdb.set_trace()
 
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Run a command
-    # -------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     log.info(f"Command: {args.command}")
 
     if args.command == "print_demo_sample":
-        print(DEMO_SAMPLE)
+        print(get_demo_csv())
 
     elif args.command == "hash":
         warn_or_fail_if_default_key(args)
@@ -4311,7 +4551,7 @@ def main() -> int:
             input_csv=args.input,
             output_csv=args.output,
             without_frequencies=args.without_frequencies,
-            include_original_id=args.include_original_id,
+            include_other_info=args.include_other,
         )
         log.info(f"... finished; written to {args.output}")
 

@@ -242,9 +242,10 @@ def main():
         ["crate_bulk_hash", "--help"],
         join(DevPath.DOCS_LINKAGE_DIR, "_crate_bulk_hash_help.txt"),
     )
-    # NOT YET, BUT WHEN IT'S RELEASED:
-    # run_cmd(["crate_fuzzy_id_match", "--help"],
-    #         join(LINKAGE_DIR, "_crate_fuzzy_id_match.txt"))
+    run_cmd(
+        ["crate_fuzzy_id_match", "--allhelp"],
+        join(DevPath.DOCS_LINKAGE_DIR, "_crate_fuzzy_id_match.txt"),
+    )
 
     # -------------------------------------------------------------------------
     # Anonymisation

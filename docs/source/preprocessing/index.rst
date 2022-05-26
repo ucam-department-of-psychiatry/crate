@@ -133,18 +133,3 @@ Specimen usage:
 
 ..  literalinclude:: crate_fetch_wordlists_specimen_usage.sh
     :language: bash
-
-
-.. _crate_fuzzy_id_match:
-
-crate_fuzzy_id_match
-~~~~~~~~~~~~~~~~~~~~
-
-**In development.**
-
-See :mod:`crate_anon.preprocess.fuzzy_id_match`.
-
-Options (from ``crate_fuzzy_id_match --allhelp``):
-
-..  literalinclude:: _crate_fuzzy_id_match_help.txt
-    :language: none
