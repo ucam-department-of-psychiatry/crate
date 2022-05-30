@@ -42,7 +42,7 @@ These tools:
 
 - perform fuzzy identity matching for linking different databases securely:
 
-  - crate_fuzzy_id_match_
+  - :ref:`crate_fuzzy_id_match <crate_fuzzy_id_match>`
 
 Although they are usually run before anonymisation, it's probably more helpful
 to read the :ref:`Anonymisation <anonymisation>` section first.

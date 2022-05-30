@@ -102,9 +102,10 @@ postcode sector? Smaller, I think.
 
 import argparse
 from collections import Counter, defaultdict
+from contextlib import ExitStack
 import copy
 import csv
-from io import StringIO
+from io import StringIO, TextIOWrapper
 import json
 import logging
 import math
@@ -128,6 +129,7 @@ from typing import (
     TYPE_CHECKING,
     Union,
 )
+from zipfile import ZipFile
 
 import appdirs
 from cardinal_pythonlib.argparse_func import (
@@ -192,25 +194,27 @@ class FuzzyDefaults:
     # Filenames
     # -------------------------------------------------------------------------
     _appname = "crate"
+
+    # Public data that we provide a local copy of
+    _THIS_DIR = os.path.abspath(os.path.dirname(__file__))
+    _DATA_DIR = os.path.join(_THIS_DIR, "data")
+    FORENAME_SEX_FREQ_CSV = os.path.join(_DATA_DIR, "us_forename_sex_freq.csv")
+    SURNAME_FREQ_CSV = os.path.join(_DATA_DIR, "us_surname_freq.csv")
+    # POSTCODES_CSV = os.path.join(_DATA_DIR, "ONSPD_NOV_2019_UK.csv")
+    POSTCODES_CSV = os.path.join(_DATA_DIR, "ONSPD_NOV_2019_UK.zip")  # zip OK
+
     if EnvVar.GENERATING_CRATE_DOCS in os.environ:
         DEFAULT_CACHE_DIR = "/path/to/crate/user/data"
-        POSTCODES_CSV = "/path/to/postcodes/file"
         N_PROCESSES = 8
     else:
         DEFAULT_CACHE_DIR = os.path.join(
             appdirs.user_data_dir(appname=_appname)
         )
-        POSTCODES_CSV = os.path.abspath(
-            os.path.expanduser(
-                "~/dev/ons/ONSPD_Nov2019/unzipped/Data/ONSPD_NOV_2019_UK.csv"
-            )
-        )
         N_PROCESSES = cpu_count()
+
+    # Caches
     FORENAME_CACHE_FILENAME = os.path.join(
         DEFAULT_CACHE_DIR, "fuzzy_forename_cache.pickle"
-    )
-    FORENAME_SEX_FREQ_CSV = os.path.join(
-        DEFAULT_CACHE_DIR, "us_forename_sex_freq.csv"
     )
     POSTCODE_CACHE_FILENAME = os.path.join(
         DEFAULT_CACHE_DIR, "fuzzy_postcode_cache.pickle"
@@ -218,7 +222,6 @@ class FuzzyDefaults:
     SURNAME_CACHE_FILENAME = os.path.join(
         DEFAULT_CACHE_DIR, "fuzzy_surname_cache.pickle"
     )
-    SURNAME_FREQ_CSV = os.path.join(DEFAULT_CACHE_DIR, "us_surname_freq.csv")
 
     # -------------------------------------------------------------------------
     # Hashing
@@ -1125,7 +1128,8 @@ class PostcodeFrequencyInfo(object):
                 CSV file from the UK Office of National Statistics, usually
                 ``ONSPD_MAY_2016_UK.csv``. Columns include "pdcs" (one of the
                 postcode formats) and "oa11" (Output Area from the 2011
-                Census).
+                Census). A ZIP file containing a single CSV file is also
+                permissible (distinguished by filename extension).
             cache_filename:
                 Filename to hold pickle format cached data, because the CSV
                 read process is slow (it's a 1.4 Gb CSV).
@@ -1148,14 +1152,31 @@ class PostcodeFrequencyInfo(object):
                 self._total_population,
             ) = cache_load(cache_filename)
         except FileNotFoundError:
-            log.info(f"Reading file: {csv_filename}")
             oa_unit_counter = Counter()
             unit_to_oa = {}  # type: Dict[str, str]
             sector_to_oas = {}  # type: Dict[str, Set[str]]
 
             # Load data
             report_every = 10000
-            with open(csv_filename, "rt") as f:
+            is_zip = os.path.splitext(csv_filename)[1].lower() == ".zip"
+            with ExitStack() as stack:
+                if is_zip:
+                    log.info(f"Reading postcode ZIP file: {csv_filename}")
+                    z = stack.enter_context(
+                        ZipFile(csv_filename)
+                    )  # type: ZipFile
+                    contents = z.infolist()
+                    if not contents:
+                        raise ValueError("Postcode ZIP file is empty")
+                    first_file = contents[0]
+                    log.info(f"Within ZIP, reading: {first_file.filename}")
+                    # noinspection PyTypeChecker
+                    binary_file = stack.enter_context(z.open(first_file))
+                    f = TextIOWrapper(binary_file)
+                else:
+                    log.info(f"Reading postcode CSV file: {csv_filename}")
+                    # noinspection PyTypeChecker
+                    f = stack.enter_context(open(csv_filename, "rt"))
                 csvreader = csv.DictReader(f)
                 for rownum, row in enumerate(csvreader, start=1):
                     unit = standardize_postcode(row["pcds"])
@@ -1356,7 +1377,7 @@ class MatchConfig(object):
             birth_year_pseudo_range:
                 b, such that P(two people share a DOB) = 1/(365.25 * b).
             postcode_csv_filename:
-                Postcode mapping. CSV file. Special format; see
+                Postcode mapping. CSV (or ZIP) file. Special format; see
                 :class:`PostcodeFrequencyInfo`.
             postcode_cache_filename:
                 File in which to cache postcode information for faster loading.
@@ -1890,6 +1911,7 @@ VALID_GENDERS = ["", GENDER_MALE, GENDER_FEMALE, GENDER_OTHER]
 class BasePerson:
     """
     Simple information about a person, without frequency calculations.
+    Does not need a config.
     """
 
     ATTR_OTHER_INFO = "other_info"  # anything the user may want to attach
@@ -2102,6 +2124,7 @@ class BasePerson:
 class Person(BasePerson):
     """
     Represents a person. The information may be incomplete or slightly wrong.
+    Includes frequency information and requires a config.
     """
 
     HASHED_ATTRS = (
@@ -4094,7 +4117,8 @@ def add_common_groups(parser: argparse.ArgumentParser):
         "--postcode_csv_filename",
         type=str,
         default=FuzzyDefaults.POSTCODES_CSV,
-        help="CSV file of postcode geography from UK Census/ONS data",
+        help="CSV file of postcode geography from UK Census/ONS data. A ZIP "
+        "file is also acceptable.",
     )
     # noinspection PyUnresolvedReferences
     priors_group.add_argument(

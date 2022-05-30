@@ -248,6 +248,7 @@ from crate_anon.common.constants import (
 )
 from crate_anon.linkage.fuzzy_id_match import (
     add_common_groups,
+    BasePerson,
     cache_load,
     cache_save,
     get_cfg_from_args,
@@ -928,8 +929,8 @@ def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
 
 
 def validate_2_fetch_rio(
-    cfg: MatchConfig, url: str, hash_key: str, echo: bool = False
-) -> Generator[Person, None, None]:
+    url: str, hash_key: str, echo: bool = False
+) -> Generator[BasePerson, None, None]:
     """
     Generates IDENTIFIED people from CPFT's RiO source database.
 
@@ -938,8 +939,6 @@ def validate_2_fetch_rio(
     is very restricted -- to administrators only.
 
     Args:
-        cfg:
-            Configuration object.
         url:
             SQLAlchemy URL.
         hash_key:
@@ -1090,8 +1089,7 @@ def validate_2_fetch_rio(
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
-        p = Person(
-            cfg=cfg,
+        p = BasePerson(
             local_id=rio_client_id,
             other_info=other.json,
             first_name=row[q.FIRST_NAME] or "",
@@ -1110,8 +1108,8 @@ def validate_2_fetch_rio(
 
 
 def validate_2_fetch_cdl(
-    cfg: MatchConfig, url: str, hash_key: str, echo: bool = False
-) -> Generator[Person, None, None]:
+    url: str, hash_key: str, echo: bool = False
+) -> Generator[BasePerson, None, None]:
     """
     Generates IDENTIFIED people from CPFT's CRS/CRL source database.
 
@@ -1305,8 +1303,7 @@ def validate_2_fetch_cdl(
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
-        p = Person(
-            cfg=cfg,
+        p = BasePerson(
             local_id=cdl_m_number,
             other_info=other.json,
             first_name=row[q.FIRST_NAME] or "",
@@ -1327,14 +1324,12 @@ def validate_2_fetch_cdl(
 
 
 def validate_2_fetch_pcmis(
-    cfg: MatchConfig, url: str, hash_key: str, echo: bool = False
-) -> Generator[Person, None, None]:
+    url: str, hash_key: str, echo: bool = False
+) -> Generator[BasePerson, None, None]:
     """
     Generates IDENTIFIED people from CPFT's PCMIS source database.
 
     Args:
-        cfg:
-            Configuration object.
         url:
             SQLAlchemy URL.
         hash_key:
@@ -1566,8 +1561,7 @@ def validate_2_fetch_pcmis(
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
-        p = Person(
-            cfg=cfg,
+        p = BasePerson(
             local_id=pcmis_patient_id,
             other_info=other.json,
             first_name=row[q.FIRST_NAME] or "",
@@ -1651,14 +1645,12 @@ def _get_systmone_postcodes(
 
 
 def validate_2_fetch_systmone(
-    cfg: MatchConfig, url: str, hash_key: str, echo: bool = False
-) -> Generator[Person, None, None]:
+    url: str, hash_key: str, echo: bool = False
+) -> Generator[BasePerson, None, None]:
     """
     Generates IDENTIFIED people from CPFT's SystmOne source database.
 
     Args:
-        cfg:
-            Configuration object.
         url:
             SQLAlchemy URL.
         hash_key:
@@ -1817,8 +1809,7 @@ def validate_2_fetch_systmone(
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
-        p = Person(
-            cfg=cfg,
+        p = BasePerson(
             local_id=systmone_patient_id,
             other_info=other.json,
             first_name=row[q.FIRST_NAME] or "",
@@ -1837,7 +1828,7 @@ def validate_2_fetch_systmone(
 
 
 def save_people_from_db(
-    people: Iterable[Person], output_csv: str, report_every: int = 1000
+    people: Iterable[BasePerson], output_csv: str, report_every: int = 1000
 ) -> None:
     """
     Saves people (in plaintext) from a function that generates them from a
@@ -2087,12 +2078,6 @@ def main() -> int:
     )
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # Common arguments
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    add_common_groups(parser)
-
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Subcommand subparser
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -2117,6 +2102,7 @@ def main() -> int:
         speed. Results are reported as microseconds per comparison.
         """,
     )
+    add_common_groups(speedtest_parser)
     speedtest_parser.add_argument(
         "--profile",
         action="store_true",
@@ -2136,6 +2122,7 @@ def main() -> int:
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
         description=HELP_VALIDATE_1,
     )
+    add_common_groups(validate1_parser)
     validate1_parser.add_argument(
         "--people",
         type=str,
@@ -2227,7 +2214,6 @@ def main() -> int:
     main_only_quicksetup_rootlogger(
         level=logging.DEBUG if args.verbose else logging.INFO
     )
-    cfg = get_cfg_from_args(args)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Run a command
@@ -2236,10 +2222,12 @@ def main() -> int:
     log.info(f"Command: {args.command}")
 
     if args.command == "speedtest":
+        cfg = get_cfg_from_args(args)
         fn = do_cprofile(speedtest) if args.profile else speedtest
         fn(cfg)
 
     elif args.command == "validate1":
+        cfg = get_cfg_from_args(args)
         log.info("Running validation test 1.")
         validate_1(
             cfg,
@@ -2253,7 +2241,7 @@ def main() -> int:
         warn_or_fail_if_default_key(args)
         save_people_from_db(
             people=validate_2_fetch_cdl(
-                cfg=cfg, url=args.url, hash_key=args.key, echo=args.echo
+                url=args.url, hash_key=args.key, echo=args.echo
             ),
             output_csv=args.output,
         )
@@ -2262,7 +2250,7 @@ def main() -> int:
         warn_or_fail_if_default_key(args)
         save_people_from_db(
             people=validate_2_fetch_rio(
-                cfg=cfg, url=args.url, hash_key=args.key, echo=args.echo
+                url=args.url, hash_key=args.key, echo=args.echo
             ),
             output_csv=args.output,
         )
@@ -2271,7 +2259,7 @@ def main() -> int:
         warn_or_fail_if_default_key(args)
         save_people_from_db(
             people=validate_2_fetch_pcmis(
-                cfg=cfg, url=args.url, hash_key=args.key, echo=args.echo
+                url=args.url, hash_key=args.key, echo=args.echo
             ),
             output_csv=args.output,
         )
@@ -2280,7 +2268,7 @@ def main() -> int:
         warn_or_fail_if_default_key(args)
         save_people_from_db(
             people=validate_2_fetch_systmone(
-                cfg=cfg, url=args.url, hash_key=args.key, echo=args.echo
+                url=args.url, hash_key=args.key, echo=args.echo
             ),
             output_csv=args.output,
         )
