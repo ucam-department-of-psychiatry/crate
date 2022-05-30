@@ -1,5 +1,5 @@
 # dev only
 flake8
-python-on-whales==0.44.0
+python-on-whales==0.45.0
 prompt-toolkit==3.0.29
 semantic_version==2.10.0
