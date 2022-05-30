@@ -102,7 +102,7 @@ postcode sector? Smaller, I think.
 
 import argparse
 from collections import Counter, defaultdict
-from contextlib import ExitStack
+from contextlib import contextmanager, ExitStack
 import copy
 import csv
 from io import StringIO, TextIOWrapper
@@ -199,10 +199,9 @@ class FuzzyDefaults:
     # Public data that we provide a local copy of
     _THIS_DIR = os.path.abspath(os.path.dirname(__file__))
     _DATA_DIR = os.path.join(_THIS_DIR, "data")
-    FORENAME_SEX_FREQ_CSV = os.path.join(_DATA_DIR, "us_forename_sex_freq.csv")
-    SURNAME_FREQ_CSV = os.path.join(_DATA_DIR, "us_surname_freq.csv")
-    # POSTCODES_CSV = os.path.join(_DATA_DIR, "ONSPD_NOV_2019_UK.csv")
-    POSTCODES_CSV = os.path.join(_DATA_DIR, "ONSPD_NOV_2019_UK.zip")  # zip OK
+    FORENAME_SEX_FREQ_CSV = os.path.join(_DATA_DIR, "us_forename_sex_freq.zip")
+    SURNAME_FREQ_CSV = os.path.join(_DATA_DIR, "us_surname_freq.zip")
+    POSTCODES_CSV = os.path.join(_DATA_DIR, "ONSPD_NOV_2019_UK.zip")
 
     if EnvVar.GENERATING_CRATE_DOCS in os.environ:
         DEFAULT_CACHE_DIR = "/path/to/crate/user/data"
@@ -330,6 +329,38 @@ def cache_save(filename: str, data: Any) -> None:
     mkdir_p(dirname)
     pickle.dump(data, open(filename, "wb"), protocol=pickle.HIGHEST_PROTOCOL)
     log.info("... done")
+
+
+# =============================================================================
+# Reading from file or zipped file
+# =============================================================================
+
+
+@contextmanager
+def open_even_if_zipped(filename: str) -> Generator[StringIO, None, None]:
+    """
+    Yields (as a context manager) a text file, opened directly or through a
+    ZIP file (distinguished by its extension) containing that file.
+    """
+    is_zip = os.path.splitext(filename)[1].lower() == ".zip"
+    with ExitStack() as stack:
+        if is_zip:
+            log.info(f"Reading ZIP file: {filename}")
+            z = stack.enter_context(ZipFile(filename))  # type: ZipFile
+            contents = z.infolist()
+            if not contents:
+                raise ValueError("ZIP file is empty")
+            first_file = contents[0]
+            log.info(f"Within ZIP, reading: {first_file.filename}")
+            # noinspection PyTypeChecker
+            binary_file = stack.enter_context(z.open(first_file))
+            f = TextIOWrapper(binary_file)
+        else:
+            log.info(f"Reading file: {filename}")
+            # noinspection PyTypeChecker
+            f = stack.enter_context(open(filename, "rt"))
+        yield f
+        log.info(f"... finished reading: {filename}")
 
 
 # =============================================================================
@@ -1045,12 +1076,11 @@ class NameFrequencyInfo(object):
                         f"Please delete this file and try again."
                     )
         except FileNotFoundError:
-            log.info(f"Reading file: {csv_filename}")
             # For extra speed:
             name_freq = self._name_freq
             metaphone_freq = self._metaphone_freq
             # Load
-            with open(csv_filename, "rt") as f:
+            with open_even_if_zipped(csv_filename) as f:
                 csvreader = csv.reader(f)
                 for row in csvreader:
                     name = standardize_name(row[0])
@@ -1072,7 +1102,6 @@ class NameFrequencyInfo(object):
                     metaphone_freq[metaphone_key] = (
                         metaphone_freq.get(metaphone_key, 0) + freq
                     )
-            log.info("... done")
             # Save to cache
             cache_save(cache_filename, [name_freq, metaphone_freq])
 
@@ -1161,25 +1190,7 @@ class PostcodeFrequencyInfo(object):
 
             # Load data
             report_every = 10000
-            is_zip = os.path.splitext(csv_filename)[1].lower() == ".zip"
-            with ExitStack() as stack:
-                if is_zip:
-                    log.info(f"Reading postcode ZIP file: {csv_filename}")
-                    z = stack.enter_context(
-                        ZipFile(csv_filename)
-                    )  # type: ZipFile
-                    contents = z.infolist()
-                    if not contents:
-                        raise ValueError("Postcode ZIP file is empty")
-                    first_file = contents[0]
-                    log.info(f"Within ZIP, reading: {first_file.filename}")
-                    # noinspection PyTypeChecker
-                    binary_file = stack.enter_context(z.open(first_file))
-                    f = TextIOWrapper(binary_file)
-                else:
-                    log.info(f"Reading postcode CSV file: {csv_filename}")
-                    # noinspection PyTypeChecker
-                    f = stack.enter_context(open(csv_filename, "rt"))
+            with open_even_if_zipped(csv_filename) as f:
                 csvreader = csv.DictReader(f)
                 for rownum, row in enumerate(csvreader, start=1):
                     unit = standardize_postcode(row["pcds"])
@@ -1197,7 +1208,6 @@ class PostcodeFrequencyInfo(object):
                         sector_to_oas[sector].add(oa)
                     else:
                         sector_to_oas[sector] = {oa}
-            log.info("... done")
 
             # Calculate
             log.info("Calculating population frequencies for postcodes...")
@@ -3250,7 +3260,6 @@ class People(object):
 
         # Step 1. Scan everything in a single pass, establishing the winner
         # and the runner-up.
-        # log.info("hello")
         cfg = self.cfg
         best_idx = -1
         second_best_idx = -1
