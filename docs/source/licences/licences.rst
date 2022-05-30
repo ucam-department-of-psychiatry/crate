@@ -29,6 +29,14 @@ CRATE
     :language: none
 
 
+GATE-related code
+-----------------
+
+- Aspects of ``CamAnonGatePipeline.java`` are based on demonstration GATE code,
+  copyright © University of Sheffield, and licensed under the GNU LGPL; see
+  https://gate.ac.uk/.
+
+
 US name frequency data
 ----------------------
 
