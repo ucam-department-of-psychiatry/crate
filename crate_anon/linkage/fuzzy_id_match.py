@@ -137,6 +137,7 @@ from cardinal_pythonlib.argparse_func import (
     ShowAllSubparserHelpAction,
 )
 from cardinal_pythonlib.datetimefunc import coerce_to_pendulum_date
+from cardinal_pythonlib.fileops import mkdir_p
 from cardinal_pythonlib.hash import HmacSHA256Hasher
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.maths_py import round_sf
@@ -325,6 +326,8 @@ def cache_save(filename: str, data: Any) -> None:
     """
     assert filename
     log.info(f"Saving to cache: {filename}")
+    dirname = os.path.dirname(filename)
+    mkdir_p(dirname)
     pickle.dump(data, open(filename, "wb"), protocol=pickle.HIGHEST_PROTOCOL)
     log.info("... done")
 
