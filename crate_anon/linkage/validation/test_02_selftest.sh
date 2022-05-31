@@ -41,6 +41,11 @@ SAMPLE_HASHED=${WORKDIR}/crate_fuzzy_hashed.csv
     --input "${SAMPLE}" \
     --output "${WORKDIR}/crate_fuzzy_hashed_no_freq.csv" \
     --without_frequencies
+"${FUZZY}" hash \
+    --allow_default_hash_key \
+    --input "${SAMPLE}" \
+    --output "${WORKDIR}/crate_fuzzy_hashed_with_other_info.csv" \
+    --include_other_info
 
 # This should produce matches for most (comparing a sample to itself):
 "${FUZZY}" compare_plaintext \

@@ -931,7 +931,7 @@ def _get_rio_postcodes(
             index_of_multiple_deprivation=row[q.INDEX_OF_MULTIPLE_DEPRIVATION],
         )
         for row in rows
-        if POSTCODE_REGEX.match(row[0])
+        if POSTCODE_REGEX.match(row[q.POSTCODE])
     ]
     return postcodes
 
@@ -1001,7 +1001,7 @@ def validate_2_fetch_rio(
         SELECT
         
             -- From the main patient index:
-            ci.ClientID AS rio_client_id,
+            ci.ClientID AS rio_client_id,  -- VARCHAR(15) NOT NULL
             CAST(ci.NNN AS BIGINT) AS nhs_number,
             ci.Firstname AS first_name,
             ci.Surname AS surname,
@@ -1106,10 +1106,10 @@ def validate_2_fetch_rio(
     result = engine.execute(sql)  # type: ResultProxy
     q = QueryColnames
     for row in result:
-        rio_client_id = row["rio_client_id"]
-        nhs_number = row[q.NHS_NUMBER]
+        rio_client_id = row["rio_client_id"]  # type: str
+        nhs_number = row[q.NHS_NUMBER]  # type: int
         dob = coerce_to_pendulum_date(row[q.DOB])
-        gender = row[q.GENDER]
+        gender = row[q.GENDER]  # type: str
         first_mh_care_date = coerce_to_pendulum_date(row[q.FIRST_MH_CARE_DATE])
 
         middle_names = _get_rio_middle_names(engine, rio_client_id)
@@ -1211,7 +1211,7 @@ def validate_2_fetch_cdl(
             -- or use COUNT(*) instead of what follows
 
             -- From the identifiable patient table:
-            ip.PatientID AS cdl_m_number,
+            ip.PatientID AS cdl_m_number,  -- INT NOT NULL
             ip.FirstName AS first_name,
             ip.LastName AS surname,
             CAST(ip.DOB AS DATE) as dob,
@@ -1312,7 +1312,7 @@ def validate_2_fetch_cdl(
     result = engine.execute(sql)  # type: ResultProxy
     q = QueryColnames
     for row in result:
-        cdl_m_number = row["cdl_m_number"]
+        cdl_m_number = row["cdl_m_number"]  # type: int
         nhs_number = row[q.NHS_NUMBER]
         dob = coerce_to_pendulum_date(row[q.DOB])
         gender = row[q.GENDER]
@@ -1351,7 +1351,7 @@ def validate_2_fetch_cdl(
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
         p = BasePerson(
-            local_id=cdl_m_number,
+            local_id=str(cdl_m_number),
             other_info=other.json,
             first_name=row[q.FIRST_NAME] or "",
             middle_names=[],
@@ -1412,7 +1412,7 @@ def validate_2_fetch_pcmis(
             -- TOP 0  -- for debugging
 
             -- From the main patient index:
-            p.PatientID as pcmis_patient_id,
+            p.PatientID as pcmis_patient_id,  -- NVARCHAR(100) NOT NULL
             CAST(p.NHSNumber AS BIGINT) AS nhs_number,
             p.FirstName AS first_name,
             p.MiddleName AS middle_name,
@@ -1556,7 +1556,7 @@ def validate_2_fetch_pcmis(
     result = engine.execute(sql)  # type: ResultProxy
     q = QueryColnames
     for row in result:
-        pcmis_patient_id = row["pcmis_patient_id"]
+        pcmis_patient_id = row["pcmis_patient_id"]  # type: str
         nhs_number = row[q.NHS_NUMBER]
         middle_name = row[q.MIDDLE_NAME]
         dob = coerce_to_pendulum_date(row[q.DOB])
@@ -1714,7 +1714,7 @@ def validate_2_fetch_systmone(
             -- TOP 0  -- for debugging
         
             -- From the main patient index:
-            p.IDPatient as systmone_patient_id,
+            p.IDPatient as systmone_patient_id,  -- BIGINT NULL
             CAST(p.NHSNumber AS BIGINT) AS nhs_number,
             p.FirstName AS first_name,
             p.GivenName2 AS middle_name,
@@ -1826,14 +1826,15 @@ def validate_2_fetch_systmone(
     result = engine.execute(sql)  # type: ResultProxy
     q = QueryColnames
     for row in result:
-        systmone_patient_id = row["systmone_patient_id"]
+        systmone_patient_id = row["systmone_patient_id"]  # type: int
+        assert systmone_patient_id is not None
         nhs_number = row[q.NHS_NUMBER]
         middle_name = row[q.MIDDLE_NAME]
         dob = coerce_to_pendulum_date(row[q.DOB])
         gender = row[q.GENDER]
         first_mh_care_date = coerce_to_pendulum_date(row[q.FIRST_MH_CARE_DATE])
 
-        postcodes = _get_rio_postcodes(engine, systmone_patient_id)
+        postcodes = _get_systmone_postcodes(engine, systmone_patient_id)
 
         other = CPFTValidationExtras(
             hashed_nhs_number=_hash(nhs_number),
@@ -1857,7 +1858,7 @@ def validate_2_fetch_systmone(
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
         p = BasePerson(
-            local_id=systmone_patient_id,
+            local_id=str(systmone_patient_id),
             other_info=other.json,
             first_name=row[q.FIRST_NAME] or "",
             middle_names=[middle_name] if middle_name else [],
