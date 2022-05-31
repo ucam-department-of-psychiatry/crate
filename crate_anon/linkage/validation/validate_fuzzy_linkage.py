@@ -252,6 +252,7 @@ from crate_anon.linkage.fuzzy_id_match import (
     get_basic_options_subparser,
     get_cfg_from_args,
     get_config_option_subparser,
+    get_hasher_option_subparser,
     get_demo_csv,
     Hasher,
     MatchConfig,
@@ -2070,7 +2071,10 @@ def main() -> int:
     )
     subparsers = add_subparsers(parser)
     base_subparser = get_basic_options_subparser()
+    hasher_subparser = get_hasher_option_subparser()
     config_subparser = get_config_option_subparser()
+    all_parents = [base_subparser, hasher_subparser, config_subparser]
+    dbfetch_parents = [base_subparser, hasher_subparser]
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # speedtest command
@@ -2079,7 +2083,7 @@ def main() -> int:
     speedtest_parser = subparsers.add_parser(
         "speedtest",
         help="Run speed tests and stop",
-        parents=[base_subparser, config_subparser],
+        parents=all_parents,
         description="""
         This will run several comparisons to test hashing and comparison
         speed. Results are reported as microseconds per comparison.
@@ -2102,7 +2106,7 @@ def main() -> int:
         help="Run validation test 1 and stop. In this test, a list of people "
         "is compared to a version of itself, at times with elements "
         "deleted or with typos introduced.",
-        parents=[base_subparser, config_subparser],
+        parents=all_parents,
         description=HELP_VALIDATE_1,
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
@@ -2157,7 +2161,7 @@ def main() -> int:
     validate2_cdl_parser = subparsers.add_parser(
         "validate2_fetch_cdl",
         help="Validation 2A: fetch people from CPFT CDL database",
-        parents=[base_subparser],
+        parents=dbfetch_parents,
         description=HELP_VALIDATE_2_CDL,
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
@@ -2167,7 +2171,7 @@ def main() -> int:
     validate2_rio_parser = subparsers.add_parser(
         "validate2_fetch_rio",
         help="Validation 2B: fetch people from CPFT RiO database",
-        parents=[base_subparser],
+        parents=dbfetch_parents,
         description="See validate2_fetch_cdl command.",
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
@@ -2177,7 +2181,7 @@ def main() -> int:
     validate2_pcmis_parser = subparsers.add_parser(
         "validate2_fetch_pcmis",
         help="Validation 2C: fetch people from CPFT PCMIS database",
-        parents=[base_subparser],
+        parents=dbfetch_parents,
         description="See validate2_fetch_cdl command.",
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
@@ -2187,7 +2191,7 @@ def main() -> int:
     validate2_systmone_parser = subparsers.add_parser(
         "validate2_fetch_systmone",
         help="Validation 2B: fetch people from CPFT SystmOne database",
-        parents=[base_subparser],
+        parents=dbfetch_parents,
         description="See validate2_fetch_cdl command.",
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )

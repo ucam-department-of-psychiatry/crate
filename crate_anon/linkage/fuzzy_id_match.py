@@ -4030,7 +4030,6 @@ def add_subparsers(
 ) -> "_SubParsersAction":
     """
     Adds global-only options and subparsers.
-    In a function because we use these in validate_fuzzy_linkage.py too.
     """
     parser.add_argument(
         "--version", action="version", version=f"CRATE {CRATE_VERSION}"
@@ -4053,7 +4052,6 @@ def add_subparsers(
 def get_basic_options_subparser() -> argparse.ArgumentParser:
     """
     Returns a silent subparser for global options.
-    In a function because we use these in validate_fuzzy_linkage.py too.
     """
     base_subparser = argparse.ArgumentParser(add_help=False)
     arggroup = base_subparser.add_argument_group("display options")
@@ -4061,14 +4059,13 @@ def get_basic_options_subparser() -> argparse.ArgumentParser:
     return base_subparser
 
 
-def get_config_option_subparser() -> argparse.ArgumentParser:
+def get_hasher_option_subparser() -> argparse.ArgumentParser:
     """
-    Adds a Sets up standard argparse options for MatchConfig.
-    In a function because we use these in validate_fuzzy_linkage.py too.
+    Adds a silent subparser for hasher options.
     """
-    config_subparser = argparse.ArgumentParser(add_help=False)
+    hasher_subparser = argparse.ArgumentParser(add_help=False)
 
-    hasher_group = config_subparser.add_argument_group(
+    hasher_group = hasher_subparser.add_argument_group(
         "hasher (secrecy) options"
     )
     hasher_group.add_argument(
@@ -4091,6 +4088,16 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
         help="Number of significant figures to use when rounding frequencies "
         "in hashed version",
     )
+
+    return hasher_subparser
+
+
+def get_config_option_subparser() -> argparse.ArgumentParser:
+    """
+    Adds a silent subparser for MatchConfig options (excepting hasher, above).
+    In a function because we use these in validate_fuzzy_linkage.py too.
+    """
+    config_subparser = argparse.ArgumentParser(add_help=False)
 
     priors_group = config_subparser.add_argument_group(
         "frequency information for prior probabilities"
@@ -4406,8 +4413,9 @@ def main() -> int:
     )
     subparsers = add_subparsers(parser)
     base_subparser = get_basic_options_subparser()
+    hasher_subparser = get_hasher_option_subparser()
     config_subparser = get_config_option_subparser()
-    both_parents = [base_subparser, config_subparser]
+    all_parents = [base_subparser, hasher_subparser, config_subparser]
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # print_demo_sample command
@@ -4415,7 +4423,7 @@ def main() -> int:
 
     _ = subparsers.add_parser(
         "print_demo_sample",
-        parents=both_parents,
+        parents=all_parents,
         help="Print a demo sample .CSV file.",
     )
 
@@ -4427,7 +4435,7 @@ def main() -> int:
         "hash",
         help="STEP 1 OF DE-IDENTIFIED LINKAGE. "
         "Hash an identifiable CSV file into an encrypted one. ",
-        parents=both_parents,
+        parents=all_parents,
         description="""
     Takes an identifiable list of people (with name, DOB, and postcode
     information) and creates a hashed, de-identified equivalent.
@@ -4478,7 +4486,7 @@ def main() -> int:
         help="IDENTIFIABLE LINKAGE COMMAND. "
         "Compare a list of probands against a sample (both in "
         "plaintext). ",
-        parents=both_parents,
+        parents=all_parents,
         description=HELP_COMPARISON,
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
@@ -4499,7 +4507,7 @@ def main() -> int:
             "both sides in advance). "
             "Compare a list of probands against a sample (both hashed)."
         ),
-        parents=both_parents,
+        parents=all_parents,
         description=HELP_COMPARISON,
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
@@ -4518,7 +4526,7 @@ def main() -> int:
         "data, producing a de-identified result). "
         "Compare a list of probands (hashed) against a sample "
         "(plaintext).",
-        parents=both_parents,
+        parents=all_parents,
         description=HELP_COMPARISON,
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
@@ -4535,7 +4543,7 @@ def main() -> int:
     # show_metaphone
     show_metaphone_parser = subparsers.add_parser(
         "show_metaphone",
-        parents=both_parents,
+        parents=all_parents,
         help="Show metaphones of words",
     )
     show_metaphone_parser.add_argument(
@@ -4545,7 +4553,7 @@ def main() -> int:
     # show_forename_freq
     show_forename_freq_parser = subparsers.add_parser(
         "show_forename_freq",
-        parents=both_parents,
+        parents=all_parents,
         help="Show frequencies of forenames",
     )
     show_forename_freq_parser.add_argument(
@@ -4555,7 +4563,7 @@ def main() -> int:
     # show_forename_metaphone_freq
     show_forename_metaphone_freq_parser = subparsers.add_parser(
         "show_forename_metaphone_freq",
-        parents=both_parents,
+        parents=all_parents,
         help="Show frequencies of forename metaphones",
     )
     show_forename_metaphone_freq_parser.add_argument(
@@ -4565,7 +4573,7 @@ def main() -> int:
     # show_surname_freq
     show_surname_freq_parser = subparsers.add_parser(
         "show_surname_freq",
-        parents=both_parents,
+        parents=all_parents,
         help="Show frequencies of surnames",
     )
     show_surname_freq_parser.add_argument(
@@ -4575,7 +4583,7 @@ def main() -> int:
     # show_surname_metaphone_freq
     show_surname_metaphone_freq_parser = subparsers.add_parser(
         "show_surname_metaphone_freq",
-        parents=both_parents,
+        parents=all_parents,
         help="Show frequencies of surname metaphones",
     )
     show_surname_metaphone_freq_parser.add_argument(
@@ -4585,7 +4593,7 @@ def main() -> int:
     # show_dob_freq
     _ = subparsers.add_parser(
         "show_dob_freq",
-        parents=both_parents,
+        parents=all_parents,
         help="Show the frequency of any DOB",
     )
 
