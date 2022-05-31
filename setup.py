@@ -106,7 +106,7 @@ INSTALL_REQUIRES = [
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.8.1",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
-    "PyPDF2==1.27.4",  # [pin exact version from cardinal_pythonlib]
+    "PyPDF2==1.27.5",  # [pin exact version from cardinal_pythonlib]
     "pytz==2021.3",  # timezones
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
