@@ -739,7 +739,7 @@ class CPFTValidationExtras:
 
     # MH-related information:
     first_mh_care_date: Optional[datetime.date]
-    age_at_first_mh_care: Optional[datetime.date]
+    age_at_first_mh_care: Optional[int]  # deliberately blurred to year
     any_icd10_dx_present: int  # binary
     chapter_f_icd10_dx_present: int  # binary
     severe_mental_illness_icd10_dx_present: int  # binary
@@ -767,9 +767,7 @@ class CPFTValidationExtras:
             raise ValueError(
                 f"Bad first_mh_care_date: {self.first_mh_care_date!r}"
             )
-        if not isinstance(
-            self.age_at_first_mh_care, (datetime.date, nonetype)
-        ):
+        if not isinstance(self.age_at_first_mh_care, (int, nonetype)):
             raise ValueError(
                 f"Bad age_at_first_mh_care: {self.age_at_first_mh_care!r}"
             )
