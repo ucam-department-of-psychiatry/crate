@@ -231,7 +231,10 @@ from typing import (
 from cardinal_pythonlib.argparse_func import (
     RawDescriptionArgumentDefaultsHelpFormatter,
 )
-from cardinal_pythonlib.datetimefunc import truncate_date_to_first_of_month
+from cardinal_pythonlib.datetimefunc import (
+    coerce_to_pendulum_date,
+    truncate_date_to_first_of_month,
+)
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.profile import do_cprofile
 from pendulum import Date
@@ -877,8 +880,8 @@ def _get_rio_postcodes(
     postcodes = [
         PostcodeInfo(
             postcode=row[q.POSTCODE],
-            start_date=row[q.START_DATE],
-            end_date=row[q.END_DATE],
+            start_date=coerce_to_pendulum_date(row[q.START_DATE]),
+            end_date=coerce_to_pendulum_date(row[q.END_DATE]),
             index_of_multiple_deprivation=row[q.INDEX_OF_MULTIPLE_DEPRIVATION],
         )
         for row in rows
@@ -1059,9 +1062,9 @@ def validate_2_fetch_rio(
     for row in result:
         rio_client_id = row["rio_client_id"]
         nhs_number = row[q.NHS_NUMBER]
-        dob = row[q.DOB]
+        dob = coerce_to_pendulum_date(row[q.DOB])
         gender = row[q.GENDER]
-        first_mh_care_date = row[q.FIRST_MH_CARE_DATE]
+        first_mh_care_date = coerce_to_pendulum_date(row[q.FIRST_MH_CARE_DATE])
 
         middle_names = _get_rio_middle_names(engine, rio_client_id)
         postcodes = _get_rio_postcodes(engine, rio_client_id)
@@ -1094,7 +1097,7 @@ def validate_2_fetch_rio(
             middle_names=middle_names,
             surname=row[q.SURNAME] or "",
             gender=gender,
-            dob=dob,
+            dob=dob.isoformat(),
             postcodes=[p.temporal_identifier for p in postcodes],
         )
         yield p
@@ -1265,9 +1268,9 @@ def validate_2_fetch_cdl(
     for row in result:
         cdl_m_number = row["cdl_m_number"]
         nhs_number = row[q.NHS_NUMBER]
-        dob = row[q.DOB]
+        dob = coerce_to_pendulum_date(row[q.DOB])
         gender = row[q.GENDER]
-        first_mh_care_date = row[q.FIRST_MH_CARE_DATE]
+        first_mh_care_date = coerce_to_pendulum_date(row[q.FIRST_MH_CARE_DATE])
 
         postcode_str = row[q.POSTCODE]
         postcode_info = None  # type: Optional[PostcodeInfo]
@@ -1308,7 +1311,7 @@ def validate_2_fetch_cdl(
             middle_names=[],
             surname=row[q.SURNAME] or "",
             gender=gender,
-            dob=dob,
+            dob=dob.isoformat(),
             postcodes=(
                 [postcode_info.temporal_identifier] if postcode_info else []
             ),
@@ -1510,9 +1513,9 @@ def validate_2_fetch_pcmis(
         pcmis_patient_id = row["pcmis_patient_id"]
         nhs_number = row[q.NHS_NUMBER]
         middle_name = row[q.MIDDLE_NAME]
-        dob = row[q.DOB]
+        dob = coerce_to_pendulum_date(row[q.DOB])
         gender = row[q.GENDER]
-        first_mh_care_date = row[q.FIRST_MH_CARE_DATE]
+        first_mh_care_date = coerce_to_pendulum_date(row[q.FIRST_MH_CARE_DATE])
 
         postcodes = []  # type: List[PostcodeInfo]
         if row[q.PREV_POSTCODE] and POSTCODE_REGEX.match(row[q.PREV_POSTCODE]):
@@ -1566,7 +1569,7 @@ def validate_2_fetch_pcmis(
             middle_names=[middle_name] if middle_name else [],
             surname=row[q.SURNAME] or "",
             gender=gender,
-            dob=dob,
+            dob=dob.isoformat(),
             postcodes=[p.temporal_identifier for p in postcodes],
         )
         yield p
@@ -1632,8 +1635,8 @@ def _get_systmone_postcodes(
     postcodes = [
         PostcodeInfo(
             postcode=row[q.POSTCODE],
-            start_date=row[q.START_DATE],
-            end_date=row[q.END_DATE],
+            start_date=coerce_to_pendulum_date(row[q.START_DATE]),
+            end_date=coerce_to_pendulum_date(row[q.END_DATE]),
             index_of_multiple_deprivation=row[q.INDEX_OF_MULTIPLE_DEPRIVATION],
         )
         for row in rows
@@ -1780,9 +1783,9 @@ def validate_2_fetch_systmone(
         systmone_patient_id = row["systmone_patient_id"]
         nhs_number = row[q.NHS_NUMBER]
         middle_name = row[q.MIDDLE_NAME]
-        dob = row[q.DOB]
+        dob = coerce_to_pendulum_date(row[q.DOB])
         gender = row[q.GENDER]
-        first_mh_care_date = row[q.FIRST_MH_CARE_DATE]
+        first_mh_care_date = coerce_to_pendulum_date(row[q.FIRST_MH_CARE_DATE])
 
         postcodes = _get_rio_postcodes(engine, systmone_patient_id)
 
@@ -1814,7 +1817,7 @@ def validate_2_fetch_systmone(
             middle_names=[middle_name] if middle_name else [],
             surname=row[q.SURNAME] or "",
             gender=gender,
-            dob=dob,
+            dob=dob.isoformat(),
             postcodes=[p.temporal_identifier for p in postcodes],
         )
         yield p

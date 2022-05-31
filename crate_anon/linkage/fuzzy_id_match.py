@@ -554,11 +554,15 @@ class TemporalIdentifier(object):
             end_date:
                 The end date (last valid date), or ``None``.
         """
+        assert isinstance(identifier, str), f"Bad identifier: {identifier!r}"
+        if start_date and end_date:
+            assert (
+                start_date <= end_date
+            ), f"start_date = {start_date!r} > end_date = {end_date!r}"
+
         self.identifier = identifier
         self.start_date = start_date
         self.end_date = end_date
-        if start_date and end_date:
-            assert start_date <= end_date
 
     # -------------------------------------------------------------------------
     # Representation
@@ -2009,13 +2013,43 @@ class BasePerson:
                 off for demonstration purposes.
         """
         self.local_id = local_id
-        self.other_info = other_info
-        self.first_name = first_name
+        assert self.local_id and isinstance(
+            self.local_id, str
+        ), f"Bad local_id: {self.local_id!r}"
+
+        self.other_info = other_info or ""
+        assert isinstance(
+            self.other_info, str
+        ), f"Bad other_info: {self.other_info!r}"
+
+        self.first_name = first_name or ""
+        assert isinstance(
+            self.first_name, str
+        ), f"Bad first_name: {self.first_name!r}"
+
         self.middle_names = middle_names or []
-        self.surname = surname
-        self.dob = dob
-        self.gender = gender
+        assert isinstance(
+            self.middle_names, list
+        ), f"Bad middle_names: {self.middle_names!r}"
+        for m in self.middle_names:
+            assert isinstance(m, str), f"Bad middle name: {m!r}"
+
+        self.surname = surname or ""
+        assert isinstance(self.surname, str), f"Bad surname: {self.surname!r}"
+
+        self.dob = dob or ""
+        assert isinstance(self.dob, str), f"Bad date: {dob!r}"
+        if self.dob:
+            assert ISO_DATE_REGEX.match(dob), f"Bad date: {dob!r}"
+
+        self.gender = gender or ""
+        assert self.gender in VALID_GENDERS, f"Bad gender: {gender!r}"
+
         self.postcodes = postcodes or []
+        for p in self.postcodes:
+            assert isinstance(p, TemporalIdentifier) and POSTCODE_REGEX.match(
+                p.identifier
+            ), f"Bad postcode: {p.identifier!r}"
 
         if standardize:
             self.first_name = standardize_name(self.first_name)
@@ -2026,15 +2060,6 @@ class BasePerson:
             for p in self.postcodes:
                 if p.identifier:
                     p.identifier = standardize_postcode(p.identifier)
-
-        assert self.local_id, "Need local_id"
-        if self.dob:
-            assert ISO_DATE_REGEX.match(dob), f"Bad date: {dob!r}"
-        assert self.gender in VALID_GENDERS
-        for p in self.postcodes:
-            assert POSTCODE_REGEX.match(
-                p.identifier
-            ), f"Bad postcode: {p.identifier!r}"
 
     @classmethod
     def _from_csv(
