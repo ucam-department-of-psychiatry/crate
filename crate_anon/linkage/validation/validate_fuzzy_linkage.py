@@ -218,6 +218,7 @@ import logging
 import math
 import pdb
 import random
+import re
 import sys
 import timeit
 from typing import (
@@ -238,6 +239,7 @@ from cardinal_pythonlib.datetimefunc import (
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.profile import do_cprofile
 from pendulum import Date
+from pendulum.parsing.exceptions import ParserError
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.result import ResultProxy
@@ -268,6 +270,47 @@ from crate_anon.linkage.fuzzy_id_match import (
 )
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Date checking
+# =============================================================================
+
+# ISO format, yyyy-MM-dd
+ISOFORMAT_DATE_RE = re.compile(
+    # https://stackoverflow.com/questions/3143070/javascript-regex-iso-datetime
+    r"\d{4}-([0][1-9]|1[0-2])-([0-2][1-9]|[1-3]0|3[01])"
+    # ^^^^^ ^^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^
+    # year  month             day
+)
+
+
+def is_valid_isoformat_date(x: str) -> bool:
+    """
+    Validates an ISO-format date with separators, e.g. '2022-12-31'.
+    """
+    if not isinstance(x, str):
+        return False
+    if not ISOFORMAT_DATE_RE.match(x):
+        # We check this because "2020" will convert to 2020-01-01 if we just
+        # let Pendulum autoconvert below.
+        return False
+    try:
+        coerce_to_pendulum_date(x)
+    except (ParserError, ValueError):
+        return False
+    return True
+
+
+def is_valid_isoformat_blurred_date(x: str) -> bool:
+    """
+    Validates an ISO-format date (as above) that must be the first of the
+    month.
+    """
+    if not is_valid_isoformat_date(x):
+        return False
+    d = coerce_to_pendulum_date(x)
+    return d.day == 1
 
 
 # =============================================================================
@@ -726,19 +769,21 @@ class CPFTValidationExtras:
     into the matching file, i.e. that information required to check the
     correctness and/or bias of matching. It should not contain anything
     directly identifiable.
+
+    We store dates as strings because they are then JSON-serializable.
     """
 
     # Gold-standard identifier to compare across databases:
     hashed_nhs_number: str  # because "local_id" will be per system
 
     # Demographics:
-    blurred_dob: datetime.date
+    blurred_dob: str  # ISO-format string version of blurred DOB
     gender: str
     ethnicity: Optional[str]
     index_of_multiple_deprivation: Optional[int]
 
     # MH-related information:
-    first_mh_care_date: Optional[datetime.date]
+    first_mh_care_date: Optional[str]
     age_at_first_mh_care: Optional[int]  # deliberately blurred to year
     any_icd10_dx_present: int  # binary
     chapter_f_icd10_dx_present: int  # binary
@@ -753,20 +798,23 @@ class CPFTValidationExtras:
                 f"Bad hashed_nhs_number: {self.hashed_nhs_number!r}"
             )
 
-        if (
-            not isinstance(self.blurred_dob, datetime.date)
-            or self.blurred_dob.day != 1
-        ):
+        if not is_valid_isoformat_blurred_date(self.blurred_dob):
             raise ValueError(f"Bad blurred_dob: {self.blurred_dob!r}")
         if not isinstance(self.gender, str):
             raise ValueError(f"Bad gender: {self.gender!r}")
         if not isinstance(self.ethnicity, (str, nonetype)):
             raise ValueError(f"Bad ethnicity: {self.ethnicity!r}")
-
-        if not isinstance(self.first_mh_care_date, (datetime.date, nonetype)):
+        if not isinstance(self.index_of_multiple_deprivation, (int, nonetype)):
             raise ValueError(
-                f"Bad first_mh_care_date: {self.first_mh_care_date!r}"
+                f"Bad index_of_multiple_deprivation: "
+                f"{self.index_of_multiple_deprivation!r}"
             )
+
+        if self.first_mh_care_date is not None:
+            if not is_valid_isoformat_date(self.first_mh_care_date):
+                raise ValueError(
+                    f"Bad first_mh_care_date: {self.first_mh_care_date!r}"
+                )
         if not isinstance(self.age_at_first_mh_care, (int, nonetype)):
             raise ValueError(
                 f"Bad age_at_first_mh_care: {self.age_at_first_mh_care!r}"
@@ -1069,7 +1117,7 @@ def validate_2_fetch_rio(
 
         other = CPFTValidationExtras(
             hashed_nhs_number=_hash(nhs_number),
-            blurred_dob=truncate_date_to_first_of_month(dob),
+            blurred_dob=truncate_date_to_first_of_month(dob).isoformat(),
             gender=gender,
             ethnicity=row[q.ETHNICITY],
             index_of_multiple_deprivation=(
@@ -1078,7 +1126,7 @@ def validate_2_fetch_rio(
                 if postcodes
                 else None
             ),
-            first_mh_care_date=first_mh_care_date,
+            first_mh_care_date=first_mh_care_date.isoformat(),
             age_at_first_mh_care=(
                 (first_mh_care_date - dob).in_years()
                 if dob and first_mh_care_date
@@ -1284,7 +1332,7 @@ def validate_2_fetch_cdl(
 
         other = CPFTValidationExtras(
             hashed_nhs_number=_hash(nhs_number),
-            blurred_dob=truncate_date_to_first_of_month(dob),
+            blurred_dob=truncate_date_to_first_of_month(dob).isoformat(),
             gender=gender,
             ethnicity=row[q.ETHNICITY],
             index_of_multiple_deprivation=(
@@ -1292,7 +1340,7 @@ def validate_2_fetch_cdl(
                 if postcode_info
                 else None
             ),
-            first_mh_care_date=first_mh_care_date,
+            first_mh_care_date=first_mh_care_date.isoformat(),
             age_at_first_mh_care=(
                 (first_mh_care_date - dob).in_years()
                 if dob and first_mh_care_date
@@ -1541,7 +1589,7 @@ def validate_2_fetch_pcmis(
 
         other = CPFTValidationExtras(
             hashed_nhs_number=_hash(nhs_number),
-            blurred_dob=truncate_date_to_first_of_month(dob),
+            blurred_dob=truncate_date_to_first_of_month(dob).isoformat(),
             gender=gender,
             ethnicity=row[q.ETHNICITY],
             index_of_multiple_deprivation=(
@@ -1550,7 +1598,7 @@ def validate_2_fetch_pcmis(
                 if postcodes
                 else None
             ),
-            first_mh_care_date=first_mh_care_date,
+            first_mh_care_date=first_mh_care_date.isoformat(),
             age_at_first_mh_care=(
                 (first_mh_care_date - dob).in_years()
                 if dob and first_mh_care_date
@@ -1789,7 +1837,7 @@ def validate_2_fetch_systmone(
 
         other = CPFTValidationExtras(
             hashed_nhs_number=_hash(nhs_number),
-            blurred_dob=truncate_date_to_first_of_month(dob),
+            blurred_dob=truncate_date_to_first_of_month(dob).isoformat(),
             gender=gender,
             ethnicity=row[q.ETHNICITY],
             index_of_multiple_deprivation=(
@@ -1798,7 +1846,7 @@ def validate_2_fetch_systmone(
                 if postcodes
                 else None
             ),
-            first_mh_care_date=first_mh_care_date,
+            first_mh_care_date=first_mh_care_date.isoformat(),
             age_at_first_mh_care=(
                 (first_mh_care_date - dob).in_years()
                 if dob and first_mh_care_date

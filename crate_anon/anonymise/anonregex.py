@@ -507,7 +507,6 @@ def get_uk_postcode_regex_string(at_word_boundaries_only: bool = True) -> str:
         at_word_boundaries_only=at_word_boundaries_only
     )
     assert len(postcode_regexes) == 1  # as of 2020-04-28, this is true
-    log.critical(f"postcode_regexes: {postcode_regexes}")
     return postcode_regexes[0]
 
 
