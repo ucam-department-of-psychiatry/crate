@@ -2,18 +2,21 @@
 set -e
 set -x
 
-THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-WORKDIR=${TMPDIR:-/tmp}
-SAMPLE="${WORKDIR}/crate_fuzzy_sample.csv"
-SAMPLE_10K="${WORKDIR}/crate_fuzzy_sample_10k.csv"
-SAMPLE_HASHED="${WORKDIR}/crate_fuzzy_hashed.csv"
-VALIDATOR="${THIS_DIR}/validate_fuzzy_linkage.py"
 FUZZY=crate_fuzzy_id_match
 
-"${VALIDATOR}" speedtest
-"${VALIDATOR}" validate1 \
-    --people "${SAMPLE}" \
-    --output "${WORKDIR}/crate_fuzzy_validation1_output.csv"
+THIS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+VALIDATOR=${THIS_DIR}/validate_fuzzy_linkage.py
+
+WORKDIR=${HOME}/.local/share/crate
+SAMPLE=${WORKDIR}/crate_fuzzy_sample.csv
+SAMPLE_10K=${WORKDIR}/crate_fuzzy_sample_10k.csv
+SAMPLE_HASHED=${WORKDIR}/crate_fuzzy_hashed.csv
+
+# -----------------------------------------------------------------------------
+# Command tests: demo/debugging
+# -----------------------------------------------------------------------------
+
+"${FUZZY}" print_demo_sample
 
 "${FUZZY}" show_metaphone JANE JOHN ISADORA KIT
 "${FUZZY}" show_forename_freq JANE JOHN ISADORA KIT
@@ -25,10 +28,16 @@ FUZZY=crate_fuzzy_id_match
 
 "${FUZZY}" show_dob_freq  # no arguments
 
-"${FUZZY}" --allow_default_hash_key hash \
+# -----------------------------------------------------------------------------
+# Command tests: main
+# -----------------------------------------------------------------------------
+
+"${FUZZY}" hash \
+    --allow_default_hash_key \
     --input "${SAMPLE}" \
     --output "${SAMPLE_HASHED}"
-"${FUZZY}" --allow_default_hash_key hash \
+"${FUZZY}" hash \
+    --allow_default_hash_key \
     --input "${SAMPLE}" \
     --output "${WORKDIR}/crate_fuzzy_hashed_no_freq.csv" \
     --without_frequencies
@@ -46,21 +55,34 @@ FUZZY=crate_fuzzy_id_match
     --sample "${SAMPLE_10K}" \
     --output "${WORKDIR}/crate_fuzzy_output_10k.csv"
 
-"${FUZZY}" compare_hashed_to_hashed \
-    --probands "${SAMPLE_HASHED}" \
-    --sample "${SAMPLE_HASHED}" \
-    --output "${WORKDIR}/crate_fuzzy_output_h2h.csv"
-
-"${FUZZY}" --allow_default_hash_key compare_hashed_to_plaintext \
-    --probands "${SAMPLE_HASHED}" \
-    --sample "${SAMPLE}" \
-    --output "${WORKDIR}/crate_fuzzy_output_h2p.csv"
-
-# validate2_fetch_cdl
-# validate2_fetch_rio
-
 # For Figure 3, a demonstration of the Bayesian approach:
 "${FUZZY}" compare_plaintext \
     --probands "${WORKDIR}/crate_fuzzy_demo_fig3_probands.csv" \
     --sample "${WORKDIR}/crate_fuzzy_demo_fig3_sample.csv" \
     --output "${WORKDIR}/crate_fuzzy_demo_fig3_output.csv"
+
+"${FUZZY}" compare_hashed_to_hashed \
+    --probands "${SAMPLE_HASHED}" \
+    --sample "${SAMPLE_HASHED}" \
+    --output "${WORKDIR}/crate_fuzzy_output_h2h.csv"
+
+"${FUZZY}" compare_hashed_to_plaintext \
+    --allow_default_hash_key \
+    --probands "${SAMPLE_HASHED}" \
+    --sample "${SAMPLE}" \
+    --output "${WORKDIR}/crate_fuzzy_output_h2p.csv"
+
+# -----------------------------------------------------------------------------
+# Validation
+# -----------------------------------------------------------------------------
+
+"${VALIDATOR}" speedtest
+
+"${VALIDATOR}" validate1 \
+    --people "${SAMPLE}" \
+    --output "${WORKDIR}/crate_fuzzy_validation1_output.csv"
+
+# validate2_fetch_cdl
+# validate2_fetch_pcmis
+# validate2_fetch_rio
+# validate2_fetch_systmone

@@ -3,6 +3,10 @@
 # Not exactly the way the Python optimized code does it, but an
 # illustration for Figure 3.
 
+# =============================================================================
+# Probability calculation functions
+# =============================================================================
+
 odds_from_p <- function(p) p/(1-p)
 log_odds_from_p <- function(p) log(odds_from_p(p))
 p_from_odds <- function(odds) odds/(1 + odds)
@@ -13,18 +17,10 @@ log_posterior_odds_2 <- function(log_prior_odds, p_d_h, p_d_not_h) {
     return(log_prior_odds + log_lr)
 }
 
-prior <- log_odds_from_p(1e-6)
-dob_freq <- 3.04e-5
-p_e_forename <- 0.001
-p_e_surname <- 0.001
-p_e_gender <- 0.0001
 
-p_female <- 0.51
-
-f_sname_smith <- 0.01006
-f_smeta_sm0 <- 0.01013
-f_fname_elizabeth_female <- 0.00949
-f_fmeta_alsp_female <- 0.01007
+# =============================================================================
+# Illustration of comparison
+# =============================================================================
 
 compare <- function(log_prior_odds, p_d_h, p_d_not_h) {
     log_posterior_odds <- log_posterior_odds_2(log_prior_odds, p_d_h, p_d_not_h)
@@ -34,15 +30,17 @@ compare <- function(log_prior_odds, p_d_h, p_d_not_h) {
     return(log_posterior_odds)
 }
 
-proband <- list(surname = "SMITH", f_surname = 0.01006,
-                smeta = "SM0", f_smeta = 0.01013,
-                firstname = "Elizabeth", f_firstname_given_gender = 0.00949,
-                fmeta = "ALSP", f_fmeta_given_gender = 0.01007,
-                dob = "1950-01-01",
-                gender = "F", f_gender = 0.51)
 
 show_sequence <- function(proband, candidate) {
+    # Show the logical sequence involved in comparing a proband to a candidate,
+    # for illustration only.
+
     log_odds <- prior
+    cat("\n--- DEMONSTRATION COMPARISON\n")
+    cat("- proband:\n")
+    dput(proband)
+    cat("- candidate:\n")
+    dput(candidate)
     cat(paste0("Start at: ", log_odds, "\n"))
 
     if (proband$surname == candidate$surname) {
@@ -86,21 +84,67 @@ show_sequence <- function(proband, candidate) {
     cat(paste0("Finished at: ", log_odds, "\n"))
 }
 
-candidate1 <- list(surname = "JONES", smeta = "JNS",
-                   firstname = "Elizabeth", fmeta = "ALSP",
-                   dob = "1950-01-01", gender = "F")
-candidate2 <- list(surname = "SMITH", smeta = "SM0",
-                   firstname = "Elizabeth", fmeta = "ALSP",
-                   dob = "1984-07-29", gender = "F")
-candidate3 <- list(surname = "SMITH", smeta = "SM0",
-                   firstname = "Elizabeth", fmeta = "ALSP",
-                   dob = "1950-01-01", gender = "F")
-candidate4 <- list(surname = "SMITH", smeta = "SM0",
-                   firstname = "Elisabeth", fmeta = "ALSP",
-                   dob = "1950-01-01", gender = "F")
-candidate5 <- list(surname = "SMYTHE", smeta = "SM0",
-                   firstname = "Elisabeth", fmeta = "ALSP",
-                   dob = "1950-01-01", gender = "F")
+
+# =============================================================================
+# Priors
+# =============================================================================
+
+prior <- log_odds_from_p(1e-6)
+dob_freq <- 3.04e-5
+p_e_forename <- 0.001
+p_e_surname <- 0.001
+p_e_gender <- 0.0001
+
+p_female <- 0.51
+
+f_sname_smith <- 0.01006
+f_smeta_sm0 <- 0.01013
+f_fname_elizabeth_female <- 0.00949
+f_fmeta_alsp_female <- 0.01007
+
+
+# =============================================================================
+# Specimen comparisons
+# =============================================================================
+
+proband <- list(
+    surname = "SMITH", f_surname = 0.01006,
+    smeta = "SM0", f_smeta = 0.01013,
+    firstname = "Elizabeth", f_firstname_given_gender = 0.00949,
+    fmeta = "ALSP", f_fmeta_given_gender = 0.01007,
+    dob = "1950-01-01",
+    gender = "F", f_gender = 0.51
+)
+candidate1 <- list(
+    surname = "JONES", smeta = "JNS",
+    firstname = "Elizabeth", fmeta = "ALSP",
+    dob = "1950-01-01",
+    gender = "F"
+)
+candidate2 <- list(
+    surname = "SMITH", smeta = "SM0",
+    firstname = "Elizabeth", fmeta = "ALSP",
+    dob = "1984-07-29",
+    gender = "F"
+)
+candidate3 <- list(
+    surname = "SMITH", smeta = "SM0",
+    firstname = "Elizabeth", fmeta = "ALSP",
+    dob = "1950-01-01",
+    gender = "F"
+)
+candidate4 <- list(
+    surname = "SMITH", smeta = "SM0",
+    firstname = "Elisabeth", fmeta = "ALSP",
+    dob = "1950-01-01",
+    gender = "F"
+)
+candidate5 <- list(
+    surname = "SMYTHE", smeta = "SM0",
+    firstname = "Elisabeth", fmeta = "ALSP",
+    dob = "1950-01-01",
+    gender = "F"
+)
 show_sequence(proband, candidate1)
 show_sequence(proband, candidate2)
 show_sequence(proband, candidate3)

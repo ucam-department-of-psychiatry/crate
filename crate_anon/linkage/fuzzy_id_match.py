@@ -4025,16 +4025,52 @@ def warn_or_fail_if_default_key(args: argparse.Namespace) -> None:
             sys.exit(EXIT_FAILURE)
 
 
-def add_common_groups(parser: argparse.ArgumentParser):
+def add_subparsers(
+    parser: argparse.ArgumentParser,
+) -> "_SubParsersAction":
     """
-    Sets up standard argparse groups.
+    Adds global-only options and subparsers.
+    In a function because we use these in validate_fuzzy_linkage.py too.
     """
-    display_group = parser.add_argument_group("display options")
-    display_group.add_argument(
-        "--verbose", action="store_true", help="Be verbose"
+    parser.add_argument(
+        "--version", action="version", version=f"CRATE {CRATE_VERSION}"
     )
+    parser.add_argument(
+        "--allhelp",
+        action=ShowAllSubparserHelpAction,
+        help="show help for all commands and exit",
+    )
+    subparsers = parser.add_subparsers(
+        title="commands",
+        description="Valid commands are as follows.",
+        help="Specify one command.",
+        dest="command",  # sorts out the help for the command being mandatory
+    )  # type: _SubParsersAction  # noqa
+    subparsers.required = True  # requires a command
+    return subparsers
 
-    hasher_group = parser.add_argument_group("hasher (secrecy) options")
+
+def get_basic_options_subparser() -> argparse.ArgumentParser:
+    """
+    Returns a silent subparser for global options.
+    In a function because we use these in validate_fuzzy_linkage.py too.
+    """
+    base_subparser = argparse.ArgumentParser(add_help=False)
+    arggroup = base_subparser.add_argument_group("display options")
+    arggroup.add_argument("--verbose", action="store_true", help="Be verbose")
+    return base_subparser
+
+
+def get_config_option_subparser() -> argparse.ArgumentParser:
+    """
+    Adds a Sets up standard argparse options for MatchConfig.
+    In a function because we use these in validate_fuzzy_linkage.py too.
+    """
+    config_subparser = argparse.ArgumentParser(add_help=False)
+
+    hasher_group = config_subparser.add_argument_group(
+        "hasher (secrecy) options"
+    )
     hasher_group.add_argument(
         "--key",
         type=str,
@@ -4056,7 +4092,7 @@ def add_common_groups(parser: argparse.ArgumentParser):
         "in hashed version",
     )
 
-    priors_group = parser.add_argument_group(
+    priors_group = config_subparser.add_argument_group(
         "frequency information for prior probabilities"
     )
     priors_group.add_argument(
@@ -4160,7 +4196,7 @@ def add_common_groups(parser: argparse.ArgumentParser):
         "that they are either male or female.",
     )
 
-    error_p_group = parser.add_argument_group("error probabilities")
+    error_p_group = config_subparser.add_argument_group("error probabilities")
     error_p_group.add_argument(
         "--p_minor_forename_error",
         type=float,
@@ -4205,7 +4241,7 @@ def add_common_groups(parser: argparse.ArgumentParser):
         "proband/candidate mismatch.",
     )
 
-    match_rule_group = parser.add_argument_group("matching rules")
+    match_rule_group = config_subparser.add_argument_group("matching rules")
     match_rule_group.add_argument(
         "--min_log_odds_for_match",
         type=float,
@@ -4221,6 +4257,8 @@ def add_common_groups(parser: argparse.ArgumentParser):
         help="Minimum log (ln) odds by which a best match must exceed the "
         "next-best match to be considered a unique match.",
     )
+
+    return config_subparser
 
 
 def add_comparison_options(
@@ -4366,39 +4404,19 @@ def main() -> int:
         description="Identity matching via hashed fuzzy identifiers",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
-        "--version", action="version", version=f"CRATE {CRATE_VERSION}"
-    )
-    parser.add_argument(
-        "--allhelp",
-        action=ShowAllSubparserHelpAction,
-        help="show help for all commands and exit",
-    )
+    subparsers = add_subparsers(parser)
+    base_subparser = get_basic_options_subparser()
+    config_subparser = get_config_option_subparser()
+    both_parents = [base_subparser, config_subparser]
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # Common arguments
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    add_common_groups(parser)
-
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # Subcommand subparser
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    subparsers = parser.add_subparsers(
-        title="commands",
-        description="Valid commands are as follows.",
-        help="Specify one command.",
-        dest="command",  # sorts out the help for the command being mandatory
-    )  # type: _SubParsersAction  # noqa
-    subparsers.required = True  # requires a command
-
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # commands to print demo sample files
+    # print_demo_sample command
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     _ = subparsers.add_parser(
-        "print_demo_sample", help="Print a demo sample .CSV file."
+        "print_demo_sample",
+        parents=both_parents,
+        help="Print a demo sample .CSV file.",
     )
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -4409,7 +4427,7 @@ def main() -> int:
         "hash",
         help="STEP 1 OF DE-IDENTIFIED LINKAGE. "
         "Hash an identifiable CSV file into an encrypted one. ",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        parents=both_parents,
         description="""
     Takes an identifiable list of people (with name, DOB, and postcode
     information) and creates a hashed, de-identified equivalent.
@@ -4419,6 +4437,7 @@ def main() -> int:
     Optionally, the "other" information (you can choose, e.g. attaching a
     direct identifier) is preserved, but you have to ask for that explicitly;
     that is normally for testing.""",
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
     hash_parser.add_argument(
         "--input",
@@ -4459,8 +4478,9 @@ def main() -> int:
         help="IDENTIFIABLE LINKAGE COMMAND. "
         "Compare a list of probands against a sample (both in "
         "plaintext). ",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        parents=both_parents,
         description=HELP_COMPARISON,
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
     add_comparison_options(
         compare_plaintext_parser,
@@ -4479,8 +4499,9 @@ def main() -> int:
             "both sides in advance). "
             "Compare a list of probands against a sample (both hashed)."
         ),
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        parents=both_parents,
         description=HELP_COMPARISON,
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
     add_comparison_options(
         compare_h2h_parser, proband_is_hashed=True, sample_is_hashed=True
@@ -4497,8 +4518,9 @@ def main() -> int:
         "data, producing a de-identified result). "
         "Compare a list of probands (hashed) against a sample "
         "(plaintext).",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        parents=both_parents,
         description=HELP_COMPARISON,
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
     add_comparison_options(
         compare_h2p_parser,
@@ -4510,45 +4532,61 @@ def main() -> int:
     # Debugging commands
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    # show_metaphone
     show_metaphone_parser = subparsers.add_parser(
-        "show_metaphone", help="Show metaphones of words"
+        "show_metaphone",
+        parents=both_parents,
+        help="Show metaphones of words",
     )
     show_metaphone_parser.add_argument(
         "words", nargs="+", help="Words to check"
     )
 
+    # show_forename_freq
     show_forename_freq_parser = subparsers.add_parser(
-        "show_forename_freq", help="Show frequencies of forenames"
+        "show_forename_freq",
+        parents=both_parents,
+        help="Show frequencies of forenames",
     )
     show_forename_freq_parser.add_argument(
         "forenames", nargs="+", help="Forenames to check"
     )
 
+    # show_forename_metaphone_freq
     show_forename_metaphone_freq_parser = subparsers.add_parser(
         "show_forename_metaphone_freq",
+        parents=both_parents,
         help="Show frequencies of forename metaphones",
     )
     show_forename_metaphone_freq_parser.add_argument(
         "metaphones", nargs="+", help="Forenames to check"
     )
 
+    # show_surname_freq
     show_surname_freq_parser = subparsers.add_parser(
-        "show_surname_freq", help="Show frequencies of surnames"
+        "show_surname_freq",
+        parents=both_parents,
+        help="Show frequencies of surnames",
     )
     show_surname_freq_parser.add_argument(
         "surnames", nargs="+", help="surnames to check"
     )
 
+    # show_surname_metaphone_freq
     show_surname_metaphone_freq_parser = subparsers.add_parser(
         "show_surname_metaphone_freq",
+        parents=both_parents,
         help="Show frequencies of surname metaphones",
     )
     show_surname_metaphone_freq_parser.add_argument(
         "metaphones", nargs="+", help="surnames to check"
     )
 
+    # show_dob_freq
     _ = subparsers.add_parser(
-        "show_dob_freq", help="Show the frequency of any DOB"
+        "show_dob_freq",
+        parents=both_parents,
+        help="Show the frequency of any DOB",
     )
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -4587,7 +4625,7 @@ def main() -> int:
             input_csv=args.input,
             output_csv=args.output,
             without_frequencies=args.without_frequencies,
-            include_other_info=args.include_other,
+            include_other_info=args.include_other_info,
         )
         log.info(f"... finished; written to {args.output}")
 

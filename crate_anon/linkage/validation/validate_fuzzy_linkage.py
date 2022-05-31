@@ -226,12 +226,10 @@ from typing import (
     List,
     Optional,
     Tuple,
-    TYPE_CHECKING,
 )
 
 from cardinal_pythonlib.argparse_func import (
     RawDescriptionArgumentDefaultsHelpFormatter,
-    ShowAllSubparserHelpAction,
 )
 from cardinal_pythonlib.datetimefunc import truncate_date_to_first_of_month
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
@@ -247,11 +245,13 @@ from crate_anon.common.constants import (
     EXIT_SUCCESS,
 )
 from crate_anon.linkage.fuzzy_id_match import (
-    add_common_groups,
+    add_subparsers,
     BasePerson,
     cache_load,
     cache_save,
+    get_basic_options_subparser,
     get_cfg_from_args,
+    get_config_option_subparser,
     get_demo_csv,
     Hasher,
     MatchConfig,
@@ -263,11 +263,8 @@ from crate_anon.linkage.fuzzy_id_match import (
     warn_or_fail_if_default_key,
 )
 
-if TYPE_CHECKING:
-    # noinspection PyProtectedMember,PyUnresolvedReferences
-    from argparse import _SubParsersAction
-
 log = logging.getLogger(__name__)
+
 
 # =============================================================================
 # Speed testing
@@ -2071,23 +2068,9 @@ def main() -> int:
         description="Validate identity matching via hashed fuzzy identifiers",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
-        "--allhelp",
-        action=ShowAllSubparserHelpAction,
-        help="show help for all commands and exit",
-    )
-
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # Subcommand subparser
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    subparsers = parser.add_subparsers(
-        title="commands",
-        description="Valid commands are as follows.",
-        help="Specify one command.",
-        dest="command",  # sorts out the help for the command being mandatory
-    )  # type: _SubParsersAction  # noqa
-    subparsers.required = True  # requires a command
+    subparsers = add_subparsers(parser)
+    base_subparser = get_basic_options_subparser()
+    config_subparser = get_config_option_subparser()
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # speedtest command
@@ -2096,13 +2079,13 @@ def main() -> int:
     speedtest_parser = subparsers.add_parser(
         "speedtest",
         help="Run speed tests and stop",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        parents=[base_subparser, config_subparser],
         description="""
         This will run several comparisons to test hashing and comparison
         speed. Results are reported as microseconds per comparison.
         """,
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    add_common_groups(speedtest_parser)
     speedtest_parser.add_argument(
         "--profile",
         action="store_true",
@@ -2119,10 +2102,10 @@ def main() -> int:
         help="Run validation test 1 and stop. In this test, a list of people "
         "is compared to a version of itself, at times with elements "
         "deleted or with typos introduced.",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        parents=[base_subparser, config_subparser],
         description=HELP_VALIDATE_1,
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
-    add_common_groups(validate1_parser)
     validate1_parser.add_argument(
         "--people",
         type=str,
@@ -2174,8 +2157,9 @@ def main() -> int:
     validate2_cdl_parser = subparsers.add_parser(
         "validate2_fetch_cdl",
         help="Validation 2A: fetch people from CPFT CDL database",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        parents=[base_subparser],
         description=HELP_VALIDATE_2_CDL,
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
     _add_validate2_elements(validate2_cdl_parser)
 
@@ -2183,8 +2167,9 @@ def main() -> int:
     validate2_rio_parser = subparsers.add_parser(
         "validate2_fetch_rio",
         help="Validation 2B: fetch people from CPFT RiO database",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        parents=[base_subparser],
         description="See validate2_fetch_cdl command.",
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
     _add_validate2_elements(validate2_rio_parser)
 
@@ -2192,8 +2177,9 @@ def main() -> int:
     validate2_pcmis_parser = subparsers.add_parser(
         "validate2_fetch_pcmis",
         help="Validation 2C: fetch people from CPFT PCMIS database",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        parents=[base_subparser],
         description="See validate2_fetch_cdl command.",
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
     _add_validate2_elements(validate2_pcmis_parser)
 
@@ -2201,8 +2187,9 @@ def main() -> int:
     validate2_systmone_parser = subparsers.add_parser(
         "validate2_fetch_systmone",
         help="Validation 2B: fetch people from CPFT SystmOne database",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        parents=[base_subparser],
         description="See validate2_fetch_cdl command.",
+        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
     _add_validate2_elements(validate2_systmone_parser)
 

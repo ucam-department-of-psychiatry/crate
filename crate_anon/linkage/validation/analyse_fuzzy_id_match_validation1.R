@@ -11,19 +11,22 @@ library(data.table)
 library(ggplot2)
 library(gridExtra)
 library(pROC)
+library(rappdirs)
 
+source("https://egret.psychol.cam.ac.uk/rlib/debugfunc.R")
 source("https://egret.psychol.cam.ac.uk/rlib/miscfile.R")
 source("https://egret.psychol.cam.ac.uk/rlib/miscplot.R")
+
+debugfunc$wideScreen()
 
 
 # =============================================================================
 # Directories
 # =============================================================================
 
-WORKING_DIR <- file.path(miscfile$current_script_directory(),
-    "../..", "..", "working")
-INPUT_CSV <- file.path(WORKING_DIR, "fuzzy_validation1_output.csv")
-FIGURE_FILENAME <- file.path(WORKING_DIR, "fuzzy_validation1_figure.pdf")
+WORKING_DIR <- rappdirs::user_data_dir(appname = "crate")
+INPUT_CSV <- file.path(WORKING_DIR, "crate_fuzzy_validation1_output.csv")
+FIGURE_FILENAME <- file.path(WORKING_DIR, "crate_fuzzy_validation1_figure.pdf")
 
 
 # =============================================================================
@@ -48,6 +51,12 @@ create_roc <- function(d,
     predictor1 <- d$best_log_odds
     predictor1[predictor1 < very_large_negative] <- very_large_negative
     # ... roc() doesn't like -Inf
+    if (FALSE) {
+        cat("response1:\n")
+        print(response1)
+        cat("predictor1:\n")
+        print(predictor1)
+    }
     r1 <- pROC::roc(response = response1, predictor = predictor1)
     # https://stackoverflow.com/questions/3443687/formatting-decimal-places-in-r
     auc1_str <- format(round(r1$auc, 3), nsmall = 3)
@@ -56,8 +65,10 @@ create_roc <- function(d,
         ggplot2::geom_abline(intercept = 1, slope = 1, colour = "grey") +
         ggplot2::ggtitle(title) +
         ggplot2::theme_bw() +
-        ggplot2::annotate("text", x = 0.25, y = 0.125,
-                          label = paste0("AUC: ", auc1_str))
+        ggplot2::annotate(
+            "text", x = 0.25, y = 0.125,
+            label = paste0("AUC: ", auc1_str)
+        )
     )
 
     d2 <- d[!is.na(winner_id)]
@@ -70,6 +81,12 @@ create_roc <- function(d,
     } else {
         predictor2 <- d2$winner_advantage
         predictor2[predictor2 < very_large_negative] <- very_large_negative
+        if (TRUE) {
+            cat("response2:\n")
+            print(response2)
+            cat("predictor2:\n")
+            print(predictor2)
+        }
         r2 <- pROC::roc(response = response2, predictor = predictor2)
         # https://stackoverflow.com/questions/3443687/formatting-decimal-places-in-r
         auc2_str <- format(round(r2$auc, 3), nsmall = 3)
@@ -78,10 +95,14 @@ create_roc <- function(d,
             ggplot2::geom_abline(intercept = 1, slope = 1, colour = "grey") +
             ggplot2::ggtitle(title) +
             ggplot2::theme_bw() +
-            ggplot2::annotate("text", x = 0.25, y = 0.125,
-                              label = paste0("AUC: ", auc2_str)) +
-            ggplot2::annotate("text", x = 0.25, y = 0.25,
-                              label = paste0("%correct: ", pct_correct_str))
+            ggplot2::annotate(
+                "text", x = 0.25, y = 0.125,
+                label = paste0("AUC: ", auc2_str)
+            ) +
+            ggplot2::annotate(
+                "text", x = 0.25, y = 0.25,
+                label = paste0("%correct: ", pct_correct_str)
+            )
         )
     }
 
