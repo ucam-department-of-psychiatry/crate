@@ -949,6 +949,41 @@ def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
     Returns:
         list: of middle names
 
+    Out of a large database (>150k people), 4 have two rows here. JL notes that
+    in each case examined, the earliest EffectiveDate, or smallest crate_pk, is
+    the right one.
+
+    De-identified debugging queries:
+
+    .. code-block:: sql
+
+        SELECT TOP 10
+            -- De-identified inspection:
+            c2.crate_rio_number,
+            c2.ClientNameID,
+            c2.EffectiveDate,
+            c2.Deleted,
+            c2.AliasType,
+            c2.EndDate,
+            c2.crate_pk
+        FROM (
+            -- Patients with >1 apparent record in this table:
+            SELECT c1.crate_rio_number, COUNT(*) AS n_per_patient
+            FROM RiO62CAMLive.dbo.ClientName c1
+            WHERE c1.EndDate IS NULL
+            AND c1.Deleted = 0
+            GROUP BY c1.crate_rio_number
+            HAVING COUNT(*) > 1
+        ) s
+        INNER JOIN RiO62CAMLive.dbo.ClientName c2
+            ON c2.crate_rio_number = s.crate_rio_number
+
+    The majority appear to have one entry with AliasType = '1' and another with
+    AliasType = '2'. These are defined in ClientAliasType (a non-patient
+    table); note that the code is of type NVARCHAR(10). Here, we see that '1'
+    is 'Usual name'; '2' is 'Alias'; there are others.
+
+    Restricting to '1' eliminates duplicates.
     """
     sql = text(
         """
@@ -965,7 +1000,8 @@ def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
         WHERE
             ClientID = :client_id
             AND EndDate IS NULL
-            -- AND Deleted = 0  -- redundant
+            AND Deleted = 0  -- redundant
+            AND AliasType = '1'  -- usual name
     """
     )
     rows = engine.execute(sql, client_id=rio_client_id)
@@ -1891,6 +1927,7 @@ def save_people_from_db(
             report progress every n people
     """
     rownum = 0
+    log.info(f"Saving to: {output_csv}")
     with open(output_csv, "wt") as f:
         for i, p in enumerate(people):
             if i == 0:
@@ -1903,6 +1940,7 @@ def save_people_from_db(
             rownum += 1
             if rownum % report_every == 0:
                 log.info(f"Processing person #{rownum}")
+    log.info("... finished saving.")
 
 
 # =============================================================================
@@ -2318,6 +2356,8 @@ def main() -> int:
         # Shouldn't get here.
         log.error(f"Unknown command: {args.command}")
         return EXIT_FAILURE
+
+    log.info(f"... command {args.command} finished.")
 
     return EXIT_SUCCESS
 
