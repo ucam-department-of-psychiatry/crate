@@ -816,7 +816,8 @@ class CPFTValidationExtras:
     correctness and/or bias of matching. It should not contain anything
     directly identifiable.
 
-    We store dates as strings because they are then JSON-serializable.
+    We store dates as strings because they are then JSON-serializable. We use
+    blank strings for unknown dates.
     """
 
     # Gold-standard identifier to compare across databases:
@@ -829,7 +830,7 @@ class CPFTValidationExtras:
     index_of_multiple_deprivation: Optional[int]
 
     # MH-related information:
-    first_mh_care_date: Optional[str]
+    first_mh_care_date: str  # ISO-format date string, or empty string
     age_at_first_mh_care: Optional[int]  # deliberately blurred to year
     any_icd10_dx_present: int  # binary
     chapter_f_icd10_dx_present: int  # binary
@@ -856,11 +857,14 @@ class CPFTValidationExtras:
                 f"{self.index_of_multiple_deprivation!r}"
             )
 
-        if self.first_mh_care_date is not None:
-            if not is_valid_isoformat_date(self.first_mh_care_date):
-                raise ValueError(
-                    f"Bad first_mh_care_date: {self.first_mh_care_date!r}"
-                )
+        try:
+            assert isinstance(self.first_mh_care_date, str)
+            if self.first_mh_care_date:
+                assert is_valid_isoformat_date(self.first_mh_care_date)
+        except AssertionError:
+            raise ValueError(
+                f"Bad first_mh_care_date: {self.first_mh_care_date!r}"
+            )
         if not isinstance(self.age_at_first_mh_care, (int, nonetype)):
             raise ValueError(
                 f"Bad age_at_first_mh_care: {self.age_at_first_mh_care!r}"
@@ -2110,12 +2114,13 @@ HELP_VALIDATE_1 = f"""
     {ValidationOutputColnames.IS_HASHED}:
         (Boolean) Whether the proband and sample are hashed.
     {ValidationOutputColnames.PROBAND_ID}:
-        The gold-standard ID of the proband. ***
+        The local ID of the proband (from the proband file).
     {ValidationOutputColnames.WINNER_ID}:
-        The *** ID of the best-matching person in the sample if they were a
-        good enough match to win.
+        The local ID of the best-matching person in the sample (from the sample
+        file) if they were a good enough match to win.
     {ValidationOutputColnames.BEST_MATCH_ID}:
-        The *** ID of the best-matching person in the sample.
+        The local ID of the best-matching person in the sample (from the sample
+        file).
     {ValidationOutputColnames.BEST_LOG_ODDS}:
         The calculated log (ln) odds that the proband and the sample member
         identified by 'winner_id' are the sample person (ideally high if there
@@ -2141,7 +2146,7 @@ HELP_VALIDATE_1 = f"""
 
     For n input rows, each basic set test involves n^2/2 comparisons. Then we
     repeat for typos and deletions. (There is no point in DOB typos as our
-    rules preclude that.)
+    matching rules preclude that.)
 
     Examine:
     - P(unique plaintext match | proband in sample) -- should be close to 1.
