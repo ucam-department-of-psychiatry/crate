@@ -331,13 +331,14 @@ def age_years(dob: Optional[Date], when: Optional[Date]) -> Optional[int]:
     return None
 
 
-def last_imd(postcodes: List["PostcodeInfo"]) -> Optional[int]:
+def last_imd(postcodes: List[Optional["PostcodeInfo"]]) -> Optional[int]:
     """
     The IMD from the last postcode specified for which an IMD is known, if any.
     """
     for p in reversed(postcodes):
-        if p.index_of_multiple_deprivation is not None:
-            return p.index_of_multiple_deprivation
+        if p is not None:
+            if p.index_of_multiple_deprivation is not None:
+                return p.index_of_multiple_deprivation
     return None
 
 
