@@ -1898,9 +1898,11 @@ def validate_2_fetch_systmone(
             p.NHSNumber IS NOT NULL
             AND LEN(p.NHSNumber) = 10
             AND TRY_CAST(p.NHSNumber AS BIGINT) IS NOT NULL
+            -- There is about 1/619,000 with no DOB:
+            AND p.DOB IS NOT NULL
 
-        -- Final count: 601755 (2022-05-26).
-        -- Compare: SELECT COUNT(*) FROM SystmOne.dbo.S1_Patient = 607605.
+        -- Final count: 613175 (2022-06-01).
+        -- Compare: SELECT COUNT(*) FROM SystmOne.dbo.S1_Patient = 619062.
     """  # noqa
     )
     _hash = Hasher(hash_key).hash  # hashing function
