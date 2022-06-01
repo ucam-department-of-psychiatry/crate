@@ -242,7 +242,7 @@ from pendulum import Date
 from pendulum.parsing.exceptions import ParserError
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
-from sqlalchemy.engine.result import ResultProxy
+from sqlalchemy.engine.result import ResultProxy, RowProxy
 from sqlalchemy.sql import text
 
 from crate_anon.common.constants import (
@@ -1016,8 +1016,9 @@ def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
             AND AliasType = '1'  -- usual name
     """
     )
-    rows = engine.execute(sql, client_id=rio_client_id)
-    n_rows = len(rows)
+    result = engine.execute(sql, client_id=rio_client_id)  # type: ResultProxy
+    rows = result.fetchall()  # type: List[RowProxy]
+    n_rows = len(rows)  # or result.rowcount()
     assert n_rows <= 1, "Didn't expect >1 row per patient in ClientName"
     if n_rows == 0:
         return []
