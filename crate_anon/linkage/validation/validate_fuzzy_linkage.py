@@ -271,9 +271,8 @@ from crate_anon.linkage.fuzzy_id_match import (
 
 log = logging.getLogger(__name__)
 
-
 # =============================================================================
-# Date checking
+# Date checking and formatting
 # =============================================================================
 
 # ISO format, yyyy-MM-dd
@@ -311,6 +310,35 @@ def is_valid_isoformat_blurred_date(x: str) -> bool:
         return False
     d = coerce_to_pendulum_date(x)
     return d.day == 1
+
+
+def isoformat_optional_date(d: Optional[Date]) -> str:
+    """
+    Returns a date in string format.
+    """
+    if not d:
+        return ""
+    return d.isoformat()
+
+
+def age_years(dob: Optional[Date], when: Optional[Date]) -> Optional[int]:
+    """
+    A person's age in years when something happened, or ``None`` if either
+    DOB or the index date is unknown.
+    """
+    if dob and when:
+        return (when - dob).in_years()
+    return None
+
+
+def last_imd(postcodes: List["PostcodeInfo"]) -> Optional[int]:
+    """
+    The IMD from the last postcode specified for which an IMD is known, if any.
+    """
+    for p in reversed(postcodes):
+        if p.index_of_multiple_deprivation is not None:
+            return p.index_of_multiple_deprivation
+    return None
 
 
 # =============================================================================
@@ -377,7 +405,8 @@ def speedtest(cfg: MatchConfig, set_breakpoint: bool = False) -> None:
     t = (
         microsec_per_sec
         * timeit.timeit(
-            "alice_bcd_unique_2000_add.log_odds_same(alice_bcd_unique_2000_add)",  # noqa
+            "alice_bcd_unique_2000_add"
+            ".log_odds_same(alice_bcd_unique_2000_add)",
             number=n_for_speedtest,
             globals=locals(),
         )
@@ -390,7 +419,8 @@ def speedtest(cfg: MatchConfig, set_breakpoint: bool = False) -> None:
     t = (
         microsec_per_sec
         * timeit.timeit(
-            "alice_bcd_unique_2000_add.hashed().log_odds_same(alice_bcd_unique_2000_add.hashed())",  # noqa
+            "alice_bcd_unique_2000_add.hashed()"
+            ".log_odds_same(alice_bcd_unique_2000_add.hashed())",
             number=n_for_speedtest,
             globals=locals(),
         )
@@ -416,7 +446,8 @@ def speedtest(cfg: MatchConfig, set_breakpoint: bool = False) -> None:
     t = (
         microsec_per_sec
         * timeit.timeit(
-            "alice_smith_1930.hashed().log_odds_same(alice_smith_2000.hashed())",  # noqa
+            "alice_smith_1930.hashed()"
+            ".log_odds_same(alice_smith_2000.hashed())",
             number=n_for_speedtest,
             globals=locals(),
         )
@@ -446,23 +477,23 @@ def speedtest(cfg: MatchConfig, set_breakpoint: bool = False) -> None:
         microsec_per_sec
         * timeit.timeit(
             (
-                "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_1930)"  # noqa: E501
+                "hashed_alice_smith_1930"
+                ".log_odds_same(hashed_alice_smith_1930)"
             ),
             number=n_for_speedtest,
             globals=locals(),
         )
         / n_for_speedtest
     )
-    log.info(
-        f"Compare two identical hashed objects: {t} μs per comparison"
-    )  # noqa
+    log.info(f"Compare two identical hashed objects: {t} μs per comparison")
     # On Wombat 2020-04-024: 21.7 microseconds.
 
     t = (
         microsec_per_sec
         * timeit.timeit(
             (
-                "hashed_alice_smith_1930.log_odds_same(hashed_alice_smith_2000)"  # noqa: E501
+                "hashed_alice_smith_1930"
+                ".log_odds_same(hashed_alice_smith_2000)"
             ),
             number=n_for_speedtest,
             globals=locals(),
@@ -471,7 +502,7 @@ def speedtest(cfg: MatchConfig, set_breakpoint: bool = False) -> None:
     )
     log.info(
         f"Compare two DOB-mismatched hashed objects: {t} μs per comparison"
-    )  # noqa
+    )
     # On Wombat 2020-04-024: 6.4 microseconds.
 
 
@@ -636,7 +667,7 @@ def validate_1(
             True,
             True,
             False,
-        ),  # noqa
+        ),
         (
             out_deletions_hashed,
             "out_deletions_hashed",
@@ -644,7 +675,7 @@ def validate_1(
             False,
             True,
             False,
-        ),  # noqa
+        ),
         (in_typos, "in_typos", in_plaintext, True, False, True),
         (out_typos, "out_typos", in_plaintext, False, False, True),
         (in_typos_hashed, "in_typos_hashed", in_hashed, True, False, True),
@@ -663,7 +694,7 @@ def validate_1(
             in_sample,
             deletions,
             typos,
-        ) in data:  # noqa
+        ) in data:
             for person in people.people:
                 i += 1
                 if i % report_every == 0:
@@ -1169,21 +1200,14 @@ def validate_2_fetch_rio(
 
         other = CPFTValidationExtras(
             hashed_nhs_number=_hash(nhs_number),
-            blurred_dob=truncate_date_to_first_of_month(dob).isoformat(),
+            blurred_dob=isoformat_optional_date(
+                truncate_date_to_first_of_month(dob)
+            ),
             gender=gender,
             ethnicity=row[q.ETHNICITY],
-            index_of_multiple_deprivation=(
-                # The most recent IMD.
-                postcodes[-1].index_of_multiple_deprivation
-                if postcodes
-                else None
-            ),
-            first_mh_care_date=first_mh_care_date.isoformat(),
-            age_at_first_mh_care=(
-                (first_mh_care_date - dob).in_years()
-                if dob and first_mh_care_date
-                else None
-            ),
+            index_of_multiple_deprivation=last_imd(postcodes),
+            first_mh_care_date=isoformat_optional_date(first_mh_care_date),
+            age_at_first_mh_care=age_years(dob, first_mh_care_date),
             any_icd10_dx_present=row[q.ANY_ICD10_DX_PRESENT],
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
@@ -1195,7 +1219,7 @@ def validate_2_fetch_rio(
             middle_names=middle_names,
             surname=row[q.SURNAME] or "",
             gender=gender,
-            dob=dob.isoformat(),
+            dob=isoformat_optional_date(dob),
             postcodes=[p.temporal_identifier for p in postcodes],
         )
         yield p
@@ -1384,20 +1408,14 @@ def validate_2_fetch_cdl(
 
         other = CPFTValidationExtras(
             hashed_nhs_number=_hash(nhs_number),
-            blurred_dob=truncate_date_to_first_of_month(dob).isoformat(),
+            blurred_dob=isoformat_optional_date(
+                truncate_date_to_first_of_month(dob)
+            ),
             gender=gender,
             ethnicity=row[q.ETHNICITY],
-            index_of_multiple_deprivation=(
-                postcode_info.index_of_multiple_deprivation
-                if postcode_info
-                else None
-            ),
-            first_mh_care_date=first_mh_care_date.isoformat(),
-            age_at_first_mh_care=(
-                (first_mh_care_date - dob).in_years()
-                if dob and first_mh_care_date
-                else None
-            ),
+            index_of_multiple_deprivation=last_imd([postcode_info]),
+            first_mh_care_date=isoformat_optional_date(first_mh_care_date),
+            age_at_first_mh_care=age_years(dob, first_mh_care_date),
             any_icd10_dx_present=row[q.ANY_ICD10_DX_PRESENT],
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
@@ -1409,7 +1427,7 @@ def validate_2_fetch_cdl(
             middle_names=[],
             surname=row[q.SURNAME] or "",
             gender=gender,
-            dob=dob.isoformat(),
+            dob=isoformat_optional_date(dob),
             postcodes=(
                 [postcode_info.temporal_identifier] if postcode_info else []
             ),
@@ -1641,21 +1659,14 @@ def validate_2_fetch_pcmis(
 
         other = CPFTValidationExtras(
             hashed_nhs_number=_hash(nhs_number),
-            blurred_dob=truncate_date_to_first_of_month(dob).isoformat(),
+            blurred_dob=isoformat_optional_date(
+                truncate_date_to_first_of_month(dob)
+            ),
             gender=gender,
             ethnicity=row[q.ETHNICITY],
-            index_of_multiple_deprivation=(
-                # The most recent IMD.
-                postcodes[-1].index_of_multiple_deprivation
-                if postcodes
-                else None
-            ),
-            first_mh_care_date=first_mh_care_date.isoformat(),
-            age_at_first_mh_care=(
-                (first_mh_care_date - dob).in_years()
-                if dob and first_mh_care_date
-                else None
-            ),
+            index_of_multiple_deprivation=last_imd(postcodes),
+            first_mh_care_date=isoformat_optional_date(first_mh_care_date),
+            age_at_first_mh_care=age_years(dob, first_mh_care_date),
             any_icd10_dx_present=row[q.ANY_ICD10_DX_PRESENT],
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
@@ -1667,7 +1678,7 @@ def validate_2_fetch_pcmis(
             middle_names=[middle_name] if middle_name else [],
             surname=row[q.SURNAME] or "",
             gender=gender,
-            dob=dob.isoformat(),
+            dob=isoformat_optional_date(dob),
             postcodes=[p.temporal_identifier for p in postcodes],
         )
         yield p
@@ -1890,21 +1901,14 @@ def validate_2_fetch_systmone(
 
         other = CPFTValidationExtras(
             hashed_nhs_number=_hash(nhs_number),
-            blurred_dob=truncate_date_to_first_of_month(dob).isoformat(),
+            blurred_dob=isoformat_optional_date(
+                truncate_date_to_first_of_month(dob)
+            ),
             gender=gender,
             ethnicity=row[q.ETHNICITY],
-            index_of_multiple_deprivation=(
-                # The most recent IMD.
-                postcodes[-1].index_of_multiple_deprivation
-                if postcodes
-                else None
-            ),
-            first_mh_care_date=first_mh_care_date.isoformat(),
-            age_at_first_mh_care=(
-                (first_mh_care_date - dob).in_years()
-                if dob and first_mh_care_date
-                else None
-            ),
+            index_of_multiple_deprivation=last_imd(postcodes),
+            first_mh_care_date=isoformat_optional_date(first_mh_care_date),
+            age_at_first_mh_care=age_years(dob, first_mh_care_date),
             any_icd10_dx_present=row[q.ANY_ICD10_DX_PRESENT],
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
@@ -1916,7 +1920,7 @@ def validate_2_fetch_systmone(
             middle_names=[middle_name] if middle_name else [],
             surname=row[q.SURNAME] or "",
             gender=gender,
-            dob=dob.isoformat(),
+            dob=isoformat_optional_date(dob),
             postcodes=[p.temporal_identifier for p in postcodes],
         )
         yield p
@@ -1950,7 +1954,7 @@ def save_people_from_db(
                 # This allows us to do custom headers for "other" info
                 writer = csv.DictWriter(
                     f, fieldnames=p.plaintext_csv_columns()
-                )  # noqa
+                )
                 writer.writeheader()
             writer.writerow(p.plaintext_csv_dict())
             rownum += 1
@@ -2151,7 +2155,7 @@ HELP_VALIDATE_2_CDL = f"""
 {help_v2_compare(plaintext=True)}
 
 {help_v2_compare(plaintext=False)}
-"""  # noqa
+"""
 
 
 # -----------------------------------------------------------------------------
