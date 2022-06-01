@@ -271,8 +271,9 @@ from crate_anon.linkage.fuzzy_id_match import (
 
 log = logging.getLogger(__name__)
 
+
 # =============================================================================
-# Date checking and formatting
+# Date checking, formatting, calculation
 # =============================================================================
 
 # ISO format, yyyy-MM-dd
@@ -331,15 +332,28 @@ def age_years(dob: Optional[Date], when: Optional[Date]) -> Optional[int]:
     return None
 
 
-def last_imd(postcodes: List[Optional["PostcodeInfo"]]) -> Optional[int]:
+# =============================================================================
+# Postcode convenience functions
+# =============================================================================
+
+
+def last_imd(postcodes: List["PostcodeInfo"]) -> Optional[int]:
     """
     The IMD from the last postcode specified for which an IMD is known, if any.
     """
     for p in reversed(postcodes):
-        if p is not None:
-            if p.index_of_multiple_deprivation is not None:
-                return p.index_of_multiple_deprivation
+        if p.index_of_multiple_deprivation is not None:
+            return p.index_of_multiple_deprivation
     return None
+
+
+def postcode_temporal_identifiers(
+    postcodes: List["PostcodeInfo"],
+) -> List[TemporalIdentifier]:
+    """
+    Returns the TemporalIdentifier components of a list of postcodes.
+    """
+    return [p.temporal_identifier for p in postcodes]
 
 
 # =============================================================================
@@ -1221,7 +1235,7 @@ def validate_2_fetch_rio(
             surname=row[q.SURNAME] or "",
             gender=gender,
             dob=isoformat_optional_date(dob),
-            postcodes=[p.temporal_identifier for p in postcodes],
+            postcodes=postcode_temporal_identifiers(postcodes),
         )
         yield p
 
@@ -1395,16 +1409,18 @@ def validate_2_fetch_cdl(
         gender = row[q.GENDER]
         first_mh_care_date = coerce_to_pendulum_date(row[q.FIRST_MH_CARE_DATE])
 
+        postcodes = []  # type: List[PostcodeInfo]
         postcode_str = row[q.POSTCODE]
-        postcode_info = None  # type: Optional[PostcodeInfo]
         if postcode_str and POSTCODE_REGEX.match(postcode_str):
-            postcode_info = PostcodeInfo(
-                postcode=postcode_str.upper(),
-                start_date=None,
-                end_date=None,
-                index_of_multiple_deprivation=row[
-                    q.INDEX_OF_MULTIPLE_DEPRIVATION
-                ],
+            postcodes.append(
+                PostcodeInfo(
+                    postcode=postcode_str.upper(),
+                    start_date=None,
+                    end_date=None,
+                    index_of_multiple_deprivation=row[
+                        q.INDEX_OF_MULTIPLE_DEPRIVATION
+                    ],
+                )
             )
 
         other = CPFTValidationExtras(
@@ -1414,7 +1430,7 @@ def validate_2_fetch_cdl(
             ),
             gender=gender,
             ethnicity=row[q.ETHNICITY],
-            index_of_multiple_deprivation=last_imd([postcode_info]),
+            index_of_multiple_deprivation=last_imd(postcodes),
             first_mh_care_date=isoformat_optional_date(first_mh_care_date),
             age_at_first_mh_care=age_years(dob, first_mh_care_date),
             any_icd10_dx_present=row[q.ANY_ICD10_DX_PRESENT],
@@ -1429,9 +1445,7 @@ def validate_2_fetch_cdl(
             surname=row[q.SURNAME] or "",
             gender=gender,
             dob=isoformat_optional_date(dob),
-            postcodes=(
-                [postcode_info.temporal_identifier] if postcode_info else []
-            ),
+            postcodes=postcode_temporal_identifiers(postcodes),
         )
         yield p
 
@@ -1680,7 +1694,7 @@ def validate_2_fetch_pcmis(
             surname=row[q.SURNAME] or "",
             gender=gender,
             dob=isoformat_optional_date(dob),
-            postcodes=[p.temporal_identifier for p in postcodes],
+            postcodes=postcode_temporal_identifiers(postcodes),
         )
         yield p
 
@@ -1922,7 +1936,7 @@ def validate_2_fetch_systmone(
             surname=row[q.SURNAME] or "",
             gender=gender,
             dob=isoformat_optional_date(dob),
-            postcodes=[p.temporal_identifier for p in postcodes],
+            postcodes=postcode_temporal_identifiers(postcodes),
         )
         yield p
 
