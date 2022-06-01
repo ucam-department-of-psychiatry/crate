@@ -984,6 +984,18 @@ def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
     is 'Usual name'; '2' is 'Alias'; there are others.
 
     Restricting to '1' eliminates duplicates.
+
+    .. code-block:: sql
+
+        SELECT
+            COUNT(DISTINCT crate_rio_number) AS n_patients,
+            COUNT(DISTINCT ClientID) AS n_patients_another_way,
+            COUNT(*) AS n_rows
+        FROM RiO62CAMLive.dbo.ClientName c1
+        WHERE EndDate IS NULL
+            AND Deleted = 0
+            AND AliasType = '1'  -- usual name
+
     """
     sql = text(
         """
@@ -999,13 +1011,16 @@ def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
             RiO62CAMLive.dbo.ClientName
         WHERE
             ClientID = :client_id
-            AND EndDate IS NULL
+            AND EndDate IS NULL  -- still current
             AND Deleted = 0  -- redundant
             AND AliasType = '1'  -- usual name
     """
     )
     rows = engine.execute(sql, client_id=rio_client_id)
-    assert len(rows) == 1, "Didn't expect >1 row per patient in ClientName"
+    n_rows = len(rows)
+    assert n_rows <= 1, "Didn't expect >1 row per patient in ClientName"
+    if n_rows == 0:
+        return []
     row = rows[0]
     middle_names = [x for x in row if x]  # remove blanks
     return middle_names
