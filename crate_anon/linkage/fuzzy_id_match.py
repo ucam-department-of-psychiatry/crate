@@ -4602,6 +4602,21 @@ def get_cfg_from_args(args: argparse.Namespace) -> MatchConfig:
 # -----------------------------------------------------------------------------
 
 
+class Commands:
+    HASH = "hash"
+    COMPARE_PLAINTEXT = "compare_plaintext"
+    COMPARE_HASHED_TO_HASHED = "compare_hashed_to_hashed"
+    COMPARE_HASHED_TO_PLAINTEXT = "compare_hashed_to_plaintext"
+
+    PRINT_DEMO_SAMPLE = "print_demo_sample"
+    SHOW_METAPHONE = "show_metaphone"
+    SHOW_FORENAME_FREQ = "show_forename_freq"
+    SHOW_FORENAME_METAPHONE_FREQ = "show_forename_metaphone_freq"
+    SHOW_SURNAME_FREQ = "show_surname_freq"
+    SHOW_SURNAME_METAPHONE_FREQ = "show_surname_metaphone_freq"
+    SHOW_DOB_FREQ = "show_dob_freq"
+
+
 def main() -> int:
     """
     Command-line entry point.
@@ -4626,21 +4641,11 @@ def main() -> int:
     all_parents = [base_subparser, hasher_subparser, config_subparser]
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # print_demo_sample command
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    _ = subparsers.add_parser(
-        "print_demo_sample",
-        parents=all_parents,
-        help="Print a demo sample .CSV file.",
-    )
-
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # hash command
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     hash_parser = subparsers.add_parser(
-        "hash",
+        Commands.HASH,
         help="STEP 1 OF DE-IDENTIFIED LINKAGE. "
         "Hash an identifiable CSV file into an encrypted one. ",
         parents=all_parents,
@@ -4690,7 +4695,7 @@ def main() -> int:
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     compare_plaintext_parser = subparsers.add_parser(
-        "compare_plaintext",
+        Commands.COMPARE_PLAINTEXT,
         help="IDENTIFIABLE LINKAGE COMMAND. "
         "Compare a list of probands against a sample (both in "
         "plaintext). ",
@@ -4709,7 +4714,7 @@ def main() -> int:
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     compare_h2h_parser = subparsers.add_parser(
-        "compare_hashed_to_hashed",
+        Commands.COMPARE_HASHED_TO_HASHED,
         help=(
             "STEP 2 OF DE-IDENTIFIED LINKAGE (for when you have de-identified "
             "both sides in advance). "
@@ -4728,7 +4733,7 @@ def main() -> int:
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     compare_h2p_parser = subparsers.add_parser(
-        "compare_hashed_to_plaintext",
+        Commands.COMPARE_HASHED_TO_PLAINTEXT,
         help="STEP 2 OF DE-IDENTIFIED LINKAGE (for when you have received "
         "de-identified data and you want to link to your identifiable "
         "data, producing a de-identified result). "
@@ -4748,9 +4753,14 @@ def main() -> int:
     # Debugging commands
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    # show_metaphone
+    _ = subparsers.add_parser(
+        Commands.PRINT_DEMO_SAMPLE,
+        parents=all_parents,
+        help="Print a demo sample .CSV file.",
+    )
+
     show_metaphone_parser = subparsers.add_parser(
-        "show_metaphone",
+        Commands.SHOW_METAPHONE,
         parents=all_parents,
         help="Show metaphones of words",
     )
@@ -4758,9 +4768,8 @@ def main() -> int:
         "words", nargs="+", help="Words to check"
     )
 
-    # show_forename_freq
     show_forename_freq_parser = subparsers.add_parser(
-        "show_forename_freq",
+        Commands.SHOW_FORENAME_FREQ,
         parents=all_parents,
         help="Show frequencies of forenames",
     )
@@ -4768,9 +4777,8 @@ def main() -> int:
         "forenames", nargs="+", help="Forenames to check"
     )
 
-    # show_forename_metaphone_freq
     show_forename_metaphone_freq_parser = subparsers.add_parser(
-        "show_forename_metaphone_freq",
+        Commands.SHOW_FORENAME_METAPHONE_FREQ,
         parents=all_parents,
         help="Show frequencies of forename metaphones",
     )
@@ -4778,9 +4786,8 @@ def main() -> int:
         "metaphones", nargs="+", help="Forenames to check"
     )
 
-    # show_surname_freq
     show_surname_freq_parser = subparsers.add_parser(
-        "show_surname_freq",
+        Commands.SHOW_SURNAME_FREQ,
         parents=all_parents,
         help="Show frequencies of surnames",
     )
@@ -4788,9 +4795,8 @@ def main() -> int:
         "surnames", nargs="+", help="surnames to check"
     )
 
-    # show_surname_metaphone_freq
     show_surname_metaphone_freq_parser = subparsers.add_parser(
-        "show_surname_metaphone_freq",
+        Commands.SHOW_SURNAME_METAPHONE_FREQ,
         parents=all_parents,
         help="Show frequencies of surname metaphones",
     )
@@ -4800,7 +4806,7 @@ def main() -> int:
 
     # show_dob_freq
     _ = subparsers.add_parser(
-        "show_dob_freq",
+        Commands.SHOW_DOB_FREQ,
         parents=all_parents,
         help="Show the frequency of any DOB",
     )
@@ -4830,10 +4836,7 @@ def main() -> int:
 
     log.info(f"Command: {args.command}")
 
-    if args.command == "print_demo_sample":
-        print(get_demo_csv())
-
-    elif args.command == "hash":
+    if args.command == Commands.HASH:
         warn_or_fail_if_default_key(args)
         log.info(f"Hashing identity file: {args.input}")
         hash_identity_file(
@@ -4845,7 +4848,7 @@ def main() -> int:
         )
         log.info(f"... finished; written to {args.output}")
 
-    elif args.command == "compare_plaintext":
+    elif args.command == Commands.COMPARE_PLAINTEXT:
         log.info(
             f"Comparing files:\n"
             f"- plaintext probands: {args.probands}\n"
@@ -4867,7 +4870,7 @@ def main() -> int:
         )
         log.info(f"... comparison finished; results are in {args.output}")
 
-    elif args.command == "compare_hashed_to_hashed":
+    elif args.command == Commands.COMPARE_HASHED_TO_HASHED:
         log.info(
             f"Comparing files:\n"
             f"- hashed probands: {args.probands}\n"
@@ -4888,7 +4891,7 @@ def main() -> int:
         )
         log.info(f"... comparison finished; results are in {args.output}")
 
-    elif args.command == "compare_hashed_to_plaintext":
+    elif args.command == Commands.COMPARE_HASHED_TO_PLAINTEXT:
         warn_or_fail_if_default_key(args)
         log.info(
             f"Comparing files:\n"
@@ -4911,11 +4914,14 @@ def main() -> int:
         )
         log.info(f"... comparison finished; results are in {args.output}")
 
-    elif args.command == "show_metaphone":
+    elif args.command == Commands.PRINT_DEMO_SAMPLE:
+        print(get_demo_csv())
+
+    elif args.command == Commands.SHOW_METAPHONE:
         for word in args.words:
             log.info(f"Metaphone for {word!r}: {get_metaphone(word)}")
 
-    elif args.command == "show_forename_freq":
+    elif args.command == Commands.SHOW_FORENAME_FREQ:
         for forename in args.forenames:
             log.info(
                 f"Forename {forename!r}: "
@@ -4924,7 +4930,7 @@ def main() -> int:
                 f"overall {cfg.forename_freq(forename, '')}"
             )
 
-    elif args.command == "show_forename_metaphone_freq":
+    elif args.command == Commands.SHOW_FORENAME_METAPHONE_FREQ:
         for metaphone in args.metaphones:
             log.info(
                 f"Forename metaphone {metaphone!r}: "
@@ -4933,18 +4939,18 @@ def main() -> int:
                 f"overall {cfg.forename_metaphone_freq(metaphone, '')}"
             )
 
-    elif args.command == "show_surname_freq":
+    elif args.command == Commands.SHOW_SURNAME_FREQ:
         for surname in args.surnames:
             log.info(f"Surname {surname!r}: {cfg.surname_freq(surname)}")
 
-    elif args.command == "show_surname_metaphone_freq":
+    elif args.command == Commands.SHOW_SURNAME_METAPHONE_FREQ:
         for metaphone in args.metaphones:
             log.info(
                 f"Surname metaphone {metaphone!r}: "
                 f"{cfg.surname_metaphone_freq(metaphone)}"
             )
 
-    elif args.command == "show_dob_freq":
+    elif args.command == Commands.SHOW_DOB_FREQ:
         log.info(f"DOB frequency: {cfg.p_two_people_share_dob}")
 
     else:
