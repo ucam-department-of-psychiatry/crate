@@ -254,11 +254,12 @@ from crate_anon.linkage.fuzzy_id_match import (
     BasePerson,
     cache_load,
     cache_save,
+    Commands,
     get_basic_options_subparser,
     get_cfg_from_args,
     get_config_option_subparser,
-    get_hasher_option_subparser,
     get_demo_csv,
+    get_hasher_option_subparser,
     Hasher,
     MatchConfig,
     People,
@@ -1046,6 +1047,26 @@ def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
             AND Deleted = 0
             AND AliasType = '1'  -- usual name
 
+    Note that there are quite a lot of single-letter names:
+
+    .. code-block:: sql
+
+        SELECT
+            COUNT(*)
+        FROM
+            RiO62CAMLive.dbo.ClientName
+        WHERE
+            EndDate IS NULL  -- still current
+            AND Deleted = 0  -- redundant
+            AND AliasType = '1'  -- usual name
+            AND (
+                LEN(GivenName2) = 1
+                OR LEN(GivenName3) = 1
+                OR LEN(GivenName4) = 1
+                OR LEN(GivenName5) = 1
+            )
+
+        -- gives 10,619 (out of 216,739 without the length clause).
     """
     sql = text(
         """
@@ -2066,7 +2087,17 @@ RIO = "rio"
 PCMIS = "pcmis"
 SYSTMONE = "systmone"
 ALL_DATABASES = (CDL, RIO, PCMIS, SYSTMONE)
-HASHKEY_ENVVAR = "CRATE_FUZZY_HASH_KEY"
+
+
+class EnvVar:
+    HASHKEY = "CRATE_FUZZY_HASH_KEY"
+    DATADIR = "CRATE_FUZZY_LINKAGE_VALIDATION_DATA_DIR"
+    VALIDATOR = "CRATE_FUZZY_VALIDATOR"
+    POP_SIZE = "CRATE_FUZZY_POPULATION_SIZE"
+
+    @staticmethod
+    def db_url_envvar(db: str) -> str:
+        return "CRATE_FUZZY_DB_URL_" + db.upper()
 
 
 def v2_plaintext(database: str) -> str:
@@ -2100,11 +2131,14 @@ def v2_outhashed(probands: str, sample: str) -> str:
 def help_v2_fetch() -> str:
     """
     Help string for fetching data from all sources.
+    Produces Windows output.
     """
     return "\n".join(
-        f"""        validate_fuzzy_linkage.py validate2_fetch_{db} ^
-            --output {v2_plaintext(db)} ^
-            --url <SQLALCHEMY_URL>"""
+        f'"%{EnvVar.VALIDATOR}%" validate2_fetch_{db} '
+        f'--key "%{EnvVar.HASHKEY}%" '
+        f"--output {v2_plaintext(db)} "
+        f'--url "%{EnvVar.db_url_envvar(db)}%" '
+        f"|| exit /b"
         for db in ALL_DATABASES
     )
 
@@ -2112,13 +2146,15 @@ def help_v2_fetch() -> str:
 def help_v2_hash() -> str:
     """
     Help string for hashing data from all sources.
+    Produces Windows output.
     """
     return "\n".join(
-        f'''        crate_fuzzy_id_match hash ^
-            --input {v2_plaintext(db)} ^
-            --output {v2_hashed(db)} ^
-            --include_other_info ^
-            --key "%{HASHKEY_ENVVAR}%"'''
+        f"crate_fuzzy_id_match {Commands.HASH} "
+        f"--input {v2_plaintext(db)} "
+        f"--output {v2_hashed(db)} "
+        f"--include_other_info "
+        f'--key "%{EnvVar.HASHKEY}%" '
+        f"|| exit /b"
         for db in ALL_DATABASES
     )
 
@@ -2126,25 +2162,27 @@ def help_v2_hash() -> str:
 def help_v2_compare(plaintext: bool) -> str:
     """
     Help string for comparing data from all sources.
+    Produces Windows output.
     """
     if plaintext:
-        command = "compare_plaintext"
+        command = Commands.COMPARE_PLAINTEXT
         source_fn = v2_plaintext
         out_fn = v2_outplain
     else:
-        command = "compare_hashed_to_hashed"
+        command = Commands.COMPARE_HASHED_TO_HASHED
         source_fn = v2_hashed
         out_fn = v2_outhashed
     return "\n".join(
-        f"""        crate_fuzzy_id_match {command} ^
-            --population_size {CAMBS_POPULATION} ^
-            --probands {source_fn(db1)} ^
-            --sample {source_fn(db2)} ^
-            --output {out_fn(db1, db2)} ^
-            --extra_validation_output"""
+        f"crate_fuzzy_id_match {command} "
+        f"--population_size %{EnvVar.POP_SIZE}% "
+        f"--probands {source_fn(db1)} "
+        f"--sample {source_fn(db2)} "
+        f"--output {out_fn(db1, db2)} "
+        f"--extra_validation_output "
+        f"|| exit /b"
         for db1 in ALL_DATABASES
         for db2 in ALL_DATABASES
-        if db1 != db2
+        # if db1 != db2  -- include self-to-self comparisons
     )
 
 
@@ -2223,22 +2261,33 @@ HELP_VALIDATE_1 = f"""
     - P(unique hashed match | proband in others) -- should be close to 0.
 """
 
-HELP_VALIDATE_2_CDL = f"""
+HELP_VALIDATE_2_CDL = rf"""
     Validation #2. Sequence (using Windows command-line syntax):
 
     0. Setup
 
-        set {HASHKEY_ENVVAR}=<SOME_SECRET_KEY>
+set {EnvVar.HASHKEY}=<SOME_SECRET_KEY>
+set {EnvVar.DATADIR}=<DIRECTORY>
+set {EnvVar.VALIDATOR}=\path\to\validate_fuzzy_linkage.py
+set {EnvVar.POP_SIZE}={CAMBS_POPULATION}
 
     1. Fetch
 
+set {EnvVar.db_url_envvar(CDL)}=<SQLALCHEMY_URL>
+set {EnvVar.db_url_envvar(PCMIS)}=<SQLALCHEMY_URL>
+set {EnvVar.db_url_envvar(RIO)}=<SQLALCHEMY_URL>
+set {EnvVar.db_url_envvar(SYSTMONE)}=<SQLALCHEMY_URL>
+cd "%{EnvVar.DATADIR}%"
 {help_v2_fetch()}
 
     2. Hash
 
+cd "%{EnvVar.DATADIR}%"
 {help_v2_hash()}
 
     3. Compare.
+
+cd "%{EnvVar.DATADIR}%"
 
 {help_v2_compare(plaintext=True)}
 

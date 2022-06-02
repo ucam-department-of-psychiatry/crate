@@ -471,10 +471,16 @@ def standardize_postcode(postcode_unit_or_sector: str) -> str:
 
 def get_postcode_sector(postcode_unit: str) -> str:
     """
-    Returns the postcode sector from a postcode. For example, converts "AB12
-    3CD" to "AB12 3".
+    Returns the postcode (area + district +) sector from a full postcode. For
+    example, converts "AB12 3CD" to "AB12 3".
+
+    While the format and length of the first part (area + district) varies (2-4
+    characters), the format of the second (sector + unit) is fixed, of the
+    format "9AA" (3 characters);
+    https://en.wikipedia.org/wiki/Postcodes_in_the_United_Kingdom#Formatting.
+    So to get the sector, we chop off the last two characters.
     """
-    return postcode_unit[:-2]
+    return standardize_postcode(postcode_unit)[:-2]
 
 
 # noinspection HttpUrlsUsage
@@ -1164,6 +1170,9 @@ class NameFrequencyInfo(object):
                         freq_str = row[1]
                     freq = max(float(freq_str), min_frequency)
                     metaphone = get_metaphone(name)
+                    # Note that the metaphone can be "", e.g. if the name is
+                    # "W". But we can still calculate the frequency of those
+                    # metaphones cumulatively across all our names.
                     if by_gender:
                         name_key = name, gender
                         metaphone_key = metaphone, gender
