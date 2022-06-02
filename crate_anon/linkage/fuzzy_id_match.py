@@ -201,7 +201,7 @@ class FuzzyDefaults:
     _DATA_DIR = os.path.join(_THIS_DIR, "data")
     FORENAME_SEX_FREQ_CSV = os.path.join(_DATA_DIR, "us_forename_sex_freq.zip")
     SURNAME_FREQ_CSV = os.path.join(_DATA_DIR, "us_surname_freq.zip")
-    POSTCODES_CSV = os.path.join(_DATA_DIR, "ONSPD_NOV_2019_UK.zip")
+    POSTCODES_CSV = os.path.join(_DATA_DIR, "ONSPD_MAY_2022_UK.zip")
 
     if EnvVar.GENERATING_CRATE_DOCS in os.environ:
         DEFAULT_CACHE_DIR = "/path/to/crate/user/data"
@@ -1224,8 +1224,8 @@ class PostcodeFrequencyInfo(object):
 
         Args:
             csv_filename:
-                CSV file from the UK Office of National Statistics, usually
-                ``ONSPD_MAY_2016_UK.csv``. Columns include "pdcs" (one of the
+                CSV file from the UK Office of National Statistics, e.g.
+                ``ONSPD_MAY_2022_UK.csv``. Columns include "pdcs" (one of the
                 postcode formats) and "oa11" (Output Area from the 2011
                 Census). A ZIP file containing a single CSV file is also
                 permissible (distinguished by filename extension).

@@ -57,7 +57,7 @@ Limited UK postcode data is reproduced for convenience. This is under the UK
 Open Government Licence; see
 https://web.archive.org/web/20220425125638/https://www.ons.gov.uk/methodology/geography/licences
 
-- Contains OS data © Crown copyright and database right 2019
-- Contains Royal Mail data © Royal Mail copyright and database right 2019
+- Contains OS data © Crown copyright and database right 2022
+- Contains Royal Mail data © Royal Mail copyright and database right 2022
 - Source: Office for National Statistics licensed under the Open Government
   Licence v3.0
