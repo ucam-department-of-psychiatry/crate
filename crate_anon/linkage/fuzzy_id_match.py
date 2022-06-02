@@ -468,7 +468,26 @@ def get_postcode_sector(postcode_unit: str) -> str:
     return postcode_unit[:-2]
 
 
-PSEUDO_POSTCODE_SECTORS = ("ZZ99",)
+# noinspection HttpUrlsUsage
+_ = """
+PSEUDO_POSTCODES = set(standardize_postcode(p) for p in (
+    "ZZ99 3VZ",  # No fixed abode [1, 2]
+    "ZZ99 3WZ",  # Address not known [2]
+    "ZZ99 3CZ",  # England/U.K, not otherwise specified [1, 3] (*)
+                 # ... or "Z99 3CZ"? [2] (*).
+    "ZZ99 3GZ",  # Wales, not otherwise specified [1, 2]
+    "ZZ99 1WZ",  # Scotland, not otherwise specified [1, 2]
+    "ZZ99 2WZ",  # Northern Ireland, not otherwise specified [1, 2]
+    # Also: ZZ99 <nnn>, where <nnn> is a country code -- so that's a large
+    # range. 
+    # [1] http://www.datadictionary.wales.nhs.uk/index.html#!WordDocuments/postcode.htm
+    # [2] https://www.england.nhs.uk/wp-content/uploads/2021/03/commissioner-assignment-method-2122-guidance-v1.1.pdf
+    # [3] https://afyonluoglu.org/PublicWebFiles/Reports-TR/Veri%20Sozlugu/international/2017-HES%20Admitted%20Patient%20Care%20Data%20Dictionary.pdf
+    # (*) [2] uses "Z99 3CZ" (page 6); [1, 3] use "ZZ99 3CZ".
+))
+PSEUDO_POSTCODE_SECTORS = set(get_postcode_sector(p) for p in PSEUDO_POSTCODES)
+"""  # noqa
+PSEUDO_POSTCODE_START = "ZZ99"
 
 
 def is_pseudo_postcode_sector(postcode_sector: str) -> bool:
@@ -476,25 +495,15 @@ def is_pseudo_postcode_sector(postcode_sector: str) -> bool:
     Is this a pseudo-postcode sector?
     Assumes upper case.
     """
-    return postcode_sector in PSEUDO_POSTCODE_SECTORS
+    return postcode_sector.startswith(PSEUDO_POSTCODE_START)
 
 
 def is_pseudo_postcode(postcode_unit: str) -> bool:
-    # noinspection HttpUrlsUsage
     """
-    Is this a pseudo-postcode? See
-    http://www.datadictionary.wales.nhs.uk/index.html#!WordDocuments/postcode.htm.
-    For example:
-
-    - ZZ99 3VZ = No fixed abode
-    - ZZ99 3CZ = England/U.K  not otherwise specified
-    - ZZ99 3GZ = Wales not otherwise specified
-    - ZZ99 1WZ = Scotland not otherwise specified
-    - ZZ99 2WZ = Northern Ireland not otherwise specified
-
+    Is this a pseudo-postcode?
     Assumes upper case.
-    """  # noqa
-    return is_pseudo_postcode_sector(get_postcode_sector(postcode_unit))
+    """
+    return postcode_unit.startswith(PSEUDO_POSTCODE_START)
 
 
 # =============================================================================
