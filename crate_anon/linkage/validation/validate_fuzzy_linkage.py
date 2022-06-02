@@ -1963,8 +1963,9 @@ def validate_2_fetch_systmone(
             p.NHSNumber IS NOT NULL
             AND LEN(p.NHSNumber) = 10
             AND TRY_CAST(p.NHSNumber AS BIGINT) IS NOT NULL
-            -- There is about 1/619,000 with no DOB:
+            -- About 1/619,000 have no DOB:
             AND p.DOB IS NOT NULL
+            -- There are no "deleted" flags.
 
         -- Final count: 613175 (2022-06-01).
         -- Compare: SELECT COUNT(*) FROM SystmOne.dbo.S1_Patient = 619062.

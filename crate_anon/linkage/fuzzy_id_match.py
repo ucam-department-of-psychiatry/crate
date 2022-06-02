@@ -305,6 +305,15 @@ dmeta = DMetaphone()
 
 
 # =============================================================================
+# Exceptions
+# =============================================================================
+
+
+class DuplicateLocalIDError(Exception):
+    pass
+
+
+# =============================================================================
 # Caching
 # =============================================================================
 
@@ -3297,6 +3306,9 @@ class People(object):
     ) -> None:
         """
         Creates a blank collection.
+
+        Raises :exc:`crate_anon.linkage.fuzzy_id_match.DuplicateLocalIDError`
+        if some people have duplicate ``local_id`` values.
         """
         self.cfg = cfg
         self.verbose = verbose
@@ -3305,6 +3317,7 @@ class People(object):
         self.hashed_dob_to_people = defaultdict(
             list
         )  # type: Dict[str, List[Person]]  # noqa
+        self._known_ids = set()  # type: Set[str]
 
         if person:
             self.add_person(person)
@@ -3314,7 +3327,15 @@ class People(object):
     def add_person(self, person: Person) -> None:
         """
         Adds a single person.
+
+        Raises :exc:`crate_anon.linkage.fuzzy_id_match.DuplicateLocalIDError`
+        if the person has a ``local_id`` value already in our collection.
         """
+        if person.local_id in self._known_ids:
+            raise DuplicateLocalIDError(
+                f"Person with duplicate local ID {person.local_id!r}"
+            )
+        self._known_ids.add(person.local_id)
         self.people.append(person)
         dob = person.dob
         if dob:
@@ -3326,6 +3347,10 @@ class People(object):
     def add_people(self, people: List[Person]) -> None:
         """
         Adds multiple people.
+
+        Raises :exc:`crate_anon.linkage.fuzzy_id_match.DuplicateLocalIDError`
+        if some people have duplicate ``local_id`` values with respect to those
+        we already know.
         """
         for person in people:
             self.add_person(person)
@@ -3824,15 +3849,20 @@ def read_people_2(
     b = People(cfg=cfg)
     with open(csv_filename, "rt") as f:
         reader = csv.DictReader(f)
-        for i, rowdict in enumerate(reader):
+        for i, rowdict in enumerate(reader, start=2):
             if plaintext:
                 person = Person.from_plaintext_csv(cfg, rowdict)
             else:
                 person = Person.from_hashed_csv(cfg, rowdict)
-            if alternate_groups and i % 2 == 1:
-                b.add_person(person)
-            else:
-                a.add_person(person)
+            try:
+                if alternate_groups and i % 2 == 1:
+                    b.add_person(person)
+                else:
+                    a.add_person(person)
+            except DuplicateLocalIDError as exc:
+                msg = f"{exc} at line {i} of {csv_filename}"
+                log.error(msg)
+                raise DuplicateLocalIDError(msg)
     log.info("... done")
     return a, b
 
