@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
-# crate_anon/linkage/analyse_fuzzy_id_match_validation1.R
+# crate_anon/linkage/analyse_fuzzy_id_match_validate1.R
 
-# For testing the output of "crate_fuzzy_id_match validate1"
+# For testing the output of "validate_fuzzy_linkage.py validate1"
 
 # =============================================================================
 # Libraries

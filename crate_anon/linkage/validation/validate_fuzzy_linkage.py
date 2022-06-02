@@ -2083,10 +2083,10 @@ CAMBS_POPULATION = 852523
 # ... 2018 estimate; https://cambridgeshireinsight.org.uk/population/
 
 CDL = "cdl"
-RIO = "rio"
 PCMIS = "pcmis"
+RIO = "rio"
 SYSTMONE = "systmone"
-ALL_DATABASES = (CDL, RIO, PCMIS, SYSTMONE)
+ALL_DATABASES = (CDL, PCMIS, RIO, SYSTMONE)
 
 
 class EnvVar:
@@ -2131,7 +2131,8 @@ def v2_outhashed(probands: str, sample: str) -> str:
 def help_v2_fetch() -> str:
     """
     Help string for fetching data from all sources.
-    Produces Windows output.
+    Produces Windows output; one line per command (helpful for commenting
+    things out).
     """
     return "\n".join(
         f'"%{EnvVar.VALIDATOR}%" validate2_fetch_{db} '
@@ -2146,7 +2147,8 @@ def help_v2_fetch() -> str:
 def help_v2_hash() -> str:
     """
     Help string for hashing data from all sources.
-    Produces Windows output.
+    Produces Windows output; one line per command (helpful for commenting
+    things out).
     """
     return "\n".join(
         f"crate_fuzzy_id_match {Commands.HASH} "
@@ -2162,7 +2164,8 @@ def help_v2_hash() -> str:
 def help_v2_compare(plaintext: bool) -> str:
     """
     Help string for comparing data from all sources.
-    Produces Windows output.
+    Produces Windows output; one line per command (helpful for commenting
+    things out).
     """
     if plaintext:
         command = Commands.COMPARE_PLAINTEXT
@@ -2288,11 +2291,9 @@ cd "%{EnvVar.DATADIR}%"
     3. Compare.
 
 cd "%{EnvVar.DATADIR}%"
-
-{help_v2_compare(plaintext=True)}
-
 {help_v2_compare(plaintext=False)}
 """
+# Skipped: {help_v2_compare(plaintext=True)}
 
 
 # -----------------------------------------------------------------------------

@@ -239,7 +239,7 @@ class FuzzyDefaults:
     # sample size too. Call it 100 just to speed up short tests.
 
     # -------------------------------------------------------------------------
-    # Priors/error rates/rouding
+    # Priors/error rates/rounding
     # -------------------------------------------------------------------------
     # See help below.
     BIRTH_YEAR_PSEUDO_RANGE = 90
@@ -272,7 +272,7 @@ class FuzzyDefaults:
     #   n_people_england = 0.843 * 27.8e6
     #   p_homeless = n_people_homeless_england / n_people_england
     #              = 0.0007959774
-    #  We'll round:  0.000796
+    #   We'll round: 0.000796
     # [1] https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/852953/Statutory_Homelessness_Statistical_Release_Apr-Jun_2019.pdf  # noqa
     # [2] https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/families/bulletins/familiesandhouseholds/2020  # noqa
     # [3] https://pubmed.ncbi.nlm.nih.gov/35477868/
