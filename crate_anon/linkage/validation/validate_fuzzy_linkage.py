@@ -1097,6 +1097,19 @@ def validate_2_fetch_rio(
 
     Yields:
         :class:`Person` objects
+
+    Date range:
+
+    .. code-block:: sql
+
+        SELECT YEAR(Referral_DateTime), COUNT(*)
+        FROM RiO62CAMLive.dbo.Referral
+        WHERE Referral_DateTime IS NOT NULL
+        GROUP BY YEAR(Referral_DateTime)
+        ORDER BY YEAR(Referral_DateTime)
+
+        -- exceeds 10,000/year from 2012-2021 inclusive.
+
     """
     sql = text(
         """
@@ -1201,6 +1214,7 @@ def validate_2_fetch_rio(
             )
 
         -- Final count: 208538 (on 2022-05-26).
+        -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.ClientIndex = 216739
     """  # noqa
     )
     _hash = Hasher(hash_key).hash  # hashing function
@@ -1297,6 +1311,18 @@ def validate_2_fetch_cdl(
         common "missing" code in CRIS.)
       - If 8, is garbage.
       - If 12, has spaces in (format: xxx xxx xxxx).
+
+    Date range:
+
+    .. code-block:: sql
+
+        SELECT YEAR(REFERRAL_RECVD_DATE), COUNT(*)
+        FROM CRS_CDL.dbo.Referral
+        WHERE REFERRAL_RECVD_DATE IS NOT NULL
+        GROUP BY YEAR(REFERRAL_RECVD_DATE)
+        ORDER BY YEAR(REFERRAL_RECVD_DATE)
+
+        -- exceeds 10,000/year from 1999-2012 inclusive.
 
     """
     sql = text(
@@ -1400,6 +1426,7 @@ def validate_2_fetch_cdl(
             -- Successful double-check: no change with: v.EPJS_ID != 'xNx'.
 
         -- Final count: 152888 (on 2022-05-26).
+        -- Compare: SELECT COUNT(*) FROM rawCRSCDL.dbo.[CRS_Output_2020 09 21] = 162874
     """  # noqa
     )
     _hash = Hasher(hash_key).hash  # hashing function
@@ -1493,6 +1520,19 @@ def validate_2_fetch_pcmis(
             ON rawPCMIS.dbo.CPFT_Referrals (PrimaryDiagnosis);
         CREATE INDEX _crateidx_fuzzy_pcmis_ref_dx2
             ON rawPCMIS.dbo.CPFT_Referrals (SecondaryDiagnosis);
+
+    Date range:
+
+    .. code-block:: sql
+
+        SELECT YEAR(CreateDate), COUNT(*)
+        FROM rawPCMIS.dbo.CPFT_Referrals
+        WHERE CreateDate IS NOT NULL
+        GROUP BY YEAR(CreateDate)
+        ORDER BY YEAR(CreateDate)
+
+        -- exceeds 1,000/year from 2008-2020 inclusive;
+        -- exceeds 10,000/year from 2015-2019 inclusive;
 
     """
     sql = text(
@@ -1789,7 +1829,32 @@ def validate_2_fetch_systmone(
 
     Yields:
         :class:`Person` objects
-    """
+
+    Date range:
+
+    - We know that CPFT secondary care MH moves to SystmOne in phases,
+      2020-2021, specifically:
+
+      - 2020-10-12, Children's Directorate;
+      - 2020-12-07, Older People/Adults and Community Directorate (MH);
+      - 2021-06-14, Adult & Specialist Directorate.
+
+    - Before that: in 2015, many Cambridgeshire Community Services (CCS) staff
+      moved to CPFT to support integrated adult/community services
+      (https://www.cambscommunityservices.nhs.uk/docs/default-source/board-papers---june-2016/0-9-1-quality-account-2015-16-final.pdf)
+      and they were using SystmOne.
+
+      .. code-block:: sql
+
+        SELECT YEAR(ReferralDate), COUNT(*)
+        FROM SystmOne.dbo.S1_ReferralsIn
+        WHERE ReferralDate IS NOT NULL
+        GROUP BY YEAR(ReferralDate)
+        ORDER BY YEAR(ReferralDate)
+
+        -- exceeds 10,000/year from 2007-.
+
+    """  # noqa
     sql = text(
         """
         SELECT

@@ -254,6 +254,28 @@ class FuzzyDefaults:
     P_NOT_MALE_OR_FEMALE = 0.004
     P_PROBAND_MIDDLE_NAME_MISSING = 0.05
     P_SAMPLE_MIDDLE_NAME_MISSING = 0.05
+    P_UNKNOWN_OR_PSEUDO_POSTCODE = 0.000796
+    # - Pseudo-postcodes: e.g. ZZ99 3VZ, no fixed abode; ZZ99 3CZ, England/UK
+    #   not otherwise specified,
+    #   http://www.datadictionary.wales.nhs.uk/index.html#!WordDocuments/postcode.htm.  # noqa
+    # - These postcodes are not in the ONS Postcode Directory.
+    # - In Apr-Jun 2019, 11.4% of households in England who were {homeless or
+    #   threatened with homelessness} had no fixed abode [1, Table 2].
+    # - That table totals 68,180 households, so that probably matches the
+    #   68,170 households in England used as the summary figure on p1 [1].
+    # - In 2020, there were ~27.8 million households in the UK [2].
+    # - The mean household size in the UK is 2.4 [2]. (Although the proportion
+    #   who are homeless is likely biased towards single individuals?)
+    # - 0.843 of the UK population live in England
+    # - So, the fraction of homelessness can be estimated as
+    #   n_people_homeless_england = (11.4 / 100) * 68180 * 2.4
+    #   n_people_england = 0.843 * 27.8e6
+    #   p_homeless = n_people_homeless_england / n_people_england
+    #              = 0.0007959774
+    #  We'll round:  0.000796
+    # [1] https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/852953/Statutory_Homelessness_Statistical_Release_Apr-Jun_2019.pdf  # noqa
+    # [2] https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/families/bulletins/familiesandhouseholds/2020  # noqa
+    # [3] https://pubmed.ncbi.nlm.nih.gov/35477868/
     POPULATION_SIZE = UK_POPULATION_2017
     ROUNDING_SF = 5
     # ... number of significant figures for frequency rounding; 3 may be too
@@ -444,6 +466,35 @@ def get_postcode_sector(postcode_unit: str) -> str:
     3CD" to "AB12 3".
     """
     return postcode_unit[:-2]
+
+
+PSEUDO_POSTCODE_SECTORS = ("ZZ99",)
+
+
+def is_pseudo_postcode_sector(postcode_sector: str) -> bool:
+    """
+    Is this a pseudo-postcode sector?
+    Assumes upper case.
+    """
+    return postcode_sector in PSEUDO_POSTCODE_SECTORS
+
+
+def is_pseudo_postcode(postcode_unit: str) -> bool:
+    # noinspection HttpUrlsUsage
+    """
+    Is this a pseudo-postcode? See
+    http://www.datadictionary.wales.nhs.uk/index.html#!WordDocuments/postcode.htm.
+    For example:
+
+    - ZZ99 3VZ = No fixed abode
+    - ZZ99 3CZ = England/U.K  not otherwise specified
+    - ZZ99 3GZ = Wales not otherwise specified
+    - ZZ99 1WZ = Scotland not otherwise specified
+    - ZZ99 2WZ = Northern Ireland not otherwise specified
+
+    Assumes upper case.
+    """  # noqa
+    return is_pseudo_postcode_sector(get_postcode_sector(postcode_unit))
 
 
 # =============================================================================
@@ -1146,8 +1197,8 @@ class NameFrequencyInfo(object):
 
 class PostcodeFrequencyInfo(object):
     """
-    Holds frequencies of a class of names (e.g. first names or surnames), and
-    also of their hashed versions.
+    Holds frequencies of UK postcodes, and also their hashed versions.
+    Handles pseudo-postcodes somewhat separately.
     """
 
     def __init__(
@@ -1155,6 +1206,9 @@ class PostcodeFrequencyInfo(object):
         csv_filename: str,
         cache_filename: str,
         mean_oa_population: float = FuzzyDefaults.MEAN_OA_POPULATION,
+        p_unknown_or_pseudo_postcode: float = (
+            FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE
+        ),
     ) -> None:
         """
         Initializes the object from a CSV file.
@@ -1171,12 +1225,21 @@ class PostcodeFrequencyInfo(object):
                 read process is slow (it's a 1.4 Gb CSV).
             mean_oa_population:
                 Mean population of each census Output Area.
+            p_unknown_or_pseudo_postcode:
+                Probability that a random person will have a pseudo-postcode,
+                e.g. ZZ99 3VZ (no fixed above) or a postcode not known to our
+                database.
         """
         assert csv_filename and cache_filename
+        assert mean_oa_population > 0
+        assert 0 <= p_unknown_or_pseudo_postcode <= 1
+
         self._csv_filename = csv_filename
         self._cache_filename = cache_filename
         self._mean_oa_population = mean_oa_population
+        self._p_unknown_or_pseudo_postcode = p_unknown_or_pseudo_postcode
 
+        self._p_known_postcode = 1 - p_unknown_or_pseudo_postcode
         self._postcode_unit_freq = {}  # type: Dict[str, float]
         self._postcode_sector_freq = {}  # type: Dict[str, float]
         self._total_population = 0
@@ -1242,14 +1305,14 @@ class PostcodeFrequencyInfo(object):
         self, postcode_unit: str, prestandardized: bool = False
     ) -> float:
         """
-        Returns the frequency of a name.
+        Returns the frequency of a postcode.
 
         Args:
             postcode_unit: the postcode unit to check
             prestandardized: was the postcode pre-standardized in format?
 
         Returns:
-            the name's frequency in the population
+            the postcode's frequency in the population
         """
         stpu = (
             postcode_unit
@@ -1257,9 +1320,11 @@ class PostcodeFrequencyInfo(object):
             else standardize_postcode(postcode_unit)
         )
         try:
-            return self._postcode_unit_freq[stpu]
+            return self._postcode_unit_freq[stpu] * self._p_known_postcode
         except KeyError:
-            raise ValueError(f"Unknown postcode: {postcode_unit}")
+            if not is_pseudo_postcode(stpu):
+                log.warning(f"Unknown postcode: {postcode_unit}")
+            return self._p_unknown_or_pseudo_postcode
 
     def postcode_sector_frequency(
         self, postcode_sector: str, prestandardized: bool = False
@@ -1272,15 +1337,22 @@ class PostcodeFrequencyInfo(object):
             if prestandardized
             else standardize_postcode(postcode_sector)
         )
-        return self._postcode_sector_freq[stps]
+        try:
+            return self._postcode_sector_freq[stps] * self._p_known_postcode
+        except KeyError:
+            if not is_pseudo_postcode_sector(stps):
+                log.warning(f"Unknown postcode sector: {stps}")
+            return self._p_unknown_or_pseudo_postcode
 
-    def is_valid_postcode(self, postcode_unit: str) -> bool:
+    def debug_is_valid_postcode(self, postcode_unit: str) -> bool:
         """
         Is this a valid postcode?
         """
-        return postcode_unit in self._postcode_unit_freq
+        return postcode_unit in self._postcode_unit_freq or is_pseudo_postcode(
+            postcode_unit
+        )
 
-    def postcode_unit_population(
+    def debug_postcode_unit_population(
         self, postcode_unit: str, prestandardized: bool = False
     ) -> float:
         """
@@ -1297,7 +1369,7 @@ class PostcodeFrequencyInfo(object):
         )
         return self.postcode_unit_frequency(stpu) * self._total_population
 
-    def postcode_sector_population(
+    def debug_postcode_sector_population(
         self, postcode_sector: str, prestandardized: bool = False
     ) -> float:
         """
@@ -1332,22 +1404,25 @@ class MatchConfig(object):
         self,
         hash_key: str = FuzzyDefaults.HASH_KEY,
         rounding_sf: int = FuzzyDefaults.ROUNDING_SF,
-        forename_sex_csv_filename: str = FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
+        population_size: int = FuzzyDefaults.POPULATION_SIZE,
         forename_cache_filename: str = FuzzyDefaults.FORENAME_CACHE_FILENAME,
-        surname_csv_filename: str = FuzzyDefaults.SURNAME_FREQ_CSV,
+        forename_sex_csv_filename: str = FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
         surname_cache_filename: str = FuzzyDefaults.SURNAME_CACHE_FILENAME,
+        surname_csv_filename: str = FuzzyDefaults.SURNAME_FREQ_CSV,
         min_name_frequency: float = FuzzyDefaults.NAME_MIN_FREQ,
         p_middle_name_n_present: List[float] = (
             FuzzyDefaults.P_MIDDLE_NAME_N_PRESENT
         ),
-        population_size: int = FuzzyDefaults.POPULATION_SIZE,
         birth_year_pseudo_range: float = FuzzyDefaults.BIRTH_YEAR_PSEUDO_RANGE,
-        postcode_csv_filename: str = FuzzyDefaults.POSTCODES_CSV,
+        p_not_male_or_female: float = FuzzyDefaults.P_NOT_MALE_OR_FEMALE,
+        p_female_given_male_or_female: float = (
+            FuzzyDefaults.P_FEMALE_GIVEN_MALE_OR_FEMALE
+        ),
         postcode_cache_filename: str = FuzzyDefaults.POSTCODE_CACHE_FILENAME,
+        postcode_csv_filename: str = FuzzyDefaults.POSTCODES_CSV,
         mean_oa_population: float = FuzzyDefaults.MEAN_OA_POPULATION,
-        min_log_odds_for_match: float = FuzzyDefaults.LOG_ODDS_FOR_MATCH,
-        exceeds_next_best_log_odds: float = (
-            FuzzyDefaults.EXCEEDS_NEXT_BEST_LOG_ODDS
+        p_unknown_or_pseudo_postcode: float = (
+            FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE
         ),
         p_minor_forename_error: float = FuzzyDefaults.P_MINOR_FORENAME_ERROR,
         p_minor_surname_error: float = FuzzyDefaults.P_MINOR_SURNAME_ERROR,
@@ -1357,11 +1432,11 @@ class MatchConfig(object):
         p_sample_middle_name_missing: float = (
             FuzzyDefaults.P_SAMPLE_MIDDLE_NAME_MISSING
         ),
-        p_minor_postcode_error: float = FuzzyDefaults.P_MINOR_POSTCODE_ERROR,
         p_gender_error: float = FuzzyDefaults.P_GENDER_ERROR,
-        p_not_male_or_female: float = FuzzyDefaults.P_NOT_MALE_OR_FEMALE,
-        p_female_given_male_or_female: float = (
-            FuzzyDefaults.P_FEMALE_GIVEN_MALE_OR_FEMALE
+        p_minor_postcode_error: float = FuzzyDefaults.P_MINOR_POSTCODE_ERROR,
+        min_log_odds_for_match: float = FuzzyDefaults.LOG_ODDS_FOR_MATCH,
+        exceeds_next_best_log_odds: float = (
+            FuzzyDefaults.EXCEEDS_NEXT_BEST_LOG_ODDS
         ),
         verbose: bool = False,
     ) -> None:
@@ -1372,40 +1447,49 @@ class MatchConfig(object):
             rounding_sf:
                 Number of significant figures to use when rounding frequency
                 information in hashed copies.
+
+            population_size:
+                The size of the entire population (not our sample). See
+                docstrings above.
+
+            forename_cache_filename:
+                File in which to cache forename information for faster loading.
             forename_sex_csv_filename:
                 Forename frequencies. CSV file, with no header, of "name,
                 frequency" pairs.
-            forename_cache_filename:
+            surname_cache_filename:
                 File in which to cache forename information for faster loading.
             surname_csv_filename:
                 Surname frequencies. CSV file, with no header, of "name,
                 frequency" pairs.
-            surname_cache_filename:
-                File in which to cache forename information for faster loading.
             min_name_frequency:
-                minimum name frequency; see command-line help.
+                Minimum name frequency; see command-line help.
             p_middle_name_n_present:
                 List of probabilities. The first is P(middle name 1 present).
                 The second is P(middle name 2 present | middle name 1 present),
                 and so on. The last value is re-used ad infinitum as required.
-            population_size:
-                The size of the entire population (not our sample). See
-                docstrings above.
+
             birth_year_pseudo_range:
                 b, such that P(two people share a DOB) = 1/(365.25 * b).
+
+            p_not_male_or_female:
+                Probability that a person in the population has gender 'X'.
+            p_female_given_male_or_female:
+                Probability that a person in the population is female, given
+                that they are either male or female.
+
+            postcode_cache_filename:
+                File in which to cache postcode information for faster loading.
             postcode_csv_filename:
                 Postcode mapping. CSV (or ZIP) file. Special format; see
                 :class:`PostcodeFrequencyInfo`.
-            postcode_cache_filename:
-                File in which to cache postcode information for faster loading.
             mean_oa_population:
-                the mean population of a UK Census Output Area
-            min_log_odds_for_match:
-                minimum log odds of a match, to consider two people a match
-            exceeds_next_best_log_odds:
-                In a multi-person comparison, the log odds of the best match
-                must exceed those of the next-best match by this much for the
-                best to be considered a unique winner.
+                The mean population of a UK Census Output Area.
+            p_unknown_or_pseudo_postcode:
+                Probability that a random person will have a pseudo-postcode,
+                e.g. ZZ99 3VZ (no fixed above) or a postcode not known to our
+                database.
+
             p_minor_forename_error:
                 Probability that a forename fails a full match but passes a
                 partial match.
@@ -1418,58 +1502,67 @@ class MatchConfig(object):
             p_sample_middle_name_missing:
                 Probability that a middle name, present in the proband, is
                 missing from the sample.
-            p_minor_postcode_error:
-                Probability that a postcode fails a full match but passes a
-                partial match.
             p_gender_error:
                 Probability that a gender match fails because of a data
                 error.
-            p_not_male_or_female:
-                Probability that a person in the population has gender 'X'.
-            p_female_given_male_or_female:
-                Probability that a person in the population is female, given
-                that they are either male or female.
+            p_minor_postcode_error:
+                Probability that a postcode fails a full match but passes a
+                partial match.
+
+            min_log_odds_for_match:
+                minimum log odds of a match, to consider two people a match
+            exceeds_next_best_log_odds:
+                In a multi-person comparison, the log odds of the best match
+                must exceed those of the next-best match by this much for the
+                best to be considered a unique winner.
 
             verbose:
                 Be verbose?
         """
-        # Probabilities
+        assert population_size > 0
+        assert 0 <= min_name_frequency <= 1
         assert all(0 <= x <= 1 for x in p_middle_name_n_present)
+        assert birth_year_pseudo_range > 0
+        assert 0 <= p_not_male_or_female <= 1
+        assert 0 <= p_female_given_male_or_female <= 1
+        assert mean_oa_population > 0
+        assert 0 <= p_unknown_or_pseudo_postcode <= 1
         assert 0 <= p_minor_forename_error <= 1
         assert 0 <= p_minor_surname_error <= 1
         assert 0 <= p_proband_middle_name_missing <= 1
         assert 0 <= p_sample_middle_name_missing <= 1
-        assert 0 <= p_minor_postcode_error <= 1
         assert 0 <= p_gender_error <= 1
-        assert 0 <= p_not_male_or_female <= 1
-        assert 0 <= p_female_given_male_or_female <= 1
-
-        # Other checks
-        assert population_size > 0
-        assert birth_year_pseudo_range > 0
+        assert 0 <= p_minor_postcode_error <= 1
 
         if verbose:
             log.debug("Building MatchConfig...")
 
         self.hasher = Hasher(hash_key)
         self.rounding_sf = rounding_sf
+
+        self.population_size = population_size
+
         self.forename_csv_filename = forename_sex_csv_filename
         self.surname_csv_filename = surname_csv_filename
         self.min_name_frequency = min_name_frequency
         self.p_middle_name_n_present = p_middle_name_n_present
-        self.population_size = population_size
+
         self.birth_year_pseudo_range = birth_year_pseudo_range
-        self.min_log_odds_for_match = min_log_odds_for_match
-        self.exceeds_next_best_log_odds = exceeds_next_best_log_odds
+
+        self.p_gender_error = p_gender_error
+        self.p_not_male_or_female = p_not_male_or_female
+
         self.p_minor_forename_error = p_minor_forename_error
         self.p_minor_surname_error = p_minor_surname_error
         self.p_proband_middle_name_missing = p_proband_middle_name_missing
         self.p_sample_middle_name_missing = p_sample_middle_name_missing
         self.p_minor_postcode_error = p_minor_postcode_error
+
+        self.min_log_odds_for_match = min_log_odds_for_match
+        self.exceeds_next_best_log_odds = exceeds_next_best_log_odds
+
         self.verbose = verbose
 
-        self.p_gender_error = p_gender_error
-        self.p_not_male_or_female = p_not_male_or_female
         p_male_or_female = 1 - p_not_male_or_female
         self.p_female = p_female_given_male_or_female * p_male_or_female
         self.p_male = p_male_or_female - self.p_female
@@ -1490,6 +1583,7 @@ class MatchConfig(object):
             csv_filename=postcode_csv_filename,
             cache_filename=postcode_cache_filename,
             mean_oa_population=mean_oa_population,
+            p_unknown_or_pseudo_postcode=p_unknown_or_pseudo_postcode,
         )
 
         self.p_two_people_share_dob = 1 / (
@@ -1642,7 +1736,7 @@ class MatchConfig(object):
         """
         Is this a valid postcode?
         """
-        return self._postcode_freq.is_valid_postcode(postcode_unit)
+        return self._postcode_freq.debug_is_valid_postcode(postcode_unit)
 
     def postcode_unit_freq(
         self, postcode_unit: str, prestandardized: bool = True
@@ -1658,7 +1752,7 @@ class MatchConfig(object):
             log.debug(f"Postcode unit frequency for {postcode_unit}: {freq}")
         return freq
 
-    def postcode_unit_population(
+    def debug_postcode_unit_population(
         self, postcode_unit: str, prestandardized: bool = False
     ) -> float:
         """
@@ -1668,7 +1762,7 @@ class MatchConfig(object):
             postcode_unit: the postcode unit to check
             prestandardized: was the postcode pre-standardized in format?
         """
-        return self._postcode_freq.postcode_unit_population(
+        return self._postcode_freq.debug_postcode_unit_population(
             postcode_unit, prestandardized=prestandardized
         )
 
@@ -1698,7 +1792,7 @@ class MatchConfig(object):
             postcode_sector: the postcode sector to check
             prestandardized: was the postcode pre-standardized in format?
         """
-        return self._postcode_freq.postcode_sector_population(
+        return self._postcode_freq.debug_postcode_sector_population(
             postcode_sector, prestandardized=prestandardized
         )
 
@@ -4127,13 +4221,24 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
     priors_group = config_subparser.add_argument_group(
         "frequency information for prior probabilities"
     )
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Population size
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     priors_group.add_argument(
-        "--forename_sex_freq_csv",
-        type=str,
-        default=FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
-        help=f'CSV file of "name, sex, frequency" pairs for forenames. '
-        f"You can generate one via {CRATE_FETCH_WORDLISTS}.",
+        "--population_size",
+        type=int,
+        default=FuzzyDefaults.POPULATION_SIZE,
+        help="Size of the whole population, from which we calculate the "
+        "baseline log odds that two people, randomly selected (and "
+        "replaced) from the population are the same person.",
     )
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Name frequencies
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     priors_group.add_argument(
         "--forename_cache_filename",
         type=str,
@@ -4141,11 +4246,12 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
         help="File in which to store cached forename info (to speed loading)",
     )
     priors_group.add_argument(
-        "--surname_freq_csv",
+        "--forename_sex_freq_csv",
         type=str,
-        default=FuzzyDefaults.SURNAME_FREQ_CSV,
-        help=f'CSV file of "name, frequency" pairs for forenames. '
-        f"You can generate one via {CRATE_FETCH_WORDLISTS}.",
+        default=FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
+        help=f'CSV file of "name, sex, frequency" pairs for forenames. '
+        f"You can generate one via {CRATE_FETCH_WORDLISTS}. If you later "
+        f"alter this, delete your forename cache so it can be rebuilt.",
     )
     priors_group.add_argument(
         "--surname_cache_filename",
@@ -4154,7 +4260,15 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
         help="File in which to store cached surname info (to speed loading)",
     )
     priors_group.add_argument(
-        "--name_min_frequency",
+        "--surname_freq_csv",
+        type=str,
+        default=FuzzyDefaults.SURNAME_FREQ_CSV,
+        help=f'CSV file of "name, frequency" pairs for forenames. '
+        f"You can generate one via {CRATE_FETCH_WORDLISTS}. If you later "
+        f"alter this, delete your surname cache so it can be rebuilt.",
+    )
+    priors_group.add_argument(
+        "--min_name_frequency",
         type=float,
         default=FuzzyDefaults.NAME_MIN_FREQ,
         help="Minimum base frequency for names. If a frequency is less than "
@@ -4177,14 +4291,11 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
         "name | has a first middle name), and so on. The last number "
         "present will be re-used ad infinitum if someone has more names.",
     )
-    priors_group.add_argument(
-        "--population_size",
-        type=int,
-        default=FuzzyDefaults.POPULATION_SIZE,
-        help="Size of the whole population, from which we calculate the "
-        "baseline log odds that two people, randomly selected (and "
-        "replaced) from the population are the same person.",
-    )
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # DOB
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     priors_group.add_argument(
         "--birth_year_pseudo_range",
         type=float,
@@ -4193,27 +4304,11 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
         f"probability of two random people sharing a DOB, which is taken "
         f"as 1/({DAYS_PER_YEAR} * b). This option is b.",
     )
-    priors_group.add_argument(
-        "--postcode_csv_filename",
-        type=str,
-        default=FuzzyDefaults.POSTCODES_CSV,
-        help="CSV file of postcode geography from UK Census/ONS data. A ZIP "
-        "file is also acceptable.",
-    )
-    # noinspection PyUnresolvedReferences
-    priors_group.add_argument(
-        "--postcode_cache_filename",
-        type=str,
-        default=FuzzyDefaults.POSTCODE_CACHE_FILENAME,
-        help="File in which to store cached postcodes (to speed loading)",
-    )
-    priors_group.add_argument(
-        "--mean_oa_population",
-        type=float,
-        default=FuzzyDefaults.MEAN_OA_POPULATION,
-        help="Mean population of a UK Census Output Area, from which we "
-        "estimate the population of postcode-based units.",
-    )
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Sex/gender
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     priors_group.add_argument(
         "--p_not_male_or_female",
         type=float,
@@ -4227,6 +4322,50 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
         help="Probability that a person in the population is female, given "
         "that they are either male or female.",
     )
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Postcodes
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    affects_postcode_cache = (
+        "[Information saved in the postcode cache. If you change this, delete "
+        "your postcode cache.]"
+    )
+    # noinspection PyUnresolvedReferences
+    priors_group.add_argument(
+        "--postcode_cache_filename",
+        type=str,
+        default=FuzzyDefaults.POSTCODE_CACHE_FILENAME,
+        help="File in which to store cached postcodes (to speed loading).",
+    )
+    priors_group.add_argument(
+        "--postcode_csv_filename",
+        type=str,
+        default=FuzzyDefaults.POSTCODES_CSV,
+        help="CSV file of postcode geography from UK Census/ONS data. A ZIP "
+        f"file is also acceptable. {affects_postcode_cache}",
+    )
+    priors_group.add_argument(
+        "--mean_oa_population",
+        type=float,
+        default=FuzzyDefaults.MEAN_OA_POPULATION,
+        help="Mean population of a UK Census Output Area, from which we "
+        "estimate the population of postcode-based units. "
+        f"{affects_postcode_cache}",
+    )
+    priors_group.add_argument(
+        "--p_unknown_or_pseudo_postcode",
+        type=float,
+        default=FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE,
+        help="Proportion of the (UK) population expected to be assigned a "
+        "'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed abode; ZZ99 3CZ, "
+        "England/UK not otherwise specified) or to have a postcode not known "
+        "to the postcode geography database.",
+    )
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Error probabilities
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     error_p_group = config_subparser.add_argument_group("error probabilities")
     error_p_group.add_argument(
@@ -4258,6 +4397,13 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
         "missing from the sample.",
     )
     error_p_group.add_argument(
+        "--p_gender_error",
+        type=float,
+        default=FuzzyDefaults.P_GENDER_ERROR,
+        help="Assumed probability that a gender is wrong leading to a "
+        "proband/candidate mismatch.",
+    )
+    error_p_group.add_argument(
         "--p_minor_postcode_error",
         type=float,
         default=FuzzyDefaults.P_MINOR_POSTCODE_ERROR,
@@ -4265,13 +4411,10 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
         "it fails a full (postcode unit) match but satisfies a partial "
         "(postcode sector) match.",
     )
-    error_p_group.add_argument(
-        "--p_gender_error",
-        type=float,
-        default=FuzzyDefaults.P_GENDER_ERROR,
-        help="Assumed probability that a gender is wrong leading to a "
-        "proband/candidate mismatch.",
-    )
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Matching rules
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     match_rule_group = config_subparser.add_argument_group("matching rules")
     match_rule_group.add_argument(
@@ -4389,27 +4532,28 @@ def get_cfg_from_args(args: argparse.Namespace) -> MatchConfig:
     return MatchConfig(
         hash_key=args.key,
         rounding_sf=args.rounding_sf,
-        forename_sex_csv_filename=args.forename_sex_freq_csv,
-        forename_cache_filename=args.forename_cache_filename,
-        surname_csv_filename=args.surname_freq_csv,
-        surname_cache_filename=args.surname_cache_filename,
-        min_name_frequency=args.name_min_frequency,
-        p_middle_name_n_present=p_middle_name_n_present,
         population_size=args.population_size,
+        forename_cache_filename=args.forename_cache_filename,
+        forename_sex_csv_filename=args.forename_sex_freq_csv,
+        surname_cache_filename=args.surname_cache_filename,
+        surname_csv_filename=args.surname_freq_csv,
+        min_name_frequency=args.min_name_frequency,
+        p_middle_name_n_present=p_middle_name_n_present,
         birth_year_pseudo_range=args.birth_year_pseudo_range,
-        postcode_csv_filename=args.postcode_csv_filename,
+        p_not_male_or_female=args.p_not_male_or_female,
+        p_female_given_male_or_female=args.p_female_given_male_or_female,
         postcode_cache_filename=args.postcode_cache_filename,
+        postcode_csv_filename=args.postcode_csv_filename,
         mean_oa_population=args.mean_oa_population,
-        min_log_odds_for_match=args.min_log_odds_for_match,
-        exceeds_next_best_log_odds=args.exceeds_next_best_log_odds,
+        p_unknown_or_pseudo_postcode=args.p_unknown_or_pseudo_postcode,
         p_minor_forename_error=args.p_minor_forename_error,
         p_minor_surname_error=args.p_minor_surname_error,
         p_proband_middle_name_missing=args.p_proband_middle_name_missing,
         p_sample_middle_name_missing=args.p_sample_middle_name_missing,
-        p_minor_postcode_error=args.p_minor_postcode_error,
         p_gender_error=args.p_gender_error,
-        p_not_male_or_female=args.p_not_male_or_female,
-        p_female_given_male_or_female=args.p_female_given_male_or_female,
+        p_minor_postcode_error=args.p_minor_postcode_error,
+        min_log_odds_for_match=args.min_log_odds_for_match,
+        exceeds_next_best_log_odds=args.exceeds_next_best_log_odds,
         verbose=args.verbose,
     )
 

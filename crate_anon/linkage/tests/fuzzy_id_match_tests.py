@@ -407,7 +407,7 @@ class FuzzyLinkageTests(unittest.TestCase):
         # Examples are hospitals and colleges in Cambridge (not residential)
         # but it gives a broad idea.
         for postcode in ["CB2 0QQ", "CB2 0SZ", "CB2 3EB", "CB3 9DF"]:
-            p = cfg.postcode_unit_population(postcode)
+            p = cfg.debug_postcode_unit_population(postcode)
             log.info(
                 f"Calculated population for postcode unit {postcode}: {p}"
             )
