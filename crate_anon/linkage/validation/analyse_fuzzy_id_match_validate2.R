@@ -113,14 +113,14 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
 load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
 {
     # No JSON here; we can use the fast fread() function.
-    comp <- data.table::fread(
+    comparison_result <- data.table::fread(
         file = filename,
         nrows = nrows,
         index = "proband_local_id"
     )
     # Demographic information and gold-standard match info from the probands
-    combined <- merge(
-        x = comp,
+    d <- merge(
+        x = comparison_result,
         y = probands,
         by.x = "proband_local_id",
         by.y = "local_id",
@@ -128,8 +128,8 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
         all.y = FALSE
     )
     # Gold-standard match info from the sample (best candidate)
-    combined2 <- merge(
-        x = combined,
+    d <- merge(
+        x = d,
         y = sample[, .(local_id, hashed_nhs_number)],
         by.x = "best_candidate_local_id",
         by.y = "local_id",
@@ -137,9 +137,67 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
         all.y = FALSE,
         suffixes = c("", "_best_candidate")
     )
-    setkey(combined2, proband_local_id)
-    setnames(combined2, "hashed_nhs_number", "hashed_nhs_number_proband")
-    return(combined2)
+    setkey(d, proband_local_id)
+    setnames(d, "hashed_nhs_number", "hashed_nhs_number_proband")
+    # Remove sample_match_local_id, which depends on specific threshold
+    # settings; we will inspect best_candidate_local_id instead.
+    d[, sample_match_local_id := NULL]
+    setcolorder(
+        d,
+        c(
+            # Proband
+            "hashed_nhs_number_proband",
+            "proband_local_id",
+            "blurred_dob",
+            "gender",
+            "ethnicity",
+            "index_of_multiple_deprivation",
+            "first_mh_care_date",
+            "age_at_first_mh_care",
+            "any_icd10_dx_present",
+            "chapter_f_icd10_dx_present",
+            "severe_mental_illness_icd10_dx_present",
+
+            # Reported match
+            "log_odds_match",
+            "p_match",
+            "second_best_log_odds",
+            "matched",
+            # "sample_match_local_id",
+            "best_candidate_local_id",  # the extra validation one
+
+            # Gold standard for matching
+            "hashed_nhs_number_best_candidate"
+        )
+    )
+
+    # Checks
+    stopifnot(all(!is.na(hashed_nhs_number_proband)))
+
+    # Calculations
+    d[, best_candidate_correct := as.integer(
+        # Hit, subject to thresholds.
+        hashed_nhs_number_proband == hashed_nhs_number_best_candidate
+        & !is.na(hashed_nhs_number_best_candidate)
+    )]
+    d[, best_candidate_incorrect := as.integer(
+        # False alarm, subject to thresholds.
+        hashed_nhs_number_proband != hashed_nhs_number_best_candidate
+        & !is.na(hashed_nhs_number_best_candidate)
+    )]
+    d[, proband_in_sample := as.integer(
+        hashed_nhs_number_proband %in% sample$hashed_nhs_number
+    )]
+    d[, correctly_eliminated := as.integer(
+        # Correct rejection, subject to thresholds.
+        is.na(hashed_nhs_number_best_candidate) & !proband_in_sample
+    )]
+    d[, not_found := as.integer(
+        # Miss, subject to thresholds.
+        is.na(hashed_nhs_number_best_candidate) & !proband_in_sample
+    )]
+
+    return(d)
 }
 
 
