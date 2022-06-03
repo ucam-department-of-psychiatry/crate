@@ -2868,15 +2868,16 @@ class Person(BasePerson):
         _forename_freq = cfg.forename_freq
         _forename_metaphone_freq = cfg.forename_metaphone_freq
         _pcode_frequencies = cfg.postcode_unit_sector_freq
+        _sf = cfg.rounding_sf
 
-        def fr(f: float, sf: int = cfg.rounding_sf) -> float:
+        def fr(f: float) -> float:
             """
             Rounds frequencies to a certain number of significant figures.
             (Don't supply exact floating-point numbers for frequencies; may be
             more identifying. Don't use decimal places; we have to deal with
             some small numbers.)
             """
-            return round_sf(f, sf)
+            return round_sf(f, _sf)
 
         first_name = self.first_name
         gender = self.gender
