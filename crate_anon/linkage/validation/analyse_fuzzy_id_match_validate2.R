@@ -72,7 +72,9 @@ get_comparison_filename <- function(db1, db2)
 
 load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
 {
-    d <- data.table::fread(file = filename, nrows = nrows, index = "local_id")
+    # data.table::fread() messes up the quotes in JSON; probably possible to
+    # tweak it, but this is easier!
+    d <- data.table(read.csv(filename, nrows = nrows))
     if (strip_irrelevant) {
         # Get rid of columns we don't care about
         d <- d[, .(local_id, other_info)]
@@ -102,28 +104,30 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
         cbind(d) %>%
         select(-other_info) %>%
         as.data.table()
-    setkey(d, hashed_nhs_number)
+    setkey(d, local_id)
+    setcolorder(d, "local_id")
     return(d)
 }
 
 
 load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
 {
+    # No JSON here; we can use the fast fread() function.
     comp <- data.table::fread(
         file = filename,
         nrows = nrows,
         index = "proband_local_id"
     )
-    # Demographic information from the probands
+    # Demographic information and gold-standard match info from the probands
     combined <- merge(
         x = comp,
         y = probands,
         by.x = "proband_local_id",
         by.y = "local_id",
         all.x = TRUE,
-        all.y = FALSE,
-        suffixes = c("", "_proband")
+        all.y = FALSE
     )
+    # Gold-standard match info from the sample (best candidate)
     combined2 <- merge(
         x = combined,
         y = sample[, .(local_id, hashed_nhs_number)],
@@ -133,6 +137,8 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
         all.y = FALSE,
         suffixes = c("", "_best_candidate")
     )
+    setkey(combined2, proband_local_id)
+    setnames(combined2, "hashed_nhs_number", "hashed_nhs_number_proband")
     return(combined2)
 }
 
