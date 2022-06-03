@@ -250,22 +250,25 @@ from crate_anon.common.constants import (
     EXIT_SUCCESS,
 )
 from crate_anon.linkage.fuzzy_id_match import (
+    add_basic_options,
+    add_config_options,
+    add_error_probabilities,
+    add_hasher_options,
+    add_matching_rules,
     add_subparsers,
     BasePerson,
     cache_load,
     cache_save,
     Commands,
-    get_basic_options_subparser,
     get_cfg_from_args,
-    get_config_option_subparser,
     get_demo_csv,
-    get_hasher_option_subparser,
     Hasher,
     MatchConfig,
     People,
     Person,
     POSTCODE_REGEX,
     read_people_2,
+    Switches,
     TemporalIdentifier,
     warn_or_fail_if_default_key,
 )
@@ -2093,7 +2096,7 @@ class EnvVar:
     HASHKEY = "CRATE_FUZZY_HASH_KEY"
     DATADIR = "CRATE_FUZZY_LINKAGE_VALIDATION_DATA_DIR"
     VALIDATOR = "CRATE_FUZZY_VALIDATOR"
-    POP_SIZE = "CRATE_FUZZY_POPULATION_SIZE"
+    COMMON_OPTIONS = "CRATE_FUZZY_COMMON_OPTIONS"
 
     @staticmethod
     def db_url_envvar(db: str) -> str:
@@ -2136,7 +2139,7 @@ def help_v2_fetch() -> str:
     """
     return "\n".join(
         f'"%{EnvVar.VALIDATOR}%" validate2_fetch_{db} '
-        f'--key "%{EnvVar.HASHKEY}%" '
+        f'--{Switches.KEY} "%{EnvVar.HASHKEY}%" '
         f"--output {v2_plaintext(db)} "
         f'--url "%{EnvVar.db_url_envvar(db)}%" '
         f"|| exit /b"
@@ -2152,10 +2155,11 @@ def help_v2_hash() -> str:
     """
     return "\n".join(
         f"crate_fuzzy_id_match {Commands.HASH} "
-        f"--input {v2_plaintext(db)} "
-        f"--output {v2_hashed(db)} "
-        f"--include_other_info "
-        f'--key "%{EnvVar.HASHKEY}%" '
+        f"--{Switches.INPUT} {v2_plaintext(db)} "
+        f"--{Switches.OUTPUT} {v2_hashed(db)} "
+        f"--{Switches.INCLUDE_OTHER_INFO} "
+        f'--{Switches.KEY} "%{EnvVar.HASHKEY}%" '
+        f'--{Switches.LOCAL_ID_HASH_KEY} "%{EnvVar.HASHKEY}%" '
         f"|| exit /b"
         for db in ALL_DATABASES
     )
@@ -2177,11 +2181,10 @@ def help_v2_compare(plaintext: bool) -> str:
         out_fn = v2_outhashed
     return "\n".join(
         f"crate_fuzzy_id_match {command} "
-        f"--population_size %{EnvVar.POP_SIZE}% "
         f"--probands {source_fn(db1)} "
         f"--sample {source_fn(db2)} "
         f"--output {out_fn(db1, db2)} "
-        f"--extra_validation_output "
+        f"%{EnvVar.COMMON_OPTIONS}% "
         f"|| exit /b"
         for db1 in ALL_DATABASES
         for db2 in ALL_DATABASES
@@ -2271,11 +2274,10 @@ HELP_VALIDATE_2_CDL = rf"""
 
 set {EnvVar.HASHKEY}=<SOME_SECRET_KEY>
 set {EnvVar.DATADIR}=<DIRECTORY>
-set {EnvVar.VALIDATOR}=\path\to\validate_fuzzy_linkage.py
-set {EnvVar.POP_SIZE}={CAMBS_POPULATION}
 
     1. Fetch
 
+set {EnvVar.VALIDATOR}=\path\to\validate_fuzzy_linkage.py
 set {EnvVar.db_url_envvar(CDL)}=<SQLALCHEMY_URL>
 set {EnvVar.db_url_envvar(PCMIS)}=<SQLALCHEMY_URL>
 set {EnvVar.db_url_envvar(RIO)}=<SQLALCHEMY_URL>
@@ -2290,9 +2292,10 @@ cd "%{EnvVar.DATADIR}%"
 
     3. Compare.
 
+set {EnvVar.COMMON_OPTIONS}=--{Switches.POPULATION_SIZE} {CAMBS_POPULATION} --{Switches.EXTRA_VALIDATION_OUTPUT}
 cd "%{EnvVar.DATADIR}%"
 {help_v2_compare(plaintext=False)}
-"""
+"""  # noqa
 # Skipped: {help_v2_compare(plaintext=True)}
 
 
@@ -2316,11 +2319,6 @@ def main() -> int:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     subparsers = add_subparsers(parser)
-    base_subparser = get_basic_options_subparser()
-    hasher_subparser = get_hasher_option_subparser()
-    config_subparser = get_config_option_subparser()
-    all_parents = [base_subparser, hasher_subparser, config_subparser]
-    dbfetch_parents = [base_subparser, hasher_subparser]
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # speedtest command
@@ -2329,7 +2327,6 @@ def main() -> int:
     speedtest_parser = subparsers.add_parser(
         "speedtest",
         help="Run speed tests and stop",
-        parents=all_parents,
         description="""
         This will run several comparisons to test hashing and comparison
         speed. Results are reported as microseconds per comparison.
@@ -2342,6 +2339,11 @@ def main() -> int:
         help="Profile (makes things slower but shows you what's taking the "
         "time).",
     )
+    add_hasher_options(speedtest_parser)
+    add_matching_rules(speedtest_parser)
+    add_error_probabilities(speedtest_parser)
+    add_config_options(speedtest_parser)
+    add_basic_options(speedtest_parser)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # validate1 command
@@ -2352,7 +2354,6 @@ def main() -> int:
         help="Run validation test 1 and stop. In this test, a list of people "
         "is compared to a version of itself, at times with elements "
         "deleted or with typos introduced.",
-        parents=all_parents,
         description=HELP_VALIDATE_1,
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
@@ -2379,6 +2380,10 @@ def main() -> int:
         help="Random number seed, for introducing deliberate errors in "
         "validation test 1",
     )
+    add_matching_rules(validate1_parser)
+    add_error_probabilities(validate1_parser)
+    add_config_options(validate1_parser)
+    add_basic_options(validate1_parser)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # validate2 and ancillary commands
@@ -2394,7 +2399,6 @@ def main() -> int:
             required=True,
             help="SQLAlchemy URL for source (IDENTIFIABLE) database",
         )
-        parser_.add_argument("--echo", action="store_true", help="Echo SQL?")
         parser_.add_argument(
             "--output",
             type=str,
@@ -2402,12 +2406,14 @@ def main() -> int:
             help="CSV filename for output (plaintext, IDENTIFIABLE) data. "
             + Person.PLAINTEXT_CSV_FORMAT_HELP,
         )
+        parser_.add_argument("--echo", action="store_true", help="Echo SQL?")
+        add_hasher_options(parser_)
+        add_basic_options(parser_)
 
     # CDL
     validate2_cdl_parser = subparsers.add_parser(
         "validate2_fetch_cdl",
         help="Validation 2A: fetch people from CPFT CDL database",
-        parents=dbfetch_parents,
         description=HELP_VALIDATE_2_CDL,
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
@@ -2417,7 +2423,6 @@ def main() -> int:
     validate2_rio_parser = subparsers.add_parser(
         "validate2_fetch_rio",
         help="Validation 2B: fetch people from CPFT RiO database",
-        parents=dbfetch_parents,
         description="See validate2_fetch_cdl command.",
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
@@ -2427,7 +2432,6 @@ def main() -> int:
     validate2_pcmis_parser = subparsers.add_parser(
         "validate2_fetch_pcmis",
         help="Validation 2C: fetch people from CPFT PCMIS database",
-        parents=dbfetch_parents,
         description="See validate2_fetch_cdl command.",
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
@@ -2437,7 +2441,6 @@ def main() -> int:
     validate2_systmone_parser = subparsers.add_parser(
         "validate2_fetch_systmone",
         help="Validation 2B: fetch people from CPFT SystmOne database",
-        parents=dbfetch_parents,
         description="See validate2_fetch_cdl command.",
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
@@ -2459,12 +2462,24 @@ def main() -> int:
     log.info(f"Command: {args.command}")
 
     if args.command == "speedtest":
-        cfg = get_cfg_from_args(args)
+        cfg = get_cfg_from_args(
+            args,
+            require_hasher=True,
+            require_main_config=True,
+            require_error=True,
+            require_matching=True,
+        )
         fn = do_cprofile(speedtest) if args.profile else speedtest
         fn(cfg)
 
     elif args.command == "validate1":
-        cfg = get_cfg_from_args(args)
+        cfg = get_cfg_from_args(
+            args,
+            require_hasher=False,
+            require_main_config=True,
+            require_error=True,
+            require_matching=True,
+        )
         log.info("Running validation test 1.")
         validate_1(
             cfg,

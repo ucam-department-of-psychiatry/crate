@@ -27,7 +27,7 @@ commands:
                         received de-identified data and you want to link to
                         your identifiable data, producing a de-identified
                         result). Compare a list of probands (hashed) against a
-                        sample (plaintext).
+                        sample (plaintext). Hashes the sample on the fly.
     print_demo_sample   Print a demo sample .CSV file.
     show_metaphone      Show metaphones of words
     show_forename_freq  Show frequencies of forenames
@@ -41,9 +41,12 @@ commands:
 ===============================================================================
 Help for command 'hash'
 ===============================================================================
-usage: crate_fuzzy_id_match hash [-h] [--verbose] [--key KEY]
+usage: crate_fuzzy_id_match hash [-h] --input INPUT --output OUTPUT
+                                 [--without_frequencies]
+                                 [--include_other_info] [--key KEY]
                                  [--allow_default_hash_key]
                                  [--rounding_sf ROUNDING_SF]
+                                 [--local_id_hash_key LOCAL_ID_HASH_KEY]
                                  [--population_size POPULATION_SIZE]
                                  [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                  [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
@@ -58,26 +61,17 @@ usage: crate_fuzzy_id_match hash [-h] [--verbose] [--key KEY]
                                  [--postcode_csv_filename POSTCODE_CSV_FILENAME]
                                  [--mean_oa_population MEAN_OA_POPULATION]
                                  [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
-                                 [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
-                                 [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
-                                 [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
-                                 [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
-                                 [--p_gender_error P_GENDER_ERROR]
-                                 [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
-                                 [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
-                                 [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
-                                 --input INPUT --output OUTPUT
-                                 [--without_frequencies]
-                                 [--include_other_info]
+                                 [--verbose]
 
-    Takes an identifiable list of people (with name, DOB, and postcode
-    information) and creates a hashed, de-identified equivalent.
+Takes an identifiable list of people (with name, DOB, and postcode information)
+and creates a hashed, de-identified equivalent.
 
-    The local ID (presumed not to be a direct identifier) is preserved exactly.
+The local ID (presumed not to be a direct identifier) is preserved exactly,
+unless you explicitly elect to hash it.
 
-    Optionally, the "other" information (you can choose, e.g. attaching a
-    direct identifier) is preserved, but you have to ask for that explicitly;
-    that is normally for testing.
+Optionally, the "other" information (you can choose, e.g. attaching a direct
+identifier) is preserved, but you have to ask for that explicitly; that is
+normally for testing.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -124,9 +118,6 @@ optional arguments:
                         data? Usually False; may be set to True for
                         validation. (default: False)
 
-display options:
-  --verbose             Be verbose (default: False)
-
 hasher (secrecy) options:
   --key KEY             Key (passphrase) for hasher (default: fuzzy_id_match_d
                         efault_hash_key_DO_NOT_USE_FOR_LIVE_DATA)
@@ -136,6 +127,10 @@ hasher (secrecy) options:
   --rounding_sf ROUNDING_SF
                         Number of significant figures to use when rounding
                         frequencies in hashed version (default: 5)
+  --local_id_hash_key LOCAL_ID_HASH_KEY
+                        Only applicable to the 'hash' command. Hash the
+                        local_id values, using this key (passphrase).
+                        (default: None)
 
 frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -218,46 +213,29 @@ frequency information for prior probabilities:
                         or to have a postcode not known to the postcode
                         geography database. (default: 0.000796)
 
-error probabilities:
-  --p_minor_forename_error P_MINOR_FORENAME_ERROR
-                        Assumed probability that a forename has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match. (default: 0.001)
-  --p_minor_surname_error P_MINOR_SURNAME_ERROR
-                        Assumed probability that a surname has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match. (default: 0.001)
-  --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the sample,
-                        is missing from the proband. (default: 0.05)
-  --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the
-                        proband, is missing from the sample. (default: 0.05)
-  --p_gender_error P_GENDER_ERROR
-                        Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch. (default: 0.0001)
-  --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
-                        Assumed probability that a postcode has an error in
-                        that means it fails a full (postcode unit) match but
-                        satisfies a partial (postcode sector) match. (default:
-                        0.001)
-
-matching rules:
-  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
-                        Minimum natural log (ln) odds of two people being the
-                        same, before a match will be considered. (Default is
-                        equivalent to p = 0.999.) (default: 6.906754778648553)
-  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
-                        Minimum log (ln) odds by which a best match must
-                        exceed the next-best match to be considered a unique
-                        match. (default: 10)
+display options:
+  --verbose             Be verbose (default: False)
 
 ===============================================================================
 Help for command 'compare_plaintext'
 ===============================================================================
-usage: crate_fuzzy_id_match compare_plaintext [-h] [--verbose] [--key KEY]
-                                              [--allow_default_hash_key]
-                                              [--rounding_sf ROUNDING_SF]
+usage: crate_fuzzy_id_match compare_plaintext [-h] --probands PROBANDS
+                                              --sample SAMPLE
+                                              [--sample_cache SAMPLE_CACHE]
+                                              --output OUTPUT
+                                              [--extra_validation_output]
+                                              [--n_workers N_WORKERS]
+                                              [--max_chunksize MAX_CHUNKSIZE]
+                                              [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                              [--profile]
+                                              [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
+                                              [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
+                                              [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
+                                              [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
+                                              [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
+                                              [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
+                                              [--p_gender_error P_GENDER_ERROR]
+                                              [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
                                               [--population_size POPULATION_SIZE]
                                               [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                               [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
@@ -272,71 +250,52 @@ usage: crate_fuzzy_id_match compare_plaintext [-h] [--verbose] [--key KEY]
                                               [--postcode_csv_filename POSTCODE_CSV_FILENAME]
                                               [--mean_oa_population MEAN_OA_POPULATION]
                                               [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
-                                              [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
-                                              [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
-                                              [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
-                                              [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
-                                              [--p_gender_error P_GENDER_ERROR]
-                                              [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
-                                              [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
-                                              [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
-                                              --probands PROBANDS --sample
-                                              SAMPLE
-                                              [--sample_cache SAMPLE_CACHE]
-                                              --output OUTPUT
-                                              [--extra_validation_output]
-                                              [--n_workers N_WORKERS]
-                                              [--max_chunksize MAX_CHUNKSIZE]
-                                              [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
-                                              [--profile]
+                                              [--verbose]
 
-    Comparison rules:
+Comparison rules:
 
-    - People MUST match on DOB and surname (or surname metaphone), or hashed
-      equivalents, to be considered a plausible match.
+- People MUST match on DOB and surname (or surname metaphone), or hashed
+  equivalents, to be considered a plausible match.
 
-    - Only plausible matches proceed to the Bayesian comparison.
+- Only plausible matches proceed to the Bayesian comparison.
 
-    The output file is a CSV (comma-separated value) file with a header and
-    these columns:
+The output file is a CSV (comma-separated value) file with a header and
+these columns:
 
-    - proband_local_id
-      Local ID (identifiable or de-identified as the user chooses) of the
-      proband. Taken from the input.
+    proband_local_id:
+        Local ID (identifiable or de-identified as the user chooses) of the
+        proband. Taken from the input.
+    matched:
+        Boolean. Was a matching person (a "winner") found in the sample, who is
+        to be considered a match to the proband? To give a match requires (a)
+        that the log odds for the winner reaches a threshold, and (b) that the
+        log odds for the winner exceeds the log odds for the runner-up by a
+        certain amount (because a mismatch may be worse than a failed match).
+    log_odds_match:
+        Log (ln) odds that the winner in the sample is a match to the proband.
+    p_match:
+        Probability that the winner in the sample is a match.
+    sample_match_local_id:
+        Original local ID of the "winner" in the sample (the candidate who is
+        the closest match to the proband).
+    second_best_log_odds:
+        Log odds of the runner up (the candidate from the sample who is the
+        second-closest match) being the same person as the proband.
 
-    - matched
-      Boolean. Was a matching person (a "winner") found in the sample, who is
-      to be considered a match to the proband? To give a match requires (a)
-      that the log odds for the winner reaches a threshold, and (b) that the
-      log odds for the winner exceeds the log odds for the runner-up by a
-      certain amount (because a mismatch may be worse than a failed match).
+If '--extra_validation_output' is used, the following columns are
+added:
 
-    - log_odds_match
-      Log (ln) odds that the winner in the sample is a match to the proband.
+    best_candidate_local_id:
+        Local ID of the closest-matching person (candidate) in the sample, EVEN
+        IF THEY DID NOT WIN.
 
-    - p_match
-      Probability that the winner in the sample is a match.
-
-    - sample_match_local_id
-      Original local ID of the "winner" in the sample (the candidate who is the
-      closest match to the proband).
-
-    - second_best_log_odds
-      Log odds of the runner up (the candidate from the sample who is the
-      second-closest match) being the same person as the proband.
-
-    If '--extra_validation_output' is used, the following columns are
-    added:
-
-    - best_candidate_local_id
-      Local ID of the closest-matching person (candidate) in the sample, EVEN
-      IF THEY DID NOT WIN.
-
-    The results file is NOT necessarily sorted as the input proband file was
-    (not sorting improves parallel processing efficiency).
+The results file is NOT necessarily sorted as the input proband file was
+(because not sorting improves parallel processing efficiency).
 
 optional arguments:
   -h, --help            show this help message and exit
+
+comparison options:
   --probands PROBANDS   CSV filename for probands data. Header row present.
                         Columns: ['local_id', 'first_name', 'middle_names',
                         'surname', 'dob', 'gender', 'postcodes',
@@ -375,18 +334,39 @@ optional arguments:
   --profile             Profile the code (for development only). (default:
                         False)
 
-display options:
-  --verbose             Be verbose (default: False)
+matching rules:
+  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
+                        Minimum natural log (ln) odds of two people being the
+                        same, before a match will be considered. (Default is
+                        equivalent to p = 0.9990889488055994.) (default: 7)
+  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
+                        Minimum log (ln) odds by which a best match must
+                        exceed the next-best match to be considered a unique
+                        match. (default: 10)
 
-hasher (secrecy) options:
-  --key KEY             Key (passphrase) for hasher (default: fuzzy_id_match_d
-                        efault_hash_key_DO_NOT_USE_FOR_LIVE_DATA)
-  --allow_default_hash_key
-                        Allow the default hash key to be used beyond tests.
-                        INADVISABLE! (default: False)
-  --rounding_sf ROUNDING_SF
-                        Number of significant figures to use when rounding
-                        frequencies in hashed version (default: 5)
+error probabilities:
+  --p_minor_forename_error P_MINOR_FORENAME_ERROR
+                        Assumed probability that a forename has an error in
+                        that means it fails a full match but satisfies a
+                        partial (metaphone) match. (default: 0.001)
+  --p_minor_surname_error P_MINOR_SURNAME_ERROR
+                        Assumed probability that a surname has an error in
+                        that means it fails a full match but satisfies a
+                        partial (metaphone) match. (default: 0.001)
+  --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
+                        Probability that a middle name, present in the sample,
+                        is missing from the proband. (default: 0.05)
+  --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
+                        Probability that a middle name, present in the
+                        proband, is missing from the sample. (default: 0.05)
+  --p_gender_error P_GENDER_ERROR
+                        Assumed probability that a gender is wrong leading to
+                        a proband/candidate mismatch. (default: 0.0001)
+  --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
+                        Assumed probability that a postcode has an error in
+                        that means it fails a full (postcode unit) match but
+                        satisfies a partial (postcode sector) match. (default:
+                        0.001)
 
 frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -469,47 +449,29 @@ frequency information for prior probabilities:
                         or to have a postcode not known to the postcode
                         geography database. (default: 0.000796)
 
-error probabilities:
-  --p_minor_forename_error P_MINOR_FORENAME_ERROR
-                        Assumed probability that a forename has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match. (default: 0.001)
-  --p_minor_surname_error P_MINOR_SURNAME_ERROR
-                        Assumed probability that a surname has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match. (default: 0.001)
-  --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the sample,
-                        is missing from the proband. (default: 0.05)
-  --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the
-                        proband, is missing from the sample. (default: 0.05)
-  --p_gender_error P_GENDER_ERROR
-                        Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch. (default: 0.0001)
-  --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
-                        Assumed probability that a postcode has an error in
-                        that means it fails a full (postcode unit) match but
-                        satisfies a partial (postcode sector) match. (default:
-                        0.001)
-
-matching rules:
-  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
-                        Minimum natural log (ln) odds of two people being the
-                        same, before a match will be considered. (Default is
-                        equivalent to p = 0.999.) (default: 6.906754778648553)
-  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
-                        Minimum log (ln) odds by which a best match must
-                        exceed the next-best match to be considered a unique
-                        match. (default: 10)
+display options:
+  --verbose             Be verbose (default: False)
 
 ===============================================================================
 Help for command 'compare_hashed_to_hashed'
 ===============================================================================
-usage: crate_fuzzy_id_match compare_hashed_to_hashed [-h] [--verbose]
-                                                     [--key KEY]
-                                                     [--allow_default_hash_key]
-                                                     [--rounding_sf ROUNDING_SF]
+usage: crate_fuzzy_id_match compare_hashed_to_hashed [-h] --probands PROBANDS
+                                                     --sample SAMPLE
+                                                     [--sample_cache SAMPLE_CACHE]
+                                                     --output OUTPUT
+                                                     [--extra_validation_output]
+                                                     [--n_workers N_WORKERS]
+                                                     [--max_chunksize MAX_CHUNKSIZE]
+                                                     [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                                     [--profile]
+                                                     [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
+                                                     [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
+                                                     [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
+                                                     [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
+                                                     [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
+                                                     [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
+                                                     [--p_gender_error P_GENDER_ERROR]
+                                                     [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
                                                      [--population_size POPULATION_SIZE]
                                                      [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                      [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
@@ -524,71 +486,52 @@ usage: crate_fuzzy_id_match compare_hashed_to_hashed [-h] [--verbose]
                                                      [--postcode_csv_filename POSTCODE_CSV_FILENAME]
                                                      [--mean_oa_population MEAN_OA_POPULATION]
                                                      [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
-                                                     [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
-                                                     [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
-                                                     [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
-                                                     [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
-                                                     [--p_gender_error P_GENDER_ERROR]
-                                                     [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
-                                                     [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
-                                                     [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
-                                                     --probands PROBANDS
-                                                     --sample SAMPLE
-                                                     [--sample_cache SAMPLE_CACHE]
-                                                     --output OUTPUT
-                                                     [--extra_validation_output]
-                                                     [--n_workers N_WORKERS]
-                                                     [--max_chunksize MAX_CHUNKSIZE]
-                                                     [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
-                                                     [--profile]
+                                                     [--verbose]
 
-    Comparison rules:
+Comparison rules:
 
-    - People MUST match on DOB and surname (or surname metaphone), or hashed
-      equivalents, to be considered a plausible match.
+- People MUST match on DOB and surname (or surname metaphone), or hashed
+  equivalents, to be considered a plausible match.
 
-    - Only plausible matches proceed to the Bayesian comparison.
+- Only plausible matches proceed to the Bayesian comparison.
 
-    The output file is a CSV (comma-separated value) file with a header and
-    these columns:
+The output file is a CSV (comma-separated value) file with a header and
+these columns:
 
-    - proband_local_id
-      Local ID (identifiable or de-identified as the user chooses) of the
-      proband. Taken from the input.
+    proband_local_id:
+        Local ID (identifiable or de-identified as the user chooses) of the
+        proband. Taken from the input.
+    matched:
+        Boolean. Was a matching person (a "winner") found in the sample, who is
+        to be considered a match to the proband? To give a match requires (a)
+        that the log odds for the winner reaches a threshold, and (b) that the
+        log odds for the winner exceeds the log odds for the runner-up by a
+        certain amount (because a mismatch may be worse than a failed match).
+    log_odds_match:
+        Log (ln) odds that the winner in the sample is a match to the proband.
+    p_match:
+        Probability that the winner in the sample is a match.
+    sample_match_local_id:
+        Original local ID of the "winner" in the sample (the candidate who is
+        the closest match to the proband).
+    second_best_log_odds:
+        Log odds of the runner up (the candidate from the sample who is the
+        second-closest match) being the same person as the proband.
 
-    - matched
-      Boolean. Was a matching person (a "winner") found in the sample, who is
-      to be considered a match to the proband? To give a match requires (a)
-      that the log odds for the winner reaches a threshold, and (b) that the
-      log odds for the winner exceeds the log odds for the runner-up by a
-      certain amount (because a mismatch may be worse than a failed match).
+If '--extra_validation_output' is used, the following columns are
+added:
 
-    - log_odds_match
-      Log (ln) odds that the winner in the sample is a match to the proband.
+    best_candidate_local_id:
+        Local ID of the closest-matching person (candidate) in the sample, EVEN
+        IF THEY DID NOT WIN.
 
-    - p_match
-      Probability that the winner in the sample is a match.
-
-    - sample_match_local_id
-      Original local ID of the "winner" in the sample (the candidate who is the
-      closest match to the proband).
-
-    - second_best_log_odds
-      Log odds of the runner up (the candidate from the sample who is the
-      second-closest match) being the same person as the proband.
-
-    If '--extra_validation_output' is used, the following columns are
-    added:
-
-    - best_candidate_local_id
-      Local ID of the closest-matching person (candidate) in the sample, EVEN
-      IF THEY DID NOT WIN.
-
-    The results file is NOT necessarily sorted as the input proband file was
-    (not sorting improves parallel processing efficiency).
+The results file is NOT necessarily sorted as the input proband file was
+(because not sorting improves parallel processing efficiency).
 
 optional arguments:
   -h, --help            show this help message and exit
+
+comparison options:
   --probands PROBANDS   CSV filename for probands data. Header row present.
                         Columns: ['local_id', 'hashed_first_name',
                         'first_name_frequency', 'hashed_first_name_metaphone',
@@ -659,18 +602,39 @@ optional arguments:
   --profile             Profile the code (for development only). (default:
                         False)
 
-display options:
-  --verbose             Be verbose (default: False)
+matching rules:
+  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
+                        Minimum natural log (ln) odds of two people being the
+                        same, before a match will be considered. (Default is
+                        equivalent to p = 0.9990889488055994.) (default: 7)
+  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
+                        Minimum log (ln) odds by which a best match must
+                        exceed the next-best match to be considered a unique
+                        match. (default: 10)
 
-hasher (secrecy) options:
-  --key KEY             Key (passphrase) for hasher (default: fuzzy_id_match_d
-                        efault_hash_key_DO_NOT_USE_FOR_LIVE_DATA)
-  --allow_default_hash_key
-                        Allow the default hash key to be used beyond tests.
-                        INADVISABLE! (default: False)
-  --rounding_sf ROUNDING_SF
-                        Number of significant figures to use when rounding
-                        frequencies in hashed version (default: 5)
+error probabilities:
+  --p_minor_forename_error P_MINOR_FORENAME_ERROR
+                        Assumed probability that a forename has an error in
+                        that means it fails a full match but satisfies a
+                        partial (metaphone) match. (default: 0.001)
+  --p_minor_surname_error P_MINOR_SURNAME_ERROR
+                        Assumed probability that a surname has an error in
+                        that means it fails a full match but satisfies a
+                        partial (metaphone) match. (default: 0.001)
+  --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
+                        Probability that a middle name, present in the sample,
+                        is missing from the proband. (default: 0.05)
+  --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
+                        Probability that a middle name, present in the
+                        proband, is missing from the sample. (default: 0.05)
+  --p_gender_error P_GENDER_ERROR
+                        Assumed probability that a gender is wrong leading to
+                        a proband/candidate mismatch. (default: 0.0001)
+  --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
+                        Assumed probability that a postcode has an error in
+                        that means it fails a full (postcode unit) match but
+                        satisfies a partial (postcode sector) match. (default:
+                        0.001)
 
 frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -753,47 +717,34 @@ frequency information for prior probabilities:
                         or to have a postcode not known to the postcode
                         geography database. (default: 0.000796)
 
-error probabilities:
-  --p_minor_forename_error P_MINOR_FORENAME_ERROR
-                        Assumed probability that a forename has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match. (default: 0.001)
-  --p_minor_surname_error P_MINOR_SURNAME_ERROR
-                        Assumed probability that a surname has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match. (default: 0.001)
-  --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the sample,
-                        is missing from the proband. (default: 0.05)
-  --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the
-                        proband, is missing from the sample. (default: 0.05)
-  --p_gender_error P_GENDER_ERROR
-                        Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch. (default: 0.0001)
-  --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
-                        Assumed probability that a postcode has an error in
-                        that means it fails a full (postcode unit) match but
-                        satisfies a partial (postcode sector) match. (default:
-                        0.001)
-
-matching rules:
-  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
-                        Minimum natural log (ln) odds of two people being the
-                        same, before a match will be considered. (Default is
-                        equivalent to p = 0.999.) (default: 6.906754778648553)
-  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
-                        Minimum log (ln) odds by which a best match must
-                        exceed the next-best match to be considered a unique
-                        match. (default: 10)
+display options:
+  --verbose             Be verbose (default: False)
 
 ===============================================================================
 Help for command 'compare_hashed_to_plaintext'
 ===============================================================================
-usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] [--verbose]
+usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] --probands
+                                                        PROBANDS --sample
+                                                        SAMPLE
+                                                        [--sample_cache SAMPLE_CACHE]
+                                                        --output OUTPUT
+                                                        [--extra_validation_output]
+                                                        [--n_workers N_WORKERS]
+                                                        [--max_chunksize MAX_CHUNKSIZE]
+                                                        [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                                        [--profile]
                                                         [--key KEY]
                                                         [--allow_default_hash_key]
                                                         [--rounding_sf ROUNDING_SF]
+                                                        [--local_id_hash_key LOCAL_ID_HASH_KEY]
+                                                        [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
+                                                        [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
+                                                        [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
+                                                        [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
+                                                        [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
+                                                        [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
+                                                        [--p_gender_error P_GENDER_ERROR]
+                                                        [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
                                                         [--population_size POPULATION_SIZE]
                                                         [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                         [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
@@ -808,71 +759,52 @@ usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] [--verbose]
                                                         [--postcode_csv_filename POSTCODE_CSV_FILENAME]
                                                         [--mean_oa_population MEAN_OA_POPULATION]
                                                         [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
-                                                        [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
-                                                        [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
-                                                        [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
-                                                        [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
-                                                        [--p_gender_error P_GENDER_ERROR]
-                                                        [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
-                                                        [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
-                                                        [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
-                                                        --probands PROBANDS
-                                                        --sample SAMPLE
-                                                        [--sample_cache SAMPLE_CACHE]
-                                                        --output OUTPUT
-                                                        [--extra_validation_output]
-                                                        [--n_workers N_WORKERS]
-                                                        [--max_chunksize MAX_CHUNKSIZE]
-                                                        [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
-                                                        [--profile]
+                                                        [--verbose]
 
-    Comparison rules:
+Comparison rules:
 
-    - People MUST match on DOB and surname (or surname metaphone), or hashed
-      equivalents, to be considered a plausible match.
+- People MUST match on DOB and surname (or surname metaphone), or hashed
+  equivalents, to be considered a plausible match.
 
-    - Only plausible matches proceed to the Bayesian comparison.
+- Only plausible matches proceed to the Bayesian comparison.
 
-    The output file is a CSV (comma-separated value) file with a header and
-    these columns:
+The output file is a CSV (comma-separated value) file with a header and
+these columns:
 
-    - proband_local_id
-      Local ID (identifiable or de-identified as the user chooses) of the
-      proband. Taken from the input.
+    proband_local_id:
+        Local ID (identifiable or de-identified as the user chooses) of the
+        proband. Taken from the input.
+    matched:
+        Boolean. Was a matching person (a "winner") found in the sample, who is
+        to be considered a match to the proband? To give a match requires (a)
+        that the log odds for the winner reaches a threshold, and (b) that the
+        log odds for the winner exceeds the log odds for the runner-up by a
+        certain amount (because a mismatch may be worse than a failed match).
+    log_odds_match:
+        Log (ln) odds that the winner in the sample is a match to the proband.
+    p_match:
+        Probability that the winner in the sample is a match.
+    sample_match_local_id:
+        Original local ID of the "winner" in the sample (the candidate who is
+        the closest match to the proband).
+    second_best_log_odds:
+        Log odds of the runner up (the candidate from the sample who is the
+        second-closest match) being the same person as the proband.
 
-    - matched
-      Boolean. Was a matching person (a "winner") found in the sample, who is
-      to be considered a match to the proband? To give a match requires (a)
-      that the log odds for the winner reaches a threshold, and (b) that the
-      log odds for the winner exceeds the log odds for the runner-up by a
-      certain amount (because a mismatch may be worse than a failed match).
+If '--extra_validation_output' is used, the following columns are
+added:
 
-    - log_odds_match
-      Log (ln) odds that the winner in the sample is a match to the proband.
+    best_candidate_local_id:
+        Local ID of the closest-matching person (candidate) in the sample, EVEN
+        IF THEY DID NOT WIN.
 
-    - p_match
-      Probability that the winner in the sample is a match.
-
-    - sample_match_local_id
-      Original local ID of the "winner" in the sample (the candidate who is the
-      closest match to the proband).
-
-    - second_best_log_odds
-      Log odds of the runner up (the candidate from the sample who is the
-      second-closest match) being the same person as the proband.
-
-    If '--extra_validation_output' is used, the following columns are
-    added:
-
-    - best_candidate_local_id
-      Local ID of the closest-matching person (candidate) in the sample, EVEN
-      IF THEY DID NOT WIN.
-
-    The results file is NOT necessarily sorted as the input proband file was
-    (not sorting improves parallel processing efficiency).
+The results file is NOT necessarily sorted as the input proband file was
+(because not sorting improves parallel processing efficiency).
 
 optional arguments:
   -h, --help            show this help message and exit
+
+comparison options:
   --probands PROBANDS   CSV filename for probands data. Header row present.
                         Columns: ['local_id', 'hashed_first_name',
                         'first_name_frequency', 'hashed_first_name_metaphone',
@@ -927,9 +859,6 @@ optional arguments:
   --profile             Profile the code (for development only). (default:
                         False)
 
-display options:
-  --verbose             Be verbose (default: False)
-
 hasher (secrecy) options:
   --key KEY             Key (passphrase) for hasher (default: fuzzy_id_match_d
                         efault_hash_key_DO_NOT_USE_FOR_LIVE_DATA)
@@ -939,6 +868,44 @@ hasher (secrecy) options:
   --rounding_sf ROUNDING_SF
                         Number of significant figures to use when rounding
                         frequencies in hashed version (default: 5)
+  --local_id_hash_key LOCAL_ID_HASH_KEY
+                        Only applicable to the 'hash' command. Hash the
+                        local_id values, using this key (passphrase).
+                        (default: None)
+
+matching rules:
+  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
+                        Minimum natural log (ln) odds of two people being the
+                        same, before a match will be considered. (Default is
+                        equivalent to p = 0.9990889488055994.) (default: 7)
+  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
+                        Minimum log (ln) odds by which a best match must
+                        exceed the next-best match to be considered a unique
+                        match. (default: 10)
+
+error probabilities:
+  --p_minor_forename_error P_MINOR_FORENAME_ERROR
+                        Assumed probability that a forename has an error in
+                        that means it fails a full match but satisfies a
+                        partial (metaphone) match. (default: 0.001)
+  --p_minor_surname_error P_MINOR_SURNAME_ERROR
+                        Assumed probability that a surname has an error in
+                        that means it fails a full match but satisfies a
+                        partial (metaphone) match. (default: 0.001)
+  --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
+                        Probability that a middle name, present in the sample,
+                        is missing from the proband. (default: 0.05)
+  --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
+                        Probability that a middle name, present in the
+                        proband, is missing from the sample. (default: 0.05)
+  --p_gender_error P_GENDER_ERROR
+                        Assumed probability that a gender is wrong leading to
+                        a proband/candidate mismatch. (default: 0.0001)
+  --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
+                        Assumed probability that a postcode has an error in
+                        that means it fails a full (postcode unit) match but
+                        satisfies a partial (postcode sector) match. (default:
+                        0.001)
 
 frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -1021,344 +988,38 @@ frequency information for prior probabilities:
                         or to have a postcode not known to the postcode
                         geography database. (default: 0.000796)
 
-error probabilities:
-  --p_minor_forename_error P_MINOR_FORENAME_ERROR
-                        Assumed probability that a forename has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match. (default: 0.001)
-  --p_minor_surname_error P_MINOR_SURNAME_ERROR
-                        Assumed probability that a surname has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match. (default: 0.001)
-  --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the sample,
-                        is missing from the proband. (default: 0.05)
-  --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the
-                        proband, is missing from the sample. (default: 0.05)
-  --p_gender_error P_GENDER_ERROR
-                        Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch. (default: 0.0001)
-  --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
-                        Assumed probability that a postcode has an error in
-                        that means it fails a full (postcode unit) match but
-                        satisfies a partial (postcode sector) match. (default:
-                        0.001)
-
-matching rules:
-  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
-                        Minimum natural log (ln) odds of two people being the
-                        same, before a match will be considered. (Default is
-                        equivalent to p = 0.999.) (default: 6.906754778648553)
-  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
-                        Minimum log (ln) odds by which a best match must
-                        exceed the next-best match to be considered a unique
-                        match. (default: 10)
+display options:
+  --verbose             Be verbose (default: False)
 
 ===============================================================================
 Help for command 'print_demo_sample'
 ===============================================================================
-usage: crate_fuzzy_id_match print_demo_sample [-h] [--verbose] [--key KEY]
-                                              [--allow_default_hash_key]
-                                              [--rounding_sf ROUNDING_SF]
-                                              [--population_size POPULATION_SIZE]
-                                              [--forename_cache_filename FORENAME_CACHE_FILENAME]
-                                              [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
-                                              [--surname_cache_filename SURNAME_CACHE_FILENAME]
-                                              [--surname_freq_csv SURNAME_FREQ_CSV]
-                                              [--min_name_frequency MIN_NAME_FREQUENCY]
-                                              [--p_middle_name_n_present P_MIDDLE_NAME_N_PRESENT]
-                                              [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
-                                              [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
-                                              [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
-                                              [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
-                                              [--postcode_csv_filename POSTCODE_CSV_FILENAME]
-                                              [--mean_oa_population MEAN_OA_POPULATION]
-                                              [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
-                                              [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
-                                              [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
-                                              [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
-                                              [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
-                                              [--p_gender_error P_GENDER_ERROR]
-                                              [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
-                                              [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
-                                              [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
+usage: crate_fuzzy_id_match print_demo_sample [-h] [--verbose]
 
 optional arguments:
-  -h, --help            show this help message and exit
+  -h, --help  show this help message and exit
 
 display options:
-  --verbose             Be verbose
-
-hasher (secrecy) options:
-  --key KEY             Key (passphrase) for hasher
-  --allow_default_hash_key
-                        Allow the default hash key to be used beyond tests.
-                        INADVISABLE!
-  --rounding_sf ROUNDING_SF
-                        Number of significant figures to use when rounding
-                        frequencies in hashed version
-
-frequency information for prior probabilities:
-  --population_size POPULATION_SIZE
-                        Size of the whole population, from which we calculate
-                        the baseline log odds that two people, randomly
-                        selected (and replaced) from the population are the
-                        same person.
-  --forename_cache_filename FORENAME_CACHE_FILENAME
-                        File in which to store cached forename info (to speed
-                        loading)
-  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
-                        CSV file of "name, sex, frequency" pairs for
-                        forenames. You can generate one via
-                        crate_fetch_wordlists. If you later alter this, delete
-                        your forename cache so it can be rebuilt.
-  --surname_cache_filename SURNAME_CACHE_FILENAME
-                        File in which to store cached surname info (to speed
-                        loading)
-  --surname_freq_csv SURNAME_FREQ_CSV
-                        CSV file of "name, frequency" pairs for forenames. You
-                        can generate one via crate_fetch_wordlists. If you
-                        later alter this, delete your surname cache so it can
-                        be rebuilt.
-  --min_name_frequency MIN_NAME_FREQUENCY
-                        Minimum base frequency for names. If a frequency is
-                        less than this, use this minimum. Allowing extremely
-                        low frequencies may increase the chances of a spurious
-                        match. Note also that typical name frequency tables
-                        don't give very-low-frequency information. For
-                        example, for US census forename/surname information,
-                        below 0.001 percent they report 0.000 percent; so a
-                        reasonable minimum is 0.0005 percent or 0.000005 or
-                        5e-6.
-  --p_middle_name_n_present P_MIDDLE_NAME_N_PRESENT
-                        CSV list of probabilities that a randomly selected
-                        person has a certain number of middle names. The first
-                        number is P(has a first middle name). The second
-                        number is P(has a second middle name | has a first
-                        middle name), and so on. The last number present will
-                        be re-used ad infinitum if someone has more names.
-  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
-                        Birth year pseudo-range. The sole purpose is to
-                        calculate the probability of two random people sharing
-                        a DOB, which is taken as 1/(365.25 * b). This option
-                        is b.
-  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
-                        Probability that a person in the population has gender
-                        'X'.
-  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
-                        Probability that a person in the population is female,
-                        given that they are either male or female.
-  --postcode_cache_filename POSTCODE_CACHE_FILENAME
-                        File in which to store cached postcodes (to speed
-                        loading).
-  --postcode_csv_filename POSTCODE_CSV_FILENAME
-                        CSV file of postcode geography from UK Census/ONS
-                        data. A ZIP file is also acceptable. [Information
-                        saved in the postcode cache. If you change this,
-                        delete your postcode cache.]
-  --mean_oa_population MEAN_OA_POPULATION
-                        Mean population of a UK Census Output Area, from which
-                        we estimate the population of postcode-based units.
-                        [Information saved in the postcode cache. If you
-                        change this, delete your postcode cache.]
-  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
-                        Proportion of the (UK) population expected to be
-                        assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
-                        abode; ZZ99 3CZ, England/UK not otherwise specified)
-                        or to have a postcode not known to the postcode
-                        geography database.
-
-error probabilities:
-  --p_minor_forename_error P_MINOR_FORENAME_ERROR
-                        Assumed probability that a forename has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match.
-  --p_minor_surname_error P_MINOR_SURNAME_ERROR
-                        Assumed probability that a surname has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match.
-  --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the sample,
-                        is missing from the proband.
-  --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the
-                        proband, is missing from the sample.
-  --p_gender_error P_GENDER_ERROR
-                        Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch.
-  --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
-                        Assumed probability that a postcode has an error in
-                        that means it fails a full (postcode unit) match but
-                        satisfies a partial (postcode sector) match.
-
-matching rules:
-  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
-                        Minimum natural log (ln) odds of two people being the
-                        same, before a match will be considered. (Default is
-                        equivalent to p = 0.999.)
-  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
-                        Minimum log (ln) odds by which a best match must
-                        exceed the next-best match to be considered a unique
-                        match.
+  --verbose   Be verbose
 
 ===============================================================================
 Help for command 'show_metaphone'
 ===============================================================================
-usage: crate_fuzzy_id_match show_metaphone [-h] [--verbose] [--key KEY]
-                                           [--allow_default_hash_key]
-                                           [--rounding_sf ROUNDING_SF]
-                                           [--population_size POPULATION_SIZE]
-                                           [--forename_cache_filename FORENAME_CACHE_FILENAME]
-                                           [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
-                                           [--surname_cache_filename SURNAME_CACHE_FILENAME]
-                                           [--surname_freq_csv SURNAME_FREQ_CSV]
-                                           [--min_name_frequency MIN_NAME_FREQUENCY]
-                                           [--p_middle_name_n_present P_MIDDLE_NAME_N_PRESENT]
-                                           [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
-                                           [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
-                                           [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
-                                           [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
-                                           [--postcode_csv_filename POSTCODE_CSV_FILENAME]
-                                           [--mean_oa_population MEAN_OA_POPULATION]
-                                           [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
-                                           [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
-                                           [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
-                                           [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
-                                           [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
-                                           [--p_gender_error P_GENDER_ERROR]
-                                           [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
-                                           [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
-                                           [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
-                                           words [words ...]
+usage: crate_fuzzy_id_match show_metaphone [-h] [--verbose] words [words ...]
 
 positional arguments:
-  words                 Words to check
+  words       Words to check
 
 optional arguments:
-  -h, --help            show this help message and exit
+  -h, --help  show this help message and exit
 
 display options:
-  --verbose             Be verbose
-
-hasher (secrecy) options:
-  --key KEY             Key (passphrase) for hasher
-  --allow_default_hash_key
-                        Allow the default hash key to be used beyond tests.
-                        INADVISABLE!
-  --rounding_sf ROUNDING_SF
-                        Number of significant figures to use when rounding
-                        frequencies in hashed version
-
-frequency information for prior probabilities:
-  --population_size POPULATION_SIZE
-                        Size of the whole population, from which we calculate
-                        the baseline log odds that two people, randomly
-                        selected (and replaced) from the population are the
-                        same person.
-  --forename_cache_filename FORENAME_CACHE_FILENAME
-                        File in which to store cached forename info (to speed
-                        loading)
-  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
-                        CSV file of "name, sex, frequency" pairs for
-                        forenames. You can generate one via
-                        crate_fetch_wordlists. If you later alter this, delete
-                        your forename cache so it can be rebuilt.
-  --surname_cache_filename SURNAME_CACHE_FILENAME
-                        File in which to store cached surname info (to speed
-                        loading)
-  --surname_freq_csv SURNAME_FREQ_CSV
-                        CSV file of "name, frequency" pairs for forenames. You
-                        can generate one via crate_fetch_wordlists. If you
-                        later alter this, delete your surname cache so it can
-                        be rebuilt.
-  --min_name_frequency MIN_NAME_FREQUENCY
-                        Minimum base frequency for names. If a frequency is
-                        less than this, use this minimum. Allowing extremely
-                        low frequencies may increase the chances of a spurious
-                        match. Note also that typical name frequency tables
-                        don't give very-low-frequency information. For
-                        example, for US census forename/surname information,
-                        below 0.001 percent they report 0.000 percent; so a
-                        reasonable minimum is 0.0005 percent or 0.000005 or
-                        5e-6.
-  --p_middle_name_n_present P_MIDDLE_NAME_N_PRESENT
-                        CSV list of probabilities that a randomly selected
-                        person has a certain number of middle names. The first
-                        number is P(has a first middle name). The second
-                        number is P(has a second middle name | has a first
-                        middle name), and so on. The last number present will
-                        be re-used ad infinitum if someone has more names.
-  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
-                        Birth year pseudo-range. The sole purpose is to
-                        calculate the probability of two random people sharing
-                        a DOB, which is taken as 1/(365.25 * b). This option
-                        is b.
-  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
-                        Probability that a person in the population has gender
-                        'X'.
-  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
-                        Probability that a person in the population is female,
-                        given that they are either male or female.
-  --postcode_cache_filename POSTCODE_CACHE_FILENAME
-                        File in which to store cached postcodes (to speed
-                        loading).
-  --postcode_csv_filename POSTCODE_CSV_FILENAME
-                        CSV file of postcode geography from UK Census/ONS
-                        data. A ZIP file is also acceptable. [Information
-                        saved in the postcode cache. If you change this,
-                        delete your postcode cache.]
-  --mean_oa_population MEAN_OA_POPULATION
-                        Mean population of a UK Census Output Area, from which
-                        we estimate the population of postcode-based units.
-                        [Information saved in the postcode cache. If you
-                        change this, delete your postcode cache.]
-  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
-                        Proportion of the (UK) population expected to be
-                        assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
-                        abode; ZZ99 3CZ, England/UK not otherwise specified)
-                        or to have a postcode not known to the postcode
-                        geography database.
-
-error probabilities:
-  --p_minor_forename_error P_MINOR_FORENAME_ERROR
-                        Assumed probability that a forename has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match.
-  --p_minor_surname_error P_MINOR_SURNAME_ERROR
-                        Assumed probability that a surname has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match.
-  --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the sample,
-                        is missing from the proband.
-  --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the
-                        proband, is missing from the sample.
-  --p_gender_error P_GENDER_ERROR
-                        Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch.
-  --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
-                        Assumed probability that a postcode has an error in
-                        that means it fails a full (postcode unit) match but
-                        satisfies a partial (postcode sector) match.
-
-matching rules:
-  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
-                        Minimum natural log (ln) odds of two people being the
-                        same, before a match will be considered. (Default is
-                        equivalent to p = 0.999.)
-  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
-                        Minimum log (ln) odds by which a best match must
-                        exceed the next-best match to be considered a unique
-                        match.
+  --verbose   Be verbose
 
 ===============================================================================
 Help for command 'show_forename_freq'
 ===============================================================================
-usage: crate_fuzzy_id_match show_forename_freq [-h] [--verbose] [--key KEY]
-                                               [--allow_default_hash_key]
-                                               [--rounding_sf ROUNDING_SF]
+usage: crate_fuzzy_id_match show_forename_freq [-h]
                                                [--population_size POPULATION_SIZE]
                                                [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
@@ -1373,14 +1034,7 @@ usage: crate_fuzzy_id_match show_forename_freq [-h] [--verbose] [--key KEY]
                                                [--postcode_csv_filename POSTCODE_CSV_FILENAME]
                                                [--mean_oa_population MEAN_OA_POPULATION]
                                                [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
-                                               [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
-                                               [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
-                                               [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
-                                               [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
-                                               [--p_gender_error P_GENDER_ERROR]
-                                               [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
-                                               [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
-                                               [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
+                                               [--verbose]
                                                forenames [forenames ...]
 
 positional arguments:
@@ -1388,18 +1042,6 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-
-display options:
-  --verbose             Be verbose
-
-hasher (secrecy) options:
-  --key KEY             Key (passphrase) for hasher
-  --allow_default_hash_key
-                        Allow the default hash key to be used beyond tests.
-                        INADVISABLE!
-  --rounding_sf ROUNDING_SF
-                        Number of significant figures to use when rounding
-                        frequencies in hashed version
 
 frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -1471,46 +1113,13 @@ frequency information for prior probabilities:
                         or to have a postcode not known to the postcode
                         geography database.
 
-error probabilities:
-  --p_minor_forename_error P_MINOR_FORENAME_ERROR
-                        Assumed probability that a forename has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match.
-  --p_minor_surname_error P_MINOR_SURNAME_ERROR
-                        Assumed probability that a surname has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match.
-  --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the sample,
-                        is missing from the proband.
-  --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the
-                        proband, is missing from the sample.
-  --p_gender_error P_GENDER_ERROR
-                        Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch.
-  --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
-                        Assumed probability that a postcode has an error in
-                        that means it fails a full (postcode unit) match but
-                        satisfies a partial (postcode sector) match.
-
-matching rules:
-  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
-                        Minimum natural log (ln) odds of two people being the
-                        same, before a match will be considered. (Default is
-                        equivalent to p = 0.999.)
-  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
-                        Minimum log (ln) odds by which a best match must
-                        exceed the next-best match to be considered a unique
-                        match.
+display options:
+  --verbose             Be verbose
 
 ===============================================================================
 Help for command 'show_forename_metaphone_freq'
 ===============================================================================
-usage: crate_fuzzy_id_match show_forename_metaphone_freq [-h] [--verbose]
-                                                         [--key KEY]
-                                                         [--allow_default_hash_key]
-                                                         [--rounding_sf ROUNDING_SF]
+usage: crate_fuzzy_id_match show_forename_metaphone_freq [-h]
                                                          [--population_size POPULATION_SIZE]
                                                          [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                          [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
@@ -1525,14 +1134,7 @@ usage: crate_fuzzy_id_match show_forename_metaphone_freq [-h] [--verbose]
                                                          [--postcode_csv_filename POSTCODE_CSV_FILENAME]
                                                          [--mean_oa_population MEAN_OA_POPULATION]
                                                          [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
-                                                         [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
-                                                         [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
-                                                         [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
-                                                         [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
-                                                         [--p_gender_error P_GENDER_ERROR]
-                                                         [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
-                                                         [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
-                                                         [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
+                                                         [--verbose]
                                                          metaphones
                                                          [metaphones ...]
 
@@ -1541,18 +1143,6 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-
-display options:
-  --verbose             Be verbose
-
-hasher (secrecy) options:
-  --key KEY             Key (passphrase) for hasher
-  --allow_default_hash_key
-                        Allow the default hash key to be used beyond tests.
-                        INADVISABLE!
-  --rounding_sf ROUNDING_SF
-                        Number of significant figures to use when rounding
-                        frequencies in hashed version
 
 frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -1624,45 +1214,13 @@ frequency information for prior probabilities:
                         or to have a postcode not known to the postcode
                         geography database.
 
-error probabilities:
-  --p_minor_forename_error P_MINOR_FORENAME_ERROR
-                        Assumed probability that a forename has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match.
-  --p_minor_surname_error P_MINOR_SURNAME_ERROR
-                        Assumed probability that a surname has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match.
-  --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the sample,
-                        is missing from the proband.
-  --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the
-                        proband, is missing from the sample.
-  --p_gender_error P_GENDER_ERROR
-                        Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch.
-  --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
-                        Assumed probability that a postcode has an error in
-                        that means it fails a full (postcode unit) match but
-                        satisfies a partial (postcode sector) match.
-
-matching rules:
-  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
-                        Minimum natural log (ln) odds of two people being the
-                        same, before a match will be considered. (Default is
-                        equivalent to p = 0.999.)
-  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
-                        Minimum log (ln) odds by which a best match must
-                        exceed the next-best match to be considered a unique
-                        match.
+display options:
+  --verbose             Be verbose
 
 ===============================================================================
 Help for command 'show_surname_freq'
 ===============================================================================
-usage: crate_fuzzy_id_match show_surname_freq [-h] [--verbose] [--key KEY]
-                                              [--allow_default_hash_key]
-                                              [--rounding_sf ROUNDING_SF]
+usage: crate_fuzzy_id_match show_surname_freq [-h]
                                               [--population_size POPULATION_SIZE]
                                               [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                               [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
@@ -1677,14 +1235,7 @@ usage: crate_fuzzy_id_match show_surname_freq [-h] [--verbose] [--key KEY]
                                               [--postcode_csv_filename POSTCODE_CSV_FILENAME]
                                               [--mean_oa_population MEAN_OA_POPULATION]
                                               [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
-                                              [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
-                                              [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
-                                              [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
-                                              [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
-                                              [--p_gender_error P_GENDER_ERROR]
-                                              [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
-                                              [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
-                                              [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
+                                              [--verbose]
                                               surnames [surnames ...]
 
 positional arguments:
@@ -1692,18 +1243,6 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-
-display options:
-  --verbose             Be verbose
-
-hasher (secrecy) options:
-  --key KEY             Key (passphrase) for hasher
-  --allow_default_hash_key
-                        Allow the default hash key to be used beyond tests.
-                        INADVISABLE!
-  --rounding_sf ROUNDING_SF
-                        Number of significant figures to use when rounding
-                        frequencies in hashed version
 
 frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -1775,46 +1314,13 @@ frequency information for prior probabilities:
                         or to have a postcode not known to the postcode
                         geography database.
 
-error probabilities:
-  --p_minor_forename_error P_MINOR_FORENAME_ERROR
-                        Assumed probability that a forename has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match.
-  --p_minor_surname_error P_MINOR_SURNAME_ERROR
-                        Assumed probability that a surname has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match.
-  --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the sample,
-                        is missing from the proband.
-  --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the
-                        proband, is missing from the sample.
-  --p_gender_error P_GENDER_ERROR
-                        Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch.
-  --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
-                        Assumed probability that a postcode has an error in
-                        that means it fails a full (postcode unit) match but
-                        satisfies a partial (postcode sector) match.
-
-matching rules:
-  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
-                        Minimum natural log (ln) odds of two people being the
-                        same, before a match will be considered. (Default is
-                        equivalent to p = 0.999.)
-  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
-                        Minimum log (ln) odds by which a best match must
-                        exceed the next-best match to be considered a unique
-                        match.
+display options:
+  --verbose             Be verbose
 
 ===============================================================================
 Help for command 'show_surname_metaphone_freq'
 ===============================================================================
-usage: crate_fuzzy_id_match show_surname_metaphone_freq [-h] [--verbose]
-                                                        [--key KEY]
-                                                        [--allow_default_hash_key]
-                                                        [--rounding_sf ROUNDING_SF]
+usage: crate_fuzzy_id_match show_surname_metaphone_freq [-h]
                                                         [--population_size POPULATION_SIZE]
                                                         [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                         [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
@@ -1829,14 +1335,7 @@ usage: crate_fuzzy_id_match show_surname_metaphone_freq [-h] [--verbose]
                                                         [--postcode_csv_filename POSTCODE_CSV_FILENAME]
                                                         [--mean_oa_population MEAN_OA_POPULATION]
                                                         [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
-                                                        [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
-                                                        [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
-                                                        [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
-                                                        [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
-                                                        [--p_gender_error P_GENDER_ERROR]
-                                                        [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
-                                                        [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
-                                                        [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
+                                                        [--verbose]
                                                         metaphones
                                                         [metaphones ...]
 
@@ -1845,18 +1344,6 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-
-display options:
-  --verbose             Be verbose
-
-hasher (secrecy) options:
-  --key KEY             Key (passphrase) for hasher
-  --allow_default_hash_key
-                        Allow the default hash key to be used beyond tests.
-                        INADVISABLE!
-  --rounding_sf ROUNDING_SF
-                        Number of significant figures to use when rounding
-                        frequencies in hashed version
 
 frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -1928,45 +1415,13 @@ frequency information for prior probabilities:
                         or to have a postcode not known to the postcode
                         geography database.
 
-error probabilities:
-  --p_minor_forename_error P_MINOR_FORENAME_ERROR
-                        Assumed probability that a forename has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match.
-  --p_minor_surname_error P_MINOR_SURNAME_ERROR
-                        Assumed probability that a surname has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match.
-  --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the sample,
-                        is missing from the proband.
-  --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the
-                        proband, is missing from the sample.
-  --p_gender_error P_GENDER_ERROR
-                        Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch.
-  --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
-                        Assumed probability that a postcode has an error in
-                        that means it fails a full (postcode unit) match but
-                        satisfies a partial (postcode sector) match.
-
-matching rules:
-  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
-                        Minimum natural log (ln) odds of two people being the
-                        same, before a match will be considered. (Default is
-                        equivalent to p = 0.999.)
-  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
-                        Minimum log (ln) odds by which a best match must
-                        exceed the next-best match to be considered a unique
-                        match.
+display options:
+  --verbose             Be verbose
 
 ===============================================================================
 Help for command 'show_dob_freq'
 ===============================================================================
-usage: crate_fuzzy_id_match show_dob_freq [-h] [--verbose] [--key KEY]
-                                          [--allow_default_hash_key]
-                                          [--rounding_sf ROUNDING_SF]
+usage: crate_fuzzy_id_match show_dob_freq [-h]
                                           [--population_size POPULATION_SIZE]
                                           [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                           [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
@@ -1981,29 +1436,10 @@ usage: crate_fuzzy_id_match show_dob_freq [-h] [--verbose] [--key KEY]
                                           [--postcode_csv_filename POSTCODE_CSV_FILENAME]
                                           [--mean_oa_population MEAN_OA_POPULATION]
                                           [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
-                                          [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
-                                          [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
-                                          [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
-                                          [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
-                                          [--p_gender_error P_GENDER_ERROR]
-                                          [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
-                                          [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
-                                          [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
+                                          [--verbose]
 
 optional arguments:
   -h, --help            show this help message and exit
-
-display options:
-  --verbose             Be verbose
-
-hasher (secrecy) options:
-  --key KEY             Key (passphrase) for hasher
-  --allow_default_hash_key
-                        Allow the default hash key to be used beyond tests.
-                        INADVISABLE!
-  --rounding_sf ROUNDING_SF
-                        Number of significant figures to use when rounding
-                        frequencies in hashed version
 
 frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -2075,36 +1511,6 @@ frequency information for prior probabilities:
                         or to have a postcode not known to the postcode
                         geography database.
 
-error probabilities:
-  --p_minor_forename_error P_MINOR_FORENAME_ERROR
-                        Assumed probability that a forename has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match.
-  --p_minor_surname_error P_MINOR_SURNAME_ERROR
-                        Assumed probability that a surname has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match.
-  --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the sample,
-                        is missing from the proband.
-  --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
-                        Probability that a middle name, present in the
-                        proband, is missing from the sample.
-  --p_gender_error P_GENDER_ERROR
-                        Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch.
-  --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
-                        Assumed probability that a postcode has an error in
-                        that means it fails a full (postcode unit) match but
-                        satisfies a partial (postcode sector) match.
-
-matching rules:
-  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
-                        Minimum natural log (ln) odds of two people being the
-                        same, before a match will be considered. (Default is
-                        equivalent to p = 0.999.)
-  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
-                        Minimum log (ln) odds by which a best match must
-                        exceed the next-best match to be considered a unique
-                        match.
+display options:
+  --verbose             Be verbose
 

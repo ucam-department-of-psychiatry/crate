@@ -143,7 +143,6 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.maths_py import round_sf
 from cardinal_pythonlib.probability import (
     log_odds_from_1_in_n,
-    log_odds_from_probability,
     log_posterior_odds_from_pdh_pdnh,
     probability_from_log_odds,
 )
@@ -174,7 +173,7 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
-CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = False  # for debugging only
+CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = True  # for debugging only
 
 CRATE_FETCH_WORDLISTS = "crate_fetch_wordlists"
 DAYS_PER_YEAR = 365.25  # approximately!
@@ -285,9 +284,17 @@ class FuzzyDefaults:
     # -------------------------------------------------------------------------
     # Matching process
     # -------------------------------------------------------------------------
-    MIN_P_FOR_MATCH = 0.999
-    LOG_ODDS_FOR_MATCH = log_odds_from_probability(MIN_P_FOR_MATCH)
+    LOG_ODDS_FOR_MATCH = 7
     EXCEEDS_NEXT_BEST_LOG_ODDS = 10
+
+    # -------------------------------------------------------------------------
+    # Derived
+    # -------------------------------------------------------------------------
+
+    MIN_P_FOR_MATCH = probability_from_log_odds(LOG_ODDS_FOR_MATCH)
+    P_MIDDLE_NAME_N_PRESENT_STR = ",".join(
+        str(x) for x in P_MIDDLE_NAME_N_PRESENT
+    )
 
 
 # =============================================================================
@@ -856,7 +863,7 @@ class Comparison(object):
             return MINUS_INFINITY
         return log_posterior_odds_from_pdh_pdnh(
             log_prior_odds=prior_log_odds,
-            p_d_given_h=self.p_d_given_h,
+            p_d_given_h=p_d_given_h,
             p_d_given_not_h=self.p_d_given_not_h,
         )
 
@@ -1431,6 +1438,7 @@ class MatchConfig(object):
         self,
         hash_key: str = FuzzyDefaults.HASH_KEY,
         rounding_sf: int = FuzzyDefaults.ROUNDING_SF,
+        local_id_hash_key: str = None,
         population_size: int = FuzzyDefaults.POPULATION_SIZE,
         forename_cache_filename: str = FuzzyDefaults.FORENAME_CACHE_FILENAME,
         forename_sex_csv_filename: str = FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
@@ -1474,6 +1482,9 @@ class MatchConfig(object):
             rounding_sf:
                 Number of significant figures to use when rounding frequency
                 information in hashed copies.
+            local_id_hash_key:
+                If specified, then for hash operations, the local_id values
+                will also be hashed, using this key.
 
             population_size:
                 The size of the entire population (not our sample). See
@@ -1566,6 +1577,10 @@ class MatchConfig(object):
 
         self.hasher = Hasher(hash_key)
         self.rounding_sf = rounding_sf
+        if local_id_hash_key:
+            self.local_id_hasher = Hasher(local_id_hash_key)
+        else:
+            self.local_id_hasher = None
 
         self.population_size = population_size
 
@@ -1618,7 +1633,14 @@ class MatchConfig(object):
         )
 
         if verbose:
-            log.debug("... MatchConfig built")
+            log.debug(f"... MatchConfig built. Settings: {self}")
+
+    # -------------------------------------------------------------------------
+    # String representation
+    # -------------------------------------------------------------------------
+
+    def __str__(self) -> str:
+        return auto_repr(self)
 
     # -------------------------------------------------------------------------
     # Baseline priors
@@ -2133,10 +2155,8 @@ class BasePerson:
                 Standardize names/postcodes etc. internally. Only turn this
                 off for demonstration purposes.
         """
-        self.local_id = local_id
-        assert self.local_id and isinstance(
-            self.local_id, str
-        ), f"Bad local_id: {self.local_id!r}"
+        self.local_id = str(local_id) if local_id is not None else None
+        assert self.local_id, f"Bad local_id: {local_id!r}"
 
         self.other_info = other_info or ""
         assert isinstance(
@@ -2936,7 +2956,11 @@ class Person(BasePerson):
         return Person(
             cfg=cfg,
             is_hashed=True,
-            local_id=self.local_id,
+            local_id=(
+                cfg.local_id_hasher(self.local_id)
+                if cfg.local_id_hasher
+                else self.local_id
+            ),
             other_info=self.other_info,
             hashed_first_name=hashed_first_name,
             first_name_frequency=first_name_frequency,
@@ -4111,7 +4135,63 @@ class Switches:
     Argparse option switches that are used in several places.
     """
 
-    EXTRA_VALIDATION_OUTPUT = "--extra_validation_output"
+    ALLOW_DEFAULT_HASH_KEY = "allow_default_hash_key"
+    EXTRA_VALIDATION_OUTPUT = "extra_validation_output"
+    INCLUDE_OTHER_INFO = "include_other_info"
+    INPUT = "input"
+    OUTPUT = "output"
+
+    KEY = "key"
+    ROUNDING_SF = "rounding_sf"
+    LOCAL_ID_HASH_KEY = "local_id_hash_key"
+
+    POPULATION_SIZE = "population_size"
+
+    FORENAME_CACHE_FILENAME = "forename_cache_filename"
+    FORENAME_SEX_FREQ_CSV = "forename_sex_freq_csv"
+    SURNAME_CACHE_FILENAME = "surname_cache_filename"
+    SURNAME_FREQ_CSV = "surname_freq_csv"
+    MIN_NAME_FREQUENCY = "min_name_frequency"
+    P_MIDDLE_NAME_N_PRESENT = "p_middle_name_n_present"
+
+    BIRTH_YEAR_PSEUDO_RANGE = "birth_year_pseudo_range"
+
+    P_NOT_MALE_OR_FEMALE = "p_not_male_or_female"
+    P_FEMALE_GIVEN_MALE_OR_FEMALE = "p_female_given_male_or_female"
+
+    POSTCODE_CACHE_FILENAME = "postcode_cache_filename"
+    POSTCODE_CSV_FILENAME = "postcode_csv_filename"
+    MEAN_OA_POPULATION = "mean_oa_population"
+    P_UNKNOWN_OR_PSEUDO_POSTCODE = "p_unknown_or_pseudo_postcode"
+
+    P_MINOR_FORENAME_ERROR = "p_minor_forename_error"
+    P_MINOR_SURNAME_ERROR = "p_minor_surname_error"
+    P_PROBAND_MIDDLE_NAME_MISSING = "p_proband_middle_name_missing"
+    P_SAMPLE_MIDDLE_NAME_MISSING = "p_sample_middle_name_missing"
+    P_GENDER_ERROR = "p_gender_error"
+    P_MINOR_POSTCODE_ERROR = "p_minor_postcode_error"
+
+    MIN_LOG_ODDS_FOR_MATCH = "min_log_odds_for_match"
+    EXCEEDS_NEXT_BEST_LOG_ODDS = "exceeds_next_best_log_odds"
+
+
+class Commands:
+    """
+    Main commands.
+    """
+
+    HASH = "hash"
+    COMPARE_PLAINTEXT = "compare_plaintext"
+    COMPARE_HASHED_TO_HASHED = "compare_hashed_to_hashed"
+    COMPARE_HASHED_TO_PLAINTEXT = "compare_hashed_to_plaintext"
+
+    PRINT_DEMO_SAMPLE = "print_demo_sample"
+    SHOW_METAPHONE = "show_metaphone"
+    SHOW_FORENAME_FREQ = "show_forename_freq"
+    SHOW_FORENAME_METAPHONE_FREQ = "show_forename_metaphone_freq"
+    SHOW_SURNAME_FREQ = "show_surname_freq"
+    SHOW_SURNAME_METAPHONE_FREQ = "show_surname_metaphone_freq"
+    SHOW_DOB_FREQ = "show_dob_freq"
 
 
 # -----------------------------------------------------------------------------
@@ -4119,50 +4199,45 @@ class Switches:
 # -----------------------------------------------------------------------------
 
 HELP_COMPARISON = f"""
-    Comparison rules:
+Comparison rules:
 
-    - People MUST match on DOB and surname (or surname metaphone), or hashed
-      equivalents, to be considered a plausible match.
+- People MUST match on DOB and surname (or surname metaphone), or hashed
+  equivalents, to be considered a plausible match.
 
-    - Only plausible matches proceed to the Bayesian comparison.
+- Only plausible matches proceed to the Bayesian comparison.
 
-    The output file is a CSV (comma-separated value) file with a header and
-    these columns:
+The output file is a CSV (comma-separated value) file with a header and
+these columns:
 
-    - {ComparisonOutputColnames.PROBAND_LOCAL_ID}
-      Local ID (identifiable or de-identified as the user chooses) of the
-      proband. Taken from the input.
+    {ComparisonOutputColnames.PROBAND_LOCAL_ID}:
+        Local ID (identifiable or de-identified as the user chooses) of the
+        proband. Taken from the input.
+    {ComparisonOutputColnames.MATCHED}:
+        Boolean. Was a matching person (a "winner") found in the sample, who is
+        to be considered a match to the proband? To give a match requires (a)
+        that the log odds for the winner reaches a threshold, and (b) that the
+        log odds for the winner exceeds the log odds for the runner-up by a
+        certain amount (because a mismatch may be worse than a failed match).
+    {ComparisonOutputColnames.LOG_ODDS_MATCH}:
+        Log (ln) odds that the winner in the sample is a match to the proband.
+    {ComparisonOutputColnames.P_MATCH}:
+        Probability that the winner in the sample is a match.
+    {ComparisonOutputColnames.SAMPLE_MATCH_LOCAL_ID}:
+        Original local ID of the "winner" in the sample (the candidate who is
+        the closest match to the proband).
+    {ComparisonOutputColnames.SECOND_BEST_LOG_ODDS}:
+        Log odds of the runner up (the candidate from the sample who is the
+        second-closest match) being the same person as the proband.
 
-    - {ComparisonOutputColnames.MATCHED}
-      Boolean. Was a matching person (a "winner") found in the sample, who is
-      to be considered a match to the proband? To give a match requires (a)
-      that the log odds for the winner reaches a threshold, and (b) that the
-      log odds for the winner exceeds the log odds for the runner-up by a
-      certain amount (because a mismatch may be worse than a failed match).
+If '--{Switches.EXTRA_VALIDATION_OUTPUT}' is used, the following columns are
+added:
 
-    - {ComparisonOutputColnames.LOG_ODDS_MATCH}
-      Log (ln) odds that the winner in the sample is a match to the proband.
+    {ComparisonOutputColnames.BEST_CANDIDATE_LOCAL_ID}:
+        Local ID of the closest-matching person (candidate) in the sample, EVEN
+        IF THEY DID NOT WIN.
 
-    - {ComparisonOutputColnames.P_MATCH}
-      Probability that the winner in the sample is a match.
-
-    - {ComparisonOutputColnames.SAMPLE_MATCH_LOCAL_ID}
-      Original local ID of the "winner" in the sample (the candidate who is the
-      closest match to the proband).
-
-    - {ComparisonOutputColnames.SECOND_BEST_LOG_ODDS}
-      Log odds of the runner up (the candidate from the sample who is the
-      second-closest match) being the same person as the proband.
-
-    If {Switches.EXTRA_VALIDATION_OUTPUT!r} is used, the following columns are
-    added:
-
-    - {ComparisonOutputColnames.BEST_CANDIDATE_LOCAL_ID}
-      Local ID of the closest-matching person (candidate) in the sample, EVEN
-      IF THEY DID NOT WIN.
-
-    The results file is NOT necessarily sorted as the input proband file was
-    (not sorting improves parallel processing efficiency).
+The results file is NOT necessarily sorted as the input proband file was
+(because not sorting improves parallel processing efficiency).
 """
 
 
@@ -4176,7 +4251,10 @@ def warn_or_fail_if_default_key(args: argparse.Namespace) -> None:
     Ensure that we are not using the default (insecure) hash key unless the
     user has specifically authorized this.
     """
-    if args.key == FuzzyDefaults.HASH_KEY:
+    if (
+        args.key == FuzzyDefaults.HASH_KEY
+        or args.local_id_hash_key == FuzzyDefaults.HASH_KEY
+    ):
         if args.allow_default_hash_key:
             log.warning(
                 "Proceeding with default hash key at user's "
@@ -4186,8 +4264,8 @@ def warn_or_fail_if_default_key(args: argparse.Namespace) -> None:
             log.error(
                 "You have not specified a hash key, so are using the "
                 "default! Stopping, because this is a very bad idea for "
-                "real data. Specify --allow_default_hash_key to use the "
-                "default for testing purposes."
+                f"real data. Specify --{Switches.ALLOW_DEFAULT_HASH_KEY} to "
+                "use the default for testing purposes."
             )
             sys.exit(EXIT_FAILURE)
 
@@ -4216,57 +4294,54 @@ def add_subparsers(
     return subparsers
 
 
-def get_basic_options_subparser() -> argparse.ArgumentParser:
+def add_basic_options(parser: argparse.ArgumentParser) -> None:
     """
-    Returns a silent subparser for global options.
+    Adds a subparser for global options.
     """
-    base_subparser = argparse.ArgumentParser(add_help=False)
-    arggroup = base_subparser.add_argument_group("display options")
+    arggroup = parser.add_argument_group("display options")
     arggroup.add_argument("--verbose", action="store_true", help="Be verbose")
-    return base_subparser
 
 
-def get_hasher_option_subparser() -> argparse.ArgumentParser:
+def add_hasher_options(parser: argparse.ArgumentParser) -> None:
     """
-    Adds a silent subparser for hasher options.
+    Adds a subparser for hasher options.
     """
-    hasher_subparser = argparse.ArgumentParser(add_help=False)
-
-    hasher_group = hasher_subparser.add_argument_group(
-        "hasher (secrecy) options"
-    )
+    hasher_group = parser.add_argument_group("hasher (secrecy) options")
     hasher_group.add_argument(
-        "--key",
+        f"--{Switches.KEY}",
         type=str,
         default=FuzzyDefaults.HASH_KEY,
         help="Key (passphrase) for hasher",
     )
     hasher_group.add_argument(
-        "--allow_default_hash_key",
+        f"--{Switches.ALLOW_DEFAULT_HASH_KEY}",
         action="store_true",
         help=(
             "Allow the default hash key to be used beyond tests. INADVISABLE!"
         ),
     )
     hasher_group.add_argument(
-        "--rounding_sf",
+        f"--{Switches.ROUNDING_SF}",
         type=int,
         default=FuzzyDefaults.ROUNDING_SF,
         help="Number of significant figures to use when rounding frequencies "
         "in hashed version",
     )
+    hasher_group.add_argument(
+        f"--{Switches.LOCAL_ID_HASH_KEY}",
+        type=str,
+        default=None,
+        help=f"Only applicable to the {Commands.HASH!r} command. Hash the "
+        f"local_id values, using this key (passphrase).",
+    )
 
-    return hasher_subparser
 
-
-def get_config_option_subparser() -> argparse.ArgumentParser:
+def add_config_options(parser: argparse.ArgumentParser) -> None:
     """
-    Adds a silent subparser for MatchConfig options (excepting hasher, above).
+    Adds a subparser for MatchConfig options (excepting hasher, above).
     In a function because we use these in validate_fuzzy_linkage.py too.
     """
-    config_subparser = argparse.ArgumentParser(add_help=False)
-
-    priors_group = config_subparser.add_argument_group(
+    priors_group = parser.add_argument_group(
         "frequency information for prior probabilities"
     )
 
@@ -4275,7 +4350,7 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     priors_group.add_argument(
-        "--population_size",
+        f"--{Switches.POPULATION_SIZE}",
         type=int,
         default=FuzzyDefaults.POPULATION_SIZE,
         help="Size of the whole population, from which we calculate the "
@@ -4288,13 +4363,13 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     priors_group.add_argument(
-        "--forename_cache_filename",
+        f"--{Switches.FORENAME_CACHE_FILENAME}",
         type=str,
         default=FuzzyDefaults.FORENAME_CACHE_FILENAME,
         help="File in which to store cached forename info (to speed loading)",
     )
     priors_group.add_argument(
-        "--forename_sex_freq_csv",
+        f"--{Switches.FORENAME_SEX_FREQ_CSV}",
         type=str,
         default=FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
         help=f'CSV file of "name, sex, frequency" pairs for forenames. '
@@ -4302,13 +4377,13 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
         f"alter this, delete your forename cache so it can be rebuilt.",
     )
     priors_group.add_argument(
-        "--surname_cache_filename",
+        f"--{Switches.SURNAME_CACHE_FILENAME}",
         type=str,
         default=FuzzyDefaults.SURNAME_CACHE_FILENAME,
         help="File in which to store cached surname info (to speed loading)",
     )
     priors_group.add_argument(
-        "--surname_freq_csv",
+        f"--{Switches.SURNAME_FREQ_CSV}",
         type=str,
         default=FuzzyDefaults.SURNAME_FREQ_CSV,
         help=f'CSV file of "name, frequency" pairs for forenames. '
@@ -4316,7 +4391,7 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
         f"alter this, delete your surname cache so it can be rebuilt.",
     )
     priors_group.add_argument(
-        "--min_name_frequency",
+        f"--{Switches.MIN_NAME_FREQUENCY}",
         type=float,
         default=FuzzyDefaults.NAME_MIN_FREQ,
         help="Minimum base frequency for names. If a frequency is less than "
@@ -4328,11 +4403,9 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
         "a reasonable minimum is 0.0005 percent or 0.000005 or 5e-6.",
     )
     priors_group.add_argument(
-        "--p_middle_name_n_present",
+        f"--{Switches.P_MIDDLE_NAME_N_PRESENT}",
         type=str,
-        default=",".join(
-            str(x) for x in FuzzyDefaults.P_MIDDLE_NAME_N_PRESENT
-        ),
+        default=FuzzyDefaults.P_MIDDLE_NAME_N_PRESENT_STR,
         help="CSV list of probabilities that a randomly selected person has a "
         "certain number of middle names. The first number is P(has a "
         "first middle name). The second number is P(has a second middle "
@@ -4345,7 +4418,7 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     priors_group.add_argument(
-        "--birth_year_pseudo_range",
+        f"--{Switches.BIRTH_YEAR_PSEUDO_RANGE}",
         type=float,
         default=FuzzyDefaults.BIRTH_YEAR_PSEUDO_RANGE,
         help=f"Birth year pseudo-range. The sole purpose is to calculate the "
@@ -4358,13 +4431,13 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     priors_group.add_argument(
-        "--p_not_male_or_female",
+        f"--{Switches.P_NOT_MALE_OR_FEMALE}",
         type=float,
         default=FuzzyDefaults.P_NOT_MALE_OR_FEMALE,
         help="Probability that a person in the population has gender 'X'.",
     )
     priors_group.add_argument(
-        "--p_female_given_male_or_female",
+        f"--{Switches.P_FEMALE_GIVEN_MALE_OR_FEMALE}",
         type=float,
         default=FuzzyDefaults.P_FEMALE_GIVEN_MALE_OR_FEMALE,
         help="Probability that a person in the population is female, given "
@@ -4381,20 +4454,20 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
     )
     # noinspection PyUnresolvedReferences
     priors_group.add_argument(
-        "--postcode_cache_filename",
+        f"--{Switches.POSTCODE_CACHE_FILENAME}",
         type=str,
         default=FuzzyDefaults.POSTCODE_CACHE_FILENAME,
         help="File in which to store cached postcodes (to speed loading).",
     )
     priors_group.add_argument(
-        "--postcode_csv_filename",
+        f"--{Switches.POSTCODE_CSV_FILENAME}",
         type=str,
         default=FuzzyDefaults.POSTCODES_CSV,
         help="CSV file of postcode geography from UK Census/ONS data. A ZIP "
         f"file is also acceptable. {affects_postcode_cache}",
     )
     priors_group.add_argument(
-        "--mean_oa_population",
+        f"--{Switches.MEAN_OA_POPULATION}",
         type=float,
         default=FuzzyDefaults.MEAN_OA_POPULATION,
         help="Mean population of a UK Census Output Area, from which we "
@@ -4402,7 +4475,7 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
         f"{affects_postcode_cache}",
     )
     priors_group.add_argument(
-        "--p_unknown_or_pseudo_postcode",
+        f"--{Switches.P_UNKNOWN_OR_PSEUDO_POSTCODE}",
         type=float,
         default=FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE,
         help="Proportion of the (UK) population expected to be assigned a "
@@ -4411,48 +4484,49 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
         "to the postcode geography database.",
     )
 
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # Error probabilities
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    error_p_group = config_subparser.add_argument_group("error probabilities")
+def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
+    """
+    Adds a subparser for error probabilities.
+    """
+    error_p_group = parser.add_argument_group("error probabilities")
     error_p_group.add_argument(
-        "--p_minor_forename_error",
+        f"--{Switches.P_MINOR_FORENAME_ERROR}",
         type=float,
         default=FuzzyDefaults.P_MINOR_FORENAME_ERROR,
         help="Assumed probability that a forename has an error in that means "
         "it fails a full match but satisfies a partial (metaphone) match.",
     )
     error_p_group.add_argument(
-        "--p_minor_surname_error",
+        f"--{Switches.P_MINOR_SURNAME_ERROR}",
         type=float,
         default=FuzzyDefaults.P_MINOR_SURNAME_ERROR,
         help="Assumed probability that a surname has an error in that means "
         "it fails a full match but satisfies a partial (metaphone) match.",
     )
     error_p_group.add_argument(
-        "--p_proband_middle_name_missing",
+        f"--{Switches.P_PROBAND_MIDDLE_NAME_MISSING}",
         type=float,
         default=FuzzyDefaults.P_PROBAND_MIDDLE_NAME_MISSING,
         help="Probability that a middle name, present in the sample, is "
         "missing from the proband.",
     )
     error_p_group.add_argument(
-        "--p_sample_middle_name_missing",
+        f"--{Switches.P_SAMPLE_MIDDLE_NAME_MISSING}",
         type=float,
         default=FuzzyDefaults.P_SAMPLE_MIDDLE_NAME_MISSING,
         help="Probability that a middle name, present in the proband, is "
         "missing from the sample.",
     )
     error_p_group.add_argument(
-        "--p_gender_error",
+        f"--{Switches.P_GENDER_ERROR}",
         type=float,
         default=FuzzyDefaults.P_GENDER_ERROR,
         help="Assumed probability that a gender is wrong leading to a "
         "proband/candidate mismatch.",
     )
     error_p_group.add_argument(
-        "--p_minor_postcode_error",
+        f"--{Switches.P_MINOR_POSTCODE_ERROR}",
         type=float,
         default=FuzzyDefaults.P_MINOR_POSTCODE_ERROR,
         help="Assumed probability that a postcode has an error in that means "
@@ -4460,13 +4534,14 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
         "(postcode sector) match.",
     )
 
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # Matching rules
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    match_rule_group = config_subparser.add_argument_group("matching rules")
+def add_matching_rules(parser: argparse.ArgumentParser) -> None:
+    """
+    Adds a  subparser for matching rules.
+    """
+    match_rule_group = parser.add_argument_group("matching rules")
     match_rule_group.add_argument(
-        "--min_log_odds_for_match",
+        f"--{Switches.MIN_LOG_ODDS_FOR_MATCH}",
         type=float,
         default=FuzzyDefaults.LOG_ODDS_FOR_MATCH,
         help=f"Minimum natural log (ln) odds of two people being the same, "
@@ -4474,23 +4549,21 @@ def get_config_option_subparser() -> argparse.ArgumentParser:
         f"p = {FuzzyDefaults.MIN_P_FOR_MATCH}.)",
     )
     match_rule_group.add_argument(
-        "--exceeds_next_best_log_odds",
+        f"--{Switches.EXCEEDS_NEXT_BEST_LOG_ODDS}",
         type=float,
         default=FuzzyDefaults.EXCEEDS_NEXT_BEST_LOG_ODDS,
         help="Minimum log (ln) odds by which a best match must exceed the "
         "next-best match to be considered a unique match.",
     )
 
-    return config_subparser
-
 
 def add_comparison_options(
-    p: argparse.ArgumentParser,
+    parser: argparse.ArgumentParser,
     proband_is_hashed: bool = True,
     sample_is_hashed: bool = True,
 ) -> None:
     """
-    Common argparse options for comparison commands.
+    Adds a subparser for comparisons.
     """
     proband_csv_help = (
         Person.HASHED_CSV_FORMAT_HELP
@@ -4502,19 +4575,20 @@ def add_comparison_options(
         if sample_is_hashed
         else Person.PLAINTEXT_CSV_FORMAT_HELP
     )
-    p.add_argument(
+    comparison_group = parser.add_argument_group("comparison options")
+    comparison_group.add_argument(
         "--probands",
         type=str,
         required=True,
         help="CSV filename for probands data. " + proband_csv_help,
     )
-    p.add_argument(
+    comparison_group.add_argument(
         "--sample",
         type=str,
         required=True,
         help="CSV filename for sample data. " + sample_csv_help,
     )
-    p.add_argument(
+    comparison_group.add_argument(
         "--sample_cache",
         type=str,
         default=None,
@@ -4522,18 +4596,18 @@ def add_comparison_options(
         # default.
         help="File in which to store cached sample info (to speed loading)",
     )
-    p.add_argument(
-        "--output",
+    comparison_group.add_argument(
+        f"--{Switches.OUTPUT}",
         type=str,
         required=True,
         help="Output CSV file for proband/sample comparison.",
     )
-    p.add_argument(
-        Switches.EXTRA_VALIDATION_OUTPUT,
+    comparison_group.add_argument(
+        f"--{Switches.EXTRA_VALIDATION_OUTPUT}",
         action="store_true",
         help="Add extra output for validation purposes.",
     )
-    p.add_argument(
+    comparison_group.add_argument(
         "--n_workers",
         type=int,
         default=FuzzyDefaults.N_PROCESSES,
@@ -4542,88 +4616,174 @@ def add_comparison_options(
             "Defaults to number of CPUs on your system."
         ),
     )
-    p.add_argument(
+    comparison_group.add_argument(
         "--max_chunksize",
         type=int,
         default=FuzzyDefaults.MAX_CHUNKSIZE,
         help="Maximum chunk size (number of probands to pass to a "
         "subprocess each time).",
     )
-    p.add_argument(
+    comparison_group.add_argument(
         "--min_probands_for_parallel",
         type=int,
         default=FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
         help="Minimum number of probands for which we will bother to use "
         "parallel processing.",
     )
-    p.add_argument(
+    comparison_group.add_argument(
         "--profile",
         action="store_true",
         help="Profile the code (for development only).",
     )
 
 
-def get_cfg_from_args(args: argparse.Namespace) -> MatchConfig:
+def get_cfg_from_args(
+    args: argparse.Namespace,
+    require_hasher: bool,
+    require_main_config: bool,
+    require_error: bool,
+    require_matching: bool,
+) -> MatchConfig:
     """
     Return a MatchConfig object from our standard arguments.
+    Uses defaults where not specified.
     """
-    p_middle_name_n_present = [
-        float(x) for x in args.p_middle_name_n_present.split(",")
-    ]
-    min_p_for_match = probability_from_log_odds(args.min_log_odds_for_match)
 
-    log.debug(f"Using population size: {args.population_size}")
-    log.debug(
-        f"Using min_log_odds_for_match: {args.min_log_odds_for_match} "
-        f"(p = {min_p_for_match})"
-    )
+    def g(attrname: str, default: Any, required: bool) -> Any:
+        try:
+            return getattr(args, attrname)
+        except AttributeError:
+            if required:
+                raise AttributeError(f"Missing config setting: {attrname}")
+            log.debug(f"Using default {attrname} = {default!r}")
+            return default
+
     return MatchConfig(
-        hash_key=args.key,
-        rounding_sf=args.rounding_sf,
-        population_size=args.population_size,
-        forename_cache_filename=args.forename_cache_filename,
-        forename_sex_csv_filename=args.forename_sex_freq_csv,
-        surname_cache_filename=args.surname_cache_filename,
-        surname_csv_filename=args.surname_freq_csv,
-        min_name_frequency=args.min_name_frequency,
-        p_middle_name_n_present=p_middle_name_n_present,
-        birth_year_pseudo_range=args.birth_year_pseudo_range,
-        p_not_male_or_female=args.p_not_male_or_female,
-        p_female_given_male_or_female=args.p_female_given_male_or_female,
-        postcode_cache_filename=args.postcode_cache_filename,
-        postcode_csv_filename=args.postcode_csv_filename,
-        mean_oa_population=args.mean_oa_population,
-        p_unknown_or_pseudo_postcode=args.p_unknown_or_pseudo_postcode,
-        p_minor_forename_error=args.p_minor_forename_error,
-        p_minor_surname_error=args.p_minor_surname_error,
-        p_proband_middle_name_missing=args.p_proband_middle_name_missing,
-        p_sample_middle_name_missing=args.p_sample_middle_name_missing,
-        p_gender_error=args.p_gender_error,
-        p_minor_postcode_error=args.p_minor_postcode_error,
-        min_log_odds_for_match=args.min_log_odds_for_match,
-        exceeds_next_best_log_odds=args.exceeds_next_best_log_odds,
-        verbose=args.verbose,
+        hash_key=g(Switches.KEY, FuzzyDefaults.HASH_KEY, require_hasher),
+        rounding_sf=g(
+            Switches.ROUNDING_SF, FuzzyDefaults.ROUNDING_SF, require_hasher
+        ),
+        local_id_hash_key=g(Switches.LOCAL_ID_HASH_KEY, None, require_hasher),
+        population_size=g(
+            Switches.POPULATION_SIZE,
+            FuzzyDefaults.POPULATION_SIZE,
+            require_main_config,
+        ),
+        forename_cache_filename=g(
+            Switches.FORENAME_CACHE_FILENAME,
+            FuzzyDefaults.FORENAME_CACHE_FILENAME,
+            require_main_config,
+        ),
+        forename_sex_csv_filename=g(
+            Switches.FORENAME_SEX_FREQ_CSV,
+            FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
+            require_main_config,
+        ),
+        surname_cache_filename=g(
+            Switches.SURNAME_CACHE_FILENAME,
+            FuzzyDefaults.SURNAME_CACHE_FILENAME,
+            require_main_config,
+        ),
+        surname_csv_filename=g(
+            Switches.SURNAME_FREQ_CSV,
+            FuzzyDefaults.SURNAME_FREQ_CSV,
+            require_main_config,
+        ),
+        min_name_frequency=g(
+            Switches.MIN_NAME_FREQUENCY,
+            FuzzyDefaults.NAME_MIN_FREQ,
+            require_main_config,
+        ),
+        p_middle_name_n_present=[
+            float(x)
+            for x in g(
+                Switches.P_MIDDLE_NAME_N_PRESENT,
+                FuzzyDefaults.P_MIDDLE_NAME_N_PRESENT_STR,
+                require_main_config,
+            ).split(",")
+        ],
+        birth_year_pseudo_range=g(
+            Switches.BIRTH_YEAR_PSEUDO_RANGE,
+            FuzzyDefaults.BIRTH_YEAR_PSEUDO_RANGE,
+            require_main_config,
+        ),
+        p_not_male_or_female=g(
+            Switches.P_NOT_MALE_OR_FEMALE,
+            FuzzyDefaults.P_NOT_MALE_OR_FEMALE,
+            require_main_config,
+        ),
+        p_female_given_male_or_female=g(
+            Switches.P_FEMALE_GIVEN_MALE_OR_FEMALE,
+            FuzzyDefaults.P_FEMALE_GIVEN_MALE_OR_FEMALE,
+            require_main_config,
+        ),
+        postcode_cache_filename=g(
+            Switches.POSTCODE_CACHE_FILENAME,
+            FuzzyDefaults.POSTCODE_CACHE_FILENAME,
+            require_main_config,
+        ),
+        postcode_csv_filename=g(
+            Switches.POSTCODE_CSV_FILENAME,
+            FuzzyDefaults.POSTCODE_CACHE_FILENAME,
+            require_main_config,
+        ),
+        mean_oa_population=g(
+            Switches.MEAN_OA_POPULATION,
+            FuzzyDefaults.MEAN_OA_POPULATION,
+            require_main_config,
+        ),
+        p_unknown_or_pseudo_postcode=g(
+            Switches.P_UNKNOWN_OR_PSEUDO_POSTCODE,
+            FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE,
+            require_main_config,
+        ),
+        p_minor_forename_error=g(
+            Switches.P_MINOR_FORENAME_ERROR,
+            FuzzyDefaults.P_MINOR_FORENAME_ERROR,
+            require_error,
+        ),
+        p_minor_surname_error=g(
+            Switches.P_MINOR_SURNAME_ERROR,
+            FuzzyDefaults.P_MINOR_SURNAME_ERROR,
+            require_error,
+        ),
+        p_proband_middle_name_missing=g(
+            Switches.P_PROBAND_MIDDLE_NAME_MISSING,
+            FuzzyDefaults.P_PROBAND_MIDDLE_NAME_MISSING,
+            require_error,
+        ),
+        p_sample_middle_name_missing=g(
+            Switches.P_SAMPLE_MIDDLE_NAME_MISSING,
+            FuzzyDefaults.P_SAMPLE_MIDDLE_NAME_MISSING,
+            require_error,
+        ),
+        p_gender_error=g(
+            Switches.P_GENDER_ERROR,
+            FuzzyDefaults.P_GENDER_ERROR,
+            require_error,
+        ),
+        p_minor_postcode_error=g(
+            Switches.P_MINOR_POSTCODE_ERROR,
+            FuzzyDefaults.P_MINOR_POSTCODE_ERROR,
+            require_error,
+        ),
+        min_log_odds_for_match=g(
+            Switches.MIN_LOG_ODDS_FOR_MATCH,
+            FuzzyDefaults.LOG_ODDS_FOR_MATCH,
+            require_matching,
+        ),
+        exceeds_next_best_log_odds=g(
+            Switches.EXCEEDS_NEXT_BEST_LOG_ODDS,
+            FuzzyDefaults.EXCEEDS_NEXT_BEST_LOG_ODDS,
+            require_matching,
+        ),
+        verbose=args.verbose,  # always required
     )
 
 
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
-
-
-class Commands:
-    HASH = "hash"
-    COMPARE_PLAINTEXT = "compare_plaintext"
-    COMPARE_HASHED_TO_HASHED = "compare_hashed_to_hashed"
-    COMPARE_HASHED_TO_PLAINTEXT = "compare_hashed_to_plaintext"
-
-    PRINT_DEMO_SAMPLE = "print_demo_sample"
-    SHOW_METAPHONE = "show_metaphone"
-    SHOW_FORENAME_FREQ = "show_forename_freq"
-    SHOW_FORENAME_METAPHONE_FREQ = "show_forename_metaphone_freq"
-    SHOW_SURNAME_FREQ = "show_surname_freq"
-    SHOW_SURNAME_METAPHONE_FREQ = "show_surname_metaphone_freq"
-    SHOW_DOB_FREQ = "show_dob_freq"
 
 
 def main() -> int:
@@ -4637,6 +4797,8 @@ def main() -> int:
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Argument parser
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Using parents=[] makes the "parent" options appear first, which we often
+    # don't want.
 
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
@@ -4644,10 +4806,6 @@ def main() -> int:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     subparsers = add_subparsers(parser)
-    base_subparser = get_basic_options_subparser()
-    hasher_subparser = get_hasher_option_subparser()
-    config_subparser = get_config_option_subparser()
-    all_parents = [base_subparser, hasher_subparser, config_subparser]
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # hash command
@@ -4657,20 +4815,20 @@ def main() -> int:
         Commands.HASH,
         help="STEP 1 OF DE-IDENTIFIED LINKAGE. "
         "Hash an identifiable CSV file into an encrypted one. ",
-        parents=all_parents,
         description="""
-    Takes an identifiable list of people (with name, DOB, and postcode
-    information) and creates a hashed, de-identified equivalent.
+Takes an identifiable list of people (with name, DOB, and postcode information)
+and creates a hashed, de-identified equivalent.
 
-    The local ID (presumed not to be a direct identifier) is preserved exactly.
+The local ID (presumed not to be a direct identifier) is preserved exactly,
+unless you explicitly elect to hash it.
 
-    Optionally, the "other" information (you can choose, e.g. attaching a
-    direct identifier) is preserved, but you have to ask for that explicitly;
-    that is normally for testing.""",
+Optionally, the "other" information (you can choose, e.g. attaching a direct
+identifier) is preserved, but you have to ask for that explicitly; that is
+normally for testing.""",
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
     hash_parser.add_argument(
-        "--input",
+        f"--{Switches.INPUT}",
         type=str,
         required=True,
         help="CSV filename for input (plaintext) data. "
@@ -4690,7 +4848,7 @@ def main() -> int:
         "suitable for use as a sample file, but not a proband file.",
     )
     hash_parser.add_argument(
-        "--include_other_info",
+        f"--{Switches.INCLUDE_OTHER_INFO}",
         action="store_true",
         help=(
             f"Include the (potentially identifying) "
@@ -4698,6 +4856,9 @@ def main() -> int:
             "Usually False; may be set to True for validation."
         ),
     )
+    add_hasher_options(hash_parser)
+    add_config_options(hash_parser)
+    add_basic_options(hash_parser)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # compare_plaintext command
@@ -4708,7 +4869,6 @@ def main() -> int:
         help="IDENTIFIABLE LINKAGE COMMAND. "
         "Compare a list of probands against a sample (both in "
         "plaintext). ",
-        parents=all_parents,
         description=HELP_COMPARISON,
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
@@ -4717,6 +4877,10 @@ def main() -> int:
         proband_is_hashed=False,
         sample_is_hashed=False,
     )
+    add_matching_rules(compare_plaintext_parser)
+    add_error_probabilities(compare_plaintext_parser)
+    add_config_options(compare_plaintext_parser)
+    add_basic_options(compare_plaintext_parser)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # compare_hashed_to_hashed command
@@ -4729,13 +4893,16 @@ def main() -> int:
             "both sides in advance). "
             "Compare a list of probands against a sample (both hashed)."
         ),
-        parents=all_parents,
         description=HELP_COMPARISON,
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
     add_comparison_options(
         compare_h2h_parser, proband_is_hashed=True, sample_is_hashed=True
     )
+    add_matching_rules(compare_h2h_parser)
+    add_error_probabilities(compare_h2h_parser)
+    add_config_options(compare_h2h_parser)
+    add_basic_options(compare_h2h_parser)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # compare_hashed_to_plaintext command
@@ -4747,78 +4914,84 @@ def main() -> int:
         "de-identified data and you want to link to your identifiable "
         "data, producing a de-identified result). "
         "Compare a list of probands (hashed) against a sample "
-        "(plaintext).",
-        parents=all_parents,
+        "(plaintext). Hashes the sample on the fly.",
         description=HELP_COMPARISON,
         formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
     )
     add_comparison_options(
-        compare_h2p_parser,
-        proband_is_hashed=True,
-        sample_is_hashed=False,
+        compare_h2p_parser, proband_is_hashed=True, sample_is_hashed=False
     )
+    add_hasher_options(compare_h2p_parser)
+    add_matching_rules(compare_h2p_parser)
+    add_error_probabilities(compare_h2p_parser)
+    add_config_options(compare_h2p_parser)
+    add_basic_options(compare_h2p_parser)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Debugging commands
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    _ = subparsers.add_parser(
+    demo_sample_parser = subparsers.add_parser(
         Commands.PRINT_DEMO_SAMPLE,
-        parents=all_parents,
         help="Print a demo sample .CSV file.",
     )
+    add_basic_options(demo_sample_parser)
 
     show_metaphone_parser = subparsers.add_parser(
         Commands.SHOW_METAPHONE,
-        parents=all_parents,
         help="Show metaphones of words",
     )
     show_metaphone_parser.add_argument(
         "words", nargs="+", help="Words to check"
     )
+    add_basic_options(show_metaphone_parser)
 
     show_forename_freq_parser = subparsers.add_parser(
         Commands.SHOW_FORENAME_FREQ,
-        parents=all_parents,
         help="Show frequencies of forenames",
     )
     show_forename_freq_parser.add_argument(
         "forenames", nargs="+", help="Forenames to check"
     )
+    add_config_options(show_forename_freq_parser)
+    add_basic_options(show_forename_freq_parser)
 
     show_forename_metaphone_freq_parser = subparsers.add_parser(
         Commands.SHOW_FORENAME_METAPHONE_FREQ,
-        parents=all_parents,
         help="Show frequencies of forename metaphones",
     )
     show_forename_metaphone_freq_parser.add_argument(
         "metaphones", nargs="+", help="Forenames to check"
     )
+    add_config_options(show_forename_metaphone_freq_parser)
+    add_basic_options(show_forename_metaphone_freq_parser)
 
     show_surname_freq_parser = subparsers.add_parser(
         Commands.SHOW_SURNAME_FREQ,
-        parents=all_parents,
         help="Show frequencies of surnames",
     )
     show_surname_freq_parser.add_argument(
         "surnames", nargs="+", help="surnames to check"
     )
+    add_config_options(show_surname_freq_parser)
+    add_basic_options(show_surname_freq_parser)
 
     show_surname_metaphone_freq_parser = subparsers.add_parser(
         Commands.SHOW_SURNAME_METAPHONE_FREQ,
-        parents=all_parents,
         help="Show frequencies of surname metaphones",
     )
     show_surname_metaphone_freq_parser.add_argument(
         "metaphones", nargs="+", help="surnames to check"
     )
+    add_config_options(show_surname_metaphone_freq_parser)
+    add_basic_options(show_surname_metaphone_freq_parser)
 
-    # show_dob_freq
-    _ = subparsers.add_parser(
+    show_dob_freq_parser = subparsers.add_parser(
         Commands.SHOW_DOB_FREQ,
-        parents=all_parents,
         help="Show the frequency of any DOB",
     )
+    add_config_options(show_dob_freq_parser)
+    add_basic_options(show_dob_freq_parser)
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Parse arguments and set up
@@ -4829,15 +5002,6 @@ def main() -> int:
         level=logging.DEBUG if args.verbose else logging.INFO,
         with_process_id=True,
     )
-    log.debug(
-        f"Ensuring default cache directory exists: "
-        f"{FuzzyDefaults.DEFAULT_CACHE_DIR}"
-    )
-    os.makedirs(FuzzyDefaults.DEFAULT_CACHE_DIR, exist_ok=True)
-
-    cfg = get_cfg_from_args(args)
-
-    # pdb.set_trace()
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Run a command
@@ -4845,7 +5009,18 @@ def main() -> int:
 
     log.info(f"Command: {args.command}")
 
-    if args.command == Commands.HASH:
+    if args.command == Commands.PRINT_DEMO_SAMPLE:
+        print(get_demo_csv())
+        return EXIT_SUCCESS
+
+    elif args.command == Commands.HASH:
+        cfg = get_cfg_from_args(
+            args,
+            require_hasher=True,
+            require_main_config=True,
+            require_error=False,
+            require_matching=False,
+        )
         warn_or_fail_if_default_key(args)
         log.info(f"Hashing identity file: {args.input}")
         hash_identity_file(
@@ -4858,6 +5033,13 @@ def main() -> int:
         log.info(f"... finished; written to {args.output}")
 
     elif args.command == Commands.COMPARE_PLAINTEXT:
+        cfg = get_cfg_from_args(
+            args,
+            require_hasher=False,
+            require_main_config=True,
+            require_error=True,
+            require_matching=True,
+        )
         log.info(
             f"Comparing files:\n"
             f"- plaintext probands: {args.probands}\n"
@@ -4880,6 +5062,13 @@ def main() -> int:
         log.info(f"... comparison finished; results are in {args.output}")
 
     elif args.command == Commands.COMPARE_HASHED_TO_HASHED:
+        cfg = get_cfg_from_args(
+            args,
+            require_hasher=False,
+            require_main_config=True,
+            require_error=True,
+            require_matching=True,
+        )
         log.info(
             f"Comparing files:\n"
             f"- hashed probands: {args.probands}\n"
@@ -4901,6 +5090,13 @@ def main() -> int:
         log.info(f"... comparison finished; results are in {args.output}")
 
     elif args.command == Commands.COMPARE_HASHED_TO_PLAINTEXT:
+        cfg = get_cfg_from_args(
+            args,
+            require_hasher=True,
+            require_main_config=True,
+            require_error=True,
+            require_matching=True,
+        )
         warn_or_fail_if_default_key(args)
         log.info(
             f"Comparing files:\n"
@@ -4923,14 +5119,18 @@ def main() -> int:
         )
         log.info(f"... comparison finished; results are in {args.output}")
 
-    elif args.command == Commands.PRINT_DEMO_SAMPLE:
-        print(get_demo_csv())
-
     elif args.command == Commands.SHOW_METAPHONE:
         for word in args.words:
             log.info(f"Metaphone for {word!r}: {get_metaphone(word)}")
 
     elif args.command == Commands.SHOW_FORENAME_FREQ:
+        cfg = get_cfg_from_args(
+            args,
+            require_hasher=False,
+            require_main_config=True,
+            require_error=False,
+            require_matching=False,
+        )
         for forename in args.forenames:
             log.info(
                 f"Forename {forename!r}: "
@@ -4940,6 +5140,13 @@ def main() -> int:
             )
 
     elif args.command == Commands.SHOW_FORENAME_METAPHONE_FREQ:
+        cfg = get_cfg_from_args(
+            args,
+            require_hasher=False,
+            require_main_config=True,
+            require_error=False,
+            require_matching=False,
+        )
         for metaphone in args.metaphones:
             log.info(
                 f"Forename metaphone {metaphone!r}: "
@@ -4949,10 +5156,24 @@ def main() -> int:
             )
 
     elif args.command == Commands.SHOW_SURNAME_FREQ:
+        cfg = get_cfg_from_args(
+            args,
+            require_hasher=False,
+            require_main_config=True,
+            require_error=False,
+            require_matching=False,
+        )
         for surname in args.surnames:
             log.info(f"Surname {surname!r}: {cfg.surname_freq(surname)}")
 
     elif args.command == Commands.SHOW_SURNAME_METAPHONE_FREQ:
+        cfg = get_cfg_from_args(
+            args,
+            require_hasher=False,
+            require_main_config=True,
+            require_error=False,
+            require_matching=False,
+        )
         for metaphone in args.metaphones:
             log.info(
                 f"Surname metaphone {metaphone!r}: "
@@ -4960,6 +5181,13 @@ def main() -> int:
             )
 
     elif args.command == Commands.SHOW_DOB_FREQ:
+        cfg = get_cfg_from_args(
+            args,
+            require_hasher=False,
+            require_main_config=True,
+            require_error=False,
+            require_matching=False,
+        )
         log.info(f"DOB frequency: {cfg.p_two_people_share_dob}")
 
     else:
