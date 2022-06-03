@@ -39,9 +39,12 @@ PCMIS <- "pcmis"
 RIO <- "rio"
 SYSTMONE <- "systmone"
 
-ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
+# ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
+ALL_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
+
 # FROM_DATABASES <- ALL_DATABASES
 FROM_DATABASES <- c(CDL)  # for debugging
+
 # TO_DATABASES <- ALL_DATABASES
 TO_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
 
@@ -193,7 +196,6 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
         as.data.table()
     setkey(d, local_id)
     setcolorder(d, "local_id")
-    # print(sort(unique(d$ethnicity)))
     d[, ethnicity := simplified_ethnicity(raw_ethnicity)]
     cat("  ... done.\n")
     return(d)
@@ -210,6 +212,11 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
         index = "proband_local_id"
     )
     cat("  ... loaded; processing...\n")
+    # Sort out NA values
+    comparison_result[
+        best_candidate_local_id == "",
+        best_candidate_local_id := NA_character_
+    ]
     # Demographic information and gold-standard match info from the probands
     d <- merge(
         x = comparison_result,
@@ -270,13 +277,13 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
     # ... boolean is better than integer for subsequent use.
     d[, best_candidate_correct :=
         # Hit, subject to thresholds.
-        hashed_nhs_number_proband == hashed_nhs_number_best_candidate
-        & !is.na(hashed_nhs_number_best_candidate)
+        !is.na(hashed_nhs_number_best_candidate)
+        & hashed_nhs_number_proband == hashed_nhs_number_best_candidate
     ]
     d[, best_candidate_incorrect :=
         # False alarm, subject to thresholds.
-        hashed_nhs_number_proband != hashed_nhs_number_best_candidate
-        & !is.na(hashed_nhs_number_best_candidate)
+        !is.na(hashed_nhs_number_best_candidate)
+        & hashed_nhs_number_proband != hashed_nhs_number_best_candidate
     ]
     d[, proband_in_sample :=
         hashed_nhs_number_proband %in% sample$hashed_nhs_number

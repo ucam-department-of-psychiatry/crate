@@ -4255,7 +4255,7 @@ added:
     {ComparisonOutputColnames.BEST_CANDIDATE_LOCAL_ID}:
         Local ID of the closest-matching person (candidate) in the sample, EVEN
         IF THEY DID NOT WIN. (This will be the same as the winner if there was
-        a match.)
+        a match.) String; blank for no match.
 
 The results file is NOT necessarily sorted as the same order as the input
 proband file (because not sorting improves parallel processing efficiency).
