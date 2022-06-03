@@ -1985,10 +1985,23 @@ class FuzzyIdFreq(object):
         self.fuzzy_identifier_frequency = fuzzy_identifier_frequency
         self.p_error = p_error
 
-        if exact_identifier and exact_identifier_frequency is not None:
+        know_exact = (
+            exact_identifier and exact_identifier_frequency is not None
+        )
+        know_fuzzy = (
+            fuzzy_identifier and fuzzy_identifier_frequency is not None
+        )
+        if know_exact:
             assert 0 <= exact_identifier_frequency <= 1
-        if fuzzy_identifier and fuzzy_identifier_frequency is not None:
+        if know_fuzzy:
             assert 0 <= fuzzy_identifier_frequency <= 1
+        if know_exact and know_fuzzy:
+            assert fuzzy_identifier_frequency >= exact_identifier_frequency, (
+                f"fuzzy_identifier_frequency = {fuzzy_identifier_frequency}, "
+                f"exact_identifier_frequency = {exact_identifier_frequency}, "
+                f"but should have "
+                f"fuzzy_identifier_frequency >= exact_identifier_frequency"
+            )
 
     def __repr__(self) -> str:
         return auto_repr(self)
@@ -2752,22 +2765,29 @@ class Person(BasePerson):
                 p_error=cfg.p_gender_error,
             )
             for i in range(len(self.postcodes)):
-                postcode_unit = self.postcodes[i]
-                postcode_sector = get_postcode_sector(postcode_unit.identifier)
-                self.postcodes_info.append(
-                    FuzzyIdFreq(
-                        comparison_name="postcode",
-                        exact_identifier=postcode_unit.identifier,
-                        exact_identifier_frequency=cfg.postcode_unit_freq(
-                            postcode_unit.identifier, prestandardized=True
-                        ),
-                        fuzzy_identifier=postcode_sector,
-                        fuzzy_identifier_frequency=cfg.postcode_sector_freq(
-                            postcode_sector, prestandardized=True
-                        ),
-                        p_error=cfg.p_minor_postcode_error,
+                postcode_unit = self.postcodes[i].identifier
+                postcode_sector = get_postcode_sector(postcode_unit)
+                try:
+                    self.postcodes_info.append(
+                        FuzzyIdFreq(
+                            comparison_name="postcode",
+                            exact_identifier=postcode_unit,
+                            exact_identifier_frequency=cfg.postcode_unit_freq(
+                                postcode_unit, prestandardized=True
+                            ),
+                            fuzzy_identifier=postcode_sector,
+                            fuzzy_identifier_frequency=cfg.postcode_sector_freq(  # noqa: E501
+                                postcode_sector, prestandardized=True
+                            ),
+                            p_error=cfg.p_minor_postcode_error,
+                        )
                     )
-                )
+                except AssertionError:
+                    log.critical(
+                        f"Frequency error with postcode unit {postcode_unit}, "
+                        f"postcode sector {postcode_sector}"
+                    )
+                    raise
 
     def copy(self) -> "Person":
         """
