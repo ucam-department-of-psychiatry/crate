@@ -222,6 +222,8 @@ import re
 import sys
 import timeit
 from typing import (
+    Any,
+    Callable,
     Generator,
     Iterable,
     List,
@@ -236,7 +238,10 @@ from cardinal_pythonlib.datetimefunc import (
     coerce_to_pendulum_date,
     truncate_date_to_first_of_month,
 )
-from cardinal_pythonlib.hash import HashMethods
+from cardinal_pythonlib.hash import (
+    HashMethods,
+    make_hasher,
+)
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.profile import do_cprofile
 from pendulum import Date
@@ -263,7 +268,6 @@ from crate_anon.linkage.fuzzy_id_match import (
     Commands,
     get_cfg_from_args,
     get_demo_csv,
-    Hasher,
     MatchConfig,
     People,
     Person,
@@ -275,6 +279,13 @@ from crate_anon.linkage.fuzzy_id_match import (
 )
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Type checking
+# =============================================================================
+
+HASH_FUNCTION_TYPE = Callable[[Any], str]
 
 
 # =============================================================================
@@ -1103,7 +1114,7 @@ def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
 
 
 def validate_2_fetch_rio(
-    url: str, hash_key: str, echo: bool = False
+    url: str, hash_fn: HASH_FUNCTION_TYPE, echo: bool = False
 ) -> Generator[BasePerson, None, None]:
     """
     Generates IDENTIFIED people from CPFT's RiO source database.
@@ -1115,8 +1126,8 @@ def validate_2_fetch_rio(
     Args:
         url:
             SQLAlchemy URL.
-        hash_key:
-            Key for hashing NHS number (original ID) to research ID.
+        hash_fn:
+            Hash function for hashing NHS number (original ID) to research ID.
         echo:
             Echo SQL?
 
@@ -1242,7 +1253,6 @@ def validate_2_fetch_rio(
         -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.ClientIndex = 216739
     """  # noqa
     )
-    _hash = Hasher(hash_key).hash  # hashing function
     engine = create_engine(url, echo=echo)
     result = engine.execute(sql)  # type: ResultProxy
     q = QueryColnames
@@ -1257,7 +1267,7 @@ def validate_2_fetch_rio(
         postcodes = _get_rio_postcodes(engine, rio_client_id)
 
         other = CPFTValidationExtras(
-            hashed_nhs_number=_hash(nhs_number),
+            hashed_nhs_number=hash_fn(nhs_number),
             blurred_dob=isoformat_optional_date(
                 truncate_date_to_first_of_month(dob)
             ),
@@ -1289,7 +1299,7 @@ def validate_2_fetch_rio(
 
 
 def validate_2_fetch_cdl(
-    url: str, hash_key: str, echo: bool = False
+    url: str, hash_fn: HASH_FUNCTION_TYPE, echo: bool = False
 ) -> Generator[BasePerson, None, None]:
     """
     Generates IDENTIFIED people from CPFT's CRS/CRL source database.
@@ -1454,7 +1464,6 @@ def validate_2_fetch_cdl(
         -- Compare: SELECT COUNT(*) FROM rawCRSCDL.dbo.[CRS_Output_2020 09 21] = 162874
     """  # noqa
     )
-    _hash = Hasher(hash_key).hash  # hashing function
     engine = create_engine(url, echo=echo)
     result = engine.execute(sql)  # type: ResultProxy
     q = QueryColnames
@@ -1480,7 +1489,7 @@ def validate_2_fetch_cdl(
             )
 
         other = CPFTValidationExtras(
-            hashed_nhs_number=_hash(nhs_number),
+            hashed_nhs_number=hash_fn(nhs_number),
             blurred_dob=isoformat_optional_date(
                 truncate_date_to_first_of_month(dob)
             ),
@@ -1512,7 +1521,7 @@ def validate_2_fetch_cdl(
 
 
 def validate_2_fetch_pcmis(
-    url: str, hash_key: str, echo: bool = False
+    url: str, hash_fn: HASH_FUNCTION_TYPE, echo: bool = False
 ) -> Generator[BasePerson, None, None]:
     """
     Generates IDENTIFIED people from CPFT's PCMIS source database.
@@ -1520,8 +1529,8 @@ def validate_2_fetch_pcmis(
     Args:
         url:
             SQLAlchemy URL.
-        hash_key:
-            Key for hashing NHS number (original ID) to research ID.
+        hash_fn:
+            Hash function for hashing NHS number (original ID) to research ID.
         echo:
             Echo SQL?
 
@@ -1705,7 +1714,6 @@ def validate_2_fetch_pcmis(
         -- Compare: SELECT COUNT(*) FROM rawPCMIS.dbo.PatientDetails = 94344.
     """  # noqa
     )
-    _hash = Hasher(hash_key).hash  # hashing function
     engine = create_engine(url, echo=echo)
     result = engine.execute(sql)  # type: ResultProxy
     q = QueryColnames
@@ -1742,7 +1750,7 @@ def validate_2_fetch_pcmis(
             )
 
         other = CPFTValidationExtras(
-            hashed_nhs_number=_hash(nhs_number),
+            hashed_nhs_number=hash_fn(nhs_number),
             blurred_dob=isoformat_optional_date(
                 truncate_date_to_first_of_month(dob)
             ),
@@ -1839,7 +1847,7 @@ def _get_systmone_postcodes(
 
 
 def validate_2_fetch_systmone(
-    url: str, hash_key: str, echo: bool = False
+    url: str, hash_fn: HASH_FUNCTION_TYPE, echo: bool = False
 ) -> Generator[BasePerson, None, None]:
     """
     Generates IDENTIFIED people from CPFT's SystmOne source database.
@@ -1847,8 +1855,8 @@ def validate_2_fetch_systmone(
     Args:
         url:
             SQLAlchemy URL.
-        hash_key:
-            Key for hashing NHS number (original ID) to research ID.
+        hash_fn:
+            Hash function for hashing NHS number (original ID) to research ID.
         echo:
             Echo SQL?
 
@@ -1996,7 +2004,6 @@ def validate_2_fetch_systmone(
         -- Compare: SELECT COUNT(*) FROM SystmOne.dbo.S1_Patient = 619062.
     """  # noqa
     )
-    _hash = Hasher(hash_key).hash  # hashing function
     engine = create_engine(url, echo=echo)
     result = engine.execute(sql)  # type: ResultProxy
     q = QueryColnames
@@ -2012,7 +2019,7 @@ def validate_2_fetch_systmone(
         postcodes = _get_systmone_postcodes(engine, systmone_patient_id)
 
         other = CPFTValidationExtras(
-            hashed_nhs_number=_hash(nhs_number),
+            hashed_nhs_number=hash_fn(nhs_number),
             blurred_dob=isoformat_optional_date(
                 truncate_date_to_first_of_month(dob)
             ),
@@ -2460,6 +2467,9 @@ def main() -> int:
     # Run a command
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    def get_hash_function(args_: argparse.Namespace) -> HASH_FUNCTION_TYPE:
+        return make_hasher(hash_method=args_.hash_method, key=args_.key).hash
+
     log.info(f"Command: {args.command}")
 
     if args.command == "speedtest":
@@ -2494,7 +2504,7 @@ def main() -> int:
         warn_or_fail_if_default_key(args)
         save_people_from_db(
             people=validate_2_fetch_cdl(
-                url=args.url, hash_key=args.key, echo=args.echo
+                url=args.url, hash_fn=get_hash_function(args), echo=args.echo
             ),
             output_csv=args.output,
         )
@@ -2503,7 +2513,7 @@ def main() -> int:
         warn_or_fail_if_default_key(args)
         save_people_from_db(
             people=validate_2_fetch_rio(
-                url=args.url, hash_key=args.key, echo=args.echo
+                url=args.url, hash_fn=get_hash_function(args), echo=args.echo
             ),
             output_csv=args.output,
         )
@@ -2512,7 +2522,7 @@ def main() -> int:
         warn_or_fail_if_default_key(args)
         save_people_from_db(
             people=validate_2_fetch_pcmis(
-                url=args.url, hash_key=args.key, echo=args.echo
+                url=args.url, hash_fn=get_hash_function(args), echo=args.echo
             ),
             output_csv=args.output,
         )
@@ -2521,7 +2531,7 @@ def main() -> int:
         warn_or_fail_if_default_key(args)
         save_people_from_db(
             people=validate_2_fetch_systmone(
-                url=args.url, hash_key=args.key, echo=args.echo
+                url=args.url, hash_fn=get_hash_function(args), echo=args.echo
             ),
             output_csv=args.output,
         )
