@@ -236,6 +236,7 @@ from cardinal_pythonlib.datetimefunc import (
     coerce_to_pendulum_date,
     truncate_date_to_first_of_month,
 )
+from cardinal_pythonlib.hash import HashMethods
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.profile import do_cprofile
 from pendulum import Date
@@ -2097,6 +2098,7 @@ class EnvVar:
     DATADIR = "CRATE_FUZZY_LINKAGE_VALIDATION_DATA_DIR"
     VALIDATOR = "CRATE_FUZZY_VALIDATOR"
     COMMON_OPTIONS = "CRATE_FUZZY_COMMON_OPTIONS"
+    HASH_OPTIONS = "CRATE_FUZZY_HASH_OPTIONS"
 
     @staticmethod
     def db_url_envvar(db: str) -> str:
@@ -2157,9 +2159,7 @@ def help_v2_hash() -> str:
         f"crate_fuzzy_id_match {Commands.HASH} "
         f"--{Switches.INPUT} {v2_plaintext(db)} "
         f"--{Switches.OUTPUT} {v2_hashed(db)} "
-        f"--{Switches.INCLUDE_OTHER_INFO} "
-        f'--{Switches.KEY} "%{EnvVar.HASHKEY}%" '
-        f'--{Switches.LOCAL_ID_HASH_KEY} "%{EnvVar.HASHKEY}%" '
+        f"%{EnvVar.HASH_OPTIONS}% "
         f"|| exit /b"
         for db in ALL_DATABASES
     )
@@ -2287,6 +2287,7 @@ cd "%{EnvVar.DATADIR}%"
 
     2. Hash
 
+set {EnvVar.HASH_OPTIONS}=--{Switches.KEY} "%{EnvVar.HASHKEY}%" --{Switches.LOCAL_ID_HASH_KEY} "%{EnvVar.HASHKEY}%" --{Switches.INCLUDE_OTHER_INFO} --{Switches.HASH_METHOD} {HashMethods.HMAC_MD5}
 cd "%{EnvVar.DATADIR}%"
 {help_v2_hash()}
 

@@ -45,6 +45,7 @@ usage: crate_fuzzy_id_match hash [-h] --input INPUT --output OUTPUT
                                  [--without_frequencies]
                                  [--include_other_info] [--key KEY]
                                  [--allow_default_hash_key]
+                                 [--hash_method {HMAC_MD5,HMAC_SHA256,HMAC_SHA512}]
                                  [--rounding_sf ROUNDING_SF]
                                  [--local_id_hash_key LOCAL_ID_HASH_KEY]
                                  [--population_size POPULATION_SIZE]
@@ -124,6 +125,8 @@ hasher (secrecy) options:
   --allow_default_hash_key
                         Allow the default hash key to be used beyond tests.
                         INADVISABLE! (default: False)
+  --hash_method {HMAC_MD5,HMAC_SHA256,HMAC_SHA512}
+                        Hash method (default: HMAC_SHA256)
   --rounding_sf ROUNDING_SF
                         Number of significant figures to use when rounding
                         frequencies in hashed version (default: 5)
@@ -735,6 +738,7 @@ usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] --probands
                                                         [--profile]
                                                         [--key KEY]
                                                         [--allow_default_hash_key]
+                                                        [--hash_method {HMAC_MD5,HMAC_SHA256,HMAC_SHA512}]
                                                         [--rounding_sf ROUNDING_SF]
                                                         [--local_id_hash_key LOCAL_ID_HASH_KEY]
                                                         [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
@@ -865,6 +869,8 @@ hasher (secrecy) options:
   --allow_default_hash_key
                         Allow the default hash key to be used beyond tests.
                         INADVISABLE! (default: False)
+  --hash_method {HMAC_MD5,HMAC_SHA256,HMAC_SHA512}
+                        Hash method (default: HMAC_SHA256)
   --rounding_sf ROUNDING_SF
                         Number of significant figures to use when rounding
                         frequencies in hashed version (default: 5)

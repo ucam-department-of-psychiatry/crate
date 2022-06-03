@@ -138,7 +138,10 @@ from cardinal_pythonlib.argparse_func import (
 )
 from cardinal_pythonlib.datetimefunc import coerce_to_pendulum_date
 from cardinal_pythonlib.fileops import mkdir_p
-from cardinal_pythonlib.hash import HmacSHA256Hasher
+from cardinal_pythonlib.hash import (
+    HashMethods,
+    make_hasher,
+)
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.maths_py import round_sf
 from cardinal_pythonlib.probability import (
@@ -226,6 +229,7 @@ class FuzzyDefaults:
     # Hashing
     # -------------------------------------------------------------------------
     HASH_KEY = "fuzzy_id_match_default_hash_key_DO_NOT_USE_FOR_LIVE_DATA"
+    HASH_METHOD = HashMethods.HMAC_SHA256
 
     # -------------------------------------------------------------------------
     # Performance
@@ -295,13 +299,6 @@ class FuzzyDefaults:
     P_MIDDLE_NAME_N_PRESENT_STR = ",".join(
         str(x) for x in P_MIDDLE_NAME_N_PRESENT
     )
-
-
-# =============================================================================
-# Hashing
-# =============================================================================
-
-Hasher = HmacSHA256Hasher
 
 
 # =============================================================================
@@ -1436,6 +1433,7 @@ class MatchConfig(object):
     def __init__(
         self,
         hash_key: str = FuzzyDefaults.HASH_KEY,
+        hash_method: str = FuzzyDefaults.HASH_METHOD,
         rounding_sf: int = FuzzyDefaults.ROUNDING_SF,
         local_id_hash_key: str = None,
         population_size: int = FuzzyDefaults.POPULATION_SIZE,
@@ -1478,6 +1476,8 @@ class MatchConfig(object):
         Args:
             hash_key:
                 Key (passphrase) for hasher.
+            hash_method:
+                Method to use for hashhing.
             rounding_sf:
                 Number of significant figures to use when rounding frequency
                 information in hashed copies.
@@ -1574,10 +1574,12 @@ class MatchConfig(object):
         if verbose:
             log.debug("Building MatchConfig...")
 
-        self.hasher = Hasher(hash_key)
+        self.hasher = make_hasher(hash_method=hash_method, key=hash_key)
         self.rounding_sf = rounding_sf
         if local_id_hash_key:
-            self.local_id_hasher = Hasher(local_id_hash_key)
+            self.local_id_hasher = make_hasher(
+                hash_method=hash_method, key=local_id_hash_key
+            )
         else:
             self.local_id_hasher = None
 
@@ -4152,6 +4154,7 @@ class Switches:
     OUTPUT = "output"
 
     KEY = "key"
+    HASH_METHOD = "hash_method"
     ROUNDING_SF = "rounding_sf"
     LOCAL_ID_HASH_KEY = "local_id_hash_key"
 
@@ -4329,6 +4332,16 @@ def add_hasher_options(parser: argparse.ArgumentParser) -> None:
         help=(
             "Allow the default hash key to be used beyond tests. INADVISABLE!"
         ),
+    )
+    hasher_group.add_argument(
+        f"--{Switches.HASH_METHOD}",
+        choices=[
+            HashMethods.HMAC_MD5,
+            HashMethods.HMAC_SHA256,
+            HashMethods.HMAC_SHA512,
+        ],
+        default=FuzzyDefaults.HASH_METHOD,
+        help="Hash method",
     )
     hasher_group.add_argument(
         f"--{Switches.ROUNDING_SF}",
@@ -4670,6 +4683,9 @@ def get_cfg_from_args(
 
     return MatchConfig(
         hash_key=g(Switches.KEY, FuzzyDefaults.HASH_KEY, require_hasher),
+        hash_method=g(
+            Switches.HASH_METHOD, FuzzyDefaults.HASH_METHOD, require_hasher
+        ),
         rounding_sf=g(
             Switches.ROUNDING_SF, FuzzyDefaults.ROUNDING_SF, require_hasher
         ),
