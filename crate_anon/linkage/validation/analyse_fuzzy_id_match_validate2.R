@@ -24,6 +24,13 @@ debugfunc$wideScreen()
 
 
 # =============================================================================
+# Governing constants
+# =============================================================================
+
+ROW_LIMIT <- 100  # -1 for no limit; positive for debugging
+
+
+# =============================================================================
 # Database constants
 # =============================================================================
 
@@ -31,7 +38,9 @@ CDL <- "cdl"
 PCMIS <- "pcmis"
 RIO <- "rio"
 SYSTMONE <- "systmone"
-ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
+
+# ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
+ALL_DATABASES <- c(CDL)  # for debugging
 
 
 # =============================================================================
@@ -57,8 +66,8 @@ get_comparison_filename <- function(db1, db2) {
 # Data handling functions
 # =============================================================================
 
-load_people <- function(filename) {
-    d <- data.table(read.csv(filename))
+load_people <- function(filename, nrows = ROW_LIMIT) {
+    d <- data.table(read.csv(filename, nrows = nrows))
     # Now expand the "other_info" column, which is JSON.
     # https://stackoverflow.com/questions/31599299/expanding-a-json-column-in-r
     d <- lapply(as.character(df$other_info), RJSONIO::fromJSON) %>%
@@ -87,8 +96,8 @@ load_people <- function(filename) {
 }
 
 
-load_comparison <- function(filename) {
-    return(data.table(read.csv(filename)))
+load_comparison <- function(filename, nrows = ROW_LIMIT) {
+    return(data.table(read.csv(filename, nrows = nrows)))
 }
 
 

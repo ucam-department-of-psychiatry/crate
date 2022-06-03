@@ -266,23 +266,26 @@ The output file is a CSV (comma-separated value) file with a header and
 these columns:
 
     proband_local_id:
-        Local ID (identifiable or de-identified as the user chooses) of the
+        Local ID (identifiable or de-identified as the user chose) of the
         proband. Taken from the input.
     matched:
-        Boolean. Was a matching person (a "winner") found in the sample, who is
-        to be considered a match to the proband? To give a match requires (a)
-        that the log odds for the winner reaches a threshold, and (b) that the
-        log odds for the winner exceeds the log odds for the runner-up by a
-        certain amount (because a mismatch may be worse than a failed match).
+        Boolean as binary (0/1). Was a matching person (a "winner") found in
+        the sample, who is to be considered a match to the proband? To give a
+        match requires (a) that the log odds for the winner reaches a
+        threshold, and (b) that the log odds for the winner exceeds the log
+        odds for the runner-up by a certain amount (because a mismatch may be
+        worse than a failed match).
     log_odds_match:
-        Log (ln) odds that the winner in the sample is a match to the proband.
+        Log (ln) odds that the best candidate in the sample is a match to the
+        proband.
     p_match:
-        Probability that the winner in the sample is a match.
+        Probability that the best candidate in the sample is a match.
+        Equivalent to log_odds_match.
     sample_match_local_id:
-        Original local ID of the "winner" in the sample (the candidate who is
-        the closest match to the proband).
+        Local ID of the "winner" in the sample (the candidate who was matched
+        to the proband), or blank if there was no winner.
     second_best_log_odds:
-        Log odds of the runner up (the candidate from the sample who is the
+        Log odds of the runner-up (the candidate from the sample who is the
         second-closest match) being the same person as the proband.
 
 If '--extra_validation_output' is used, the following columns are
@@ -290,10 +293,11 @@ added:
 
     best_candidate_local_id:
         Local ID of the closest-matching person (candidate) in the sample, EVEN
-        IF THEY DID NOT WIN.
+        IF THEY DID NOT WIN. (This will be the same as the winner if there was
+        a match.)
 
-The results file is NOT necessarily sorted as the input proband file was
-(because not sorting improves parallel processing efficiency).
+The results file is NOT necessarily sorted as the same order as the input
+proband file (because not sorting improves parallel processing efficiency).
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -502,23 +506,26 @@ The output file is a CSV (comma-separated value) file with a header and
 these columns:
 
     proband_local_id:
-        Local ID (identifiable or de-identified as the user chooses) of the
+        Local ID (identifiable or de-identified as the user chose) of the
         proband. Taken from the input.
     matched:
-        Boolean. Was a matching person (a "winner") found in the sample, who is
-        to be considered a match to the proband? To give a match requires (a)
-        that the log odds for the winner reaches a threshold, and (b) that the
-        log odds for the winner exceeds the log odds for the runner-up by a
-        certain amount (because a mismatch may be worse than a failed match).
+        Boolean as binary (0/1). Was a matching person (a "winner") found in
+        the sample, who is to be considered a match to the proband? To give a
+        match requires (a) that the log odds for the winner reaches a
+        threshold, and (b) that the log odds for the winner exceeds the log
+        odds for the runner-up by a certain amount (because a mismatch may be
+        worse than a failed match).
     log_odds_match:
-        Log (ln) odds that the winner in the sample is a match to the proband.
+        Log (ln) odds that the best candidate in the sample is a match to the
+        proband.
     p_match:
-        Probability that the winner in the sample is a match.
+        Probability that the best candidate in the sample is a match.
+        Equivalent to log_odds_match.
     sample_match_local_id:
-        Original local ID of the "winner" in the sample (the candidate who is
-        the closest match to the proband).
+        Local ID of the "winner" in the sample (the candidate who was matched
+        to the proband), or blank if there was no winner.
     second_best_log_odds:
-        Log odds of the runner up (the candidate from the sample who is the
+        Log odds of the runner-up (the candidate from the sample who is the
         second-closest match) being the same person as the proband.
 
 If '--extra_validation_output' is used, the following columns are
@@ -526,10 +533,11 @@ added:
 
     best_candidate_local_id:
         Local ID of the closest-matching person (candidate) in the sample, EVEN
-        IF THEY DID NOT WIN.
+        IF THEY DID NOT WIN. (This will be the same as the winner if there was
+        a match.)
 
-The results file is NOT necessarily sorted as the input proband file was
-(because not sorting improves parallel processing efficiency).
+The results file is NOT necessarily sorted as the same order as the input
+proband file (because not sorting improves parallel processing efficiency).
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -776,23 +784,26 @@ The output file is a CSV (comma-separated value) file with a header and
 these columns:
 
     proband_local_id:
-        Local ID (identifiable or de-identified as the user chooses) of the
+        Local ID (identifiable or de-identified as the user chose) of the
         proband. Taken from the input.
     matched:
-        Boolean. Was a matching person (a "winner") found in the sample, who is
-        to be considered a match to the proband? To give a match requires (a)
-        that the log odds for the winner reaches a threshold, and (b) that the
-        log odds for the winner exceeds the log odds for the runner-up by a
-        certain amount (because a mismatch may be worse than a failed match).
+        Boolean as binary (0/1). Was a matching person (a "winner") found in
+        the sample, who is to be considered a match to the proband? To give a
+        match requires (a) that the log odds for the winner reaches a
+        threshold, and (b) that the log odds for the winner exceeds the log
+        odds for the runner-up by a certain amount (because a mismatch may be
+        worse than a failed match).
     log_odds_match:
-        Log (ln) odds that the winner in the sample is a match to the proband.
+        Log (ln) odds that the best candidate in the sample is a match to the
+        proband.
     p_match:
-        Probability that the winner in the sample is a match.
+        Probability that the best candidate in the sample is a match.
+        Equivalent to log_odds_match.
     sample_match_local_id:
-        Original local ID of the "winner" in the sample (the candidate who is
-        the closest match to the proband).
+        Local ID of the "winner" in the sample (the candidate who was matched
+        to the proband), or blank if there was no winner.
     second_best_log_odds:
-        Log odds of the runner up (the candidate from the sample who is the
+        Log odds of the runner-up (the candidate from the sample who is the
         second-closest match) being the same person as the proband.
 
 If '--extra_validation_output' is used, the following columns are
@@ -800,10 +811,11 @@ added:
 
     best_candidate_local_id:
         Local ID of the closest-matching person (candidate) in the sample, EVEN
-        IF THEY DID NOT WIN.
+        IF THEY DID NOT WIN. (This will be the same as the winner if there was
+        a match.)
 
-The results file is NOT necessarily sorted as the input proband file was
-(because not sorting improves parallel processing efficiency).
+The results file is NOT necessarily sorted as the same order as the input
+proband file (because not sorting improves parallel processing efficiency).
 
 optional arguments:
   -h, --help            show this help message and exit

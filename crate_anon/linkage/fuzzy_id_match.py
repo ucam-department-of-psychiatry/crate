@@ -4227,23 +4227,26 @@ The output file is a CSV (comma-separated value) file with a header and
 these columns:
 
     {ComparisonOutputColnames.PROBAND_LOCAL_ID}:
-        Local ID (identifiable or de-identified as the user chooses) of the
+        Local ID (identifiable or de-identified as the user chose) of the
         proband. Taken from the input.
     {ComparisonOutputColnames.MATCHED}:
-        Boolean. Was a matching person (a "winner") found in the sample, who is
-        to be considered a match to the proband? To give a match requires (a)
-        that the log odds for the winner reaches a threshold, and (b) that the
-        log odds for the winner exceeds the log odds for the runner-up by a
-        certain amount (because a mismatch may be worse than a failed match).
+        Boolean as binary (0/1). Was a matching person (a "winner") found in
+        the sample, who is to be considered a match to the proband? To give a
+        match requires (a) that the log odds for the winner reaches a
+        threshold, and (b) that the log odds for the winner exceeds the log
+        odds for the runner-up by a certain amount (because a mismatch may be
+        worse than a failed match).
     {ComparisonOutputColnames.LOG_ODDS_MATCH}:
-        Log (ln) odds that the winner in the sample is a match to the proband.
+        Log (ln) odds that the best candidate in the sample is a match to the
+        proband.
     {ComparisonOutputColnames.P_MATCH}:
-        Probability that the winner in the sample is a match.
+        Probability that the best candidate in the sample is a match.
+        Equivalent to {ComparisonOutputColnames.LOG_ODDS_MATCH}.
     {ComparisonOutputColnames.SAMPLE_MATCH_LOCAL_ID}:
-        Original local ID of the "winner" in the sample (the candidate who is
-        the closest match to the proband).
+        Local ID of the "winner" in the sample (the candidate who was matched
+        to the proband), or blank if there was no winner.
     {ComparisonOutputColnames.SECOND_BEST_LOG_ODDS}:
-        Log odds of the runner up (the candidate from the sample who is the
+        Log odds of the runner-up (the candidate from the sample who is the
         second-closest match) being the same person as the proband.
 
 If '--{Switches.EXTRA_VALIDATION_OUTPUT}' is used, the following columns are
@@ -4251,10 +4254,11 @@ added:
 
     {ComparisonOutputColnames.BEST_CANDIDATE_LOCAL_ID}:
         Local ID of the closest-matching person (candidate) in the sample, EVEN
-        IF THEY DID NOT WIN.
+        IF THEY DID NOT WIN. (This will be the same as the winner if there was
+        a match.)
 
-The results file is NOT necessarily sorted as the input proband file was
-(because not sorting improves parallel processing efficiency).
+The results file is NOT necessarily sorted as the same order as the input
+proband file (because not sorting improves parallel processing efficiency).
 """
 
 
