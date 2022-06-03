@@ -39,8 +39,11 @@ PCMIS <- "pcmis"
 RIO <- "rio"
 SYSTMONE <- "systmone"
 
-# ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
-ALL_DATABASES <- c(CDL)  # for debugging
+ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
+# FROM_DATABASES <- ALL_DATABASES
+FROM_DATABASES <- c(CDL)  # for debugging
+# TO_DATABASES <- ALL_DATABASES
+TO_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
 
 
 # =============================================================================
@@ -158,7 +161,7 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
     # tweak it, but this is easier!
     cat(paste0("- Loading from: ", filename, "\n"))
     d <- data.table(read.csv(filename, nrows = nrows))
-    cat("  ... loaded.\n")
+    cat("  ... loaded; processing...\n")
     if (strip_irrelevant) {
         # Get rid of columns we don't care about
         d <- d[, .(local_id, other_info)]
@@ -192,6 +195,7 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
     setcolorder(d, "local_id")
     # print(sort(unique(d$ethnicity)))
     d[, ethnicity := simplified_ethnicity(raw_ethnicity)]
+    cat("  ... done.\n")
     return(d)
 }
 
@@ -205,7 +209,7 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
         nrows = nrows,
         index = "proband_local_id"
     )
-    cat("  ... loaded.\n")
+    cat("  ... loaded; processing...\n")
     # Demographic information and gold-standard match info from the probands
     d <- merge(
         x = comparison_result,
@@ -285,6 +289,7 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
         # Miss, subject to thresholds.
         is.na(hashed_nhs_number_best_candidate) & !proband_in_sample
     ]
+    cat("  ... done.\n")
 
     return(d)
 }
@@ -307,8 +312,8 @@ load_all <- function()
             envir = .GlobalEnv
         )
     }
-    for (db1 in ALL_DATABASES) {
-        for (db2 in ALL_DATABASES) {
+    for (db1 in FROM_DATABASES) {
+        for (db2 in TO_DATABASES) {
             assign(
                 mk_comparison_var(db1, db2),
                 load_comparison(
