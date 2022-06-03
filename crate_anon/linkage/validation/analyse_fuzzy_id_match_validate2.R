@@ -74,7 +74,7 @@ simplified_ethnicity <- function(ethnicity)
 {
     # We have to deal with ethnicity text from lots of different clinical
     # record systems.
-    # Mapping as per:
+    # Categories as per:
     # https://www.ethnicity-facts-figures.service.gov.uk/ethnicity-in-the-uk/ethnic-groups-by-age
     ETHNICITY_ASIAN <- "asian"
     ETHNICITY_BLACK <- "black"
@@ -149,7 +149,7 @@ simplified_ethnicity <- function(ethnicity)
             ETHNICITY_OTHER
         )
     ))
-]
+}
 
 
 load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
