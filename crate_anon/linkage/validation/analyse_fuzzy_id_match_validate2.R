@@ -156,7 +156,9 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
 {
     # data.table::fread() messes up the quotes in JSON; probably possible to
     # tweak it, but this is easier!
+    cat(paste0("- Loading from: ", filename, "\n"))
     d <- data.table(read.csv(filename, nrows = nrows))
+    cat("  ... loaded.\n")
     if (strip_irrelevant) {
         # Get rid of columns we don't care about
         d <- d[, .(local_id, other_info)]
@@ -171,7 +173,7 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
 
                      blurred_dob = e$blurred_dob,
                      gender = e$gender,
-                     ethnicity = e$ethnicity,
+                     raw_ethnicity = e$ethnicity,
                      index_of_multiple_deprivation = e$index_of_multiple_deprivation,
 
                      first_mh_care_date = e$first_mh_care_date,
@@ -188,8 +190,8 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
         as.data.table()
     setkey(d, local_id)
     setcolorder(d, "local_id")
-    print(sort(unique(d$ethnicity)))
-    d[, ethnicity := simplified_ethnicity(ethnicity)]
+    # print(sort(unique(d$ethnicity)))
+    d[, ethnicity := simplified_ethnicity(raw_ethnicity)]
     return(d)
 }
 
@@ -197,11 +199,13 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
 load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
 {
     # No JSON here; we can use the fast fread() function.
+    cat(paste0("- Loading from: ", filename, "\n"))
     comparison_result <- data.table::fread(
         file = filename,
         nrows = nrows,
         index = "proband_local_id"
     )
+    cat("  ... loaded.\n")
     # Demographic information and gold-standard match info from the probands
     d <- merge(
         x = comparison_result,
@@ -259,27 +263,28 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
     stopifnot(all(!is.na(d$hashed_nhs_number_proband)))
 
     # Calculations
-    d[, best_candidate_correct := as.integer(
+    # ... boolean is better than integer for subsequent use.
+    d[, best_candidate_correct :=
         # Hit, subject to thresholds.
         hashed_nhs_number_proband == hashed_nhs_number_best_candidate
         & !is.na(hashed_nhs_number_best_candidate)
-    )]
-    d[, best_candidate_incorrect := as.integer(
+    ]
+    d[, best_candidate_incorrect :=
         # False alarm, subject to thresholds.
         hashed_nhs_number_proband != hashed_nhs_number_best_candidate
         & !is.na(hashed_nhs_number_best_candidate)
-    )]
-    d[, proband_in_sample := as.integer(
+    ]
+    d[, proband_in_sample :=
         hashed_nhs_number_proband %in% sample$hashed_nhs_number
-    )]
-    d[, correctly_eliminated := as.integer(
+    ]
+    d[, correctly_eliminated :=
         # Correct rejection, subject to thresholds.
         is.na(hashed_nhs_number_best_candidate) & !proband_in_sample
-    )]
-    d[, not_found := as.integer(
+    ]
+    d[, not_found :=
         # Miss, subject to thresholds.
         is.na(hashed_nhs_number_best_candidate) & !proband_in_sample
-    )]
+    ]
 
     return(d)
 }
