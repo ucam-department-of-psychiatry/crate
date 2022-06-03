@@ -2961,7 +2961,7 @@ class Person(BasePerson):
             cfg=cfg,
             is_hashed=True,
             local_id=(
-                cfg.local_id_hasher(self.local_id)
+                cfg.local_id_hasher.hash(self.local_id)
                 if cfg.local_id_hasher
                 else self.local_id
             ),
