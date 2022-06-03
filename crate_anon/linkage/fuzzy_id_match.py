@@ -176,7 +176,7 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
-CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = True  # for debugging only
+CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = False  # for debugging only
 
 CRATE_FETCH_WORDLISTS = "crate_fetch_wordlists"
 DAYS_PER_YEAR = 365.25  # approximately!

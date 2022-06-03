@@ -27,7 +27,7 @@ debugfunc$wideScreen()
 # Governing constants
 # =============================================================================
 
-ROW_LIMIT <- 100  # -1 for no limit; positive for debugging
+ROW_LIMIT <- 1000  # Inf for no limit; finite for debugging
 
 
 # =============================================================================
@@ -50,11 +50,15 @@ ALL_DATABASES <- c(CDL)  # for debugging
 DATA_DIR <- "C:/srv/crate/crate_fuzzy_linkage_validation"
 OUTPUT_DIR <- "C:/Users/rcardinal/Documents/fuzzy_linkage_validation"
 
-get_data_filename <- function(db) {
+
+get_data_filename <- function(db)
+{
     file.path(DATA_DIR, paste0("fuzzy_data_", db, "_hashed.csv"))
 }
 
-get_comparison_filename <- function(db1, db2) {
+
+get_comparison_filename <- function(db1, db2)
+{
     file.path(
         DATA_DIR,
         paste0("fuzzy_compare_", db1, "_to_", db2, "_hashed.csv")
@@ -66,11 +70,16 @@ get_comparison_filename <- function(db1, db2) {
 # Data handling functions
 # =============================================================================
 
-load_people <- function(filename, nrows = ROW_LIMIT) {
-    d <- data.table(read.csv(filename, nrows = nrows))
+load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
+{
+    d <- data.table::fread(file = filename, nrows = nrows, index = "local_id")
+    if (strip_irrelevant) {
+        # Get rid of columns we don't care about
+        d <- d[, .(local_id, other_info)]
+    }
     # Now expand the "other_info" column, which is JSON.
     # https://stackoverflow.com/questions/31599299/expanding-a-json-column-in-r
-    d <- lapply(as.character(df$other_info), RJSONIO::fromJSON) %>%
+    d <- lapply(as.character(d$other_info), RJSONIO::fromJSON) %>%
         lapply(
             function(e) {
                  list(
@@ -91,13 +100,73 @@ load_people <- function(filename, nrows = ROW_LIMIT) {
         ) %>%
         rbindlist() %>%
         cbind(d) %>%
-        select(-other_info)
+        select(-other_info) %>%
+        as.data.table()
+    setkey(d, hashed_nhs_number)
     return(d)
 }
 
 
-load_comparison <- function(filename, nrows = ROW_LIMIT) {
-    return(data.table(read.csv(filename, nrows = nrows)))
+load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
+{
+    comp <- data.table::fread(
+        file = filename,
+        nrows = nrows,
+        index = "proband_local_id"
+    )
+    # Demographic information from the probands
+    combined <- merge(
+        x = comp,
+        y = probands,
+        by.x = "proband_local_id",
+        by.y = "local_id",
+        all.x = TRUE,
+        all.y = FALSE,
+        suffixes = c("", "_proband")
+    )
+    combined2 <- merge(
+        x = combined,
+        y = sample[, .(local_id, hashed_nhs_number)],
+        by.x = "best_candidate_local_id",
+        by.y = "local_id",
+        all.x = TRUE,
+        all.y = FALSE,
+        suffixes = c("", "_best_candidate")
+    )
+    return(combined2)
+}
+
+
+load_all <- function()
+{
+    mk_people_var <- function(db)
+    {
+        paste0("people_", db1)
+    }
+    mk_comparison_var <- function(db1, db2)
+    {
+        paste0("compare_", db1, "_to_", db2)
+    }
+    for (db1 in ALL_DATABASES) {
+        assign(
+            mk_people_var(db1),
+            load_people(get_data_filename(db1)),
+            envir = .GlobalEnv
+        )
+    }
+    for (db1 in ALL_DATABASES) {
+        for (db2 in ALL_DATABASES) {
+            assign(
+                mk_comparison_var(db1, db2),
+                load_comparison(
+                    filename = get_comparison_filename(db1, db2),
+                    probands = get(mk_people_var(db1)),
+                    sample = get(mk_people_var(db2)),
+                ),
+                envir = .GlobalEnv
+            )
+        }
+    }
 }
 
 
@@ -105,15 +174,4 @@ load_comparison <- function(filename, nrows = ROW_LIMIT) {
 # Load data
 # =============================================================================
 
-for (db1 in ALL_DATABASES) {
-    assign(
-        paste0("people_", db1),
-        load_people(get_data_filename(db1))
-    )
-    for (db2 in ALL_DATABASES) {
-        assign(
-            paste0("compare_", db1, "_to_", db2),
-            load_comparison(get_comparison_filename(db1, db2))
-        )
-    }
-}
+load_all()
