@@ -194,8 +194,12 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
         cbind(d) %>%
         select(-other_info) %>%
         as.data.table()
+    d[local_id == "", local_id := NA_character_]
+    d[hashed_nhs_number == "", hashed_nhs_number := NA_character_]
     setkey(d, local_id)
     setcolorder(d, "local_id")
+    stopifnot(all(!is.na(d$local_id)))
+    stopifnot(all(!is.na(d$hashed_nhs_number)))
     d[, ethnicity := simplified_ethnicity(raw_ethnicity)]
     cat("  ... done.\n")
     return(d)
@@ -306,7 +310,7 @@ load_all <- function()
 {
     mk_people_var <- function(db)
     {
-        paste0("people_", db1)
+        paste0("people_", db)
     }
     mk_comparison_var <- function(db1, db2)
     {
