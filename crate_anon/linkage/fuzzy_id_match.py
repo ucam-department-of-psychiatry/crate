@@ -173,7 +173,7 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
-CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = True  # for debugging only
+CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = True  # for debugging only
 
 CRATE_FETCH_WORDLISTS = "crate_fetch_wordlists"
 DAYS_PER_YEAR = 365.25  # approximately!
@@ -913,7 +913,7 @@ class DirectComparison(Comparison):
             p_d_given_diff_person: :math:`P(D | \neg H)`
         """
         super().__init__(**kwargs)
-        if CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
+        if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
             assert 0 <= p_d_given_same_person <= 1
             assert 0 <= p_d_given_diff_person <= 1
         self._p_d_given_h = p_d_given_same_person
@@ -964,7 +964,7 @@ class MatchNoMatchComparison(Comparison):
                 :math:`P(D | \neg H) = 1 - P(\text{match given different person}) = 1 - p_f`.
         """  # noqa
         super().__init__(**kwargs)
-        if CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
+        if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
             assert 0 <= p_match_given_same_person <= 1
             assert 0 <= p_match_given_diff_person <= 1
         self.match = match
@@ -1024,13 +1024,12 @@ class FullPartialNoMatchComparison(Comparison):
                 :math:`p_p = P(\text{partial match} | \neg H)`
         """
         super().__init__(**kwargs)
-        if CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
-            assert (
-                p_p >= p_f
-            ), f"p_p={p_p}, p_f={p_f}, but should have p_p >= p_f"
+        if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
             assert 0 <= p_f <= 1
             assert 0 <= p_e <= 1
             assert 0 <= p_p <= 1
+        # This one is worth checking dynamically:
+        assert p_p >= p_f, f"p_p={p_p}, p_f={p_f}, but should have p_p >= p_f"
         self.full_match = full_match
         self.p_f = p_f
         self.p_e = p_e
@@ -1734,7 +1733,7 @@ class MatchConfig(object):
         2 is the probability of having a second middle name, given that you
         have a first middle name.)
         """
-        if CHECK_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
+        if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
             assert n >= 1
         if not self.p_middle_name_n_present:
             return 0
@@ -1988,6 +1987,9 @@ class FuzzyIdFreq(object):
             assert 0 <= exact_identifier_frequency <= 1
         if fuzzy_identifier and fuzzy_identifier_frequency is not None:
             assert 0 <= fuzzy_identifier_frequency <= 1
+
+    def __repr__(self) -> str:
+        return auto_repr(self)
 
     def comparison(self, proband: "FuzzyIdFreq") -> Optional[Comparison]:
         """
@@ -3122,20 +3124,28 @@ class Person(BasePerson):
         # We prefer full matches to partial matches, and we don't allow the
         # same postcode to be used for both.
         indexes_of_full_matches = set()  # type: Set[int]
-        for i, self_pi in enumerate(self.postcodes_info):
-            for other_pi in other_postcodes_info:
-                if self_pi.fully_matches(other_pi):
-                    yield self_pi.comparison(other_pi)
-                    indexes_of_full_matches.add(i)
-                    break
-        # Try for any partial matches for postcodes not yet fully matched:
-        for i, self_pi in enumerate(self.postcodes_info):
-            if i in indexes_of_full_matches:
-                continue
-            for other_pi in other_postcodes_info:
-                if self_pi.partially_matches(other_pi):
-                    yield self_pi.comparison(other_pi)
-                    break
+        try:
+            for i, self_pi in enumerate(self.postcodes_info):
+                for other_pi in other_postcodes_info:
+                    if self_pi.fully_matches(other_pi):
+                        yield self_pi.comparison(other_pi)
+                        indexes_of_full_matches.add(i)
+                        break
+            # Try for any partial matches for postcodes not yet fully matched:
+            for i, self_pi in enumerate(self.postcodes_info):
+                if i in indexes_of_full_matches:
+                    continue
+                for other_pi in other_postcodes_info:
+                    if self_pi.partially_matches(other_pi):
+                        yield self_pi.comparison(other_pi)
+                        break
+        except AssertionError:
+            log.critical(
+                f"Postcode comparison error: "
+                f"self.postcodes_info = {self.postcodes_info}; "
+                f"other.postcodes_info = {other.postcodes_info}"
+            )
+            raise
 
     # -------------------------------------------------------------------------
     # Info functions
