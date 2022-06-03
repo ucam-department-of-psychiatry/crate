@@ -172,7 +172,7 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
     )
 
     # Checks
-    stopifnot(all(!is.na(hashed_nhs_number_proband)))
+    stopifnot(all(!is.na(d$hashed_nhs_number_proband)))
 
     # Calculations
     d[, best_candidate_correct := as.integer(
