@@ -509,12 +509,12 @@ PSEUDO_POSTCODE_SECTORS = set(get_postcode_sector(p) for p in PSEUDO_POSTCODES)
 PSEUDO_POSTCODE_START = "ZZ99"
 
 
-def is_pseudo_postcode_sector(postcode_sector: str) -> bool:
-    """
-    Is this a pseudo-postcode sector?
-    Assumes upper case.
-    """
-    return postcode_sector.startswith(PSEUDO_POSTCODE_START)
+# def is_pseudo_postcode_sector(postcode_sector: str) -> bool:
+#     """
+#     Is this a pseudo-postcode sector?
+#     Assumes upper case.
+#     """
+#     return postcode_sector.startswith(PSEUDO_POSTCODE_START)
 
 
 def is_pseudo_postcode(postcode_unit: str) -> bool:
@@ -1026,7 +1026,7 @@ class FullPartialNoMatchComparison(Comparison):
             assert 0 <= p_e <= 1
             assert 0 <= p_p <= 1
         # This one is worth checking dynamically:
-        assert p_p >= p_f, f"p_p={p_p}, p_f={p_f}, but should have p_p >= p_f"
+        assert p_f <= p_p, f"p_f={p_f}, p_p={p_p}, but should have p_f <= p_p"
         self.full_match = full_match
         self.p_f = p_f
         self.p_e = p_e
@@ -1331,48 +1331,43 @@ class PostcodeFrequencyInfo(object):
                 [unit_freq, sector_freq, self._total_population],
             )
 
-    def postcode_unit_frequency(
+    def postcode_unit_sector_frequency(
         self, postcode_unit: str, prestandardized: bool = False
-    ) -> float:
+    ) -> Tuple[float, float]:
         """
-        Returns the frequency of a postcode.
+        Returns the frequency of a postcode unit and its associated sector.
+        Performs an important check that the sector frequency is as least as
+        big as the unit frequency.
 
         Args:
             postcode_unit: the postcode unit to check
             prestandardized: was the postcode pre-standardized in format?
 
         Returns:
-            the postcode's frequency in the population
+            tuple: unit_frequency, sector_frequency
         """
-        stpu = (
+        unit = (
             postcode_unit
             if prestandardized
             else standardize_postcode(postcode_unit)
         )
+        sector = get_postcode_sector(unit)
         try:
-            return self._postcode_unit_freq[stpu] * self._p_known_postcode
+            unit_freq = self._postcode_unit_freq[unit] * self._p_known_postcode
+            sector_freq = (
+                self._postcode_sector_freq[sector] * self._p_known_postcode
+            )
         except KeyError:
-            if not is_pseudo_postcode(stpu):
-                log.warning(f"Unknown postcode: {postcode_unit}")
-            return self._p_unknown_or_pseudo_postcode
-
-    def postcode_sector_frequency(
-        self, postcode_sector: str, prestandardized: bool = False
-    ) -> float:
-        """
-        Returns the frequency of a postcode sector.
-        """
-        stps = (
-            postcode_sector
-            if prestandardized
-            else standardize_postcode(postcode_sector)
+            if not is_pseudo_postcode(unit):
+                log.warning(f"Unknown postcode: {unit}")
+            unit_freq = self._p_unknown_or_pseudo_postcode
+            sector_freq = self._p_unknown_or_pseudo_postcode
+        assert unit_freq <= sector_freq, (
+            f"Postcodes: unit_freq = {unit_freq}, "
+            f"sector_freq = {sector_freq}, but should have "
+            f"unit_freq <= sector_freq, for unit = {unit}, sector = {sector}"
         )
-        try:
-            return self._postcode_sector_freq[stps] * self._p_known_postcode
-        except KeyError:
-            if not is_pseudo_postcode_sector(stps):
-                log.warning(f"Unknown postcode sector: {stps}")
-            return self._p_unknown_or_pseudo_postcode
+        return unit_freq, sector_freq
 
     def debug_is_valid_postcode(self, postcode_unit: str) -> bool:
         """
@@ -1392,12 +1387,10 @@ class PostcodeFrequencyInfo(object):
             postcode_unit: the postcode unit to check
             prestandardized: was the postcode pre-standardized in format?
         """
-        stpu = (
-            postcode_unit
-            if prestandardized
-            else standardize_postcode(postcode_unit)
+        unit_freq, _ = self.postcode_unit_sector_frequency(
+            postcode_unit, prestandardized
         )
-        return self.postcode_unit_frequency(stpu) * self._total_population
+        return unit_freq * self._total_population
 
     def debug_postcode_sector_population(
         self, postcode_sector: str, prestandardized: bool = False
@@ -1409,12 +1402,16 @@ class PostcodeFrequencyInfo(object):
             postcode_sector: the postcode sector to check
             prestandardized: was the postcode pre-standardized in format?
         """
-        stps = (
+        sector = (
             postcode_sector
             if prestandardized
             else standardize_postcode(postcode_sector)
         )
-        return self.postcode_sector_frequency(stps) * self._total_population
+        return (
+            self._postcode_sector_freq[sector]
+            * self._p_known_postcode
+            * self._total_population
+        )
 
 
 # =============================================================================
@@ -1788,19 +1785,25 @@ class MatchConfig(object):
         """
         return self._postcode_freq.debug_is_valid_postcode(postcode_unit)
 
-    def postcode_unit_freq(
-        self, postcode_unit: str, prestandardized: bool = True
-    ) -> float:
+    def postcode_unit_sector_freq(
+        self, postcode_unit: str, prestandardized: bool = False
+    ) -> Tuple[float, float]:
         """
         Returns the frequency for a full postcode, or postcode unit (the
         proportion of the population who live in that postcode).
         """
-        freq = self._postcode_freq.postcode_unit_frequency(
+        (
+            unit_freq,
+            sector_freq,
+        ) = self._postcode_freq.postcode_unit_sector_frequency(
             postcode_unit, prestandardized=prestandardized
         )
         if self.verbose:
-            log.debug(f"Postcode unit frequency for {postcode_unit}: {freq}")
-        return freq
+            log.debug(
+                f"Postcode {postcode_unit}: unit frequency {unit_freq}, "
+                f"sector frequency {sector_freq}"
+            )
+        return unit_freq, sector_freq
 
     def debug_postcode_unit_population(
         self, postcode_unit: str, prestandardized: bool = False
@@ -1816,23 +1819,7 @@ class MatchConfig(object):
             postcode_unit, prestandardized=prestandardized
         )
 
-    def postcode_sector_freq(
-        self, postcode_sector: str, prestandardized: bool = True
-    ) -> float:
-        """
-        Returns the frequency for a postcode sector; see
-        :meth:`postcode_freq`.
-        """
-        freq = self._postcode_freq.postcode_sector_frequency(
-            postcode_sector, prestandardized=prestandardized
-        )
-        if self.verbose:
-            log.debug(
-                f"Postcode sector frequency for {postcode_sector}: " f"{freq}"
-            )
-        return freq
-
-    def postcode_sector_population(
+    def debug_postcode_sector_population(
         self, postcode_sector: str, prestandardized: bool = False
     ) -> float:
         """
@@ -1996,11 +1983,11 @@ class FuzzyIdFreq(object):
         if know_fuzzy:
             assert 0 <= fuzzy_identifier_frequency <= 1
         if know_exact and know_fuzzy:
-            assert fuzzy_identifier_frequency >= exact_identifier_frequency, (
-                f"fuzzy_identifier_frequency = {fuzzy_identifier_frequency}, "
+            assert exact_identifier_frequency <= fuzzy_identifier_frequency, (
                 f"exact_identifier_frequency = {exact_identifier_frequency}, "
+                f"fuzzy_identifier_frequency = {fuzzy_identifier_frequency}, "
                 f"but should have "
-                f"fuzzy_identifier_frequency >= exact_identifier_frequency"
+                f"exact_identifier_frequency <= fuzzy_identifier_frequency"
             )
 
     def __repr__(self) -> str:
@@ -2684,21 +2671,17 @@ class Person(BasePerson):
                 p_error=cfg.p_gender_error,
             )
             for i in range(len(self.hashed_postcode_units)):
+                unit_hashed = self.hashed_postcode_units[i].identifier
+                sector_hashed = self.hashed_postcode_sectors[i].identifier
+                unit_freq = self.postcode_unit_frequencies[i]
+                sector_freq = self.postcode_sector_frequencies[i]
                 self.postcodes_info.append(
                     FuzzyIdFreq(
                         comparison_name="postcode",
-                        exact_identifier=self.hashed_postcode_units[
-                            i
-                        ].identifier,
-                        exact_identifier_frequency=self.postcode_unit_frequencies[  # noqa: E501
-                            i
-                        ],
-                        fuzzy_identifier=self.hashed_postcode_sectors[
-                            i
-                        ].identifier,
-                        fuzzy_identifier_frequency=self.postcode_sector_frequencies[  # noqa: E501
-                            i
-                        ],
+                        exact_identifier=unit_hashed,
+                        exact_identifier_frequency=unit_freq,
+                        fuzzy_identifier=sector_hashed,
+                        fuzzy_identifier_frequency=sector_freq,
                         p_error=cfg.p_minor_postcode_error,
                     )
                 )
@@ -2725,17 +2708,19 @@ class Person(BasePerson):
                 n = i + 1
                 middle_name = self.middle_names[i]
                 middle_name_metaphone = get_metaphone(middle_name)
+                middle_name_freq = cfg.forename_freq(
+                    middle_name, self.gender, prestandardized=True
+                )
+                middle_name_metaphone_freq = cfg.forename_metaphone_freq(
+                    middle_name_metaphone, self.gender
+                )
                 self.middle_names_info.append(
                     FuzzyIdFreq(
                         comparison_name=f"middle_name_{n}",
                         exact_identifier=middle_name,
-                        exact_identifier_frequency=cfg.forename_freq(
-                            middle_name, self.gender, prestandardized=True
-                        ),
+                        exact_identifier_frequency=middle_name_freq,
                         fuzzy_identifier=middle_name_metaphone,
-                        fuzzy_identifier_frequency=cfg.forename_metaphone_freq(
-                            middle_name_metaphone, self.gender
-                        ),
+                        fuzzy_identifier_frequency=middle_name_metaphone_freq,
                         p_error=cfg.p_minor_forename_error,
                     )
                 )
@@ -2765,27 +2750,26 @@ class Person(BasePerson):
                 p_error=cfg.p_gender_error,
             )
             for i in range(len(self.postcodes)):
-                postcode_unit = self.postcodes[i].identifier
-                postcode_sector = get_postcode_sector(postcode_unit)
+                unit = self.postcodes[i].identifier
+                sector = get_postcode_sector(unit)
+                unit_freq, sector_freq = cfg.postcode_unit_sector_freq(
+                    unit, prestandardized=True
+                )
                 try:
                     self.postcodes_info.append(
                         FuzzyIdFreq(
                             comparison_name="postcode",
-                            exact_identifier=postcode_unit,
-                            exact_identifier_frequency=cfg.postcode_unit_freq(
-                                postcode_unit, prestandardized=True
-                            ),
-                            fuzzy_identifier=postcode_sector,
-                            fuzzy_identifier_frequency=cfg.postcode_sector_freq(  # noqa: E501
-                                postcode_sector, prestandardized=True
-                            ),
+                            exact_identifier=unit,
+                            exact_identifier_frequency=unit_freq,
+                            fuzzy_identifier=sector,
+                            fuzzy_identifier_frequency=sector_freq,
                             p_error=cfg.p_minor_postcode_error,
                         )
                     )
                 except AssertionError:
                     log.critical(
-                        f"Frequency error with postcode unit {postcode_unit}, "
-                        f"postcode sector {postcode_sector}"
+                        f"Frequency error with postcode unit {unit}, "
+                        f"postcode sector {sector}"
                     )
                     raise
 
@@ -2880,11 +2864,10 @@ class Person(BasePerson):
 
         # Functions that we may call several times:
         cfg = self.cfg
-        _hash = cfg.hasher.hash  # hashing function
-        _postcode_unit_freq = cfg.postcode_unit_freq
-        _postcode_sector_freq = cfg.postcode_sector_freq
+        _hash = cfg.hasher.hash  # main hashing function
         _forename_freq = cfg.forename_freq
         _forename_metaphone_freq = cfg.forename_metaphone_freq
+        _pcode_frequencies = cfg.postcode_unit_sector_freq
 
         def fr(f: float, sf: int = cfg.rounding_sf) -> float:
             """
@@ -2963,19 +2946,19 @@ class Person(BasePerson):
         postcode_sector_frequencies = []
         for p in postcodes:
             if p:
+                unit = p.identifier
+                sector = get_postcode_sector(unit)
+                unit_freq, sector_freq = _pcode_frequencies(
+                    unit, prestandardized=True
+                )
                 hashed_postcode_units.append(
-                    p.with_new_identifier(_hash(p.identifier))
+                    p.with_new_identifier(_hash(unit))
                 )
-                postcode_unit_frequencies.append(
-                    fr(_postcode_unit_freq(p.identifier, prestandardized=True))
-                )
-                sector = get_postcode_sector(p.identifier)
+                postcode_unit_frequencies.append(fr(unit_freq))
                 hashed_postcode_sectors.append(
                     p.with_new_identifier(_hash(sector))
                 )
-                postcode_sector_frequencies.append(
-                    fr(_postcode_sector_freq(sector))
-                )
+                postcode_sector_frequencies.append(fr(sector_freq))
 
         return Person(
             cfg=cfg,

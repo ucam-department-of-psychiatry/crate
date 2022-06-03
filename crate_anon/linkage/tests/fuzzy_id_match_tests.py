@@ -413,7 +413,7 @@ class FuzzyLinkageTests(unittest.TestCase):
             )
 
         for ps in ["CB2 0", "CB2 1", "CB2 2", "CB2 3"]:
-            p = cfg.postcode_sector_population(ps)
+            p = cfg.debug_postcode_sector_population(ps)
             log.info(f"Calculated population for postcode sector {ps}: {p}")
 
     def test_fuzzy_linkage_matches(self) -> None:
