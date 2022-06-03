@@ -27,7 +27,7 @@ debugfunc$wideScreen()
 # Governing constants
 # =============================================================================
 
-ROW_LIMIT <- 1000  # Inf for no limit; finite for debugging
+ROW_LIMIT <- Inf  # Inf for no limit; finite for debugging
 
 
 # =============================================================================
@@ -70,6 +70,88 @@ get_comparison_filename <- function(db1, db2)
 # Data handling functions
 # =============================================================================
 
+simplified_ethnicity <- function(ethnicity)
+{
+    # We have to deal with ethnicity text from lots of different clinical
+    # record systems.
+    # Mapping as per:
+    # https://www.ethnicity-facts-figures.service.gov.uk/ethnicity-in-the-uk/ethnic-groups-by-age
+    ETHNICITY_ASIAN <- "asian"
+    ETHNICITY_BLACK <- "black"
+    ETHNICITY_MIXED <- "mixed"
+    ETHNICITY_WHITE <- "white"
+    ETHNICITY_OTHER <- "other"
+    ETHNICITY_UNKNOWN <- "unknown"
+
+    return(factor(
+        dplyr::recode(
+            ethnicity,
+
+            "Asian or Asian British - Any other Asian background" = ETHNICITY_ASIAN,
+            "Asian or Asian British - Any other background" = ETHNICITY_ASIAN,
+            "Asian or Asian British - Bangladeshi" = ETHNICITY_ASIAN,
+            "Asian or Asian British - British" = ETHNICITY_ASIAN,
+            "Asian or Asian British - Indian" = ETHNICITY_ASIAN,
+            "Asian or Asian British - Other/Unspecified" = ETHNICITY_ASIAN,
+            "Asian or Asian British - Pakistani" = ETHNICITY_ASIAN,
+            "Other Ethnic Group - Chinese" = ETHNICITY_ASIAN,
+            "Other Ethnic Groups - Chinese" = ETHNICITY_ASIAN,
+
+            "Any other White background" = ETHNICITY_WHITE,
+            "White - All Republics of former USSR" = ETHNICITY_WHITE,
+            "White - Any other background" = ETHNICITY_WHITE,
+            "White - British" = ETHNICITY_WHITE,
+            "White - English" = ETHNICITY_WHITE,
+            "White - Gypsy/Romany" = ETHNICITY_WHITE,
+            "White - Irish" = ETHNICITY_WHITE,
+            "White - Mixed White" = ETHNICITY_WHITE,
+            "White - Northern Irish" = ETHNICITY_WHITE,
+            "White - Other European" = ETHNICITY_WHITE,
+            "White - Other/Unspecified" = ETHNICITY_WHITE,
+            "White - Polish" = ETHNICITY_WHITE,
+            "White - Serbian" = ETHNICITY_WHITE,
+            "White - Traveller" = ETHNICITY_WHITE,
+            "White - Welsh" = ETHNICITY_WHITE,
+
+            "Black or Black British - African" = ETHNICITY_BLACK,
+            "Black or Black British - Any other background" = ETHNICITY_BLACK,
+            "Black or Black British - Any other Black background" = ETHNICITY_BLACK,
+            "Black or Black British - British" = ETHNICITY_BLACK,
+            "Black or Black British - Caribbean" = ETHNICITY_BLACK,
+            "Black or Black British - Other/Unspecified" = ETHNICITY_BLACK,
+
+            "Mixed - Any other mixed background" = ETHNICITY_MIXED,
+            "Mixed - White & Black African" = ETHNICITY_MIXED,
+            "Mixed - White & Black Caribbean" = ETHNICITY_MIXED,
+            "Mixed - White and Black African" = ETHNICITY_MIXED,
+
+            "Any Other Group" = ETHNICITY_OTHER,
+            "Other Ethnic Group" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Any Other Group" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Iranian" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Muslim" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - South/Central American" = ETHNICITY_OTHER,
+
+            "Not Known" = ETHNICITY_UNKNOWN,
+            "Not Specified" = ETHNICITY_UNKNOWN,
+            "Not Stated (Client Refused)" = ETHNICITY_UNKNOWN,
+            "Not Stated (Not Requested)" = ETHNICITY_UNKNOWN,
+            "Not Stated" = ETHNICITY_UNKNOWN,
+
+            .default = NA_character_
+        ),
+        levels = c(
+            ETHNICITY_UNKNOWN,  # put this first as comparator for ANOVA
+            ETHNICITY_ASIAN,
+            ETHNICITY_BLACK,
+            ETHNICITY_MIXED,
+            ETHNICITY_WHITE,
+            ETHNICITY_OTHER
+        )
+    ))
+]
+
+
 load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
 {
     # data.table::fread() messes up the quotes in JSON; probably possible to
@@ -106,6 +188,8 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
         as.data.table()
     setkey(d, local_id)
     setcolorder(d, "local_id")
+    print(sort(unique(d$ethnicity)))
+    d[, ethnicity := simplified_ethnicity(ethnicity)]
     return(d)
 }
 
