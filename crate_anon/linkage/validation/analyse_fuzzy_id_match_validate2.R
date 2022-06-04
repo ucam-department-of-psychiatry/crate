@@ -243,20 +243,31 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
     d <- lapply(as.character(d$other_info), RJSONIO::fromJSON) %>%
         lapply(
             function(e) {
-                 list(
-                     hashed_nhs_number = e$hashed_nhs_number,
+                # RJSONIO::fromJSON("{'a': null}") produces NULL.
+                # rbindlist() later complains, so let's convert NULL to NA
+                # explicitly.
+                list(
+                    hashed_nhs_number = e$hashed_nhs_number,
 
-                     blurred_dob = e$blurred_dob,
-                     gender = e$gender,
-                     raw_ethnicity = e$ethnicity,
-                     index_of_multiple_deprivation = e$index_of_multiple_deprivation,
+                    blurred_dob = e$blurred_dob,
+                    gender = e$gender,
+                    raw_ethnicity = e$ethnicity,
+                    index_of_multiple_deprivation = ifelse(
+                        is.null(e$index_of_multiple_deprivation),
+                        NA_integer_,
+                        e$index_of_multiple_deprivation
+                    ),
 
-                     first_mh_care_date = e$first_mh_care_date,
-                     age_at_first_mh_care = e$age_at_first_mh_care,
-                     any_icd10_dx_present = e$any_icd10_dx_present,
-                     chapter_f_icd10_dx_present = e$chapter_f_icd10_dx_present,
-                     severe_mental_illness_icd10_dx_present = e$severe_mental_illness_icd10_dx_present
-                 )
+                    # unnecessary: first_mh_care_date = e$first_mh_care_date,
+                    age_at_first_mh_care = ifelse(
+                        is.null(e$age_at_first_mh_care),
+                        NA_integer_,
+                        e$age_at_first_mh_care
+                    ),
+                    any_icd10_dx_present = e$any_icd10_dx_present,
+                    chapter_f_icd10_dx_present = e$chapter_f_icd10_dx_present,
+                    severe_mental_illness_icd10_dx_present = e$severe_mental_illness_icd10_dx_present
+                )
             }
         ) %>%
         rbindlist() %>%
