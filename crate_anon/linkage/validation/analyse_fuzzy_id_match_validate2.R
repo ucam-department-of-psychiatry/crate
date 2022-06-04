@@ -51,8 +51,8 @@ PCMIS <- "pcmis"
 RIO <- "rio"
 SYSTMONE <- "systmone"
 
-# ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
-ALL_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
+ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
+# ALL_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
 
 # FROM_DATABASES <- ALL_DATABASES
 FROM_DATABASES <- CDL  # for debugging
@@ -159,7 +159,9 @@ simplified_ethnicity <- function(ethnicity)
             "Mixed - White & Asian" = ETHNICITY_MIXED,
             "Mixed - White & Black African" = ETHNICITY_MIXED,
             "Mixed - White & Black Caribbean" = ETHNICITY_MIXED,
+            "Mixed - White and Asian" = ETHNICITY_MIXED,
             "Mixed - White and Black African" = ETHNICITY_MIXED,
+            "Mixed - White and Black Caribbean" = ETHNICITY_MIXED,
 
             "A" = ETHNICITY_WHITE,  # White - British
             "Any other White background" = ETHNICITY_WHITE,
@@ -240,29 +242,29 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
     }
     # Now expand the "other_info" column, which is JSON.
     # https://stackoverflow.com/questions/31599299/expanding-a-json-column-in-r
+    de_null <- function(x, na_value) {
+        # RJSONIO::fromJSON("{'a': null}") produces NULL. rbindlist() later
+        # complains, so let's convert NULL to NA explicitly.
+        return(ifelse(is.null(x), na_value, x))
+    }
     d <- lapply(as.character(d$other_info), RJSONIO::fromJSON) %>%
         lapply(
             function(e) {
-                # RJSONIO::fromJSON("{'a': null}") produces NULL.
-                # rbindlist() later complains, so let's convert NULL to NA
-                # explicitly.
                 list(
                     hashed_nhs_number = e$hashed_nhs_number,
 
                     blurred_dob = e$blurred_dob,
                     gender = e$gender,
-                    raw_ethnicity = e$ethnicity,
-                    index_of_multiple_deprivation = ifelse(
-                        is.null(e$index_of_multiple_deprivation),
-                        NA_integer_,
-                        e$index_of_multiple_deprivation
+                    raw_ethnicity = de_null(e$ethnicity, NA_character_),
+                    index_of_multiple_deprivation = de_null(
+                        e$index_of_multiple_deprivation,
+                        NA_integer_
                     ),
 
                     # unnecessary: first_mh_care_date = e$first_mh_care_date,
-                    age_at_first_mh_care = ifelse(
-                        is.null(e$age_at_first_mh_care),
-                        NA_integer_,
-                        e$age_at_first_mh_care
+                    age_at_first_mh_care = de_null(
+                        e$age_at_first_mh_care,
+                        NA_integer_
                     ),
                     any_icd10_dx_present = e$any_icd10_dx_present,
                     chapter_f_icd10_dx_present = e$chapter_f_icd10_dx_present,
@@ -343,7 +345,7 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
             "gender",
             "ethnicity",
             "index_of_multiple_deprivation",
-            "first_mh_care_date",
+            # "first_mh_care_date",
             "age_at_first_mh_care",
             "any_icd10_dx_present",
             "chapter_f_icd10_dx_present",
