@@ -527,7 +527,7 @@ imd_centile_100_most_deprived <- function(index_of_multiple_deprivation)
     # centile for population). But like Jones 2022, we use a "deprivation"
     # centile, i.e. 0 least deprived, 100 most deprived.
     MOST_DEPRIVED_IMD <- 1
-    LEAST_DEPRIVED_IMD <- 32785
+    LEAST_DEPRIVED_IMD <- 32844
     return(
         100
         - 100 * (index_of_multiple_deprivation - MOST_DEPRIVED_IMD) / (
@@ -537,7 +537,7 @@ imd_centile_100_most_deprived <- function(index_of_multiple_deprivation)
 
     # Tests:
     # imd_centile_100_most_deprived(1)  # 100
-    # imd_centile_100_most_deprived(32785)  # 0
+    # imd_centile_100_most_deprived(32844)  # 0
 }
 
 
