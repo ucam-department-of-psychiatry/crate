@@ -120,7 +120,13 @@ DX_GROUP_F_NOT_SMI <- "F_not_SMI"
 DX_GROUP_OUTSIDE_F <- "codes_not_F"
 DX_GROUP_NONE <- "no_codes"
 # Should be no NA values for diagnostic_group.
-# For dx_group_simple, we blend the last two:
+DIAGNOSTIC_GROUP_LEVELS <- c(
+    DX_GROUP_NONE,
+    DX_GROUP_OUTSIDE_F,
+    DX_GROUP_F_NOT_SMI,
+    DX_GROUP_SMI
+)
+# For dx_group_simple, we blend the last two into this:
 DX_GROUP_NO_MH <- "no_MH_codes"
 
 ETHNICITY_ASIAN <- "asian"
@@ -130,11 +136,20 @@ ETHNICITY_WHITE <- "white"
 ETHNICITY_OTHER <- "other"
 ETHNICITY_UNKNOWN <- "unknown"
 # Should be no NA values for ethnicity.
+ETHNICITY_LEVELS <- c(
+    ETHNICITY_UNKNOWN,  # put this first as comparator for ANOVA
+    ETHNICITY_ASIAN,
+    ETHNICITY_BLACK,
+    ETHNICITY_MIXED,
+    ETHNICITY_WHITE,
+    ETHNICITY_OTHER
+)
 
 SEX_F <- "F"
 SEX_M <- "M"
 SEX_X <- "X"
 # In "gender", we have NA for unknown.
+GENDER_LEVELS <- c(SEX_F, SEX_M, SEX_X)
 # In "sex_simple", we combine X with NA for and use
 SEX_OTHER_UNKNOWN <- "other_unknown"
 
@@ -507,14 +522,7 @@ simplified_ethnicity <- function(ethnicity)
 
             .default = NA_character_
         ),
-        levels = c(
-            ETHNICITY_UNKNOWN,  # put this first as comparator for ANOVA
-            ETHNICITY_ASIAN,
-            ETHNICITY_BLACK,
-            ETHNICITY_MIXED,
-            ETHNICITY_WHITE,
-            ETHNICITY_OTHER
-        )
+        levels = ETHNICITY_LEVELS
     ))
 }
 
@@ -612,13 +620,19 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = FALSE)
     stopifnot(all(!is.na(d$local_id)))
     stopifnot(all(!is.na(d$hashed_nhs_number)))
 
-    d[, sex_simple := factor(
-        ifelse(
-            is.na(gender) | gender == SEX_X,
-            SEX_OTHER_UNKNOWN,
-            gender
-        ),
-        levels=c(SEX_F, SEX_M, SEX_OTHER_UNKNOWN)
+    d[, gender := factor(gender, levels = GENDER_LEVELS)]
+    sex_renames <- c(
+        # Values: new values
+        SEX_F,
+        SEX_M,
+        SEX_OTHER_UNKNOWN
+    )
+    # ... and names: old values
+    names(sex_renames) <- GENDER_LEVELS
+    d[, sex_simple := recode_factor(
+        gender,
+        !!!sex_renames,
+        .missing = SEX_OTHER_UNKNOWN
     )]
 
     d[, ethnicity := simplified_ethnicity(raw_ethnicity)]
@@ -653,23 +667,19 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = FALSE)
                     )
                 )
             ),
-            levels = c(
-                DX_GROUP_NONE,
-                DX_GROUP_OUTSIDE_F,
-                DX_GROUP_F_NOT_SMI,
-                DX_GROUP_SMI
-            )
+            levels = DIAGNOSTIC_GROUP_LEVELS
         )
     ]
-    d[, dx_group_simple := factor(
-        ifelse(
-            diagnostic_group == DX_GROUP_OUTSIDE_F
-                | diagnostic_group == DX_GROUP_NONE,
-            DX_GROUP_NO_MH,
-            diagnostic_group
-        ),
-        levels=c(DX_GROUP_NO_MH, DX_GROUP_F_NOT_SMI, DX_GROUP_SMI)
-    )]
+    dx_group_renames <- c(
+        # Values: new values
+        DX_GROUP_NO_MH,
+        DX_GROUP_NO_MH,
+        DX_GROUP_F_NOT_SMI,
+        DX_GROUP_SMI
+    )
+    # ... and names: old values
+    names(dx_group_renames) <- DIAGNOSTIC_GROUP_LEVELS
+    d[, dx_group_simple := recode_factor(diagnostic_group, !!!dx_group_renames)]
 
     if (strip_irrelevant) {
         d[, other_info := NULL]
