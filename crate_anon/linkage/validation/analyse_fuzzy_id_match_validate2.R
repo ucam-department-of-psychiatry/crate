@@ -263,7 +263,6 @@ simplified_ethnicity <- function(ethnicity)
             "Black and Asian - ethnic category 2001 census" = ETHNICITY_MIXED,
             "Black and White - ethnic category 2001 census" = ETHNICITY_MIXED,
             "Black Caribbean and White" = ETHNICITY_MIXED,
-            "British or mixed British - ethnic category 2001 census" = ETHNICITY_MIXED,  # ?
             "Chinese and White - ethnic category 2001 census" = ETHNICITY_MIXED,
             "D" = ETHNICITY_MIXED,  # Mixed - White and Black Caribbean
             "E" = ETHNICITY_MIXED,  # Mixed - White and Black African
@@ -314,6 +313,7 @@ simplified_ethnicity <- function(ethnicity)
             "Any other White background" = ETHNICITY_WHITE,
             "B" = ETHNICITY_WHITE,  # White - Irish
             "Bosnian - ethnic category 2001 census" = ETHNICITY_WHITE,
+            "British or mixed British - ethnic category 2001 census" = ETHNICITY_WHITE,  # huge disparity if marked as "mixed"
             "C" = ETHNICITY_WHITE,  # White - Any other White backgroud
             "Cornish - ethnic category 2001 census" = ETHNICITY_WHITE,
             "CPFTEWSNI" = ETHNICITY_WHITE,  # ?England, Wales, Scotland, Northern Ireland
@@ -526,8 +526,12 @@ imd_centile_100_most_deprived <- function(index_of_multiple_deprivation)
     # simply use the IMD order (so it's the centile for IMD number, not the
     # centile for population). But like Jones 2022, we use a "deprivation"
     # centile, i.e. 0 least deprived, 100 most deprived.
+    # See als:
+    # - https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/853811/IoD2019_FAQ_v4.pdf
+
     MOST_DEPRIVED_IMD <- 1
     LEAST_DEPRIVED_IMD <- 32844
+    # Confirmed: SELECT MIN(imd), MAX(imd) FROM onspd.dbo.postcode
     return(
         100
         - 100 * (index_of_multiple_deprivation - MOST_DEPRIVED_IMD) / (
@@ -541,7 +545,7 @@ imd_centile_100_most_deprived <- function(index_of_multiple_deprivation)
 }
 
 
-load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
+load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = FALSE)
 {
     # data.table::fread() messes up the quotes in JSON; probably possible to
     # tweak it, but this is easier!
@@ -574,7 +578,10 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
                         NA_integer_
                     ),
 
-                    # unnecessary: first_mh_care_date = e$first_mh_care_date,
+                    first_mh_care_date = de_null(
+                        e$first_mh_care_date,
+                        NA_character_
+                    ),
                     age_at_first_mh_care = de_null(
                         e$age_at_first_mh_care,
                         NA_integer_
@@ -587,7 +594,6 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
         ) %>%
         rbindlist() %>%
         cbind(d) %>%
-        select(-other_info) %>%
         as.data.table()
     d[local_id == "", local_id := NA_character_]
     d[hashed_nhs_number == "", hashed_nhs_number := NA_character_]
@@ -597,6 +603,7 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
     stopifnot(all(!is.na(d$hashed_nhs_number)))
 
     d[, ethnicity := simplified_ethnicity(raw_ethnicity)]
+    d[is.na(ethnicity), ethnicity := ETHNICITY_UNKNOWN]
     unknown_ethnicities <- sort(unique(
         d$raw_ethnicity[is.na(d$ethnicity) & !is.na(d$raw_ethnicity)]
     ))
@@ -607,7 +614,6 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
             "\n"
         ))
     }
-    d[, raw_ethnicity := NULL]
 
     d[, deprivation_centile_100_most_deprived :=
         imd_centile_100_most_deprived(index_of_multiple_deprivation)
@@ -636,9 +642,15 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
             )
         )
     ]
-    d[, any_icd10_dx_present := NULL]
-    d[, chapter_f_icd10_dx_present := NULL]
-    d[, severe_mental_illness_icd10_dx_present := NULL]
+
+    if (strip_irrelevant) {
+        d[, other_info := NULL]
+        d[, raw_ethnicity := NULL]
+        d[, first_mh_care_date := NULL]
+        d[, any_icd10_dx_present := NULL]
+        d[, chapter_f_icd10_dx_present := NULL]
+        d[, severe_mental_illness_icd10_dx_present := NULL]
+    }
 
     cat(paste0("  ... done (", nrow(d), " rows).\n"))
     return(d)
@@ -783,9 +795,11 @@ load_all <- function()
 # Demographics
 # =============================================================================
 
-get_demographics <- function(d)
+get_demographics <- function(d, db_name)
 {
     results <- data.table(
+        db_name = db_name,
+
         n_total = nrow(d),
 
         dob_year_min = min(year(d$blurred_dob), na.rm = TRUE),
@@ -794,22 +808,24 @@ get_demographics <- function(d)
         dob_year_sd = sd(year(d$blurred_dob), na.rm = TRUE),
         dob_year_n_unknown = sum(is.na(d$blurred_dob)),
 
-        sex_n_female = sum(d$gender == SEX_F),
-        sex_n_male = sum(d$gender == SEX_M),
-        sex_n_other = sum(d$gender == SEX_X),
+        sex_n_female = sum(d$gender == SEX_F, na.rm = TRUE),
+        sex_n_male = sum(d$gender == SEX_M, na.rm = TRUE),
+        sex_n_other = sum(d$gender == SEX_X, na.rm = TRUE),
         sex_n_unknown = sum(is.na(d$gender)),
 
-        ethnicity_n_asian = sum(d$ethnicity == ETHNICITY_ASIAN),
-        ethnicity_n_black = sum(d$ethnicity == ETHNICITY_BLACK),
-        ethnicity_n_mixed = sum(d$ethnicity == ETHNICITY_MIXED),
-        ethnicity_n_white = sum(d$ethnicity == ETHNICITY_WHITE),
-        ethnicity_n_other = sum(d$ethnicity == ETHNICITY_OTHER),
-        ethnicity_n_unknown = sum(d$ethnicity == ETHNICITY_UNKNOWN),
+        ethnicity_n_asian = sum(d$ethnicity == ETHNICITY_ASIAN, na.rm = TRUE),
+        ethnicity_n_black = sum(d$ethnicity == ETHNICITY_BLACK, na.rm = TRUE),
+        ethnicity_n_mixed = sum(d$ethnicity == ETHNICITY_MIXED, na.rm = TRUE),
+        ethnicity_n_white = sum(d$ethnicity == ETHNICITY_WHITE, na.rm = TRUE),
+        ethnicity_n_other = sum(d$ethnicity == ETHNICITY_OTHER, na.rm = TRUE),
+        ethnicity_n_unknown = sum(d$ethnicity == ETHNICITY_UNKNOWN, na.rm = TRUE),
+        ethnicity_n_na = sum(is.na(d$ethnicity)),
 
-        dx_n_smi = sum(d$diagnostic_group == DX_GROUP_SMI),
-        dx_n_f_not_smi = sum(d$diagnostic_group == DX_GROUP_F_NOT_SMI),
-        dx_n_outside_f = sum(d$diagnostic_group == DX_GROUP_OUTSIDE_F),
-        dx_n_none = sum(d$diagnostic_group == DX_GROUP_NONE),
+        dx_n_smi = sum(d$diagnostic_group == DX_GROUP_SMI, na.rm = TRUE),
+        dx_n_f_not_smi = sum(d$diagnostic_group == DX_GROUP_F_NOT_SMI, na.rm = TRUE),
+        dx_n_outside_f = sum(d$diagnostic_group == DX_GROUP_OUTSIDE_F, na.rm = TRUE),
+        dx_n_none = sum(d$diagnostic_group == DX_GROUP_NONE, na.rm = TRUE),
+        dx_n_na = sum(is.na(d$diagnostic_group)),
 
         deprivation_centile_min = min(d$deprivation_centile_100_most_deprived, na.rm = TRUE),
         deprivation_centile_max = max(d$deprivation_centile_100_most_deprived, na.rm = TRUE),
@@ -824,6 +840,8 @@ get_demographics <- function(d)
         age_at_first_mh_care_n_unknown = sum(is.na(d$age_at_first_mh_care))
     )
 
+    results[, dob_year_pct_unknown := 100 * dob_year_n_unknown / n_total]
+
     results[, sex_pct_female := 100 * sex_n_female / n_total]
     results[, sex_pct_male := 100 * sex_n_male / n_total]
     results[, sex_pct_other := 100 * sex_n_other / n_total]
@@ -835,22 +853,31 @@ get_demographics <- function(d)
     results[, ethnicity_pct_white := 100 * ethnicity_n_white / n_total]
     results[, ethnicity_pct_other := 100 * ethnicity_n_other / n_total]
     results[, ethnicity_pct_unknown := 100 * ethnicity_n_unknown / n_total]
+    results[, ethnicity_pct_na := 100 * ethnicity_n_na / n_total]
 
     results[, dx_pct_smi := 100 * dx_n_smi / n_total]
     results[, dx_pct_f_not_smi := 100 * dx_n_f_not_smi / n_total]
     results[, dx_pct_outside_f := 100 * dx_n_outside_f / n_total]
     results[, dx_pct_none := 100 * dx_n_none / n_total]
+    results[, dx_pct_na := 100 * dx_n_na / n_total]
+
+    results[, deprivation_centile_pct_unknown :=
+        100 * deprivation_centile_n_unknown / n_total]
+
+    results[, age_at_first_mh_care_pct_unknown :=
+        100 * age_at_first_mh_care_n_unknown / n_total]
 
     return(results)
 }
 
-show_all_demographics <- function()
+get_all_demographics <- function()
 {
+    combined <- NULL
     for (db in ALL_DATABASES) {
-        dg <- get_demographics(get(mk_people_var(db)))
-        cat(paste0("- For database ", db, ":\n"))
-        print(t(dg))
+        dg <- get_demographics(get(mk_people_var(db)), db)
+        combined <- rbind(combined, dg)
     }
+    return(combined)
 }
 
 
@@ -859,4 +886,12 @@ show_all_demographics <- function()
 # =============================================================================
 
 # load_all()
-# show_all_demographics()
+dg <- get_all_demographics()
+print(dg)
+
+# *** check ethnicity: mixed balance -- should be fixed now
+# *** were no diagnoses for SystmOne -- check; should be fine now
+# *** were no IMD values for SystmOne -- check, should be fine now
+# *** max IMD centile >100 but only slightly
+
+# *** bonkers age-at-referral dates

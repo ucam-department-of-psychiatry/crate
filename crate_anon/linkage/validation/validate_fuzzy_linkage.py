@@ -1801,7 +1801,7 @@ def _get_systmone_postcodes(
     sql = text(
         """
         SELECT DISTINCT
-            TOP 0  -- for debugging
+            -- TOP 0  -- for debugging
 
             -- From the identifiable address table:
             a.PostCode_NoSpaces AS postcode,
@@ -1887,6 +1887,22 @@ def validate_2_fetch_systmone(
 
         -- exceeds 10,000/year from 2007-.
 
+    - S1_Diagnosis contains these code schemes:
+
+      .. code-block:: sql
+
+        SELECT DISTINCT CodeScheme
+        FROM SystmOne.dbo.S1_Diagnosis
+
+        -- 'ICD-10', 'OPCS' only (in current data).
+        -- Only 7504 rows in whole table.
+
+      In the strategic reporting extract, it's SRClinicalCode (and there is no
+      SRDiagnosis). There's SRCode, too, which contains Read/CTV3 and SNOMED
+      codes. CPFT's table S1_Diagnosis is essentially SRClinicalCode with a
+      Description column linked in, and minor column renaming (e.g. DtDiagnosis
+      to DateDiagnosis). But it's the right (and only) table for ICD-10 codes.
+
     """  # noqa
     sql = text(
         """
@@ -1926,7 +1942,7 @@ def validate_2_fetch_systmone(
                     WHERE
                         dx_any.IDPatient = p.IDPatient
                         AND dx_any.CodeScheme = 'ICD-10'
-                        AND dx_any.DateEnded IS NOT NULL  -- none in practice
+                        AND dx_any.DateEnded IS NULL  -- none in practice
                         -- DateEpisodeEnd is separate; that is sometimes
                         -- populated.
                         AND dx_any.CODE IS NOT NULL  -- none in practice
@@ -1942,7 +1958,7 @@ def validate_2_fetch_systmone(
                     WHERE
                         dx_f.IDPatient = p.IDPatient
                         AND dx_f.CodeScheme = 'ICD-10'
-                        AND dx_f.DateEnded IS NOT NULL  -- none in practice
+                        AND dx_f.DateEnded IS NULL  -- none in practice
                         AND dx_f.CODE LIKE 'F%'
                 ) THEN 1
                 ELSE 0
@@ -1956,7 +1972,7 @@ def validate_2_fetch_systmone(
                     WHERE
                         dx_smi.IDPatient = p.IDPatient
                         AND dx_smi.CodeScheme = 'ICD-10'
-                        AND dx_smi.DateEnded IS NOT NULL  -- none in practice
+                        AND dx_smi.DateEnded IS NULL  -- none in practice
                         AND (
                             dx_smi.CODE LIKE 'F20%'  -- schizophrenia
                             OR dx_smi.CODE LIKE 'F21%'  -- schizotypal
