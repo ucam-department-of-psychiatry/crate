@@ -112,6 +112,8 @@ simplified_ethnicity <- function(ethnicity)
         dplyr::recode(
             ethnicity,
 
+            "Asian - ethnic group" = ETHNICITY_ASIAN,
+            "Bangladeshi,  Bangladeshi or British Bangladeshi - ethn categ 2001 census" = ETHNICITY_ASIAN,
             "Asian or Asian British - Any other Asian background" = ETHNICITY_ASIAN,
             "Asian or Asian British - Any other background" = ETHNICITY_ASIAN,
             "Asian or Asian British - Bangladeshi" = ETHNICITY_ASIAN,
@@ -144,6 +146,21 @@ simplified_ethnicity <- function(ethnicity)
             "M" = ETHNICITY_BLACK,  # Black or Black British - Caribbean
             "N" = ETHNICITY_BLACK,  # Black or Black British - African
             "P" = ETHNICITY_BLACK,  # Black or Black British - Any other Black background
+            "African - ethnic category 2001 census" = ETHNICITY_BLACK,
+            "Black - ethnic group" = ETHNICITY_BLACK,
+            "Black - other African country" = ETHNICITY_BLACK,
+            "Black - other Asian" = ETHNICITY_BLACK,
+            "Black - other, mixed" = ETHNICITY_BLACK,
+            "Black African" = ETHNICITY_BLACK,
+            "Black Black - other" = ETHNICITY_BLACK,
+            "Black British" = ETHNICITY_BLACK,
+            "Black British - ethnic category 2001 census" = ETHNICITY_BLACK,
+            "Black Caribbean" = ETHNICITY_BLACK,
+            "Black Caribbean/W.I./Guyana" = ETHNICITY_BLACK,
+            "Black East African Asian" = ETHNICITY_BLACK,
+            "Black N African/Arab/Iranian" = ETHNICITY_BLACK,
+            "Black North African" = ETHNICITY_BLACK,
+            "Black, other, non-mixed origin" = ETHNICITY_BLACK,
 
             "D" = ETHNICITY_MIXED,  # Mixed - White and Black Caribbean
             "E" = ETHNICITY_MIXED,  # Mixed - White and Black African
@@ -162,6 +179,11 @@ simplified_ethnicity <- function(ethnicity)
             "Mixed - White and Asian" = ETHNICITY_MIXED,
             "Mixed - White and Black African" = ETHNICITY_MIXED,
             "Mixed - White and Black Caribbean" = ETHNICITY_MIXED,
+            "Asian and Chinese - ethnic category 2001 census" = ETHNICITY_MIXED,
+            "Black African and White" = ETHNICITY_MIXED,
+            "Black and Asian - ethnic category 2001 census" = ETHNICITY_MIXED,
+            "Black and White - ethnic category 2001 census" = ETHNICITY_MIXED,
+            "Black Caribbean and White" = ETHNICITY_MIXED,
 
             "A" = ETHNICITY_WHITE,  # White - British
             "Any other White background" = ETHNICITY_WHITE,
@@ -206,6 +228,12 @@ simplified_ethnicity <- function(ethnicity)
             "Other Ethnic Groups - South/Central American" = ETHNICITY_OTHER,
             "R" = ETHNICITY_OTHER,  # Other Ethnic Groups - Chinese
             "S" = ETHNICITY_OTHER,  # Other Ethnic Groups - Any other ethnic group
+            "Bosnian - ethnic category 2001 census" = ETHNICITY_OTHER,
+            "Brit. ethnic minor. spec.(NMO)" = ETHNICITY_OTHER,
+            "Albanian - ethnic category 2001 census" = ETHNICITY_OTHER,
+            "Any other group - ethnic category 2001 census" = ETHNICITY_OTHER,
+            "Arab - ethnic category 2001 census" = ETHNICITY_OTHER,
+            "Baltic Estonian/Latvian/Lithuanian - ethn categ 2001 census" = ETHNICITY_OTHER,
 
             "Not Known" = ETHNICITY_UNKNOWN,
             "Not Specified" = ETHNICITY_UNKNOWN,
@@ -282,16 +310,52 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
     setcolorder(d, "local_id")
     stopifnot(all(!is.na(d$local_id)))
     stopifnot(all(!is.na(d$hashed_nhs_number)))
+
     d[, ethnicity := simplified_ethnicity(raw_ethnicity)]
-    unknown_ethnicities <- sort(unique(d$raw_ethnicity[is.na(d$ethnicity) & !is.na(d$raw_ethnicity)]))
+    unknown_ethnicities <- sort(unique(
+        d$raw_ethnicity[is.na(d$ethnicity) & !is.na(d$raw_ethnicity)]
+    ))
     if (length(unknown_ethnicities) > 0) {
         warning(paste0(
             "  - Unknown ethnicities: ",
-            paste(unknown_ethnicities, collapse = ", "),
+            paste(unknown_ethnicities, collapse = "; "),
             "\n"
         ))
     }
-    cat("  ... done.\n")
+    d[, raw_ethnicity := NULL]
+
+    DX_GROUP_SMI <- "SMI"
+    DX_GROUP_F_NOT_SMI <- "F_not_SMI"
+    DX_GROUP_OUTSIDE_F <- "codes_not_F"
+    DX_GROUP_NONE <- "no_codes"
+    d[,
+        diagnostic_group := factor(
+            ifelse(
+                severe_mental_illness_icd10_dx_present,
+                DX_GROUP_SMI,
+                ifelse(
+                    chapter_f_icd10_dx_present,
+                    DX_GROUP_F_NOT_SMI,
+                    ifelse(
+                        any_icd10_dx_present,
+                        DX_GROUP_OUTSIDE_F,
+                        DX_GROUP_NONE
+                    )
+                )
+            ),
+            levels = c(
+                DX_GROUP_NONE,
+                DX_GROUP_OUTSIDE_F,
+                DX_GROUP_F_NOT_SMI,
+                DX_GROUP_SMI
+            )
+        )
+    ]
+    d[, any_icd10_dx_present := NULL]
+    d[, chapter_f_icd10_dx_present := NULL]
+    d[, severe_mental_illness_icd10_dx_present := NULL]
+
+    cat(paste0("  ... done (", nrow(d), " rows).\n"))
     return(d)
 }
 
@@ -347,9 +411,10 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
             "index_of_multiple_deprivation",
             # "first_mh_care_date",
             "age_at_first_mh_care",
-            "any_icd10_dx_present",
-            "chapter_f_icd10_dx_present",
-            "severe_mental_illness_icd10_dx_present",
+            # "any_icd10_dx_present",
+            # "chapter_f_icd10_dx_present",
+            # "severe_mental_illness_icd10_dx_present",
+            "diagnostic_group",
 
             # Reported match
             "log_odds_match",
@@ -390,8 +455,8 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
         # Miss, subject to thresholds.
         is.na(hashed_nhs_number_best_candidate) & !proband_in_sample
     ]
-    cat("  ... done.\n")
 
+    cat(paste0("  ... done (", nrow(d), " rows).\n"))
     return(d)
 }
 
