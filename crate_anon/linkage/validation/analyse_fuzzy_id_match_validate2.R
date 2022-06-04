@@ -7,6 +7,7 @@ During testing:
 
 source("C:/srv/crate/src/crate/crate_anon/linkage/analyse_fuzzy_id_match_validate2.R")
 
+or Ctrl-Shift-S to source from RStudio.
 
 Criteria
 --------
@@ -91,8 +92,15 @@ simplified_ethnicity <- function(ethnicity)
 {
     # We have to deal with ethnicity text from lots of different clinical
     # record systems.
-    # Categories as per:
-    # https://www.ethnicity-facts-figures.service.gov.uk/ethnicity-in-the-uk/ethnic-groups-by-age
+    #
+    # - Categories as per:
+    #   https://www.ethnicity-facts-figures.service.gov.uk/ethnicity-in-the-uk/ethnic-groups-by-age
+    # - Single-letter codes:
+    #   https://www.datadictionary.nhs.uk/attributes/ethnic_category_code_2001.html
+    # - There is illogicality, e.g. China and Japan are part of Asia. But the
+    #   NHS conventions include "Mixed - Asian and Chinese" and Chinese (R) is
+    #   not within the Asian (A*) group. So we use "other" here.
+
     ETHNICITY_ASIAN <- "asian"
     ETHNICITY_BLACK <- "black"
     ETHNICITY_MIXED <- "mixed"
@@ -108,13 +116,57 @@ simplified_ethnicity <- function(ethnicity)
             "Asian or Asian British - Any other background" = ETHNICITY_ASIAN,
             "Asian or Asian British - Bangladeshi" = ETHNICITY_ASIAN,
             "Asian or Asian British - British" = ETHNICITY_ASIAN,
+            "Asian or Asian British - Caribbean Asian" = ETHNICITY_ASIAN,
+            "Asian or Asian British - East African Asian" = ETHNICITY_ASIAN,
             "Asian or Asian British - Indian" = ETHNICITY_ASIAN,
+            "Asian or Asian British - Kashmiri" = ETHNICITY_ASIAN,
+            "Asian or Asian British - Mixed Asian" = ETHNICITY_ASIAN,
             "Asian or Asian British - Other/Unspecified" = ETHNICITY_ASIAN,
             "Asian or Asian British - Pakistani" = ETHNICITY_ASIAN,
-            "Other Ethnic Group - Chinese" = ETHNICITY_ASIAN,
-            "Other Ethnic Groups - Chinese" = ETHNICITY_ASIAN,
+            "Asian or Asian British - Punjabi" = ETHNICITY_ASIAN,
+            "Asian or Asian British - Sinhalese" = ETHNICITY_ASIAN,
+            "Asian or Asian British - Sri Lanka" = ETHNICITY_ASIAN,
+            "Asian or Asian British - Tamil" = ETHNICITY_ASIAN,
+            "H" = ETHNICITY_ASIAN,  # Asian or Asian British - Indian
+            "J" = ETHNICITY_ASIAN,  # Asian or Asian British - Pakistani
+            "K" = ETHNICITY_ASIAN,  # Asian or Asian British - Bangladeshi
+            "L" = ETHNICITY_ASIAN,  # Asian or Asian British - Any other Asian background
 
+            "Black or Black British - African" = ETHNICITY_BLACK,
+            "Black or Black British - Any other background" = ETHNICITY_BLACK,
+            "Black or Black British - Any other Black background" = ETHNICITY_BLACK,
+            "Black or Black British - British" = ETHNICITY_BLACK,
+            "Black or Black British - Caribbean" = ETHNICITY_BLACK,
+            "Black or Black British - Mixed" = ETHNICITY_BLACK,
+            "Black or Black British - Nigerian" = ETHNICITY_BLACK,
+            "Black or Black British - Other/Unspecified" = ETHNICITY_BLACK,
+            "Black or Black British - Somali" = ETHNICITY_BLACK,
+            "M" = ETHNICITY_BLACK,  # Black or Black British - Caribbean
+            "N" = ETHNICITY_BLACK,  # Black or Black British - African
+            "P" = ETHNICITY_BLACK,  # Black or Black British - Any other Black background
+
+            "D" = ETHNICITY_MIXED,  # Mixed - White and Black Caribbean
+            "E" = ETHNICITY_MIXED,  # Mixed - White and Black African
+            "F" = ETHNICITY_MIXED,  # Mixed - White and Asian
+            "G" = ETHNICITY_MIXED,  # Mixed - Any other mixed background
+            "Mixed - Any other mixed background" = ETHNICITY_MIXED,
+            "Mixed - Asian and Chinese" = ETHNICITY_MIXED,
+            "Mixed - Black and Asian" = ETHNICITY_MIXED,
+            "Mixed - Black and Chinese" = ETHNICITY_MIXED,
+            "Mixed - Black and White" = ETHNICITY_MIXED,
+            "Mixed - Chinese and White" = ETHNICITY_MIXED,
+            "Mixed - Other/Unspecified" = ETHNICITY_MIXED,
+            "Mixed - White & Asian" = ETHNICITY_MIXED,
+            "Mixed - White & Black African" = ETHNICITY_MIXED,
+            "Mixed - White & Black Caribbean" = ETHNICITY_MIXED,
+            "Mixed - White and Black African" = ETHNICITY_MIXED,
+
+            "A" = ETHNICITY_WHITE,  # White - British
             "Any other White background" = ETHNICITY_WHITE,
+            "B" = ETHNICITY_WHITE,  # White - Irish
+            "C" = ETHNICITY_WHITE,  # White - Any other White backgroud
+            "CPFTEWSNI" = ETHNICITY_WHITE,  # ?England, Wales, Scotland, Northern Ireland
+            "CPFTTraveller" = ETHNICITY_WHITE,  # based on national "White - Traveller"
             "White - All Republics of former USSR" = ETHNICITY_WHITE,
             "White - Any other background" = ETHNICITY_WHITE,
             "White - British" = ETHNICITY_WHITE,
@@ -130,30 +182,36 @@ simplified_ethnicity <- function(ethnicity)
             "White - Traveller" = ETHNICITY_WHITE,
             "White - Welsh" = ETHNICITY_WHITE,
 
-            "Black or Black British - African" = ETHNICITY_BLACK,
-            "Black or Black British - Any other background" = ETHNICITY_BLACK,
-            "Black or Black British - Any other Black background" = ETHNICITY_BLACK,
-            "Black or Black British - British" = ETHNICITY_BLACK,
-            "Black or Black British - Caribbean" = ETHNICITY_BLACK,
-            "Black or Black British - Other/Unspecified" = ETHNICITY_BLACK,
-
-            "Mixed - Any other mixed background" = ETHNICITY_MIXED,
-            "Mixed - White & Black African" = ETHNICITY_MIXED,
-            "Mixed - White & Black Caribbean" = ETHNICITY_MIXED,
-            "Mixed - White and Black African" = ETHNICITY_MIXED,
-
             "Any Other Group" = ETHNICITY_OTHER,
+            "Other Ethnic Group - Chinese" = ETHNICITY_OTHER,
             "Other Ethnic Group" = ETHNICITY_OTHER,
             "Other Ethnic Groups - Any Other Group" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Arab" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Buddhist" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Chinese" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Filipino" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Hindu" = ETHNICITY_OTHER,
             "Other Ethnic Groups - Iranian" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Israeli" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Japanese" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Jewish" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Kurdish" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Latin American" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Malaysian" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Maur/SEyc/Mald/StHelen" = ETHNICITY_OTHER,
+            "Other Ethnic Groups - Moroccan" = ETHNICITY_OTHER,
             "Other Ethnic Groups - Muslim" = ETHNICITY_OTHER,
             "Other Ethnic Groups - South/Central American" = ETHNICITY_OTHER,
+            "R" = ETHNICITY_OTHER,  # Other Ethnic Groups - Chinese
+            "S" = ETHNICITY_OTHER,  # Other Ethnic Groups - Any other ethnic group
 
             "Not Known" = ETHNICITY_UNKNOWN,
             "Not Specified" = ETHNICITY_UNKNOWN,
             "Not Stated (Client Refused)" = ETHNICITY_UNKNOWN,
             "Not Stated (Not Requested)" = ETHNICITY_UNKNOWN,
             "Not Stated" = ETHNICITY_UNKNOWN,
+            "NOTKNOWN" = ETHNICITY_UNKNOWN,
+            "Z" = ETHNICITY_UNKNOWN,  # Not stated
 
             .default = NA_character_
         ),
