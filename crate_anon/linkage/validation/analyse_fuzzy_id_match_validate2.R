@@ -137,12 +137,12 @@ ETHNICITY_OTHER <- "other"
 ETHNICITY_UNKNOWN <- "unknown"
 # Should be no NA values for ethnicity.
 ETHNICITY_LEVELS <- c(
-    ETHNICITY_UNKNOWN,  # put this first as comparator for ANOVA
+    ETHNICITY_WHITE,  # most common group in UK, so reference category here
     ETHNICITY_ASIAN,
     ETHNICITY_BLACK,
     ETHNICITY_MIXED,
-    ETHNICITY_WHITE,
-    ETHNICITY_OTHER
+    ETHNICITY_OTHER,
+    ETHNICITY_UNKNOWN
 )
 
 SEX_F <- "F"
@@ -559,7 +559,7 @@ imd_centile_100_most_deprived <- function(index_of_multiple_deprivation)
 }
 
 
-load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = FALSE)
+load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
 {
     # data.table::fread() messes up the quotes in JSON; probably possible to
     # tweak it, but this is easier!
@@ -694,6 +694,12 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = FALSE)
         d[, chapter_f_icd10_dx_present := NULL]
         d[, severe_mental_illness_icd10_dx_present := NULL]
     }
+
+    stopifnot(all(!is.na(d$blurred_dob)))
+    stopifnot(all(!is.na(d$sex_simple)))
+    stopifnot(all(!is.na(d$ethnicity)))
+    stopifnot(all(!is.na(d$diagnostic_group)))
+    stopifnot(all(!is.na(d$dx_group_simple)))
 
     cat(paste0("  ... done (", nrow(d), " rows).\n"))
     return(d)
@@ -851,7 +857,6 @@ get_demographics <- function(d, db_name)
         dob_year_max = max(year(d$blurred_dob), na.rm = TRUE),
         dob_year_mean = mean(year(d$blurred_dob), na.rm = TRUE),
         dob_year_sd = sd(year(d$blurred_dob), na.rm = TRUE),
-        dob_year_n_unknown = sum(is.na(d$blurred_dob)),
 
         sex_n_female = sum(d$gender == SEX_F, na.rm = TRUE),
         sex_n_male = sum(d$gender == SEX_M, na.rm = TRUE),
@@ -864,13 +869,11 @@ get_demographics <- function(d, db_name)
         ethnicity_n_white = sum(d$ethnicity == ETHNICITY_WHITE, na.rm = TRUE),
         ethnicity_n_other = sum(d$ethnicity == ETHNICITY_OTHER, na.rm = TRUE),
         ethnicity_n_unknown = sum(d$ethnicity == ETHNICITY_UNKNOWN, na.rm = TRUE),
-        ethnicity_n_na = sum(is.na(d$ethnicity)),
 
         dx_n_smi = sum(d$diagnostic_group == DX_GROUP_SMI, na.rm = TRUE),
         dx_n_f_not_smi = sum(d$diagnostic_group == DX_GROUP_F_NOT_SMI, na.rm = TRUE),
         dx_n_outside_f = sum(d$diagnostic_group == DX_GROUP_OUTSIDE_F, na.rm = TRUE),
         dx_n_none = sum(d$diagnostic_group == DX_GROUP_NONE, na.rm = TRUE),
-        dx_n_na = sum(is.na(d$diagnostic_group)),
 
         deprivation_centile_min = min(d$deprivation_centile_100_most_deprived, na.rm = TRUE),
         deprivation_centile_max = max(d$deprivation_centile_100_most_deprived, na.rm = TRUE),
@@ -885,8 +888,6 @@ get_demographics <- function(d, db_name)
         age_at_first_mh_care_n_unknown = sum(is.na(d$age_at_first_mh_care))
     )
 
-    results[, dob_year_pct_unknown := 100 * dob_year_n_unknown / n_total]
-
     results[, sex_pct_female := 100 * sex_n_female / n_total]
     results[, sex_pct_male := 100 * sex_n_male / n_total]
     results[, sex_pct_other := 100 * sex_n_other / n_total]
@@ -898,13 +899,11 @@ get_demographics <- function(d, db_name)
     results[, ethnicity_pct_white := 100 * ethnicity_n_white / n_total]
     results[, ethnicity_pct_other := 100 * ethnicity_n_other / n_total]
     results[, ethnicity_pct_unknown := 100 * ethnicity_n_unknown / n_total]
-    results[, ethnicity_pct_na := 100 * ethnicity_n_na / n_total]
 
     results[, dx_pct_smi := 100 * dx_n_smi / n_total]
     results[, dx_pct_f_not_smi := 100 * dx_n_f_not_smi / n_total]
     results[, dx_pct_outside_f := 100 * dx_n_outside_f / n_total]
     results[, dx_pct_none := 100 * dx_n_none / n_total]
-    results[, dx_pct_na := 100 * dx_n_na / n_total]
 
     results[, deprivation_centile_pct_unknown :=
         100 * deprivation_centile_n_unknown / n_total]
@@ -932,6 +931,7 @@ get_all_demographics <- function()
 
 if (FALSE) {
     load_all()
+
     dg <- get_all_demographics()
     print(dg)
 }
