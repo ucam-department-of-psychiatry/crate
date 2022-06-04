@@ -110,7 +110,7 @@ simplified_ethnicity <- function(ethnicity)
 
     return(factor(
         dplyr::recode(
-            ethnicity,
+            str_trim(ethnicity),  # remove leading/trailing whitespace
 
             "Asian - ethnic group" = ETHNICITY_ASIAN,
             "Asian or Asian British - Any other Asian background" = ETHNICITY_ASIAN,
@@ -128,6 +128,8 @@ simplified_ethnicity <- function(ethnicity)
             "Asian or Asian British - Sinhalese" = ETHNICITY_ASIAN,
             "Asian or Asian British - Sri Lanka" = ETHNICITY_ASIAN,
             "Asian or Asian British - Tamil" = ETHNICITY_ASIAN,
+            "Bangladeshi or British Bangladeshi - ethn categ 2001 census" = ETHNICITY_ASIAN,
+            "Bangladeshi" = ETHNICITY_ASIAN,
             "Bangladeshi,  Bangladeshi or British Bangladeshi - ethn categ 2001 census" = ETHNICITY_ASIAN,
             "H" = ETHNICITY_ASIAN,  # Asian or Asian British - Indian
             "J" = ETHNICITY_ASIAN,  # Asian or Asian British - Pakistani
@@ -163,6 +165,7 @@ simplified_ethnicity <- function(ethnicity)
             "P" = ETHNICITY_BLACK,  # Black or Black British - Any other Black background
 
             "Asian and Chinese - ethnic category 2001 census" = ETHNICITY_MIXED,
+            "Black - other, mixed" = ETHNICITY_MIXED,
             "Black African and White" = ETHNICITY_MIXED,
             "Black and Asian - ethnic category 2001 census" = ETHNICITY_MIXED,
             "Black and White - ethnic category 2001 census" = ETHNICITY_MIXED,
@@ -517,4 +520,4 @@ load_all <- function()
 # Load data
 # =============================================================================
 
-load_all()
+# load_all()
