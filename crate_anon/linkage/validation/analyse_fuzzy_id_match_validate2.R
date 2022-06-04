@@ -1,9 +1,20 @@
 #!/usr/bin/env Rscript
 # crate_anon/linkage/analyse_fuzzy_id_match_validate2.R
 
-# For the main CPFT validation suite.
-# During testing:
-# source("C:/srv/crate/src/crate/crate_anon/linkage/analyse_fuzzy_id_match_validate2.R")
+'
+For the main CPFT validation suite.
+During testing:
+
+source("C:/srv/crate/src/crate/crate_anon/linkage/analyse_fuzzy_id_match_validate2.R")
+
+
+Criteria
+--------
+
+    log_odds_match >= threshold_1
+    log_odds_match >= second_best_log_odds + threshold_2
+
+'
 
 # =============================================================================
 # Libraries

@@ -1,5 +1,5 @@
 usage: crate_fuzzy_id_match [-h] [--version] [--allhelp]
-                            {hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,print_demo_sample,show_metaphone,show_forename_freq,show_forename_metaphone_freq,show_surname_freq,show_surname_metaphone_freq,show_dob_freq}
+                            {hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,print_demo_sample,show_metaphone,show_forename_freq,show_forename_metaphone_freq,show_surname_freq,show_surname_metaphone_freq,show_dob_freq,show_postcode_freq}
                             ...
 
 Identity matching via hashed fuzzy identifiers
@@ -12,7 +12,7 @@ optional arguments:
 commands:
   Valid commands are as follows.
 
-  {hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,print_demo_sample,show_metaphone,show_forename_freq,show_forename_metaphone_freq,show_surname_freq,show_surname_metaphone_freq,show_dob_freq}
+  {hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,print_demo_sample,show_metaphone,show_forename_freq,show_forename_metaphone_freq,show_surname_freq,show_surname_metaphone_freq,show_dob_freq,show_postcode_freq}
                         Specify one command.
     hash                STEP 1 OF DE-IDENTIFIED LINKAGE. Hash an identifiable
                         CSV file into an encrypted one.
@@ -37,6 +37,7 @@ commands:
     show_surname_metaphone_freq
                         Show frequencies of surname metaphones
     show_dob_freq       Show the frequency of any DOB
+    show_postcode_freq  Show the frequency of any postcode
 
 ===============================================================================
 Help for command 'hash'
@@ -334,10 +335,10 @@ comparison options:
                         number of CPUs on your system. (default: 8)
   --max_chunksize MAX_CHUNKSIZE
                         Maximum chunk size (number of probands to pass to a
-                        subprocess each time). (default: 500)
+                        subprocess each time). (default: 1000)
   --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
                         Minimum number of probands for which we will bother to
-                        use parallel processing. (default: 100)
+                        use parallel processing. (default: 1000)
   --profile             Profile the code (for development only). (default:
                         False)
 
@@ -606,10 +607,10 @@ comparison options:
                         number of CPUs on your system. (default: 8)
   --max_chunksize MAX_CHUNKSIZE
                         Maximum chunk size (number of probands to pass to a
-                        subprocess each time). (default: 500)
+                        subprocess each time). (default: 1000)
   --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
                         Minimum number of probands for which we will bother to
-                        use parallel processing. (default: 100)
+                        use parallel processing. (default: 1000)
   --profile             Profile the code (for development only). (default:
                         False)
 
@@ -868,10 +869,10 @@ comparison options:
                         number of CPUs on your system. (default: 8)
   --max_chunksize MAX_CHUNKSIZE
                         Maximum chunk size (number of probands to pass to a
-                        subprocess each time). (default: 500)
+                        subprocess each time). (default: 1000)
   --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
                         Minimum number of probands for which we will bother to
-                        use parallel processing. (default: 100)
+                        use parallel processing. (default: 1000)
   --profile             Profile the code (for development only). (default:
                         False)
 
@@ -1455,6 +1456,106 @@ usage: crate_fuzzy_id_match show_dob_freq [-h]
                                           [--mean_oa_population MEAN_OA_POPULATION]
                                           [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
                                           [--verbose]
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+frequency information for prior probabilities:
+  --population_size POPULATION_SIZE
+                        Size of the whole population, from which we calculate
+                        the baseline log odds that two people, randomly
+                        selected (and replaced) from the population are the
+                        same person.
+  --forename_cache_filename FORENAME_CACHE_FILENAME
+                        File in which to store cached forename info (to speed
+                        loading)
+  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
+                        CSV file of "name, sex, frequency" pairs for
+                        forenames. You can generate one via
+                        crate_fetch_wordlists. If you later alter this, delete
+                        your forename cache so it can be rebuilt.
+  --surname_cache_filename SURNAME_CACHE_FILENAME
+                        File in which to store cached surname info (to speed
+                        loading)
+  --surname_freq_csv SURNAME_FREQ_CSV
+                        CSV file of "name, frequency" pairs for forenames. You
+                        can generate one via crate_fetch_wordlists. If you
+                        later alter this, delete your surname cache so it can
+                        be rebuilt.
+  --min_name_frequency MIN_NAME_FREQUENCY
+                        Minimum base frequency for names. If a frequency is
+                        less than this, use this minimum. Allowing extremely
+                        low frequencies may increase the chances of a spurious
+                        match. Note also that typical name frequency tables
+                        don't give very-low-frequency information. For
+                        example, for US census forename/surname information,
+                        below 0.001 percent they report 0.000 percent; so a
+                        reasonable minimum is 0.0005 percent or 0.000005 or
+                        5e-6.
+  --p_middle_name_n_present P_MIDDLE_NAME_N_PRESENT
+                        CSV list of probabilities that a randomly selected
+                        person has a certain number of middle names. The first
+                        number is P(has a first middle name). The second
+                        number is P(has a second middle name | has a first
+                        middle name), and so on. The last number present will
+                        be re-used ad infinitum if someone has more names.
+  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
+                        Birth year pseudo-range. The sole purpose is to
+                        calculate the probability of two random people sharing
+                        a DOB, which is taken as 1/(365.25 * b). This option
+                        is b.
+  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
+                        Probability that a person in the population has gender
+                        'X'.
+  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
+                        Probability that a person in the population is female,
+                        given that they are either male or female.
+  --postcode_cache_filename POSTCODE_CACHE_FILENAME
+                        File in which to store cached postcodes (to speed
+                        loading).
+  --postcode_csv_filename POSTCODE_CSV_FILENAME
+                        CSV file of postcode geography from UK Census/ONS
+                        data. A ZIP file is also acceptable. [Information
+                        saved in the postcode cache. If you change this,
+                        delete your postcode cache.]
+  --mean_oa_population MEAN_OA_POPULATION
+                        Mean population of a UK Census Output Area, from which
+                        we estimate the population of postcode-based units.
+                        [Information saved in the postcode cache. If you
+                        change this, delete your postcode cache.]
+  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
+                        Proportion of the (UK) population expected to be
+                        assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
+                        abode; ZZ99 3CZ, England/UK not otherwise specified)
+                        or to have a postcode not known to the postcode
+                        geography database.
+
+display options:
+  --verbose             Be verbose
+
+===============================================================================
+Help for command 'show_postcode_freq'
+===============================================================================
+usage: crate_fuzzy_id_match show_postcode_freq [-h]
+                                               [--population_size POPULATION_SIZE]
+                                               [--forename_cache_filename FORENAME_CACHE_FILENAME]
+                                               [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                               [--surname_cache_filename SURNAME_CACHE_FILENAME]
+                                               [--surname_freq_csv SURNAME_FREQ_CSV]
+                                               [--min_name_frequency MIN_NAME_FREQUENCY]
+                                               [--p_middle_name_n_present P_MIDDLE_NAME_N_PRESENT]
+                                               [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
+                                               [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
+                                               [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
+                                               [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
+                                               [--postcode_csv_filename POSTCODE_CSV_FILENAME]
+                                               [--mean_oa_population MEAN_OA_POPULATION]
+                                               [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                               [--verbose]
+                                               postcodes [postcodes ...]
+
+positional arguments:
+  postcodes             postcodes to check
 
 optional arguments:
   -h, --help            show this help message and exit

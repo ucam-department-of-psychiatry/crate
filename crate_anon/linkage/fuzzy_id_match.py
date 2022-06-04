@@ -266,7 +266,7 @@ Without:
 # Constants
 # =============================================================================
 
-CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = False  # for debugging only
+# CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = False  # for debugging only
 
 CRATE_FETCH_WORDLISTS = "crate_fetch_wordlists"
 DAYS_PER_YEAR = 365.25  # approximately!
@@ -1050,9 +1050,9 @@ class DirectComparison(Comparison):
             p_d_given_diff_person: :math:`P(D | \neg H)`
         """
         super().__init__(**kwargs)
-        if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
-            assert 0 <= p_d_given_same_person <= 1
-            assert 0 <= p_d_given_diff_person <= 1
+        # if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
+        #     assert 0 <= p_d_given_same_person <= 1
+        #     assert 0 <= p_d_given_diff_person <= 1
         self._p_d_given_h = p_d_given_same_person
         self._p_d_given_not_h = p_d_given_diff_person
 
@@ -1101,9 +1101,9 @@ class MatchNoMatchComparison(Comparison):
                 :math:`P(D | \neg H) = 1 - P(\text{match given different person}) = 1 - p_f`.
         """  # noqa
         super().__init__(**kwargs)
-        if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
-            assert 0 <= p_match_given_same_person <= 1
-            assert 0 <= p_match_given_diff_person <= 1
+        # if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
+        #     assert 0 <= p_match_given_same_person <= 1
+        #     assert 0 <= p_match_given_diff_person <= 1
         self.match = match
         self.p_match_given_same_person = p_match_given_same_person
         self.p_match_given_diff_person = p_match_given_diff_person
@@ -1161,10 +1161,10 @@ class FullPartialNoMatchComparison(Comparison):
                 :math:`p_p = P(\text{partial match} | \neg H)`
         """
         super().__init__(**kwargs)
-        if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
-            assert 0 <= p_f <= 1
-            assert 0 <= p_e <= 1
-            assert 0 <= p_p <= 1
+        # if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
+        #     assert 0 <= p_f <= 1
+        #     assert 0 <= p_e <= 1
+        #     assert 0 <= p_p <= 1
         # This one is worth checking dynamically:
         assert p_f <= p_p, f"p_f={p_f}, p_p={p_p}, but should have p_f <= p_p"
         self.full_match = full_match
@@ -1676,7 +1676,7 @@ class MatchConfig(object):
                 best to be considered a unique winner.
 
             verbose:
-                Be verbose?
+                Be verbose on creation?
         """
         assert population_size > 0
         assert 0 <= min_name_frequency <= 1
@@ -1729,8 +1729,6 @@ class MatchConfig(object):
 
         self.min_log_odds_for_match = min_log_odds_for_match
         self.exceeds_next_best_log_odds = exceeds_next_best_log_odds
-
-        self.verbose = verbose
 
         p_male_or_female = 1 - p_not_male_or_female
         self.p_female = p_female_given_male_or_female * p_male_or_female
@@ -1808,11 +1806,6 @@ class MatchConfig(object):
                 name, GENDER_MALE, prestandardized=True
             )
             freq = self.mean_across_genders(freq_f, freq_m)
-        if self.verbose:
-            log.debug(
-                f"    Forename frequency for {name}, gender {gender!r}: "
-                f"{freq}"
-            )
         return freq
 
     def forename_metaphone_freq(self, metaphone: str, gender: str) -> float:
@@ -1833,11 +1826,6 @@ class MatchConfig(object):
                 metaphone, GENDER_MALE
             )
             freq = self.mean_across_genders(freq_f, freq_m)
-        if self.verbose:
-            log.debug(
-                f"    Forename metaphone frequency for {metaphone}, "
-                f"gender {gender!r}: {freq}"
-            )
         return freq
 
     def p_middle_name_present(self, n: int) -> float:
@@ -1849,8 +1837,8 @@ class MatchConfig(object):
         2 is the probability of having a second middle name, given that you
         have a first middle name.)
         """
-        if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
-            assert n >= 1
+        # if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
+        #     assert n >= 1
         if not self.p_middle_name_n_present:
             return 0
         if n > len(self.p_middle_name_n_present):
@@ -1868,8 +1856,6 @@ class MatchConfig(object):
         freq = self._surname_freq.name_frequency(
             name, prestandardized=prestandardized
         )
-        if self.verbose:
-            log.debug(f"    Surname frequency for {name}: {freq}")
         return freq
 
     def surname_metaphone_freq(self, metaphone: str) -> float:
@@ -1880,10 +1866,6 @@ class MatchConfig(object):
             metaphone: the metaphone to check
         """
         freq = self._surname_freq.metaphone_frequency(metaphone)
-        if self.verbose:
-            log.debug(
-                f"    Surname metaphone frequency for {metaphone}: " f"{freq}"
-            )
         return freq
 
     def gender_freq(self, gender: str) -> Optional[float]:
@@ -1915,11 +1897,6 @@ class MatchConfig(object):
         ) = self._postcode_freq.postcode_unit_sector_frequency(
             postcode_unit, prestandardized=prestandardized
         )
-        if self.verbose:
-            log.debug(
-                f"Postcode {postcode_unit}: unit frequency {unit_freq}, "
-                f"sector frequency {sector_freq}"
-            )
         return unit_freq, sector_freq
 
     def debug_postcode_unit_population(
@@ -3109,7 +3086,6 @@ class Person(BasePerson):
         Returns:
             float: the log odds they're the same person
         """
-        # log.debug(f"Comparing self={self}; other={proband}")
         return bayes_compare(
             prior_log_odds=self.cfg.baseline_log_odds_same_person,
             comparisons=self._gen_comparisons(proband),
@@ -3450,7 +3426,6 @@ class People(object):
     def __init__(
         self,
         cfg: MatchConfig,
-        verbose: bool = False,
         person: Person = None,
         people: List[Person] = None,
     ) -> None:
@@ -3461,7 +3436,6 @@ class People(object):
         if some people have duplicate ``local_id`` values.
         """
         self.cfg = cfg
-        self.verbose = verbose
         self.people = []  # type: List[Person]
         self.dob_to_people = defaultdict(list)  # type: Dict[str, List[Person]]
         self.hashed_dob_to_people = defaultdict(
@@ -3538,7 +3512,7 @@ class People(object):
             hashed_dob = proband.hashed_dob
             if not hashed_dob:
                 return []
-            return self.hashed_dob_to_people[hashed_dob]
+            return self.hashed_dob_to_people[proband.hashed_dob]
         else:
             dob = proband.dob
             if not dob:
@@ -3553,7 +3527,6 @@ class People(object):
         Args:
             proband: a :class:`Person`
         """
-        verbose = self.verbose
 
         # 2020-04-25: Do this in one pass.
         # A bit like
@@ -3561,20 +3534,15 @@ class People(object):
         # ... but modified, as that fails to deal with joint winners
         # ... and it's not a super algorithm anyway.
 
-        # Step 1. Scan everything in a single pass, establishing the winner
-        # and the runner-up.
+        # Step 1. Scan everything in a single pass, establishing the best
+        # candidate and the runner-up.
         cfg = self.cfg
         best_idx = -1
         second_best_idx = -1
         best_log_odds = MINUS_INFINITY
         second_best_log_odds = MINUS_INFINITY
+
         shortlist = self.shortlist(proband)
-        if verbose:
-            txt_shortlist = "; ".join(str(x) for x in shortlist)
-            log.debug(
-                f"Proband: {proband}. Sample size: {len(self.people)}. "
-                f"Shortlist ({len(shortlist)}): {txt_shortlist}"
-            )
         for idx, candidate in enumerate(shortlist):
             log_odds = candidate.log_odds_same(proband)
             if log_odds > best_log_odds:
@@ -3595,34 +3563,19 @@ class People(object):
             ),
             proband=proband,
         )
-        result.winner = result.best_candidate
 
-        if not result.winner:
-            if verbose:
-                log.debug("No candidates")
+        # Is there a winner?
+        if (
+            result.best_candidate
+            and best_log_odds >= cfg.min_log_odds_for_match
+            and best_log_odds
+            >= (second_best_log_odds + cfg.exceeds_next_best_log_odds)
+        ):
+            # (a) There needs to be a best candidate.
+            # (b) The best needs to be good enough.
+            # (c) The best must beat the runner-up by a sufficient margin.
+            result.winner = result.best_candidate
 
-        # Step 2: is the best good enough?
-        elif best_log_odds < cfg.min_log_odds_for_match:
-            if verbose:
-                log.debug("Best is not good enough")
-            result.winner = None
-
-        # Step 3: is the runner-up too close, so we have >1 match and cannot
-        # decide with sufficient confidence (so must reject)?
-        elif (
-            best_log_odds
-            < second_best_log_odds + cfg.exceeds_next_best_log_odds
-        ):  # noqa
-            if verbose:
-                log.debug("Second-best is too close to best")
-            result.winner = None
-
-        # Step 4: clear-enough winner found.
-        elif verbose:
-            log.debug("Found a winner")
-
-        if verbose:
-            log.debug(repr(result))
         return result
 
     def get_unique_match(self, proband: Person) -> Optional[Person]:
@@ -4310,6 +4263,7 @@ class Commands:
     SHOW_SURNAME_FREQ = "show_surname_freq"
     SHOW_SURNAME_METAPHONE_FREQ = "show_surname_metaphone_freq"
     SHOW_DOB_FREQ = "show_dob_freq"
+    SHOW_POSTCODE_FREQ = "show_postcode_freq"
 
 
 # -----------------------------------------------------------------------------
@@ -5128,6 +5082,16 @@ normally for testing.""",
     add_config_options(show_dob_freq_parser)
     add_basic_options(show_dob_freq_parser)
 
+    show_postcode_freq_parser = subparsers.add_parser(
+        Commands.SHOW_POSTCODE_FREQ,
+        help="Show the frequency of any postcode",
+    )
+    show_postcode_freq_parser.add_argument(
+        "postcodes", nargs="+", help="postcodes to check"
+    )
+    add_config_options(show_postcode_freq_parser)
+    add_basic_options(show_postcode_freq_parser)
+
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Parse arguments and set up
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -5324,6 +5288,25 @@ normally for testing.""",
             require_matching=False,
         )
         log.info(f"DOB frequency: {cfg.p_two_people_share_dob}")
+
+    elif args.command == Commands.SHOW_POSTCODE_FREQ:
+        cfg = get_cfg_from_args(
+            args,
+            require_hasher=False,
+            require_main_config=True,
+            require_error=False,
+            require_matching=False,
+        )
+        for postcode in args.postcodes:
+            postcode = standardize_postcode(postcode)
+            sector = get_postcode_sector(postcode)
+            unit_freq, sector_freq = cfg.postcode_unit_sector_freq(
+                postcode, prestandardized=True
+            )
+            log.info(
+                f"Postcode {postcode!r}: {unit_freq} / "
+                f"sector {sector!r}: {sector_freq}"
+            )
 
     else:
         # Shouldn't get here.
