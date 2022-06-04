@@ -119,6 +119,9 @@ DX_GROUP_SMI <- "SMI"
 DX_GROUP_F_NOT_SMI <- "F_not_SMI"
 DX_GROUP_OUTSIDE_F <- "codes_not_F"
 DX_GROUP_NONE <- "no_codes"
+# Should be no NA values for diagnostic_group.
+# For dx_group_simple, we blend the last two:
+DX_GROUP_NO_MH <- "no_MH_codes"
 
 ETHNICITY_ASIAN <- "asian"
 ETHNICITY_BLACK <- "black"
@@ -126,10 +129,14 @@ ETHNICITY_MIXED <- "mixed"
 ETHNICITY_WHITE <- "white"
 ETHNICITY_OTHER <- "other"
 ETHNICITY_UNKNOWN <- "unknown"
+# Should be no NA values for ethnicity.
 
-SEX_M <- "M"
 SEX_F <- "F"
+SEX_M <- "M"
 SEX_X <- "X"
+# In "gender", we have NA for unknown.
+# In "sex_simple", we combine X with NA for and use
+SEX_OTHER_UNKNOWN <- "other_unknown"
 
 
 # =============================================================================
@@ -534,9 +541,8 @@ imd_centile_100_most_deprived <- function(index_of_multiple_deprivation)
     # Confirmed: SELECT MIN(imd), MAX(imd) FROM onspd.dbo.postcode
     return(
         100
-        - 100 * (index_of_multiple_deprivation - MOST_DEPRIVED_IMD) / (
-            LEAST_DEPRIVED_IMD - MOST_DEPRIVED_IMD
-        )
+        - 100 * (index_of_multiple_deprivation - MOST_DEPRIVED_IMD)
+        / (LEAST_DEPRIVED_IMD - MOST_DEPRIVED_IMD)
     )
 
     # Tests:
@@ -602,6 +608,15 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = FALSE)
     stopifnot(all(!is.na(d$local_id)))
     stopifnot(all(!is.na(d$hashed_nhs_number)))
 
+    d[, sex_simple := factor(
+        ifelse(
+            is.na(gender) | gender == SEX_X,
+            SEX_OTHER_UNKNOWN,
+            gender
+        ),
+        levels=c(SEX_F, SEX_M, SEX_OTHER_UNKNOWN)
+    )]
+
     d[, ethnicity := simplified_ethnicity(raw_ethnicity)]
     d[is.na(ethnicity), ethnicity := ETHNICITY_UNKNOWN]
     unknown_ethnicities <- sort(unique(
@@ -642,6 +657,15 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = FALSE)
             )
         )
     ]
+    d[, dx_group_simple := factor(
+        ifelse(
+            diagnostic_group == DX_GROUP_OUTSIDE_F
+                | diagnostic_group == DX_GROUP_NONE,
+            DX_GROUP_NO_MH,
+            diagnostic_group
+        ),
+        levels=c(DX_GROUP_NO_MH, DX_GROUP_F_NOT_SMI, DX_GROUP_SMI)
+    )]
 
     if (strip_irrelevant) {
         d[, other_info := NULL]
@@ -703,7 +727,8 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
             "hashed_nhs_number_proband",
             "proband_local_id",
             "blurred_dob",
-            "gender",
+            # "gender",
+            "sex_simple",
             "ethnicity",
             "index_of_multiple_deprivation",
             # "first_mh_care_date",
@@ -711,7 +736,8 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
             # "any_icd10_dx_present",
             # "chapter_f_icd10_dx_present",
             # "severe_mental_illness_icd10_dx_present",
-            "diagnostic_group",
+            # "diagnostic_group",
+            "dx_group_simple",
 
             # Reported match
             "log_odds_match",
@@ -889,7 +915,7 @@ get_all_demographics <- function()
 dg <- get_all_demographics()
 print(dg)
 
-# *** check ethnicity: mixed balance -- should be fixed now
+# *** check ethnicity: "mixed" balance -- should be fixed now
 # *** were no diagnoses for SystmOne -- check; should be fine now
 # *** were no IMD values for SystmOne -- check, should be fine now
 # *** max IMD centile >100 but only slightly

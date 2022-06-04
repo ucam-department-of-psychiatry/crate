@@ -551,7 +551,7 @@ def get_metaphone(x: str) -> str:
     metaphones = dmeta(x)
     first_part = metaphones[0]  # the first part only
     if first_part is None:
-        log.warning(f"No metaphone for {x!r}; dmeta() returned {metaphones}")
+        log.warning(f"No metaphone for {x!r}")
         return ""
     return first_part.decode("ascii")
 
