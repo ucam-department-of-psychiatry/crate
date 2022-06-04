@@ -28,9 +28,11 @@ library(pROC)
 library(RJSONIO)
 library(tidyverse)
 
-source("https://egret.psychol.cam.ac.uk/rlib/debugfunc.R")
-source("https://egret.psychol.cam.ac.uk/rlib/miscfile.R")
-source("https://egret.psychol.cam.ac.uk/rlib/miscplot.R")
+RLIB_STEM <- "https://egret.psychol.cam.ac.uk/rlib/"
+source(paste0(RLIB_STEM, "debugfunc.R"))
+source(paste0(RLIB_STEM, "miscfile.R"))
+source(paste0(RLIB_STEM, "misclang.R"))
+source(paste0(RLIB_STEM, "miscplot.R"))
 
 debugfunc$wideScreen()
 
@@ -74,13 +76,37 @@ get_data_filename <- function(db)
     file.path(DATA_DIR, paste0("fuzzy_data_", db, "_hashed.csv"))
 }
 
-
 get_comparison_filename <- function(db1, db2)
 {
     file.path(
         DATA_DIR,
         paste0("fuzzy_compare_", db1, "_to_", db2, "_hashed.csv")
     )
+}
+
+get_data_cache_filename <- function(db)
+{
+    file.path(DATA_DIR, paste0("cached_people_", db, ".rds"))
+}
+
+get_comparison_cache_filename <- function(db1, db2)
+{
+    file.path(DATA_DIR, paste0("cached_comparison_", db1, "_to_", db2, ".rds"))
+}
+
+
+# =============================================================================
+# Variable names
+# =============================================================================
+
+mk_people_var <- function(db)
+{
+    paste0("people_", db)
+}
+
+mk_comparison_var <- function(db1, db2)
+{
+    paste0("compare_", db1, "_to_", db2)
 }
 
 
@@ -131,6 +157,10 @@ simplified_ethnicity <- function(ethnicity)
             "Bangladeshi or British Bangladeshi - ethn categ 2001 census" = ETHNICITY_ASIAN,
             "Bangladeshi" = ETHNICITY_ASIAN,
             "Bangladeshi,  Bangladeshi or British Bangladeshi - ethn categ 2001 census" = ETHNICITY_ASIAN,
+            "British Asian - ethnic category 2001 census" = ETHNICITY_ASIAN,
+            "Caribbean Asian - ethnic category 2001 census" = ETHNICITY_ASIAN,
+            "East African Asian (NMO)" = ETHNICITY_ASIAN,
+            "East African Asian - ethnic category 2001 census" = ETHNICITY_ASIAN,
             "H" = ETHNICITY_ASIAN,  # Asian or Asian British - Indian
             "J" = ETHNICITY_ASIAN,  # Asian or Asian British - Pakistani
             "K" = ETHNICITY_ASIAN,  # Asian or Asian British - Bangladeshi
@@ -160,6 +190,7 @@ simplified_ethnicity <- function(ethnicity)
             "Black or Black British - Other/Unspecified" = ETHNICITY_BLACK,
             "Black or Black British - Somali" = ETHNICITY_BLACK,
             "Black, other, non-mixed origin" = ETHNICITY_BLACK,
+            "Caribbean - ethnic category 2001 census" = ETHNICITY_BLACK,
             "M" = ETHNICITY_BLACK,  # Black or Black British - Caribbean
             "N" = ETHNICITY_BLACK,  # Black or Black British - African
             "P" = ETHNICITY_BLACK,  # Black or Black British - Any other Black background
@@ -170,6 +201,8 @@ simplified_ethnicity <- function(ethnicity)
             "Black and Asian - ethnic category 2001 census" = ETHNICITY_MIXED,
             "Black and White - ethnic category 2001 census" = ETHNICITY_MIXED,
             "Black Caribbean and White" = ETHNICITY_MIXED,
+            "British or mixed British - ethnic category 2001 census" = ETHNICITY_MIXED,
+            "Chinese and White - ethnic category 2001 census" = ETHNICITY_MIXED,
             "D" = ETHNICITY_MIXED,  # Mixed - White and Black Caribbean
             "E" = ETHNICITY_MIXED,  # Mixed - White and Black African
             "F" = ETHNICITY_MIXED,  # Mixed - White and Asian
@@ -196,6 +229,9 @@ simplified_ethnicity <- function(ethnicity)
             "C" = ETHNICITY_WHITE,  # White - Any other White backgroud
             "CPFTEWSNI" = ETHNICITY_WHITE,  # ?England, Wales, Scotland, Northern Ireland
             "CPFTTraveller" = ETHNICITY_WHITE,  # based on national "White - Traveller"
+            "Cypriot (part not stated) - ethnic category 2001 census" = ETHNICITY_WHITE,
+            "English - ethnic category 2001 census" = ETHNICITY_WHITE,
+            "Greek - ethnic category 2001 census" = ETHNICITY_WHITE,
             "White - Albanian" = ETHNICITY_WHITE,
             "White - All Republics of former USSR" = ETHNICITY_WHITE,
             "White - Any other background" = ETHNICITY_WHITE,
@@ -231,6 +267,21 @@ simplified_ethnicity <- function(ethnicity)
             "Arab - ethnic category 2001 census" = ETHNICITY_OTHER,
             "Baltic Estonian/Latvian/Lithuanian - ethn categ 2001 census" = ETHNICITY_OTHER,  # debatable, but in "other" category?
             "Brit. ethnic minor. spec.(NMO)" = ETHNICITY_OTHER,
+            "Brit. ethnic minor. unsp (NMO)" = ETHNICITY_OTHER,
+            "Bulgarian" = ETHNICITY_OTHER,  # unclear
+            "Chinese - ethnic category 2001 census" = ETHNICITY_OTHER,
+            "Chinese" = ETHNICITY_OTHER,
+            "Commonwealth (Russian) Indep States - ethn categ 2001 census" = ETHNICITY_OTHER,  # unclear
+            "Croatian - ethnic category 2001 census" = ETHNICITY_OTHER,  # unclear
+            "Czech" = ETHNICITY_OTHER,  # unclear
+            "Ethnic category - 2001 census" = ETHNICITY_OTHER,
+            "Ethnic category not stated - 2001 census" = ETHNICITY_OTHER,
+            "Ethnic group not given - patient refused" = ETHNICITY_OTHER,
+            "Ethnic groups (census) NOS" = ETHNICITY_OTHER,
+            "Ethnic groups (census)" = ETHNICITY_OTHER,
+            "Ethnic groups" = ETHNICITY_OTHER,
+            "Ethnicity and other related nationality data" = ETHNICITY_OTHER,
+            "Filipino - ethnic category 2001 census" = ETHNICITY_OTHER,
             "Other Ethnic Group - Chinese" = ETHNICITY_OTHER,
             "Other Ethnic Group" = ETHNICITY_OTHER,
             "Other Ethnic Groups - Any Other Group" = ETHNICITY_OTHER,
@@ -485,18 +536,15 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
 
 load_all <- function()
 {
-    mk_people_var <- function(db)
-    {
-        paste0("people_", db)
-    }
-    mk_comparison_var <- function(db1, db2)
-    {
-        paste0("compare_", db1, "_to_", db2)
-    }
     for (db1 in ALL_DATABASES) {
         assign(
             mk_people_var(db1),
-            load_people(get_data_filename(db1)),
+            misclang$load_rds_or_run_function(
+                get_data_cache_filename(db1),
+                load_people,
+                get_data_filename(db1)
+            ),
+            load_people(),
             envir = .GlobalEnv
         )
     }
@@ -504,10 +552,12 @@ load_all <- function()
         for (db2 in TO_DATABASES) {
             assign(
                 mk_comparison_var(db1, db2),
-                load_comparison(
+                misclang$load_rds_or_run_function(
+                    get_comparison_cache_filename(db1, db2),
+                    load_comparison,
                     filename = get_comparison_filename(db1, db2),
                     probands = get(mk_people_var(db1)),
-                    sample = get(mk_people_var(db2)),
+                    sample = get(mk_people_var(db2))
                 ),
                 envir = .GlobalEnv
             )
