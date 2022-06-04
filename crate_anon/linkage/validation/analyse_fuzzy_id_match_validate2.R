@@ -601,6 +601,10 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = FALSE)
         rbindlist() %>%
         cbind(d) %>%
         as.data.table()
+    d[
+        index_of_multiple_deprivation == 0,  # invalid
+        index_of_multiple_deprivation := NA_integer_
+    ]
     d[local_id == "", local_id := NA_character_]
     d[hashed_nhs_number == "", hashed_nhs_number := NA_character_]
     setkey(d, local_id)
@@ -911,13 +915,8 @@ get_all_demographics <- function()
 # Main
 # =============================================================================
 
-# load_all()
-dg <- get_all_demographics()
-print(dg)
-
-# *** check ethnicity: "mixed" balance -- should be fixed now
-# *** were no diagnoses for SystmOne -- check; should be fine now
-# *** were no IMD values for SystmOne -- check, should be fine now
-# *** max IMD centile >100 but only slightly
-
-# *** bonkers age-at-referral dates
+if (FALSE) {
+    load_all()
+    dg <- get_all_demographics()
+    print(dg)
+}
