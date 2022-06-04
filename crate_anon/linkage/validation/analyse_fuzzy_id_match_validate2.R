@@ -722,7 +722,8 @@ load_all <- function()
                 misclang$load_rds_or_run_function(
                     get_comparison_cache_filename(db1, db2),
                     load_comparison,
-                    filename = get_comparison_filename(db1, db2),
+                    get_comparison_filename(db1, db2),
+                    # ... don't use filename =; clashes with load_rds_or_run_function
                     probands = get(mk_people_var(db1)),
                     sample = get(mk_people_var(db2))
                 ),
