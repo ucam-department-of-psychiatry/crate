@@ -562,7 +562,7 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
             "\n"
         ))
     }
-    # d[, raw_ethnicity := NULL]
+    d[, raw_ethnicity := NULL]
 
     DX_GROUP_SMI <- "SMI"
     DX_GROUP_F_NOT_SMI <- "F_not_SMI"
