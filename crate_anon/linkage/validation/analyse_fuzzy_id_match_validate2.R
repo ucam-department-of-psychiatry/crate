@@ -24,6 +24,7 @@ Criteria
 library(data.table)
 library(ggplot2)
 library(gridExtra)
+library(lubridate)
 library(pROC)
 library(RJSONIO)
 library(tidyverse)
@@ -111,7 +112,28 @@ mk_comparison_var <- function(db1, db2)
 
 
 # =============================================================================
-# Data handling functions
+# Factor constants
+# =============================================================================
+
+DX_GROUP_SMI <- "SMI"
+DX_GROUP_F_NOT_SMI <- "F_not_SMI"
+DX_GROUP_OUTSIDE_F <- "codes_not_F"
+DX_GROUP_NONE <- "no_codes"
+
+ETHNICITY_ASIAN <- "asian"
+ETHNICITY_BLACK <- "black"
+ETHNICITY_MIXED <- "mixed"
+ETHNICITY_WHITE <- "white"
+ETHNICITY_OTHER <- "other"
+ETHNICITY_UNKNOWN <- "unknown"
+
+SEX_M <- "M"
+SEX_F <- "F"
+SEX_X <- "X"
+
+
+# =============================================================================
+# Loading data and basic preprocessing
 # =============================================================================
 
 simplified_ethnicity <- function(ethnicity)
@@ -127,13 +149,6 @@ simplified_ethnicity <- function(ethnicity)
     #   NHS conventions include "Mixed - Asian and Chinese" and Chinese (R) is
     #   not within the Asian (A*) group. So we use "other" here.
     # - SystmOne has an extraordinary profusion of these.
-
-    ETHNICITY_ASIAN <- "asian"
-    ETHNICITY_BLACK <- "black"
-    ETHNICITY_MIXED <- "mixed"
-    ETHNICITY_WHITE <- "white"
-    ETHNICITY_OTHER <- "other"
-    ETHNICITY_UNKNOWN <- "unknown"
 
     return(factor(
         dplyr::recode(
@@ -497,6 +512,35 @@ simplified_ethnicity <- function(ethnicity)
 }
 
 
+imd_centile_100_most_deprived <- function(index_of_multiple_deprivation)
+{
+    # index_of_multiple_deprivation: the England IMD, from  1 = Tendring, North
+    # East Essex, most deprived in England, through (in CPFT's area) 10 =
+    # Waveney, Suffolk, through ~14000 for Kensington & Chelsea via 32785
+    # somewhere in South Cambridgeshire to 32844 in Wokingham, Berkshire, the
+    # least deprived in England.
+    # Waveney's deprivation is confirmed at
+    # https://www.eastsuffolk.gov.uk/assets/Your-Council/WDC-Council-Meetings/2016/November/WDC-Overview-and-Scrutiny-Committee-01-11-16/Item-5a-Appendix-A-Hidden-Needs-for-East-Suffolk-Oct-update.pdf
+    # Here, we do not correct for population (unlike e.g.
+    # Jones et al. 2022, https://pubmed.ncbi.nlm.nih.gov/35477868/), and we
+    # simply use the IMD order (so it's the centile for IMD number, not the
+    # centile for population). But like Jones 2022, we use a "deprivation"
+    # centile, i.e. 0 least deprived, 100 most deprived.
+    MOST_DEPRIVED_IMD <- 1
+    LEAST_DEPRIVED_IMD <- 32785
+    return(
+        100
+        - 100 * (index_of_multiple_deprivation - MOST_DEPRIVED_IMD) / (
+            LEAST_DEPRIVED_IMD - MOST_DEPRIVED_IMD
+        )
+    )
+
+    # Tests:
+    # imd_centile_100_most_deprived(1)  # 100
+    # imd_centile_100_most_deprived(32785)  # 0
+}
+
+
 load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
 {
     # data.table::fread() messes up the quotes in JSON; probably possible to
@@ -513,7 +557,8 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
     de_null <- function(x, na_value) {
         # RJSONIO::fromJSON("{'a': null}") produces NULL. rbindlist() later
         # complains, so let's convert NULL to NA explicitly.
-        return(ifelse(is.null(x), na_value, x))
+        # Likewise empty strings.
+        return(ifelse(is.null(x) | x == "", na_value, x))
     }
     d <- lapply(as.character(d$other_info), RJSONIO::fromJSON) %>%
         lapply(
@@ -521,8 +566,8 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
                 list(
                     hashed_nhs_number = e$hashed_nhs_number,
 
-                    blurred_dob = e$blurred_dob,
-                    gender = e$gender,
+                    blurred_dob = de_null(e$blurred_dob, NA_character_),
+                    gender = de_null(e$gender, NA_character_),
                     raw_ethnicity = de_null(e$ethnicity, NA_character_),
                     index_of_multiple_deprivation = de_null(
                         e$index_of_multiple_deprivation,
@@ -564,10 +609,10 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
     }
     d[, raw_ethnicity := NULL]
 
-    DX_GROUP_SMI <- "SMI"
-    DX_GROUP_F_NOT_SMI <- "F_not_SMI"
-    DX_GROUP_OUTSIDE_F <- "codes_not_F"
-    DX_GROUP_NONE <- "no_codes"
+    d[, deprivation_centile_100_most_deprived :=
+        imd_centile_100_most_deprived(index_of_multiple_deprivation)
+    ]
+
     d[,
         diagnostic_group := factor(
             ifelse(
@@ -735,7 +780,83 @@ load_all <- function()
 
 
 # =============================================================================
-# Load data
+# Demographics
+# =============================================================================
+
+get_demographics <- function(d)
+{
+    results <- data.table(
+        n_total = nrow(d),
+
+        dob_year_min = min(year(d$blurred_dob), na.rm = TRUE),
+        dob_year_max = max(year(d$blurred_dob), na.rm = TRUE),
+        dob_year_mean = mean(year(d$blurred_dob), na.rm = TRUE),
+        dob_year_sd = sd(year(d$blurred_dob), na.rm = TRUE),
+        dob_year_n_unknown = sum(is.na(d$blurred_dob)),
+
+        sex_n_female = sum(d$gender == SEX_F),
+        sex_n_male = sum(d$gender == SEX_M),
+        sex_n_other = sum(d$gender == SEX_X),
+        sex_n_unknown = sum(is.na(d$gender)),
+
+        ethnicity_n_asian = sum(d$ethnicity == ETHNICITY_ASIAN),
+        ethnicity_n_black = sum(d$ethnicity == ETHNICITY_BLACK),
+        ethnicity_n_mixed = sum(d$ethnicity == ETHNICITY_MIXED),
+        ethnicity_n_white = sum(d$ethnicity == ETHNICITY_WHITE),
+        ethnicity_n_other = sum(d$ethnicity == ETHNICITY_OTHER),
+        ethnicity_n_unknown = sum(d$ethnicity == ETHNICITY_UNKNOWN),
+
+        dx_n_smi = sum(d$diagnostic_group == DX_GROUP_SMI),
+        dx_n_f_not_smi = sum(d$diagnostic_group == DX_GROUP_F_NOT_SMI),
+        dx_n_outside_f = sum(d$diagnostic_group == DX_GROUP_OUTSIDE_F),
+        dx_n_none = sum(d$diagnostic_group == DX_GROUP_NONE),
+
+        deprivation_centile_min = min(d$deprivation_centile_100_most_deprived, na.rm = TRUE),
+        deprivation_centile_max = max(d$deprivation_centile_100_most_deprived, na.rm = TRUE),
+        deprivation_centile_mean = mean(d$deprivation_centile_100_most_deprived, na.rm = TRUE),
+        deprivation_centile_sd = sd(d$deprivation_centile_100_most_deprived, na.rm = TRUE),
+        deprivation_centile_n_unknown = sum(is.na(d$deprivation_centile_100_most_deprived)),
+
+        age_at_first_mh_care_min = min(d$age_at_first_mh_care, na.rm = TRUE),
+        age_at_first_mh_care_max = max(d$age_at_first_mh_care, na.rm = TRUE),
+        age_at_first_mh_care_mean = mean(d$age_at_first_mh_care, na.rm = TRUE),
+        age_at_first_mh_care_sd = sd(d$age_at_first_mh_care, na.rm = TRUE),
+        age_at_first_mh_care_n_unknown = sum(is.na(d$age_at_first_mh_care))
+    )
+
+    results[, sex_pct_female := 100 * sex_n_female / n_total]
+    results[, sex_pct_male := 100 * sex_n_male / n_total]
+    results[, sex_pct_other := 100 * sex_n_other / n_total]
+    results[, sex_pct_unknown := 100 * sex_n_unknown / n_total]
+
+    results[, ethnicity_pct_asian := 100 * ethnicity_n_asian / n_total]
+    results[, ethnicity_pct_black := 100 * ethnicity_n_black / n_total]
+    results[, ethnicity_pct_mixed := 100 * ethnicity_n_mixed / n_total]
+    results[, ethnicity_pct_white := 100 * ethnicity_n_white / n_total]
+    results[, ethnicity_pct_other := 100 * ethnicity_n_other / n_total]
+    results[, ethnicity_pct_unknown := 100 * ethnicity_n_unknown / n_total]
+
+    results[, dx_pct_smi := 100 * dx_n_smi / n_total]
+    results[, dx_pct_f_not_smi := 100 * dx_n_f_not_smi / n_total]
+    results[, dx_pct_outside_f := 100 * dx_n_outside_f / n_total]
+    results[, dx_pct_none := 100 * dx_n_none / n_total]
+
+    return(results)
+}
+
+show_all_demographics <- function()
+{
+    for (db in ALL_DATABASES) {
+        dg <- get_demographics(get(mk_people_var(db)))
+        cat(paste0("- For database ", db, ":\n"))
+        print(t(dg))
+    }
+}
+
+
+# =============================================================================
+# Main
 # =============================================================================
 
 # load_all()
+# show_all_demographics()
