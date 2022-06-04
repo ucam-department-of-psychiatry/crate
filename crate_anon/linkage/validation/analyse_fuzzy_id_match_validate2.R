@@ -162,8 +162,12 @@ simplified_ethnicity <- function(ethnicity)
             "East African Asian (NMO)" = ETHNICITY_ASIAN,
             "East African Asian - ethnic category 2001 census" = ETHNICITY_ASIAN,
             "H" = ETHNICITY_ASIAN,  # Asian or Asian British - Indian
+            "Indian or British Indian - ethnic category 2001 census" = ETHNICITY_ASIAN,
+            "Indian sub-continent (NMO)" = ETHNICITY_ASIAN,
+            "Indian" = ETHNICITY_ASIAN,
             "J" = ETHNICITY_ASIAN,  # Asian or Asian British - Pakistani
             "K" = ETHNICITY_ASIAN,  # Asian or Asian British - Bangladeshi
+            "Kashmiri - ethnic category 2001 census" = ETHNICITY_ASIAN,
             "L" = ETHNICITY_ASIAN,  # Asian or Asian British - Any other Asian background
 
             "African - ethnic category 2001 census" = ETHNICITY_BLACK,
@@ -220,6 +224,7 @@ simplified_ethnicity <- function(ethnicity)
             "Mixed - White and Asian" = ETHNICITY_MIXED,
             "Mixed - White and Black African" = ETHNICITY_MIXED,
             "Mixed - White and Black Caribbean" = ETHNICITY_MIXED,
+            "Mixed Asian - ethnic category 2001 census" = ETHNICITY_MIXED,
 
             "A" = ETHNICITY_WHITE,  # White - British
             "Albanian - ethnic category 2001 census" = ETHNICITY_WHITE,
@@ -232,6 +237,15 @@ simplified_ethnicity <- function(ethnicity)
             "Cypriot (part not stated) - ethnic category 2001 census" = ETHNICITY_WHITE,
             "English - ethnic category 2001 census" = ETHNICITY_WHITE,
             "Greek - ethnic category 2001 census" = ETHNICITY_WHITE,
+            "Greek Cypriot - ethnic category 2001 census" = ETHNICITY_WHITE,
+            "Gypsies" = ETHNICITY_WHITE,
+            "Gypsy/Romany - ethnic category 2001 census" = ETHNICITY_WHITE,
+            "Irish (NMO)" = ETHNICITY_WHITE,
+            "Irish - ethnic category 2001 census" = ETHNICITY_WHITE,
+            "Irish Traveller - ethnic category 2001 census" = ETHNICITY_WHITE,
+            "Irish traveller" = ETHNICITY_WHITE,
+            "Italian - ethnic category 2001 census" = ETHNICITY_WHITE,
+            "Kosovan - ethnic category 2001 census" = ETHNICITY_WHITE,
             "White - Albanian" = ETHNICITY_WHITE,
             "White - All Republics of former USSR" = ETHNICITY_WHITE,
             "White - Any other background" = ETHNICITY_WHITE,
@@ -282,6 +296,17 @@ simplified_ethnicity <- function(ethnicity)
             "Ethnic groups" = ETHNICITY_OTHER,
             "Ethnicity and other related nationality data" = ETHNICITY_OTHER,
             "Filipino - ethnic category 2001 census" = ETHNICITY_OTHER,
+            "Hindu - ethnic category 2001 census" = ETHNICITY_OTHER,
+            "Iranian (NMO)" = ETHNICITY_OTHER,
+            "Iranian - ethnic category 2001 census" = ETHNICITY_OTHER,
+            "Israeli - ethnic category 2001 census" = ETHNICITY_OTHER,
+            "Japanese - ethnic category 2001 census" = ETHNICITY_OTHER,
+            "Jewish - ethnic category 2001 census" = ETHNICITY_OTHER,
+            "Kurdish - ethnic category 2001 census" = ETHNICITY_OTHER,
+            "Latin American - ethnic category 2001 census" = ETHNICITY_OTHER,
+            "Malaysian - ethnic category 2001 census" = ETHNICITY_OTHER,
+            "Mauritian/Seychellois/Maldivian/St Helena eth cat 2001census" = ETHNICITY_OTHER,
+            "Mid East (excl Israeli, Iranian & Arab) - eth cat 2001 cens" = ETHNICITY_OTHER,
             "Other Ethnic Group - Chinese" = ETHNICITY_OTHER,
             "Other Ethnic Group" = ETHNICITY_OTHER,
             "Other Ethnic Groups - Any Other Group" = ETHNICITY_OTHER,
@@ -395,7 +420,7 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
             "\n"
         ))
     }
-    d[, raw_ethnicity := NULL]
+    # d[, raw_ethnicity := NULL]
 
     DX_GROUP_SMI <- "SMI"
     DX_GROUP_F_NOT_SMI <- "F_not_SMI"
