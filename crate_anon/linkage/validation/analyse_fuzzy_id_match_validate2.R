@@ -630,7 +630,9 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = FALSE)
     # ... and names: old values
     names(sex_renames) <- GENDER_LEVELS
     d[, sex_simple := recode_factor(
-        gender,
+        as.character(gender),
+        # ... as.character() required for ".missing" to work, or we get the
+        # error: "`.missing` is not supported for factors"
         !!!sex_renames,
         .missing = SEX_OTHER_UNKNOWN
     )]
@@ -679,7 +681,10 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = FALSE)
     )
     # ... and names: old values
     names(dx_group_renames) <- DIAGNOSTIC_GROUP_LEVELS
-    d[, dx_group_simple := recode_factor(diagnostic_group, !!!dx_group_renames)]
+    d[, dx_group_simple := recode_factor(
+        diagnostic_group,
+        !!!dx_group_renames
+    )]
 
     if (strip_irrelevant) {
         d[, other_info := NULL]
