@@ -109,6 +109,7 @@ from io import StringIO, TextIOWrapper
 import json
 import logging
 import math
+from math import log as math_ln
 from multiprocessing import cpu_count, Pool
 import os
 import pickle
@@ -146,13 +147,13 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.maths_py import round_sf
 from cardinal_pythonlib.probability import (
     log_odds_from_1_in_n,
-    log_posterior_odds_from_pdh_pdnh,
     probability_from_log_odds,
 )
 from cardinal_pythonlib.profile import do_cprofile
 from cardinal_pythonlib.reprfunc import auto_repr
 from cardinal_pythonlib.stringfunc import mangle_unicode_to_ascii
 from fuzzy import DMetaphone
+from numba import jit
 import pendulum
 from pendulum.parsing.exceptions import ParserError
 from pendulum import Date
@@ -170,6 +171,95 @@ if TYPE_CHECKING:
     from argparse import _SubParsersAction
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Notes
+# =============================================================================
+
+_ = """
+
+Speedup 2022-06-04
+------------------
+
+- Baseline for 1k sample: 6.446662902832031 s
+- Precalculate baseline_log_odds_same_person.
+- Precompile log_posterior_odds_from_pdh_pdnh, ln.
+- Other tweaks.
+- Things to work on, from the profiling test:
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.004    0.004    7.340    7.340 fuzzy_id_match.py:3671(compare_probands_to_sample)
+     1000    0.079    0.000    7.304    0.007 fuzzy_id_match.py:3538(get_unique_match_detailed)
+   107290    0.091    0.000    7.224    0.000 fuzzy_id_match.py:3092(log_odds_same)
+   107290    0.518    0.000    7.133    0.000 fuzzy_id_match.py:1192(bayes_compare)
+   759492    0.402    0.000    3.246    0.000 fuzzy_id_match.py:3112(_gen_comparisons)
+   652202    1.852    0.000    3.106    0.000 fuzzy_id_match.py:907(posterior_log_odds)
+   421242    0.263    0.000    2.347    0.000 fuzzy_id_match.py:1184(posterior_log_odds)
+   421242    0.735    0.000    1.322    0.000 fuzzy_id_match.py:2098(comparison)
+   222861    0.304    0.000    0.727    0.000 fuzzy_id_match.py:3214(_comparisons_postcodes)
+
+- Removed a Python "shortcut" since the compiled logs are now faster. 
+
+Comparison.posterior_log_odds:
+
+    from crate_anon.linkage.fuzzy_id_match import Comparison
+    import dis
+    dis.dis(Comparison.posterior_log_odds)
+
+With ``p_d_given_h = self.p_d_given_h``:
+
+    916           0 LOAD_FAST                0 (self)
+                  2 LOAD_ATTR                0 (p_d_given_h)
+                  4 STORE_FAST               2 (p_d_given_h)
+
+    917           6 LOAD_FAST                2 (p_d_given_h)
+                  8 LOAD_CONST               1 (0)
+                 10 COMPARE_OP               2 (==)
+                 12 POP_JUMP_IF_FALSE       18
+
+    919          14 LOAD_GLOBAL              1 (MINUS_INFINITY)
+                 16 RETURN_VALUE
+
+    920     >>   18 LOAD_GLOBAL              2 (log_posterior_odds_from_pdh_pdnh)
+
+    921          20 LOAD_FAST                1 (prior_log_odds)
+
+    922          22 LOAD_FAST                2 (p_d_given_h)
+
+    923          24 LOAD_FAST                0 (self)
+                 26 LOAD_ATTR                3 (p_d_given_not_h)
+
+    920          28 LOAD_CONST               2 (('log_prior_odds', 'p_d_given_h', 'p_d_given_not_h'))
+                 30 CALL_FUNCTION_KW         3
+                 32 RETURN_VALUE
+
+Without:
+
+    949           0 LOAD_FAST                0 (self)
+                  2 LOAD_ATTR                0 (p_d_given_h)
+                  4 LOAD_CONST               1 (0)
+                  6 COMPARE_OP               2 (==)
+                  8 POP_JUMP_IF_FALSE       14
+
+    951          10 LOAD_GLOBAL              1 (MINUS_INFINITY)
+                 12 RETURN_VALUE
+
+    952     >>   14 LOAD_GLOBAL              2 (log_posterior_odds_from_pdh_pdnh)
+
+    953          16 LOAD_FAST                1 (prior_log_odds)
+
+    954          18 LOAD_FAST                0 (self)
+                 20 LOAD_ATTR                0 (p_d_given_h)
+
+    955          22 LOAD_FAST                0 (self)
+                 24 LOAD_ATTR                3 (p_d_given_not_h)
+
+    952          26 LOAD_CONST               2 (('log_prior_odds', 'p_d_given_h', 'p_d_given_not_h'))
+                 28 CALL_FUNCTION_KW         3
+                 30 RETURN_VALUE
+
+"""  # noqa
 
 
 # =============================================================================
@@ -234,8 +324,8 @@ class FuzzyDefaults:
     # -------------------------------------------------------------------------
     # Performance
     # -------------------------------------------------------------------------
-    MAX_CHUNKSIZE = 500
-    MIN_PROBANDS_FOR_PARALLEL = 100
+    MAX_CHUNKSIZE = 1000
+    MIN_PROBANDS_FOR_PARALLEL = 1000
     # ... a machine that takes ~30s to set up a basic parallel run (and 107.9s
     # for a 10k-to-10k comparison) processes single results at about 37/s... so
     # the break-even point is probably around 1000. But that does depend on the
@@ -795,6 +885,56 @@ class TemporalIdentifier(object):
 
 
 # =============================================================================
+# Faster maths
+# =============================================================================
+
+
+@jit(nopython=True)
+def ln(x: float) -> float:
+    """
+    Version of :func:`math.log` that treats log(0) as ``-inf``, rather than
+    crashing with ``ValueError: math domain error``.
+
+    Args:
+        x: parameter
+
+    Returns:
+        float: ln(x), the natural logarithm of x
+    """
+    # noinspection PyBroadException
+    try:
+        return math_ln(x)
+    except Exception:  # numba.jit can only cope with Exception
+        if x < 0:
+            raise ValueError("Can't take log of a negative number")
+        # Either x > 0 but causing problems anyway, or x == 0.
+        return MINUS_INFINITY
+
+
+@jit(nopython=True)
+def log_posterior_odds_from_pdh_pdnh(
+    log_prior_odds: float, p_d_given_h: float, p_d_given_not_h: float
+) -> float:
+    r"""
+    Calculates posterior odds.
+    Fast implementation.
+
+    Args:
+        log_prior_odds:
+            log prior odds of H, :math:`ln(\frac{ P(H) }{ P(\neg H) })`
+        p_d_given_h:
+            :math:`P(D | H)`
+        p_d_given_not_h:
+            :math:`P(D | \neg H)`
+
+    Returns:
+        float:
+            posterior odds of H, :math:`ln(\frac{ P(H | D) }{ P(\neg H | D) })`
+    """
+    return log_prior_odds + ln(p_d_given_h) - ln(p_d_given_not_h)
+
+
+# =============================================================================
 # Simple person-related probability calculations
 # =============================================================================
 
@@ -854,13 +994,13 @@ class Comparison(object):
         Returns:
             float: posterior log odds, O(H | D), as above
         """
-        p_d_given_h = self.p_d_given_h
-        if p_d_given_h == 0:
-            # Shortcut, since P(H | D) must be 0 (since likelihood ratio is 0):
-            return MINUS_INFINITY
+        # if self.p_d_given_h == 0:
+        #     # Shortcut: P(H | D) must be 0 (since likelihood ratio is 0)
+        #     return MINUS_INFINITY
+        # ... but: a Python shortcut is slower than a compiled log.
         return log_posterior_odds_from_pdh_pdnh(
             log_prior_odds=prior_log_odds,
-            p_d_given_h=p_d_given_h,
+            p_d_given_h=self.p_d_given_h,
             p_d_given_not_h=self.p_d_given_not_h,
         )
 
@@ -1071,7 +1211,6 @@ class FullPartialNoMatchComparison(Comparison):
 def bayes_compare(
     prior_log_odds: float,
     comparisons: Iterable[Optional[Comparison]],
-    debug: bool = False,
 ) -> float:
     """
     Works through multiple comparisons and returns posterior log odds.
@@ -1080,29 +1219,15 @@ def bayes_compare(
     Args:
         prior_log_odds: prior log odds
         comparisons: an iterable of :class:`Comparison` objects
-        debug: be verbose?
 
     Returns:
         float: posterior log odds
     """
     log_odds = prior_log_odds
-    for comparison in comparisons:
-        if comparison is None:
-            continue
-        next_log_odds = comparison.posterior_log_odds(log_odds)
-        if debug:
-            if next_log_odds > log_odds:
-                change = "more likely"
-            elif next_log_odds < log_odds:
-                change = "less likely"
-            else:
-                change = "no change"
-            log.debug(
-                f"{comparison}: " f"{log_odds} -> {next_log_odds} ({change})"
-            )
-        log_odds = next_log_odds
+    for comparison in filter(None, comparisons):
+        log_odds = comparison.posterior_log_odds(log_odds)
         if log_odds == MINUS_INFINITY:
-            break
+            return MINUS_INFINITY
     return log_odds
 
 
@@ -1581,6 +1706,10 @@ class MatchConfig(object):
             self.local_id_hasher = None
 
         self.population_size = population_size
+        # Precalculate this, for access speed:
+        self.baseline_log_odds_same_person = log_odds_from_1_in_n(
+            self.population_size
+        )
 
         self.forename_csv_filename = forename_sex_csv_filename
         self.surname_csv_filename = surname_csv_filename
@@ -1639,18 +1768,6 @@ class MatchConfig(object):
 
     def __str__(self) -> str:
         return auto_repr(self)
-
-    # -------------------------------------------------------------------------
-    # Baseline priors
-    # -------------------------------------------------------------------------
-
-    @property
-    def baseline_log_odds_same_person(self) -> float:
-        """
-        Returns the log odds that a proband randomly selected from the
-        population matches a SPECIFIC person in our sample.
-        """
-        return log_odds_from_1_in_n(self.population_size)
 
     # -------------------------------------------------------------------------
     # Identifier frequency information
@@ -1896,15 +2013,12 @@ class IdFreq(object):
         """
         Comparison against a proband's version.
         """
-        candidate_id = self.identifier
-        proband_id = proband.identifier
-        if not candidate_id or not proband_id:
+        if not self.identifier or not proband.identifier:
             # Infer no conclusions from missing information.
             return None
-        matches = candidate_id == proband_id
         return MatchNoMatchComparison(
             name=self.comparison_name,
-            match=matches,
+            match=(self.identifier == proband.identifier),
             p_match_given_same_person=proband.p_no_error,
             p_match_given_diff_person=proband.frequency,
         )
@@ -1913,11 +2027,9 @@ class IdFreq(object):
         """
         Is there a match with ``other``?
         """
-        self_id = self.identifier
-        other_id = other.identifier
-        if not (self_id and other_id):
+        if not self.identifier or not other.identifier:
             return False
-        return self_id == other_id
+        return self.identifier == other.identifier
 
     def assert_has_freq_info_if_id_present(self) -> None:
         """
@@ -1997,24 +2109,20 @@ class FuzzyIdFreq(object):
         """
         Comparison against a proband's version.
         """
-        candidate_exact = self.exact_identifier
-        proband_exact = proband.exact_identifier
-        if not (candidate_exact and proband_exact):
+        if (
+            not self.exact_identifier
+            or not proband.exact_identifier
+            or not self.fuzzy_identifier
+            or not proband.fuzzy_identifier
+        ):
             # Infer no conclusions from missing information.
             return None
-        candidate_fuzzy = self.fuzzy_identifier
-        proband_fuzzy = proband.fuzzy_identifier
-        if not (candidate_fuzzy and proband_fuzzy):
-            # Infer no conclusions from missing information.
-            return None
-        full_match = candidate_exact == proband_exact
-        partial_match = candidate_fuzzy == proband_fuzzy
         return FullPartialNoMatchComparison(
             name=self.comparison_name,
-            full_match=full_match,
+            full_match=(self.exact_identifier == proband.exact_identifier),
             p_f=proband.exact_identifier_frequency,
             p_e=self.p_error,
-            partial_match=partial_match,
+            partial_match=(self.fuzzy_identifier == proband.fuzzy_identifier),
             p_p=proband.fuzzy_identifier_frequency,
         )
 
@@ -2022,21 +2130,17 @@ class FuzzyIdFreq(object):
         """
         Is there a full match with ``other``?
         """
-        self_exact = self.exact_identifier
-        other_exact = other.exact_identifier
-        if not (self_exact and other_exact):
+        if not self.exact_identifier or not other.exact_identifier:
             return False
-        return self_exact == other_exact
+        return self.exact_identifier == other.exact_identifier
 
     def partially_matches(self, other: "FuzzyIdFreq") -> bool:
         """
         Is there a partial match with ``other``?
         """
-        self_fuzzy = self.fuzzy_identifier
-        other_fuzzy = other.fuzzy_identifier
-        if not (self_fuzzy and other_fuzzy):
+        if not self.fuzzy_identifier or not other.fuzzy_identifier:
             return False
-        return self_fuzzy == other_fuzzy
+        return self.fuzzy_identifier == other.fuzzy_identifier
 
     def fully_or_partially_matches(self, other: "FuzzyIdFreq") -> bool:
         """
@@ -2995,23 +3099,20 @@ class Person(BasePerson):
     # Main comparison function
     # -------------------------------------------------------------------------
 
-    def log_odds_same(self, proband: "Person", debug: bool = False) -> float:
+    def log_odds_same(self, proband: "Person") -> float:
         """
         Returns the log odds that ``self`` and ``other`` are the same person.
 
         Args:
             proband: another :class:`Person` object
-            debug: be verbose?
 
         Returns:
             float: the log odds they're the same person
         """
-        if debug:
-            log.debug(f"Comparing self={self}; other={proband}")
+        # log.debug(f"Comparing self={self}; other={proband}")
         return bayes_compare(
             prior_log_odds=self.cfg.baseline_log_odds_same_person,
             comparisons=self._gen_comparisons(proband),
-            debug=debug,
         )
 
     # -------------------------------------------------------------------------

@@ -39,32 +39,42 @@ from crate_anon.linkage.fuzzy_id_match import (
     get_demo_people,
 )
 
+
+def mk_large(filename: str, n: int) -> None:
+    print(f"- Creating {filename}")
+    people = get_demo_people()
+    with open(filename, "wt") as f:
+        writer = csv.DictWriter(f, fieldnames=BasePerson.PLAINTEXT_ATTRS)
+        writer.writeheader()
+        i = 1
+        done = False
+        while not done:
+            for person in people:
+                person.local_id = f"id_{i}"
+                writer.writerow(person.plaintext_csv_dict())
+                i += 1
+                if i > n:
+                    done = True
+                    break
+
+
 SAMPLE_BASE = os.path.join(
     FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_sample.csv"
 )
-SAMPLE_10K = os.path.join(
-    FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_sample_10k.csv"
-)
-
 print(f"- Creating {SAMPLE_BASE}")
 os.system(f'crate_fuzzy_id_match print_demo_sample > "{SAMPLE_BASE}"')
 
-print(f"- Creating {SAMPLE_10K}")
-people = get_demo_people()
-with open(SAMPLE_10K, "wt") as f:
-    writer = csv.DictWriter(f, fieldnames=BasePerson.PLAINTEXT_ATTRS)
-    writer.writeheader()
-    i = 1
-    n_to_write = 10000
-    done = False
-    while not done:
-        for person in people:
-            person.local_id = f"id_{i}"
-            writer.writerow(person.plaintext_csv_dict())
-            i += 1
-            if i > n_to_write:
-                done = True
-                break
+mk_large(
+    os.path.join(FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_sample_1k.csv"),
+    1000,
+)
+
+mk_large(
+    os.path.join(
+        FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_sample_10k.csv"
+    ),
+    10000,
+)
 
 FIG3_SAMPLE = os.path.join(
     FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_demo_fig3_sample.csv"
