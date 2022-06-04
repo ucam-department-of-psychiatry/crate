@@ -54,7 +54,7 @@ SYSTMONE <- "systmone"
 ALL_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
 
 # FROM_DATABASES <- ALL_DATABASES
-FROM_DATABASES <- c(CDL)  # for debugging
+FROM_DATABASES <- CDL  # for debugging
 
 # TO_DATABASES <- ALL_DATABASES
 TO_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
@@ -212,6 +212,14 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
     stopifnot(all(!is.na(d$local_id)))
     stopifnot(all(!is.na(d$hashed_nhs_number)))
     d[, ethnicity := simplified_ethnicity(raw_ethnicity)]
+    unknown_ethnicities <- sort(unique(d$raw_ethnicity[is.na(d$ethnicity) & !is.na(d$raw_ethnicity)]))
+    if (length(unknown_ethnicities) > 0) {
+        warning(paste0(
+            "  - Unknown ethnicities: ",
+            paste(unknown_ethnicities, collapse = ", "),
+            "\n"
+        ))
+    }
     cat("  ... done.\n")
     return(d)
 }
