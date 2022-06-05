@@ -50,7 +50,7 @@ ROW_LIMIT <- Inf  # Inf for no limit; finite for debugging
 # But maybe it's a little crazy to explore thresholds so high that you would
 # always reject everything.
 
-THETA_OPTIONS <- seq(0, 15, by = 1)
+THETA_OPTIONS <- seq(0, 20, by = 1)
 # THETA_OPTIONS <- c(0, 5, 10)  # for debugging
 
 DEFAULT_THETA <- 7  # see crate_anon.linkage.fuzzy_id_match.FuzzyDefaults
@@ -58,7 +58,7 @@ DEFAULT_THETA <- 7  # see crate_anon.linkage.fuzzy_id_match.FuzzyDefaults
 # Delta: log odds advantage over the next.
 # Again, 0 would be no advantage.
 
-DELTA_OPTIONS <- seq(0, 15, by = 2.5)
+DELTA_OPTIONS <- seq(0, 20, by = 2.5)
 # DELTA_OPTIONS <- c(0, 5, 10)  # for debugging
 
 
@@ -74,11 +74,11 @@ SYSTMONE <- "systmone"
 ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
 # ALL_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
 
-# FROM_DATABASES <- ALL_DATABASES
-FROM_DATABASES <- CDL  # for debugging
+FROM_DATABASES <- ALL_DATABASES
+# FROM_DATABASES <- CDL  # for debugging
 
-# TO_DATABASES <- ALL_DATABASES
-TO_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
+TO_DATABASES <- ALL_DATABASES
+# TO_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
 
 
 # =============================================================================

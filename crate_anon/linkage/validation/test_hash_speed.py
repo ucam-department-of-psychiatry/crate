@@ -53,7 +53,8 @@ for example, only takes the time for 1e5 iterations from 0.72 s to 0.86 s.
 
 (A subsequent test: faster, at 5443 s = 1.5 h, 1.25 y, and 6.3 y respectively.)
 
-Speed tests for paper:
+Speed tests considered for paper (not used in the end; real-world measures
+used):
 
 .. code-block:: bash
 

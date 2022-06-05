@@ -113,6 +113,7 @@ from math import log as math_ln
 from multiprocessing import cpu_count, Pool
 import os
 import pickle
+import platform
 import random
 import re
 import string
@@ -303,7 +304,10 @@ class FuzzyDefaults:
         DEFAULT_CACHE_DIR = os.path.join(
             appdirs.user_data_dir(appname=_appname)
         )
-        N_PROCESSES = cpu_count()
+        if platform.system() == "Windows":
+            N_PROCESSES = 1  # *much* faster!
+        else:
+            N_PROCESSES = cpu_count()
 
     # Caches
     FORENAME_CACHE_FILENAME = os.path.join(
@@ -4700,10 +4704,8 @@ def add_comparison_options(
         "--n_workers",
         type=int,
         default=FuzzyDefaults.N_PROCESSES,
-        help=(
-            "Number of processes to use in parallel. "
-            "Defaults to number of CPUs on your system."
-        ),
+        help="Number of processes to use in parallel. Defaults to 1 (Windows) "
+        "or the number of CPUs on your system (other operating systems).",
     )
     comparison_group.add_argument(
         "--max_chunksize",
