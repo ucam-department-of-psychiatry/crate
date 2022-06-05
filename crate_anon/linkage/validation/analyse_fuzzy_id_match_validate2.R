@@ -173,7 +173,7 @@ SEX_OTHER_UNKNOWN <- "other_unknown"
 all_unique <- function(x)
 {
     # return(length(x) == length(unique(x)))
-    return(any(duplicated(x)))
+    return(!any(duplicated(x)))
 }
 
 
@@ -644,7 +644,7 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
     stopifnot(all(!is.na(d$local_id)))
     stopifnot(all(!is.na(d$hashed_nhs_number)))
     stopifnot(all_unique(d$local_id))
-    stopifnot(all_unique(d$hashed_nhs_number))
+    # this is not guaranteed: stopifnot(all_unique(d$hashed_nhs_number))
 
     d[, gender := factor(gender, levels = GENDER_LEVELS)]
     sex_renames <- c(
@@ -870,6 +870,7 @@ get_demographics <- function(d, db_name)
         db_name = db_name,
 
         n_total = nrow(d),
+        n_duplicated_nhs_number = sum(duplicated(d$hashed_nhs_number)),
 
         dob_year_min = min(year(d$blurred_dob), na.rm = TRUE),
         dob_year_max = max(year(d$blurred_dob), na.rm = TRUE),
@@ -949,11 +950,12 @@ get_all_demographics <- function()
 
 compare_simple <- function(from_dbname, to_dbname, compdata)
 {
-    n_overlap <- sum(compdata$proband_in_sample)
     d <- data.table(
+        # In:
         from = from_dbname,
         to = to_dbname,
-        n_overlap = n_overlap
+        # Out:
+        n_overlap = sum(compdata$proband_in_sample)
     )
     return(d)
 }
@@ -982,23 +984,27 @@ compare_at_thresholds <- function(
     from_dbname, to_dbname, theta, delta, compdata, with_obscure = FALSE
 )
 {
-    '
-    Criteria
-    --------
-
-        log_odds_match >= threshold_1
-        log_odds_match >= second_best_log_odds + threshold_2
-    '
     compdata <- copy(compdata)
     compdata[, declare_match := (
+        # Criterion A:
         log_odds_match >= theta
+        # Criterion B:
         & log_odds_match >= second_best_log_odds + delta
     )]
-    compdata[, hit := declare_match & best_candidate_correct]
-    compdata[, false_alarm := declare_match & best_candidate_incorrect]
+
+    # Extreme caution here, because we have two aspects: detecting that someone
+    # is in the sample, and finding the correct person. The SDT methods need
+    # everything to add up, so we deal with these separately. (We do *not* say
+    # that a "hit" is declaring a match and the best candidate being correct.)
+    # So, the first phase:
+    compdata[, hit := declare_match & proband_in_sample]
+    compdata[, false_alarm := declare_match & !proband_in_sample]
     compdata[, correct_rejection := !declare_match & !proband_in_sample]
     compdata[, miss := !declare_match & proband_in_sample]
-    n <- nrow(compdata)
+
+    # And the second:
+    compdata[, misidentification := declare_match & !best_candidate_correct]
+
     d <- data.table(
         # In:
         from = from_dbname,
@@ -1010,15 +1016,18 @@ compare_at_thresholds <- function(
         n_tp = sum(compdata$hit),  # true positive
         n_fp = sum(compdata$false_alarm),  # false positive
         n_tn = sum(compdata$correct_rejection),  # true negative
-        n_fn = sum(compdata$miss)  # false negative
+        n_fn = sum(compdata$miss),  # false negative
+
+        n_identified = sum(compdata$declare_match),
+        n_misidentified = sum(compdata$misidentification)
     )
 
-    # Derived measures
+    # Standard derived SDT measures
     # https://en.wikipedia.org/wiki/Receiver_operating_characteristic
     # Capitals to look pretty in graphs automatically.
     d[, check_0 := n_tp + n_fp + n_tn + n_fn - n]
-    d[, n_p := n_tp + n_fn]  # positive
-    d[, n_n := n_tn + n_fp]  # negative
+    d[, n_p := n_tp + n_fn]  # positive: proband in sample
+    d[, n_n := n_tn + n_fp]  # negative: proband not in sample
     d[, TPR := n_tp / n_p]  # sensitivity, recall, hit rate, true pos. rate
     d[, TNR := n_tn / n_n]  # specificity, selectivity, true neg. rate
     d[, PPV := n_tp / (n_tp + n_fp)]
@@ -1042,6 +1051,13 @@ compare_at_thresholds <- function(
         ]
         # ... etc.
     }
+
+    # And for our second phase:
+    d[, MID := n_misidentified / n_identified]  # misidentification rate
+
+    # Checks
+    stopifnot(d$n_p == sum(compdata$proband_in_sample))
+    stopifnot(d$n_n == sum(!compdata$proband_in_sample))
 
     return(d)
 }
@@ -1074,10 +1090,11 @@ get_comparisons_varying_threshold <- function()
 
 mk_threshold_plot <- function(
     comp_threshold,
-    depvars = c("TPR", "TNR", "FPR", "FNR"),
-    linetypes = c("solid", "solid", "dotted", "dotted"),
-    shapes = c(24, 25, 8, 1),
-    # ... up triangle, down triangle, star, open circle
+    comp_simple,
+    depvars = c("TPR", "TNR", "FPR", "FNR", "MID"),
+    linetypes = c("solid", "solid", "dotted", "dotted", "dashed"),
+    shapes = c(24, 25, 8, 1, 11),
+    # ... up triangle, down triangle, star, open circle, Star of David
     default_theta = DEFAULT_THETA
 )
 {
@@ -1104,6 +1121,8 @@ mk_threshold_plot <- function(
         %>% as.data.table()
     )
     d[, grouper := paste0(quantity, "_", delta)]
+    cs <- copy(comp_simple)
+    cs[, overlap_label := paste0("o = ", n_overlap)]
     p <- (
         ggplot(
             d,
@@ -1123,6 +1142,20 @@ mk_threshold_plot <- function(
         + scale_linetype_manual(values = linetypes)
         + scale_shape_manual(values = shapes)
         + geom_vline(xintercept = default_theta)
+        + geom_text(
+            data = cs,
+            mapping = aes(
+                label = overlap_label,
+                # implicit (for facet plot): from, to
+                group = NULL,
+                colour = NULL,
+                linetype = NULL,
+                shape = NULL
+            ),
+            y = 0.4,
+            x = 0,
+            hjust = 0
+        )
     )
     return(p)
 }
@@ -1135,16 +1168,18 @@ mk_threshold_plot <- function(
 if (FALSE) {
     load_all()
 
+    # Done, transcribed:
     dg <- get_all_demographics()
     print(dg)
     print(t(dg))
 
+    # Working:
     comp_simple <- get_comparisons_simple()
     print(comp_simple)
 
     comp_threshold <- get_comparisons_varying_threshold()
     print(comp_threshold)
 
-    fig_thresholds <- mk_threshold_plot(comp_threshold)
+    fig_thresholds <- mk_threshold_plot(comp_threshold, comp_simple)
     print(fig_thresholds)
 }
