@@ -1145,21 +1145,30 @@ bias_at_threshold <- function(
         theta,
         delta
     )
-    decided[, declare_match_int := as.integer(declare_match)]
+    decided[, birth_year := year(blurred_dob)]
     m <- glm(
         declare_match ~
-            sex_simple
+            birth_year
+                + sex_simple
                 + ethnicity
-                + index_of_multiple_deprivation
+                + deprivation_centile_100_most_deprived
+                # + age_at_first_mh_care
                 + dx_group_simple,
         family = binomial(link = "logit"),
         data = decided
     )
+    # Downs (2019) used age_at_first_mh_care, but it is poorly coded and likely
+    # confounded to some degree with birth year.
+    #
+    # tmp <- decided[!is.na(age_at_first_mh_care)]
+    # cor(tmp$birth_year, tmp$age_at_first_mh_care)  # -0.98 ! Yes, very.
 
     print(summary(m))
     # Estimate = 0 is no effect, >0 more likely to be linked, <0 less likely.
     # Estimates are of log odds.
     print(car::Anova(m, type = "III", test.statistic = "F"))
+
+    return(m)
 }
 
 
@@ -1356,6 +1365,6 @@ if (FALSE) {
     ]
     print(comp_at_defaults)
 
-    bias <- bias_at_threshold(compare_rio_to_systmone)
+    m <- bias_at_threshold(compare_rio_to_systmone)
 
 }
