@@ -238,10 +238,8 @@ from cardinal_pythonlib.datetimefunc import (
     coerce_to_pendulum_date,
     truncate_date_to_first_of_month,
 )
-from cardinal_pythonlib.hash import (
-    HashMethods,
-    make_hasher,
-)
+from cardinal_pythonlib.hash import HashMethods, make_hasher
+from cardinal_pythonlib.nhs import is_test_nhs_number, is_valid_nhs_number
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.profile import do_cprofile
 from pendulum import Date
@@ -346,6 +344,25 @@ def age_years(dob: Optional[Date], when: Optional[Date]) -> Optional[int]:
     if dob and when:
         return (when - dob).in_years()
     return None
+
+
+# =============================================================================
+# NHS number checks
+# =============================================================================
+
+
+def is_ok_nhs_number(n: int) -> bool:
+    """
+    For skipping records with invalid NHS numbers (e.g. bad checksum) or
+    test records (e.g. NHS number starts with 999, the official test range).
+    """
+    if not is_valid_nhs_number(n):
+        log.warning("Encountered bad (invalid) NHS number")
+        return False
+    if is_test_nhs_number(n):
+        log.warning("Encountered test NHS number")
+        return False
+    return True
 
 
 # =============================================================================
@@ -1259,6 +1276,8 @@ def validate_2_fetch_rio(
     for row in result:
         rio_client_id = row["rio_client_id"]  # type: str
         nhs_number = row[q.NHS_NUMBER]  # type: int
+        if not is_ok_nhs_number(nhs_number):
+            continue
         dob = coerce_to_pendulum_date(row[q.DOB])
         gender = row[q.GENDER]  # type: str
         first_mh_care_date = coerce_to_pendulum_date(row[q.FIRST_MH_CARE_DATE])
@@ -1470,6 +1489,8 @@ def validate_2_fetch_cdl(
     for row in result:
         cdl_m_number = row["cdl_m_number"]  # type: int
         nhs_number = row[q.NHS_NUMBER]
+        if not is_ok_nhs_number(nhs_number):
+            continue
         dob = coerce_to_pendulum_date(row[q.DOB])
         gender = row[q.GENDER]
         first_mh_care_date = coerce_to_pendulum_date(row[q.FIRST_MH_CARE_DATE])
@@ -1720,6 +1741,8 @@ def validate_2_fetch_pcmis(
     for row in result:
         pcmis_patient_id = row["pcmis_patient_id"]  # type: str
         nhs_number = row[q.NHS_NUMBER]
+        if not is_ok_nhs_number(nhs_number):
+            continue
         middle_name = row[q.MIDDLE_NAME]
         dob = coerce_to_pendulum_date(row[q.DOB])
         gender = row[q.GENDER]
@@ -2027,6 +2050,8 @@ def validate_2_fetch_systmone(
         systmone_patient_id = row["systmone_patient_id"]  # type: int
         assert systmone_patient_id is not None
         nhs_number = row[q.NHS_NUMBER]
+        if not is_ok_nhs_number(nhs_number):
+            continue
         middle_name = row[q.MIDDLE_NAME]
         dob = coerce_to_pendulum_date(row[q.DOB])
         gender = row[q.GENDER]
