@@ -155,6 +155,17 @@ SEX_OTHER_UNKNOWN <- "other_unknown"
 
 
 # =============================================================================
+# Basic helper functions
+# =============================================================================
+
+all_unique <- function(x)
+{
+    # return(length(x) == length(unique(x)))
+    return(any(duplicated(x)))
+}
+
+
+# =============================================================================
 # Loading data and basic preprocessing
 # =============================================================================
 
@@ -617,8 +628,11 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
     d[hashed_nhs_number == "", hashed_nhs_number := NA_character_]
     setkey(d, local_id)
     setcolorder(d, "local_id")
+
     stopifnot(all(!is.na(d$local_id)))
     stopifnot(all(!is.na(d$hashed_nhs_number)))
+    stopifnot(all_unique(d$local_id))
+    stopifnot(all_unique(d$hashed_nhs_number))
 
     d[, gender := factor(gender, levels = GENDER_LEVELS)]
     sex_renames <- c(
@@ -926,6 +940,40 @@ get_all_demographics <- function()
 
 
 # =============================================================================
+# Comparisons
+# =============================================================================
+
+compare_simple <- function(from_dbname, to_dbname, comparison_data)
+{
+    n_overlap <- sum(comparison_data$proband_in_sample)
+    d <- data.table(
+        from = from_dbname,
+        to = to_dbname,
+        n_overlap = n_overlap
+    )
+    return(d)
+}
+
+
+get_comparisons_simple <- function()
+{
+    comp_simple <- NULL
+    for (db1 in FROM_DATABASES) {
+        for (db2 in TO_DATABASES) {
+            comp_simple <- rbind(
+                comp_simple,
+                compare_simple(
+                    db1,
+                    db2,
+                    get(mk_comparison_var(db1, db2))
+                )
+            )
+        }
+    }
+    return(comp_simple)
+}
+
+# =============================================================================
 # Main
 # =============================================================================
 
@@ -934,4 +982,9 @@ if (FALSE) {
 
     dg <- get_all_demographics()
     print(dg)
+    print(t(dg))
+
+    comp_simple <- get_comparisons_simple()
+    print(comp_simple)
+    print(t(comp_simple))
 }
