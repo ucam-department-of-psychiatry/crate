@@ -50,16 +50,17 @@ ROW_LIMIT <- Inf  # Inf for no limit; finite for debugging
 # But maybe it's a little crazy to explore thresholds so high that you would
 # always reject everything.
 
-THETA_OPTIONS <- seq(0, 20, by = 1)
+THETA_OPTIONS <- seq(0, 15, by = 1)
 # THETA_OPTIONS <- c(0, 5, 10)  # for debugging
-
-DEFAULT_THETA <- 7  # see crate_anon.linkage.fuzzy_id_match.FuzzyDefaults
 
 # Delta: log odds advantage over the next.
 # Again, 0 would be no advantage.
 
-DELTA_OPTIONS <- seq(0, 20, by = 2.5)
-# DELTA_OPTIONS <- c(0, 5, 10)  # for debugging
+DELTA_OPTIONS <- seq(0, 15, by = 2.5)
+# DELTA_OPTIONS <- 10  # for debugging
+
+DEFAULT_THETA <- 5  # see crate_anon.linkage.fuzzy_id_match.FuzzyDefaults
+DEFAULT_DELTA <- 10  # ditto
 
 
 # =============================================================================
@@ -169,6 +170,20 @@ SEX_X <- "X"
 GENDER_LEVELS <- c(SEX_F, SEX_M, SEX_X)
 # In "sex_simple", we combine X with NA for and use
 SEX_OTHER_UNKNOWN <- "other_unknown"
+
+
+# =============================================================================
+# Cosmetic constants
+# =============================================================================
+
+DEFAULT_VLINE_COLOUR <- "#AAAAAA"
+DEFAULT_COLOUR_SCALE <- scale_colour_gradient(
+    low = "#56B1F7",  # ggplot default high
+    high = "#132B43"  # ggplot default low: scale_colour_gradient
+)
+
+FIGURE_WIDTH_CM <- 25
+FIGURE_HEIGHT_CM <- 25
 
 
 # =============================================================================
@@ -1093,15 +1108,14 @@ get_comparisons_varying_threshold <- function()
 }
 
 
-mk_threshold_plot <- function(
+mk_threshold_plot_sdt <- function(
     comp_threshold,
-    comp_simple = NULL,
     depvars = c("TPR", "TNR", "FPR", "FNR"),
     linetypes = c("solid", "solid", "dotted", "dotted"),
     shapes = c(24, 25, 23, 1),
     # ... up triangle, down triangle, diamond, open circle
     default_theta = DEFAULT_THETA,
-    with_overlap_label = TRUE
+    default_line_colour = DEFAULT_VLINE_COLOUR
 )
 {
     # The quantities that are informative and independent of the prevalence
@@ -1139,17 +1153,63 @@ mk_threshold_plot <- function(
                 shape = quantity
             )
         )
+        + geom_vline(
+            xintercept = default_theta,
+            colour = default_line_colour
+        )
         + geom_point()
         + geom_line()
         + facet_grid(from ~ to)
         + theme_bw()
         + scale_linetype_manual(values = linetypes)
         + scale_shape_manual(values = shapes)
-        + scale_colour_gradient(
-            low = "#56B1F7",  # ggplot default high
-            high = "#132B43"  # ggplot default low: scale_colour_gradient
+        + DEFAULT_COLOUR_SCALE
+    )
+    return(p)
+}
+
+
+mk_threshold_plot_mid <- function(
+    comp_threshold,
+    comp_simple = NULL,
+    linetype = "solid",
+    shape = 4,
+    default_delta = DEFAULT_DELTA,
+    default_line_colour = DEFAULT_VLINE_COLOUR,
+    with_overlap_label = TRUE,
+    overlap_label_y = 0.08,
+    overlap_label_vjust = 0,  # vcentre
+    overlap_label_x = max(DELTA_OPTIONS),
+    overlap_label_hjust = 1,  # right-justify
+    overlap_label_size = 2
+)
+{
+    required_vars <- c("from", "to", "theta", "delta", "MID")
+    d <- (
+        comp_threshold
+        %>% select(!!!required_vars)
+        %>% as.data.table()
+    )
+    d[, theta_factor := as.factor(theta)]
+    p <- (
+        ggplot(
+            d,
+            aes(
+                x = delta,
+                y = MID,
+                group = theta_factor,
+                colour = theta
+            )
         )
-        + geom_vline(xintercept = default_theta)
+        + geom_vline(
+            xintercept = default_delta,
+            colour = default_line_colour
+        )
+        + geom_point(shape = shape)
+        + geom_line(linetype = linetype)
+        + facet_grid(from ~ to)
+        + theme_bw()
+        + DEFAULT_COLOUR_SCALE
     )
     if (with_overlap_label) {
         if (is.null(comp_simple)) {
@@ -1169,25 +1229,15 @@ mk_threshold_plot <- function(
                     linetype = NULL,
                     shape = NULL
                 ),
-                y = 0.4,
-                x = 0,
-                hjust = 0
+                x = overlap_label_x,
+                hjust = overlap_label_hjust,
+                y = overlap_label_y,
+                vjust = overlap_label_vjust,
+                size = overlap_label_size
             )
         )
     }
     return(p)
-}
-
-
-mk_threshold_plot_mid <- function(comp_threshold)
-{
-    mk_threshold_plot(
-        comp_threshold,
-        depvars = "MID",
-        linetypes = "solid",
-        shapes = 4,  # 4 = cross, 11 = Star of David
-        with_overlap_label = FALSE
-    )
 }
 
 
@@ -1210,11 +1260,38 @@ if (FALSE) {
     comp_threshold <- get_comparisons_varying_threshold()
     print(comp_threshold)
 
-    fig_thresholds_sdt <- mk_threshold_plot(comp_threshold, comp_simple)
-    # print(fig_thresholds_sdt)
-    ggsave(file.path(OUTPUT_DIR, "fig4_pairwise_sdt.pdf"), fig_thresholds_sdt)
+    fig_thresholds_sdt <- mk_threshold_plot_sdt(comp_threshold)
+    ggsave(
+        file.path(OUTPUT_DIR, "fig4_pairwise_sdt.pdf"),
+        fig_thresholds_sdt,
+        width = FIGURE_WIDTH_CM,
+        height = FIGURE_HEIGHT_CM,
+        units = "cm"
+    )
 
-    fig_thresholds_mid <- mk_threshold_plot_mid(comp_threshold)
-    # print(fig_thresholds_mid)
-    ggsave(file.path(OUTPUT_DIR, "fig5_pairwise_mid.pdf"), fig_thresholds_mid)
+    fig_thresholds_sdt_default_delta <- mk_threshold_plot_sdt(
+        comp_threshold[delta == DEFAULT_DELTA]
+    )
+    ggsave(
+        file.path(OUTPUT_DIR, "fig4b_pairwise_sdt_default_delta.pdf"),
+        fig_thresholds_sdt_default_delta,
+        width = FIGURE_WIDTH_CM,
+        height = FIGURE_HEIGHT_CM,
+        units = "cm"
+    )
+
+    fig_thresholds_mid <- mk_threshold_plot_mid(comp_threshold, comp_simple)
+    ggsave(
+        file.path(OUTPUT_DIR, "fig5_pairwise_mid.pdf"),
+        fig_thresholds_mid,
+        width = FIGURE_WIDTH_CM,
+        height = FIGURE_HEIGHT_CM,
+        units = "cm"
+    )
+
+    comp_at_defaults <- comp_threshold[
+        theta == DEFAULT_THETA & delta == DEFAULT_DELTA
+    ]
+    print(comp_at_defaults)
+
 }

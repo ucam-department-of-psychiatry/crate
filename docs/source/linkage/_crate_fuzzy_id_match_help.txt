@@ -331,8 +331,9 @@ comparison options:
                         Add extra output for validation purposes. (default:
                         False)
   --n_workers N_WORKERS
-                        Number of processes to use in parallel. Defaults to
-                        number of CPUs on your system. (default: 8)
+                        Number of processes to use in parallel. Defaults to 1
+                        (Windows) or the number of CPUs on your system (other
+                        operating systems). (default: 8)
   --max_chunksize MAX_CHUNKSIZE
                         Maximum chunk size (number of probands to pass to a
                         subprocess each time). (default: 1000)
@@ -347,7 +348,7 @@ matching rules:
                         Minimum natural log (ln) odds of two people being the
                         same, before a match will be considered. Referred to
                         as theta (θ) in the validation paper. (Default is
-                        equivalent to p = 0.9990889488055994.) (default: 7)
+                        equivalent to p = 0.9933071490757152.) (default: 5)
   --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
                         Minimum log (ln) odds by which a best match must
                         exceed the next-best match to be considered a unique
@@ -605,8 +606,9 @@ comparison options:
                         Add extra output for validation purposes. (default:
                         False)
   --n_workers N_WORKERS
-                        Number of processes to use in parallel. Defaults to
-                        number of CPUs on your system. (default: 8)
+                        Number of processes to use in parallel. Defaults to 1
+                        (Windows) or the number of CPUs on your system (other
+                        operating systems). (default: 8)
   --max_chunksize MAX_CHUNKSIZE
                         Maximum chunk size (number of probands to pass to a
                         subprocess each time). (default: 1000)
@@ -621,7 +623,7 @@ matching rules:
                         Minimum natural log (ln) odds of two people being the
                         same, before a match will be considered. Referred to
                         as theta (θ) in the validation paper. (Default is
-                        equivalent to p = 0.9990889488055994.) (default: 7)
+                        equivalent to p = 0.9933071490757152.) (default: 5)
   --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
                         Minimum log (ln) odds by which a best match must
                         exceed the next-best match to be considered a unique
@@ -869,8 +871,9 @@ comparison options:
                         Add extra output for validation purposes. (default:
                         False)
   --n_workers N_WORKERS
-                        Number of processes to use in parallel. Defaults to
-                        number of CPUs on your system. (default: 8)
+                        Number of processes to use in parallel. Defaults to 1
+                        (Windows) or the number of CPUs on your system (other
+                        operating systems). (default: 8)
   --max_chunksize MAX_CHUNKSIZE
                         Maximum chunk size (number of probands to pass to a
                         subprocess each time). (default: 1000)
@@ -901,7 +904,7 @@ matching rules:
                         Minimum natural log (ln) odds of two people being the
                         same, before a match will be considered. Referred to
                         as theta (θ) in the validation paper. (Default is
-                        equivalent to p = 0.9990889488055994.) (default: 7)
+                        equivalent to p = 0.9933071490757152.) (default: 5)
   --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
                         Minimum log (ln) odds by which a best match must
                         exceed the next-best match to be considered a unique

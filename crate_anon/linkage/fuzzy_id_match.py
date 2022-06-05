@@ -383,7 +383,7 @@ class FuzzyDefaults:
     # -------------------------------------------------------------------------
     # Matching process
     # -------------------------------------------------------------------------
-    MIN_LOG_ODDS_FOR_MATCH = 7  # theta, in the validation paper
+    MIN_LOG_ODDS_FOR_MATCH = 5  # theta, in the validation paper
     EXCEEDS_NEXT_BEST_LOG_ODDS = 10  # delta, in the validation paper
 
     # -------------------------------------------------------------------------
