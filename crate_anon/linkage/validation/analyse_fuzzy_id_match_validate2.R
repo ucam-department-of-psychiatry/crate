@@ -13,15 +13,22 @@ Consider also:
 
 - https://rviews.rstudio.com/2019/03/01/some-r-packages-for-roc-curves/
 
+A ggplot resource:
+
+- https://nextjournal.com/jk/best-ggplot
+
 '
 
 # =============================================================================
 # Libraries
 # =============================================================================
 
+library(car)
 library(data.table)
 library(ggplot2)
 library(gridExtra)
+# library(lme4)
+# library(lmerTest)
 library(lubridate)
 library(pROC)
 library(RJSONIO)
@@ -177,9 +184,18 @@ SEX_OTHER_UNKNOWN <- "other_unknown"
 # =============================================================================
 
 DEFAULT_VLINE_COLOUR <- "#AAAAAA"
-DEFAULT_COLOUR_SCALE <- scale_colour_gradient(
+DEFAULT_COLOUR_SCALE_GGPLOT_REVERSED <- scale_colour_gradient(
     low = "#56B1F7",  # ggplot default high
-    high = "#132B43"  # ggplot default low: scale_colour_gradient
+    high = "#132B43"  # ggplot default low: see scale_colour_gradient
+)
+DEFAULT_COLOUR_SCALE_THETA <- scale_colour_gradient(
+    # https://ggplot2-book.org/scale-colour.html
+    low = munsell::mnsl("5P 7/12"),
+    high = munsell::mnsl("5P 2/12")
+)
+DEFAULT_COLOUR_SCALE_DELTA <- scale_colour_gradient(
+    low = munsell::mnsl("5R 7/8"),
+    high = munsell::mnsl("5R 2/8")
 )
 
 FIGURE_WIDTH_CM <- 25
@@ -1000,12 +1016,11 @@ get_comparisons_simple <- function()
 }
 
 
-compare_at_thresholds <- function(
-    from_dbname, to_dbname, theta, delta, compdata, with_obscure = FALSE
-)
+decide_at_thresholds <- function(compdata, theta, delta)
 {
-    compdata <- copy(compdata)
-    compdata[, declare_match := (
+    # Makes a copy of the data supplied and applies decision thresholds.
+    d <- data.table::copy(compdata)
+    d[, declare_match := (
         # Criterion A:
         log_odds_match >= theta
         # Criterion B:
@@ -1017,13 +1032,23 @@ compare_at_thresholds <- function(
     # everything to add up, so we deal with these separately. (We do *not* say
     # that a "hit" is declaring a match and the best candidate being correct.)
     # So, the first phase:
-    compdata[, hit := declare_match & proband_in_sample]
-    compdata[, false_alarm := declare_match & !proband_in_sample]
-    compdata[, correct_rejection := !declare_match & !proband_in_sample]
-    compdata[, miss := !declare_match & proband_in_sample]
+    d[, hit := declare_match & proband_in_sample]
+    d[, false_alarm := declare_match & !proband_in_sample]
+    d[, correct_rejection := !declare_match & !proband_in_sample]
+    d[, miss := !declare_match & proband_in_sample]
 
     # And the second:
-    compdata[, misidentification := declare_match & !best_candidate_correct]
+    d[, misidentification := declare_match & !best_candidate_correct]
+
+    return(d)
+}
+
+
+compare_at_thresholds <- function(
+    from_dbname, to_dbname, theta, delta, compdata, with_obscure = FALSE
+)
+{
+    decided <- decide_at_thresholds(compdata, theta, delta)
 
     d <- data.table(
         # In:
@@ -1032,14 +1057,14 @@ compare_at_thresholds <- function(
         theta = theta,
         delta = delta,
         # Out:
-        n = nrow(compdata),
-        n_tp = sum(compdata$hit),  # true positive
-        n_fp = sum(compdata$false_alarm),  # false positive
-        n_tn = sum(compdata$correct_rejection),  # true negative
-        n_fn = sum(compdata$miss),  # false negative
+        n = nrow(decided),
+        n_tp = sum(decided$hit),  # true positive
+        n_fp = sum(decided$false_alarm),  # false positive
+        n_tn = sum(decided$correct_rejection),  # true negative
+        n_fn = sum(decided$miss),  # false negative
 
-        n_identified = sum(compdata$declare_match),
-        n_misidentified = sum(compdata$misidentification)
+        n_identified = sum(decided$declare_match),
+        n_misidentified = sum(decided$misidentification)
     )
 
     # Standard derived SDT measures
@@ -1076,8 +1101,8 @@ compare_at_thresholds <- function(
     d[, MID := n_misidentified / n_identified]  # misidentification rate
 
     # Checks
-    stopifnot(d$n_p == sum(compdata$proband_in_sample))
-    stopifnot(d$n_n == sum(!compdata$proband_in_sample))
+    stopifnot(d$n_p == sum(decided$proband_in_sample))
+    stopifnot(d$n_n == sum(!decided$proband_in_sample))
 
     return(d)
 }
@@ -1107,6 +1132,40 @@ get_comparisons_varying_threshold <- function()
     return(comp_thresholds)
 }
 
+
+bias_at_threshold <- function(
+    compdata,
+    theta = DEFAULT_THETA,
+    delta = DEFAULT_DELTA
+)
+{
+    # Make decisions. We only care about probands who are in the sample.
+    decided <- decide_at_thresholds(
+        compdata[proband_in_sample == TRUE],
+        theta,
+        delta
+    )
+    decided[, declare_match_int := as.integer(declare_match)]
+    m <- glm(
+        declare_match ~
+            sex_simple
+                + ethnicity
+                + index_of_multiple_deprivation
+                + dx_group_simple,
+        family = binomial(link = "logit"),
+        data = decided
+    )
+
+    print(summary(m))
+    # Estimate = 0 is no effect, >0 more likely to be linked, <0 less likely.
+    # Estimates are of log odds.
+    print(car::Anova(m, type = "III", test.statistic = "F"))
+}
+
+
+# =============================================================================
+# Plots
+# =============================================================================
 
 mk_threshold_plot_sdt <- function(
     comp_threshold,
@@ -1157,13 +1216,13 @@ mk_threshold_plot_sdt <- function(
             xintercept = default_theta,
             colour = default_line_colour
         )
-        + geom_point()
         + geom_line()
+        + geom_point()
         + facet_grid(from ~ to)
         + theme_bw()
         + scale_linetype_manual(values = linetypes)
         + scale_shape_manual(values = shapes)
-        + DEFAULT_COLOUR_SCALE
+        + DEFAULT_COLOUR_SCALE_THETA
     )
     return(p)
 }
@@ -1205,17 +1264,17 @@ mk_threshold_plot_mid <- function(
             xintercept = default_delta,
             colour = default_line_colour
         )
-        + geom_point(shape = shape)
         + geom_line(linetype = linetype)
+        + geom_point(shape = shape)
         + facet_grid(from ~ to)
         + theme_bw()
-        + DEFAULT_COLOUR_SCALE
+        + DEFAULT_COLOUR_SCALE_DELTA
     )
     if (with_overlap_label) {
         if (is.null(comp_simple)) {
             stop("Must specify comp_simple to use with_overlap_label")
         }
-        cs <- copy(comp_simple)
+        cs <- data.table::copy(comp_simple)
         cs[, overlap_label := paste0("o = ", n_overlap)]
         p <- (
             p
@@ -1250,40 +1309,43 @@ if (FALSE) {
 
     # Done, transcribed:
     dg <- get_all_demographics()
-    print(dg)
-    print(t(dg))
+    # print(dg)
+    # print(t(dg))
 
     # Working:
     comp_simple <- get_comparisons_simple()
-    print(comp_simple)
+    # print(comp_simple)
 
     comp_threshold <- get_comparisons_varying_threshold()
-    print(comp_threshold)
+    # print(comp_threshold)
 
-    fig_thresholds_sdt <- mk_threshold_plot_sdt(comp_threshold)
+    fig_pairwise_thresholds_sdt <- mk_threshold_plot_sdt(comp_threshold)
     ggsave(
-        file.path(OUTPUT_DIR, "fig4_pairwise_sdt.pdf"),
-        fig_thresholds_sdt,
+        file.path(OUTPUT_DIR, "fig_pairwise_thresholds_sdt.pdf"),
+        fig_pairwise_thresholds_sdt,
         width = FIGURE_WIDTH_CM,
         height = FIGURE_HEIGHT_CM,
         units = "cm"
     )
 
-    fig_thresholds_sdt_default_delta <- mk_threshold_plot_sdt(
+    fig_pairwise_thresholds_sdt_default_delta <- mk_threshold_plot_sdt(
         comp_threshold[delta == DEFAULT_DELTA]
     )
     ggsave(
-        file.path(OUTPUT_DIR, "fig4b_pairwise_sdt_default_delta.pdf"),
-        fig_thresholds_sdt_default_delta,
+        file.path(OUTPUT_DIR, "fig_pairwise_thresholds_sdt_default_delta.pdf"),
+        fig_pairwise_thresholds_sdt_default_delta,
         width = FIGURE_WIDTH_CM,
         height = FIGURE_HEIGHT_CM,
         units = "cm"
     )
 
-    fig_thresholds_mid <- mk_threshold_plot_mid(comp_threshold, comp_simple)
+    fig_pairwise_thresholds_mid <- mk_threshold_plot_mid(
+        comp_threshold,
+        comp_simple
+    )
     ggsave(
-        file.path(OUTPUT_DIR, "fig5_pairwise_mid.pdf"),
-        fig_thresholds_mid,
+        file.path(OUTPUT_DIR, "fig_pairwise_thresholds_mid.pdf"),
+        fig_pairwise_thresholds_mid,
         width = FIGURE_WIDTH_CM,
         height = FIGURE_HEIGHT_CM,
         units = "cm"
@@ -1293,5 +1355,7 @@ if (FALSE) {
         theta == DEFAULT_THETA & delta == DEFAULT_DELTA
     ]
     print(comp_at_defaults)
+
+    bias <- bias_at_threshold(compare_rio_to_systmone)
 
 }
