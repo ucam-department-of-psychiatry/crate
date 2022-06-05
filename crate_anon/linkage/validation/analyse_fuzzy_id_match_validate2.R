@@ -9,6 +9,10 @@ source("C:/srv/crate/src/crate/crate_anon/linkage/analyse_fuzzy_id_match_validat
 
 or Ctrl-Shift-S to source from RStudio.
 
+Consider also:
+
+- https://rviews.rstudio.com/2019/03/01/some-r-packages-for-roc-curves/
+
 '
 
 # =============================================================================
@@ -21,6 +25,7 @@ library(gridExtra)
 library(lubridate)
 library(pROC)
 library(RJSONIO)
+# library(scales)  # for muted() colours
 library(tidyverse)
 
 RLIB_STEM <- "https://egret.psychol.cam.ac.uk/rlib/"
@@ -81,7 +86,7 @@ TO_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
 # =============================================================================
 
 DATA_DIR <- "C:/srv/crate/crate_fuzzy_linkage_validation"
-OUTPUT_DIR <- "C:/Users/rcardinal/Documents/fuzzy_linkage_validation"
+OUTPUT_DIR <- DATA_DIR
 
 
 get_data_filename <- function(db)
@@ -1090,12 +1095,13 @@ get_comparisons_varying_threshold <- function()
 
 mk_threshold_plot <- function(
     comp_threshold,
-    comp_simple,
-    depvars = c("TPR", "TNR", "FPR", "FNR", "MID"),
-    linetypes = c("solid", "solid", "dotted", "dotted", "dashed"),
-    shapes = c(24, 25, 8, 1, 11),
-    # ... up triangle, down triangle, star, open circle, Star of David
-    default_theta = DEFAULT_THETA
+    comp_simple = NULL,
+    depvars = c("TPR", "TNR", "FPR", "FNR"),
+    linetypes = c("solid", "solid", "dotted", "dotted"),
+    shapes = c(24, 25, 23, 1),
+    # ... up triangle, down triangle, diamond, open circle
+    default_theta = DEFAULT_THETA,
+    with_overlap_label = TRUE
 )
 {
     # The quantities that are informative and independent of the prevalence
@@ -1121,8 +1127,6 @@ mk_threshold_plot <- function(
         %>% as.data.table()
     )
     d[, grouper := paste0(quantity, "_", delta)]
-    cs <- copy(comp_simple)
-    cs[, overlap_label := paste0("o = ", n_overlap)]
     p <- (
         ggplot(
             d,
@@ -1141,23 +1145,49 @@ mk_threshold_plot <- function(
         + theme_bw()
         + scale_linetype_manual(values = linetypes)
         + scale_shape_manual(values = shapes)
-        + geom_vline(xintercept = default_theta)
-        + geom_text(
-            data = cs,
-            mapping = aes(
-                label = overlap_label,
-                # implicit (for facet plot): from, to
-                group = NULL,
-                colour = NULL,
-                linetype = NULL,
-                shape = NULL
-            ),
-            y = 0.4,
-            x = 0,
-            hjust = 0
+        + scale_colour_gradient(
+            low = "#56B1F7",  # ggplot default high
+            high = "#132B43"  # ggplot default low: scale_colour_gradient
         )
+        + geom_vline(xintercept = default_theta)
     )
+    if (with_overlap_label) {
+        if (is.null(comp_simple)) {
+            stop("Must specify comp_simple to use with_overlap_label")
+        }
+        cs <- copy(comp_simple)
+        cs[, overlap_label := paste0("o = ", n_overlap)]
+        p <- (
+            p
+            + geom_text(
+                data = cs,
+                mapping = aes(
+                    label = overlap_label,
+                    # implicit (for facet plot): from, to
+                    group = NULL,
+                    colour = NULL,
+                    linetype = NULL,
+                    shape = NULL
+                ),
+                y = 0.4,
+                x = 0,
+                hjust = 0
+            )
+        )
+    }
     return(p)
+}
+
+
+mk_threshold_plot_mid <- function(comp_threshold)
+{
+    mk_threshold_plot(
+        comp_threshold,
+        depvars = "MID",
+        linetypes = "solid",
+        shapes = 4,  # 4 = cross, 11 = Star of David
+        with_overlap_label = FALSE
+    )
 }
 
 
@@ -1180,6 +1210,11 @@ if (FALSE) {
     comp_threshold <- get_comparisons_varying_threshold()
     print(comp_threshold)
 
-    fig_thresholds <- mk_threshold_plot(comp_threshold, comp_simple)
-    print(fig_thresholds)
+    fig_thresholds_sdt <- mk_threshold_plot(comp_threshold, comp_simple)
+    # print(fig_thresholds_sdt)
+    ggsave(file.path(OUTPUT_DIR, "fig4_pairwise_sdt.pdf"), fig_thresholds_sdt)
+
+    fig_thresholds_mid <- mk_threshold_plot_mid(comp_threshold)
+    # print(fig_thresholds_mid)
+    ggsave(file.path(OUTPUT_DIR, "fig5_pairwise_mid.pdf"), fig_thresholds_mid)
 }

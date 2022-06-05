@@ -53,6 +53,14 @@ for example, only takes the time for 1e5 iterations from 0.72 s to 0.86 s.
 
 (A subsequent test: faster, at 5443 s = 1.5 h, 1.25 y, and 6.3 y respectively.)
 
+Speed tests for paper:
+
+.. code-block:: bash
+
+    ./test_hash_speed.py --method HMAC_MD5 --ntests 1000000 > /dev/null
+    ./test_hash_speed.py --method HMAC_SHA256 --ntests 1000000 > /dev/null
+    ./test_hash_speed.py --method HMAC_SHA512 --ntests 1000000 > /dev/null
+
 """
 
 import argparse
@@ -68,13 +76,12 @@ from cardinal_pythonlib.randomness import generate_random_string
 log = logging.getLogger(__name__)
 
 
-def gen_dummy_data(n: int, n_padding_chars: int) -> Iterable[str]:
+def gen_dummy_data(n: int, string_length: int) -> Iterable[str]:
     """
-    Generate some random strings.
+    Generate some random strings of the specified width
     """
-    padding = "x" * n_padding_chars
     for i in range(n):
-        yield padding + str(i)
+        yield str(n).ljust(string_length, "x")
 
 
 def test_hash_speed(
@@ -83,7 +90,7 @@ def test_hash_speed(
     key: str,
     ntests: int,
     intended_possibilities: List[int],
-    n_padding_chars: int,
+    string_length: int,
 ):
     """
     Hash lines from one file to another.
@@ -99,8 +106,8 @@ def test_hash_speed(
             Number of hashes to perform.
         intended_possibilities:
             Number of hashes to estimate time for.
-        n_padding_chars:
-            Length of padding (characters).
+        string_length:
+            Length of each string to hash (characters).
 
     Note that the hash precedes the ID with the ``keep_id`` option, which
     works best if the ID might contain commas.
@@ -108,13 +115,13 @@ def test_hash_speed(
     log.info(f"Writing to: {output_filename}")
     log.info(f"Using hash method: {hash_method}")
     log.info(f"Hashing some random data {ntests} times, using one CPU core")
-    log.info(f"Padding length: {n_padding_chars}")
+    log.info(f"String length: {string_length}")
     log.debug(f"Using key: {key!r}")  # NB security warning in help
 
     hasher = make_hasher(hash_method=hash_method, key=key)
     with smart_open(output_filename, "wt") as o:  # type: TextIO
         start_time = time.time()
-        for data in gen_dummy_data(ntests, n_padding_chars):
+        for data in gen_dummy_data(ntests, string_length):
             hashed = hasher.hash(data)
             writeline_nl(o, f"{data} -> {hashed}")
         end_time = time.time()
@@ -124,6 +131,7 @@ def test_hash_speed(
     log.info(f"End time (s): {end_time}")
     log.info(f"Time taken (s): {time_taken_s}")
     log.info(f"Number of hash operations: {ntests}")
+    log.info(f"Hash operations per second: {ntests / time_taken_s}")
     for intended in intended_possibilities:
         estimated_time_s = intended * time_taken_s / ntests
         log.info(
@@ -177,11 +185,11 @@ def main() -> None:
         help="Number of hash tests to time for real (a small number).",
     )
     parser.add_argument(
-        "--padding",
+        "--length",
         type=int,
-        default=9,
-        help="Number of padding characters (appended to a string version of "
-        "a consecutive integer covering the range of --ntests).",
+        default=10,
+        help="Length of string to hash. (Consecutive integers covering the "
+        "range of --ntests will be padded to this length.)",
     )
     parser.add_argument(
         "--intended",
@@ -213,7 +221,7 @@ def main() -> None:
         output_filename=args.outfile,
         hash_method=args.method,
         key=key,
-        n_padding_chars=args.padding,
+        string_length=args.length,
         ntests=args.ntests,
         intended_possibilities=args.intended,
     )
