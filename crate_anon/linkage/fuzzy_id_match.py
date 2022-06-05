@@ -164,6 +164,7 @@ from crate_anon.common.constants import (
     EXIT_FAILURE,
     EXIT_SUCCESS,
 )
+from crate_anon.common.logfunc import warn_once
 from crate_anon.version import CRATE_VERSION
 
 if TYPE_CHECKING:
@@ -551,7 +552,7 @@ def get_metaphone(x: str) -> str:
     metaphones = dmeta(x)
     first_part = metaphones[0]  # the first part only
     if first_part is None:
-        log.warning(f"No metaphone for {x!r}")
+        warn_once(f"No metaphone for {x!r}", log)
         return ""
     return first_part.decode("ascii")
 
@@ -1484,7 +1485,7 @@ class PostcodeFrequencyInfo(object):
             )
         except KeyError:
             if not is_pseudo_postcode(unit):
-                log.warning(f"Unknown postcode: {unit}")
+                warn_once(f"Unknown postcode: {unit}", log)
             unit_freq = self._p_unknown_or_pseudo_postcode
             sector_freq = self._p_unknown_or_pseudo_postcode
         assert unit_freq <= sector_freq, (

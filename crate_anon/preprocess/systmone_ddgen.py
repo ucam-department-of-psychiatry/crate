@@ -425,7 +425,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 import logging
 import re
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from cardinal_pythonlib.dicts import reversedict
 from cardinal_pythonlib.enumlike import CaseInsensitiveEnumMeta
@@ -438,6 +438,7 @@ from crate_anon.anonymise.constants import (
     ScrubSrc,
     SrcFlag,
 )
+from crate_anon.common.logfunc import warn_once
 from crate_anon.common.sql import SQLTYPE_DATE
 from crate_anon.anonymise.dd import DataDictionary, DataDictionaryRow
 from crate_anon.preprocess.constants import CRATE_COL_PK
@@ -1579,23 +1580,6 @@ OPT_OUT_TABLENAME_COLNAME_PAIRS = {
 
 
 # =============================================================================
-# Output
-# =============================================================================
-
-_warned = set()  # type: Set[str]
-
-
-def warn_once(msg: str) -> None:
-    """
-    Warns the user once only.
-    """
-    global _warned
-    if msg not in _warned:
-        log.warning(msg)
-        _warned.add(msg)
-
-
-# =============================================================================
 # String comparison helper functions
 # =============================================================================
 
@@ -1693,12 +1677,12 @@ def core_tablename(
         if is_in_re(tablename, INCLUDE_TABLES_REGEX[from_context]):
             return tablename
         else:
-            warn_once(f"Unrecognized table name style: {tablename}")
+            warn_once(f"Unrecognized table name style: {tablename}", log)
             if allow_unprefixed:
                 return tablename
             else:
                 return ""
-    rest = tablename[len(prefix) :]
+    rest = tablename[len(prefix) :]  # noqa: E203
     if not rest:
         raise ValueError(f"Table name {tablename!r} only contains its prefix")
     xlate = CONTEXT_TO_CORE_TABLE_TRANSLATIONS[from_context]
