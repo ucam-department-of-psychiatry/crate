@@ -345,12 +345,14 @@ comparison options:
 matching rules:
   --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
                         Minimum natural log (ln) odds of two people being the
-                        same, before a match will be considered. (Default is
+                        same, before a match will be considered. Referred to
+                        as theta (θ) in the validation paper. (Default is
                         equivalent to p = 0.9990889488055994.) (default: 7)
   --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
                         Minimum log (ln) odds by which a best match must
                         exceed the next-best match to be considered a unique
-                        match. (default: 10)
+                        match. Referred to as delta (δ) in the validation
+                        paper. (default: 10)
 
 error probabilities:
   --p_minor_forename_error P_MINOR_FORENAME_ERROR
@@ -617,12 +619,14 @@ comparison options:
 matching rules:
   --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
                         Minimum natural log (ln) odds of two people being the
-                        same, before a match will be considered. (Default is
+                        same, before a match will be considered. Referred to
+                        as theta (θ) in the validation paper. (Default is
                         equivalent to p = 0.9990889488055994.) (default: 7)
   --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
                         Minimum log (ln) odds by which a best match must
                         exceed the next-best match to be considered a unique
-                        match. (default: 10)
+                        match. Referred to as delta (δ) in the validation
+                        paper. (default: 10)
 
 error probabilities:
   --p_minor_forename_error P_MINOR_FORENAME_ERROR
@@ -895,12 +899,14 @@ hasher (secrecy) options:
 matching rules:
   --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
                         Minimum natural log (ln) odds of two people being the
-                        same, before a match will be considered. (Default is
+                        same, before a match will be considered. Referred to
+                        as theta (θ) in the validation paper. (Default is
                         equivalent to p = 0.9990889488055994.) (default: 7)
   --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
                         Minimum log (ln) odds by which a best match must
                         exceed the next-best match to be considered a unique
-                        match. (default: 10)
+                        match. Referred to as delta (δ) in the validation
+                        paper. (default: 10)
 
 error probabilities:
   --p_minor_forename_error P_MINOR_FORENAME_ERROR

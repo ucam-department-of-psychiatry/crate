@@ -379,14 +379,14 @@ class FuzzyDefaults:
     # -------------------------------------------------------------------------
     # Matching process
     # -------------------------------------------------------------------------
-    LOG_ODDS_FOR_MATCH = 7
-    EXCEEDS_NEXT_BEST_LOG_ODDS = 10
+    MIN_LOG_ODDS_FOR_MATCH = 7  # theta, in the validation paper
+    EXCEEDS_NEXT_BEST_LOG_ODDS = 10  # delta, in the validation paper
 
     # -------------------------------------------------------------------------
     # Derived
     # -------------------------------------------------------------------------
 
-    MIN_P_FOR_MATCH = probability_from_log_odds(LOG_ODDS_FOR_MATCH)
+    MIN_P_FOR_MATCH = probability_from_log_odds(MIN_LOG_ODDS_FOR_MATCH)
     P_MIDDLE_NAME_N_PRESENT_STR = ",".join(
         str(x) for x in P_MIDDLE_NAME_N_PRESENT
     )
@@ -1589,7 +1589,7 @@ class MatchConfig(object):
         ),
         p_gender_error: float = FuzzyDefaults.P_GENDER_ERROR,
         p_minor_postcode_error: float = FuzzyDefaults.P_MINOR_POSTCODE_ERROR,
-        min_log_odds_for_match: float = FuzzyDefaults.LOG_ODDS_FOR_MATCH,
+        min_log_odds_for_match: float = FuzzyDefaults.MIN_LOG_ODDS_FOR_MATCH,
         exceeds_next_best_log_odds: float = (
             FuzzyDefaults.EXCEEDS_NEXT_BEST_LOG_ODDS
         ),
@@ -4630,9 +4630,10 @@ def add_matching_rules(parser: argparse.ArgumentParser) -> None:
     match_rule_group.add_argument(
         f"--{Switches.MIN_LOG_ODDS_FOR_MATCH}",
         type=float,
-        default=FuzzyDefaults.LOG_ODDS_FOR_MATCH,
+        default=FuzzyDefaults.MIN_LOG_ODDS_FOR_MATCH,
         help=f"Minimum natural log (ln) odds of two people being the same, "
-        f"before a match will be considered. (Default is equivalent to "
+        f"before a match will be considered. Referred to as theta (θ) in the "
+        f"validation paper. (Default is equivalent to "
         f"p = {FuzzyDefaults.MIN_P_FOR_MATCH}.)",
     )
     match_rule_group.add_argument(
@@ -4640,7 +4641,8 @@ def add_matching_rules(parser: argparse.ArgumentParser) -> None:
         type=float,
         default=FuzzyDefaults.EXCEEDS_NEXT_BEST_LOG_ODDS,
         help="Minimum log (ln) odds by which a best match must exceed the "
-        "next-best match to be considered a unique match.",
+        "next-best match to be considered a unique match. Referred to as "
+        "delta (δ) in the validation paper.",
     )
 
 
@@ -4859,7 +4861,7 @@ def get_cfg_from_args(
         ),
         min_log_odds_for_match=g(
             Switches.MIN_LOG_ODDS_FOR_MATCH,
-            FuzzyDefaults.LOG_ODDS_FOR_MATCH,
+            FuzzyDefaults.MIN_LOG_ODDS_FOR_MATCH,
             require_matching,
         ),
         exceeds_next_best_log_odds=g(

@@ -39,18 +39,22 @@ debugfunc$wideScreen()
 ROW_LIMIT <- Inf  # Inf for no limit; finite for debugging
 
 # Theta: absolute log odds threshold for the winner.
-# p = 0.5 equates to odds of 1/1 = 1 and thus log odds of 0.
+# A probability p = 0.5 equates to odds of 1/1 = 1 and thus log odds of 0.
 # The maximum log odds will be from comparing a database to itself.
 # For CDL, that is about 41.5.
+# But maybe it's a little crazy to explore thresholds so high that you would
+# always reject everything.
 
-# THETA_OPTIONS <- seq(0, 40)
-THETA_OPTIONS <- seq(5, 10)  # for debugging
+THETA_OPTIONS <- seq(0, 15, by = 1)
+# THETA_OPTIONS <- c(0, 5, 10)  # for debugging
+
+DEFAULT_THETA <- 7  # see crate_anon.linkage.fuzzy_id_match.FuzzyDefaults
 
 # Delta: log odds advantage over the next.
 # Again, 0 would be no advantage.
 
-# DELTA_OPTIONS <- seq(0, 20)
-DELTA_OPTIONS <- c(5, 10)  # for debugging
+DELTA_OPTIONS <- seq(0, 15, by = 2.5)
+# DELTA_OPTIONS <- c(0, 5, 10)  # for debugging
 
 
 # =============================================================================
@@ -817,14 +821,6 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
     d[, proband_in_sample :=
         hashed_nhs_number_proband %in% sample$hashed_nhs_number
     ]
-    d[, correctly_eliminated :=
-        # Correct rejection, subject to thresholds.
-        is.na(hashed_nhs_number_best_candidate) & !proband_in_sample
-    ]
-    d[, not_found :=
-        # Miss, subject to thresholds.
-        is.na(hashed_nhs_number_best_candidate) & !proband_in_sample
-    ]
 
     cat(paste0("  ... done (", nrow(d), " rows).\n"))
     return(d)
@@ -983,7 +979,7 @@ get_comparisons_simple <- function()
 
 
 compare_at_thresholds <- function(
-    from_dbname, to_dbname, theta, delta, compdata
+    from_dbname, to_dbname, theta, delta, compdata, with_obscure = FALSE
 )
 {
     '
@@ -1000,19 +996,53 @@ compare_at_thresholds <- function(
     )]
     compdata[, hit := declare_match & best_candidate_correct]
     compdata[, false_alarm := declare_match & best_candidate_incorrect]
-    compdata[, miss := !declare_match & proband_in_sample]
     compdata[, correct_rejection := !declare_match & !proband_in_sample]
+    compdata[, miss := !declare_match & proband_in_sample]
     n <- nrow(compdata)
     d <- data.table(
+        # In:
         from = from_dbname,
         to = to_dbname,
         theta = theta,
         delta = delta,
-        hit = sum(compdata$hit) / n,
-        false_alarm = sum(compdata$false_alarm) / n,
-        miss = sum(compdata$miss) / n,
-        correct_rejection = sum(compdata$correct_rejection) / n
+        # Out:
+        n = nrow(compdata),
+        n_tp = sum(compdata$hit),  # true positive
+        n_fp = sum(compdata$false_alarm),  # false positive
+        n_tn = sum(compdata$correct_rejection),  # true negative
+        n_fn = sum(compdata$miss)  # false negative
     )
+
+    # Derived measures
+    # https://en.wikipedia.org/wiki/Receiver_operating_characteristic
+    # Capitals to look pretty in graphs automatically.
+    d[, check_0 := n_tp + n_fp + n_tn + n_fn - n]
+    d[, n_p := n_tp + n_fn]  # positive
+    d[, n_n := n_tn + n_fp]  # negative
+    d[, TPR := n_tp / n_p]  # sensitivity, recall, hit rate, true pos. rate
+    d[, TNR := n_tn / n_n]  # specificity, selectivity, true neg. rate
+    d[, PPV := n_tp / (n_tp + n_fp)]
+    d[, NPV := n_tn / (n_tn + n_fn)]
+    d[, FNR := n_fn / n_p]  # miss rate, false neg. rate
+    d[, FPR := n_fp / n_n]  # false pos. rate
+    d[, FDR := n_fp / (n_fp + n_tp)]  # false discovery rate
+    d[, FOR := n_fn / (n_fn + n_tn)]  # false omission rate
+    d[, Prevalence := n_p / n]  # = n_p / (n_p + n_n)
+    d[, Accuracy := (n_tp + n_tn) / n]  # proportion of decisions correct
+    d[, F1 := 2 * n_tp / (2 * n_tp + n_fp + n_fn)]
+    if (with_obscure) {
+        d[, LR_pos := TPR / FPR]
+        d[, LR_neg := FNR / TNR]
+        d[, PT :=
+             sqrt(FPR) / (sqrt(TPR) + sqrt(FPR))
+        ]
+        d[, TS_CSI := n_tp / (n_tp + n_fn + n_fp)]
+        d[, Balanced_accuracy :=
+            (TPR + TNR) / 2
+        ]
+        # ... etc.
+    }
+
     return(d)
 }
 
@@ -1042,6 +1072,62 @@ get_comparisons_varying_threshold <- function()
 }
 
 
+mk_threshold_plot <- function(
+    comp_threshold,
+    depvars = c("TPR", "TNR", "FPR", "FNR"),
+    linetypes = c("solid", "solid", "dotted", "dotted"),
+    shapes = c(24, 25, 8, 1),
+    # ... up triangle, down triangle, star, open circle
+    default_theta = DEFAULT_THETA
+)
+{
+    # The quantities that are informative and independent of the prevalence
+    # (and thus reflect qualities of the test) include TPR (sensitivity,
+    # recall), TNR (specificity), FPR (false alarm rate), and FNR (miss rate).
+    #
+    # Those that are affected by prevalence include PPV (precision), NPV.
+
+    CORE_VARS <- c("from", "to", "theta", "delta")
+    required_vars <- c(CORE_VARS, depvars)
+    d <- (
+        comp_threshold
+        %>% select(!!!required_vars)
+        %>% pivot_longer(
+            all_of(depvars),
+            names_to = "quantity",
+            values_to = "value"
+        )
+        %>% mutate(
+            # Get the ordering right, for the scales.
+            quantity = factor(quantity, levels = depvars)
+        )
+        %>% as.data.table()
+    )
+    d[, grouper := paste0(quantity, "_", delta)]
+    p <- (
+        ggplot(
+            d,
+            aes(
+                x = theta,
+                y = value,
+                group = grouper,
+                colour = delta,
+                linetype = quantity,
+                shape = quantity
+            )
+        )
+        + geom_point()
+        + geom_line()
+        + facet_grid(from ~ to)
+        + theme_bw()
+        + scale_linetype_manual(values = linetypes)
+        + scale_shape_manual(values = shapes)
+        + geom_vline(xintercept = default_theta)
+    )
+    return(p)
+}
+
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -1055,4 +1141,10 @@ if (FALSE) {
 
     comp_simple <- get_comparisons_simple()
     print(comp_simple)
+
+    comp_threshold <- get_comparisons_varying_threshold()
+    print(comp_threshold)
+
+    fig_thresholds <- mk_threshold_plot(comp_threshold)
+    print(fig_thresholds)
 }
