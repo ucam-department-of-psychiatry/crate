@@ -9,12 +9,6 @@ source("C:/srv/crate/src/crate/crate_anon/linkage/analyse_fuzzy_id_match_validat
 
 or Ctrl-Shift-S to source from RStudio.
 
-Criteria
---------
-
-    log_odds_match >= threshold_1
-    log_odds_match >= second_best_log_odds + threshold_2
-
 '
 
 # =============================================================================
@@ -43,6 +37,20 @@ debugfunc$wideScreen()
 # =============================================================================
 
 ROW_LIMIT <- Inf  # Inf for no limit; finite for debugging
+
+# Theta: absolute log odds threshold for the winner.
+# p = 0.5 equates to odds of 1/1 = 1 and thus log odds of 0.
+# The maximum log odds will be from comparing a database to itself.
+# For CDL, that is about 41.5.
+
+# THETA_OPTIONS <- seq(0, 40)
+THETA_OPTIONS <- seq(5, 10)  # for debugging
+
+# Delta: log odds advantage over the next.
+# Again, 0 would be no advantage.
+
+# DELTA_OPTIONS <- seq(0, 20)
+DELTA_OPTIONS <- c(5, 10)  # for debugging
 
 
 # =============================================================================
@@ -943,9 +951,9 @@ get_all_demographics <- function()
 # Comparisons
 # =============================================================================
 
-compare_simple <- function(from_dbname, to_dbname, comparison_data)
+compare_simple <- function(from_dbname, to_dbname, compdata)
 {
-    n_overlap <- sum(comparison_data$proband_in_sample)
+    n_overlap <- sum(compdata$proband_in_sample)
     d <- data.table(
         from = from_dbname,
         to = to_dbname,
@@ -973,6 +981,67 @@ get_comparisons_simple <- function()
     return(comp_simple)
 }
 
+
+compare_at_thresholds <- function(
+    from_dbname, to_dbname, theta, delta, compdata
+)
+{
+    '
+    Criteria
+    --------
+
+        log_odds_match >= threshold_1
+        log_odds_match >= second_best_log_odds + threshold_2
+    '
+    compdata <- copy(compdata)
+    compdata[, declare_match := (
+        log_odds_match >= theta
+        & log_odds_match >= second_best_log_odds + delta
+    )]
+    compdata[, hit := declare_match & best_candidate_correct]
+    compdata[, false_alarm := declare_match & best_candidate_incorrect]
+    compdata[, miss := !declare_match & proband_in_sample]
+    compdata[, correct_rejection := !declare_match & !proband_in_sample]
+    n <- nrow(compdata)
+    d <- data.table(
+        from = from_dbname,
+        to = to_dbname,
+        theta = theta,
+        delta = delta,
+        hit = sum(compdata$hit) / n,
+        false_alarm = sum(compdata$false_alarm) / n,
+        miss = sum(compdata$miss) / n,
+        correct_rejection = sum(compdata$correct_rejection) / n
+    )
+    return(d)
+}
+
+
+get_comparisons_varying_threshold <- function()
+{
+    comp_thresholds <- NULL
+    for (db1 in FROM_DATABASES) {
+        for (db2 in TO_DATABASES) {
+            for (theta in THETA_OPTIONS) {
+                for (delta in DELTA_OPTIONS) {
+                    comp_thresholds <- rbind(
+                        comp_thresholds,
+                        compare_at_thresholds(
+                            db1,
+                            db2,
+                            theta,
+                            delta,
+                            get(mk_comparison_var(db1, db2))
+                        )
+                    )
+                }
+            }
+        }
+    }
+    return(comp_thresholds)
+}
+
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -986,5 +1055,4 @@ if (FALSE) {
 
     comp_simple <- get_comparisons_simple()
     print(comp_simple)
-    print(t(comp_simple))
 }
