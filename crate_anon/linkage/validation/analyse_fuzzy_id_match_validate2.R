@@ -23,13 +23,14 @@ A ggplot resource:
 # Libraries
 # =============================================================================
 
-library(car)
+library(car)  # for car::Anova
 library(data.table)
 library(ggplot2)
 library(gridExtra)
 # library(lme4)
 # library(lmerTest)
 library(lubridate)
+library(patchwork)
 library(pROC)
 library(RJSONIO)
 # library(scales)  # for muted() colours
@@ -175,7 +176,7 @@ SEX_M <- "M"
 SEX_X <- "X"
 # In "gender", we have NA for unknown.
 GENDER_LEVELS <- c(SEX_F, SEX_M, SEX_X)
-# In "sex_simple", we combine X with NA for and use
+# In "sex_simple", we combine X with NA for and use this:
 SEX_OTHER_UNKNOWN <- "other_unknown"
 
 
@@ -190,6 +191,7 @@ DEFAULT_COLOUR_SCALE_GGPLOT_REVERSED <- scale_colour_gradient(
 )
 DEFAULT_COLOUR_SCALE_THETA <- scale_colour_gradient(
     # https://ggplot2-book.org/scale-colour.html
+    # Show with munsell::hue_slice("5P") and pick a vertical slice.
     low = munsell::mnsl("5P 7/12"),
     high = munsell::mnsl("5P 2/12")
 )
@@ -198,8 +200,8 @@ DEFAULT_COLOUR_SCALE_DELTA <- scale_colour_gradient(
     high = munsell::mnsl("5R 2/8")
 )
 
-FIGURE_WIDTH_CM <- 25
-FIGURE_HEIGHT_CM <- 25
+PAGE_WIDTH_CM <- 17
+PAGE_HEIGHT_CM <- 25.7
 
 
 # =============================================================================
@@ -626,8 +628,8 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
     d <- data.table(read.csv(filename, nrows = nrows))
     cat("  ... loaded; processing...\n")
     if (strip_irrelevant) {
-        # Get rid of columns we don't care about
-        d <- d[, .(local_id, other_info)]
+        # Get rid of columns we don't care about.
+        # d <- d[, .(local_id, other_info)]
     }
     # Now expand the "other_info" column, which is JSON.
     # https://stackoverflow.com/questions/31599299/expanding-a-json-column-in-r
@@ -1070,7 +1072,6 @@ compare_at_thresholds <- function(
     # Standard derived SDT measures
     # https://en.wikipedia.org/wiki/Receiver_operating_characteristic
     # Capitals to look pretty in graphs automatically.
-    d[, check_0 := n_tp + n_fp + n_tn + n_fn - n]
     d[, n_p := n_tp + n_fn]  # positive: proband in sample
     d[, n_n := n_tn + n_fp]  # negative: proband not in sample
     d[, TPR := n_tp / n_p]  # sensitivity, recall, hit rate, true pos. rate
@@ -1103,6 +1104,7 @@ compare_at_thresholds <- function(
     # Checks
     stopifnot(d$n_p == sum(decided$proband_in_sample))
     stopifnot(d$n_n == sum(!decided$proband_in_sample))
+    stopifnot(all(d$n_tp + d$n_fp + d$n_tn + d$n_fn == d$n))
 
     return(d)
 }
@@ -1178,10 +1180,14 @@ bias_at_threshold <- function(
 
 mk_threshold_plot_sdt <- function(
     comp_threshold,
-    depvars = c("TPR", "TNR", "FPR", "FNR"),
-    linetypes = c("solid", "solid", "dotted", "dotted"),
-    shapes = c(24, 25, 23, 1),
+    # depvars = c("TPR", "TNR", "FPR", "FNR"),
+    # linetypes = c("solid", "solid", "dotted", "dotted"),
+    # shapes = c(24, 25, 23, 1),
     # ... up triangle, down triangle, diamond, open circle
+    depvars = c("TPR", "FPR"),
+    linetypes = c("solid", "dotted", "dotted"),
+    shapes = c(24, 25),
+    # ... up triangle, down triangle
     default_theta = DEFAULT_THETA,
     default_line_colour = DEFAULT_VLINE_COLOUR
 )
@@ -1191,6 +1197,9 @@ mk_threshold_plot_sdt <- function(
     # recall), TNR (specificity), FPR (false alarm rate), and FNR (miss rate).
     #
     # Those that are affected by prevalence include PPV (precision), NPV.
+    #
+    # TNR = 1 - FPR, and TPR = 1 - FNR, so no need to plot both.
+    # Let's use: TPR, FPR.
 
     CORE_VARS <- c("from", "to", "theta", "delta")
     required_vars <- c(CORE_VARS, depvars)
@@ -1309,12 +1318,141 @@ mk_threshold_plot_mid <- function(
 }
 
 
+mk_save_performance_plot <- function(comp_threshold, comp_simple)
+{
+    fig_pairwise_thresholds_sdt <- mk_threshold_plot_sdt(comp_threshold)
+    # fig_pairwise_thresholds_sdt_default_delta <- mk_threshold_plot_sdt(
+    #     comp_threshold[delta == DEFAULT_DELTA]
+    # )
+    fig_pairwise_thresholds_mid <- mk_threshold_plot_mid(
+        comp_threshold,
+        comp_simple
+    )
+    composite <- (
+        fig_pairwise_thresholds_sdt /
+        fig_pairwise_thresholds_mid
+    ) + plot_annotation(tag_levels = "A")
+    ggsave(
+        file.path(OUTPUT_DIR, "fig_pairwise_thresholds.pdf"),
+        composite,
+        width = PAGE_WIDTH_CM * 1.1,
+        height = PAGE_HEIGHT_CM * 1.1,
+        units = "cm"
+    )
+}
+
+
+# =============================================================================
+# Failure analysis
+# =============================================================================
+
+extract_miss_info <- function(probands, sample, comparison,
+                              theta = DEFAULT_THETA, delta = DEFAULT_DELTA)
+{
+    decided <- decide_at_thresholds(comparison, theta, delta)
+    comp_misses <- decided[proband_in_sample & !declare_match]
+    person_columns <- c(
+        # For linkage
+        "hashed_nhs_number",
+        # For error exploration
+        "hashed_first_name", "first_name_frequency",
+        "hashed_first_name_metaphone", "first_name_metaphone_frequency",
+        "hashed_middle_names", "middle_name_frequencies",
+        "hashed_middle_name_metaphones", "middle_name_metaphone_frequencies",
+        "hashed_surname", "surname_frequency",
+        "hashed_surname_metaphone", "surname_metaphone_frequency",
+        "hashed_dob",  # all frequencies the same
+        "hashed_gender", "gender_frequency",
+        "hashed_postcode_units", "postcode_unit_frequencies",
+        "hashed_postcode_sectors", "postcode_sector_frequencies",
+        # For bias analysis
+        "blurred_dob",
+        "gender",
+        "sex_simple",
+        "deprivation_centile_100_most_deprived",
+        "diagnostic_group",
+        "dx_group_simple"
+    )
+    miss_hashed_nhs <- comp_misses$hashed_nhs_number_proband
+    failure_info <- merge(  # fi = failure_info
+        x = probands[hashed_nhs_number %in% miss_hashed_nhs, ..person_columns],
+        y = sample[hashed_nhs_number %in% miss_hashed_nhs, ..person_columns],
+        by.x = "hashed_nhs_number",
+        by.y = "hashed_nhs_number",
+        all.x = TRUE,
+        all.y = FALSE,
+        suffixes = c("_proband", "_sample")
+    )
+    failure_summary <- data.table(
+
+    )
+    return(failure_info)
+}
+
+
+people_missingness_summary <- function(people)
+{
+    n <- nrow(people)
+    prop_missing <- function(x) {
+        sum(is.na(x)) / n
+    }
+    return(
+        people
+        %>% summarize(
+            # Strings can be "" not NA, but frequencies are NA if missing.
+            missing_first_name = prop_missing(first_name_frequency),
+            missing_middle_names = prop_missing(middle_name_frequencies),
+            missing_surname = prop_missing(surname_frequency),
+            missing_gender = prop_missing(gender_frequency),
+            missing_postcode = prop_missing(postcode_unit_frequencies)
+        )
+        %>% as.data.table()
+    )
+}
+
+
+failure_summary <- function(failure_info)
+{
+    n <- nrow(failure_info)
+    prop_missing <- function(x) {
+        sum(is.na(x)) / n
+    }
+    failure_summary <- (
+        failure_info
+        %>% summarize(
+            proband_missing_first_name = prop_missing(first_name_frequency_proband),
+            proband_missing_middle_names = prop_missing(middle_name_frequencies_proband),
+            proband_missing_surname = prop_missing(surname_frequency_proband),
+            proband_missing_gender = prop_missing(gender_frequency_proband),
+            proband_missing_postcode = prop_missing(postcode_unit_frequencies_proband),
+
+            sample_missing_first_name = prop_missing(first_name_frequency_sample),
+            sample_missing_middle_names = prop_missing(middle_name_frequencies_sample),
+            sample_missing_surname = prop_missing(surname_frequency_sample),
+            sample_missing_gender = prop_missing(gender_frequency_sample),
+            sample_missing_postcode = prop_missing(postcode_unit_frequencies_sample)
+        )
+        %>% as.data.table()
+    )
+}
+
+
 # =============================================================================
 # Main
 # =============================================================================
 
 if (FALSE) {
     load_all()
+
+    # Basic checks
+    print(people_missingness_summary(people_cdl))
+    # ... middle names always missing, as expected
+    print(people_missingness_summary(people_pcmis))
+    # ... OK
+    print(people_missingness_summary(people_rio))
+    # ... *** problem!
+    print(people_missingness_summary(people_systmone))
+    # ... OK
 
     # Done, transcribed:
     dg <- get_all_demographics()
@@ -1323,42 +1461,9 @@ if (FALSE) {
 
     # Working:
     comp_simple <- get_comparisons_simple()
-    # print(comp_simple)
-
     comp_threshold <- get_comparisons_varying_threshold()
-    # print(comp_threshold)
 
-    fig_pairwise_thresholds_sdt <- mk_threshold_plot_sdt(comp_threshold)
-    ggsave(
-        file.path(OUTPUT_DIR, "fig_pairwise_thresholds_sdt.pdf"),
-        fig_pairwise_thresholds_sdt,
-        width = FIGURE_WIDTH_CM,
-        height = FIGURE_HEIGHT_CM,
-        units = "cm"
-    )
-
-    fig_pairwise_thresholds_sdt_default_delta <- mk_threshold_plot_sdt(
-        comp_threshold[delta == DEFAULT_DELTA]
-    )
-    ggsave(
-        file.path(OUTPUT_DIR, "fig_pairwise_thresholds_sdt_default_delta.pdf"),
-        fig_pairwise_thresholds_sdt_default_delta,
-        width = FIGURE_WIDTH_CM,
-        height = FIGURE_HEIGHT_CM,
-        units = "cm"
-    )
-
-    fig_pairwise_thresholds_mid <- mk_threshold_plot_mid(
-        comp_threshold,
-        comp_simple
-    )
-    ggsave(
-        file.path(OUTPUT_DIR, "fig_pairwise_thresholds_mid.pdf"),
-        fig_pairwise_thresholds_mid,
-        width = FIGURE_WIDTH_CM,
-        height = FIGURE_HEIGHT_CM,
-        units = "cm"
-    )
+    mk_save_performance_plot(comp_threshold, comp_simple)
 
     comp_at_defaults <- comp_threshold[
         theta == DEFAULT_THETA & delta == DEFAULT_DELTA
@@ -1366,5 +1471,11 @@ if (FALSE) {
     print(comp_at_defaults)
 
     m <- bias_at_threshold(compare_rio_to_systmone)
+
+    fail_cdl_rio_info <- extract_miss_info(people_cdl, people_rio, compare_cdl_to_rio)
+    fail_cdl_rio_summ <- failure_summary(fail_cdl_rio_info)
+
+    fail_cdl_systmone_info <- extract_miss_info(people_cdl, people_systmone, compare_cdl_to_systmone)
+    fail_cdl_systmone_summ <- failure_summary(fail_cdl_systmone_info)
 
 }

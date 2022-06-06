@@ -1163,25 +1163,29 @@ def validate_2_fetch_rio(
 
         -- exceeds 10,000/year from 2012-2021 inclusive.
 
+    Don't use ``ClientIndex``; first name and surname are always NULL. Use
+    ``Client``.
+
     """
     sql = text(
         """
         SELECT
+            -- TOP 0  -- for debugging
         
             -- From the main patient index:
-            ci.ClientID AS rio_client_id,  -- VARCHAR(15) NOT NULL
-            CAST(ci.NNN AS BIGINT) AS nhs_number,
-            ci.Firstname AS first_name,
-            ci.Surname AS surname,
-            CAST(ci.DateOfBirth AS DATE) AS dob,
-            CASE ci.Gender
+            c.ClientID AS rio_client_id,  -- VARCHAR(15) NOT NULL
+            CAST(c.NNN AS BIGINT) AS nhs_number,
+            c.Firstname AS first_name,  -- problem: all null!
+            c.Surname AS surname,  -- problem: all null!
+            CAST(c.DateOfBirth AS DATE) AS dob,
+            CASE c.Gender
                 WHEN 'F' THEN 'F'
                 WHEN 'M' THEN 'M'
                 WHEN 'X' THEN 'X'
                 ELSE ''
                 -- 'U' is the RiO "unknown" value
             END AS gender,
-            CAST(ci.FirstCareDate AS DATE) AS first_mh_care_date,
+            CAST(c.FirstCareDate AS DATE) AS first_mh_care_date,
 
             -- From the ethnicity table:
             ge.CodeDescription AS ethnicity,
@@ -1196,7 +1200,7 @@ def validate_2_fetch_rio(
                     FROM
                         RiO62CAMLive.dbo.DiagnosisClient dx_any
                     WHERE
-                        dx_any.ClientID = ci.ClientID
+                        dx_any.ClientID = c.ClientID
                         AND dx_any.RemovalDate IS NULL  -- not removed
                         -- NB RemovalDate indicates deletion and is separate
                         -- from DiagnosisEndDate, e.g. a real problem now gone. 
@@ -1213,7 +1217,7 @@ def validate_2_fetch_rio(
                     FROM
                         RiO62CAMLive.dbo.DiagnosisClient dx_f
                     WHERE
-                        dx_f.ClientID = ci.ClientID
+                        dx_f.ClientID = c.ClientID
                         AND dx_f.RemovalDate IS NULL
                         AND dx_f.Diagnosis LIKE 'F%'
                 ) THEN 1
@@ -1226,7 +1230,7 @@ def validate_2_fetch_rio(
                     FROM
                         RiO62CAMLive.dbo.DiagnosisClient dx_smi
                     WHERE
-                        dx_smi.ClientID = ci.ClientID
+                        dx_smi.ClientID = c.ClientID
                         AND dx_smi.RemovalDate IS NULL
                         AND (
                             dx_smi.Diagnosis LIKE 'F20%'  -- schizophrenia
@@ -1244,16 +1248,16 @@ def validate_2_fetch_rio(
             END AS smi_icd10_dx_present
 
         FROM
-            RiO62CAMLive.dbo.ClientIndex AS ci  -- identifiable patient table
+            RiO62CAMLive.dbo.Client AS c  -- identifiable patient table
             -- We use the original raw RiO database, not the CRATE-processed 
             -- one.
         LEFT JOIN
             RiO62CAMLive.dbo.GenEthnicity ge
-            ON ge.Code = ci.Ethnicity
+            ON ge.Code = c.Ethnicity
             AND ge.Deleted = 0
         WHERE
             -- Restrict to patients with NHS numbers:
-            (ci.NNNStatus = 1 OR ci.NNNStatus = 2)
+            (c.NNNStatus = 1 OR c.NNNStatus = 2)
             -- 2 = NHS number verified; see table NNNStatus
             -- Most people have status 1 (about 119k people), compared to
             -- about 80k for status 2 (on 2020-04-28). Then about 6k have
@@ -1262,12 +1266,13 @@ def validate_2_fetch_rio(
             -- A very small number (~40) have a null NHS number despite an
             -- OK-looking status flag; we'll skip them.
             AND (
-                TRY_CAST(REPLACE(ci.NNN, ' ', '') AS BIGINT) IS NOT NULL
-                AND LEN(REPLACE(ci.NNN, ' ', '')) = 10
+                TRY_CAST(REPLACE(c.NNN, ' ', '') AS BIGINT) IS NOT NULL
+                AND LEN(REPLACE(c.NNN, ' ', '')) = 10
             )
 
         -- Final count: 208538 (on 2022-05-26).
         -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.ClientIndex = 216739
+        -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.Client = 216739
     """  # noqa
     )
     engine = create_engine(url, echo=echo)
