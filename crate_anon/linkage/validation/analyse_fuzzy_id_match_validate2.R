@@ -1246,7 +1246,7 @@ mk_generic_pairwise_plot <- function(
         d[, x_grouper := paste0(quantity, "_", delta)]
         vline_xintercept <- DEFAULT_THETA
         colour_scale <- COLOUR_SCALE_THETA
-        
+
     } else {
         # x is delta
         xvar <- "delta"
@@ -1452,7 +1452,7 @@ failure_summary <- function(failure_info)
     failure_summary <- (
         failure_info
         %>% summarize(
-            n = n,
+            n_missed = n,
 
             proband_missing_first_name = prop_missing(first_name_frequency_proband),
             proband_missing_middle_names = prop_missing(middle_name_frequencies_proband),
@@ -1502,14 +1502,50 @@ failure_summary <- function(failure_info)
 }
 
 
+performance_summary_at_threshold <- function(
+    theta = DEFAULT_THETA,
+    delta = DEFAULT_DELTA
+)
+{
+    perf_summ <- NULL
+    for (db1 in FROM_DATABASES) {
+        for (db2 in TO_DATABASES) {
+            probands <- get(mk_people_var(db1))
+            sample <- get(mk_people_var(db2))
+            comparison <- get(mk_comparison_var(db1, db2))
+            main_performance_summary <- compare_at_thresholds(
+                from_dbname = db1,
+                to_dbname = db2,
+                theta = theta,
+                delta = delta,
+                comparison
+            )
+            failure_info <- failure_summary(
+                extract_miss_info(
+                    probands,
+                    sample,
+                    comparison,
+                    theta = theta,
+                    delta = delta
+                )
+            )
+            combined_summary <- cbind(main_performance_summary, failure_info)
+            perf_summ <- rbind(perf_summ, combined_summary)
+        }
+    }
+    return(perf_summ)
+}
+
+
 # =============================================================================
 # Main
 # =============================================================================
 
-if (FALSE) {
+main <- function()
+{
     load_all()
 
-    write_output("Starting", append = FALSE)
+    write_output(paste("Starting:", Sys.time()), append = FALSE)
 
     # Basic checks
     write_output(people_missingness_summary(people_cdl))  # middle names missing as expected
@@ -1541,36 +1577,26 @@ if (FALSE) {
     # Estimates are of log odds.
     write_output(car::Anova(m, type = "III", test.statistic = "F"))
 
-    # Reasons for non-linkage
-    fail_cdl_rio_info <- extract_miss_info(
-        people_cdl, people_rio, compare_cdl_to_rio)
-    fail_cdl_rio_summ <- failure_summary(fail_cdl_rio_info)
+    # Reasons for non-linkage, etc.
+    pst <- performance_summary_at_threshold()
+    write_output(pst)
+    write_output(t(pst))
 
-    fail_cdl_systmone_info <- extract_miss_info(
-        people_cdl, people_systmone, compare_cdl_to_systmone)
-    fail_cdl_systmone_summ <- failure_summary(fail_cdl_systmone_info)
-    write_output(fail_cdl_systmone_summ)
+    # Not done: demographics predicting specific sub-reasons for non-linkage.
+    # (We predict overall non-linkage above.)
 
-    write_output(comp_at_defaults[from == RIO & to == SYSTMONE])
-    fail_rio_systmone_info <- extract_miss_info(
-        people_rio, people_systmone, compare_rio_to_systmone)
-    fail_rio_systmone_summ <- failure_summary(fail_rio_systmone_info)
-    write_output(fail_rio_systmone_summ)
-
+    write_output(paste("Finished:", Sys.time()))
 }
 
-# TODO: (a) main performance statistics and (b) reasons for failure match,
-# across all database pairs
+# main()
 
-# TODO: a/w JL re RiO names; use ClientName.GivenName1 instead?
-#       and likewise ClientName.Surname?
-# TODO: rerun all hash/link now postcodes standardized to upper case
-#       ... then redo "predictors of non-linkage" table.
+# TODO: rerun all hash/link now postcodes standardized to upper case?
+#       ... possibly nothing changed!
 # TODO: handle multiple options for first name, surname?
 #   *** see Downs paper; use some of those strategies?
 #   *** aliases
 #   *** former surnames
 #   *** forename comparison to middle name
 #   *** first two characters of forename
-
-# TODO: ?demographic factors predicting various kinds of mismatch?
+#   ? generic Name that is a kind of TemporalIdentifier?
+#   - main tricky bit is the identifiable file format; needs to be easy
