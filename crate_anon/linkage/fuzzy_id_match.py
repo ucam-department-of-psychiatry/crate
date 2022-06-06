@@ -25,80 +25,15 @@ crate_anon/linkage/fuzzy_id_match.py
 
 ===============================================================================
 
-**Testing the concept of fuzzy matching with hashed identifiers, as part of
-work to link UK NHS and education/social care data without sharing direct
-patient identifiers.**
+**Fuzzy matching with hashed identifiers.**
 
+See draft paper.
 
-.. _TLSH: https://github.com/trendmicro/tlsh
-.. _sdhash: https://roussev.net/sdhash/sdhash.html
-.. _Nilsimsa: https://en.wikipedia.org/wiki/Nilsimsa_Hash
-.. _ssdeep: https://ssdeep-project.github.io/ssdeep/index.html
+"""
 
-
-**See draft paper.**
-
-
-Other approaches to fuzzy matching of reduced data
---------------------------------------------------
-
-[COVERED IN THE PAPER. FURTHER DETAIL HERE.]
-
-Note the unsuitability of fuzzy hashing algorithms designed for long streams of
-bytes or text. In general, these chop the input up into blocks, hash each
-block, and then compare the sequence of mini-hashes for similarity.
-
-- the trend micro locality sensitive hash (TLSH_), for fuzzy hashing of byte
-  streams of at least 50 bytes;
-
-- sdhash_, comparison of arbitrary data blobs based on common strings of binary
-  data.
-
-- Nilsimsa_ (2001/2004) a locality-sensitive hashing algorithm) and ssdeep_, a
-  context triggered piecewise hashing (CTPH) algorithm.
-
-  - See Kornblum J (2006), "Identifying almost identical files using context
-    triggered piecewise hashing", *Digital Investigation* 3S: S91-S97,
-    https://doi.org/10.1016/j.diin.2006.06.015.
-
-... cited in the paper via Kornblum (2006) and Lee & Atkinson (2017), which
-covers SSDEEP, TLSH, sdhash, and others.
-
-
-Geography
----------
-
-[COVERED IN THE PAPER. FURTHER DETAIL HERE.]
-
-UK postcodes have this format:
-
-+---------------------------------+
-| Postcode                        |
-+-----------------+---------------+
-| Outward code    | Inward code   |
-+------+----------+--------+------+
-| Area | District | Sector | Unit |
-+------+----------+--------+------+
-| SW   | 1W       | 0      | NY   |
-+------+----------+--------+------+
-
-See
-https://en.wikipedia.org/wiki/Postcodes_in_the_United_Kingdom#Formatting.
-
-UK census geography is described at
-https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography.
-
-The most important unit for our purposes is the Output Area (OA), the smallest
-unit, which is made up of an integer number of postcode units.
-
-So an OA is bigger than a postcode unit. But is it bigger or smaller than a
-postcode sector? Smaller, I think.
-
-- https://data.gov.uk/dataset/7f4e1818-4305-4962-adc4-e4e3effd7784/output-area-to-postcode-sector-december-2011-lookup-in-england-and-wales
-- this allows you to look up *from* output area *to* postcode sector, implying
-  that postcode sectors must be larger.
-
-"""  # noqa
+# =============================================================================
+# Imports
+# =============================================================================
 
 import argparse
 from collections import Counter, defaultdict
@@ -181,6 +116,80 @@ log = logging.getLogger(__name__)
 
 _ = """
 
+**Testing the concept of fuzzy matching with hashed identifiers, as part of
+work to link UK NHS and education/social care data without sharing direct
+patient identifiers.**
+
+
+.. _TLSH: https://github.com/trendmicro/tlsh
+.. _sdhash: https://roussev.net/sdhash/sdhash.html
+.. _Nilsimsa: https://en.wikipedia.org/wiki/Nilsimsa_Hash
+.. _ssdeep: https://ssdeep-project.github.io/ssdeep/index.html
+
+
+**See draft paper.**
+
+
+Other approaches to fuzzy matching of reduced data
+--------------------------------------------------
+
+[COVERED IN THE PAPER. FURTHER DETAIL HERE.]
+
+Note the unsuitability of fuzzy hashing algorithms designed for long streams of
+bytes or text. In general, these chop the input up into blocks, hash each
+block, and then compare the sequence of mini-hashes for similarity.
+
+- the trend micro locality sensitive hash (TLSH_), for fuzzy hashing of byte
+  streams of at least 50 bytes;
+
+- sdhash_, comparison of arbitrary data blobs based on common strings of binary
+  data.
+
+- Nilsimsa_ (2001/2004) a locality-sensitive hashing algorithm) and ssdeep_, a
+  context triggered piecewise hashing (CTPH) algorithm.
+
+  - See Kornblum J (2006), "Identifying almost identical files using context
+    triggered piecewise hashing", *Digital Investigation* 3S: S91-S97,
+    https://doi.org/10.1016/j.diin.2006.06.015.
+
+... cited in the paper via Kornblum (2006) and Lee & Atkinson (2017), which
+covers SSDEEP, TLSH, sdhash, and others.
+
+
+Geography
+---------
+
+[COVERED IN THE PAPER. FURTHER DETAIL HERE.]
+
+UK postcodes have this format:
+
++---------------------------------+
+| Postcode                        |
++-----------------+---------------+
+| Outward code    | Inward code   |
++------+----------+--------+------+
+| Area | District | Sector | Unit |
++------+----------+--------+------+
+| SW   | 1W       | 0      | NY   |
++------+----------+--------+------+
+
+See
+https://en.wikipedia.org/wiki/Postcodes_in_the_United_Kingdom#Formatting.
+
+UK census geography is described at
+https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography.
+
+The most important unit for our purposes is the Output Area (OA), the smallest
+unit, which is made up of an integer number of postcode units.
+
+So an OA is bigger than a postcode unit. But is it bigger or smaller than a
+postcode sector? Smaller, I think.
+
+- https://data.gov.uk/dataset/7f4e1818-4305-4962-adc4-e4e3effd7784/output-area-to-postcode-sector-december-2011-lookup-in-england-and-wales
+- this allows you to look up *from* output area *to* postcode sector, implying
+  that postcode sectors must be larger.
+
+
 Speedup 2022-06-04
 ------------------
 
@@ -201,7 +210,7 @@ Speedup 2022-06-04
    421242    0.735    0.000    1.322    0.000 fuzzy_id_match.py:2098(comparison)
    222861    0.304    0.000    0.727    0.000 fuzzy_id_match.py:3214(_comparisons_postcodes)
 
-- Removed a Python "shortcut" since the compiled logs are now faster. 
+- Removed a Python "shortcut" since the compiled logs are now faster.
 
 Comparison.posterior_log_odds:
 
@@ -565,7 +574,9 @@ def standardize_postcode(postcode_unit_or_sector: str) -> str:
     """
     Standardizes postcodes to "no space" format.
     """
-    return postcode_unit_or_sector.translate(REMOVE_PUNCTUATION_SPACE_TABLE)
+    return postcode_unit_or_sector.upper().translate(
+        REMOVE_PUNCTUATION_SPACE_TABLE
+    )
 
 
 def get_postcode_sector(postcode_unit: str) -> str:
@@ -593,7 +604,7 @@ PSEUDO_POSTCODES = set(standardize_postcode(p) for p in (
     "ZZ99 1WZ",  # Scotland, not otherwise specified [1, 2]
     "ZZ99 2WZ",  # Northern Ireland, not otherwise specified [1, 2]
     # Also: ZZ99 <nnn>, where <nnn> is a country code -- so that's a large
-    # range. 
+    # range.
     # [1] http://www.datadictionary.wales.nhs.uk/index.html#!WordDocuments/postcode.htm
     # [2] https://www.england.nhs.uk/wp-content/uploads/2021/03/commissioner-assignment-method-2122-guidance-v1.1.pdf
     # [3] https://afyonluoglu.org/PublicWebFiles/Reports-TR/Veri%20Sozlugu/international/2017-HES%20Admitted%20Patient%20Care%20Data%20Dictionary.pdf

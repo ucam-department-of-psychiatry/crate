@@ -43,9 +43,12 @@ from pendulum import Date
 from crate_anon.linkage.fuzzy_id_match import (
     GENDER_FEMALE,
     GENDER_MALE,
+    get_postcode_sector,
     MatchConfig,
     People,
     Person,
+    standardize_name,
+    standardize_postcode,
     TemporalIdentifier,
 )
 
@@ -94,7 +97,7 @@ class TestCondition(object):
         Returns:
             float: the log odds that they are the same person
         """
-        return self.person_a.log_odds_same(self.person_b, debug=self.debug)
+        return self.person_a.log_odds_same(self.person_b)
 
     def log_odds_same_hashed(self) -> float:
         """
@@ -103,7 +106,7 @@ class TestCondition(object):
         Returns:
             float: the log odds that they are the same person
         """
-        return self.hashed_a.log_odds_same(self.hashed_b, debug=self.debug)
+        return self.hashed_a.log_odds_same(self.hashed_b)
 
     def matches_plaintext(self) -> Tuple[bool, float]:
         """
@@ -376,9 +379,9 @@ class FuzzyLinkageTests(unittest.TestCase):
             self.middle_test_2,
         ]
         self.all_people_hashed = [p.hashed() for p in self.all_people]
-        self.people_plaintext = People(cfg=self.cfg, verbose=True)
+        self.people_plaintext = People(cfg=self.cfg)
         self.people_plaintext.add_people(self.all_people)
-        self.people_hashed = People(cfg=self.cfg, verbose=True)
+        self.people_hashed = People(cfg=self.cfg)
         self.people_hashed.add_people(self.all_people_hashed)
 
     def test_fuzzy_linkage_basics(self) -> None:
@@ -415,6 +418,41 @@ class FuzzyLinkageTests(unittest.TestCase):
         for ps in ["CB2 0", "CB2 1", "CB2 2", "CB2 3"]:
             p = cfg.debug_postcode_sector_population(ps)
             log.info(f"Calculated population for postcode sector {ps}: {p}")
+
+    def test_standardize_name(self) -> None:
+        tests = (
+            # name, standardized version
+            ("ALJAZEERA", "ALJAZEERA"),
+            ("aljazeera", "ALJAZEERA"),
+            ("Al Jazeera", "ALJAZEERA"),
+            ("Al'Jazeera", "ALJAZEERA"),
+            ("Al'Jazeera'", "ALJAZEERA"),
+            ('"Al Jazeera"', "ALJAZEERA"),
+        )
+        for item, target in tests:
+            self.assertEqual(standardize_name(item), target)
+
+    def test_standardize_postcode(self) -> None:
+        tests = (
+            # name, standardized version
+            ("CB20QQ", "CB20QQ"),
+            ("   CB2 0QQ   ", "CB20QQ"),
+            ("   CB2-0 QQ   ", "CB20QQ"),
+            ("cb2 0qq", "CB20QQ"),
+        )
+        for item, target in tests:
+            self.assertEqual(standardize_postcode(item), target)
+
+    def test_get_postcode_sector(self) -> None:
+        tests = (
+            # postcode, sector
+            ("CB20QQ", "CB20"),
+            ("   CB2 0QQ   ", "CB20"),
+            ("   CB2-0 QQ   ", "CB20"),
+            ("cb2 0qq", "CB20"),
+        )
+        for item, target in tests:
+            self.assertEqual(get_postcode_sector(item), target)
 
     def test_fuzzy_linkage_matches(self) -> None:
         test_values = [

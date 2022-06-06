@@ -27,6 +27,87 @@ crate_anon/linkage/validation/validate_fuzzy_linkage.py
 
 **Highly specific code to develop/validate fuzzy linkage.**
 
+"""
+
+# =============================================================================
+# Imports
+# =============================================================================
+
+import argparse
+import csv
+from dataclasses import asdict, dataclass
+import datetime
+import json
+import logging
+import math
+import pdb
+import random
+import re
+import sys
+import timeit
+from typing import (
+    Any,
+    Callable,
+    Generator,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+)
+
+from cardinal_pythonlib.argparse_func import (
+    RawDescriptionArgumentDefaultsHelpFormatter,
+)
+from cardinal_pythonlib.datetimefunc import (
+    coerce_to_pendulum_date,
+    truncate_date_to_first_of_month,
+)
+from cardinal_pythonlib.hash import HashMethods, make_hasher
+from cardinal_pythonlib.nhs import is_test_nhs_number, is_valid_nhs_number
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+from cardinal_pythonlib.profile import do_cprofile
+from pendulum import Date
+from pendulum.parsing.exceptions import ParserError
+from sqlalchemy.engine import create_engine
+from sqlalchemy.engine.base import Engine
+from sqlalchemy.engine.result import ResultProxy, RowProxy
+from sqlalchemy.sql import text
+
+from crate_anon.common.constants import (
+    EXIT_FAILURE,
+    EXIT_SUCCESS,
+)
+from crate_anon.linkage.fuzzy_id_match import (
+    add_basic_options,
+    add_config_options,
+    add_error_probabilities,
+    add_hasher_options,
+    add_matching_rules,
+    add_subparsers,
+    BasePerson,
+    cache_load,
+    cache_save,
+    Commands,
+    get_cfg_from_args,
+    get_demo_csv,
+    MatchConfig,
+    People,
+    Person,
+    POSTCODE_REGEX,
+    read_people_2,
+    Switches,
+    TemporalIdentifier,
+    warn_or_fail_if_default_key,
+)
+
+log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Notes
+# =============================================================================
+
+_ = """
 
 Speed of "validate1" test
 -------------------------
@@ -208,75 +289,6 @@ CAST() doesn't return NULL on failure (e.g. converting characters to integer);
 it produces an error. Use TRY_CAST() to return NULL on failure.
 
 """
-
-import argparse
-import csv
-from dataclasses import asdict, dataclass
-import datetime
-import json
-import logging
-import math
-import pdb
-import random
-import re
-import sys
-import timeit
-from typing import (
-    Any,
-    Callable,
-    Generator,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-)
-
-from cardinal_pythonlib.argparse_func import (
-    RawDescriptionArgumentDefaultsHelpFormatter,
-)
-from cardinal_pythonlib.datetimefunc import (
-    coerce_to_pendulum_date,
-    truncate_date_to_first_of_month,
-)
-from cardinal_pythonlib.hash import HashMethods, make_hasher
-from cardinal_pythonlib.nhs import is_test_nhs_number, is_valid_nhs_number
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
-from cardinal_pythonlib.profile import do_cprofile
-from pendulum import Date
-from pendulum.parsing.exceptions import ParserError
-from sqlalchemy.engine import create_engine
-from sqlalchemy.engine.base import Engine
-from sqlalchemy.engine.result import ResultProxy, RowProxy
-from sqlalchemy.sql import text
-
-from crate_anon.common.constants import (
-    EXIT_FAILURE,
-    EXIT_SUCCESS,
-)
-from crate_anon.linkage.fuzzy_id_match import (
-    add_basic_options,
-    add_config_options,
-    add_error_probabilities,
-    add_hasher_options,
-    add_matching_rules,
-    add_subparsers,
-    BasePerson,
-    cache_load,
-    cache_save,
-    Commands,
-    get_cfg_from_args,
-    get_demo_csv,
-    MatchConfig,
-    People,
-    Person,
-    POSTCODE_REGEX,
-    read_people_2,
-    Switches,
-    TemporalIdentifier,
-    warn_or_fail_if_default_key,
-)
-
-log = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -939,6 +951,10 @@ class QueryColnames:
     INDEX_OF_MULTIPLE_DEPRIVATION = "index_of_multiple_deprivation"
     PREV_INDEX_OF_MULTIPLE_DEPRIVATION = "prev_index_of_multiple_deprivation"
     MIDDLE_NAME = "middle_name"
+    MIDDLE_NAME_1 = "middle_name_1"
+    MIDDLE_NAME_2 = "middle_name_2"
+    MIDDLE_NAME_3 = "middle_name_3"
+    MIDDLE_NAME_4 = "middle_name_4"
     NHS_NUMBER = "nhs_number"
     POSTCODE = "postcode"
     PREV_POSTCODE = "prev_postcode"
@@ -1019,9 +1035,11 @@ def _get_rio_postcodes(
     return postcodes
 
 
-def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
+def _get_rio_names(
+    engine: Engine, rio_client_id: str
+) -> Tuple[str, List[str], str]:
     """
-    Fetches middle names for a given person, from RiO.
+    Fetches names for a given person, from RiO.
 
     Args:
         engine:
@@ -1030,7 +1048,7 @@ def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
             RiO primary key (``ClientId``)
 
     Returns:
-        list: of middle names
+        tuple: first_name, list_of_middle_names, surname
 
     Out of a large database (>150k people), 4 have two rows here. JL notes that
     in each case examined, the earliest EffectiveDate, or smallest crate_pk, is
@@ -1063,8 +1081,9 @@ def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
 
     The majority appear to have one entry with AliasType = '1' and another with
     AliasType = '2'. These are defined in ClientAliasType (a non-patient
-    table); note that the code is of type NVARCHAR(10). Here, we see that '1'
-    is 'Usual name'; '2' is 'Alias'; there are others.
+    table, just ``SELECT * FROM RiO62CAMLive.dbo.ClientAliasType`` to view);
+    note that the code is of type NVARCHAR(10). Here, we see that '1' is 'Usual
+    name'; '2' is 'Alias'; there are others.
 
     Restricting to '1' eliminates duplicates.
 
@@ -1099,17 +1118,37 @@ def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
             )
 
         -- gives 10,619 (out of 216,739 without the length clause).
+
+    Is ClientName.GivenName1 the same as Client.Firstname?
+
+    .. code-block:: sql
+
+        SELECT
+            COUNT(*) AS n_joined,
+            SUM(IIF(c.Firstname = cn.GivenName1, 1, 0)) AS first_name_same
+        FROM RiO62CAMLive.dbo.ClientName AS cn
+        INNER JOIN RiO62CAMLive.dbo.Client AS c
+            ON cn.ClientID = c.ClientID
+        WHERE
+            (c.NNNStatus = 1 OR c.NNNStatus = 2)
+            AND cn.EndDate IS NULL
+            AND cn.Deleted = 0
+            AND cn.AliasType = '1'
+
+        -- e.g. 208582 joined, 116842 match.
+        -- So no, not always the same.
+
     """
     sql = text(
         """
         SELECT
             -- OK to use UPPER() with NULL values. Result is, of course, NULL.
-            -- GivenName1 should be the first name.
+            UPPER(GivenName1) AS first_name,
             UPPER(GivenName2) AS middle_name_1,
             UPPER(GivenName3) AS middle_name_2,
             UPPER(GivenName4) AS middle_name_3,
-            UPPER(GivenName5) AS middle_name_4
-            -- None contain a double space.
+            UPPER(GivenName5) AS middle_name_4,
+            UPPER(Surname) AS surname
         FROM
             RiO62CAMLive.dbo.ClientName
         WHERE
@@ -1124,10 +1163,23 @@ def _get_rio_middle_names(engine: Engine, rio_client_id: str) -> List[str]:
     n_rows = len(rows)  # or result.rowcount()
     assert n_rows <= 1, "Didn't expect >1 row per patient in ClientName"
     if n_rows == 0:
-        return []
+        log.warning("RiO patient found with no name entry")
+        return "", [], ""
     row = rows[0]
-    middle_names = [x for x in row if x]  # remove blanks
-    return middle_names
+    q = QueryColnames
+    first_name = row[q.FIRST_NAME] or ""
+    middle_names = [
+        x
+        for x in (
+            row[q.MIDDLE_NAME_1],
+            row[q.MIDDLE_NAME_2],
+            row[q.MIDDLE_NAME_3],
+            row[q.MIDDLE_NAME_4],
+        )
+        if x
+    ]  # remove blanks
+    surname = row[QueryColnames.SURNAME] or ""
+    return first_name, middle_names, surname
 
 
 def validate_2_fetch_rio(
@@ -1175,8 +1227,8 @@ def validate_2_fetch_rio(
             -- From the main patient index:
             c.ClientID AS rio_client_id,  -- VARCHAR(15) NOT NULL
             CAST(c.NNN AS BIGINT) AS nhs_number,
-            c.Firstname AS first_name,  -- problem: all null!
-            c.Surname AS surname,  -- problem: all null!
+            -- c.Firstname AS first_name,  -- problem: poorly structured
+            -- c.Surname AS surname,  -- problem: poorly structured
             CAST(c.DateOfBirth AS DATE) AS dob,
             CASE c.Gender
                 WHEN 'F' THEN 'F'
@@ -1287,7 +1339,9 @@ def validate_2_fetch_rio(
         gender = row[q.GENDER]  # type: str
         first_mh_care_date = coerce_to_pendulum_date(row[q.FIRST_MH_CARE_DATE])
 
-        middle_names = _get_rio_middle_names(engine, rio_client_id)
+        first_name, middle_names, surname = _get_rio_names(
+            engine, rio_client_id
+        )
         postcodes = _get_rio_postcodes(engine, rio_client_id)
 
         other = CPFTValidationExtras(
@@ -1307,9 +1361,9 @@ def validate_2_fetch_rio(
         p = BasePerson(
             local_id=rio_client_id,
             other_info=other.json,
-            first_name=row[q.FIRST_NAME] or "",
+            first_name=first_name,
             middle_names=middle_names,
-            surname=row[q.SURNAME] or "",
+            surname=surname,
             gender=gender,
             dob=isoformat_optional_date(dob),
             postcodes=postcode_temporal_identifiers(postcodes),

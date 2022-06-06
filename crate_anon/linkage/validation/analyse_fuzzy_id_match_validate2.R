@@ -17,6 +17,16 @@ A ggplot resource:
 
 - https://nextjournal.com/jk/best-ggplot
 
+RStudio IDE problems:
+
+- https://community.rstudio.com/t/resizing-ide-window-crashes-ide/78133/2
+
+  or Tools --> Global Options --> General --> Advanced
+        Rendering engine = Software
+
+  but more likely the problem was View --> Panes
+        and turn off anything to do with zooming.
+
 '
 
 # =============================================================================
@@ -31,7 +41,7 @@ library(gridExtra)
 # library(lmerTest)
 library(lubridate)
 library(patchwork)
-library(pROC)
+# library(pROC)
 library(RJSONIO)
 # library(scales)  # for muted() colours
 library(tidyverse)
@@ -96,6 +106,7 @@ TO_DATABASES <- ALL_DATABASES
 
 DATA_DIR <- "C:/srv/crate/crate_fuzzy_linkage_validation"
 OUTPUT_DIR <- DATA_DIR
+OUTPUT_FILE <- file.path(OUTPUT_DIR, "main_results.txt")
 
 
 get_data_filename <- function(db)
@@ -189,19 +200,21 @@ DEFAULT_COLOUR_SCALE_GGPLOT_REVERSED <- scale_colour_gradient(
     low = "#56B1F7",  # ggplot default high
     high = "#132B43"  # ggplot default low: see scale_colour_gradient
 )
-DEFAULT_COLOUR_SCALE_THETA <- scale_colour_gradient(
+COLOUR_SCALE_THETA <- scale_colour_gradient(
     # https://ggplot2-book.org/scale-colour.html
     # Show with munsell::hue_slice("5P") and pick a vertical slice.
     low = munsell::mnsl("5P 7/12"),
     high = munsell::mnsl("5P 2/12")
 )
-DEFAULT_COLOUR_SCALE_DELTA <- scale_colour_gradient(
+COLOUR_SCALE_DELTA <- scale_colour_gradient(
     low = munsell::mnsl("5R 7/8"),
     high = munsell::mnsl("5R 2/8")
 )
 
-PAGE_WIDTH_CM <- 17
-PAGE_HEIGHT_CM <- 25.7
+LINEBREAK_1 <- paste(c(rep("=", 79), "\n"), collapse="")
+LINEBREAK_2 <- paste(c(rep("-", 79), "\n"), collapse="")
+PAGE_WIDTH_CM <- 17  # A4 with 2cm margins, 210 - 40 mm
+PAGE_HEIGHT_CM <- 25.7  # 297 - 40 mm
 
 
 # =============================================================================
@@ -212,6 +225,25 @@ all_unique <- function(x)
 {
     # return(length(x) == length(unique(x)))
     return(!any(duplicated(x)))
+}
+
+
+write_output <- function(x, append = TRUE, filename = OUTPUT_FILE, width = 1000)
+{
+    # 1. Output to file
+    old_width <- getOption("width")
+    options(width = width)
+    sink(filename, append = append)
+    # 2. Print it
+    x_name <- deparse(substitute(x))  # fetch the variable name passed in
+    cat(LINEBREAK_1, x_name, "\n", LINEBREAK_2, sep = "")
+    print(x)
+    cat(LINEBREAK_1)
+    # 3. Restore output
+    sink()
+    options(width = old_width)
+    # 4. Sensible/useful return value
+    return(x)
 }
 
 
@@ -1040,7 +1072,8 @@ decide_at_thresholds <- function(compdata, theta, delta)
     d[, miss := !declare_match & proband_in_sample]
 
     # And the second:
-    d[, misidentification := declare_match & !best_candidate_correct]
+    d[, correctly_identified := declare_match & best_candidate_correct]
+    d[, misidentified := declare_match & !best_candidate_correct]
 
     return(d)
 }
@@ -1066,7 +1099,8 @@ compare_at_thresholds <- function(
         n_fn = sum(decided$miss),  # false negative
 
         n_identified = sum(decided$declare_match),
-        n_misidentified = sum(decided$misidentification)
+        n_correctly_identified = sum(decided$correctly_identified),
+        n_misidentified = sum(decided$misidentified)
     )
 
     # Standard derived SDT measures
@@ -1165,11 +1199,6 @@ bias_at_threshold <- function(
     # tmp <- decided[!is.na(age_at_first_mh_care)]
     # cor(tmp$birth_year, tmp$age_at_first_mh_care)  # -0.98 ! Yes, very.
 
-    print(summary(m))
-    # Estimate = 0 is no effect, >0 more likely to be linked, <0 less likely.
-    # Estimates are of log odds.
-    print(car::Anova(m, type = "III", test.statistic = "F"))
-
     return(m)
 }
 
@@ -1178,29 +1207,22 @@ bias_at_threshold <- function(
 # Plots
 # =============================================================================
 
-mk_threshold_plot_sdt <- function(
+mk_generic_pairwise_plot <- function(
     comp_threshold,
-    # depvars = c("TPR", "TNR", "FPR", "FNR"),
-    # linetypes = c("solid", "solid", "dotted", "dotted"),
-    # shapes = c(24, 25, 23, 1),
-    # ... up triangle, down triangle, diamond, open circle
-    depvars = c("TPR", "FPR"),
-    linetypes = c("solid", "dotted", "dotted"),
-    shapes = c(24, 25),
-    # ... up triangle, down triangle
-    default_theta = DEFAULT_THETA,
-    default_line_colour = DEFAULT_VLINE_COLOUR
+    depvars,
+    linetypes,
+    shapes,
+    x_is_theta,  # if FALSE, x is delta
+    vline_colour = DEFAULT_VLINE_COLOUR,
+    with_overlap_label = FALSE,
+    comp_simple = NULL,
+    overlap_label_y = 0.25,
+    overlap_label_vjust = 0,  # vcentre
+    overlap_label_x = 0,
+    overlap_label_hjust = 0,  # 0 = left-justify, 1 = right-justify
+    overlap_label_size = 2
 )
 {
-    # The quantities that are informative and independent of the prevalence
-    # (and thus reflect qualities of the test) include TPR (sensitivity,
-    # recall), TNR (specificity), FPR (false alarm rate), and FNR (miss rate).
-    #
-    # Those that are affected by prevalence include PPV (precision), NPV.
-    #
-    # TNR = 1 - FPR, and TPR = 1 - FNR, so no need to plot both.
-    # Let's use: TPR, FPR.
-
     CORE_VARS <- c("from", "to", "theta", "delta")
     required_vars <- c(CORE_VARS, depvars)
     d <- (
@@ -1217,22 +1239,39 @@ mk_threshold_plot_sdt <- function(
         )
         %>% as.data.table()
     )
-    d[, grouper := paste0(quantity, "_", delta)]
+    if (x_is_theta) {
+        xvar <- "theta"
+        colourvar <- "delta"
+        # d[, x_factor := as.factor(theta)]
+        d[, x_grouper := paste0(quantity, "_", delta)]
+        vline_xintercept <- DEFAULT_THETA
+        colour_scale <- COLOUR_SCALE_THETA
+        
+    } else {
+        # x is delta
+        xvar <- "delta"
+        colourvar <- "theta"
+        # d[, x_factor := as.factor(delta)]
+        d[, x_grouper := paste0(quantity, "_", theta)]
+        vline_xintercept <- DEFAULT_DELTA
+        colour_scale <- COLOUR_SCALE_DELTA
+    }
+    y_label <- paste(depvars, collapse = ", ")
     p <- (
         ggplot(
             d,
-            aes(
-                x = theta,
-                y = value,
-                group = grouper,
-                colour = delta,
-                linetype = quantity,
-                shape = quantity
+            aes_string(
+                x = xvar,
+                y = "value",
+                group = "x_grouper",
+                colour = colourvar,
+                linetype = "quantity",
+                shape = "quantity"
             )
         )
         + geom_vline(
-            xintercept = default_theta,
-            colour = default_line_colour
+            xintercept = vline_xintercept,
+            colour = vline_colour
         )
         + geom_line()
         + geom_point()
@@ -1240,53 +1279,8 @@ mk_threshold_plot_sdt <- function(
         + theme_bw()
         + scale_linetype_manual(values = linetypes)
         + scale_shape_manual(values = shapes)
-        + DEFAULT_COLOUR_SCALE_THETA
-    )
-    return(p)
-}
-
-
-mk_threshold_plot_mid <- function(
-    comp_threshold,
-    comp_simple = NULL,
-    linetype = "solid",
-    shape = 4,
-    default_delta = DEFAULT_DELTA,
-    default_line_colour = DEFAULT_VLINE_COLOUR,
-    with_overlap_label = TRUE,
-    overlap_label_y = 0.08,
-    overlap_label_vjust = 0,  # vcentre
-    overlap_label_x = max(DELTA_OPTIONS),
-    overlap_label_hjust = 1,  # right-justify
-    overlap_label_size = 2
-)
-{
-    required_vars <- c("from", "to", "theta", "delta", "MID")
-    d <- (
-        comp_threshold
-        %>% select(!!!required_vars)
-        %>% as.data.table()
-    )
-    d[, theta_factor := as.factor(theta)]
-    p <- (
-        ggplot(
-            d,
-            aes(
-                x = delta,
-                y = MID,
-                group = theta_factor,
-                colour = theta
-            )
-        )
-        + geom_vline(
-            xintercept = default_delta,
-            colour = default_line_colour
-        )
-        + geom_line(linetype = linetype)
-        + geom_point(shape = shape)
-        + facet_grid(from ~ to)
-        + theme_bw()
-        + DEFAULT_COLOUR_SCALE_DELTA
+        + colour_scale
+        + ylab(y_label)
     )
     if (with_overlap_label) {
         if (is.null(comp_simple)) {
@@ -1318,24 +1312,59 @@ mk_threshold_plot_mid <- function(
 }
 
 
+mk_threshold_plot_sdt <- function(comp_threshold, x_is_theta, ...)
+{
+    # The quantities that are informative and independent of the prevalence
+    # (and thus reflect qualities of the test) include TPR (sensitivity,
+    # recall), TNR (specificity), FPR (false alarm rate), and FNR (miss rate).
+    #
+    # Those that are affected by prevalence include PPV (precision), NPV.
+    #
+    # TNR = 1 - FPR, and TPR = 1 - FNR, so no need to plot both.
+    # Let's use: TPR, FPR.
+    return(mk_generic_pairwise_plot(
+        comp_threshold,
+        depvars = c("TPR", "FPR"),
+        linetypes = c("solid", "dotted", "dotted"),
+        shapes = c(24, 25),  # up triangle, down triangle
+        x_is_theta = x_is_theta,
+        ...
+    ))
+}
+
+
+mk_threshold_plot_mid <- function(comp_threshold, x_is_theta, ...)
+{
+    return(mk_generic_pairwise_plot(
+        comp_threshold,
+        depvars = "MID",
+        linetypes = "solid",
+        shapes = 4,  # X
+        x_is_theta = x_is_theta,
+        ...
+    ))
+}
+
+
 mk_save_performance_plot <- function(comp_threshold, comp_simple)
 {
-    fig_pairwise_thresholds_sdt <- mk_threshold_plot_sdt(comp_threshold)
-    # fig_pairwise_thresholds_sdt_default_delta <- mk_threshold_plot_sdt(
-    #     comp_threshold[delta == DEFAULT_DELTA]
-    # )
-    fig_pairwise_thresholds_mid <- mk_threshold_plot_mid(
+    panel_a <- mk_threshold_plot_sdt(
         comp_threshold,
-        comp_simple
+        x_is_theta = TRUE,
+        with_overlap_label = TRUE,
+        comp_simple = comp_simple
     )
+    panel_b <- mk_threshold_plot_sdt(comp_threshold, x_is_theta = FALSE)
+    panel_c <- mk_threshold_plot_mid(comp_threshold, x_is_theta = TRUE)
+    panel_d <- mk_threshold_plot_mid(comp_threshold, x_is_theta = FALSE)
     composite <- (
-        fig_pairwise_thresholds_sdt /
-        fig_pairwise_thresholds_mid
+        (panel_a | panel_b) /
+        (panel_c | panel_d)
     ) + plot_annotation(tag_levels = "A")
     ggsave(
         file.path(OUTPUT_DIR, "fig_pairwise_thresholds.pdf"),
         composite,
-        width = PAGE_WIDTH_CM * 1.1,
+        width = PAGE_WIDTH_CM * 1.1 * 2,
         height = PAGE_HEIGHT_CM * 1.1,
         units = "cm"
     )
@@ -1345,6 +1374,27 @@ mk_save_performance_plot <- function(comp_threshold, comp_simple)
 # =============================================================================
 # Failure analysis
 # =============================================================================
+
+people_missingness_summary <- function(people)
+{
+    n <- nrow(people)
+    prop_missing <- function(x) {
+        sum(is.na(x)) / n
+    }
+    return(
+        people
+        %>% summarize(
+            # Strings can be "" not NA, but frequencies are NA if missing.
+            missing_first_name = prop_missing(first_name_frequency),
+            missing_middle_names = prop_missing(middle_name_frequencies),
+            missing_surname = prop_missing(surname_frequency),
+            missing_gender = prop_missing(gender_frequency),
+            missing_postcode = prop_missing(postcode_unit_frequencies)
+        )
+        %>% as.data.table()
+    )
+}
+
 
 extract_miss_info <- function(probands, sample, comparison,
                               theta = DEFAULT_THETA, delta = DEFAULT_DELTA)
@@ -1383,31 +1433,7 @@ extract_miss_info <- function(probands, sample, comparison,
         all.y = FALSE,
         suffixes = c("_proband", "_sample")
     )
-    failure_summary <- data.table(
-
-    )
     return(failure_info)
-}
-
-
-people_missingness_summary <- function(people)
-{
-    n <- nrow(people)
-    prop_missing <- function(x) {
-        sum(is.na(x)) / n
-    }
-    return(
-        people
-        %>% summarize(
-            # Strings can be "" not NA, but frequencies are NA if missing.
-            missing_first_name = prop_missing(first_name_frequency),
-            missing_middle_names = prop_missing(middle_name_frequencies),
-            missing_surname = prop_missing(surname_frequency),
-            missing_gender = prop_missing(gender_frequency),
-            missing_postcode = prop_missing(postcode_unit_frequencies)
-        )
-        %>% as.data.table()
-    )
 }
 
 
@@ -1417,9 +1443,17 @@ failure_summary <- function(failure_info)
     prop_missing <- function(x) {
         sum(is.na(x)) / n
     }
+    mismatch <- function(x, y) {
+        return(!is.na(x) & !is.na(y) & x != y)
+    }
+    prop_mismatch <- function(x, y) {
+        sum(mismatch(x, y)) / n
+    }
     failure_summary <- (
         failure_info
         %>% summarize(
+            n = n,
+
             proband_missing_first_name = prop_missing(first_name_frequency_proband),
             proband_missing_middle_names = prop_missing(middle_name_frequencies_proband),
             proband_missing_surname = prop_missing(surname_frequency_proband),
@@ -1430,7 +1464,38 @@ failure_summary <- function(failure_info)
             sample_missing_middle_names = prop_missing(middle_name_frequencies_sample),
             sample_missing_surname = prop_missing(surname_frequency_sample),
             sample_missing_gender = prop_missing(gender_frequency_sample),
-            sample_missing_postcode = prop_missing(postcode_unit_frequencies_sample)
+            sample_missing_postcode = prop_missing(postcode_unit_frequencies_sample),
+
+            mismatch_first_name = prop_mismatch(
+                hashed_first_name_proband,
+                hashed_first_name_sample
+            ),
+            mismatch_first_name_metaphone = prop_mismatch(
+                hashed_first_name_metaphone_proband,
+                hashed_first_name_metaphone_sample
+            ),
+            mismatch_surname = prop_mismatch(
+                hashed_surname_proband,
+                hashed_surname_sample
+            ),
+            mismatch_surname_metaphone = prop_mismatch(
+                hashed_surname_metaphone_proband,
+                hashed_surname_metaphone_sample
+            ),
+            mismatch_dob = prop_mismatch(
+                hashed_dob_proband,
+                hashed_dob_sample
+            ),
+            mismatch_gender = prop_mismatch(
+                hashed_gender_proband,
+                hashed_gender_sample
+            ),
+            firstname_surname_swapped = sum(
+                mismatch(hashed_first_name_proband, hashed_first_name_sample)
+                & mismatch(hashed_surname_proband, hashed_surname_sample)
+                & (hashed_first_name_proband == hashed_surname_sample)
+                & (hashed_surname_proband == hashed_first_name_sample)
+            ) / n
         )
         %>% as.data.table()
     )
@@ -1444,38 +1509,68 @@ failure_summary <- function(failure_info)
 if (FALSE) {
     load_all()
 
-    # Basic checks
-    print(people_missingness_summary(people_cdl))
-    # ... middle names always missing, as expected
-    print(people_missingness_summary(people_pcmis))
-    # ... OK
-    print(people_missingness_summary(people_rio))
-    # ... *** problem!
-    print(people_missingness_summary(people_systmone))
-    # ... OK
+    write_output("Starting", append = FALSE)
 
-    # Done, transcribed:
+    # Basic checks
+    write_output(people_missingness_summary(people_cdl))  # middle names missing as expected
+    write_output(people_missingness_summary(people_pcmis))  # OK
+    write_output(people_missingness_summary(people_rio))  # OK
+    write_output(people_missingness_summary(people_systmone))  # OK
+
+    # Demographics
     dg <- get_all_demographics()
-    # print(dg)
-    # print(t(dg))
+    write_output(dg)
+    write_output(t(dg))
 
     # Working:
     comp_simple <- get_comparisons_simple()
     comp_threshold <- get_comparisons_varying_threshold()
 
+    # Performance figure
     mk_save_performance_plot(comp_threshold, comp_simple)
 
     comp_at_defaults <- comp_threshold[
         theta == DEFAULT_THETA & delta == DEFAULT_DELTA
     ]
-    print(comp_at_defaults)
+    write_output(comp_at_defaults)
 
-    m <- bias_at_threshold(compare_rio_to_systmone)
+    # Factors associated with non-linkage
+    m <- bias_at_threshold(compare_rio_to_systmone)  # at default thresholds
+    write_output(summary(m))
+    # Estimate = 0 is no effect, >0 more likely to be linked, <0 less likely.
+    # Estimates are of log odds.
+    write_output(car::Anova(m, type = "III", test.statistic = "F"))
 
-    fail_cdl_rio_info <- extract_miss_info(people_cdl, people_rio, compare_cdl_to_rio)
+    # Reasons for non-linkage
+    fail_cdl_rio_info <- extract_miss_info(
+        people_cdl, people_rio, compare_cdl_to_rio)
     fail_cdl_rio_summ <- failure_summary(fail_cdl_rio_info)
 
-    fail_cdl_systmone_info <- extract_miss_info(people_cdl, people_systmone, compare_cdl_to_systmone)
+    fail_cdl_systmone_info <- extract_miss_info(
+        people_cdl, people_systmone, compare_cdl_to_systmone)
     fail_cdl_systmone_summ <- failure_summary(fail_cdl_systmone_info)
+    write_output(fail_cdl_systmone_summ)
+
+    write_output(comp_at_defaults[from == RIO & to == SYSTMONE])
+    fail_rio_systmone_info <- extract_miss_info(
+        people_rio, people_systmone, compare_rio_to_systmone)
+    fail_rio_systmone_summ <- failure_summary(fail_rio_systmone_info)
+    write_output(fail_rio_systmone_summ)
 
 }
+
+# TODO: (a) main performance statistics and (b) reasons for failure match,
+# across all database pairs
+
+# TODO: a/w JL re RiO names; use ClientName.GivenName1 instead?
+#       and likewise ClientName.Surname?
+# TODO: rerun all hash/link now postcodes standardized to upper case
+#       ... then redo "predictors of non-linkage" table.
+# TODO: handle multiple options for first name, surname?
+#   *** see Downs paper; use some of those strategies?
+#   *** aliases
+#   *** former surnames
+#   *** forename comparison to middle name
+#   *** first two characters of forename
+
+# TODO: ?demographic factors predicting various kinds of mismatch?
