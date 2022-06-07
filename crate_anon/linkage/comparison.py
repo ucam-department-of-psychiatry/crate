@@ -27,6 +27,12 @@ crate_anon/linkage/comparison.py
 
 **Comparison classes for linkage tools.**
 
+These implement the maths without regard to what sort of identifier is being
+compared. Includes classes for full/partial matches, and a function to iterate
+through a bunch of comparisons as part of a Bayesian probability calculation.
+The hypothesis H throughout is that two people being compared are in fact the
+same person.
+
 """
 
 

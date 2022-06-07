@@ -1370,6 +1370,10 @@ class MatchResult(object):
 
 
 class People(object):
+    """
+    Represents a group of people, and implements a shortlist.
+    """
+
     def __init__(
         self,
         cfg: MatchConfig,
@@ -1437,16 +1441,20 @@ class People(object):
         Ensures all people have sufficient information to act as a proband,
         or raises :exc:`AssertionError`.
         """
+        log.info("Validating probands...")
         for p in self.people:
             p.assert_valid_as_proband()
+        log.info("... OK")
 
     def assert_valid_as_sample(self) -> None:
         """
         Ensures all people have sufficient information to act as a candidate
         from a sample, or raises :exc:`AssertionError`.
         """
+        log.info("Validating sample...")
         for p in self.people:
             p.assert_valid_as_candidate()
+        log.info("... OK")
 
     def gen_shortlist(self, proband: Person) -> Generator[Person, None, None]:
         """

@@ -27,6 +27,9 @@ crate_anon/linkage/identifiers.py
 
 **Helper functions for linkage tools.**
 
+Represents various types of person identifier (e.g. name, postcode) that may be
+compared between two people.
+
 """
 
 

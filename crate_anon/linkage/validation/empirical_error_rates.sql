@@ -141,7 +141,7 @@ SELECT
             0
         )
     ) AS n_dob_year_mismatch  -- 136
-    -- XX
+    -- ... so single-component errors account for 0.9326923 (93%) of DOB errors
 FROM
     RiO62CAMLive.dbo.Client AS rc
 INNER JOIN
@@ -196,7 +196,7 @@ SELECT
             1,
             0
         )
-    ) AS n_dob_day_transposition,  -- 8
+    ) AS n_dob_day_digits_transposition,  -- 8
     SUM(
         IIF(
             (
@@ -216,7 +216,7 @@ SELECT
             1,
             0
         )
-    ) AS n_dob_month_transposition,  -- 7
+    ) AS n_dob_month_digits_transposition,  -- 7
     SUM(
         IIF(
             (
@@ -238,8 +238,26 @@ SELECT
             1,
             0
         )
-    ) AS n_dob_year_last_two_digits_transposition  -- 2
-    -- ... so transpositions account for 0.02724359 of DOB mismatches.
+    ) AS n_dob_year_last_two_digits_transposition,  -- 2
+    -- ... so digit transpositions account for 0.02724359 of DOB mismatches.
+    SUM(
+        IIF(
+            (
+                (
+                    FORMAT(sp.DOB, 'yyyyMMdd') =
+                    FORMAT(rc.DateOfBirth, 'yyyydd') +
+                    FORMAT(rc.DateOfBirth, 'MM')
+                )
+                OR (
+                    FORMAT(rc.DateOfBirth, 'yyyyMMdd') =
+                    FORMAT(sp.DOB, 'yyyydd') +
+                    FORMAT(sp.DOB, 'MM')
+                )
+            ),
+            1,
+            0
+        )
+    ) AS n_dob_day_month_transposition  -- 3
 FROM
     RiO62CAMLive.dbo.Client AS rc
 INNER JOIN
@@ -250,7 +268,7 @@ INNER JOIN
 WHERE
     -- Exclude test NHS numbers, which start 999:
     LEFT(sp.NHSNumber, 3) != '999'
-    -- DOB mismatch:
+    -- The precondition for all is a DOB mismatch:
     AND CAST(sp.DOB AS DATE) != CAST(rc.DateOfBirth AS DATE)
 
 

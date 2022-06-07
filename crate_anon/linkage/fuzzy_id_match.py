@@ -278,11 +278,9 @@ def compare_probands_to_sample(
             )
         writer.writerow(rowdata)
 
-    log.info("Validating probands...")
+    # Checks:
     n_probands = probands.size()
     probands.assert_valid_as_probands()
-
-    log.info("Validating sample...")
     n_sample = sample.size()
     if n_sample > cfg.population_size:
         log.critical(
@@ -292,11 +290,12 @@ def compare_probands_to_sample(
         )
         sys.exit(EXIT_FAILURE)
     sample.assert_valid_as_sample()
-
     log.info(
         f"Comparing each proband to sample. There are "
         f"{n_probands} probands and {n_sample} in the sample."
     )
+
+    # Off we go.
     parallel = n_workers > 1 and n_probands >= min_probands_for_parallel
     colnames = ComparisonOutputColnames.COMPARISON_OUTPUT_COLNAMES
     if extra_validation_output:

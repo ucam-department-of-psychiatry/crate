@@ -27,6 +27,9 @@ crate_anon/linkage/frequencies.py
 
 **Frequency classes for linkage tools.**
 
+These record and calculate frequencies of real-world things (names, postcodes)
+from publicly available data.
+
 """
 
 

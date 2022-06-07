@@ -1631,12 +1631,13 @@ def _get_rio_names(
         """
         SELECT
             -- OK to use UPPER() with NULL values. Result is, of course, NULL.
-            UPPER(GivenName1) AS first_name,
-            UPPER(GivenName2) AS middle_name_1,
-            UPPER(GivenName3) AS middle_name_2,
-            UPPER(GivenName4) AS middle_name_3,
-            UPPER(GivenName5) AS middle_name_4,
-            UPPER(Surname) AS surname
+            -- But we will case-standardize everything later anywa.
+            GivenName1 AS first_name,
+            GivenName2 AS middle_name_1,
+            GivenName3 AS middle_name_2,
+            GivenName4 AS middle_name_3,
+            GivenName5 AS middle_name_4,
+            Surname AS surname
         FROM
             RiO62CAMLive.dbo.ClientName
         WHERE
