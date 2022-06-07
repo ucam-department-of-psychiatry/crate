@@ -3517,23 +3517,25 @@ class People(object):
         for p in self.people:
             p.assert_valid_as_candidate()
 
-    def shortlist(self, proband: Person) -> List[Person]:
+    def gen_shortlist(self, proband: Person) -> Generator[Person, None, None]:
         """
-        Returns a shortlist of potential candidates, by date of birth.
+        Generates a shortlist of potential candidates, by date of birth.
 
-        Args:
+        Yields:
             proband: a :class:`Person`
         """
         if proband.is_hashed:
             hashed_dob = proband.hashed_dob
             if not hashed_dob:
-                return []
-            return self.hashed_dob_to_people[proband.hashed_dob]
+                return
+            for person in self.hashed_dob_to_people[proband.hashed_dob]:
+                yield person
         else:
             dob = proband.dob
             if not dob:
-                return []
-            return self.dob_to_people[dob]
+                return
+            for person in self.dob_to_people[dob]:
+                yield person
 
     def get_unique_match_detailed(self, proband: Person) -> MatchResult:
         """
@@ -3553,36 +3555,33 @@ class People(object):
         # Step 1. Scan everything in a single pass, establishing the best
         # candidate and the runner-up.
         cfg = self.cfg
-        best_idx = -1
-        second_best_idx = -1
         best_log_odds = MINUS_INFINITY
         second_best_log_odds = MINUS_INFINITY
 
-        shortlist = self.shortlist(proband)
-        for idx, candidate in enumerate(shortlist):
+        best_candidate = None  # type: Optional[Person]
+        second_best_candidate = None  # type: Optional[Person]
+        for candidate in self.gen_shortlist(proband):
             log_odds = candidate.log_odds_same(proband)
             if log_odds > best_log_odds:
                 second_best_log_odds = best_log_odds
-                second_best_idx = best_idx
-                best_idx = idx
+                second_best_candidate = best_candidate
                 best_log_odds = log_odds
+                best_candidate = candidate
             elif log_odds > second_best_log_odds:
-                second_best_idx = idx
                 second_best_log_odds = log_odds
+                second_best_candidate = candidate
 
         result = MatchResult(
             best_log_odds=best_log_odds,
             second_best_log_odds=second_best_log_odds,
-            best_candidate=shortlist[best_idx] if best_idx >= 0 else None,
-            second_best_candidate=(
-                shortlist[second_best_idx] if second_best_idx >= 0 else None
-            ),
+            best_candidate=best_candidate,
+            second_best_candidate=second_best_candidate,
             proband=proband,
         )
 
         # Is there a winner?
         if (
-            result.best_candidate
+            best_candidate
             and best_log_odds >= cfg.min_log_odds_for_match
             and best_log_odds
             >= (second_best_log_odds + cfg.exceeds_next_best_log_odds)
@@ -3590,7 +3589,7 @@ class People(object):
             # (a) There needs to be a best candidate.
             # (b) The best needs to be good enough.
             # (c) The best must beat the runner-up by a sufficient margin.
-            result.winner = result.best_candidate
+            result.winner = best_candidate
 
         return result
 
