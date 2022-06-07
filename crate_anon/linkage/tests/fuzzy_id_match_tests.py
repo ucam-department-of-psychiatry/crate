@@ -40,17 +40,15 @@ from typing import List, Tuple
 from cardinal_pythonlib.probability import probability_from_log_odds
 from pendulum import Date
 
-from crate_anon.linkage.fuzzy_id_match import (
-    GENDER_FEMALE,
-    GENDER_MALE,
+from crate_anon.linkage.constants import GENDER_FEMALE, GENDER_MALE
+from crate_anon.linkage.identifiers import TemporalIdentifier
+from crate_anon.linkage.helpers import (
     get_postcode_sector,
-    MatchConfig,
-    People,
-    Person,
     standardize_name,
     standardize_postcode,
-    TemporalIdentifier,
 )
+from crate_anon.linkage.matchconfig import MatchConfig
+from crate_anon.linkage.person import People, Person
 
 log = logging.getLogger(__name__)
 

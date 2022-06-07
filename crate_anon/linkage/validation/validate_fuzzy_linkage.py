@@ -77,6 +77,13 @@ from crate_anon.common.constants import (
     EXIT_FAILURE,
     EXIT_SUCCESS,
 )
+from crate_anon.linkage.identifiers import TemporalIdentifier
+from crate_anon.linkage.matchconfig import MatchConfig
+from crate_anon.linkage.helpers import (
+    cache_load,
+    cache_save,
+    POSTCODE_REGEX,
+)
 from crate_anon.linkage.fuzzy_id_match import (
     add_basic_options,
     add_config_options,
@@ -84,21 +91,14 @@ from crate_anon.linkage.fuzzy_id_match import (
     add_hasher_options,
     add_matching_rules,
     add_subparsers,
-    BasePerson,
-    cache_load,
-    cache_save,
     Commands,
     get_cfg_from_args,
     get_demo_csv,
-    MatchConfig,
-    People,
-    Person,
-    POSTCODE_REGEX,
     read_people_2,
     Switches,
-    TemporalIdentifier,
     warn_or_fail_if_default_key,
 )
+from crate_anon.linkage.person import BasePerson, People, Person
 
 log = logging.getLogger(__name__)
 
