@@ -1,6 +1,10 @@
 #!/usr/bin/env Rscript
 # crate_anon/linkage/analyse_fuzzy_id_match_validate2.R
 
+# =============================================================================
+# Notes
+# =============================================================================
+
 '
 For the main CPFT validation suite.
 During testing:
@@ -1396,8 +1400,11 @@ people_missingness_summary <- function(people)
 }
 
 
-extract_miss_info <- function(probands, sample, comparison,
-                              theta = DEFAULT_THETA, delta = DEFAULT_DELTA)
+extract_miss_info <- function(
+    probands, sample, comparison,
+    theta = DEFAULT_THETA, delta = DEFAULT_DELTA,
+    allow.cartesian = TRUE  # for duplicate NHS numbers, i.e. PCMIS
+)
 {
     decided <- decide_at_thresholds(comparison, theta, delta)
     comp_misses <- decided[proband_in_sample & !declare_match]
@@ -1431,7 +1438,8 @@ extract_miss_info <- function(probands, sample, comparison,
         by.y = "hashed_nhs_number",
         all.x = TRUE,
         all.y = FALSE,
-        suffixes = c("_proband", "_sample")
+        suffixes = c("_proband", "_sample"),
+        allow.cartesian = allow.cartesian
     )
     return(failure_info)
 }
@@ -1580,7 +1588,15 @@ main <- function()
     # Reasons for non-linkage, etc.
     pst <- performance_summary_at_threshold()
     write_output(pst)
-    write_output(t(pst))
+    # !!! WARNING: the calculation for duplicate NHS numbers needs thought.
+    #     See allow.cartesian above.
+
+    pst_simplified <- (
+        pst
+        %>% select(from, to, TPR, FPR, MID)
+        %>% as.data.table()
+    )
+    write_output(pst_simplified)
 
     # Not done: demographics predicting specific sub-reasons for non-linkage.
     # (We predict overall non-linkage above.)
@@ -1600,3 +1616,6 @@ main <- function()
 #   *** first two characters of forename
 #   ? generic Name that is a kind of TemporalIdentifier?
 #   - main tricky bit is the identifiable file format; needs to be easy
+
+# TODO: check if out-by-one DOB is frequent (and if so, how frequent)
+# TODO: improve estimates of gender mismatch error, and other errors?

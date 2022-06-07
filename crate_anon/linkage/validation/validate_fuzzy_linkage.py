@@ -964,414 +964,6 @@ class QueryColnames:
 
 
 # -----------------------------------------------------------------------------
-# RiO
-# -----------------------------------------------------------------------------
-
-
-def _get_rio_postcodes(
-    engine: Engine, rio_patient_id: str
-) -> List[PostcodeInfo]:
-    """
-    Fetches distinct valid time-stamped postcodes for a given person, from RiO.
-    The most recent should be last.
-
-    Args:
-        engine:
-            SQLAlchemy engine
-        rio_patient_id:
-            RiO patient ID
-
-    Returns:
-        list: of postcodes in :class:`PostcodeInfo` format
-
-    """
-    sql = text(
-        """
-        SELECT DISTINCT
-            -- TOP 0  -- for debugging
-
-            -- From the identifiable address table:
-            UPPER(a.PostCode) AS postcode,
-            CAST(a.FromDate AS DATE) AS start_date,
-            CAST(a.ToDate AS DATE) AS end_date,
-
-            -- From the ONS postcode-to-IMD lookup:
-            ons.imd AS index_of_multiple_deprivation,
-
-            CASE
-                WHEN CAST(a.ToDate AS DATE) IS NULL THEN 1 ELSE 0
-            END AS end_date_is_null
-            -- "ORDER BY items must appear in the select list if
-            -- SELECT DISTINCT is specified."
-        FROM
-            RiO62CAMLive.dbo.ClientAddress a
-        LEFT OUTER JOIN
-            onspd.dbo.postcode AS ons  -- Office for National Statistics
-            ON ons.pcd_nospace = REPLACE(UPPER(a.PostCode), ' ', '')
-        WHERE
-            a.ClientID = :patient_id
-            AND a.PostCode IS NOT NULL
-            AND LEN(a.PostCode) >= 5  -- minimum for valid postcode
-        ORDER BY
-            -- You can use aliases in ORDER BY from SQL Server 2008 onwards.
-            end_date_is_null,
-            start_date,
-            end_date,
-            postcode
-    """
-    )
-    rows = engine.execute(sql, patient_id=rio_patient_id)
-    q = QueryColnames
-    postcodes = [
-        PostcodeInfo(
-            postcode=row[q.POSTCODE],
-            start_date=coerce_to_pendulum_date(row[q.START_DATE]),
-            end_date=coerce_to_pendulum_date(row[q.END_DATE]),
-            index_of_multiple_deprivation=row[q.INDEX_OF_MULTIPLE_DEPRIVATION],
-        )
-        for row in rows
-        if POSTCODE_REGEX.match(row[q.POSTCODE])
-    ]
-    return postcodes
-
-
-def _get_rio_names(
-    engine: Engine, rio_client_id: str
-) -> Tuple[str, List[str], str]:
-    """
-    Fetches names for a given person, from RiO.
-
-    Args:
-        engine:
-            SQLAlchemy engine
-        rio_client_id:
-            RiO primary key (``ClientId``)
-
-    Returns:
-        tuple: first_name, list_of_middle_names, surname
-
-    Out of a large database (>150k people), 4 have two rows here. JL notes that
-    in each case examined, the earliest EffectiveDate, or smallest crate_pk, is
-    the right one.
-
-    De-identified debugging queries:
-
-    .. code-block:: sql
-
-        SELECT TOP 10
-            -- De-identified inspection:
-            c2.crate_rio_number,
-            c2.ClientNameID,
-            c2.EffectiveDate,
-            c2.Deleted,
-            c2.AliasType,
-            c2.EndDate,
-            c2.crate_pk
-        FROM (
-            -- Patients with >1 apparent record in this table:
-            SELECT c1.crate_rio_number, COUNT(*) AS n_per_patient
-            FROM RiO62CAMLive.dbo.ClientName c1
-            WHERE c1.EndDate IS NULL
-            AND c1.Deleted = 0
-            GROUP BY c1.crate_rio_number
-            HAVING COUNT(*) > 1
-        ) s
-        INNER JOIN RiO62CAMLive.dbo.ClientName c2
-            ON c2.crate_rio_number = s.crate_rio_number
-
-    The majority appear to have one entry with AliasType = '1' and another with
-    AliasType = '2'. These are defined in ClientAliasType (a non-patient
-    table, just ``SELECT * FROM RiO62CAMLive.dbo.ClientAliasType`` to view);
-    note that the code is of type NVARCHAR(10). Here, we see that '1' is 'Usual
-    name'; '2' is 'Alias'; there are others.
-
-    Restricting to '1' eliminates duplicates.
-
-    .. code-block:: sql
-
-        SELECT
-            COUNT(DISTINCT crate_rio_number) AS n_patients,
-            COUNT(DISTINCT ClientID) AS n_patients_another_way,
-            COUNT(*) AS n_rows
-        FROM RiO62CAMLive.dbo.ClientName c1
-        WHERE EndDate IS NULL
-            AND Deleted = 0
-            AND AliasType = '1'  -- usual name
-
-    Note that there are quite a lot of single-letter names:
-
-    .. code-block:: sql
-
-        SELECT
-            COUNT(*)
-        FROM
-            RiO62CAMLive.dbo.ClientName
-        WHERE
-            EndDate IS NULL  -- still current
-            AND Deleted = 0  -- redundant
-            AND AliasType = '1'  -- usual name
-            AND (
-                LEN(GivenName2) = 1
-                OR LEN(GivenName3) = 1
-                OR LEN(GivenName4) = 1
-                OR LEN(GivenName5) = 1
-            )
-
-        -- gives 10,619 (out of 216,739 without the length clause).
-
-    Is ClientName.GivenName1 the same as Client.Firstname?
-
-    .. code-block:: sql
-
-        SELECT
-            COUNT(*) AS n_joined,
-            SUM(IIF(c.Firstname = cn.GivenName1, 1, 0)) AS first_name_same
-        FROM RiO62CAMLive.dbo.ClientName AS cn
-        INNER JOIN RiO62CAMLive.dbo.Client AS c
-            ON cn.ClientID = c.ClientID
-        WHERE
-            (c.NNNStatus = 1 OR c.NNNStatus = 2)
-            AND cn.EndDate IS NULL
-            AND cn.Deleted = 0
-            AND cn.AliasType = '1'
-
-        -- e.g. 208582 joined, 116842 match.
-        -- So no, not always the same.
-
-    """
-    sql = text(
-        """
-        SELECT
-            -- OK to use UPPER() with NULL values. Result is, of course, NULL.
-            UPPER(GivenName1) AS first_name,
-            UPPER(GivenName2) AS middle_name_1,
-            UPPER(GivenName3) AS middle_name_2,
-            UPPER(GivenName4) AS middle_name_3,
-            UPPER(GivenName5) AS middle_name_4,
-            UPPER(Surname) AS surname
-        FROM
-            RiO62CAMLive.dbo.ClientName
-        WHERE
-            ClientID = :client_id
-            AND EndDate IS NULL  -- still current
-            AND Deleted = 0  -- redundant
-            AND AliasType = '1'  -- usual name
-    """
-    )
-    result = engine.execute(sql, client_id=rio_client_id)  # type: ResultProxy
-    rows = result.fetchall()  # type: List[RowProxy]
-    n_rows = len(rows)  # or result.rowcount()
-    assert n_rows <= 1, "Didn't expect >1 row per patient in ClientName"
-    if n_rows == 0:
-        log.warning("RiO patient found with no name entry")
-        return "", [], ""
-    row = rows[0]
-    q = QueryColnames
-    first_name = row[q.FIRST_NAME] or ""
-    middle_names = [
-        x
-        for x in (
-            row[q.MIDDLE_NAME_1],
-            row[q.MIDDLE_NAME_2],
-            row[q.MIDDLE_NAME_3],
-            row[q.MIDDLE_NAME_4],
-        )
-        if x
-    ]  # remove blanks
-    surname = row[QueryColnames.SURNAME] or ""
-    return first_name, middle_names, surname
-
-
-def validate_2_fetch_rio(
-    url: str, hash_fn: HASH_FUNCTION_TYPE, echo: bool = False
-) -> Generator[BasePerson, None, None]:
-    """
-    Generates IDENTIFIED people from CPFT's RiO source database.
-
-    The connection to any such database is HIGHLY confidential; it sits on a
-    secure server within a secure network and access to this specific database
-    is very restricted -- to administrators only.
-
-    Args:
-        url:
-            SQLAlchemy URL.
-        hash_fn:
-            Hash function for hashing NHS number (original ID) to research ID.
-        echo:
-            Echo SQL?
-
-    Yields:
-        :class:`Person` objects
-
-    Date range:
-
-    .. code-block:: sql
-
-        SELECT YEAR(Referral_DateTime), COUNT(*)
-        FROM RiO62CAMLive.dbo.Referral
-        WHERE Referral_DateTime IS NOT NULL
-        GROUP BY YEAR(Referral_DateTime)
-        ORDER BY YEAR(Referral_DateTime)
-
-        -- exceeds 10,000/year from 2012-2021 inclusive.
-
-    Don't use ``ClientIndex``; first name and surname are always NULL. Use
-    ``Client``.
-
-    """
-    sql = text(
-        """
-        SELECT
-            -- TOP 0  -- for debugging
-        
-            -- From the main patient index:
-            c.ClientID AS rio_client_id,  -- VARCHAR(15) NOT NULL
-            CAST(c.NNN AS BIGINT) AS nhs_number,
-            -- c.Firstname AS first_name,  -- problem: poorly structured
-            -- c.Surname AS surname,  -- problem: poorly structured
-            CAST(c.DateOfBirth AS DATE) AS dob,
-            CASE c.Gender
-                WHEN 'F' THEN 'F'
-                WHEN 'M' THEN 'M'
-                WHEN 'X' THEN 'X'
-                ELSE ''
-                -- 'U' is the RiO "unknown" value
-            END AS gender,
-            CAST(c.FirstCareDate AS DATE) AS first_mh_care_date,
-
-            -- From the ethnicity table:
-            ge.CodeDescription AS ethnicity,
-
-            -- From diagnostic codes:
-            -- Codes can be with or without dots, e.g. F321 or F32.1 (!).
-            -- But a dot only as the fourth character, if present.
-            CASE
-                WHEN EXISTS(
-                    SELECT
-                        1
-                    FROM
-                        RiO62CAMLive.dbo.DiagnosisClient dx_any
-                    WHERE
-                        dx_any.ClientID = c.ClientID
-                        AND dx_any.RemovalDate IS NULL  -- not removed
-                        -- NB RemovalDate indicates deletion and is separate
-                        -- from DiagnosisEndDate, e.g. a real problem now gone. 
-                        -- AND dx_any.CodingScheme = 'ICD10'  -- redundant
-                        -- AND dx_any.Diagnosis IS NOT NULL  -- redundant
-                        -- AND dx_any.Diagnosis != ''  -- redundant
-                ) THEN 1
-                ELSE 0
-            END AS any_icd10_dx_present,
-            CASE
-                WHEN EXISTS(
-                    SELECT
-                        1
-                    FROM
-                        RiO62CAMLive.dbo.DiagnosisClient dx_f
-                    WHERE
-                        dx_f.ClientID = c.ClientID
-                        AND dx_f.RemovalDate IS NULL
-                        AND dx_f.Diagnosis LIKE 'F%'
-                ) THEN 1
-                ELSE 0
-            END AS chapter_f_icd10_dx_present,
-            CASE
-                WHEN EXISTS(
-                    SELECT
-                        1
-                    FROM
-                        RiO62CAMLive.dbo.DiagnosisClient dx_smi
-                    WHERE
-                        dx_smi.ClientID = c.ClientID
-                        AND dx_smi.RemovalDate IS NULL
-                        AND (
-                            dx_smi.Diagnosis LIKE 'F20%'  -- schizophrenia
-                            OR dx_smi.Diagnosis LIKE 'F21%'  -- schizotypal
-                            OR dx_smi.Diagnosis LIKE 'F22%'  -- persistent delusional
-                            OR dx_smi.Diagnosis LIKE 'F25%'  -- schizoaffective
-                            OR dx_smi.Diagnosis LIKE 'F31%'  -- bipolar
-                            OR REPLACE(dx_smi.Diagnosis, '.', '') LIKE 'F322%'  -- severe depressive episode, not psychotic
-                            OR REPLACE(dx_smi.Diagnosis, '.', '') LIKE 'F323%'  -- severe depressive episode, psychotic
-                            OR REPLACE(dx_smi.Diagnosis, '.', '') LIKE 'F332%'  -- rec. dep, severe, not psychotic
-                            OR REPLACE(dx_smi.Diagnosis, '.', '') LIKE 'F333%'  -- rec. dep, severe, psychotic
-                        )
-                ) THEN 1
-                ELSE 0
-            END AS smi_icd10_dx_present
-
-        FROM
-            RiO62CAMLive.dbo.Client AS c  -- identifiable patient table
-            -- We use the original raw RiO database, not the CRATE-processed 
-            -- one.
-        LEFT JOIN
-            RiO62CAMLive.dbo.GenEthnicity ge
-            ON ge.Code = c.Ethnicity
-            AND ge.Deleted = 0
-        WHERE
-            -- Restrict to patients with NHS numbers:
-            (c.NNNStatus = 1 OR c.NNNStatus = 2)
-            -- 2 = NHS number verified; see table NNNStatus
-            -- Most people have status 1 (about 119k people), compared to
-            -- about 80k for status 2 (on 2020-04-28). Then about 6k have
-            -- status 0 ("trace/verification required"), and about 800 have
-            -- status 3 ("no match found"). Other codes not present.
-            -- A very small number (~40) have a null NHS number despite an
-            -- OK-looking status flag; we'll skip them.
-            AND (
-                TRY_CAST(REPLACE(c.NNN, ' ', '') AS BIGINT) IS NOT NULL
-                AND LEN(REPLACE(c.NNN, ' ', '')) = 10
-            )
-
-        -- Final count: 208538 (on 2022-05-26).
-        -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.ClientIndex = 216739
-        -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.Client = 216739
-    """  # noqa
-    )
-    engine = create_engine(url, echo=echo)
-    result = engine.execute(sql)  # type: ResultProxy
-    q = QueryColnames
-    for row in result:
-        rio_client_id = row["rio_client_id"]  # type: str
-        nhs_number = row[q.NHS_NUMBER]  # type: int
-        if not is_ok_nhs_number(nhs_number):
-            continue
-        dob = coerce_to_pendulum_date(row[q.DOB])
-        gender = row[q.GENDER]  # type: str
-        first_mh_care_date = coerce_to_pendulum_date(row[q.FIRST_MH_CARE_DATE])
-
-        first_name, middle_names, surname = _get_rio_names(
-            engine, rio_client_id
-        )
-        postcodes = _get_rio_postcodes(engine, rio_client_id)
-
-        other = CPFTValidationExtras(
-            hashed_nhs_number=hash_fn(nhs_number),
-            blurred_dob=isoformat_optional_date(
-                truncate_date_to_first_of_month(dob)
-            ),
-            gender=gender,
-            ethnicity=row[q.ETHNICITY],
-            index_of_multiple_deprivation=last_imd(postcodes),
-            first_mh_care_date=isoformat_optional_date(first_mh_care_date),
-            age_at_first_mh_care=age_years(dob, first_mh_care_date),
-            any_icd10_dx_present=row[q.ANY_ICD10_DX_PRESENT],
-            chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
-            severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
-        )
-        p = BasePerson(
-            local_id=rio_client_id,
-            other_info=other.json,
-            first_name=first_name,
-            middle_names=middle_names,
-            surname=surname,
-            gender=gender,
-            dob=isoformat_optional_date(dob),
-            postcodes=postcode_temporal_identifiers(postcodes),
-        )
-        yield p
-
-
-# -----------------------------------------------------------------------------
 # CRS/CDL
 # -----------------------------------------------------------------------------
 
@@ -1788,6 +1380,7 @@ def validate_2_fetch_pcmis(
             p.NHSNumber IS NOT NULL
             AND LEN(p.NHSNumber) = 10
             -- ... non-NULL values only have lengths 0 or 10
+            -- ... none have spaces in
             AND TRY_CAST(p.NHSNumber AS BIGINT) IS NOT NULL
 
         -- Final count: 93347 (on 2022-05-26).
@@ -1851,6 +1444,415 @@ def validate_2_fetch_pcmis(
             first_name=row[q.FIRST_NAME] or "",
             middle_names=[middle_name] if middle_name else [],
             surname=row[q.SURNAME] or "",
+            gender=gender,
+            dob=isoformat_optional_date(dob),
+            postcodes=postcode_temporal_identifiers(postcodes),
+        )
+        yield p
+
+
+# -----------------------------------------------------------------------------
+# RiO
+# -----------------------------------------------------------------------------
+
+
+def _get_rio_postcodes(
+    engine: Engine, rio_patient_id: str
+) -> List[PostcodeInfo]:
+    """
+    Fetches distinct valid time-stamped postcodes for a given person, from RiO.
+    The most recent should be last.
+
+    Args:
+        engine:
+            SQLAlchemy engine
+        rio_patient_id:
+            RiO patient ID
+
+    Returns:
+        list: of postcodes in :class:`PostcodeInfo` format
+
+    """
+    sql = text(
+        """
+        SELECT DISTINCT
+            -- TOP 0  -- for debugging
+
+            -- From the identifiable address table:
+            UPPER(a.PostCode) AS postcode,
+            CAST(a.FromDate AS DATE) AS start_date,
+            CAST(a.ToDate AS DATE) AS end_date,
+
+            -- From the ONS postcode-to-IMD lookup:
+            ons.imd AS index_of_multiple_deprivation,
+
+            CASE
+                WHEN CAST(a.ToDate AS DATE) IS NULL THEN 1 ELSE 0
+            END AS end_date_is_null
+            -- "ORDER BY items must appear in the select list if
+            -- SELECT DISTINCT is specified."
+        FROM
+            RiO62CAMLive.dbo.ClientAddress AS a
+        LEFT OUTER JOIN
+            onspd.dbo.postcode AS ons  -- Office for National Statistics
+            ON ons.pcd_nospace = REPLACE(UPPER(a.PostCode), ' ', '')
+        WHERE
+            a.ClientID = :patient_id
+            AND a.PostCode IS NOT NULL
+            AND LEN(a.PostCode) >= 5  -- minimum for valid postcode
+        ORDER BY
+            -- You can use aliases in ORDER BY from SQL Server 2008 onwards.
+            end_date_is_null,
+            start_date,
+            end_date,
+            postcode
+    """
+    )
+    rows = engine.execute(sql, patient_id=rio_patient_id)
+    q = QueryColnames
+    postcodes = [
+        PostcodeInfo(
+            postcode=row[q.POSTCODE],
+            start_date=coerce_to_pendulum_date(row[q.START_DATE]),
+            end_date=coerce_to_pendulum_date(row[q.END_DATE]),
+            index_of_multiple_deprivation=row[q.INDEX_OF_MULTIPLE_DEPRIVATION],
+        )
+        for row in rows
+        if POSTCODE_REGEX.match(row[q.POSTCODE])
+    ]
+    return postcodes
+
+
+def _get_rio_names(
+    engine: Engine, rio_client_id: str
+) -> Tuple[str, List[str], str]:
+    """
+    Fetches names for a given person, from RiO.
+
+    Args:
+        engine:
+            SQLAlchemy engine
+        rio_client_id:
+            RiO primary key (``ClientId``)
+
+    Returns:
+        tuple: first_name, list_of_middle_names, surname
+
+    Out of a large database (>150k people), 4 have two rows here. JL notes that
+    in each case examined, the earliest EffectiveDate, or smallest crate_pk, is
+    the right one.
+
+    De-identified debugging queries:
+
+    .. code-block:: sql
+
+        SELECT TOP 10
+            -- De-identified inspection:
+            c2.crate_rio_number,
+            c2.ClientNameID,
+            c2.EffectiveDate,
+            c2.Deleted,
+            c2.AliasType,
+            c2.EndDate,
+            c2.crate_pk
+        FROM (
+            -- Patients with >1 apparent record in this table:
+            SELECT c1.crate_rio_number, COUNT(*) AS n_per_patient
+            FROM RiO62CAMLive.dbo.ClientName c1
+            WHERE c1.EndDate IS NULL
+            AND c1.Deleted = 0
+            GROUP BY c1.crate_rio_number
+            HAVING COUNT(*) > 1
+        ) s
+        INNER JOIN RiO62CAMLive.dbo.ClientName c2
+            ON c2.crate_rio_number = s.crate_rio_number
+
+    The majority appear to have one entry with AliasType = '1' and another with
+    AliasType = '2'. These are defined in ClientAliasType (a non-patient
+    table, just ``SELECT * FROM RiO62CAMLive.dbo.ClientAliasType`` to view);
+    note that the code is of type NVARCHAR(10). Here, we see that '1' is 'Usual
+    name'; '2' is 'Alias'; there are others.
+
+    Restricting to '1' eliminates duplicates.
+
+    .. code-block:: sql
+
+        SELECT
+            COUNT(DISTINCT crate_rio_number) AS n_patients,
+            COUNT(DISTINCT ClientID) AS n_patients_another_way,
+            COUNT(*) AS n_rows
+        FROM RiO62CAMLive.dbo.ClientName c1
+        WHERE EndDate IS NULL
+            AND Deleted = 0
+            AND AliasType = '1'  -- usual name
+
+    Note that there are quite a lot of single-letter names:
+
+    .. code-block:: sql
+
+        SELECT
+            COUNT(*)
+        FROM
+            RiO62CAMLive.dbo.ClientName
+        WHERE
+            EndDate IS NULL  -- still current
+            AND Deleted = 0  -- redundant
+            AND AliasType = '1'  -- usual name
+            AND (
+                LEN(GivenName2) = 1
+                OR LEN(GivenName3) = 1
+                OR LEN(GivenName4) = 1
+                OR LEN(GivenName5) = 1
+            )
+
+        -- gives 10,619 (out of 216,739 without the length clause).
+
+    Is ClientName.GivenName1 the same as Client.Firstname?
+
+    .. code-block:: sql
+
+        SELECT
+            COUNT(*) AS n_joined,
+            SUM(IIF(c.Firstname = cn.GivenName1, 1, 0)) AS first_name_same
+        FROM RiO62CAMLive.dbo.ClientName AS cn
+        INNER JOIN RiO62CAMLive.dbo.Client AS c
+            ON cn.ClientID = c.ClientID
+        WHERE
+            (c.NNNStatus = 1 OR c.NNNStatus = 2)
+            AND cn.EndDate IS NULL
+            AND cn.Deleted = 0
+            AND cn.AliasType = '1'
+
+        -- e.g. 208582 joined, 116842 match.
+        -- So no, not always the same.
+
+    """
+    sql = text(
+        """
+        SELECT
+            -- OK to use UPPER() with NULL values. Result is, of course, NULL.
+            UPPER(GivenName1) AS first_name,
+            UPPER(GivenName2) AS middle_name_1,
+            UPPER(GivenName3) AS middle_name_2,
+            UPPER(GivenName4) AS middle_name_3,
+            UPPER(GivenName5) AS middle_name_4,
+            UPPER(Surname) AS surname
+        FROM
+            RiO62CAMLive.dbo.ClientName
+        WHERE
+            ClientID = :client_id
+            AND EndDate IS NULL  -- still current
+            AND Deleted = 0  -- redundant
+            AND AliasType = '1'  -- usual name
+    """
+    )
+    result = engine.execute(sql, client_id=rio_client_id)  # type: ResultProxy
+    rows = result.fetchall()  # type: List[RowProxy]
+    n_rows = len(rows)  # or result.rowcount()
+    assert n_rows <= 1, "Didn't expect >1 row per patient in ClientName"
+    if n_rows == 0:
+        log.warning("RiO patient found with no name entry")
+        return "", [], ""
+    row = rows[0]
+    q = QueryColnames
+    first_name = row[q.FIRST_NAME] or ""
+    middle_names = [
+        x
+        for x in (
+            row[q.MIDDLE_NAME_1],
+            row[q.MIDDLE_NAME_2],
+            row[q.MIDDLE_NAME_3],
+            row[q.MIDDLE_NAME_4],
+        )
+        if x
+    ]  # remove blanks
+    surname = row[QueryColnames.SURNAME] or ""
+    return first_name, middle_names, surname
+
+
+def validate_2_fetch_rio(
+    url: str, hash_fn: HASH_FUNCTION_TYPE, echo: bool = False
+) -> Generator[BasePerson, None, None]:
+    """
+    Generates IDENTIFIED people from CPFT's RiO source database.
+
+    The connection to any such database is HIGHLY confidential; it sits on a
+    secure server within a secure network and access to this specific database
+    is very restricted -- to administrators only.
+
+    Args:
+        url:
+            SQLAlchemy URL.
+        hash_fn:
+            Hash function for hashing NHS number (original ID) to research ID.
+        echo:
+            Echo SQL?
+
+    Yields:
+        :class:`Person` objects
+
+    Date range:
+
+    .. code-block:: sql
+
+        SELECT YEAR(Referral_DateTime), COUNT(*)
+        FROM RiO62CAMLive.dbo.Referral
+        WHERE Referral_DateTime IS NOT NULL
+        GROUP BY YEAR(Referral_DateTime)
+        ORDER BY YEAR(Referral_DateTime)
+
+        -- exceeds 10,000/year from 2012-2021 inclusive.
+
+    Don't use ``ClientIndex``; first name and surname are always NULL. Use
+    ``Client``.
+
+    """
+    sql = text(
+        """
+        SELECT
+            -- TOP 0  -- for debugging
+        
+            -- From the main patient index:
+            c.ClientID AS rio_client_id,  -- VARCHAR(15) NOT NULL
+            CAST(c.NNN AS BIGINT) AS nhs_number,
+            -- c.Firstname AS first_name,  -- problem: poorly structured
+            -- c.Surname AS surname,  -- problem: poorly structured
+            CAST(c.DateOfBirth AS DATE) AS dob,
+            CASE c.Gender
+                WHEN 'F' THEN 'F'
+                WHEN 'M' THEN 'M'
+                WHEN 'X' THEN 'X'
+                ELSE ''
+                -- 'U' is the RiO "unknown" value
+            END AS gender,
+            CAST(c.FirstCareDate AS DATE) AS first_mh_care_date,
+
+            -- From the ethnicity table:
+            ge.CodeDescription AS ethnicity,
+
+            -- From diagnostic codes:
+            -- Codes can be with or without dots, e.g. F321 or F32.1 (!).
+            -- But a dot only as the fourth character, if present.
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        RiO62CAMLive.dbo.DiagnosisClient dx_any
+                    WHERE
+                        dx_any.ClientID = c.ClientID
+                        AND dx_any.RemovalDate IS NULL  -- not removed
+                        -- NB RemovalDate indicates deletion and is separate
+                        -- from DiagnosisEndDate, e.g. a real problem now gone. 
+                        -- AND dx_any.CodingScheme = 'ICD10'  -- redundant
+                        -- AND dx_any.Diagnosis IS NOT NULL  -- redundant
+                        -- AND dx_any.Diagnosis != ''  -- redundant
+                ) THEN 1
+                ELSE 0
+            END AS any_icd10_dx_present,
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        RiO62CAMLive.dbo.DiagnosisClient dx_f
+                    WHERE
+                        dx_f.ClientID = c.ClientID
+                        AND dx_f.RemovalDate IS NULL
+                        AND dx_f.Diagnosis LIKE 'F%'
+                ) THEN 1
+                ELSE 0
+            END AS chapter_f_icd10_dx_present,
+            CASE
+                WHEN EXISTS(
+                    SELECT
+                        1
+                    FROM
+                        RiO62CAMLive.dbo.DiagnosisClient dx_smi
+                    WHERE
+                        dx_smi.ClientID = c.ClientID
+                        AND dx_smi.RemovalDate IS NULL
+                        AND (
+                            dx_smi.Diagnosis LIKE 'F20%'  -- schizophrenia
+                            OR dx_smi.Diagnosis LIKE 'F21%'  -- schizotypal
+                            OR dx_smi.Diagnosis LIKE 'F22%'  -- persistent delusional
+                            OR dx_smi.Diagnosis LIKE 'F25%'  -- schizoaffective
+                            OR dx_smi.Diagnosis LIKE 'F31%'  -- bipolar
+                            OR REPLACE(dx_smi.Diagnosis, '.', '') LIKE 'F322%'  -- severe depressive episode, not psychotic
+                            OR REPLACE(dx_smi.Diagnosis, '.', '') LIKE 'F323%'  -- severe depressive episode, psychotic
+                            OR REPLACE(dx_smi.Diagnosis, '.', '') LIKE 'F332%'  -- rec. dep, severe, not psychotic
+                            OR REPLACE(dx_smi.Diagnosis, '.', '') LIKE 'F333%'  -- rec. dep, severe, psychotic
+                        )
+                ) THEN 1
+                ELSE 0
+            END AS smi_icd10_dx_present
+
+        FROM
+            RiO62CAMLive.dbo.Client AS c  -- identifiable patient table
+            -- We use the original raw RiO database, not the CRATE-processed 
+            -- one.
+        LEFT JOIN
+            RiO62CAMLive.dbo.GenEthnicity ge
+            ON ge.Code = c.Ethnicity
+            AND ge.Deleted = 0
+        WHERE
+            -- Restrict to patients with NHS numbers:
+            (c.NNNStatus = 1 OR c.NNNStatus = 2)
+            -- 2 = NHS number verified; see table NNNStatus
+            -- Most people have status 1 (about 119k people), compared to
+            -- about 80k for status 2 (on 2020-04-28). Then about 6k have
+            -- status 0 ("trace/verification required"), and about 800 have
+            -- status 3 ("no match found"). Other codes not present.
+            -- A very small number (~40) have a null NHS number despite an
+            -- OK-looking status flag; we'll skip them.
+            AND (
+                TRY_CAST(REPLACE(c.NNN, ' ', '') AS BIGINT) IS NOT NULL
+                AND LEN(REPLACE(c.NNN, ' ', '')) = 10
+            )
+            -- Actually, this is overkill; none have spaces in.
+
+        -- Final count: 208538 (on 2022-05-26).
+        -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.ClientIndex = 216739
+        -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.Client = 216739
+    """  # noqa
+    )
+    engine = create_engine(url, echo=echo)
+    result = engine.execute(sql)  # type: ResultProxy
+    q = QueryColnames
+    for row in result:
+        rio_client_id = row["rio_client_id"]  # type: str
+        nhs_number = row[q.NHS_NUMBER]  # type: int
+        if not is_ok_nhs_number(nhs_number):
+            continue
+        dob = coerce_to_pendulum_date(row[q.DOB])
+        gender = row[q.GENDER]  # type: str
+        first_mh_care_date = coerce_to_pendulum_date(row[q.FIRST_MH_CARE_DATE])
+
+        first_name, middle_names, surname = _get_rio_names(
+            engine, rio_client_id
+        )
+        postcodes = _get_rio_postcodes(engine, rio_client_id)
+
+        other = CPFTValidationExtras(
+            hashed_nhs_number=hash_fn(nhs_number),
+            blurred_dob=isoformat_optional_date(
+                truncate_date_to_first_of_month(dob)
+            ),
+            gender=gender,
+            ethnicity=row[q.ETHNICITY],
+            index_of_multiple_deprivation=last_imd(postcodes),
+            first_mh_care_date=isoformat_optional_date(first_mh_care_date),
+            age_at_first_mh_care=age_years(dob, first_mh_care_date),
+            any_icd10_dx_present=row[q.ANY_ICD10_DX_PRESENT],
+            chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
+            severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
+        )
+        p = BasePerson(
+            local_id=rio_client_id,
+            other_info=other.json,
+            first_name=first_name,
+            middle_names=middle_names,
+            surname=surname,
             gender=gender,
             dob=isoformat_optional_date(dob),
             postcodes=postcode_temporal_identifiers(postcodes),
@@ -1985,6 +1987,15 @@ def validate_2_fetch_systmone(
       Description column linked in, and minor column renaming (e.g. DtDiagnosis
       to DateDiagnosis). But it's the right (and only) table for ICD-10 codes.
 
+    - There are no NHS numbers with spaces in, so we don't have to worry about
+      that:
+
+      .. code-block:: sql
+
+        SELECT COUNT(*) FROM SystmOne.dbo.S1_Patient
+        WHERE p.NHSNumber LIKE '% %'
+        -- returns 0
+
     """  # noqa
     sql = text(
         """
@@ -2002,7 +2013,7 @@ def validate_2_fetch_systmone(
                 WHEN 'F' THEN 'F'
                 WHEN 'M' THEN 'M'
                 WHEN 'I' THEN 'X'
-                ELSE ''
+                ELSE ''  -- ELSE clause includes NULL values
                 -- 'U' = "unknown"
             END AS gender,
 
@@ -2093,6 +2104,7 @@ def validate_2_fetch_systmone(
             -- Restrict to patients with NHS numbers:
             p.NHSNumber IS NOT NULL
             AND LEN(p.NHSNumber) = 10
+            -- None have spaces in; see above.
             AND TRY_CAST(p.NHSNumber AS BIGINT) IS NOT NULL
             -- About 1/619,000 have no DOB:
             AND p.DOB IS NOT NULL
@@ -2609,19 +2621,19 @@ def main() -> int:
             output_csv=args.output,
         )
 
-    elif args.command == "validate2_fetch_rio":
+    elif args.command == "validate2_fetch_pcmis":
         warn_or_fail_if_default_key(args)
         save_people_from_db(
-            people=validate_2_fetch_rio(
+            people=validate_2_fetch_pcmis(
                 url=args.url, hash_fn=get_hash_function(args), echo=args.echo
             ),
             output_csv=args.output,
         )
 
-    elif args.command == "validate2_fetch_pcmis":
+    elif args.command == "validate2_fetch_rio":
         warn_or_fail_if_default_key(args)
         save_people_from_db(
-            people=validate_2_fetch_pcmis(
+            people=validate_2_fetch_rio(
                 url=args.url, hash_fn=get_hash_function(args), echo=args.echo
             ),
             output_csv=args.output,
