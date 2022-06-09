@@ -1225,7 +1225,8 @@ mk_generic_pairwise_plot <- function(
     overlap_label_x = 0,
     overlap_label_hjust = 0,  # 0 = left-justify, 1 = right-justify
     overlap_label_size = 2,
-    diagonal_colour = "darkolivegreen2"
+    diagonal_colour = "black",
+    diagonal_background_alpha = 0.1
 )
 {
     CORE_VARS <- c("from", "to", "theta", "delta")
@@ -1313,6 +1314,36 @@ mk_generic_pairwise_plot <- function(
             )
         )
     }
+    if (!is.null(diagonal_colour)) {
+        # Make the leading diagonal panels a different colour.
+        # ggplot doesn't support altering the facet colours in a systematic
+        # way. However:
+        # - https://stackoverflow.com/questions/6750664
+        # - https://www.cedricscherer.com/2019/08/05/a-ggplot2-tutorial-for-beautiful-plotting-in-r/#panels
+        # - https://stackoverflow.com/questions/9847559/conditionally-change-panel-background-with-facet-grid
+        #   ... last of these is the best by far.
+        facet_data_diagonal <- unique(d[, .(from, to)])[from == to]
+        p <- (
+            p
+            + geom_rect(
+                data = facet_data_diagonal,
+                aes(
+                    x = NULL,
+                    y = NULL,
+                    group = NULL,
+                    colour = NULL,
+                    linetype = NULL,
+                    shape = NULL
+                ),
+                xmin = -Inf,
+                xmax = Inf,
+                ymin = -Inf,
+                ymax = Inf,
+                fill = diagonal_colour,
+                alpha = diagonal_background_alpha
+            )
+        )
+    }
     return(p)
 }
 
@@ -1373,15 +1404,6 @@ mk_save_performance_plot <- function(comp_threshold, comp_simple)
         height = PAGE_HEIGHT_CM * 1.1,
         units = "cm"
     )
-}
-
-
-colour_faceted_plot_leading_diagonal <- function(p)
-{
-    # Not a thing that ggplot supports. However:
-    # https://stackoverflow.com/questions/6750664
-    grob <- ggplotGrob(p)
-    # todo: in progress ***
 }
 
 
@@ -1616,8 +1638,6 @@ main <- function()
 
 # main()
 
-# TODO: rerun all hash/link now postcodes standardized to upper case?
-#       ... possibly nothing changed!
 # TODO: handle multiple options for first name, surname?
 #   *** see Downs paper; use some of those strategies?
 #   *** aliases
@@ -1628,4 +1648,7 @@ main <- function()
 #   - main tricky bit is the identifiable file format; needs to be easy
 
 # TODO: check if out-by-one DOB is frequent (and if so, how frequent)
+
 # TODO: improve estimates of gender mismatch error, and other errors?
+
+# TODO: rethink analytically about the PCMIS NHS# duplication problem
