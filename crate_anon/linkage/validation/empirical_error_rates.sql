@@ -282,7 +282,7 @@ SELECT
         IIF(
             (
                 REPLACE(UPPER(rcn.GivenName1), ' ', '') !=
-                REPLACE(UPPER(sp.FirstName), ' ', '')
+                    REPLACE(UPPER(sp.FirstName), ' ', '')
             ),
             1,
             0
@@ -292,7 +292,7 @@ SELECT
         IIF(
             (
                 REPLACE(UPPER(rcn.Surname), ' ', '') !=
-                REPLACE(UPPER(sp.Surname), ' ', '')
+                    REPLACE(UPPER(sp.Surname), ' ', '')
             ),
             1,
             0
@@ -302,14 +302,33 @@ SELECT
         IIF(
             (
                 REPLACE(UPPER(rcn.GivenName1), ' ', '') !=
-                REPLACE(UPPER(sp.FirstName), ' ', '')
+                    REPLACE(UPPER(sp.FirstName), ' ', '')
                 AND REPLACE(UPPER(rcn.Surname), ' ', '') !=
-                REPLACE(UPPER(sp.Surname), ' ', '')
+                    REPLACE(UPPER(sp.Surname), ' ', '')
             ),
             1,
             0
         )
     ) AS n_forename_and_surname_mismatch,  -- 560
+    SUM(
+        IIF(
+            (
+                -- Forename mismatch:
+                REPLACE(UPPER(rcn.GivenName1), ' ', '') !=
+                    REPLACE(UPPER(sp.FirstName), ' ', '')
+                -- Surname mismatch:
+                AND REPLACE(UPPER(rcn.Surname), ' ', '') !=
+                    REPLACE(UPPER(sp.Surname), ' ', '')
+                -- But forename/surname match, each way:
+                AND REPLACE(UPPER(rcn.GivenName1), ' ', '') =
+                    REPLACE(UPPER(sp.Surname), ' ', '')
+                AND REPLACE(UPPER(rcn.Surname), ' ', '') =
+                    REPLACE(UPPER(sp.FirstName), ' ', '')
+            ),
+            1,
+            0
+        )
+    ) AS n_forename_and_surname_mismatch_transposed,  -- 98
     SUM(
         IIF(
             (
@@ -367,6 +386,51 @@ WHERE
     AND rcn.EndDate IS NULL
     AND rcn.Deleted = 0
     AND rcn.AliasType = '1'  -- usual name
+
+
+-- ============================================================================
+-- Surname mismatches BY gender.
+-- ============================================================================
+
+SELECT
+    rc.Gender AS rio_gender,
+    sp.Gender AS systmone_gender,
+    COUNT(*) AS n_people,  -- F 72958, M 53484
+    SUM(
+        IIF(
+            (
+                REPLACE(UPPER(rcn.Surname), ' ', '') !=
+                    REPLACE(UPPER(sp.Surname), ' ', '')
+            ),
+            1,
+            0
+        )
+    ) AS n_surname_mismatch  -- F 4947, M 1185
+FROM
+    RiO62CAMLive.dbo.Client AS rc
+INNER JOIN
+    SystmOne.dbo.S1_Patient AS sp
+    ON TRY_CAST(sp.NHSNumber AS BIGINT) = TRY_CAST(rc.NNN AS BIGINT)
+    -- NHS number match. (NULL values will be excluded by the INNER JOIN.)
+    -- Neither NHS number has spaces in (empirically).
+INNER JOIN
+    RiO62CAMLive.dbo.ClientName AS rcn
+    ON rcn.ClientID = rc.ClientID
+WHERE
+    -- Exclude test NHS numbers, which start 999:
+    LEFT(sp.NHSNumber, 3) != '999'
+    -- Primary RiO name:
+    AND rcn.EndDate IS NULL
+    AND rcn.Deleted = 0
+    AND rcn.AliasType = '1'  -- usual name
+    -- Restrict to M/F and no discrepancy:
+    AND rc.Gender IN ('M', 'F')
+    AND sp.Gender = rc.Gender
+GROUP BY
+    rc.Gender,
+    sp.Gender
+ORDER BY
+    rc.Gender
 
 
 -- ============================================================================

@@ -36,7 +36,10 @@ crate_anon/linkage/person.py
 
 from collections import defaultdict
 import copy
+from dataclasses import dataclass, field
+import json
 import logging
+from typing import Iterable, Union
 
 import random
 from typing import (
@@ -48,33 +51,27 @@ from typing import (
     Set,
 )
 
-from cardinal_pythonlib.maths_py import round_sf
+from cardinal_pythonlib.reprfunc import auto_repr
 
-from crate_anon.linkage.helpers import (
-    get_metaphone,
-    get_postcode_sector,
-    standardize_postcode,
-)
 from crate_anon.linkage.comparison import (
     bayes_compare,
     Comparison,
     DirectComparison,
 )
-from crate_anon.linkage.constants import (
-    MINUS_INFINITY,
-    VALID_GENDERS,
-)
+from crate_anon.linkage.constants import MINUS_INFINITY
 from crate_anon.linkage.helpers import (
-    ISO_DATE_REGEX,
+    getdictval,
     mutate_name,
     mutate_postcode,
-    POSTCODE_REGEX,
-    standardize_name,
 )
 from crate_anon.linkage.identifiers import (
-    FuzzyIdFreq,
-    IdFreq,
-    TemporalIdentifier,
+    DateOfBirth,
+    Forename,
+    Gender,
+    Identifier,
+    Postcode,
+    Surname,
+    TemporalIDHolder,
 )
 from crate_anon.linkage.matchconfig import MatchConfig
 
@@ -97,234 +94,139 @@ class DuplicateLocalIDError(Exception):
 
 class BasePerson:
     """
-    Simple information about a person, without frequency calculations.
-    Does not need a config.
+    Core functions for person classes.
     """
 
-    ATTR_OTHER_INFO = "other_info"  # anything the user may want to attach
+    class PersonKey:
+        LOCAL_ID = "local_id"
+        # ... person ID within the relevant database (proband/sample)
+        FIRST_NAME = "first_name"
+        MIDDLE_NAMES = "middle_names"
+        SURNAME = "surname"
+        DOB = "dob"
+        GENDER = "gender"
+        POSTCODES = "postcodes"
+        OTHER_INFO = "other_info"
+        # ... anything the user may want to attach
 
-    _COMMON_ATTRS = [
-        "local_id",  # person ID within the relevant database (proband/sample)
-    ]
-    PLAINTEXT_ATTRS = (
-        _COMMON_ATTRS
-        + [
-            "first_name",
-            "middle_names",
-            "surname",
-            "dob",
-            "gender",
-            "postcodes",
-        ]
-        + [ATTR_OTHER_INFO]
-    )
+    # [getattr(PersonKey, x) for x in vars(PersonKey)...] does not work here as
+    # PersonKey is not in scope within a list comprehension here; see
+    # check_inner_class_attr_access.py and
+    # https://stackoverflow.com/questions/13905741. But this works:
+    ALL_PERSON_KEYS = []  # type: List[str]
+    for tmp in vars(PersonKey):
+        if not tmp.startswith("_"):
+            ALL_PERSON_KEYS.append(getattr(PersonKey, tmp))
+    del tmp
 
     # For reading CSV:
-    INT_ATTRS = []
-    FLOAT_ATTRS = []
-    SEMICOLON_DELIMIT = [
-        "middle_names",
-        "postcodes",
-    ]
-    TEMPORAL_IDENTIFIERS = [
-        "postcodes",
-    ]
+    SEMICOLON_DELIMIT = [PersonKey.MIDDLE_NAMES, PersonKey.POSTCODES]
+    TEMPORAL_IDENTIFIERS = [PersonKey.POSTCODES]
     PLAINTEXT_CSV_FORMAT_HELP = (
-        f"Header row present. Columns: {PLAINTEXT_ATTRS}. "
-        f"The fields {sorted(TEMPORAL_IDENTIFIERS)} "
-        f"are in TemporalIdentifier format. {TemporalIdentifier.FORMAT_HELP} "
-        f"Semicolon-separated values are allowed within "
-        f"{sorted(SEMICOLON_DELIMIT)}."
+        f"CSV format. Header row present. Columns: {ALL_PERSON_KEYS}. "
+        f"The fields {TEMPORAL_IDENTIFIERS} are in TemporalIdentifier format. "
+        f"{Identifier.TEMPORAL_ID_FORMAT_HELP} "
+        f"Semicolon-separated values are allowed within {SEMICOLON_DELIMIT}."
+    )
+    HASHED_JSONLINES_FORMAT_HELP = (
+        "File created by CRATE in JSON Lines (.jsonl) format. (Note the 'jq' "
+        "tool for inspecting these.)"
     )
 
-    # -------------------------------------------------------------------------
-    # Creation
-    # -------------------------------------------------------------------------
-
-    def __init__(
-        self,
-        local_id: str = "",
-        other_info: str = "",
-        first_name: str = "",
-        middle_names: List[str] = None,
-        surname: str = "",
-        dob: str = "",
-        gender: str = "",
-        postcodes: List[TemporalIdentifier] = None,
-        standardize: bool = True,
-    ) -> None:
-        """
-        Args:
-            local_id:
-                Identifier within this person's local database (e.g. proband ID
-                or sample ID). Typically a research pseudonym, not itself
-                identifying.
-            other_info:
-                String containing any other attributes the user may wish to
-                remember (e.g. in JSON). Only used for validation research
-                (e.g. ensuring linkage is not biased by ethnicity).
-
-            first_name:
-                (PLAINTEXT.) The person's first name.
-            middle_names:
-                (PLAINTEXT.) Any middle names.
-            surname:
-                (PLAINTEXT.) The person's surname.
-            dob:
-                (PLAINTEXT.) The date of birth in ISO-8061 "YYYY-MM-DD" string
-                format.
-            gender:
-                (PLAINTEXT.) The gender: 'M', 'F', 'X', or ''.
-            postcodes:
-                (PLAINTEXT.) Any UK postcodes for this person.
-
-            standardize:
-                Standardize names/postcodes etc. internally. Only turn this
-                off for demonstration purposes.
-        """
-        self.local_id = str(local_id) if local_id is not None else None
-        assert self.local_id, f"Bad local_id: {local_id!r}"
-
-        self.other_info = other_info or ""
-        assert isinstance(
-            self.other_info, str
-        ), f"Bad other_info: {self.other_info!r}"
-
-        self.first_name = first_name or ""
-        assert isinstance(
-            self.first_name, str
-        ), f"Bad first_name: {self.first_name!r}"
-
-        self.middle_names = middle_names or []
-        assert isinstance(
-            self.middle_names, list
-        ), f"Bad middle_names: {self.middle_names!r}"
-        for m in self.middle_names:
-            assert isinstance(m, str), f"Bad middle name: {m!r}"
-
-        self.surname = surname or ""
-        assert isinstance(self.surname, str), f"Bad surname: {self.surname!r}"
-
-        self.dob = dob or ""
-        assert isinstance(self.dob, str), f"Bad date: {dob!r}"
-        if self.dob:
-            assert ISO_DATE_REGEX.match(dob), f"Bad date: {dob!r}"
-
-        self.gender = gender or ""
-        assert self.gender in VALID_GENDERS, f"Bad gender: {gender!r}"
-
-        self.postcodes = postcodes or []
-        for p in self.postcodes:
-            assert isinstance(p, TemporalIdentifier) and POSTCODE_REGEX.match(
-                p.identifier
-            ), f"Bad postcode: {p.identifier!r}"
-
-        if standardize:
-            self.first_name = standardize_name(self.first_name)
-            self.middle_names = [
-                standardize_name(x) for x in self.middle_names if x
-            ]
-            self.surname = standardize_name(self.surname)
-            for p in self.postcodes:
-                if p.identifier:
-                    p.identifier = standardize_postcode(p.identifier)
+    def __repr__(self):
+        return auto_repr(self)
 
     @classmethod
-    def _from_csv(
-        cls,
-        cfg: MatchConfig,
-        rowdict: Dict[str, str],
-        attrs: List[str],
-        is_hashed: bool,
-    ) -> "Person":
+    def plaintext_csv_columns(cls) -> List[str]:
         """
-        Returns a :class:`Person` object from a CSV row.
-
-        Args:
-            cfg: a configuration object
-            rowdict: a CSV row, read via :class:`csv.DictReader`.
+        CSV column names -- including user-specified "other" information.
         """
-        kwargs = {}  # type: Dict[str, Any]
-        for attr in attrs:
-            v = rowdict[attr]
-            if attr in cls.SEMICOLON_DELIMIT:
-                v = [x.strip() for x in v.split(";") if x]
-                if attr in cls.INT_ATTRS:
-                    v = [int(x) for x in v]
-                elif attr in cls.FLOAT_ATTRS:
-                    v = [float(x) for x in v]
-                elif attr in cls.TEMPORAL_IDENTIFIERS:
-                    v = [TemporalIdentifier.from_str(x) for x in v]
-            elif attr in cls.INT_ATTRS:
-                v = int(v) if v else None
-            elif attr in cls.FLOAT_ATTRS:
-                v = float(v) if v else None
-            elif attr in cls.TEMPORAL_IDENTIFIERS:
-                v = TemporalIdentifier.from_str(v) if v else None
-            kwargs[attr] = v
-        return Person(cfg=cfg, is_hashed=is_hashed, **kwargs)
+        return cls.ALL_PERSON_KEYS
 
-    @classmethod
-    def from_plaintext_csv(
-        cls, cfg: MatchConfig, rowdict: Dict[str, str]
-    ) -> "Person":
-        """
-        Returns a :class:`Person` object from a plaintext CSV row.
-
-        Args:
-            cfg: a configuration object
-            rowdict: a CSV row, read via :class:`csv.DictReader`.
-        """
-        return cls._from_csv(
-            cfg, rowdict, cls.PLAINTEXT_ATTRS, is_hashed=False
-        )
-
-    # -------------------------------------------------------------------------
-    # Representation, reading, writing
-    # -------------------------------------------------------------------------
-
-    def __str__(self) -> str:
-        names = " ".join(
-            [self.first_name] + self.middle_names + [self.surname]
-        )
-        postcodes = " - ".join(str(x) for x in self.postcodes)
-        details = ", ".join(
-            [
-                f"local_id={self.local_id}",
-                f"name={names}",
-                f"gender={self.gender}",
-                f"dob={self.dob}",
-                f"postcode={postcodes}",
-                f"other={self.other_info!r}",
-            ]
-        )
-        return f"Person with {details}"
-
-    def _csv_dict(self, attrs: List[str]) -> Dict[str, Any]:
+    def plaintext_csv_dict(self) -> Dict[str, str]:
         """
         Returns a dictionary suitable for :class:`csv.DictWriter`.
+        This is for writing identifiable content.
         """
-        d = {}  # type: Dict[str, Any]
-        for k in attrs:
+        d = {}  # type: Dict[str, str]
+        for k in self.ALL_PERSON_KEYS:
             a = getattr(self, k)
             if k in self.SEMICOLON_DELIMIT:
                 v = ";".join(str(x) for x in a)
             else:
-                v = a
+                v = str(a)
             d[k] = v
         return d
 
-    def plaintext_csv_columns(self) -> List[str]:
-        """
-        CSV column names -- including user-specified "other" information.
-        """
-        return self.PLAINTEXT_ATTRS
 
-    def plaintext_csv_dict(self) -> Dict[str, Any]:
-        """
-        Returns a dictionary suitable for :class:`csv.DictWriter`.
-        """
-        return self._csv_dict(self.PLAINTEXT_ATTRS)
+# =============================================================================
+# String representation of several person classes
+# =============================================================================
+
+
+def identifiable_person_str(self: Union["SimplePerson", "Person"]) -> str:
+    """
+    A bit ugly; this function refers to attributes of two separate classes.
+    However:
+
+    - There's no point making BasePerson an abstract base class, because there
+      are no abstract methods.
+    - I don't think Person can sensible inherit from the dataclass SimplePerson
+      because its attributes are of different types.
+
+    So, while ugly, this works and the type checker is happy.
+    """
+    names = " ".join(
+        [str(self.first_name)]
+        + [str(m) for m in self.middle_names]
+        + [str(self.surname)]
+    )
+    postcodes = " - ".join(str(x) for x in self.postcodes)
+    details = ", ".join(
+        [
+            f"local_id={self.local_id}",
+            f"name={names}",
+            f"gender={self.gender}",
+            f"dob={self.dob}",
+            f"postcode={postcodes}",
+            f"other={self.other_info!r}",
+        ]
+    )
+    classname = type(self).__name__
+    return f"{classname} with {details}"
+
+
+# =============================================================================
+# SimplePerson
+# =============================================================================
+
+
+@dataclass
+class SimplePerson(BasePerson):
+    """
+    Simple information about a person, without frequency calculations.
+    Does not need a config.
+    Used for two purposes:
+
+    1. Demonstration purposes.
+    2. Validation data fetching -- between database and CSV output.
+
+    Will write CSV, but not read.
+    Will not standardize its content.
+    """
+
+    # Names must match ALL_PERSON_KEYS:
+    local_id: str = ""
+    other_info: str = ""
+    first_name: str = ""
+    middle_names: List[str] = field(default_factory=lambda: [])
+    surname: str = ""
+    dob: str = ""
+    gender: str = ""
+    postcodes: List[TemporalIDHolder] = field(default_factory=lambda: [])
+
+    def __str__(self) -> str:
+        return identifiable_person_str(self)
 
 
 # =============================================================================
@@ -334,131 +236,38 @@ class BasePerson:
 
 class Person(BasePerson):
     """
-    Represents a person. The information may be incomplete or slightly wrong.
+    A proper representation of a person that can do hashing and comparisons.
+    The information may be incomplete or slightly wrong.
     Includes frequency information and requires a config.
     """
 
-    HASHED_ATTRS = (
-        BasePerson._COMMON_ATTRS
-        + [
-            # not: "is_hashed",
-            "hashed_first_name",
-            "first_name_frequency",
-            "hashed_first_name_metaphone",
-            "first_name_metaphone_frequency",
-            "hashed_middle_names",
-            "middle_name_frequencies",
-            "hashed_middle_name_metaphones",
-            "middle_name_metaphone_frequencies",
-            "hashed_surname",
-            "surname_frequency",
-            "hashed_surname_metaphone",
-            "surname_metaphone_frequency",
-            "hashed_dob",
-            "hashed_gender",
-            "gender_frequency",
-            "hashed_postcode_units",
-            "postcode_unit_frequencies",
-            "hashed_postcode_sectors",
-            "postcode_sector_frequencies",
-        ]
-        + [BasePerson.ATTR_OTHER_INFO]
-    )
-    HASHED_FREQUENCY_ATTRS = [
-        "first_name_frequency",
-        "first_name_metaphone_frequency",
-        "middle_name_frequencies",
-        "middle_name_metaphone_frequencies",
-        "surname_frequency",
-        "surname_metaphone_frequency",
-        "gender_frequency",
-        "postcode_unit_frequencies",
-        "postcode_sector_frequencies",
-    ]
-    FLOAT_ATTRS = BasePerson.FLOAT_ATTRS + [
-        "first_name_frequency",
-        "first_name_metaphone_frequency",
-        "middle_name_frequencies",
-        "middle_name_metaphone_frequencies",
-        "surname_frequency",
-        "surname_metaphone_frequency",
-        "gender_frequency",
-        "postcode_unit_frequencies",
-        "postcode_sector_frequencies",
-    ]
-    SEMICOLON_DELIMIT = BasePerson.SEMICOLON_DELIMIT + [
-        # hashed
-        "hashed_middle_names",
-        "middle_name_frequencies",
-        "hashed_middle_name_metaphones",
-        "middle_name_metaphone_frequencies",
-        "hashed_postcode_units",
-        "postcode_unit_frequencies",
-        "hashed_postcode_sectors",
-        "postcode_sector_frequencies",
-    ]
-    TEMPORAL_IDENTIFIERS = BasePerson.TEMPORAL_IDENTIFIERS + [
-        "hashed_postcode_units",
-        "hashed_postcode_sectors",
-    ]
-    HASHED_CSV_FORMAT_HELP = (
-        f"Header row present. Columns: {HASHED_ATTRS}. "
-        f"The fields "
-        f"{sorted(list(set(TEMPORAL_IDENTIFIERS).intersection(HASHED_ATTRS)))} "  # noqa
-        f"are in TemporalIdentifier format. {TemporalIdentifier.FORMAT_HELP} "
-        f"Semicolon-separated values are allowed within "
-        f"{sorted(list(set(SEMICOLON_DELIMIT).intersection(HASHED_ATTRS)))}."
-    )
+    @staticmethod
+    def plain_or_hashed_txt(plaintext: bool) -> str:
+        """
+        Used for error messages.
+        """
+        return "plaintext" if plaintext else "hashed"
 
     # -------------------------------------------------------------------------
-    # __init__, __repr__, copy
+    # Creation
     # -------------------------------------------------------------------------
 
     def __init__(
         self,
         cfg: MatchConfig,
-        # State
-        is_hashed: bool = False,
-        # Reference codes
         local_id: str = "",
         other_info: str = "",
-        # Plaintext
-        first_name: str = "",
-        middle_names: List[str] = None,
-        surname: str = "",
-        dob: str = "",
-        gender: str = "",
-        postcodes: List[TemporalIdentifier] = None,
-        # Hashed
-        hashed_first_name: str = "",
-        first_name_frequency: float = None,
-        hashed_first_name_metaphone: str = "",
-        first_name_metaphone_frequency: float = None,
-        hashed_middle_names: List[str] = None,
-        middle_name_frequencies: List[float] = None,
-        hashed_middle_name_metaphones: List[str] = None,
-        middle_name_metaphone_frequencies: List[float] = None,
-        hashed_surname: str = "",
-        surname_frequency: float = None,
-        hashed_surname_metaphone: str = "",
-        surname_metaphone_frequency: float = None,
-        hashed_dob: str = "",
-        hashed_gender: str = "",
-        gender_frequency: float = None,
-        hashed_postcode_units: List[TemporalIdentifier] = None,
-        postcode_unit_frequencies: List[float] = None,
-        hashed_postcode_sectors: List[TemporalIdentifier] = None,
-        postcode_sector_frequencies: List[float] = None,
+        first_name: Union[str, Forename] = "",
+        middle_names: List[Union[str, Forename]] = None,
+        surname: Union[str, Surname] = "",
+        dob: Union[str, DateOfBirth] = "",
+        gender: Union[str, Gender] = "",
+        postcodes: List[Union[Postcode, TemporalIDHolder]] = None,
     ) -> None:
         """
         Args:
             cfg:
-                Configuration object. It is more efficient to use this while
-                creating a Person object; it saves lookup time later.
-            is_hashed:
-                Is this a hashed representation? If so, matching works
-                differently.
-
+                The config object.
             local_id:
                 Identifier within this person's local database (e.g. proband ID
                 or sample ID). Typically a research pseudonym, not itself
@@ -469,337 +278,275 @@ class Person(BasePerson):
                 (e.g. ensuring linkage is not biased by ethnicity).
 
             first_name:
-                The person's first name.
+                The person's first name, as a string or a Forename object.
             middle_names:
-                Any middle names.
+                Any middle names, as strings or Forename objects.
             surname:
-                The person's surname.
+                The person's surname, as a string or a Surname object.
             dob:
-                The date of birth in ISO-8061 "YYYY-MM-DD" string format.
+                The date of birth, in ISO-8061 "YYYY-MM-DD" string format,
+                or as a DateOfBirth object.
             gender:
                 The gender: 'M', 'F', 'X', or ''.
             postcodes:
                 Any UK postcodes for this person.
-
-            hashed_first_name:
-                The first name, irreversibly hashed.
-            first_name_frequency:
-                The first name's frequency in the population, range [0, 1].
-            hashed_first_name_metaphone:
-                The first name's metaphone ("sounds like"), irreversibly
-                hashed.
-            first_name_metaphone_frequency:
-                The first name metaphone's frequency in the population.
-
-            hashed_middle_names:
-                Any middle names, hashed.
-            middle_name_frequencies:
-                Corresponding middle name frequencies.
-            hashed_middle_name_metaphones:
-                Any middle names' metaphones, hashed.
-            middle_name_metaphone_frequencies:
-                Any middle name metaphone frequencies.
-
-            hashed_surname:
-                The surname, hashed.
-            surname_frequency:
-                The surname's frequency.
-            hashed_surname_metaphone:
-                The surname's metaphone.
-            surname_metaphone_frequency:
-                The surname metaphone's frequency.
-
-            hashed_dob:
-                The DOB, hashed.
-
-            hashed_gender:
-                The gender, hashed.
-            gender_frequency:
-                The gender's frequency.
-
-            hashed_postcode_units:
-                Full postcodes (postcode units), hashed.
-            postcode_unit_frequencies:
-                Frequencies of each postcode unit.
-            hashed_postcode_sectors:
-                Postcode sectors, hashed.
-            postcode_sector_frequencies:
-                Frequencies of each postcode sector.
         """
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Superclass init
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        super().__init__(
-            local_id=local_id,
-            other_info=other_info,
-            first_name=first_name,
+        self._is_plaintext = None  # type: Optional[bool]
+
+        def chk_plaintext(new_identifier: Identifier) -> None:
+            new_plaintext = new_identifier.is_plaintext
+            if self._is_plaintext is None:
+                self._is_plaintext = new_plaintext
+                return
+            if new_plaintext != self._is_plaintext:
+                new = self.plain_or_hashed_txt(new_plaintext)
+                old = self.plain_or_hashed_txt(self._is_plaintext)
+                raise ValueError(
+                    f"Trying to add {new} information to a Person containing "
+                    f"only {old} information; new data was "
+                    f"{new_identifier!r}; current is {self!r}"
+                )
+
+        assert isinstance(cfg, MatchConfig)
+        self.cfg = cfg
+
+        # local_id
+        self.local_id = str(local_id) if local_id is not None else None
+        if not self.local_id:
+            raise ValueError(f"Bad local_id: {local_id!r}")
+
+        # other_info
+        self.other_info = other_info or ""
+        if not isinstance(self.other_info, str):
+            raise ValueError(f"Bad other_info: {self.other_info!r}")
+
+        # gender
+        gender = "" if gender is None else gender
+        # DO NOT DO: gender = gender or ""
+        # ... because bool(Gender(cfg, gender="")) == False.
+        if isinstance(gender, Gender):
+            self.gender = gender
+        else:
+            self.gender = Gender(cfg=cfg, gender=gender)
+        chk_plaintext(self.gender)
+
+        # first_name
+        first_name = "" if first_name is None else first_name
+        if isinstance(first_name, Forename):
+            self.first_name = first_name
+        else:
+            self.first_name = Forename(
+                cfg=cfg, name=first_name, gender=self.gender.gender
+            )
+        chk_plaintext(self.first_name)
+
+        # middle_names
+        middle_names = middle_names or []
+        if not isinstance(middle_names, list):
+            raise ValueError(f"Bad middle_names: {middle_names!r}")
+        self.middle_names = []  # type: List[Forename]
+        for m in middle_names:
+            if not m:
+                continue
+            if not isinstance(m, Forename):
+                m = Forename(cfg=cfg, name=m, gender=self.gender.gender)
+            chk_plaintext(m)
+            self.middle_names.append(m)
+
+        # surname
+        surname = "" if surname is None else surname
+        if isinstance(surname, Surname):
+            self.surname = surname
+        else:
+            self.surname = Surname(
+                cfg=cfg, name=surname, gender=self.gender.gender
+            )
+        chk_plaintext(self.surname)
+
+        # dob (NB mandatory for real work but we still want to be able to
+        # create Person objects without a DOB inc. for testing)
+        dob = "" if dob is None else dob
+        if isinstance(dob, DateOfBirth):
+            self.dob = dob
+        else:
+            self.dob = DateOfBirth(cfg=cfg, dob=dob)
+        chk_plaintext(self.dob)
+
+        # postcodes
+        postcodes = postcodes or []
+        if not isinstance(postcodes, list):
+            raise ValueError(f"Bad postcodes: {postcodes!r}")
+        self.postcodes = []  # type: List[Postcode]
+        for p in postcodes:
+            if not p:
+                continue
+            if isinstance(p, Postcode):
+                pass
+            elif isinstance(p, TemporalIDHolder):
+                p = Postcode(
+                    cfg=cfg,
+                    postcode=p.identifier,
+                    start_date=p.start_date,
+                    end_date=p.end_date,
+                )
+            else:
+                raise ValueError(f"Bad data structure for postcode: {p!r}")
+            chk_plaintext(p)
+            self.postcodes.append(p)
+
+    @classmethod
+    def from_plaintext_csv(
+        cls, cfg: MatchConfig, rowdict: Dict[str, str]
+    ) -> "Person":
+        """
+        Returns a :class:`Person` object from a CSV row.
+
+        Args:
+            cfg: a configuration object
+            rowdict: a CSV row, read via :class:`csv.DictReader`.
+        """
+        kwargs = {}  # type: Dict[str, Any]
+        for attr in cls.ALL_PERSON_KEYS:
+            v = rowdict[attr]
+            if attr in cls.SEMICOLON_DELIMIT:
+                v = [x.strip() for x in v.split(";") if x]
+                if attr in cls.TEMPORAL_IDENTIFIERS:
+                    v = [
+                        TemporalIDHolder.from_plaintext_str(cfg, x) for x in v
+                    ]
+            else:
+                # All TEMPORAL_IDENTIFIERS are in SEMICOLON_DELIMIT
+                assert attr not in cls.TEMPORAL_IDENTIFIERS
+            kwargs[attr] = v
+        return Person(cfg=cfg, **kwargs)
+
+    @classmethod
+    def from_hashed_dict(cls, cfg: MatchConfig, d: Dict[str, Any]) -> "Person":
+        """
+        Restore a hashed version from a dictionary (which has been read from
+        JSON).
+        """
+        pk = cls.PersonKey
+        middle_names = []  # type: List[Forename]
+        for mnd in getdictval(d, pk.MIDDLE_NAMES, list):
+            if not isinstance(mnd, dict):
+                raise ValueError(
+                    f"{pk.MIDDLE_NAMES} contains something that is not a "
+                    f"dict: {mnd!r}"
+                )
+            middle_names.append(Forename.from_hashed_dict(cfg, mnd))
+        postcodes = []  # type: List[Postcode]
+        for pd in getdictval(d, pk.POSTCODES, list):
+            if not isinstance(pd, dict):
+                raise ValueError(
+                    f"{pk.POSTCODES} contains something that is not a "
+                    f"dict: {pd!r}"
+                )
+            postcodes.append(Postcode.from_hashed_dict(cfg, pd))
+        return Person(
+            cfg=cfg,
+            local_id=getdictval(d, pk.LOCAL_ID, str),
+            other_info=getdictval(d, pk.OTHER_INFO, str, mandatory=False),
+            first_name=Forename.from_hashed_dict(
+                cfg, getdictval(d, pk.FIRST_NAME, dict)
+            ),
             middle_names=middle_names,
-            surname=surname,
-            dob=dob,
-            gender=gender,
+            surname=Surname.from_hashed_dict(
+                cfg, getdictval(d, pk.SURNAME, dict)
+            ),
+            dob=DateOfBirth.from_hashed_dict(cfg, getdictval(d, pk.DOB, dict)),
+            gender=Gender.from_hashed_dict(
+                cfg, getdictval(d, pk.GENDER, dict)
+            ),
             postcodes=postcodes,
         )
 
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Store info
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.cfg = cfg
-        self.is_hashed = is_hashed
+    @classmethod
+    def from_json_str(cls, cfg: MatchConfig, s: str) -> "Person":
+        """
+        Restore a hashed version from a string representing JSON.
+        """
+        d = json.loads(s)
+        return cls.from_hashed_dict(cfg, d)
 
-        self.hashed_first_name = hashed_first_name
-        self.first_name_frequency = first_name_frequency
-        self.hashed_first_name_metaphone = hashed_first_name_metaphone
-        self.first_name_metaphone_frequency = first_name_metaphone_frequency
+    # -------------------------------------------------------------------------
+    # Representation
+    # -------------------------------------------------------------------------
 
-        self.hashed_middle_names = hashed_middle_names or []
-        n_hashed_middle_names = len(self.hashed_middle_names)
-        self.middle_name_frequencies = (
-            middle_name_frequencies or [None] * n_hashed_middle_names
+    def is_plaintext(self) -> bool:
+        """
+        Is this a plaintext (identifiable) Person?
+        """
+        return self._is_plaintext
+
+    def is_hashed(self) -> bool:
+        """
+        Is this a hashed (de-identified) Person?
+        """
+        return not self.is_plaintext()
+
+    def __str__(self) -> str:
+        if self.is_hashed():
+            return f"Hashed person with local_id={self.local_id!r}"
+        return identifiable_person_str(self)
+
+    def hashed_dict(
+        self,
+        include_frequencies: bool = True,
+        include_other_info: bool = False,
+    ) -> Dict[str, Any]:
+        """
+        For JSON.
+
+        Args:
+            include_frequencies:
+                Include frequency information. If you don't, this makes the
+                resulting file suitable for use as a sample, but not as a
+                proband file.
+            include_other_info:
+                include the (potentially identifying) ``other_info`` data?
+                Usually ``False``; may be ``True`` for validation.
+        """
+        pk = self.PersonKey
+        d = {
+            pk.LOCAL_ID: self.local_id,
+            pk.FIRST_NAME: self.first_name.hashed_dict(include_frequencies),
+            pk.MIDDLE_NAMES: [
+                m.hashed_dict(include_frequencies) for m in self.middle_names
+            ],
+            pk.SURNAME: self.surname.hashed_dict(include_frequencies),
+            pk.DOB: self.dob.hashed_dict(include_frequencies),
+            pk.GENDER: self.gender.hashed_dict(include_frequencies),
+            pk.POSTCODES: [
+                p.hashed_dict(include_frequencies) for p in self.postcodes
+            ],
+        }
+        if include_other_info:
+            d[pk.OTHER_INFO] = self.other_info
+        return d
+
+    def hashed_json_str(
+        self,
+        include_frequencies: bool = True,
+        include_other_info: bool = False,
+    ) -> str:
+        """
+        A string version of the hashed person in JSON format.
+
+        Args:
+            include_frequencies:
+                Include frequency information. If you don't, this makes the
+                resulting file suitable for use as a sample, but not as a
+                proband file.
+            include_other_info:
+                include the (potentially identifying) ``other_info`` data?
+                Usually ``False``; may be ``True`` for validation.
+        """
+        d = self.hashed_dict(
+            include_frequencies=include_frequencies,
+            include_other_info=include_other_info,
         )
-        self.hashed_middle_name_metaphones = (
-            hashed_middle_name_metaphones or []
-        )
-        self.middle_name_metaphone_frequencies = (
-            middle_name_metaphone_frequencies or [None] * n_hashed_middle_names
-        )
-
-        self.hashed_surname = hashed_surname
-        self.surname_frequency = surname_frequency
-        self.hashed_surname_metaphone = hashed_surname_metaphone
-        self.surname_metaphone_frequency = surname_metaphone_frequency
-
-        self.hashed_dob = hashed_dob
-
-        self.hashed_gender = hashed_gender
-        self.gender_frequency = gender_frequency
-
-        self.hashed_postcode_units = hashed_postcode_units or []
-        n_hashed_postcodes = len(self.hashed_postcode_units)
-        self.postcode_unit_frequencies = (
-            postcode_unit_frequencies or [None] * n_hashed_postcodes
-        )
-        self.hashed_postcode_sectors = hashed_postcode_sectors or []
-        self.postcode_sector_frequencies = (
-            postcode_sector_frequencies or [None] * n_hashed_postcodes
-        )
-
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Validation
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        if is_hashed:
-            # hashed
-            assert (
-                not self.first_name
-                and not self.middle_names
-                and not self.surname
-                and not self.dob
-                and not self.postcodes
-            ), "Don't supply plaintext information for a hashed Person"
-            # Note that frequency information can be absent for candidates from
-            # the sample; we check it's present for probands via
-            # assert_valid_as_proband().
-            if self.hashed_first_name:
-                assert self.hashed_first_name_metaphone
-            if self.hashed_middle_names:
-                assert (
-                    len(self.middle_name_frequencies) == n_hashed_middle_names
-                    and len(self.hashed_middle_name_metaphones)  # noqa
-                    == n_hashed_middle_names
-                    and len(self.middle_name_metaphone_frequencies)  # noqa
-                    == n_hashed_middle_names  # noqa
-                )
-            if self.hashed_surname:
-                assert self.hashed_surname_metaphone
-            if self.hashed_postcode_units:
-                assert (
-                    len(self.postcode_unit_frequencies) == n_hashed_postcodes
-                    and len(self.hashed_postcode_sectors)  # noqa
-                    == n_hashed_postcodes
-                    and len(self.postcode_sector_frequencies)
-                    == n_hashed_postcodes
-                )
-        else:
-            # Plain text
-            assert (
-                not self.hashed_first_name
-                and self.first_name_frequency is None
-                and not self.hashed_first_name_metaphone
-                and self.first_name_metaphone_frequency is None
-                and not self.hashed_middle_names
-                and not self.middle_name_frequencies
-                and not self.hashed_middle_name_metaphones
-                and not self.middle_name_metaphone_frequencies
-                and not self.hashed_surname
-                and self.surname_frequency is None
-                and not self.hashed_surname_metaphone
-                and self.surname_metaphone_frequency is None
-                and not self.hashed_dob
-                and not self.hashed_gender
-                and self.gender_frequency is None
-                and not self.hashed_postcode_units
-                and not self.postcode_unit_frequencies
-                and not self.hashed_postcode_sectors
-                and not self.postcode_sector_frequencies
-            ), "Don't supply hashed information for a plaintext Person"
-
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Precalculate things, for speed
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-        self.middle_names_info = []  # type: List[FuzzyIdFreq]
-        self.postcodes_info = []  # type: List[FuzzyIdFreq]
-
-        if is_hashed:  # more efficient as an outer test
-            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            # Hashed info
-            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-            self.first_name_info = FuzzyIdFreq(
-                comparison_name="first_name",
-                exact_identifier=self.hashed_first_name,
-                exact_identifier_frequency=self.first_name_frequency,
-                fuzzy_identifier=self.hashed_first_name_metaphone,
-                fuzzy_identifier_frequency=self.first_name_metaphone_frequency,
-                p_error=cfg.p_minor_forename_error,
-            )
-            for i in range(len(self.hashed_middle_names)):
-                n = i + 1
-                self.middle_names_info.append(
-                    FuzzyIdFreq(
-                        comparison_name=f"middle_name_{n}",
-                        exact_identifier=self.hashed_middle_names[i],
-                        exact_identifier_frequency=self.middle_name_frequencies[  # noqa: E501
-                            i
-                        ],
-                        fuzzy_identifier=self.hashed_middle_name_metaphones[i],
-                        fuzzy_identifier_frequency=self.middle_name_metaphone_frequencies[  # noqa: E501
-                            i
-                        ],  # noqa
-                        p_error=cfg.p_minor_forename_error,
-                    )
-                )
-            self.surname_info = FuzzyIdFreq(
-                comparison_name="surname",
-                exact_identifier=self.hashed_surname,
-                exact_identifier_frequency=self.surname_frequency,
-                fuzzy_identifier=self.hashed_surname_metaphone,
-                fuzzy_identifier_frequency=self.surname_metaphone_frequency,
-                p_error=cfg.p_minor_surname_error,
-            )
-            self.dob_info = IdFreq(
-                comparison_name="DOB",
-                identifier=self.hashed_dob,
-                frequency=cfg.p_two_people_share_dob,
-                p_error=0,  # no typos allowed in dates of birth
-            )
-            self.gender_info = IdFreq(
-                comparison_name="gender",
-                identifier=self.hashed_gender,
-                frequency=self.gender_frequency,
-                p_error=cfg.p_gender_error,
-            )
-            for i in range(len(self.hashed_postcode_units)):
-                unit_hashed = self.hashed_postcode_units[i].identifier
-                sector_hashed = self.hashed_postcode_sectors[i].identifier
-                unit_freq = self.postcode_unit_frequencies[i]
-                sector_freq = self.postcode_sector_frequencies[i]
-                self.postcodes_info.append(
-                    FuzzyIdFreq(
-                        comparison_name="postcode",
-                        exact_identifier=unit_hashed,
-                        exact_identifier_frequency=unit_freq,
-                        fuzzy_identifier=sector_hashed,
-                        fuzzy_identifier_frequency=sector_freq,
-                        p_error=cfg.p_minor_postcode_error,
-                    )
-                )
-
-        else:
-            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-            # Plaintext info
-            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-            first_name_metaphone = get_metaphone(self.first_name)
-            self.first_name_info = FuzzyIdFreq(
-                comparison_name="first_name",
-                exact_identifier=self.first_name,
-                exact_identifier_frequency=cfg.forename_freq(
-                    self.first_name, self.gender, prestandardized=True
-                ),
-                fuzzy_identifier=first_name_metaphone,
-                fuzzy_identifier_frequency=cfg.forename_metaphone_freq(
-                    first_name_metaphone, self.gender
-                ),
-                p_error=cfg.p_minor_forename_error,
-            )
-            for i in range(len(self.middle_names)):
-                n = i + 1
-                middle_name = self.middle_names[i]
-                middle_name_metaphone = get_metaphone(middle_name)
-                middle_name_freq = cfg.forename_freq(
-                    middle_name, self.gender, prestandardized=True
-                )
-                middle_name_metaphone_freq = cfg.forename_metaphone_freq(
-                    middle_name_metaphone, self.gender
-                )
-                self.middle_names_info.append(
-                    FuzzyIdFreq(
-                        comparison_name=f"middle_name_{n}",
-                        exact_identifier=middle_name,
-                        exact_identifier_frequency=middle_name_freq,
-                        fuzzy_identifier=middle_name_metaphone,
-                        fuzzy_identifier_frequency=middle_name_metaphone_freq,
-                        p_error=cfg.p_minor_forename_error,
-                    )
-                )
-            surname_metaphone = get_metaphone(self.surname)
-            self.surname_info = FuzzyIdFreq(
-                comparison_name="surname",
-                exact_identifier=self.surname,
-                exact_identifier_frequency=cfg.surname_freq(
-                    self.surname, prestandardized=True
-                ),
-                fuzzy_identifier=surname_metaphone,
-                fuzzy_identifier_frequency=cfg.surname_metaphone_freq(
-                    surname_metaphone
-                ),
-                p_error=cfg.p_minor_surname_error,
-            )
-            self.dob_info = IdFreq(
-                comparison_name="DOB",
-                identifier=self.dob,
-                frequency=cfg.p_two_people_share_dob,
-                p_error=0,  # no typos allowed in dates of birth
-            )
-            self.gender_info = IdFreq(
-                comparison_name="gender",
-                identifier=self.gender,
-                frequency=cfg.gender_freq(self.gender),
-                p_error=cfg.p_gender_error,
-            )
-            for i in range(len(self.postcodes)):
-                unit = self.postcodes[i].identifier
-                sector = get_postcode_sector(unit)
-                unit_freq, sector_freq = cfg.postcode_unit_sector_freq(
-                    unit, prestandardized=True
-                )
-                try:
-                    self.postcodes_info.append(
-                        FuzzyIdFreq(
-                            comparison_name="postcode",
-                            exact_identifier=unit,
-                            exact_identifier_frequency=unit_freq,
-                            fuzzy_identifier=sector,
-                            fuzzy_identifier_frequency=sector_freq,
-                            p_error=cfg.p_minor_postcode_error,
-                        )
-                    )
-                except AssertionError:
-                    log.critical(
-                        f"Frequency error with postcode unit {unit}, "
-                        f"postcode sector {sector}"
-                    )
-                    raise
+        return json.dumps(d)
 
     def copy(self) -> "Person":
         """
@@ -810,214 +557,48 @@ class Person(BasePerson):
         - So we do it quasi-manually. It's just lists that we want to treat as
           special.
         """
-        # return copy.deepcopy(self)
-        copy_attrs = (
-            self.HASHED_ATTRS if self.is_hashed else self.PLAINTEXT_ATTRS
-        )
+        copy_attrs = self.ALL_PERSON_KEYS
         kwargs = {}  # type: Dict[str, Any]
         for attrname in copy_attrs:
             value = getattr(self, attrname)
             if isinstance(value, list):  # special handling here
                 value = [copy.copy(x) for x in value]
             kwargs[attrname] = value
-        return Person(cfg=self.cfg, is_hashed=self.is_hashed, **kwargs)
-
-    @classmethod
-    def from_hashed_csv(
-        cls, cfg: MatchConfig, rowdict: Dict[str, str]
-    ) -> "Person":
-        """
-        Returns a :class:`Person` object from a hashed CSV row.
-
-        Args:
-            cfg: a configuration object
-            rowdict: a CSV row, read via :class:`csv.DictReader`.
-        """
-        return cls._from_csv(cfg, rowdict, cls.HASHED_ATTRS, is_hashed=True)
-
-    # -------------------------------------------------------------------------
-    # String and CSV formats
-    # -------------------------------------------------------------------------
-
-    def __repr__(self) -> str:
-        """
-        Returns a string representation that can be used for reconstruction.
-        """
-        attrs = ["is_hashed"]
-        attrs += self.HASHED_ATTRS if self.is_hashed else self.PLAINTEXT_ATTRS
-        attrlist = [f"{a}={getattr(self, a)!r}" for a in attrs]
-        return f"Person({', '.join(attrlist)})"
-
-    def __str__(self) -> str:
-        if self.is_hashed:
-            return f"Hashed person with local_id={self.local_id!r}"
-        else:
-            return super().__str__()
-
-    def hashed_csv_dict(
-        self,
-        without_frequencies: bool = False,
-        include_other_info: bool = False,
-    ) -> Dict[str, Any]:
-        """
-        Returns a dictionary suitable for :class:`csv.DictWriter`.
-
-        Args:
-            without_frequencies:
-                Do not include frequency information. This makes the resulting
-                file suitable for use as a sample, but not as a proband file.
-            include_other_info:
-                include the (potentially identifying) ``other_info`` data?
-                Usually ``False``; may be ``True`` for validation.
-        """
-        assert self.is_hashed
-        attrs = self.HASHED_ATTRS.copy()
-        if without_frequencies:
-            for a in self.HASHED_FREQUENCY_ATTRS:
-                attrs.remove(a)
-        if not include_other_info:
-            attrs.remove(BasePerson.ATTR_OTHER_INFO)
-        return self._csv_dict(attrs)
+        return Person(cfg=self.cfg, **kwargs)
+        # todo: *** check this works
 
     # -------------------------------------------------------------------------
     # Created hashed version
     # -------------------------------------------------------------------------
 
-    def hashed(self) -> "Person":
+    def hashed(
+        self,
+        include_frequencies: bool = True,
+        include_other_info: bool = False,
+    ) -> "Person":
         """
         Returns a :class:`Person` object but with all the elements hashed (if
         they are not blank).
+
+        Note that you do NOT need to do this just to write a hashed version to
+        disk. This function is primarily for comparing an entire sample of
+        hashed people to plaintext people, or vice versa; we hash the plaintext
+        version first.
+
+        Args:
+            include_frequencies:
+                Include frequency information. If you don't, this makes the
+                resulting file suitable for use as a sample, but not as a
+                proband file.
+            include_other_info:
+                include the (potentially identifying) ``other_info`` data?
+                Usually ``False``; may be ``True`` for validation.
         """
-        # Speeded up 2020-04-24, based on profiling.
-
-        # Functions that we may call several times:
-        cfg = self.cfg
-        _hash = cfg.hasher.hash  # main hashing function
-        _forename_freq = cfg.forename_freq
-        _forename_metaphone_freq = cfg.forename_metaphone_freq
-        _pcode_frequencies = cfg.postcode_unit_sector_freq
-        _sf = cfg.rounding_sf
-
-        def fr(f: float) -> float:
-            """
-            Rounds frequencies to a certain number of significant figures.
-            (Don't supply exact floating-point numbers for frequencies; may be
-            more identifying. Don't use decimal places; we have to deal with
-            some small numbers.)
-            """
-            return round_sf(f, _sf)
-
-        first_name = self.first_name
-        gender = self.gender
-        if first_name:
-            hashed_first_name = _hash(first_name)
-            first_name_frequency = fr(
-                _forename_freq(first_name, gender, prestandardized=True)
-            )
-            fn_metaphone = get_metaphone(first_name)
-            hashed_first_name_metaphone = _hash(fn_metaphone)
-            first_name_metaphone_frequency = fr(
-                _forename_metaphone_freq(fn_metaphone, gender)
-            )
-        else:
-            hashed_first_name = ""
-            first_name_frequency = None
-            hashed_first_name_metaphone = ""
-            first_name_metaphone_frequency = None
-
-        middle_names = self.middle_names
-        hashed_middle_names = []
-        middle_name_frequencies = []
-        hashed_middle_name_metaphones = []
-        middle_name_metaphone_frequencies = []
-        for i, p in enumerate(middle_names):
-            if p:
-                mn_metaphone = get_metaphone(p)
-                hashed_middle_names.append(_hash(p))
-                middle_name_frequencies.append(
-                    fr(_forename_freq(p, gender, prestandardized=True))
-                )
-                hashed_middle_name_metaphones.append(_hash(mn_metaphone))
-                middle_name_metaphone_frequencies.append(
-                    fr(_forename_metaphone_freq(mn_metaphone, gender))
-                )
-
-        surname = self.surname
-        if surname:
-            hashed_surname = _hash(surname)
-            surname_frequency = fr(
-                cfg.surname_freq(surname, prestandardized=True)
-            )
-            sn_metaphone = get_metaphone(surname)
-            hashed_surname_metaphone = _hash(sn_metaphone)
-            surname_metaphone_frequency = fr(
-                cfg.surname_metaphone_freq(sn_metaphone)
-            )
-        else:
-            hashed_surname = ""
-            surname_frequency = None
-            hashed_surname_metaphone = ""
-            surname_metaphone_frequency = None
-
-        hashed_dob = _hash(self.dob) if self.dob else ""
-
-        if gender:
-            hashed_gender = _hash(gender)
-            gender_frequency = fr(cfg.gender_freq(gender))
-        else:
-            hashed_gender = ""
-            gender_frequency = None
-
-        postcodes = self.postcodes
-        hashed_postcode_units = []
-        postcode_unit_frequencies = []
-        hashed_postcode_sectors = []
-        postcode_sector_frequencies = []
-        for p in postcodes:
-            if p:
-                unit = p.identifier
-                sector = get_postcode_sector(unit)
-                unit_freq, sector_freq = _pcode_frequencies(
-                    unit, prestandardized=True
-                )
-                hashed_postcode_units.append(
-                    p.with_new_identifier(_hash(unit))
-                )
-                postcode_unit_frequencies.append(fr(unit_freq))
-                hashed_postcode_sectors.append(
-                    p.with_new_identifier(_hash(sector))
-                )
-                postcode_sector_frequencies.append(fr(sector_freq))
-
-        return Person(
-            cfg=cfg,
-            is_hashed=True,
-            local_id=(
-                cfg.local_id_hasher.hash(self.local_id)
-                if cfg.local_id_hasher
-                else self.local_id
-            ),
-            other_info=self.other_info,
-            hashed_first_name=hashed_first_name,
-            first_name_frequency=first_name_frequency,
-            hashed_first_name_metaphone=hashed_first_name_metaphone,
-            first_name_metaphone_frequency=first_name_metaphone_frequency,
-            hashed_middle_names=hashed_middle_names,
-            middle_name_frequencies=middle_name_frequencies,
-            hashed_middle_name_metaphones=hashed_middle_name_metaphones,
-            middle_name_metaphone_frequencies=middle_name_metaphone_frequencies,  # noqa
-            hashed_surname=hashed_surname,
-            surname_frequency=surname_frequency,
-            hashed_surname_metaphone=hashed_surname_metaphone,
-            surname_metaphone_frequency=surname_metaphone_frequency,
-            hashed_dob=hashed_dob,
-            hashed_gender=hashed_gender,
-            gender_frequency=gender_frequency,
-            hashed_postcode_units=hashed_postcode_units,
-            postcode_unit_frequencies=postcode_unit_frequencies,
-            hashed_postcode_sectors=hashed_postcode_sectors,
-            postcode_sector_frequencies=postcode_sector_frequencies,
+        d = self.hashed_dict(
+            include_frequencies=include_frequencies,
+            include_other_info=include_other_info,
         )
+        return self.from_hashed_dict(self.cfg, d)
 
     # -------------------------------------------------------------------------
     # Main comparison function
@@ -1052,13 +633,13 @@ class Person(BasePerson):
         person.
 
         Args:
-            proband: another :class:`Person` object
+            proband: another :class:`Person` object.
 
         **Note**
 
-        Where these functions are symmetric, they refer to ``self`` and
-        ``other``. In the few cases that are directional, they refer to
-        ``cand_*`` (candidate, ``self``) and ``proband``.
+        In general, frequency information is associated with the proband,
+        not the candidate, so use ``proband.thing.comparison(self.thing)``.
+
         """
         # The shortlisting process will already have ensured a DOB match.
         # Therefore, while we need to process DOB to get the probabilities
@@ -1073,7 +654,7 @@ class Person(BasePerson):
         for c in self._comparisons_postcodes(proband):  # doesn't eliminate
             yield c
 
-    def _comparison_dob(self, other: "Person") -> Optional[Comparison]:
+    def _comparison_dob(self, proband: "Person") -> Optional[Comparison]:
         """
         Returns a comparison for date of birth.
 
@@ -1081,27 +662,25 @@ class Person(BasePerson):
         approximately 4 times less common than other birthdays, in principle it
         does merit special treatment, but we ignore that).
         """
-        return self.dob_info.comparison(other.dob_info)
+        return proband.dob.comparison(self.dob)
 
     def _comparison_gender(self, proband: "Person") -> Optional[Comparison]:
         """
         Returns a comparison for gender (sex).
-
-        We use values "F" (female), "M" (male), "X" (other), "" (unknown).
         """
-        return self.gender_info.comparison(proband.gender_info)
+        return proband.gender.comparison(self.gender)
 
-    def _comparison_surname(self, other: "Person") -> Optional[Comparison]:
+    def _comparison_surname(self, proband: "Person") -> Optional[Comparison]:
         """
         Returns a comparison for surname.
         """
-        return self.surname_info.comparison(other.surname_info)
+        return proband.surname.comparison(self.surname)
 
-    def _comparison_firstname(self, other: "Person") -> Optional[Comparison]:
+    def _comparison_firstname(self, proband: "Person") -> Optional[Comparison]:
         """
         Returns a comparison for first name.
         """
-        return self.first_name_info.comparison(other.first_name_info)
+        return proband.first_name.comparison(self.first_name)
 
     def _comparisons_middle_names(
         self, proband: "Person"
@@ -1110,23 +689,21 @@ class Person(BasePerson):
         Generates comparisons for middle names.
         """
         cfg = self.cfg
-        n_candidate_middle_names = len(self.middle_names_info)
-        n_proband_middle_names = len(proband.middle_names_info)
+        n_candidate_middle_names = len(self.middle_names)
+        n_proband_middle_names = len(proband.middle_names)
         max_n_middle_names = max(
             n_candidate_middle_names, n_proband_middle_names
-        )  # noqa
+        )
         min_n_middle_names = min(
             n_candidate_middle_names, n_proband_middle_names
-        )  # noqa
+        )
 
         for i in range(max_n_middle_names):
             if i < min_n_middle_names:
                 # -------------------------------------------------------------
                 # Name present in both. Exact and partial matches
                 # -------------------------------------------------------------
-                yield self.middle_names_info[i].comparison(
-                    proband.middle_names_info[i]
-                )
+                yield proband.middle_names[i].comparison(self.middle_names[i])
             else:
                 # -------------------------------------------------------------
                 # Name present in one but not the other. Surplus name.
@@ -1145,37 +722,29 @@ class Person(BasePerson):
                 )
 
     def _comparisons_postcodes(
-        self, other: "Person"
+        self, proband: "Person"
     ) -> Generator[Comparison, None, None]:
         """
         Generates comparisons for postcodes.
         """
-        other_postcodes_info = other.postcodes_info
+        proband_postcodes = proband.postcodes
         # We prefer full matches to partial matches, and we don't allow the
         # same postcode to be used for both.
         indexes_of_full_matches = set()  # type: Set[int]
-        try:
-            for i, self_pi in enumerate(self.postcodes_info):
-                for other_pi in other_postcodes_info:
-                    if self_pi.fully_matches(other_pi):
-                        yield self_pi.comparison(other_pi)
-                        indexes_of_full_matches.add(i)
-                        break
-            # Try for any partial matches for postcodes not yet fully matched:
-            for i, self_pi in enumerate(self.postcodes_info):
-                if i in indexes_of_full_matches:
-                    continue
-                for other_pi in other_postcodes_info:
-                    if self_pi.partially_matches(other_pi):
-                        yield self_pi.comparison(other_pi)
-                        break
-        except AssertionError:
-            log.critical(
-                f"Postcode comparison error: "
-                f"self.postcodes_info = {self.postcodes_info}; "
-                f"other.postcodes_info = {other.postcodes_info}"
-            )
-            raise
+        for i, self_p in enumerate(self.postcodes):
+            for proband_p in proband_postcodes:
+                if self_p.fully_matches(proband_p):
+                    yield proband_p.comparison(self_p)
+                    indexes_of_full_matches.add(i)
+                    break
+        # Try for any partial matches for postcodes not yet fully matched:
+        for i, self_p in enumerate(self.postcodes):
+            if i in indexes_of_full_matches:
+                continue
+            for proband_p in proband_postcodes:
+                if self_p.partially_matches(proband_p):
+                    yield proband_p.comparison(self_p)
+                    break
 
     # -------------------------------------------------------------------------
     # Info functions
@@ -1185,56 +754,74 @@ class Person(BasePerson):
         """
         Does this person have a first name?
         """
-        if self.is_hashed:
-            return bool(self.hashed_first_name)
-        else:
-            return bool(self.first_name)
+        return bool(self.first_name)
 
     def n_middle_names(self) -> int:
         """
         How many names does this person have?
         """
-        if self.is_hashed:
-            return len(self.hashed_middle_names)
-        else:
-            return len(self.middle_names)
+        return len(self.middle_names)
 
     def has_dob(self) -> bool:
         """
         Do we have a DOB?
         """
-        return bool(self.hashed_dob) if self.is_hashed else bool(self.dob)
+        return bool(self.dob)
 
     def n_postcodes(self) -> int:
         """
         How many postcodes does this person have?
         """
-        if self.is_hashed:
-            return len(self.hashed_postcode_units)
-        else:
-            return len(self.postcodes)
+        return len(self.postcodes)
 
-    def assert_valid_as_proband(self) -> None:
+    def ensure_valid_as_proband(
+        self, debug_allow_no_dob: bool = False
+    ) -> None:
         """
         Ensures this person has sufficient information to act as a proband, or
-        raises :exc:`AssertionError`.
+        raises :exc:`ValueError`.
         """
-        assert self.has_dob(), "Proband: missing DOB"
-        self.first_name_info.assert_has_freq_info_if_id_present()
-        for mni in self.middle_names_info:
-            mni.assert_has_freq_info_if_id_present()
-        self.surname_info.assert_has_freq_info_if_id_present()
-        self.dob_info.assert_has_freq_info_if_id_present()
-        self.gender_info.assert_has_freq_info_if_id_present()
-        for pi in self.postcodes_info:
-            pi.assert_has_freq_info_if_id_present()
+        if not self.has_dob() and not debug_allow_no_dob:
+            raise ValueError("Proband: missing DOB")
+        self.first_name.ensure_has_freq_info_if_id_present()
+        for m in self.middle_names:
+            m.ensure_has_freq_info_if_id_present()
+        self.surname.ensure_has_freq_info_if_id_present()
+        self.dob.ensure_has_freq_info_if_id_present()
+        self.gender.ensure_has_freq_info_if_id_present()
+        for p in self.postcodes:
+            p.ensure_has_freq_info_if_id_present()
 
-    def assert_valid_as_candidate(self) -> None:
+    def ensure_valid_as_candidate(
+        self, debug_allow_no_dob: bool = False
+    ) -> None:
         """
         Ensures this person has sufficient information to act as a candidate,
         or raises :exc:`AssertionError`.
         """
-        assert self.has_dob(), "Candidate: missing DOB"
+        if not self.has_dob() and not debug_allow_no_dob:
+            raise ValueError("Candidate: missing DOB")
+
+    # -------------------------------------------------------------------------
+    # Debugging functions to check this object
+    # -------------------------------------------------------------------------
+
+    def debug_gen_identifiers(self) -> Generator[Identifier, None, None]:
+        """
+        Yield all identifiers.
+        """
+        if self.first_name:
+            yield self.first_name
+        for m in self.middle_names:
+            yield m
+        if self.surname:
+            yield self.surname
+        if self.dob:
+            yield self.dob
+        if self.gender:
+            yield self.gender
+        for p in self.postcodes:
+            yield p
 
     # -------------------------------------------------------------------------
     # Debugging functions to mutate this object
@@ -1244,7 +831,6 @@ class Person(BasePerson):
         """
         Randomly delete one of: first name, a middle name, or a postcode.
         """
-        assert not self.is_hashed
         has_first_name = self.has_first_name()
         n_middle_names = self.n_middle_names()
         n_postcodes = self.n_postcodes()
@@ -1256,7 +842,7 @@ class Person(BasePerson):
 
         if has_first_name:
             if which == 0:
-                self.first_name = ""
+                self.first_name = Forename(self.cfg)
                 return
             which -= 1
 
@@ -1271,7 +857,6 @@ class Person(BasePerson):
         """
         Randomly mutate one of: first name, a middle name, or a postcode.
         """
-        assert not self.is_hashed
         has_first_name = self.has_first_name()
         n_middle_names = self.n_middle_names()
         n_postcodes = self.n_postcodes()
@@ -1281,19 +866,30 @@ class Person(BasePerson):
             return
         which = random.randrange(n_possibilities)
 
+        cfg = self.cfg
         if has_first_name:
             if which == 0:
-                self.first_name = mutate_name(self.first_name)
+                oldname = self.first_name
+                assert oldname.is_plaintext
+                self.first_name = Forename(
+                    cfg, name=mutate_name(oldname.name), gender=oldname.gender
+                )
                 return
             which -= 1
 
         if which < n_middle_names:
-            self.middle_names[which] = mutate_name(self.middle_names[which])
+            oldname = self.middle_names[which]
+            assert oldname.is_plaintext
+            self.middle_names[which] = Forename(
+                cfg, name=mutate_name(oldname.name), gender=oldname.gender
+            )
             return
         which -= n_middle_names
 
-        self.postcodes[which].identifier = mutate_postcode(
-            self.postcodes[which].identifier, self.cfg
+        oldpostcode = self.postcodes[which]
+        assert oldpostcode.is_plaintext
+        self.postcodes[which] = Postcode(
+            cfg, postcode=mutate_postcode(oldpostcode.postcode_unit, cfg)
         )
 
 
@@ -1378,7 +974,7 @@ class People(object):
         self,
         cfg: MatchConfig,
         person: Person = None,
-        people: List[Person] = None,
+        people: Iterable[Person] = None,
     ) -> None:
         """
         Creates a blank collection.
@@ -1389,10 +985,9 @@ class People(object):
         self.cfg = cfg
         self.people = []  # type: List[Person]
         self.dob_to_people = defaultdict(list)  # type: Dict[str, List[Person]]
-        self.hashed_dob_to_people = defaultdict(
-            list
-        )  # type: Dict[str, List[Person]]  # noqa
+        # ... may be plaintext or hashed DOB strings depending on our people
         self._known_ids = set()  # type: Set[str]
+        self._people_are_plaintext = None  # type: Optional[bool]
 
         if person:
             self.add_person(person)
@@ -1406,20 +1001,32 @@ class People(object):
         Raises :exc:`crate_anon.linkage.fuzzy_id_match.DuplicateLocalIDError`
         if the person has a ``local_id`` value already in our collection.
         """
+        if self.people:
+            # Not the first person.
+            if person.is_plaintext() != self._people_are_plaintext:
+                new = Person.plain_or_hashed_txt(person.is_plaintext())
+                old = Person.plain_or_hashed_txt(self._people_are_plaintext)
+                raise ValueError(
+                    f"Trying to add a {new} person but all existing people "
+                    f"are {old}"
+                )
+        else:
+            # First person
+            self._people_are_plaintext = person.is_plaintext()
+
         if person.local_id in self._known_ids:
             raise DuplicateLocalIDError(
                 f"Person with duplicate local ID {person.local_id!r}"
             )
         self._known_ids.add(person.local_id)
+
         self.people.append(person)
+
         dob = person.dob
         if dob:
-            self.dob_to_people[dob].append(person)
-        hashed_dob = person.hashed_dob
-        if hashed_dob:
-            self.hashed_dob_to_people[hashed_dob].append(person)
+            self.dob_to_people[dob.dob].append(person)
 
-    def add_people(self, people: List[Person]) -> None:
+    def add_people(self, people: Iterable[Person]) -> None:
         """
         Adds multiple people.
 
@@ -1436,24 +1043,24 @@ class People(object):
         """
         return len(self.people)
 
-    def assert_valid_as_probands(self) -> None:
+    def ensure_valid_as_probands(self) -> None:
         """
         Ensures all people have sufficient information to act as a proband,
-        or raises :exc:`AssertionError`.
+        or raises :exc:`ValueError`.
         """
         log.info("Validating probands...")
         for p in self.people:
-            p.assert_valid_as_proband()
+            p.ensure_valid_as_proband()
         log.info("... OK")
 
-    def assert_valid_as_sample(self) -> None:
+    def ensure_valid_as_sample(self) -> None:
         """
         Ensures all people have sufficient information to act as a candidate
-        from a sample, or raises :exc:`AssertionError`.
+        from a sample, or raises :exc:`ValueError`.
         """
         log.info("Validating sample...")
         for p in self.people:
-            p.assert_valid_as_candidate()
+            p.ensure_valid_as_candidate()
         log.info("... OK")
 
     def gen_shortlist(self, proband: Person) -> Generator[Person, None, None]:
@@ -1463,18 +1070,11 @@ class People(object):
         Yields:
             proband: a :class:`Person`
         """
-        if proband.is_hashed:
-            hashed_dob = proband.hashed_dob
-            if not hashed_dob:
-                return
-            for person in self.hashed_dob_to_people[proband.hashed_dob]:
-                yield person
-        else:
-            dob = proband.dob
-            if not dob:
-                return
-            for person in self.dob_to_people[dob]:
-                yield person
+        dob = proband.dob
+        if not dob:
+            return
+        for person in self.dob_to_people[dob.dob]:
+            yield person
 
     def get_unique_match_detailed(self, proband: Person) -> MatchResult:
         """

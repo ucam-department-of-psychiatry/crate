@@ -10,7 +10,11 @@ VALIDATOR=${THIS_DIR}/validate_fuzzy_linkage.py
 WORKDIR=${HOME}/.local/share/crate
 SAMPLE=${WORKDIR}/crate_fuzzy_sample.csv
 SAMPLE_10K=${WORKDIR}/crate_fuzzy_sample_10k.csv
-SAMPLE_HASHED=${WORKDIR}/crate_fuzzy_hashed.csv
+SAMPLE_HASHED=${WORKDIR}/crate_fuzzy_hashed.jsonl
+
+COMPARISON_P2P=${WORKDIR}/crate_fuzzy_output_p2p.csv
+COMPARISON_H2P=${WORKDIR}/crate_fuzzy_output_h2p.csv
+COMPARISON_H2H=${WORKDIR}/crate_fuzzy_output_h2h.csv
 
 # -----------------------------------------------------------------------------
 # Command tests: demo/debugging
@@ -39,19 +43,21 @@ SAMPLE_HASHED=${WORKDIR}/crate_fuzzy_hashed.csv
 "${FUZZY}" hash \
     --allow_default_hash_key \
     --input "${SAMPLE}" \
-    --output "${WORKDIR}/crate_fuzzy_hashed_no_freq.csv" \
+    --output "${WORKDIR}/crate_fuzzy_hashed_no_freq.jsonl" \
     --without_frequencies
 "${FUZZY}" hash \
     --allow_default_hash_key \
     --input "${SAMPLE}" \
-    --output "${WORKDIR}/crate_fuzzy_hashed_with_other_info.csv" \
+    --output "${WORKDIR}/crate_fuzzy_hashed_with_other_info.jsonl" \
     --include_other_info
 
 # This should produce matches for most (comparing a sample to itself):
+# Using "--n_workers 1" preserves order.
 "${FUZZY}" compare_plaintext \
     --probands "${SAMPLE}" \
     --sample "${SAMPLE}" \
-    --output "${WORKDIR}/crate_fuzzy_output_p2p.csv"
+    --output "${COMPARISON_P2P}" \
+    --n_workers 1
 
 # This should produce matches for none, since they are internally duplicated!
 # It's here primarily as a speed test.
@@ -69,13 +75,20 @@ SAMPLE_HASHED=${WORKDIR}/crate_fuzzy_hashed.csv
 "${FUZZY}" compare_hashed_to_hashed \
     --probands "${SAMPLE_HASHED}" \
     --sample "${SAMPLE_HASHED}" \
-    --output "${WORKDIR}/crate_fuzzy_output_h2h.csv"
+    --output "${COMPARISON_H2H}" \
+    --n_workers 1
+# cmp "${COMPARISON_H2H}" "${COMPARISON_P2P}" || { echo "H2H/P2P mismatch"; exit 1; }
+# The comparisons fail at e.g. the fourth decimal place of the log odds,
+# because fuzzy frequencies are slightly blurred...
 
 "${FUZZY}" compare_hashed_to_plaintext \
     --allow_default_hash_key \
     --probands "${SAMPLE_HASHED}" \
     --sample "${SAMPLE}" \
-    --output "${WORKDIR}/crate_fuzzy_output_h2p.csv"
+    --output "${COMPARISON_H2P}" \
+    --n_workers 1
+# cmp "${COMPARISON_H2P}" "${COMPARISON_P2P}" || { echo "H2P/P2P mismatch"; exit 1; }
+
 
 # -----------------------------------------------------------------------------
 # Validation

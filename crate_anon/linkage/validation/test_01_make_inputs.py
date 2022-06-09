@@ -34,7 +34,7 @@ import os
 
 from cardinal_pythonlib.file_io import writeline_nl
 from crate_anon.linkage.fuzzy_id_match import (
-    BasePerson,
+    SimplePerson,
     FuzzyDefaults,
     get_demo_people,
 )
@@ -43,8 +43,8 @@ from crate_anon.linkage.fuzzy_id_match import (
 def mk_large(filename: str, n: int) -> None:
     print(f"- Creating {filename}")
     people = get_demo_people()
-    with open(filename, "wt") as f:
-        writer = csv.DictWriter(f, fieldnames=BasePerson.PLAINTEXT_ATTRS)
+    with open(filename, "wt") as f_:
+        writer = csv.DictWriter(f_, fieldnames=SimplePerson.ALL_PERSON_KEYS)
         writer.writeheader()
         i = 1
         done = False
@@ -58,6 +58,12 @@ def mk_large(filename: str, n: int) -> None:
                     break
 
 
+def write_file(filename: str, contents: str) -> None:
+    print(f"- Creating {filename}")
+    with open(filename, "wt") as f:
+        writeline_nl(f, contents.strip())
+
+
 SAMPLE_BASE = os.path.join(
     FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_sample.csv"
 )
@@ -68,36 +74,31 @@ mk_large(
     os.path.join(FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_sample_1k.csv"),
     1000,
 )
-
 mk_large(
     os.path.join(
         FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_sample_10k.csv"
     ),
     10000,
 )
-
-FIG3_SAMPLE = os.path.join(
-    FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_demo_fig3_sample.csv"
-)
-print(f"- Creating {FIG3_SAMPLE}")
-fig3_sample_lines = """
+write_file(
+    filename=os.path.join(
+        FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_demo_fig3_sample.csv"
+    ),
+    contents="""
 local_id,first_name,middle_names,surname,dob,gender,postcodes,other_info
 1,Alice,,Jones,1950-01-01,F,,
 2,Alice,,Smith,1994-07-29,F,,
 3,Alice,,Smith,1950-01-01,F,,
 4,Alys,,Smith,1950-01-01,F,,
 5,Alys,,Smythe,1950-01-01,F,,
-""".strip()
-with open(FIG3_SAMPLE, "wt") as f:
-    writeline_nl(f, fig3_sample_lines)
-
-FIG3_PROBANDS = os.path.join(
-    FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_demo_fig3_probands.csv"
+    """,
 )
-print(f"- Creating {FIG3_PROBANDS}")
-fig3_proband_lines = """
+write_file(
+    filename=os.path.join(
+        FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_demo_fig3_probands.csv"
+    ),
+    contents="""
 local_id,first_name,middle_names,surname,dob,gender,postcodes,other_info
 3,Alice,,Smith,1950-01-01,F,,
-""".strip()
-with open(FIG3_SAMPLE, "wt") as f:
-    writeline_nl(f, fig3_sample_lines)
+    """,
+)

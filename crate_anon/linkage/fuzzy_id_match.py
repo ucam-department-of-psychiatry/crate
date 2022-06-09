@@ -43,7 +43,7 @@ import logging
 from multiprocessing import Pool
 import sys
 import time
-from typing import Any, List, Tuple, TYPE_CHECKING
+from typing import Any, Generator, List, Tuple, TYPE_CHECKING
 
 from cardinal_pythonlib.argparse_func import (
     RawDescriptionArgumentDefaultsHelpFormatter,
@@ -54,6 +54,7 @@ from cardinal_pythonlib.hash import HashMethods
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.probability import probability_from_log_odds
 from cardinal_pythonlib.profile import do_cprofile
+import jsonlines
 
 from crate_anon.common.constants import EXIT_FAILURE, EXIT_SUCCESS
 from crate_anon.linkage.helpers import (
@@ -63,7 +64,7 @@ from crate_anon.linkage.helpers import (
     get_postcode_sector,
     standardize_postcode,
 )
-from crate_anon.linkage.identifiers import TemporalIdentifier
+from crate_anon.linkage.identifiers import TemporalIDHolder
 from crate_anon.linkage.constants import (
     DAYS_PER_YEAR,
     FuzzyDefaults,
@@ -72,7 +73,7 @@ from crate_anon.linkage.constants import (
 )
 from crate_anon.linkage.matchconfig import MatchConfig
 from crate_anon.linkage.person import (
-    BasePerson,
+    SimplePerson,
     DuplicateLocalIDError,
     MatchResult,
     People,
@@ -169,40 +170,9 @@ class ComparisonOutputColnames:
     COMPARISON_EXTRA_COLNAMES = [BEST_CANDIDATE_LOCAL_ID]
 
 
-def compare_probands_to_sample(
-    cfg: MatchConfig,
-    probands: People,
-    sample: People,
-    output_csv: str,
-    report_every: int = 100,
-    extra_validation_output: bool = False,
-    n_workers: int = FuzzyDefaults.N_PROCESSES,
-    max_chunksize: int = FuzzyDefaults.MAX_CHUNKSIZE,
-    min_probands_for_parallel: int = FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
-) -> None:
-    r"""
-    Compares each proband to the sample. Writes to an output file.
+_ = """
 
-    Args:
-        cfg:
-            the master :class:`MatchConfig` object.
-        probands:
-            :class:`People`
-        sample:
-            :class:`People`
-        output_csv:
-            output CSV filename
-        report_every:
-            report progress every n probands
-        extra_validation_output:
-            Add extra columns to the output for validation purposes?
-        n_workers:
-            Number of parallel processes to use.
-        max_chunksize:
-            Maximum chunksize for parallel processing.
-        min_probands_for_parallel:
-            Minimum number of probands for which we will bother to use parallel
-            processing.
+compare_probands_to_sample:
 
     Profiling with 10,000 probands and the exact same people in the sample, on
     Wombat:
@@ -252,7 +222,46 @@ def compare_probands_to_sample(
 
         # to profile, add: --profile --n_workers 1
 
-    """  # noqa
+"""  # noqa
+
+
+def compare_probands_to_sample(
+    cfg: MatchConfig,
+    probands: People,
+    sample: People,
+    output_filename: str,
+    report_every: int = 100,
+    extra_validation_output: bool = False,
+    n_workers: int = FuzzyDefaults.N_PROCESSES,
+    max_chunksize: int = FuzzyDefaults.MAX_CHUNKSIZE,
+    min_probands_for_parallel: int = FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
+) -> None:
+    r"""
+    Compares each proband to the sample. Writes to an output file. If
+    ``n_workers == 1``, proband order is retained. If parallel processing is
+    used, order may not be preserved.
+
+    Args:
+        cfg:
+            The master :class:`MatchConfig` object.
+        probands:
+            :class:`People`
+        sample:
+            :class:`People`
+        output_filename:
+            Output CSV filename.
+        report_every:
+            Report progress every n probands.
+        extra_validation_output:
+            Add extra columns to the output for validation purposes?
+        n_workers:
+            Number of parallel processes to use.
+        max_chunksize:
+            Maximum chunksize for parallel processing.
+        min_probands_for_parallel:
+            Minimum number of probands for which we will bother to use parallel
+            processing.
+    """
 
     def process_result(r: MatchResult) -> None:
         # Uses "rownum" and "writer" from outer scope.
@@ -280,7 +289,7 @@ def compare_probands_to_sample(
 
     # Checks:
     n_probands = probands.size()
-    probands.assert_valid_as_probands()
+    probands.ensure_valid_as_probands()
     n_sample = sample.size()
     if n_sample > cfg.population_size:
         log.critical(
@@ -289,7 +298,7 @@ def compare_probands_to_sample(
             f"each candidate is guaranteed to be wrong. Aborting."
         )
         sys.exit(EXIT_FAILURE)
-    sample.assert_valid_as_sample()
+    sample.ensure_valid_as_sample()
     log.info(
         f"Comparing each proband to sample. There are "
         f"{n_probands} probands and {n_sample} in the sample."
@@ -302,7 +311,7 @@ def compare_probands_to_sample(
         colnames += ComparisonOutputColnames.COMPARISON_EXTRA_COLNAMES
     rownum = 0
     time_start = time.time()
-    with open(output_csv, "wt") as f:
+    with open(output_filename, "wt") as f:
         writer = csv.DictWriter(f, fieldnames=colnames)
         writer.writeheader()
 
@@ -359,11 +368,11 @@ def compare_probands_to_sample(
     log.info(f"... comparisons done. Time taken: {total_dur} s")
 
 
-def compare_probands_to_sample_from_csv(
+def compare_probands_to_sample_from_files(
     cfg: MatchConfig,
-    probands_csv: str,
-    sample_csv: str,
-    output_csv: str,
+    probands_filename: str,
+    sample_filename: str,
+    output_filename: str,
     probands_plaintext: bool = True,
     sample_plaintext: bool = True,
     sample_cache_filename: str = "",
@@ -378,23 +387,23 @@ def compare_probands_to_sample_from_csv(
 
     Args:
         cfg:
-            the master :class:`MatchConfig` object.
-        probands_csv:
-            CSV of people (probands); see :func:`read_people`.
-        sample_csv:
-            CSV of people (sample); see :func:`read_people`.
-        output_csv:
-            output CSV filename
+            The master :class:`MatchConfig` object.
+        probands_filename:
+            Filename of people (probands); see :func:`read_people`.
+        sample_filename:
+            Filename of people (sample); see :func:`read_people`.
+        output_filename:
+            Output filename.
         sample_cache_filename:
-            file in which to cache sample, for speed
+            File in which to cache sample, for speed.
         probands_plaintext:
-            is the probands file plaintext (not hashed)?
+            Is the probands file plaintext (not hashed)?
         sample_plaintext:
-            is the sample file plaintext (not hashed)?
+            Is the sample file plaintext (not hashed)?
         extra_validation_output:
             Add extra columns to the output for validation purposes?
         profile:
-            profile the code?
+            Profile the code?
         n_workers:
             Number of parallel processes to use.
         max_chunksize:
@@ -411,18 +420,20 @@ def compare_probands_to_sample_from_csv(
             try:
                 (sample,) = cache_load(sample_cache_filename)
             except FileNotFoundError:
-                sample = read_people(cfg, sample_csv)
+                sample = read_people(cfg, sample_filename)
                 cache_save(sample_cache_filename, [sample])
         else:
             # You may want to avoid a cache, for security.
             log.info("No sample cache in use.")
-            sample = read_people(cfg, sample_csv)
+            sample = read_people(cfg, sample_filename)
     else:
-        sample = read_people(cfg, sample_csv, plaintext=False)
+        sample = read_people(cfg, sample_filename, plaintext=False)
 
     # Probands
     log.info("Loading proband data")
-    probands = read_people(cfg, probands_csv, plaintext=probands_plaintext)
+    probands = read_people(
+        cfg, probands_filename, plaintext=probands_plaintext
+    )
 
     # Ensure they are comparable
     if sample_plaintext and not probands_plaintext:
@@ -445,7 +456,7 @@ def compare_probands_to_sample_from_csv(
         cfg=cfg,
         probands=probands,
         sample=sample,
-        output_csv=output_csv,
+        output_filename=output_filename,
         extra_validation_output=extra_validation_output,
         n_workers=n_workers,
         max_chunksize=max_chunksize,
@@ -458,68 +469,90 @@ def compare_probands_to_sample_from_csv(
 # =============================================================================
 
 
-def read_people_2(
-    cfg: MatchConfig,
-    csv_filename: str,
-    plaintext: bool = True,
-    alternate_groups: bool = False,
-) -> Tuple[People, People]:
+def gen_people_from_file(
+    cfg: MatchConfig, filename: str, plaintext: bool = True
+) -> Generator[Person, None, None]:
     """
-    Read a list of people from a CSV file. See :class:`People` for the
-    column details.
+    Read a list of people from a CSV/JSONLines file. See :class:`People` for
+    the column details.
 
     Args:
         cfg:
-            Configuration object
-        csv_filename:
-            filename to read
+            Configuration object.
+        filename:
+            Filename to read.
         plaintext:
-            read in plaintext, rather than hashed, format?
-        alternate_groups:
-            split consecutive people into "first group", "second group"?
-            (A debugging/validation feature.)
+            Read in plaintext (from CSV), rather than hashed (from JSON Lines),
+            format?
+
+    Yields:
+        Person objects
+    """
+    log.info(f"Reading file: {filename}")
+    assert filename
+    if plaintext:
+        # CSV file
+        with open(filename, "rt") as f:
+            reader = csv.DictReader(f)
+            for rowdict in reader:
+                yield Person.from_plaintext_csv(cfg, rowdict)
+    else:
+        # JSON Lines file
+        with jsonlines.open(filename) as reader:
+            for obj in reader:
+                yield Person.from_hashed_dict(cfg, obj)
+    log.info("... done")
+
+
+def read_people_alternate_groups(
+    cfg: MatchConfig,
+    filename: str,
+    plaintext: bool = True,
+) -> Tuple[People, People]:
+    """
+    Read people from a file, splitting consecutive people into "first group",
+    "second group". (A debugging/validation feature.)
 
     Returns:
-        tuple: ``first_group``, ``second_group`` (or ``None``)
-
+        tuple: ``first_group``, ``second_group``
     """
-    log.info(f"Reading file: {csv_filename}")
-    assert csv_filename
     a = People(cfg=cfg)
     b = People(cfg=cfg)
-    with open(csv_filename, "rt") as f:
-        reader = csv.DictReader(f)
-        for i, rowdict in enumerate(reader, start=2):
-            if plaintext:
-                person = Person.from_plaintext_csv(cfg, rowdict)
+    for i, person in enumerate(
+        gen_people_from_file(cfg, filename, plaintext), start=2
+    ):
+        try:
+            if i % 2 == 0:
+                a.add_person(person)
             else:
-                person = Person.from_hashed_csv(cfg, rowdict)
-            try:
-                if alternate_groups and i % 2 == 1:
-                    b.add_person(person)
-                else:
-                    a.add_person(person)
-            except DuplicateLocalIDError as exc:
-                msg = f"{exc} at line {i} of {csv_filename}"
-                log.error(msg)
-                raise DuplicateLocalIDError(msg)
-    log.info("... done")
+                b.add_person(person)
+        except DuplicateLocalIDError as exc:
+            msg = f"{exc} at line {i} of {filename}"
+            log.error(msg)
+            raise DuplicateLocalIDError(msg)
     return a, b
 
 
 def read_people(
-    cfg: MatchConfig, csv_filename: str, plaintext: bool = True
+    cfg: MatchConfig, filename: str, plaintext: bool = True
 ) -> People:
     """
-    Read a list of people from a CSV file.
+    Read a list of people from a CSV/JSONLines file.
 
     See :func:`read_people_2`, but this version doesn't offer the feature of
     splitting into two groups, and returns only a single :class:`People`
     object.
     """
-    people, _ = read_people_2(
-        cfg, csv_filename, plaintext=plaintext, alternate_groups=False
-    )
+    people = People(cfg=cfg)
+    for i, person in enumerate(
+        gen_people_from_file(cfg, filename, plaintext), start=2
+    ):
+        try:
+            people.add_person(person)
+        except DuplicateLocalIDError as exc:
+            msg = f"{exc} at line {i} of {filename}"
+            log.error(msg)
+            raise DuplicateLocalIDError(msg)
     return people
 
 
@@ -530,23 +563,23 @@ def read_people(
 
 def hash_identity_file(
     cfg: MatchConfig,
-    input_csv: str,
-    output_csv: str,
-    without_frequencies: bool = False,
+    input_filename: str,
+    output_filename: str,
+    include_frequencies: bool = True,
     include_other_info: bool = False,
 ) -> None:
     """
-    Hash a file of identifiable people to a hashed version.
+    Hash a file of identifiable people to a hashed version. Order is preserved.
 
     Args:
         cfg:
             The master :class:`MatchConfig` object.
-        input_csv:
+        input_filename:
             Input (plaintext) CSV filename to read.
-        output_csv:
+        output_filename:
             Iutput (hashed) CSV filename to write.
-        without_frequencies:
-            Do not include frequency information. This makes the resulting file
+        include_frequencies:
+            Include frequency information. Without this, the resulting file is
             suitable for use as a sample, but not as a proband file.
         include_other_info:
             Include the (potentially identifying) ``other_info`` data? Usually
@@ -554,16 +587,15 @@ def hash_identity_file(
     """
     if include_other_info:
         log.warning("include_other_info is set; use this for validation only")
-    with open(input_csv, "rt") as infile, open(output_csv, "wt") as outfile:
+    with open(input_filename, "rt") as infile, jsonlines.open(
+        output_filename, "w"
+    ) as writer:
         reader = csv.DictReader(infile)
-        writer = csv.DictWriter(outfile, fieldnames=Person.HASHED_ATTRS)
-        writer.writeheader()
         for inputrow in reader:
             plaintext_person = Person.from_plaintext_csv(cfg, inputrow)
-            hashed_person = plaintext_person.hashed()
-            writer.writerow(
-                hashed_person.hashed_csv_dict(
-                    without_frequencies=without_frequencies,
+            writer.write(
+                plaintext_person.hashed_dict(
+                    include_frequencies=include_frequencies,
                     include_other_info=include_other_info,
                 )
             )
@@ -574,15 +606,15 @@ def hash_identity_file(
 # =============================================================================
 
 
-def get_demo_people() -> List[Person]:
+def get_demo_people() -> List[SimplePerson]:
     """
     Some demonstration records. All data are fictional. The postcodes are real
     but are institutional, not residential, addresses in Cambridge.
     """
     d = coerce_to_pendulum_date
 
-    def p(postcode: str) -> TemporalIdentifier:
-        return TemporalIdentifier(
+    def p(postcode: str) -> TemporalIDHolder:
+        return TemporalIDHolder(
             identifier=postcode,
             start_date=d("2000-01-01"),
             end_date=d("2010-12-31"),
@@ -591,10 +623,8 @@ def get_demo_people() -> List[Person]:
     def mkother(original_id: str) -> str:
         return json.dumps({"original_id": original_id, "other_info": "?"})
 
-    standardize = False
-
     return [
-        BasePerson(
+        SimplePerson(
             local_id="r1",
             other_info=mkother("1"),
             first_name="Alice",
@@ -603,9 +633,8 @@ def get_demo_people() -> List[Person]:
             dob="1931-01-01",
             gender=GENDER_FEMALE,
             postcodes=[p("CB2 0QQ")],
-            standardize=standardize,
         ),
-        BasePerson(
+        SimplePerson(
             local_id="r2",
             other_info=mkother("2"),
             first_name="Bob",
@@ -614,9 +643,8 @@ def get_demo_people() -> List[Person]:
             dob="1932-01-01",
             gender=GENDER_MALE,
             postcodes=[p("CB2 3EB")],
-            standardize=standardize,
         ),
-        BasePerson(
+        SimplePerson(
             local_id="r3",
             other_info=mkother("3"),
             first_name="Celia",
@@ -625,9 +653,8 @@ def get_demo_people() -> List[Person]:
             dob="1933-01-01",
             gender=GENDER_FEMALE,
             postcodes=[p("CB2 1TP")],
-            standardize=standardize,
         ),
-        BasePerson(
+        SimplePerson(
             local_id="r4",
             other_info=mkother("4"),
             first_name="David",
@@ -636,9 +663,8 @@ def get_demo_people() -> List[Person]:
             dob="1934-01-01",
             gender=GENDER_MALE,
             postcodes=[p("CB2 8PH"), p("CB2 1TP")],
-            standardize=standardize,
         ),
-        BasePerson(
+        SimplePerson(
             local_id="r5",
             other_info=mkother("5"),
             first_name="Emily",
@@ -647,9 +673,8 @@ def get_demo_people() -> List[Person]:
             dob="1935-01-01",
             gender=GENDER_FEMALE,
             postcodes=[p("CB3 9DF")],
-            standardize=standardize,
         ),
-        BasePerson(
+        SimplePerson(
             local_id="r6",
             other_info=mkother("6"),
             first_name="Frank",
@@ -658,9 +683,8 @@ def get_demo_people() -> List[Person]:
             dob="1936-01-01",
             gender=GENDER_MALE,
             postcodes=[p("CB2 1TQ")],
-            standardize=standardize,
         ),
-        BasePerson(
+        SimplePerson(
             local_id="r7",
             other_info=mkother("7"),
             first_name="Greta",
@@ -669,9 +693,8 @@ def get_demo_people() -> List[Person]:
             dob="1937-01-01",
             gender=GENDER_FEMALE,
             postcodes=[p("CB2 1DQ")],
-            standardize=standardize,
         ),
-        BasePerson(
+        SimplePerson(
             local_id="r8",
             other_info=mkother("8"),
             first_name="Harry",
@@ -680,9 +703,8 @@ def get_demo_people() -> List[Person]:
             dob="1938-01-01",
             gender=GENDER_MALE,
             postcodes=[p("CB3 9ET")],
-            standardize=standardize,
         ),
-        BasePerson(
+        SimplePerson(
             local_id="r9",
             other_info=mkother("9"),
             first_name="Iris",
@@ -691,9 +713,8 @@ def get_demo_people() -> List[Person]:
             dob="1939-01-01",
             gender=GENDER_FEMALE,
             postcodes=[p("CB3 0DG")],
-            standardize=standardize,
         ),
-        BasePerson(
+        SimplePerson(
             local_id="r10",
             other_info=mkother("10"),
             first_name="James",
@@ -702,9 +723,8 @@ def get_demo_people() -> List[Person]:
             dob="1940-01-01",
             gender=GENDER_MALE,
             postcodes=[p("CB2 0SZ")],
-            standardize=standardize,
         ),
-        BasePerson(
+        SimplePerson(
             local_id="r11",
             other_info=mkother("11"),
             first_name="Alice",
@@ -713,7 +733,6 @@ def get_demo_people() -> List[Person]:
             dob="1931-01-01",
             gender=GENDER_FEMALE,
             postcodes=[p("CB2 0QQ")],
-            standardize=standardize,
         ),
     ]
 
@@ -725,7 +744,7 @@ def get_demo_csv() -> str:
     people = get_demo_people()
     assert len(people) >= 1
     output = StringIO()
-    writer = csv.DictWriter(output, fieldnames=BasePerson.PLAINTEXT_ATTRS)
+    writer = csv.DictWriter(output, fieldnames=SimplePerson.ALL_PERSON_KEYS)
     writer.writeheader()
     for person in people:
         writer.writerow(person.plaintext_csv_dict())
@@ -747,6 +766,7 @@ class Switches:
     INCLUDE_OTHER_INFO = "include_other_info"
     INPUT = "input"
     OUTPUT = "output"
+    N_WORKERS = "n_workers"
 
     KEY = "key"
     HASH_METHOD = "hash_method"
@@ -849,8 +869,10 @@ added:
         IF THEY DID NOT WIN. (This will be the same as the winner if there was
         a match.) String; blank for no match.
 
-The results file is NOT necessarily sorted as the same order as the input
-proband file (because not sorting improves parallel processing efficiency).
+If you use '--{Switches.N_WORKERS} 1`, proband order is reproduced in the
+output. Otherwise, the results file is NOT necessarily sorted as the same order
+as the input proband file (because not sorting improves parallel processing
+efficiency).
 """
 
 
@@ -1190,13 +1212,13 @@ def add_comparison_options(
     """
     Adds a subparser for comparisons.
     """
-    proband_csv_help = (
-        Person.HASHED_CSV_FORMAT_HELP
+    proband_fmt_help = (
+        Person.HASHED_JSONLINES_FORMAT_HELP
         if proband_is_hashed
         else Person.PLAINTEXT_CSV_FORMAT_HELP
     )
-    sample_csv_help = (
-        Person.HASHED_CSV_FORMAT_HELP
+    sample_fmt_help = (
+        Person.HASHED_JSONLINES_FORMAT_HELP
         if sample_is_hashed
         else Person.PLAINTEXT_CSV_FORMAT_HELP
     )
@@ -1205,13 +1227,13 @@ def add_comparison_options(
         "--probands",
         type=str,
         required=True,
-        help="CSV filename for probands data. " + proband_csv_help,
+        help="Input filename for probands data. " + proband_fmt_help,
     )
     comparison_group.add_argument(
         "--sample",
         type=str,
         required=True,
-        help="CSV filename for sample data. " + sample_csv_help,
+        help="Input filename for sample data. " + sample_fmt_help,
     )
     comparison_group.add_argument(
         "--sample_cache",
@@ -1233,7 +1255,7 @@ def add_comparison_options(
         help="Add extra output for validation purposes.",
     )
     comparison_group.add_argument(
-        "--n_workers",
+        f"--{Switches.N_WORKERS}",
         type=int,
         default=FuzzyDefaults.N_PROCESSES,
         help="Number of processes to use in parallel. Defaults to 1 (Windows) "
@@ -1443,7 +1465,7 @@ def main() -> int:
         "Hash an identifiable CSV file into an encrypted one. ",
         description="""
 Takes an identifiable list of people (with name, DOB, and postcode information)
-and creates a hashed, de-identified equivalent.
+and creates a hashed, de-identified equivalent. Order is preserved.
 
 The local ID (presumed not to be a direct identifier) is preserved exactly,
 unless you explicitly elect to hash it.
@@ -1457,15 +1479,15 @@ normally for testing.""",
         f"--{Switches.INPUT}",
         type=str,
         required=True,
-        help="CSV filename for input (plaintext) data. "
+        help="Filename for input (plaintext) data. "
         + Person.PLAINTEXT_CSV_FORMAT_HELP,
     )
     hash_parser.add_argument(
         "--output",
         type=str,
         required=True,
-        help="Output CSV file for hashed version. "
-        + Person.HASHED_CSV_FORMAT_HELP,
+        help="Output file for hashed version. "
+        + Person.HASHED_JSONLINES_FORMAT_HELP,
     )
     hash_parser.add_argument(
         "--without_frequencies",
@@ -1478,7 +1500,7 @@ normally for testing.""",
         action="store_true",
         help=(
             f"Include the (potentially identifying) "
-            f"{BasePerson.ATTR_OTHER_INFO!r} data? "
+            f"{SimplePerson.PersonKey.OTHER_INFO!r} data? "
             "Usually False; may be set to True for validation."
         ),
     )
@@ -1661,9 +1683,9 @@ normally for testing.""",
         log.info(f"Hashing identity file: {args.input}")
         hash_identity_file(
             cfg=cfg,
-            input_csv=args.input,
-            output_csv=args.output,
-            without_frequencies=args.without_frequencies,
+            input_filename=args.input,
+            output_filename=args.output,
+            include_frequencies=not args.without_frequencies,
             include_other_info=args.include_other_info,
         )
         log.info(f"... finished; written to {args.output}")
@@ -1681,18 +1703,18 @@ normally for testing.""",
             f"- plaintext probands: {args.probands}\n"
             f"- plaintext sample: {args.sample}"
         )
-        compare_probands_to_sample_from_csv(
+        compare_probands_to_sample_from_files(
             cfg=cfg,
             extra_validation_output=args.extra_validation_output,
             max_chunksize=args.max_chunksize,
             min_probands_for_parallel=args.min_probands_for_parallel,
             n_workers=args.n_workers,
-            output_csv=args.output,
-            probands_csv=args.probands,
+            output_filename=args.output,
+            probands_filename=args.probands,
             probands_plaintext=True,
             profile=args.profile,
             sample_cache_filename=args.sample_cache,
-            sample_csv=args.sample,
+            sample_filename=args.sample,
             sample_plaintext=True,
         )
         log.info(f"... comparison finished; results are in {args.output}")
@@ -1710,17 +1732,17 @@ normally for testing.""",
             f"- hashed probands: {args.probands}\n"
             f"- hashed sample: {args.sample}"
         )
-        compare_probands_to_sample_from_csv(
+        compare_probands_to_sample_from_files(
             cfg=cfg,
             extra_validation_output=args.extra_validation_output,
             max_chunksize=args.max_chunksize,
             min_probands_for_parallel=args.min_probands_for_parallel,
             n_workers=args.n_workers,
-            output_csv=args.output,
-            probands_csv=args.probands,
+            output_filename=args.output,
+            probands_filename=args.probands,
             probands_plaintext=False,
             profile=args.profile,
-            sample_csv=args.sample,
+            sample_filename=args.sample,
             sample_plaintext=False,
         )
         log.info(f"... comparison finished; results are in {args.output}")
@@ -1739,18 +1761,18 @@ normally for testing.""",
             f"- hashed probands: {args.probands}\n"
             f"- plaintext sample: {args.sample}"
         )
-        compare_probands_to_sample_from_csv(
+        compare_probands_to_sample_from_files(
             cfg=cfg,
             extra_validation_output=args.extra_validation_output,
             max_chunksize=args.max_chunksize,
             min_probands_for_parallel=args.min_probands_for_parallel,
             n_workers=args.n_workers,
-            output_csv=args.output,
-            probands_csv=args.probands,
+            output_filename=args.output,
+            probands_filename=args.probands,
             probands_plaintext=False,
             profile=args.profile,
             sample_cache_filename=args.sample_cache,
-            sample_csv=args.sample,
+            sample_filename=args.sample,
             sample_plaintext=True,
         )
         log.info(f"... comparison finished; results are in {args.output}")

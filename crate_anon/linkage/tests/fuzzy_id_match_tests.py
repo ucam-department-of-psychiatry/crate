@@ -35,15 +35,29 @@ Unit tests.
 
 import logging
 import unittest
-from typing import List, Tuple
+from typing import List, Tuple, Type
 
 from cardinal_pythonlib.probability import probability_from_log_odds
 from pendulum import Date
 
-from crate_anon.linkage.constants import GENDER_FEMALE, GENDER_MALE
-from crate_anon.linkage.identifiers import TemporalIdentifier
+from crate_anon.linkage.constants import (
+    GENDER_FEMALE,
+    GENDER_MALE,
+    VALID_GENDERS,
+)
+from crate_anon.linkage.identifiers import (
+    DateOfBirth,
+    Forename,
+    Gender,
+    Identifier,
+    Postcode,
+    Surname,
+    TemporalIDHolder,
+)
 from crate_anon.linkage.helpers import (
     get_postcode_sector,
+    is_valid_isoformat_date,
+    POSTCODE_REGEX,
     standardize_name,
     standardize_postcode,
 )
@@ -51,6 +65,23 @@ from crate_anon.linkage.matchconfig import MatchConfig
 from crate_anon.linkage.person import People, Person
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+BAD_DATE_STRINGS = ["1950-31-12", "1950", "blah", "2000-02-30"]
+GOOD_DATE_STRINGS = ["1950-12-31", "1890-01-01", "2000-01-01"]
+BAD_POSTCODES = ["99XX99", "CB99 9XXY", "CB99", "CB2"]
+GOOD_POSTCODES = [
+    "CB99 9XY",
+    "CB2 0QQ",
+    "ZZ99 3VZ",
+    "Z Z 9 9 3 V Z",
+    "zz993vz",
+]  # good once standardized, anyway
+BAD_GENDERS = ["Y", "male", "female", "?"]
 
 
 # =============================================================================
@@ -83,9 +114,21 @@ class TestCondition(object):
         self.person_a = person_a
         self.person_b = person_b
         self.should_match = should_match
+
+        for id_person in (self.person_a, self.person_b):
+            assert id_person.is_plaintext()
+            id_person.ensure_valid_as_proband(debug_allow_no_dob=True)
+            for identifier in id_person.debug_gen_identifiers():
+                assert identifier.is_plaintext
+
         log.info("- Making hashed versions for later")
         self.hashed_a = self.person_a.hashed()
         self.hashed_b = self.person_b.hashed()
+        for h_person in (self.hashed_a, self.hashed_b):
+            assert h_person.is_hashed()
+            h_person.ensure_valid_as_proband(debug_allow_no_dob=True)
+            for identifier in h_person.debug_gen_identifiers():
+                assert not identifier.is_plaintext
         self.debug = debug
 
     def log_odds_same_plaintext(self) -> float:
@@ -188,9 +231,9 @@ class TestCondition(object):
 # =============================================================================
 
 
-class TemporalIdentifierTests(unittest.TestCase):
+class DummyTemporalIdentifierTests(unittest.TestCase):
     """
-    Unit tests for :class:`TemporalIdentifier`.
+    Unit tests for :class:`DummyTemporalIdentifier`.
     """
 
     def test_overlap(self) -> None:
@@ -203,32 +246,26 @@ class TemporalIdentifierTests(unittest.TestCase):
         # Overlaps
         # ---------------------------------------------------------------------
         self.assertEqual(
-            TemporalIdentifier(p, d1, d2).overlaps(
-                TemporalIdentifier(p, d2, d3)
+            TemporalIDHolder(p, d1, d2).overlaps(TemporalIDHolder(p, d2, d3)),
+            True,
+        )
+        self.assertEqual(
+            TemporalIDHolder(p, d2, d3).overlaps(TemporalIDHolder(p, d1, d2)),
+            True,
+        )
+        self.assertEqual(
+            TemporalIDHolder(p, d1, d4).overlaps(TemporalIDHolder(p, d2, d3)),
+            True,
+        )
+        self.assertEqual(
+            TemporalIDHolder(p, d1, None).overlaps(
+                TemporalIDHolder(p, None, d4)
             ),
             True,
         )
         self.assertEqual(
-            TemporalIdentifier(p, d2, d3).overlaps(
-                TemporalIdentifier(p, d1, d2)
-            ),
-            True,
-        )
-        self.assertEqual(
-            TemporalIdentifier(p, d1, d4).overlaps(
-                TemporalIdentifier(p, d2, d3)
-            ),
-            True,
-        )
-        self.assertEqual(
-            TemporalIdentifier(p, d1, None).overlaps(
-                TemporalIdentifier(p, None, d4)
-            ),
-            True,
-        )
-        self.assertEqual(
-            TemporalIdentifier(p, None, None).overlaps(
-                TemporalIdentifier(p, None, None)
+            TemporalIDHolder(p, None, None).overlaps(
+                TemporalIDHolder(p, None, None)
             ),
             True,
         )
@@ -236,14 +273,12 @@ class TemporalIdentifierTests(unittest.TestCase):
         # Non-overlaps
         # ---------------------------------------------------------------------
         self.assertEqual(
-            TemporalIdentifier(p, d1, d2).overlaps(
-                TemporalIdentifier(p, d3, d4)
-            ),
+            TemporalIDHolder(p, d1, d2).overlaps(TemporalIDHolder(p, d3, d4)),
             False,
         )
         self.assertEqual(
-            TemporalIdentifier(p, None, d1).overlaps(
-                TemporalIdentifier(p, d2, None)
+            TemporalIDHolder(p, None, d1).overlaps(
+                TemporalIDHolder(p, d2, None)
             ),
             False,
         )
@@ -257,15 +292,17 @@ class FuzzyLinkageTests(unittest.TestCase):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.cfg = MatchConfig()
-        self.p1 = TemporalIdentifier(
-            "CB2 0QQ",
-            Date(2000, 1, 1),
-            Date(2010, 1, 1),  # Addenbrooke's Hospital
+        self.p1 = Postcode(
+            cfg=self.cfg,
+            postcode="CB2 0QQ",  # Addenbrooke's Hospital
+            start_date=Date(2000, 1, 1),
+            end_date=Date(2010, 1, 1),
         )
-        self.p2 = TemporalIdentifier(
-            "CB2 3EB",  # Department of Psychology
-            Date(2000, 1, 1),
-            Date(2010, 1, 1),
+        self.p2 = Postcode(
+            cfg=self.cfg,
+            postcode="CB2 3EB",  # Department of Psychology
+            start_date=Date(2000, 1, 1),
+            end_date=Date(2010, 1, 1),
         )
         self.alice_bcd_unique_2000_add = Person(
             cfg=self.cfg,
@@ -531,3 +568,75 @@ class FuzzyLinkageTests(unittest.TestCase):
             self.middle_test_2
         ):
             log.info(comp)
+
+    def test_date_regex(self) -> None:
+        for b in BAD_DATE_STRINGS:
+            self.assertFalse(is_valid_isoformat_date(b))
+        for g in GOOD_DATE_STRINGS:
+            self.assertTrue(is_valid_isoformat_date(g))
+
+    def test_identifier_dob(self) -> None:
+        cfg = MatchConfig()
+        for b in BAD_DATE_STRINGS:
+            with self.assertRaises(ValueError):
+                _ = DateOfBirth(cfg, b)
+        for g in GOOD_DATE_STRINGS:
+            d = DateOfBirth(cfg, g)
+            self.assertEqual(d.dob, g)
+            self.assertEqual(str(d), g)
+
+    def test_postcode_regex(self) -> None:
+        for b in BAD_POSTCODES:
+            self.assertIsNone(
+                POSTCODE_REGEX.match(b), f"Postcode {b} matched but is bad"
+            )
+        for g in GOOD_POSTCODES:
+            sg = standardize_postcode(g)
+            self.assertTrue(
+                POSTCODE_REGEX.match(sg),
+                f"Postcode {sg} (from {g!r}) did not match but is good",
+            )
+
+    def test_identifier_postcode(self) -> None:
+        cfg = MatchConfig()
+        for b in BAD_POSTCODES:
+            with self.assertRaises(ValueError):
+                _ = Postcode(cfg, b)
+        early = Date(2020, 1, 1)
+        late = Date(2021, 12, 31)
+        for g in GOOD_POSTCODES:
+            with self.assertRaises(ValueError):
+                _ = Postcode(cfg, g, start_date=late, end_date=early)
+            p = Postcode(cfg, g)
+            self.assertEqual(p.postcode_unit, standardize_postcode(g))
+        empty = Postcode(cfg, "")
+        self.assertEqual(str(empty), "")
+
+    def test_identifier_gender(self) -> None:
+        cfg = MatchConfig()
+        for b in BAD_GENDERS:
+            with self.assertRaises(ValueError):
+                _ = Gender(cfg, b)
+        for g in VALID_GENDERS:
+            gender = Gender(cfg, g)
+            self.assertEqual(gender.gender, g)
+            self.assertEqual(str(g), g)
+        empty = Gender(cfg, "")
+        self.assertEqual(str(empty), "")
+
+    def test_identifier_transformations(self) -> None:
+        cfg = MatchConfig()
+        identifiable = [
+            Postcode(cfg, postcode="CB2 0QQ"),
+            DateOfBirth(cfg, dob="2000-12-31"),
+            Gender(cfg, gender=GENDER_MALE),
+            Forename(cfg, name="Elizabeth", gender=GENDER_FEMALE),
+            Surname(cfg, name="Smith", gender=GENDER_FEMALE),
+        ]  # type: List[Identifier]
+        for i in identifiable:
+            self.assertTrue(i.is_plaintext)
+            i_class = type(i)  # type: Type[Identifier]
+            d = i.hashed_dict(include_frequencies=True)
+            h = i_class.from_hashed_dict(cfg, d)
+            self.assertFalse(h.is_plaintext)
+            h.ensure_has_freq_info_if_id_present()

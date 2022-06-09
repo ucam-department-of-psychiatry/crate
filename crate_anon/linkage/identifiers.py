@@ -37,120 +37,206 @@ compared between two people.
 # Imports
 # =============================================================================
 
-from typing import Optional, Union
+from abc import ABC, abstractmethod
+import logging
+from typing import Any, Dict, Optional, Tuple, Type, Union
 
+from cardinal_pythonlib.datetimefunc import coerce_to_pendulum_date
+from cardinal_pythonlib.maths_py import round_sf
 from cardinal_pythonlib.reprfunc import auto_repr
 import pendulum
 from pendulum.parsing.exceptions import ParserError
 from pendulum import Date
 
+from crate_anon.common.logfunc import warn_once
+from crate_anon.linkage.constants import VALID_GENDERS
 from crate_anon.linkage.comparison import (
     Comparison,
     FullPartialNoMatchComparison,
     MatchNoMatchComparison,
 )
+from crate_anon.linkage.helpers import (
+    get_metaphone,
+    get_postcode_sector,
+    getdictprob,
+    getdictval,
+    is_valid_isoformat_date,
+    isoformat_date_or_none,
+    POSTCODE_REGEX,
+    standardize_name,
+    standardize_postcode,
+)
+from crate_anon.linkage.matchconfig import MatchConfig
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================
-# Identifier with associated temporal information
+# Generic nugget of identification information for comparison
 # =============================================================================
 
 
-class TemporalIdentifier(object):
+class Identifier(ABC):
     """
-    Represents an identifier (typically a postcode, postcode fragment, or
-    hashed equivalent) along with start and end dates (which may be ``None``).
+    Abstract base class: generic nugget of information about a person, in
+    identifiable (plaintext) or de-identified (hashed) form. Optionally, may
+    convey start/end dates.
 
-    Test code:
-
-    .. code-block:: python
-
-        from crate_anon.linkage.fuzzy_id_match import *
-
-        # Basics, using a postcode example
-        tp1 = TemporalIdentifier("CB2 0QQ", None, None)
-        print(repr(tp1))
-        s1 = str(tp1)
-        print(s1)
-
-        # Recovery from string representation
-        tp2 = TemporalIdentifier.from_str(s1)
-        print(repr(tp2))
-
+    Note that we trust probabilities from the config, but should check values
+    arising from incoming data, primarily via :meth:`from_hashed_dict`.
     """
 
     SEP = "/"  # separator
     NULL_VALUES_LOWERCASE = ["none", "null", "?"]  # must include "none"
-    FORMAT_HELP = (
-        f"TemporalIdentifier format: IDENTIFIER{SEP}STARTDATE{SEP}ENDDATE, "
+    TEMPORAL_ID_FORMAT_HELP = (
+        f"Temporal identifier format: IDENTIFIER{SEP}STARTDATE{SEP}ENDDATE, "
         f"where dates are in YYYY-MM-DD format or one of "
         f"{NULL_VALUES_LOWERCASE} (case-insensitive)."
     )
 
+    KEY_START_DATE = "start_date"
+    KEY_END_DATE = "end_date"
+
+    ERR_MISSING_FREQ = "Missing frequency information"
+
+    # -------------------------------------------------------------------------
+    # Creation, and representations that support creation
+    # -------------------------------------------------------------------------
+
     def __init__(
-        self, identifier: str, start_date: Date = None, end_date: Date = None
+        self,
+        cfg: Optional[MatchConfig],
+        is_plaintext: bool,
+        temporal: bool = False,
+        start_date: Union[str, Date] = None,
+        end_date: Union[str, Date] = None,
     ) -> None:
         """
         Args:
-            identifier:
-                The identifier (plaintext or hashed).
+            cfg:
+                A configuration object. Can be ``None`` but you have to specify
+                that manually.
+            is_plaintext:
+                Is this an identifiable (plaintext) version? If ``False``, then
+                it is a de-identified (hashed) version, whose internal
+                structure can be more complex.
+            temporal:
+                Store start/end dates (which can be ``None``) along with the
+                information?
             start_date:
                 The start date (first valid date), or ``None``.
             end_date:
                 The end date (last valid date), or ``None``.
         """
-        assert isinstance(identifier, str), f"Bad identifier: {identifier!r}"
-        if start_date and end_date:
-            assert (
-                start_date <= end_date
-            ), f"start_date = {start_date!r} > end_date = {end_date!r}"
+        nonetype = type(None)
+        assert isinstance(cfg, (MatchConfig, nonetype))
 
-        self.identifier = identifier
+        start_date = coerce_to_pendulum_date(start_date)
+        if not isinstance(start_date, (Date, nonetype)):
+            raise ValueError(f"Bad start_date: {start_date!r}")
+
+        end_date = coerce_to_pendulum_date(end_date)
+        if not isinstance(end_date, (Date, nonetype)):
+            raise ValueError(f"Bad end_date: {end_date!r}")
+
+        if start_date and end_date:
+            if start_date > end_date:
+                raise ValueError(
+                    f"start_date = {start_date!r} > end_date = {end_date!r}"
+                )
+
+        self.cfg = cfg
+        self.is_plaintext = is_plaintext
+        self.temporal = temporal
         self.start_date = start_date
         self.end_date = end_date
 
-    # -------------------------------------------------------------------------
-    # Representation
-    # -------------------------------------------------------------------------
-
-    def __repr__(self) -> str:
-        """
-        Standardized Python representation.
-        """
-        return auto_repr(self, sort_attrs=False)
-
     def __str__(self) -> str:
         """
-        Standardized string representation. See also :meth:`from_str`.
-
-        - We'll use standard ISO-8601 notation for dates.
-        - Avoid semicolons and commas, which are used elsewhere.
-        - These and underscores cannot emerge from the hash function, which
-          produces hash digests.
-        - Postcodes can't contain underscores either.
+        A string representation used for CSV files.
         """
-        assert (
-            self.SEP not in self.identifier
-        ), f"Class not suitable for identifiers containing {self.SEP!r}"
-        return self.SEP.join(
-            [self.identifier, str(self.start_date), str(self.end_date)]
-        )
+        if not self:
+            # No information
+            return ""
+        if not self.is_plaintext:
+            raise AssertionError("Don't use str() with de-identified info")
+        # Identifiable
+        id_str = self.plaintext_str_core()
+        if self.temporal:
+            if self.SEP in id_str:
+                raise ValueError(
+                    f"Temporal identifier unsuitable: contains {self.SEP!r}"
+                )
+            return self.SEP.join(
+                [
+                    id_str,
+                    str(self.start_date),
+                    str(self.end_date),
+                ]
+            )
+        else:
+            return id_str
+
+    @abstractmethod
+    def plaintext_str_core(self) -> str:
+        """
+        Represents the identifier in plaintext, for CSV. Potentially
+        encapsulated within more information by __str__().
+        """
+        pass
 
     @classmethod
-    def from_str(cls, x: str) -> "TemporalIdentifier":
+    @abstractmethod
+    def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "Identifier":
         """
-        Takes the string representation (see :meth:`__str__`) and returns a
-        :class:`TemporalIdentifier` object.
+        Restore a plaintext version from a string (which has been read from
+        CSV). Reverses __str__(), not plaintext_str_core().
+        """
+        pass
+
+    @abstractmethod
+    def hashed_dict(self, include_frequencies: bool = True) -> Dict[str, Any]:
+        """
+        Represents the object in a dictionary suitable for JSON serialization,
+        for the de-identified (hashed) version.
+
+        Args:
+            include_frequencies:
+                Include frequency information. If you don't, this makes the
+                resulting file suitable for use as a sample, but not as a
+                proband file.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def from_hashed_dict(
+        cls, cfg: MatchConfig, d: Dict[str, Any]
+    ) -> "Identifier":
+        """
+        Restore a hashed version from a dictionary (which has been read from
+        JSON).
+        """
+        pass
+
+    # -------------------------------------------------------------------------
+    # Internal methods to support creation
+    # -------------------------------------------------------------------------
+
+    @classmethod
+    def _get_temporal_triplet(
+        cls, x: str
+    ) -> Tuple[str, Optional[Date], Optional[Date]]:
+        """
+        From a string (e.g. from CSV), split into CONTENTS/START_DATE/END_DATE.
 
         Args:
             x:
                 String to parse.
 
         Returns:
-            a :class:`TemporalIdentifier` object
-
-        Raises:
-            :exc:`ValueError` if the string is bad.
+            tuple:
+                contents, start_date, end_date
         """
         # Extract components of the string
         components = x.split(cls.SEP)
@@ -158,41 +244,138 @@ class TemporalIdentifier(object):
             raise ValueError(
                 f"Need 3 components separated by {cls.SEP!r}; got {x!r}"
             )
-        i, s, e = components
+        contents, start_date_str, end_date_str = components
         # Start date
-        if s.lower() in cls.NULL_VALUES_LOWERCASE:
-            s = None
+        if start_date_str.lower() in cls.NULL_VALUES_LOWERCASE:
+            start_date = None  # type: Optional[Date]
         else:
             try:
-                s = pendulum.parse(s).date()
+                # noinspection PyTypeChecker
+                start_date = pendulum.parse(start_date_str).date()
             except ParserError:
-                raise ValueError(f"Bad date: {s!r}")
+                raise ValueError(f"Bad date: {start_date_str!r}")
         # End date
-        if e.lower() in cls.NULL_VALUES_LOWERCASE:
-            e = None
+        if end_date_str.lower() in cls.NULL_VALUES_LOWERCASE:
+            end_date = None
         else:
             try:
-                e = pendulum.parse(e).date()
+                end_date = pendulum.parse(end_date_str).date()
             except ParserError:
-                raise ValueError(f"Bad date: {e!r}")
-        # Return object
-        return TemporalIdentifier(identifier=i, start_date=s, end_date=e)
+                raise ValueError(f"Bad date: {end_date_str!r}")
+        # Return the elements
+        return contents, start_date, end_date
+
+    @classmethod
+    def _getval(cls, d: Dict[str, Any], key: str, type_: Type) -> Any:
+        """
+        Returns a value from a dictionary or raises an exception.
+        The key must be in the dictionary, and the value must be non-blank.
+        The value must be of type `type_`.
+        """
+        try:
+            v = d[key]
+        except KeyError:
+            raise ValueError(f"Missing key: {key}")
+        if v is None or v == "":
+            raise ValueError(f"Missing or blank value: {key}")
+        if not isinstance(v, type_):
+            raise ValueError(
+                f"Value for {key} should be of type {type_} but was of "
+                f"type {type(v)}"
+            )
+        return v
+
+    @classmethod
+    def _getprob(cls, d: Dict[str, Any], key: str) -> Any:
+        """
+        As for :meth:`_getval` but returns a probability and checks that it
+        is in range.
+        """
+        v = getdictval(d, key, float)
+        if not 0 <= v <= 1:
+            raise ValueError(f"Bad probability for {key}: {v}")
+
+    def _round(self, x: Optional[float]) -> Optional[float]:
+        """
+        Implements config-defined rounding for frequency representations of
+        hashed values.
+
+        Rounds frequencies to a certain number of significant figures.
+        (Don't supply exact floating-point numbers for frequencies; may be
+        more identifying. Don't use decimal places; we have to deal with
+        some small numbers.)
+        """
+        if x is None:
+            return None
+        return round_sf(x, self.cfg.rounding_sf)
+
+    # -------------------------------------------------------------------------
+    # Python standard representation functions
+    # -------------------------------------------------------------------------
+
+    def __repr__(self):
+        """
+        Standardized Python representation.
+        """
+        return auto_repr(self, sort_attrs=False)
+
+    # -------------------------------------------------------------------------
+    # Basic tests
+    # -------------------------------------------------------------------------
+
+    @abstractmethod
+    def __bool__(self) -> bool:
+        """
+        Does this object contain information?
+        """
+        pass
+
+    # -------------------------------------------------------------------------
+    # Validation
+    # -------------------------------------------------------------------------
+
+    @abstractmethod
+    def ensure_has_freq_info_if_id_present(self) -> None:
+        """
+        If we have ID information but some frequency information is missing,
+        raise :exc:`ValueError`. Used to check validity for probands;
+        candidates do not have to fulfil this requirement.
+        """
+        pass
 
     # -------------------------------------------------------------------------
     # Comparison
     # -------------------------------------------------------------------------
 
-    def overlaps(self, other: "TemporalIdentifier") -> bool:
+    @abstractmethod
+    def comparison(self, other: "Identifier") -> Optional[Comparison]:
+        """
+        Compare our identifier to another of the same type. Return None if you
+        wish to draw no conclusions (e.g. there is missing information, or
+        temporally defined identifiers do not overlap).
+
+        You should assume that frequency information must be present on the
+        "self" side (this should be the proband); it may be missing from the
+        "other" side (the candidate).
+
+        This is a high-speed function; pre-cache any fixed information that
+        requires multi-stage lookup.
+        """
+        pass
+
+    def overlaps(self, other: "Identifier") -> bool:
         """
         Do ``self`` and ``other`` overlap in time?
 
         Args:
             other:
-                the other :class:`TemporalIdentifier`
+                the other :class:`Identifier`
 
         For similar logic, see
         :meth:`cardinal_pythonlib.interval.Interval.overlaps`.
         """
+        if not self.temporal or not other.temporal:
+            return True
         return not (
             # This inner test is for non-overlap.
             # (a) self ends before other starts
@@ -210,248 +393,648 @@ class TemporalIdentifier(object):
             )
         )
 
-    def matches(self, other: "TemporalIdentifier") -> bool:
-        """
-        Does the postcode (or other string entity) match, and also the dates
-        overlap?
 
-        Args:
-            other:
-                the other :class:`TemporalIdentifier`
-        """
-        return self.identifier == other.identifier and self.overlaps(other)
+# =============================================================================
+# TemporalIDHolder
+# =============================================================================
 
-    def __eq__(self, other: "TemporalIdentifier") -> bool:
-        """
-        Equality means a match.
 
-        Args:
-            other:
-                the other :class:`TemporalIdentifier`
-        """
-        return self.matches(other)
+class TemporalIDHolder(Identifier):
+    """
+    Limited class that allows no config and stores a plain string identifier.
+    Used for representing postcodes between a database and CSV for validation.
+    """
+
+    def __init__(
+        self, identifier: str, start_date: Date = None, end_date: Date = None
+    ) -> None:
+        super().__init__(
+            cfg=None,
+            is_plaintext=True,
+            temporal=True,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        self.identifier = identifier or ""
+        if not isinstance(self.identifier, str):
+            raise ValueError(f"Bad identifier: {identifier!r}")
+
+    def plaintext_str_core(self) -> str:
+        return self.identifier
+
+    @classmethod
+    def from_plaintext_str(
+        cls, cfg: MatchConfig, x: str
+    ) -> "TemporalIDHolder":
+        contents, start_date, end_date = cls._get_temporal_triplet(x)
+        return TemporalIDHolder(
+            identifier=contents, start_date=start_date, end_date=end_date
+        )
+
+    # noinspection PyTypeChecker
+    def hashed_dict(self, include_frequencies: bool = True) -> Dict[str, Any]:
+        raise AssertionError("Do not use hashed_dict() with this class")
+
+    # noinspection PyTypeChecker
+    @classmethod
+    def from_hashed_dict(
+        cls, cfg: MatchConfig, d: Dict[str, Any]
+    ) -> "TemporalIDHolder":
+        raise AssertionError("Do not use from_hashed_dict() with this class")
+
+    # noinspection PyTypeChecker
+    def _round(self, x: Optional[float]) -> Optional[float]:
+        raise AssertionError("Do not use _round() with this class")
 
     def __bool__(self) -> bool:
-        """
-        Used in e.g. ``if x`` constructs.
-        """
         return bool(self.identifier)
 
-    # -------------------------------------------------------------------------
-    # Hashing and copying
-    # -------------------------------------------------------------------------
+    def ensure_has_freq_info_if_id_present(self) -> None:
+        pass
 
-    def with_new_identifier(self, identifier: str) -> "TemporalIdentifier":
-        """
-        Returns a new :class:`TemporalIdentifier` with the same dates, but a
-        new identifier.
-
-        Args:
-            identifier:
-                The new identifier to use.
-
-        Returns:
-            a new :class:`TemporalIdentifier`
-        """
-        return TemporalIdentifier(
-            identifier=identifier,
-            start_date=self.start_date,
-            end_date=self.end_date,
-        )
+    def comparison(self, other: "Identifier") -> Optional[Comparison]:
+        raise AssertionError("Do not use hashed_dict() with this class")
 
 
 # =============================================================================
-# Pair objects for used with hashed comparisons
+# Postcode
 # =============================================================================
 
 
-class IdFreq(object):
+class Postcode(Identifier):
     """
-    Represents an identifier (plaintext or hashed) and its accompanying
-    frequency. Performs comparisons using a match/no-match system.
+    Represents a UK postcode.
     """
+
+    KEY_HASHED_POSTCODE_UNIT = "hashed_postcode_unit"
+    KEY_HASHED_POSTCODE_SECTOR = "hashed_postcode_sector"
+    KEY_UNIT_FREQ = "unit_freq"
+    KEY_SECTOR_FREQ = "sector_freq"
 
     def __init__(
         self,
-        comparison_name: str,
-        identifier: Union[str, TemporalIdentifier, None],
-        frequency: Optional[float],
-        p_error: float,
-    ) -> None:
+        cfg: MatchConfig,
+        postcode: str = "",
+        start_date: Union[str, Date] = None,
+        end_date: Union[str, Date] = None,
+    ):
         """
-        Args:
-            comparison_name:
-                Name for the comparison.
-            identifier:
-                The identifier (plaintext or hashed). Can be a string or a
-                :class:`TemporalIdentifier`.
-            frequency:
-                Its population frequency.
-            p_error:
-                Probability of a data error transforming "match" to "no match";
-                :math:`p_e`.
+        Plaintext creation of a postcode.
         """
-        assert 0 <= p_error <= 1
-
-        self.comparison_name = comparison_name
-        self.identifier = identifier
-        self.frequency = frequency
-        self.p_no_error = 1 - p_error
-
-        if identifier and frequency is not None:
-            assert 0 <= frequency <= 1
-
-    def comparison(self, proband: "IdFreq") -> Optional[Comparison]:
-        """
-        Comparison against a proband's version.
-        """
-        if not self.identifier or not proband.identifier:
-            # Infer no conclusions from missing information.
-            return None
-        return MatchNoMatchComparison(
-            name=self.comparison_name,
-            match=(self.identifier == proband.identifier),
-            p_match_given_same_person=proband.p_no_error,
-            p_match_given_diff_person=proband.frequency,
+        super().__init__(
+            cfg=cfg,
+            is_plaintext=True,
+            temporal=True,
+            start_date=start_date,
+            end_date=end_date,
         )
 
-    def matches(self, other: "IdFreq") -> bool:
-        """
-        Is there a match with ``other``?
-        """
-        if not self.identifier or not other.identifier:
-            return False
-        return self.identifier == other.identifier
+        if not isinstance(postcode, str):
+            raise ValueError(f"Bad postcode: {postcode!r}")
+        postcode = standardize_postcode(postcode)
+        if postcode and not POSTCODE_REGEX.match(postcode):
+            raise ValueError(f"Bad postcode: {postcode!r}")
 
-    def assert_has_freq_info_if_id_present(self) -> None:
+        if postcode:
+            self.postcode_unit = postcode
+            self.postcode_sector = get_postcode_sector(
+                self.postcode_unit, prestandardized=True
+            )
+            self.unit_freq, self.sector_freq = cfg.postcode_unit_sector_freq(
+                self.postcode_unit, prestandardized=True
+            )
+        else:
+            self.postcode_unit = ""
+            self.postcode_sector = ""
+            self.unit_freq = None  # type: Optional[float]
+            self.sector_freq = None  # type: Optional[float]
+
+        self.p_minor_postcode_error = self.cfg.p_minor_postcode_error
+
+    def plaintext_str_core(self) -> str:
         """
-        If the identifier is present, ensure that frequency information is
-        present, or raise :exc:`AssertionError`.
+        For CSV.
         """
-        if self.identifier:
-            assert (
-                self.frequency is not None
-            ), f"{self.comparison_name}: missing frequency"
+        return self.postcode_unit
 
-
-class FuzzyIdFreq(object):
-    """
-    Represents an identifier (plaintext or hashed) with its frequency, and a
-    fuzzy version, with its frequency. Performs comparisons using a full
-    match/partial match/no match system (rejecting the hypothesis completely if
-    there is no match).
-    """
-
-    def __init__(
-        self,
-        comparison_name: str,
-        exact_identifier: Optional[str],
-        exact_identifier_frequency: Optional[float],
-        fuzzy_identifier: Optional[str],
-        fuzzy_identifier_frequency: Optional[float],
-        p_error: float,
-    ) -> None:
+    @classmethod
+    def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "Postcode":
         """
-        Args:
-            comparison_name:
-                Name for the comparison.
-            exact_identifier:
-                The full identifier (plaintext or hashed).
-            exact_identifier_frequency:
-                Its population frequency.
-            fuzzy_identifier:
-                The fuzzy identifier (plaintext or hashed).
-            fuzzy_identifier_frequency:
-                Its population frequency.
-            p_error:
-                Probability of a data error transforming "full match" to
-                "partial match"; :math:`p_e`.
+        Creation from CSV.
         """
-        assert 0 <= p_error <= 1
-
-        self.comparison_name = comparison_name
-        self.exact_identifier = exact_identifier
-        self.exact_identifier_frequency = exact_identifier_frequency
-        self.fuzzy_identifier = fuzzy_identifier
-        self.fuzzy_identifier_frequency = fuzzy_identifier_frequency
-        self.p_error = p_error
-
-        know_exact = (
-            exact_identifier and exact_identifier_frequency is not None
+        postcode_unit, start_date, end_date = cls._get_temporal_triplet(x)
+        return Postcode(
+            cfg=cfg,
+            postcode=postcode_unit,
+            start_date=start_date,
+            end_date=end_date,
         )
-        know_fuzzy = (
-            fuzzy_identifier and fuzzy_identifier_frequency is not None
+
+    def hashed_dict(self, include_frequencies: bool = True) -> Dict[str, Any]:
+        """
+        For JSON.
+        """
+        if not self.postcode_unit:
+            hashed_postcode_unit = None
+            hashed_postcode_sector = None
+        elif self.is_plaintext:
+            hashed_postcode_unit = self.cfg.hash_fn(self.postcode_unit)
+            hashed_postcode_sector = self.cfg.hash_fn(self.postcode_sector)
+        else:
+            # Was already hashed
+            hashed_postcode_unit = self.postcode_unit
+            hashed_postcode_sector = self.postcode_sector
+        d = {
+            self.KEY_START_DATE: isoformat_date_or_none(self.start_date),
+            self.KEY_END_DATE: isoformat_date_or_none(self.end_date),
+            self.KEY_HASHED_POSTCODE_UNIT: hashed_postcode_unit,
+            self.KEY_HASHED_POSTCODE_SECTOR: hashed_postcode_sector,
+        }
+        if include_frequencies:
+            d[self.KEY_UNIT_FREQ] = self._round(self.unit_freq)
+            d[self.KEY_SECTOR_FREQ] = self._round(self.sector_freq)
+        return d
+
+    @classmethod
+    def from_hashed_dict(
+        cls, cfg: MatchConfig, d: Dict[str, Any]
+    ) -> "Postcode":
+        """
+        Creation of a hashed postcode, ultimately from JSON.
+        """
+        p = Postcode(
+            cfg=cfg,
+            start_date=d[cls.KEY_START_DATE],
+            end_date=d[cls.KEY_END_DATE],
         )
-        if know_exact:
-            assert 0 <= exact_identifier_frequency <= 1
-        if know_fuzzy:
-            assert 0 <= fuzzy_identifier_frequency <= 1
-        if know_exact and know_fuzzy:
-            assert exact_identifier_frequency <= fuzzy_identifier_frequency, (
-                f"exact_identifier_frequency = {exact_identifier_frequency}, "
-                f"fuzzy_identifier_frequency = {fuzzy_identifier_frequency}, "
-                f"but should have "
-                f"exact_identifier_frequency <= fuzzy_identifier_frequency"
+        p.is_plaintext = False
+        p.postcode_unit = getdictval(d, cls.KEY_HASHED_POSTCODE_UNIT, str)
+        p.postcode_sector = getdictval(d, cls.KEY_HASHED_POSTCODE_SECTOR, str)
+        p.unit_freq = getdictprob(d, cls.KEY_UNIT_FREQ)
+        p.sector_freq = getdictprob(d, cls.KEY_SECTOR_FREQ)
+        return p
+
+    def __bool__(self) -> bool:
+        return bool(self.postcode_unit)
+
+    def ensure_has_freq_info_if_id_present(self) -> None:
+        if self.postcode_unit and (
+            self.unit_freq is None or self.sector_freq is None
+        ):
+            raise ValueError(
+                self.ERR_MISSING_FREQ + f" for postcode {self.postcode_unit!r}"
             )
 
-    def __repr__(self) -> str:
-        return auto_repr(self)
-
-    def comparison(self, proband: "FuzzyIdFreq") -> Optional[Comparison]:
+    def comparison(self, other: "Postcode") -> Optional[Comparison]:
         """
-        Comparison against a proband's version.
+        Compare one postcode to another.
         """
+        # assert self.is_plaintext == other.is_plaintext
         if (
-            not self.exact_identifier
-            or not proband.exact_identifier
-            or not self.fuzzy_identifier
-            or not proband.fuzzy_identifier
+            not self.postcode_unit
+            or not other.postcode_unit
+            or not self.overlaps(other)
         ):
             # Infer no conclusions from missing information.
+            # If postcode_unit is present, we've guaranteed that
+            # postcode_sector will be.
             return None
         return FullPartialNoMatchComparison(
-            name=self.comparison_name,
-            full_match=(self.exact_identifier == proband.exact_identifier),
-            p_f=proband.exact_identifier_frequency,
-            p_e=self.p_error,
-            partial_match=(self.fuzzy_identifier == proband.fuzzy_identifier),
-            p_p=proband.fuzzy_identifier_frequency,
+            name="postcode",
+            full_match=(self.postcode_unit == other.postcode_unit),
+            p_f=self.unit_freq,
+            p_e=self.p_minor_postcode_error,
+            partial_match=(self.postcode_sector == other.postcode_sector),
+            p_p=self.sector_freq,
         )
 
-    def fully_matches(self, other: "FuzzyIdFreq") -> bool:
-        """
-        Is there a full match with ``other``?
-        """
-        if not self.exact_identifier or not other.exact_identifier:
-            return False
-        return self.exact_identifier == other.exact_identifier
+    # -------------------------------------------------------------------------
+    # Extras
+    # -------------------------------------------------------------------------
 
-    def partially_matches(self, other: "FuzzyIdFreq") -> bool:
+    def fully_matches(self, other: "Postcode") -> bool:
         """
-        Is there a partial match with ``other``?
+        For postcode comparison, we ignore wholly dissimilar postcodes (rather
+        than treating them as evidence against a match).
         """
-        if not self.fuzzy_identifier or not other.fuzzy_identifier:
-            return False
-        return self.fuzzy_identifier == other.fuzzy_identifier
+        return self.postcode_unit and self.postcode_unit == other.postcode_unit
 
-    def fully_or_partially_matches(self, other: "FuzzyIdFreq") -> bool:
+    def partially_matches(self, other: "Postcode") -> bool:
         """
-        Is there a full or a partial match with ``other``?
+        See :meth:`fully_matches`. Does not exclude a full match also.
         """
-        return self.fully_matches(other) or self.partially_matches(other)
+        return (
+            self.postcode_sector
+            and self.postcode_sector == other.postcode_sector
+        )
 
-    def assert_has_freq_info_if_id_present(self) -> None:
+
+# =============================================================================
+# Date of birth
+# =============================================================================
+
+
+class DateOfBirth(Identifier):
+    """
+    Represents a date of birth.
+    """
+
+    KEY_HASHED_DOB = "hashed_dob"
+
+    def __init__(self, cfg: MatchConfig, dob: str = "") -> None:
         """
-        If the identifier is present, ensure that frequency information is
-        present, or raise :exc:`AssertionError`.
+        Plaintext creation of a DOB.
+
+        Args:
+            cfg:
+                The config object.
+            dob:
+                (PLAINTEXT.) The date of birth in ISO-8061 "YYYY-MM-DD" string
+                format.
         """
-        if self.exact_identifier:
-            assert (
-                self.exact_identifier_frequency is not None
-            ), f"{self.comparison_name}: missing exact identifier frequency"
-            assert (
-                self.fuzzy_identifier
-            ), f"{self.comparison_name}: missing fuzzy identifier"
-            assert (
-                self.fuzzy_identifier_frequency is not None
-            ), f"{self.comparison_name}: missing fuzzy identifier frequency"
+        super().__init__(cfg=cfg, is_plaintext=True, temporal=False)
+
+        dob = dob or ""
+        if not (
+            isinstance(dob, str) and (not dob or is_valid_isoformat_date(dob))
+        ):
+            raise ValueError(f"Bad date: {dob!r}")
+
+        self.dob = dob
+        self.dob_freq = cfg.p_two_people_share_dob
+
+    def plaintext_str_core(self) -> str:
+        """
+        For CSV.
+        """
+        return self.dob
+
+    @classmethod
+    def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "DateOfBirth":
+        """
+        Creation from CSV.
+        """
+        return DateOfBirth(cfg=cfg, dob=x)
+
+    def hashed_dict(self, include_frequencies: bool = True) -> Dict[str, Any]:
+        """
+        For JSON.
+        """
+        if not self.dob:
+            hashed_dob = None
+        elif self.is_plaintext:
+            hashed_dob = self.cfg.hash_fn(self.dob)
+        else:
+            # Was already hashed
+            hashed_dob = self.dob
+        return {self.KEY_HASHED_DOB: hashed_dob}
+
+    @classmethod
+    def from_hashed_dict(
+        cls, cfg: MatchConfig, d: Dict[str, Any]
+    ) -> "DateOfBirth":
+        """
+        Creation of a hashed DOB, ultimately from JSON.
+        """
+        x = DateOfBirth(cfg=cfg)
+        x.is_plaintext = False
+        x.dob = getdictval(d, cls.KEY_HASHED_DOB, str)
+        return x
+
+    def __bool__(self) -> bool:
+        return bool(self.dob)
+
+    def ensure_has_freq_info_if_id_present(self) -> None:
+        pass
+
+    def comparison(self, other: "DateOfBirth") -> Optional[Comparison]:
+        if not self.dob or not other.dob:
+            # Missing information; infer nothing.
+            return None
+        return MatchNoMatchComparison(
+            name="DOB",
+            match=(self.dob == other.dob),
+            p_match_given_same_person=1,  # allow no DOB errors
+            p_match_given_diff_person=self.dob_freq,
+        )
+
+
+# =============================================================================
+# Gender
+# =============================================================================
+
+
+class Gender(Identifier):
+    KEY_HASHED_GENDER = "hashed_gender"
+    KEY_GENDER_FREQ = "gender_freq"
+
+    def __init__(self, cfg: MatchConfig, gender: str = "") -> None:
+        """
+        Plaintext creation of a gender.
+
+        Args:
+            cfg:
+                The config object.
+            gender:
+                (PLAINTEXT.) The gender.
+        """
+        super().__init__(cfg=cfg, is_plaintext=True, temporal=False)
+
+        gender = gender or ""
+        if gender not in VALID_GENDERS:
+            raise ValueError(f"Bad gender: {gender!r}")
+
+        self.gender = gender
+        if gender:
+            self.gender_freq = cfg.gender_freq(gender)
+        else:
+            self.gender_freq = None  # type: Optional[float]
+        self.p_gender_error = cfg.p_gender_error
+        self.p_match_given_same_person = 1 - self.p_gender_error
+
+    def plaintext_str_core(self) -> str:
+        """
+        For CSV.
+        """
+        return self.gender
+
+    @classmethod
+    def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "Gender":
+        """
+        Creation from CSV.
+        """
+        return Gender(cfg=cfg, gender=x)
+
+    def hashed_dict(self, include_frequencies: bool = True) -> Dict[str, Any]:
+        """
+        For JSON.
+        """
+        if not self.gender:
+            hashed_gender = None
+        elif self.is_plaintext:
+            hashed_gender = self.cfg.hash_fn(self.gender)
+        else:
+            # Was already hashed
+            hashed_gender = self.gender
+        d = {
+            self.KEY_HASHED_GENDER: hashed_gender,
+        }
+        if include_frequencies:
+            d[self.KEY_GENDER_FREQ] = self._round(self.gender_freq)
+        return d
+
+    @classmethod
+    def from_hashed_dict(cls, cfg: MatchConfig, d: Dict[str, Any]) -> "Gender":
+        """
+        Creation of a hashed gender, ultimately from JSON.
+        """
+        x = Gender(cfg=cfg)
+        x.is_plaintext = False
+        x.gender = getdictval(d, cls.KEY_HASHED_GENDER, str)
+        x.gender_freq = getdictprob(d, cls.KEY_GENDER_FREQ)
+        return x
+
+    def __bool__(self) -> bool:
+        return bool(self.gender)
+
+    def ensure_has_freq_info_if_id_present(self) -> None:
+        if self.gender and self.gender_freq is None:
+            raise ValueError(
+                self.ERR_MISSING_FREQ + f" for gender {self.gender!r}"
+            )
+
+    def comparison(self, other: "Gender") -> Optional[Comparison]:
+        if not self.gender or not other.gender:
+            # Missing information; infer nothing.
+            return None
+        return MatchNoMatchComparison(
+            name="gender",
+            match=(self.gender == other.gender),
+            p_match_given_same_person=self.p_match_given_same_person,
+            p_match_given_diff_person=self.gender_freq,
+        )
+
+
+# =============================================================================
+# Names
+# =============================================================================
+
+
+class Name(Identifier, ABC):
+    """
+    Base class for names.
+
+    We will need some special gender features for both forenames and surnames:
+
+    - UK forename frequency depends on gender.
+    - The probability that someone's surname changes depends on gender.
+    """
+
+    KEY_HASHED_NAME = "hashed_name"
+    KEY_HASHED_METAPHONE = "hashed_metaphone"
+    KEY_NAME_FREQ = "name_freq"
+    KEY_METAPHONE_FREQ = "metaphone_freq"
+
+    def __init__(
+        self, cfg: MatchConfig, name: str = "", gender: str = ""
+    ) -> None:
+        """
+        Plaintext creation of a name.
+
+        Args:
+            cfg:
+                The config object.
+            name:
+                (PLAINTEXT.) The name.
+        """
+        super().__init__(cfg=cfg, is_plaintext=True, temporal=False)
+
+        if not isinstance(name, str):
+            raise ValueError(f"Bad name: {name!r}")
+
+        self.name = standardize_name(name)
+        self.metaphone = get_metaphone(self.name)
+
+        self.name_freq = None  # type: Optional[float]
+        self.metaphone_freq = None  # type: Optional[float]
+
+        self.gender = ""
+        self.set_gender(gender)  # may reset frequencies
+
+    def set_gender(self, gender: str) -> None:
+        """
+        Special operation for identifiable reading.
+        """
+        if gender not in VALID_GENDERS:
+            raise ValueError(f"Bad gender: {gender!r}")
+        self.gender = gender
+        if self.name:
+            self._reset_frequencies_identifiable()
+
+    @abstractmethod
+    def _reset_frequencies_identifiable(self) -> None:
+        """
+        Gender may have changed. Update any probabilities accordingly.
+        """
+        pass
+
+    def plaintext_str_core(self) -> str:
+        """
+        For CSV.
+        """
+        return self.name
+
+    def hashed_dict(self, include_frequencies: bool = True) -> Dict[str, Any]:
+        """
+        For JSON.
+        """
+        if not self.name:
+            hashed_name = None
+            hashed_metaphone = None
+        elif self.is_plaintext:
+            hashed_name = self.cfg.hash_fn(self.name)
+            hashed_metaphone = self.cfg.hash_fn(self.metaphone)
+        else:
+            # Was already hashed
+            hashed_name = self.name
+            hashed_metaphone = self.metaphone
+        d = {
+            self.KEY_HASHED_NAME: hashed_name,
+            self.KEY_HASHED_METAPHONE: hashed_metaphone,
+        }
+        if include_frequencies:
+            d[self.KEY_NAME_FREQ] = self._round(self.name_freq)
+            d[self.KEY_METAPHONE_FREQ] = self._round(self.metaphone_freq)
+        return d
+
+    def __bool__(self) -> bool:
+        return bool(self.name)
+
+    def ensure_has_freq_info_if_id_present(self) -> None:
+        if self.name and (
+            self.name_freq is None or self.metaphone_freq is None
+        ):
+            raise ValueError(
+                self.ERR_MISSING_FREQ + f" for name {self.name!r}"
+            )
+
+
+class Forename(Name):
+    """
+    Represents a forename (given name).
+    """
+
+    def __init__(
+        self, cfg: MatchConfig, name: str = "", gender: str = ""
+    ) -> None:
+        super().__init__(cfg=cfg, name=name, gender=gender)
+
+        self.p_minor_name_error = self.cfg.p_minor_forename_error
+
+    def _reset_frequencies_identifiable(self) -> None:
+        if self.name:
+            self.name_freq = self.cfg.forename_freq(
+                self.name, self.gender, prestandardized=True
+            )
+            self.metaphone_freq = self.cfg.forename_metaphone_freq(
+                self.metaphone, self.gender
+            )
+        else:
+            self.name_freq = None
+            self.metaphone_freq = None
+
+    @classmethod
+    def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "Forename":
+        """
+        Creation from CSV.
+        """
+        return Forename(cfg=cfg, name=x)
+
+    @classmethod
+    def from_hashed_dict(
+        cls, cfg: MatchConfig, d: Dict[str, Any]
+    ) -> "Forename":
+        """
+        Creation of a hashed name, ultimately from JSON.
+        """
+        n = Forename(cfg=cfg)
+        n.is_plaintext = False
+        n.name = getdictval(d, cls.KEY_HASHED_NAME, str)
+        n.metaphone = getdictval(d, cls.KEY_HASHED_METAPHONE, str)
+        n.name_freq = getdictprob(d, cls.KEY_NAME_FREQ)
+        n.metaphone_freq = getdictprob(d, cls.KEY_METAPHONE_FREQ)
+        return n
+
+    def comparison(self, other: "Forename") -> Optional[Comparison]:
+        if not self.name or not other.name:
+            # No information
+            return None
+        return FullPartialNoMatchComparison(
+            name="forename",
+            full_match=(self.name == other.name),
+            p_f=self.name_freq,
+            p_e=self.p_minor_name_error,
+            partial_match=(self.metaphone == other.metaphone),
+            p_p=self.metaphone_freq,
+        )
+
+
+class Surname(Name):
+    """
+    Represents a surname (family name).
+    """
+
+    def __init__(
+        self, cfg: MatchConfig, name: str = "", gender: str = ""
+    ) -> None:
+        super().__init__(cfg=cfg, name=name, gender=gender)
+
+        self.p_minor_name_error = self.cfg.p_minor_surname_error
+
+    def _reset_frequencies_identifiable(self) -> None:
+        if self.name:
+            self.name_freq = self.cfg.surname_freq(
+                self.name, prestandardized=True
+            )
+            self.metaphone_freq = self.cfg.surname_metaphone_freq(
+                self.metaphone
+            )
+        warn_once(
+            "TODO: implement gender aspects of "
+            "Surname._reset_frequencies_identifiable"
+        )
+
+    @classmethod
+    def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "Surname":
+        """
+        Creation from CSV.
+        """
+        return Surname(cfg=cfg, name=x)
+
+    @classmethod
+    def from_hashed_dict(
+        cls, cfg: MatchConfig, d: Dict[str, Any]
+    ) -> "Surname":
+        """
+        Creation of a hashed name, ultimately from JSON.
+        """
+        n = Surname(cfg=cfg)
+        n.is_plaintext = False
+        n.name = getdictval(d, cls.KEY_HASHED_NAME, str)
+        n.metaphone = getdictval(d, cls.KEY_HASHED_METAPHONE, str)
+        n.name_freq = getdictprob(d, cls.KEY_NAME_FREQ)
+        n.metaphone_freq = getdictprob(d, cls.KEY_METAPHONE_FREQ)
+        return n
+
+    def comparison(self, other: "Surname") -> Optional[Comparison]:
+        if not self.name or not other.name:
+            # No information
+            return None
+        return FullPartialNoMatchComparison(
+            name="surname",
+            full_match=(self.name == other.name),
+            p_f=self.name_freq,
+            p_e=self.p_minor_name_error,
+            partial_match=(self.metaphone == other.metaphone),
+            p_p=self.metaphone_freq,
+        )

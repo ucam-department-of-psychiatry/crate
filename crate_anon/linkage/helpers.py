@@ -43,13 +43,16 @@ import pickle
 import random
 import re
 import string
-from typing import Any, Generator, TYPE_CHECKING
+from typing import Any, Dict, Generator, Optional, Type, TYPE_CHECKING
 from zipfile import ZipFile
 
+from cardinal_pythonlib.datetimefunc import coerce_to_pendulum_date
 from cardinal_pythonlib.fileops import mkdir_p
 from cardinal_pythonlib.stringfunc import mangle_unicode_to_ascii
 from fuzzy import DMetaphone
 from numba import jit
+from pendulum import Date
+from pendulum.parsing.exceptions import ParserError
 
 from crate_anon.anonymise.anonregex import get_uk_postcode_regex_string
 from crate_anon.common.logfunc import warn_once
@@ -108,6 +111,33 @@ postcode sector? Smaller, I think.
 # =============================================================================
 
 dmeta = DMetaphone()
+
+_ = """
+
+For a sense of metaphones:
+
+>>> dmeta("Rudolf")
+[b'RTLF', None]
+>>> dmeta("Cardinal")
+[b'KRTN', None]
+>>> dmeta("Supercalifragilistic")
+[b'SPRK', None]
+>>> dmeta("Christopher")
+[b'KRST', None]
+>>> dmeta("Chris")
+[b'KRS', None]
+>>> dmeta("C")
+[b'K', None]
+>>> dmeta("Philip")
+[b'FLP', None]
+>>> dmeta("Phil")
+[b'FL', None]
+>>> dmeta("Phi")
+[b'F', None]
+>>> dmeta("Knuth")  # https://stackabuse.com/phonetic-similarity-of-words-a-vectorized-approach-in-python/
+[b'N0', b'NT']
+
+"""  # noqa
 
 
 # =============================================================================
@@ -195,11 +225,9 @@ def open_even_if_zipped(filename: str) -> Generator[StringIO, None, None]:
 # String manipulation and postcodes
 # =============================================================================
 
-ISO_DATE_REGEX = re.compile(
-    r"[1-9][0-9][0-9][0-9]-(?:1[0-2]|0[1-9])-(?:3[01]|0[1-9]|[12][0-9])"
-)  # YYYY-MM-DD
 POSTCODE_REGEX = re.compile(
-    get_uk_postcode_regex_string(at_word_boundaries_only=False)
+    get_uk_postcode_regex_string(at_word_boundaries_only=True)
+    # Need at_word_boundaries_only=True.
 )
 REMOVE_PUNCTUATION_SPACE_TABLE = str.maketrans("", "", string.punctuation)
 REMOVE_PUNCTUATION_SPACE_TABLE[ord(" ")] = None  # also remove spaces
@@ -208,6 +236,8 @@ REMOVE_PUNCTUATION_SPACE_TABLE[ord(" ")] = None  # also remove spaces
 def standardize_name(name: str) -> str:
     """
     Converts names to a standard form: upper case, no spaces, no punctuation.
+    If you have a string that may contain multiple names, you should split it
+    before standardizing.
 
     Examples:
 
@@ -268,7 +298,9 @@ def standardize_postcode(postcode_unit_or_sector: str) -> str:
     )
 
 
-def get_postcode_sector(postcode_unit: str) -> str:
+def get_postcode_sector(
+    postcode_unit: str, prestandardized: bool = False
+) -> str:
     """
     Returns the postcode (area + district +) sector from a full postcode. For
     example, converts "AB12 3CD" to "AB12 3".
@@ -279,7 +311,9 @@ def get_postcode_sector(postcode_unit: str) -> str:
     https://en.wikipedia.org/wiki/Postcodes_in_the_United_Kingdom#Formatting.
     So to get the sector, we chop off the last two characters.
     """
-    return standardize_postcode(postcode_unit)[:-2]
+    if not prestandardized:
+        postcode_unit = standardize_postcode(postcode_unit)
+    return postcode_unit[:-2]
 
 
 # noinspection HttpUrlsUsage
@@ -428,3 +462,128 @@ def log_posterior_odds_from_pdh_pdnh(
             posterior odds of H, :math:`ln(\frac{ P(H | D) }{ P(\neg H | D) })`
     """
     return log_prior_odds + ln(p_d_given_h) - ln(p_d_given_not_h)
+
+
+# =============================================================================
+# Read and check the type of dictionary values
+# =============================================================================
+
+
+def getdictval(
+    d: Dict[str, Any],
+    key: str,
+    type_: Type,
+    mandatory: bool = False,
+    default: Any = None,
+) -> Any:
+    """
+    Returns a value from a dictionary or raises an exception.
+    The key must be in the dictionary, and the value must be non-blank.
+    - The value must be of type `type_`, or ``None`` if
+    - If ``mandatory`` is True, the key must be present (and if a string,
+      the value must be non-blank).
+    - Otherwise, if absent, ``default`` is returned.
+    The default is non-mandatory and returning None.
+    """
+    try:
+        v = d[key]
+    except KeyError:
+        if mandatory:
+            raise ValueError(f"Missing key: {key}")
+        else:
+            return default
+    if mandatory and (v is None or v == ""):
+        raise ValueError(f"Missing or blank value: {key}")
+    if not isinstance(v, (type_, type(None))):
+        raise ValueError(
+            f"Value for {key} should be of type {type_} but was of "
+            f"type {type(v)}"
+        )
+    return v
+
+
+def getdictprob(
+    d: Dict[str, Any],
+    key: str,
+    mandatory: bool = False,
+    default: Optional[float] = None,
+) -> Optional[float]:
+    """
+    As for :func:`getdictval` but returns a probability and checks that it is
+    in range. The default is non-mandatory, returning None.
+    """
+    v = getdictval(d, key, float, mandatory=mandatory, default=default)
+    if v is None:
+        return None
+    if not 0 <= v <= 1:
+        raise ValueError(f"Bad probability for {key}: {v}")
+    return v
+
+
+# =============================================================================
+# Dates
+# =============================================================================
+
+ISO_DATE_REGEX = re.compile(
+    # yyyy-MM-dd, from the year 0000 onwards.
+    r"^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$"
+    #  ^^^^^ ^^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    #  year       month             day
+)
+# Also: https://stackoverflow.com/questions/3143070
+
+
+def is_valid_isoformat_date(x: str) -> bool:
+    """
+    Validates an ISO-format date with separators, e.g. '2022-12-31'.
+    """
+    if not isinstance(x, str):
+        return False
+    if not ISO_DATE_REGEX.match(x):
+        # We check this because "2020" will convert to 2020-01-01 if we just
+        # let Pendulum autoconvert below.
+        return False
+    try:
+        coerce_to_pendulum_date(x)
+    except (ParserError, ValueError):
+        return False
+    return True
+
+
+def is_valid_isoformat_blurred_date(x: str) -> bool:
+    """
+    Validates an ISO-format date (as above) that must be the first of the
+    month.
+    """
+    if not is_valid_isoformat_date(x):
+        return False
+    d = coerce_to_pendulum_date(x)
+    return d.day == 1
+
+
+def isoformat_optional_date_str(d: Optional[Date]) -> str:
+    """
+    Returns a date in string format.
+    """
+    if not d:
+        return ""
+    return d.isoformat()
+
+
+def isoformat_date_or_none(d: Optional[Date]) -> Optional[str]:
+    """
+    Returns a date in string format, or None if it is absent.
+    """
+    if not d:
+        return None
+    return d.isoformat()
+
+
+def age_years(dob: Optional[Date], when: Optional[Date]) -> Optional[int]:
+    """
+    A person's age in years when something happened, or ``None`` if either
+    DOB or the index date is unknown.
+    """
+    if dob and when:
+        return (when - dob).in_years()
+    return None

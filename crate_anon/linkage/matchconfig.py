@@ -212,7 +212,7 @@ class MatchConfig(object):
         if verbose:
             log.debug("Building MatchConfig...")
 
-        self.hasher = make_hasher(hash_method=hash_method, key=hash_key)
+        self.hash_fn = make_hasher(hash_method=hash_method, key=hash_key).hash
         self.rounding_sf = rounding_sf
         if local_id_hash_key:
             self.local_id_hasher = make_hasher(
@@ -272,6 +272,7 @@ class MatchConfig(object):
         self.p_two_people_share_dob = 1 / (
             DAYS_PER_YEAR * birth_year_pseudo_range
         )
+        assert 0 <= self.p_two_people_share_dob <= 1
 
         if verbose:
             log.debug(f"... MatchConfig built. Settings: {self}")
@@ -407,13 +408,9 @@ class MatchConfig(object):
         Returns the frequency for a full postcode, or postcode unit (the
         proportion of the population who live in that postcode).
         """
-        (
-            unit_freq,
-            sector_freq,
-        ) = self._postcode_freq.postcode_unit_sector_frequency(
+        return self._postcode_freq.postcode_unit_sector_frequency(
             postcode_unit, prestandardized=prestandardized
         )
-        return unit_freq, sector_freq
 
     def debug_postcode_unit_population(
         self, postcode_unit: str, prestandardized: bool = False

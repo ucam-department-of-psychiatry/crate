@@ -66,7 +66,7 @@ usage: crate_fuzzy_id_match hash [-h] --input INPUT --output OUTPUT
                                  [--verbose]
 
 Takes an identifiable list of people (with name, DOB, and postcode information)
-and creates a hashed, de-identified equivalent.
+and creates a hashed, de-identified equivalent. Order is preserved.
 
 The local ID (presumed not to be a direct identifier) is preserved exactly,
 unless you explicitly elect to hash it.
@@ -77,41 +77,19 @@ normally for testing.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --input INPUT         CSV filename for input (plaintext) data. Header row
-                        present. Columns: ['local_id', 'first_name',
-                        'middle_names', 'surname', 'dob', 'gender',
-                        'postcodes', 'other_info']. The fields ['postcodes']
-                        are in TemporalIdentifier format. TemporalIdentifier
-                        format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
-                        in YYYY-MM-DD format or one of ['none', 'null', '?']
-                        (case-insensitive). Semicolon-separated values are
-                        allowed within ['middle_names', 'postcodes'].
-                        (default: None)
-  --output OUTPUT       Output CSV file for hashed version. Header row
-                        present. Columns: ['local_id', 'hashed_first_name',
-                        'first_name_frequency', 'hashed_first_name_metaphone',
-                        'first_name_metaphone_frequency',
-                        'hashed_middle_names', 'middle_name_frequencies',
-                        'hashed_middle_name_metaphones',
-                        'middle_name_metaphone_frequencies', 'hashed_surname',
-                        'surname_frequency', 'hashed_surname_metaphone',
-                        'surname_metaphone_frequency', 'hashed_dob',
-                        'hashed_gender', 'gender_frequency',
-                        'hashed_postcode_units', 'postcode_unit_frequencies',
-                        'hashed_postcode_sectors',
-                        'postcode_sector_frequencies', 'other_info']. The
-                        fields ['hashed_postcode_sectors',
-                        'hashed_postcode_units'] are in TemporalIdentifier
-                        format. TemporalIdentifier format:
+  --input INPUT         Filename for input (plaintext) data. CSV format.
+                        Header row present. Columns: ['local_id',
+                        'first_name', 'middle_names', 'surname', 'dob',
+                        'gender', 'postcodes', 'other_info']. The fields
+                        ['postcodes'] are in TemporalIdentifier format.
+                        Temporal identifier format:
                         IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
                         MM-DD format or one of ['none', 'null', '?'] (case-
                         insensitive). Semicolon-separated values are allowed
-                        within ['hashed_middle_name_metaphones',
-                        'hashed_middle_names', 'hashed_postcode_sectors',
-                        'hashed_postcode_units', 'middle_name_frequencies',
-                        'middle_name_metaphone_frequencies',
-                        'postcode_sector_frequencies',
-                        'postcode_unit_frequencies']. (default: None)
+                        within ['middle_names', 'postcodes']. (default: None)
+  --output OUTPUT       Output file for hashed version. File created by CRATE
+                        in JSON Lines (.jsonl) format. (Note the 'jq' tool for
+                        inspecting these.) (default: None)
   --without_frequencies
                         Do not include frequency information. This makes the
                         result suitable for use as a sample file, but not a
@@ -297,31 +275,35 @@ added:
         IF THEY DID NOT WIN. (This will be the same as the winner if there was
         a match.) String; blank for no match.
 
-The results file is NOT necessarily sorted as the same order as the input
-proband file (because not sorting improves parallel processing efficiency).
+If you use '--n_workers 1`, proband order is reproduced in the
+output. Otherwise, the results file is NOT necessarily sorted as the same order
+as the input proband file (because not sorting improves parallel processing
+efficiency).
 
 optional arguments:
   -h, --help            show this help message and exit
 
 comparison options:
-  --probands PROBANDS   CSV filename for probands data. Header row present.
-                        Columns: ['local_id', 'first_name', 'middle_names',
-                        'surname', 'dob', 'gender', 'postcodes',
-                        'other_info']. The fields ['postcodes'] are in
-                        TemporalIdentifier format. TemporalIdentifier format:
-                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
-                        MM-DD format or one of ['none', 'null', '?'] (case-
-                        insensitive). Semicolon-separated values are allowed
-                        within ['middle_names', 'postcodes']. (default: None)
-  --sample SAMPLE       CSV filename for sample data. Header row present.
-                        Columns: ['local_id', 'first_name', 'middle_names',
-                        'surname', 'dob', 'gender', 'postcodes',
-                        'other_info']. The fields ['postcodes'] are in
-                        TemporalIdentifier format. TemporalIdentifier format:
-                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
-                        MM-DD format or one of ['none', 'null', '?'] (case-
-                        insensitive). Semicolon-separated values are allowed
-                        within ['middle_names', 'postcodes']. (default: None)
+  --probands PROBANDS   Input filename for probands data. CSV format. Header
+                        row present. Columns: ['local_id', 'first_name',
+                        'middle_names', 'surname', 'dob', 'gender',
+                        'postcodes', 'other_info']. The fields ['postcodes']
+                        are in TemporalIdentifier format. Temporal identifier
+                        format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
+                        in YYYY-MM-DD format or one of ['none', 'null', '?']
+                        (case-insensitive). Semicolon-separated values are
+                        allowed within ['middle_names', 'postcodes'].
+                        (default: None)
+  --sample SAMPLE       Input filename for sample data. CSV format. Header row
+                        present. Columns: ['local_id', 'first_name',
+                        'middle_names', 'surname', 'dob', 'gender',
+                        'postcodes', 'other_info']. The fields ['postcodes']
+                        are in TemporalIdentifier format. Temporal identifier
+                        format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
+                        in YYYY-MM-DD format or one of ['none', 'null', '?']
+                        (case-insensitive). Semicolon-separated values are
+                        allowed within ['middle_names', 'postcodes'].
+                        (default: None)
   --sample_cache SAMPLE_CACHE
                         File in which to store cached sample info (to speed
                         loading) (default: None)
@@ -372,7 +354,7 @@ error probabilities:
                         proband, is missing from the sample. (default: 0.05)
   --p_gender_error P_GENDER_ERROR
                         Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch. (default: 0.0001)
+                        a proband/candidate mismatch. (default: 0.0029)
   --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
                         Assumed probability that a postcode has an error in
                         that means it fails a full (postcode unit) match but
@@ -540,63 +522,21 @@ added:
         IF THEY DID NOT WIN. (This will be the same as the winner if there was
         a match.) String; blank for no match.
 
-The results file is NOT necessarily sorted as the same order as the input
-proband file (because not sorting improves parallel processing efficiency).
+If you use '--n_workers 1`, proband order is reproduced in the
+output. Otherwise, the results file is NOT necessarily sorted as the same order
+as the input proband file (because not sorting improves parallel processing
+efficiency).
 
 optional arguments:
   -h, --help            show this help message and exit
 
 comparison options:
-  --probands PROBANDS   CSV filename for probands data. Header row present.
-                        Columns: ['local_id', 'hashed_first_name',
-                        'first_name_frequency', 'hashed_first_name_metaphone',
-                        'first_name_metaphone_frequency',
-                        'hashed_middle_names', 'middle_name_frequencies',
-                        'hashed_middle_name_metaphones',
-                        'middle_name_metaphone_frequencies', 'hashed_surname',
-                        'surname_frequency', 'hashed_surname_metaphone',
-                        'surname_metaphone_frequency', 'hashed_dob',
-                        'hashed_gender', 'gender_frequency',
-                        'hashed_postcode_units', 'postcode_unit_frequencies',
-                        'hashed_postcode_sectors',
-                        'postcode_sector_frequencies', 'other_info']. The
-                        fields ['hashed_postcode_sectors',
-                        'hashed_postcode_units'] are in TemporalIdentifier
-                        format. TemporalIdentifier format:
-                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
-                        MM-DD format or one of ['none', 'null', '?'] (case-
-                        insensitive). Semicolon-separated values are allowed
-                        within ['hashed_middle_name_metaphones',
-                        'hashed_middle_names', 'hashed_postcode_sectors',
-                        'hashed_postcode_units', 'middle_name_frequencies',
-                        'middle_name_metaphone_frequencies',
-                        'postcode_sector_frequencies',
-                        'postcode_unit_frequencies']. (default: None)
-  --sample SAMPLE       CSV filename for sample data. Header row present.
-                        Columns: ['local_id', 'hashed_first_name',
-                        'first_name_frequency', 'hashed_first_name_metaphone',
-                        'first_name_metaphone_frequency',
-                        'hashed_middle_names', 'middle_name_frequencies',
-                        'hashed_middle_name_metaphones',
-                        'middle_name_metaphone_frequencies', 'hashed_surname',
-                        'surname_frequency', 'hashed_surname_metaphone',
-                        'surname_metaphone_frequency', 'hashed_dob',
-                        'hashed_gender', 'gender_frequency',
-                        'hashed_postcode_units', 'postcode_unit_frequencies',
-                        'hashed_postcode_sectors',
-                        'postcode_sector_frequencies', 'other_info']. The
-                        fields ['hashed_postcode_sectors',
-                        'hashed_postcode_units'] are in TemporalIdentifier
-                        format. TemporalIdentifier format:
-                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
-                        MM-DD format or one of ['none', 'null', '?'] (case-
-                        insensitive). Semicolon-separated values are allowed
-                        within ['hashed_middle_name_metaphones',
-                        'hashed_middle_names', 'hashed_postcode_sectors',
-                        'hashed_postcode_units', 'middle_name_frequencies',
-                        'middle_name_metaphone_frequencies',
-                        'postcode_sector_frequencies',
-                        'postcode_unit_frequencies']. (default: None)
+  --probands PROBANDS   Input filename for probands data. File created by
+                        CRATE in JSON Lines (.jsonl) format. (Note the 'jq'
+                        tool for inspecting these.) (default: None)
+  --sample SAMPLE       Input filename for sample data. File created by CRATE
+                        in JSON Lines (.jsonl) format. (Note the 'jq' tool for
+                        inspecting these.) (default: None)
   --sample_cache SAMPLE_CACHE
                         File in which to store cached sample info (to speed
                         loading) (default: None)
@@ -647,7 +587,7 @@ error probabilities:
                         proband, is missing from the sample. (default: 0.05)
   --p_gender_error P_GENDER_ERROR
                         Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch. (default: 0.0001)
+                        a proband/candidate mismatch. (default: 0.0029)
   --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
                         Assumed probability that a postcode has an error in
                         that means it fails a full (postcode unit) match but
@@ -821,47 +761,28 @@ added:
         IF THEY DID NOT WIN. (This will be the same as the winner if there was
         a match.) String; blank for no match.
 
-The results file is NOT necessarily sorted as the same order as the input
-proband file (because not sorting improves parallel processing efficiency).
+If you use '--n_workers 1`, proband order is reproduced in the
+output. Otherwise, the results file is NOT necessarily sorted as the same order
+as the input proband file (because not sorting improves parallel processing
+efficiency).
 
 optional arguments:
   -h, --help            show this help message and exit
 
 comparison options:
-  --probands PROBANDS   CSV filename for probands data. Header row present.
-                        Columns: ['local_id', 'hashed_first_name',
-                        'first_name_frequency', 'hashed_first_name_metaphone',
-                        'first_name_metaphone_frequency',
-                        'hashed_middle_names', 'middle_name_frequencies',
-                        'hashed_middle_name_metaphones',
-                        'middle_name_metaphone_frequencies', 'hashed_surname',
-                        'surname_frequency', 'hashed_surname_metaphone',
-                        'surname_metaphone_frequency', 'hashed_dob',
-                        'hashed_gender', 'gender_frequency',
-                        'hashed_postcode_units', 'postcode_unit_frequencies',
-                        'hashed_postcode_sectors',
-                        'postcode_sector_frequencies', 'other_info']. The
-                        fields ['hashed_postcode_sectors',
-                        'hashed_postcode_units'] are in TemporalIdentifier
-                        format. TemporalIdentifier format:
-                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
-                        MM-DD format or one of ['none', 'null', '?'] (case-
-                        insensitive). Semicolon-separated values are allowed
-                        within ['hashed_middle_name_metaphones',
-                        'hashed_middle_names', 'hashed_postcode_sectors',
-                        'hashed_postcode_units', 'middle_name_frequencies',
-                        'middle_name_metaphone_frequencies',
-                        'postcode_sector_frequencies',
-                        'postcode_unit_frequencies']. (default: None)
-  --sample SAMPLE       CSV filename for sample data. Header row present.
-                        Columns: ['local_id', 'first_name', 'middle_names',
-                        'surname', 'dob', 'gender', 'postcodes',
-                        'other_info']. The fields ['postcodes'] are in
-                        TemporalIdentifier format. TemporalIdentifier format:
-                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
-                        MM-DD format or one of ['none', 'null', '?'] (case-
-                        insensitive). Semicolon-separated values are allowed
-                        within ['middle_names', 'postcodes']. (default: None)
+  --probands PROBANDS   Input filename for probands data. File created by
+                        CRATE in JSON Lines (.jsonl) format. (Note the 'jq'
+                        tool for inspecting these.) (default: None)
+  --sample SAMPLE       Input filename for sample data. CSV format. Header row
+                        present. Columns: ['local_id', 'first_name',
+                        'middle_names', 'surname', 'dob', 'gender',
+                        'postcodes', 'other_info']. The fields ['postcodes']
+                        are in TemporalIdentifier format. Temporal identifier
+                        format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
+                        in YYYY-MM-DD format or one of ['none', 'null', '?']
+                        (case-insensitive). Semicolon-separated values are
+                        allowed within ['middle_names', 'postcodes'].
+                        (default: None)
   --sample_cache SAMPLE_CACHE
                         File in which to store cached sample info (to speed
                         loading) (default: None)
@@ -928,7 +849,7 @@ error probabilities:
                         proband, is missing from the sample. (default: 0.05)
   --p_gender_error P_GENDER_ERROR
                         Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch. (default: 0.0001)
+                        a proband/candidate mismatch. (default: 0.0029)
   --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
                         Assumed probability that a postcode has an error in
                         that means it fails a full (postcode unit) match but

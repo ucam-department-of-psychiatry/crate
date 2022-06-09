@@ -1224,7 +1224,8 @@ mk_generic_pairwise_plot <- function(
     overlap_label_vjust = 0,  # vcentre
     overlap_label_x = 0,
     overlap_label_hjust = 0,  # 0 = left-justify, 1 = right-justify
-    overlap_label_size = 2
+    overlap_label_size = 2,
+    diagonal_colour = "darkolivegreen2"
 )
 {
     CORE_VARS <- c("from", "to", "theta", "delta")
@@ -1372,6 +1373,15 @@ mk_save_performance_plot <- function(comp_threshold, comp_simple)
         height = PAGE_HEIGHT_CM * 1.1,
         units = "cm"
     )
+}
+
+
+colour_faceted_plot_leading_diagonal <- function(p)
+{
+    # Not a thing that ggplot supports. However:
+    # https://stackoverflow.com/questions/6750664
+    grob <- ggplotGrob(p)
+    # todo: in progress ***
 }
 
 
@@ -1593,7 +1603,7 @@ main <- function()
 
     pst_simplified <- (
         pst
-        %>% select(from, to, TPR, FPR, MID)
+        %>% select(from, to, TPR, FPR, TNR, MID)
         %>% as.data.table()
     )
     write_output(pst_simplified)

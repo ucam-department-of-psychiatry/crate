@@ -42,7 +42,6 @@ import logging
 import math
 import pdb
 import random
-import re
 import sys
 import timeit
 from typing import (
@@ -67,7 +66,6 @@ from cardinal_pythonlib.nhs import is_test_nhs_number, is_valid_nhs_number
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.profile import do_cprofile
 from pendulum import Date
-from pendulum.parsing.exceptions import ParserError
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.result import ResultProxy, RowProxy
@@ -77,11 +75,15 @@ from crate_anon.common.constants import (
     EXIT_FAILURE,
     EXIT_SUCCESS,
 )
-from crate_anon.linkage.identifiers import TemporalIdentifier
+from crate_anon.linkage.identifiers import TemporalIDHolder
 from crate_anon.linkage.matchconfig import MatchConfig
 from crate_anon.linkage.helpers import (
+    age_years,
     cache_load,
     cache_save,
+    is_valid_isoformat_blurred_date,
+    is_valid_isoformat_date,
+    isoformat_optional_date_str,
     POSTCODE_REGEX,
 )
 from crate_anon.linkage.fuzzy_id_match import (
@@ -94,11 +96,11 @@ from crate_anon.linkage.fuzzy_id_match import (
     Commands,
     get_cfg_from_args,
     get_demo_csv,
-    read_people_2,
+    read_people_alternate_groups,
     Switches,
     warn_or_fail_if_default_key,
 )
-from crate_anon.linkage.person import BasePerson, People, Person
+from crate_anon.linkage.person import SimplePerson, People, Person
 
 log = logging.getLogger(__name__)
 
@@ -299,66 +301,6 @@ HASH_FUNCTION_TYPE = Callable[[Any], str]
 
 
 # =============================================================================
-# Date checking, formatting, calculation
-# =============================================================================
-
-# ISO format, yyyy-MM-dd
-ISOFORMAT_DATE_RE = re.compile(
-    # https://stackoverflow.com/questions/3143070/javascript-regex-iso-datetime
-    r"\d{4}-([0][1-9]|1[0-2])-([0-2][1-9]|[1-3]0|3[01])"
-    # ^^^^^ ^^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^^^^
-    # year  month             day
-)
-
-
-def is_valid_isoformat_date(x: str) -> bool:
-    """
-    Validates an ISO-format date with separators, e.g. '2022-12-31'.
-    """
-    if not isinstance(x, str):
-        return False
-    if not ISOFORMAT_DATE_RE.match(x):
-        # We check this because "2020" will convert to 2020-01-01 if we just
-        # let Pendulum autoconvert below.
-        return False
-    try:
-        coerce_to_pendulum_date(x)
-    except (ParserError, ValueError):
-        return False
-    return True
-
-
-def is_valid_isoformat_blurred_date(x: str) -> bool:
-    """
-    Validates an ISO-format date (as above) that must be the first of the
-    month.
-    """
-    if not is_valid_isoformat_date(x):
-        return False
-    d = coerce_to_pendulum_date(x)
-    return d.day == 1
-
-
-def isoformat_optional_date(d: Optional[Date]) -> str:
-    """
-    Returns a date in string format.
-    """
-    if not d:
-        return ""
-    return d.isoformat()
-
-
-def age_years(dob: Optional[Date], when: Optional[Date]) -> Optional[int]:
-    """
-    A person's age in years when something happened, or ``None`` if either
-    DOB or the index date is unknown.
-    """
-    if dob and when:
-        return (when - dob).in_years()
-    return None
-
-
-# =============================================================================
 # NHS number checks
 # =============================================================================
 
@@ -394,9 +336,9 @@ def last_imd(postcodes: List["PostcodeInfo"]) -> Optional[int]:
 
 def postcode_temporal_identifiers(
     postcodes: List["PostcodeInfo"],
-) -> List[TemporalIdentifier]:
+) -> List[TemporalIDHolder]:
     """
-    Returns the TemporalIdentifier components of a list of postcodes.
+    Returns the DummyTemporalIdentifier components of a list of postcodes.
     """
     return [p.temporal_identifier for p in postcodes]
 
@@ -417,8 +359,10 @@ def speedtest(cfg: MatchConfig, set_breakpoint: bool = False) -> None:
             set a pdb breakpoint to explore objects from the Python console?
     """
     log.info("Building test conditions...")
-    p1 = TemporalIdentifier(
-        "CB2 0QQ", Date(2000, 1, 1), Date(2010, 1, 1)  # Addenbrooke's Hospital
+    p1 = TemporalIDHolder(
+        identifier="CB2 0QQ",  # Addenbrooke's Hospital
+        start_date=Date(2000, 1, 1),
+        end_date=Date(2010, 1, 1),
     )
     alice_bcd_unique_2000_add = Person(
         cfg=cfg,
@@ -631,8 +575,8 @@ VALIDATION_OUTPUT_COLNAMES = [
 
 def validate_1(
     cfg: MatchConfig,
-    people_csv: str,
-    output_csv: str,
+    people_filename: str,
+    output_filename: str,
     cache_filename: str = None,
     seed: int = 1234,
     report_every: int = 100,
@@ -642,9 +586,9 @@ def validate_1(
 
     Args:
         cfg: the master :class:`MatchConfig` object
-        people_csv: CSV of people; see :func:`read_people`.
+        people_filename: filename of people; see :func:`read_people`.
         cache_filename: cache filename, for faster loading
-        output_csv: output filename
+        output_filename: output CSV filename
         seed: RNG seed
         report_every: report progress every n rows
     """
@@ -670,8 +614,8 @@ def validate_1(
         ) = cache_load(cache_filename)
         log.info(f"Read from cache: {cache_filename}")
     except FileNotFoundError:
-        in_plaintext, out_plaintext = read_people_2(
-            cfg, people_csv, alternate_groups=True
+        in_plaintext, out_plaintext = read_people_alternate_groups(
+            cfg, people_filename
         )
         log.info(f"Seeding random number generator with: {seed}")
         random.seed(seed)
@@ -741,9 +685,9 @@ def validate_1(
         (in_typos_hashed, "in_typos_hashed", in_hashed, True, False, True),
         (out_typos_hashed, "out_typos_hashed", in_hashed, False, False, True),
     ]  # type: List[Tuple[People, str, People, bool, bool, bool]]
-    log.info(f"Writing to: {output_csv}")
+    log.info(f"Writing to: {output_filename}")
     vc = ValidationOutputColnames
-    with open(output_csv, "wt") as f:
+    with open(output_filename, "wt") as f:
         writer = csv.DictWriter(f, fieldnames=VALIDATION_OUTPUT_COLNAMES)
         writer.writeheader()
         i = 1  # row 1 is the header
@@ -789,7 +733,7 @@ def validate_1(
                     vc.IN_SAMPLE: int(in_sample),
                     vc.DELETIONS: int(deletions),
                     vc.TYPOS: int(typos),
-                    vc.IS_HASHED: int(person.is_hashed),
+                    vc.IS_HASHED: int(person.is_hashed()),
                     vc.PROBAND_ID: person.local_id,
                     vc.WINNER_ID: (
                         result.winner.local_id if result.winner else None
@@ -842,8 +786,8 @@ class PostcodeInfo:
             )
 
     @property
-    def temporal_identifier(self) -> TemporalIdentifier:
-        return TemporalIdentifier(
+    def temporal_identifier(self) -> TemporalIDHolder:
+        return TemporalIDHolder(
             identifier=self.postcode,
             start_date=self.start_date,
             end_date=self.end_date,
@@ -970,7 +914,7 @@ class QueryColnames:
 
 def validate_2_fetch_cdl(
     url: str, hash_fn: HASH_FUNCTION_TYPE, echo: bool = False
-) -> Generator[BasePerson, None, None]:
+) -> Generator[SimplePerson, None, None]:
     """
     Generates IDENTIFIED people from CPFT's CRS/CRL source database.
 
@@ -1162,26 +1106,26 @@ def validate_2_fetch_cdl(
 
         other = CPFTValidationExtras(
             hashed_nhs_number=hash_fn(nhs_number),
-            blurred_dob=isoformat_optional_date(
+            blurred_dob=isoformat_optional_date_str(
                 truncate_date_to_first_of_month(dob)
             ),
             gender=gender,
             ethnicity=row[q.ETHNICITY],
             index_of_multiple_deprivation=last_imd(postcodes),
-            first_mh_care_date=isoformat_optional_date(first_mh_care_date),
+            first_mh_care_date=isoformat_optional_date_str(first_mh_care_date),
             age_at_first_mh_care=age_years(dob, first_mh_care_date),
             any_icd10_dx_present=row[q.ANY_ICD10_DX_PRESENT],
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
-        p = BasePerson(
+        p = SimplePerson(
             local_id=str(cdl_m_number),
             other_info=other.json,
             first_name=row[q.FIRST_NAME] or "",
             middle_names=[],
             surname=row[q.SURNAME] or "",
             gender=gender,
-            dob=isoformat_optional_date(dob),
+            dob=isoformat_optional_date_str(dob),
             postcodes=postcode_temporal_identifiers(postcodes),
         )
         yield p
@@ -1194,7 +1138,7 @@ def validate_2_fetch_cdl(
 
 def validate_2_fetch_pcmis(
     url: str, hash_fn: HASH_FUNCTION_TYPE, echo: bool = False
-) -> Generator[BasePerson, None, None]:
+) -> Generator[SimplePerson, None, None]:
     """
     Generates IDENTIFIED people from CPFT's PCMIS source database.
 
@@ -1426,26 +1370,26 @@ def validate_2_fetch_pcmis(
 
         other = CPFTValidationExtras(
             hashed_nhs_number=hash_fn(nhs_number),
-            blurred_dob=isoformat_optional_date(
+            blurred_dob=isoformat_optional_date_str(
                 truncate_date_to_first_of_month(dob)
             ),
             gender=gender,
             ethnicity=row[q.ETHNICITY],
             index_of_multiple_deprivation=last_imd(postcodes),
-            first_mh_care_date=isoformat_optional_date(first_mh_care_date),
+            first_mh_care_date=isoformat_optional_date_str(first_mh_care_date),
             age_at_first_mh_care=age_years(dob, first_mh_care_date),
             any_icd10_dx_present=row[q.ANY_ICD10_DX_PRESENT],
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
-        p = BasePerson(
+        p = SimplePerson(
             local_id=pcmis_patient_id,
             other_info=other.json,
             first_name=row[q.FIRST_NAME] or "",
             middle_names=[middle_name] if middle_name else [],
             surname=row[q.SURNAME] or "",
             gender=gender,
-            dob=isoformat_optional_date(dob),
+            dob=isoformat_optional_date_str(dob),
             postcodes=postcode_temporal_identifiers(postcodes),
         )
         yield p
@@ -1673,7 +1617,7 @@ def _get_rio_names(
 
 def validate_2_fetch_rio(
     url: str, hash_fn: HASH_FUNCTION_TYPE, echo: bool = False
-) -> Generator[BasePerson, None, None]:
+) -> Generator[SimplePerson, None, None]:
     """
     Generates IDENTIFIED people from CPFT's RiO source database.
 
@@ -1836,26 +1780,26 @@ def validate_2_fetch_rio(
 
         other = CPFTValidationExtras(
             hashed_nhs_number=hash_fn(nhs_number),
-            blurred_dob=isoformat_optional_date(
+            blurred_dob=isoformat_optional_date_str(
                 truncate_date_to_first_of_month(dob)
             ),
             gender=gender,
             ethnicity=row[q.ETHNICITY],
             index_of_multiple_deprivation=last_imd(postcodes),
-            first_mh_care_date=isoformat_optional_date(first_mh_care_date),
+            first_mh_care_date=isoformat_optional_date_str(first_mh_care_date),
             age_at_first_mh_care=age_years(dob, first_mh_care_date),
             any_icd10_dx_present=row[q.ANY_ICD10_DX_PRESENT],
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
-        p = BasePerson(
+        p = SimplePerson(
             local_id=rio_client_id,
             other_info=other.json,
             first_name=first_name,
             middle_names=middle_names,
             surname=surname,
             gender=gender,
-            dob=isoformat_optional_date(dob),
+            dob=isoformat_optional_date_str(dob),
             postcodes=postcode_temporal_identifiers(postcodes),
         )
         yield p
@@ -1933,7 +1877,7 @@ def _get_systmone_postcodes(
 
 def validate_2_fetch_systmone(
     url: str, hash_fn: HASH_FUNCTION_TYPE, echo: bool = False
-) -> Generator[BasePerson, None, None]:
+) -> Generator[SimplePerson, None, None]:
     """
     Generates IDENTIFIED people from CPFT's SystmOne source database.
 
@@ -2133,26 +2077,26 @@ def validate_2_fetch_systmone(
 
         other = CPFTValidationExtras(
             hashed_nhs_number=hash_fn(nhs_number),
-            blurred_dob=isoformat_optional_date(
+            blurred_dob=isoformat_optional_date_str(
                 truncate_date_to_first_of_month(dob)
             ),
             gender=gender,
             ethnicity=row[q.ETHNICITY],
             index_of_multiple_deprivation=last_imd(postcodes),
-            first_mh_care_date=isoformat_optional_date(first_mh_care_date),
+            first_mh_care_date=isoformat_optional_date_str(first_mh_care_date),
             age_at_first_mh_care=age_years(dob, first_mh_care_date),
             any_icd10_dx_present=row[q.ANY_ICD10_DX_PRESENT],
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
-        p = BasePerson(
+        p = SimplePerson(
             local_id=str(systmone_patient_id),
             other_info=other.json,
             first_name=row[q.FIRST_NAME] or "",
             middle_names=[middle_name] if middle_name else [],
             surname=row[q.SURNAME] or "",
             gender=gender,
-            dob=isoformat_optional_date(dob),
+            dob=isoformat_optional_date_str(dob),
             postcodes=postcode_temporal_identifiers(postcodes),
         )
         yield p
@@ -2164,7 +2108,9 @@ def validate_2_fetch_systmone(
 
 
 def save_people_from_db(
-    people: Iterable[BasePerson], output_csv: str, report_every: int = 1000
+    people: Iterable[SimplePerson],
+    output_filename: str,
+    report_every: int = 1000,
 ) -> None:
     """
     Saves people (in plaintext) from a function that generates them from a
@@ -2173,14 +2119,14 @@ def save_people_from_db(
     Args:
         people:
             iterable of :class:`Person`
-        output_csv:
-            output filename
+        output_filename:
+            output CSV filename
         report_every:
             report progress every n people
     """
     rownum = 0
-    log.info(f"Saving to: {output_csv}")
-    with open(output_csv, "wt") as f:
+    log.info(f"Saving to: {output_filename}")
+    with open(output_filename, "wt") as f:
         for i, p in enumerate(people):
             if i == 0:
                 # This allows us to do custom headers for "other" info
@@ -2236,7 +2182,7 @@ def v2_hashed(database: str) -> str:
     """
     A default filename.
     """
-    return f"fuzzy_data_{database}_hashed.csv"
+    return f"fuzzy_data_{database}_hashed.jsonl"
 
 
 def v2_outplain(probands: str, sample: str) -> str:
@@ -2250,7 +2196,7 @@ def v2_outhashed(probands: str, sample: str) -> str:
     """
     A default filename.
     """
-    return f"fuzzy_compare_{probands}_to_{sample}_hashed.csv"
+    return f"fuzzy_compare_{probands}_to_{sample}_hashed.jsonl"
 
 
 def help_v2_fetch() -> str:
@@ -2482,7 +2428,7 @@ def main() -> int:
         "--people",
         type=str,
         required=True,
-        help="CSV filename for validation 1 data. "
+        help="Input filename for validation 1 data. "
         + Person.PLAINTEXT_CSV_FORMAT_HELP,
     )
     validate1_parser.add_argument(
@@ -2524,7 +2470,7 @@ def main() -> int:
             "--output",
             type=str,
             required=True,
-            help="CSV filename for output (plaintext, IDENTIFIABLE) data. "
+            help="Filename for output (plaintext, IDENTIFIABLE) data. "
             + Person.PLAINTEXT_CSV_FORMAT_HELP,
         )
         parser_.add_argument("--echo", action="store_true", help="Echo SQL?")
@@ -2607,8 +2553,8 @@ def main() -> int:
         log.info("Running validation test 1.")
         validate_1(
             cfg,
-            people_csv=args.people,
-            output_csv=args.output,
+            people_filename=args.people,
+            output_filename=args.output,
             seed=args.seed,
         )
         log.info("Validation test 1 complete.")
@@ -2619,7 +2565,7 @@ def main() -> int:
             people=validate_2_fetch_cdl(
                 url=args.url, hash_fn=get_hash_function(args), echo=args.echo
             ),
-            output_csv=args.output,
+            output_filename=args.output,
         )
 
     elif args.command == "validate2_fetch_pcmis":
@@ -2628,7 +2574,7 @@ def main() -> int:
             people=validate_2_fetch_pcmis(
                 url=args.url, hash_fn=get_hash_function(args), echo=args.echo
             ),
-            output_csv=args.output,
+            output_filename=args.output,
         )
 
     elif args.command == "validate2_fetch_rio":
@@ -2637,7 +2583,7 @@ def main() -> int:
             people=validate_2_fetch_rio(
                 url=args.url, hash_fn=get_hash_function(args), echo=args.echo
             ),
-            output_csv=args.output,
+            output_filename=args.output,
         )
 
     elif args.command == "validate2_fetch_systmone":
@@ -2646,7 +2592,7 @@ def main() -> int:
             people=validate_2_fetch_systmone(
                 url=args.url, hash_fn=get_hash_function(args), echo=args.echo
             ),
-            output_csv=args.output,
+            output_filename=args.output,
         )
 
     else:
