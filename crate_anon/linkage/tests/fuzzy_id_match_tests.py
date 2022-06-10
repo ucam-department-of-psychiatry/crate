@@ -104,7 +104,7 @@ class TestCondition(object):
     ) -> None:
         """
         Args:
-            cfg: the master :class:`MatchConfig` object
+            cfg: the main :class:`MatchConfig` object
             person_a: one representation of a person
             person_b: another representation of a person
             should_match: should they be treated as the same person?

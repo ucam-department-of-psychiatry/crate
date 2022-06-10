@@ -1222,8 +1222,8 @@ mk_generic_pairwise_plot <- function(
     comp_simple = NULL,
     overlap_label_y = 0.25,
     overlap_label_vjust = 0,  # vcentre
-    overlap_label_x = 0,
-    overlap_label_hjust = 0,  # 0 = left-justify, 1 = right-justify
+    overlap_label_x = max(THETA_OPTIONS),
+    overlap_label_hjust = 1,  # 0 = left-justify, 1 = right-justify
     overlap_label_size = 2,
     diagonal_colour = "black",
     diagonal_background_alpha = 0.1
@@ -1245,6 +1245,7 @@ mk_generic_pairwise_plot <- function(
         )
         %>% as.data.table()
     )
+    facet_data_diagonal <- unique(d[, .(from, to)])[from == to]
     if (x_is_theta) {
         xvar <- "theta"
         colourvar <- "delta"
@@ -1263,6 +1264,7 @@ mk_generic_pairwise_plot <- function(
         colour_scale <- COLOUR_SCALE_DELTA
     }
     y_label <- paste(depvars, collapse = ", ")
+
     p <- (
         ggplot(
             d,
@@ -1274,6 +1276,33 @@ mk_generic_pairwise_plot <- function(
                 linetype = "quantity",
                 shape = "quantity"
             )
+        )
+        + geom_rect(
+            # Make the leading diagonal panels a different colour.
+            # ggplot doesn't support altering the facet colours in a systematic
+            # way. However:
+            # - https://stackoverflow.com/questions/6750664
+            # - https://www.cedricscherer.com/2019/08/05/a-ggplot2-tutorial-for-beautiful-plotting-in-r/#panels
+            # - https://stackoverflow.com/questions/9847559/conditionally-change-panel-background-with-facet-grid
+            #   ... last of these is the best by far.
+            # Put the geom_rect at the bottom (first).
+            data = facet_data_diagonal,
+            aes(
+                # Reset to NULL anything set in the top-level aes() or
+                # aes_string() call.
+                x = NULL,
+                y = NULL,
+                group = NULL,
+                colour = NULL,
+                linetype = NULL,
+                shape = NULL
+            ),
+            xmin = -Inf,
+            xmax = Inf,
+            ymin = -Inf,
+            ymax = Inf,
+            fill = diagonal_colour,
+            alpha = diagonal_background_alpha
         )
         + geom_vline(
             xintercept = vline_xintercept,
@@ -1311,36 +1340,6 @@ mk_generic_pairwise_plot <- function(
                 y = overlap_label_y,
                 vjust = overlap_label_vjust,
                 size = overlap_label_size
-            )
-        )
-    }
-    if (!is.null(diagonal_colour)) {
-        # Make the leading diagonal panels a different colour.
-        # ggplot doesn't support altering the facet colours in a systematic
-        # way. However:
-        # - https://stackoverflow.com/questions/6750664
-        # - https://www.cedricscherer.com/2019/08/05/a-ggplot2-tutorial-for-beautiful-plotting-in-r/#panels
-        # - https://stackoverflow.com/questions/9847559/conditionally-change-panel-background-with-facet-grid
-        #   ... last of these is the best by far.
-        facet_data_diagonal <- unique(d[, .(from, to)])[from == to]
-        p <- (
-            p
-            + geom_rect(
-                data = facet_data_diagonal,
-                aes(
-                    x = NULL,
-                    y = NULL,
-                    group = NULL,
-                    colour = NULL,
-                    linetype = NULL,
-                    shape = NULL
-                ),
-                xmin = -Inf,
-                xmax = Inf,
-                ymin = -Inf,
-                ymax = Inf,
-                fill = diagonal_colour,
-                alpha = diagonal_background_alpha
             )
         )
     }
@@ -1652,3 +1651,4 @@ main <- function()
 # TODO: improve estimates of gender mismatch error, and other errors?
 
 # TODO: rethink analytically about the PCMIS NHS# duplication problem
+# TODO: move "o=" annotations to the RHS again on the figures

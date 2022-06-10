@@ -43,7 +43,7 @@ import logging
 from multiprocessing import Pool
 import sys
 import time
-from typing import Any, Generator, List, Tuple, TYPE_CHECKING
+from typing import Any, List, Tuple, TYPE_CHECKING
 
 from cardinal_pythonlib.argparse_func import (
     RawDescriptionArgumentDefaultsHelpFormatter,
@@ -54,7 +54,6 @@ from cardinal_pythonlib.hash import HashMethods
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.probability import probability_from_log_odds
 from cardinal_pythonlib.profile import do_cprofile
-import jsonlines
 
 from crate_anon.common.constants import EXIT_FAILURE, EXIT_SUCCESS
 from crate_anon.linkage.helpers import (
@@ -73,11 +72,13 @@ from crate_anon.linkage.constants import (
 )
 from crate_anon.linkage.matchconfig import MatchConfig
 from crate_anon.linkage.person import (
+    gen_person_from_file,
     SimplePerson,
     DuplicateLocalIDError,
     MatchResult,
     People,
     Person,
+    PersonWriter,
 )
 from crate_anon.version import CRATE_VERSION
 
@@ -243,7 +244,7 @@ def compare_probands_to_sample(
 
     Args:
         cfg:
-            The master :class:`MatchConfig` object.
+            The main :class:`MatchConfig` object.
         probands:
             :class:`People`
         sample:
@@ -387,7 +388,7 @@ def compare_probands_to_sample_from_files(
 
     Args:
         cfg:
-            The master :class:`MatchConfig` object.
+            The main :class:`MatchConfig` object.
         probands_filename:
             Filename of people (probands); see :func:`read_people`.
         sample_filename:
@@ -469,41 +470,6 @@ def compare_probands_to_sample_from_files(
 # =============================================================================
 
 
-def gen_people_from_file(
-    cfg: MatchConfig, filename: str, plaintext: bool = True
-) -> Generator[Person, None, None]:
-    """
-    Read a list of people from a CSV/JSONLines file. See :class:`People` for
-    the column details.
-
-    Args:
-        cfg:
-            Configuration object.
-        filename:
-            Filename to read.
-        plaintext:
-            Read in plaintext (from CSV), rather than hashed (from JSON Lines),
-            format?
-
-    Yields:
-        Person objects
-    """
-    log.info(f"Reading file: {filename}")
-    assert filename
-    if plaintext:
-        # CSV file
-        with open(filename, "rt") as f:
-            reader = csv.DictReader(f)
-            for rowdict in reader:
-                yield Person.from_plaintext_csv(cfg, rowdict)
-    else:
-        # JSON Lines file
-        with jsonlines.open(filename) as reader:
-            for obj in reader:
-                yield Person.from_hashed_dict(cfg, obj)
-    log.info("... done")
-
-
 def read_people_alternate_groups(
     cfg: MatchConfig,
     filename: str,
@@ -519,7 +485,7 @@ def read_people_alternate_groups(
     a = People(cfg=cfg)
     b = People(cfg=cfg)
     for i, person in enumerate(
-        gen_people_from_file(cfg, filename, plaintext), start=2
+        gen_person_from_file(cfg, filename, plaintext), start=2
     ):
         try:
             if i % 2 == 0:
@@ -545,7 +511,7 @@ def read_people(
     """
     people = People(cfg=cfg)
     for i, person in enumerate(
-        gen_people_from_file(cfg, filename, plaintext), start=2
+        gen_person_from_file(cfg, filename, plaintext), start=2
     ):
         try:
             people.add_person(person)
@@ -573,11 +539,11 @@ def hash_identity_file(
 
     Args:
         cfg:
-            The master :class:`MatchConfig` object.
+            The main :class:`MatchConfig` object.
         input_filename:
             Input (plaintext) CSV filename to read.
         output_filename:
-            Iutput (hashed) CSV filename to write.
+            Output (hashed) CSV filename to write.
         include_frequencies:
             Include frequency information. Without this, the resulting file is
             suitable for use as a sample, but not as a proband file.
@@ -585,20 +551,14 @@ def hash_identity_file(
             Include the (potentially identifying) ``other_info`` data? Usually
             ``False``; may be ``True`` for validation.
     """
-    if include_other_info:
-        log.warning("include_other_info is set; use this for validation only")
-    with open(input_filename, "rt") as infile, jsonlines.open(
-        output_filename, "w"
+    with PersonWriter(
+        filename=output_filename,
+        plaintext=False,
+        include_frequencies=include_frequencies,
+        include_other_info=include_other_info,
     ) as writer:
-        reader = csv.DictReader(infile)
-        for inputrow in reader:
-            plaintext_person = Person.from_plaintext_csv(cfg, inputrow)
-            writer.write(
-                plaintext_person.hashed_dict(
-                    include_frequencies=include_frequencies,
-                    include_other_info=include_other_info,
-                )
-            )
+        for person in gen_person_from_file(cfg, input_filename):
+            writer.write(person)
 
 
 # =============================================================================
@@ -744,10 +704,9 @@ def get_demo_csv() -> str:
     people = get_demo_people()
     assert len(people) >= 1
     output = StringIO()
-    writer = csv.DictWriter(output, fieldnames=SimplePerson.ALL_PERSON_KEYS)
-    writer.writeheader()
-    for person in people:
-        writer.writerow(person.plaintext_csv_dict())
+    with PersonWriter(file=output, plaintext=True) as writer:
+        for person in people:
+            writer.write(person)
     return output.getvalue()
 
 

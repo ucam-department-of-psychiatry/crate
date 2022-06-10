@@ -45,8 +45,6 @@ import random
 import sys
 import timeit
 from typing import (
-    Any,
-    Callable,
     Generator,
     Iterable,
     List,
@@ -61,7 +59,7 @@ from cardinal_pythonlib.datetimefunc import (
     coerce_to_pendulum_date,
     truncate_date_to_first_of_month,
 )
-from cardinal_pythonlib.hash import HashMethods, make_hasher
+from cardinal_pythonlib.hash import HashMethods
 from cardinal_pythonlib.nhs import is_test_nhs_number, is_valid_nhs_number
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.profile import do_cprofile
@@ -100,7 +98,11 @@ from crate_anon.linkage.fuzzy_id_match import (
     Switches,
     warn_or_fail_if_default_key,
 )
-from crate_anon.linkage.person import SimplePerson, People, Person
+from crate_anon.linkage.person import (
+    People,
+    Person,
+    PersonWriter,
+)
 
 log = logging.getLogger(__name__)
 
@@ -294,13 +296,6 @@ it produces an error. Use TRY_CAST() to return NULL on failure.
 
 
 # =============================================================================
-# Type checking
-# =============================================================================
-
-HASH_FUNCTION_TYPE = Callable[[Any], str]
-
-
-# =============================================================================
 # NHS number checks
 # =============================================================================
 
@@ -354,9 +349,9 @@ def speedtest(cfg: MatchConfig, set_breakpoint: bool = False) -> None:
 
     Args:
         cfg:
-            the master :class:`MatchConfig` object
+            The main :class:`MatchConfig` object.
         set_breakpoint:
-            set a pdb breakpoint to explore objects from the Python console?
+            Set a pdb breakpoint to explore objects from the Python console?
     """
     log.info("Building test conditions...")
     p1 = TemporalIDHolder(
@@ -585,12 +580,18 @@ def validate_1(
     Read data and perform split-half validation.
 
     Args:
-        cfg: the master :class:`MatchConfig` object
-        people_filename: filename of people; see :func:`read_people`.
-        cache_filename: cache filename, for faster loading
-        output_filename: output CSV filename
-        seed: RNG seed
-        report_every: report progress every n rows
+        cfg:
+            The main :class:`MatchConfig` object.
+        people_filename:
+            Filename of people; see :func:`read_people`.
+        cache_filename:
+            Cache filename, for faster loading.
+        output_filename:
+            Output CSV filename.
+        seed:
+            RNG seed
+        report_every:
+            Report progress every n rows.
     """
     # -------------------------------------------------------------------------
     # Load and hash data
@@ -913,8 +914,8 @@ class QueryColnames:
 
 
 def validate_2_fetch_cdl(
-    url: str, hash_fn: HASH_FUNCTION_TYPE, echo: bool = False
-) -> Generator[SimplePerson, None, None]:
+    cfg: MatchConfig, url: str, echo: bool = False
+) -> Generator[Person, None, None]:
     """
     Generates IDENTIFIED people from CPFT's CRS/CRL source database.
 
@@ -1105,7 +1106,7 @@ def validate_2_fetch_cdl(
             )
 
         other = CPFTValidationExtras(
-            hashed_nhs_number=hash_fn(nhs_number),
+            hashed_nhs_number=cfg.hash_fn(nhs_number),
             blurred_dob=isoformat_optional_date_str(
                 truncate_date_to_first_of_month(dob)
             ),
@@ -1118,7 +1119,8 @@ def validate_2_fetch_cdl(
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
-        p = SimplePerson(
+        p = Person(
+            cfg=cfg,
             local_id=str(cdl_m_number),
             other_info=other.json,
             first_name=row[q.FIRST_NAME] or "",
@@ -1137,16 +1139,16 @@ def validate_2_fetch_cdl(
 
 
 def validate_2_fetch_pcmis(
-    url: str, hash_fn: HASH_FUNCTION_TYPE, echo: bool = False
-) -> Generator[SimplePerson, None, None]:
+    cfg: MatchConfig, url: str, echo: bool = False
+) -> Generator[Person, None, None]:
     """
     Generates IDENTIFIED people from CPFT's PCMIS source database.
 
     Args:
+        cfg:
+            The main :class:`MatchConfig` object.
         url:
             SQLAlchemy URL.
-        hash_fn:
-            Hash function for hashing NHS number (original ID) to research ID.
         echo:
             Echo SQL?
 
@@ -1369,7 +1371,7 @@ def validate_2_fetch_pcmis(
             )
 
         other = CPFTValidationExtras(
-            hashed_nhs_number=hash_fn(nhs_number),
+            hashed_nhs_number=cfg.hash_fn(nhs_number),
             blurred_dob=isoformat_optional_date_str(
                 truncate_date_to_first_of_month(dob)
             ),
@@ -1382,7 +1384,8 @@ def validate_2_fetch_pcmis(
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
-        p = SimplePerson(
+        p = Person(
+            cfg=cfg,
             local_id=pcmis_patient_id,
             other_info=other.json,
             first_name=row[q.FIRST_NAME] or "",
@@ -1616,8 +1619,8 @@ def _get_rio_names(
 
 
 def validate_2_fetch_rio(
-    url: str, hash_fn: HASH_FUNCTION_TYPE, echo: bool = False
-) -> Generator[SimplePerson, None, None]:
+    cfg: MatchConfig, url: str, echo: bool = False
+) -> Generator[Person, None, None]:
     """
     Generates IDENTIFIED people from CPFT's RiO source database.
 
@@ -1626,10 +1629,10 @@ def validate_2_fetch_rio(
     is very restricted -- to administrators only.
 
     Args:
+        cfg:
+            The main :class:`MatchConfig` object.
         url:
             SQLAlchemy URL.
-        hash_fn:
-            Hash function for hashing NHS number (original ID) to research ID.
         echo:
             Echo SQL?
 
@@ -1779,7 +1782,7 @@ def validate_2_fetch_rio(
         postcodes = _get_rio_postcodes(engine, rio_client_id)
 
         other = CPFTValidationExtras(
-            hashed_nhs_number=hash_fn(nhs_number),
+            hashed_nhs_number=cfg.hash_fn(nhs_number),
             blurred_dob=isoformat_optional_date_str(
                 truncate_date_to_first_of_month(dob)
             ),
@@ -1792,7 +1795,8 @@ def validate_2_fetch_rio(
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
-        p = SimplePerson(
+        p = Person(
+            cfg=cfg,
             local_id=rio_client_id,
             other_info=other.json,
             first_name=first_name,
@@ -1876,16 +1880,16 @@ def _get_systmone_postcodes(
 
 
 def validate_2_fetch_systmone(
-    url: str, hash_fn: HASH_FUNCTION_TYPE, echo: bool = False
-) -> Generator[SimplePerson, None, None]:
+    cfg: MatchConfig, url: str, echo: bool = False
+) -> Generator[Person, None, None]:
     """
     Generates IDENTIFIED people from CPFT's SystmOne source database.
 
     Args:
+        cfg:
+            The main :class:`MatchConfig` object.
         url:
             SQLAlchemy URL.
-        hash_fn:
-            Hash function for hashing NHS number (original ID) to research ID.
         echo:
             Echo SQL?
 
@@ -2076,7 +2080,7 @@ def validate_2_fetch_systmone(
         postcodes = _get_systmone_postcodes(engine, systmone_patient_id)
 
         other = CPFTValidationExtras(
-            hashed_nhs_number=hash_fn(nhs_number),
+            hashed_nhs_number=cfg.hash_fn(nhs_number),
             blurred_dob=isoformat_optional_date_str(
                 truncate_date_to_first_of_month(dob)
             ),
@@ -2089,7 +2093,8 @@ def validate_2_fetch_systmone(
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
-        p = SimplePerson(
+        p = Person(
+            cfg=cfg,
             local_id=str(systmone_patient_id),
             other_info=other.json,
             first_name=row[q.FIRST_NAME] or "",
@@ -2108,8 +2113,9 @@ def validate_2_fetch_systmone(
 
 
 def save_people_from_db(
-    people: Iterable[SimplePerson],
+    people: Iterable[Person],
     output_filename: str,
+    plaintext: bool = True,
     report_every: int = 1000,
 ) -> None:
     """
@@ -2118,27 +2124,24 @@ def save_people_from_db(
 
     Args:
         people:
-            iterable of :class:`Person`
+            Iterable of :class:`Person`.
         output_filename:
-            output CSV filename
+            Output CSV/JSONL filename.
+        plaintext:
+            Save in plaintext format?
         report_every:
-            report progress every n people
+            Report progress every n people.
     """
-    rownum = 0
-    log.info(f"Saving to: {output_filename}")
-    with open(output_filename, "wt") as f:
-        for i, p in enumerate(people):
-            if i == 0:
-                # This allows us to do custom headers for "other" info
-                writer = csv.DictWriter(
-                    f, fieldnames=p.plaintext_csv_columns()
-                )
-                writer.writeheader()
-            writer.writerow(p.plaintext_csv_dict())
-            rownum += 1
+    with PersonWriter(
+        filename=output_filename,
+        plaintext=plaintext,
+        include_frequencies=True,
+        include_other_info=True,
+    ) as writer:
+        for rownum, p in enumerate(people, start=1):
+            writer.write(p)
             if rownum % report_every == 0:
                 log.info(f"Processing person #{rownum}")
-    log.info("... finished saving.")
 
 
 # =============================================================================
@@ -2470,12 +2473,28 @@ def main() -> int:
             "--output",
             type=str,
             required=True,
-            help="Filename for output (plaintext, IDENTIFIABLE) data. "
+            help="Filename for output (plaintext CSV or hashed JSONL) data. "
             + Person.PLAINTEXT_CSV_FORMAT_HELP,
+        )
+        parser_.add_argument(
+            "--plaintext",
+            action="store_true",
+            help="Write identifiable, not hashed, data.",
         )
         parser_.add_argument("--echo", action="store_true", help="Echo SQL?")
         add_hasher_options(parser_)
+        add_error_probabilities(parser_)
+        add_config_options(parser_)
         add_basic_options(parser_)
+
+    def _get_validate2_config(args_) -> MatchConfig:
+        return get_cfg_from_args(
+            args_,
+            require_hasher=False,
+            require_main_config=True,
+            require_error=True,
+            require_matching=False,
+        )
 
     # CDL
     validate2_cdl_parser = subparsers.add_parser(
@@ -2526,9 +2545,6 @@ def main() -> int:
     # Run a command
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def get_hash_function(args_: argparse.Namespace) -> HASH_FUNCTION_TYPE:
-        return make_hasher(hash_method=args_.hash_method, key=args_.key).hash
-
     log.info(f"Command: {args.command}")
 
     if args.command == "speedtest":
@@ -2561,38 +2577,42 @@ def main() -> int:
 
     elif args.command == "validate2_fetch_cdl":
         warn_or_fail_if_default_key(args)
+        cfg = _get_validate2_config(args)
         save_people_from_db(
-            people=validate_2_fetch_cdl(
-                url=args.url, hash_fn=get_hash_function(args), echo=args.echo
-            ),
+            people=validate_2_fetch_cdl(cfg=cfg, url=args.url, echo=args.echo),
             output_filename=args.output,
+            plaintext=args.plaintext,
         )
 
     elif args.command == "validate2_fetch_pcmis":
         warn_or_fail_if_default_key(args)
+        cfg = _get_validate2_config(args)
         save_people_from_db(
             people=validate_2_fetch_pcmis(
-                url=args.url, hash_fn=get_hash_function(args), echo=args.echo
+                cfg=cfg, url=args.url, echo=args.echo
             ),
             output_filename=args.output,
+            plaintext=args.plaintext,
         )
 
     elif args.command == "validate2_fetch_rio":
         warn_or_fail_if_default_key(args)
+        cfg = _get_validate2_config(args)
         save_people_from_db(
-            people=validate_2_fetch_rio(
-                url=args.url, hash_fn=get_hash_function(args), echo=args.echo
-            ),
+            people=validate_2_fetch_rio(cfg=cfg, url=args.url, echo=args.echo),
             output_filename=args.output,
+            plaintext=args.plaintext,
         )
 
     elif args.command == "validate2_fetch_systmone":
         warn_or_fail_if_default_key(args)
+        cfg = _get_validate2_config(args)
         save_people_from_db(
             people=validate_2_fetch_systmone(
-                url=args.url, hash_fn=get_hash_function(args), echo=args.echo
+                cfg=cfg, url=args.url, echo=args.echo
             ),
             output_filename=args.output,
+            plaintext=args.plaintext,
         )
 
     else:

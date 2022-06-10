@@ -384,7 +384,7 @@ def mutate_postcode(postcode: str, cfg: "MatchConfig") -> str:
 
     Args:
         postcode: the postcode to alter
-        cfg: the master :class:`MatchConfig` object
+        cfg: the main :class:`MatchConfig` object
     """
     n = len(postcode)
     a = ord("A")
@@ -437,7 +437,7 @@ def ln(x: float) -> float:
     except Exception:  # numba.jit can only cope with Exception
         if x < 0:
             raise ValueError("Can't take log of a negative number")
-        # Either x > 0 but causing problems anyway, or x == 0.
+        # Either x > 0 but causing problems anyway (unlikely), or x == 0.
         return MINUS_INFINITY
 
 

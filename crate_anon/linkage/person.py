@@ -36,22 +36,27 @@ crate_anon/linkage/person.py
 
 from collections import defaultdict
 import copy
+import csv
 from dataclasses import dataclass, field
 import json
+from io import TextIOBase
 import logging
-from typing import Iterable, Union
-
 import random
+from types import TracebackType
 from typing import (
     Any,
     Dict,
     Generator,
+    Iterable,
     List,
     Optional,
     Set,
+    Type,
+    Union,
 )
 
 from cardinal_pythonlib.reprfunc import auto_repr
+import jsonlines
 
 from crate_anon.linkage.comparison import (
     bayes_compare,
@@ -1157,3 +1162,157 @@ class People(object):
         Returns a copy of itself.
         """
         return People(cfg=self.cfg, people=[p.copy() for p in self.people])
+
+
+# =============================================================================
+# Loading people data
+# =============================================================================
+
+
+def gen_person_from_file(
+    cfg: MatchConfig, filename: str, plaintext: bool = True
+) -> Generator[Person, None, None]:
+    """
+    Read a list of people from a CSV/JSONLines file. See
+    :class:`BasePerson.PersonKey` for the column details.
+
+    Args:
+        cfg:
+            Configuration object.
+        filename:
+            Filename to read.
+        plaintext:
+            Read in plaintext (from CSV), rather than hashed (from JSON Lines),
+            format?
+
+    Yields:
+        Person objects
+    """
+    log.info(f"Reading file: {filename}")
+    assert filename
+    if plaintext:
+        # CSV file
+        with open(filename, "rt") as f:
+            reader = csv.DictReader(f)
+            for rowdict in reader:
+                yield Person.from_plaintext_csv(cfg, rowdict)
+    else:
+        # JSON Lines file
+        with jsonlines.open(filename) as reader:
+            for obj in reader:
+                yield Person.from_hashed_dict(cfg, obj)
+    log.info(f"... finished reading from {filename}")
+
+
+# =============================================================================
+# Saving people data
+# =============================================================================
+
+
+class PersonWriter:
+    """
+    A context manager for writing :class:`Person` objects to CSV (plaintext) or
+    JSONL (hashed).
+    """
+
+    def __init__(
+        self,
+        file: TextIOBase = None,
+        filename: str = None,
+        plaintext: bool = False,
+        include_frequencies: bool = True,
+        include_other_info: bool = False,
+    ) -> None:
+        """
+        Args:
+            file:
+                File-like object to which to write. Use either this or
+                ``filename``, not both.
+            filename:
+                Filename to which to write. Use either this or ``file``, not
+                both.
+            plaintext:
+                Plaintext (in CSV)? If False, will be written hashed (in
+                JSONL).
+            include_frequencies:
+                (For hashed writing only.) Include frequency information.
+                Without this, the resulting file is suitable for use as a
+                sample, but not as a proband file.
+            include_other_info:
+                (For hashed writing only.) Include the (potentially
+                identifying) ``other_info`` data? Usually ``False``; may be
+                ``True`` for validation.
+        """
+        assert bool(file) != bool(
+            filename
+        ), "Specify either file or filename (and not both)"
+        if include_other_info:
+            log.warning(
+                "include_other_info is set; use this for validation only"
+            )
+
+        self.filename = filename
+        self.file = file
+        self.plaintext = plaintext
+        self.include_frequencies = include_frequencies
+        self.include_other_info = include_other_info
+
+        self.csv_writer = None  # type: Optional[csv.DictWriter]
+
+    def __enter__(self) -> "PersonWriter":
+        """
+        Used by the ``with`` statement; the thing returned is what you get
+        from ``with``.
+        """
+        # 1. Ensure we have a file.
+        if self.filename:
+            log.info(f"Saving to: {self.filename}")
+            self.file = open(self.filename, "wt")
+        # 2. Create a writer.
+        if self.plaintext:
+            self.csv_writer = csv.DictWriter(
+                self.file, fieldnames=SimplePerson.ALL_PERSON_KEYS
+            )
+            self.csv_writer.writeheader()
+        else:
+            self.jsonl_writer = jsonlines.Writer(self.file)
+        return self
+
+    def write(self, person: Union[SimplePerson, Person]) -> None:
+        """
+        Write a person to the file.
+        """
+        if self.plaintext:
+            self.csv_writer.writerow(person.plaintext_csv_dict())
+        else:
+            if isinstance(person, SimplePerson):
+                raise ValueError(
+                    "Cannot write a hashed version of a SimplePerson"
+                )
+            self.jsonl_writer.write(
+                person.hashed_dict(
+                    include_frequencies=self.include_frequencies,
+                    include_other_info=self.include_other_info,
+                )
+            )
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        """
+        Reverse the operations of __enter__().
+        """
+        # 2. Close the writers.
+        if self.plaintext:
+            pass
+        else:
+            self.jsonl_writer.close()
+
+        # 2. There's nothing to do to close the writers.
+        # 1. If we opened a file, ensure we close it.
+        if self.filename:
+            self.file.close()
+            log.info(f"f... finished saving to {self.filename}")

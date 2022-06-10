@@ -92,8 +92,8 @@ class Comparison(object):
     @property
     def p_d_given_not_h(self) -> float:
         """
-        Returns :math:`P(D | H)`, the probability of the observed data given
-        the hypothesis of a match.
+        Returns :math:`P(D | ¬H)`, the probability of the observed data given
+        no match.
         """
         raise NotImplementedError("Implement in derived class!")
 
