@@ -307,7 +307,10 @@ class Identifier(ABC):
         """
         if x is None:
             return None
-        return round_sf(x, self.cfg.rounding_sf)
+        sf = self.cfg.rounding_sf
+        if sf is None:
+            return x
+        return round_sf(x, sf)
 
     # -------------------------------------------------------------------------
     # Python standard representation functions

@@ -34,6 +34,7 @@ crate_anon/linkage/helpers.py
 # Imports
 # =============================================================================
 
+from argparse import ArgumentTypeError
 from contextlib import contextmanager, ExitStack
 from io import StringIO, TextIOWrapper
 import logging
@@ -587,3 +588,21 @@ def age_years(dob: Optional[Date], when: Optional[Date]) -> Optional[int]:
     if dob and when:
         return (when - dob).in_years()
     return None
+
+
+# =============================================================================
+# argparse helpers
+# =============================================================================
+
+
+def optional_int(value: str) -> Optional[int]:
+    """
+    ``argparse`` argument type that checks that its value is an integer or the
+    value ``None``.
+    """
+    if value.lower() == "none":
+        return None
+    try:
+        return int(value)
+    except (AssertionError, TypeError, ValueError):
+        raise ArgumentTypeError(f"{value!r} is an invalid optional int")

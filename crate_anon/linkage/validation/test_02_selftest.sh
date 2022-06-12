@@ -39,7 +39,8 @@ COMPARISON_H2H=${WORKDIR}/crate_fuzzy_output_h2h.csv
 "${FUZZY}" hash \
     --allow_default_hash_key \
     --input "${SAMPLE}" \
-    --output "${SAMPLE_HASHED}"
+    --output "${SAMPLE_HASHED}" \
+    --rounding_sf None
 "${FUZZY}" hash \
     --allow_default_hash_key \
     --input "${SAMPLE}" \
@@ -77,17 +78,16 @@ COMPARISON_H2H=${WORKDIR}/crate_fuzzy_output_h2h.csv
     --sample "${SAMPLE_HASHED}" \
     --output "${COMPARISON_H2H}" \
     --n_workers 1
-# cmp "${COMPARISON_H2H}" "${COMPARISON_P2P}" || { echo "H2H/P2P mismatch"; exit 1; }
-# The comparisons fail at e.g. the fourth decimal place of the log odds,
-# because fuzzy frequencies are slightly blurred...
+cmp "${COMPARISON_H2H}" "${COMPARISON_P2P}" || { echo "H2H/P2P mismatch"; exit 1; }
 
 "${FUZZY}" compare_hashed_to_plaintext \
     --allow_default_hash_key \
     --probands "${SAMPLE_HASHED}" \
     --sample "${SAMPLE}" \
     --output "${COMPARISON_H2P}" \
-    --n_workers 1
-# cmp "${COMPARISON_H2P}" "${COMPARISON_P2P}" || { echo "H2P/P2P mismatch"; exit 1; }
+    --n_workers 1 \
+    --rounding_sf None
+cmp "${COMPARISON_H2P}" "${COMPARISON_P2P}" || { echo "H2P/P2P mismatch"; exit 1; }
 
 
 # -----------------------------------------------------------------------------

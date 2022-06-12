@@ -61,6 +61,7 @@ from crate_anon.linkage.helpers import (
     cache_save,
     get_metaphone,
     get_postcode_sector,
+    optional_int,
     standardize_postcode,
 )
 from crate_anon.linkage.identifiers import TemporalIDHolder
@@ -926,10 +927,10 @@ def add_hasher_options(parser: argparse.ArgumentParser) -> None:
     )
     hasher_group.add_argument(
         f"--{Switches.ROUNDING_SF}",
-        type=int,
+        type=optional_int,
         default=FuzzyDefaults.ROUNDING_SF,
         help="Number of significant figures to use when rounding frequencies "
-        "in hashed version",
+        "in hashed version. Use 'None' to disable rounding.",
     )
     hasher_group.add_argument(
         f"--{Switches.LOCAL_ID_HASH_KEY}",

@@ -34,7 +34,7 @@ crate_anon/linkage/matchconfig.py
 # =============================================================================
 
 import logging
-from typing import List, Optional, Tuple
+from typing import List, NoReturn, Optional, Tuple
 
 from cardinal_pythonlib.hash import make_hasher
 from cardinal_pythonlib.probability import log_odds_from_1_in_n
@@ -72,7 +72,7 @@ class MatchConfig(object):
         self,
         hash_key: str = FuzzyDefaults.HASH_KEY,
         hash_method: str = FuzzyDefaults.HASH_METHOD,
-        rounding_sf: int = FuzzyDefaults.ROUNDING_SF,
+        rounding_sf: Optional[int] = FuzzyDefaults.ROUNDING_SF,
         local_id_hash_key: str = None,
         population_size: int = FuzzyDefaults.POPULATION_SIZE,
         forename_cache_filename: str = FuzzyDefaults.FORENAME_CACHE_FILENAME,
@@ -118,7 +118,7 @@ class MatchConfig(object):
                 Method to use for hashhing.
             rounding_sf:
                 Number of significant figures to use when rounding frequency
-                information in hashed copies.
+                information in hashed copies. Use ``None`` for no rounding.
             local_id_hash_key:
                 If specified, then for hash operations, the local_id values
                 will also be hashed, using this key.
@@ -194,20 +194,42 @@ class MatchConfig(object):
             verbose:
                 Be verbose on creation?
         """
-        assert population_size > 0
-        assert 0 <= min_name_frequency <= 1
-        assert all(0 <= x <= 1 for x in p_middle_name_n_present)
-        assert birth_year_pseudo_range > 0
-        assert 0 <= p_not_male_or_female <= 1
-        assert 0 <= p_female_given_male_or_female <= 1
-        assert mean_oa_population > 0
-        assert 0 <= p_unknown_or_pseudo_postcode <= 1
-        assert 0 <= p_minor_forename_error <= 1
-        assert 0 <= p_minor_surname_error <= 1
-        assert 0 <= p_proband_middle_name_missing <= 1
-        assert 0 <= p_sample_middle_name_missing <= 1
-        assert 0 <= p_gender_error <= 1
-        assert 0 <= p_minor_postcode_error <= 1
+
+        def raise_bad(x_, name_) -> NoReturn:
+            raise ValueError(f"Bad {name_}: {x_!r}")
+
+        def check_prob(p_, name_) -> None:
+            if not 0 <= p_ <= 1:
+                raise_bad(p_, name_)
+
+        if not (rounding_sf is None or 1 <= rounding_sf):
+            raise_bad(rounding_sf, "rounding_sf")
+        if not (population_size > 0):
+            raise_bad(population_size, "population_size")
+        check_prob(min_name_frequency, "min_name_frequency")
+        for i, x in enumerate(p_middle_name_n_present):
+            check_prob(x, f"p_middle_name_n_present[{i}]")
+        if not (birth_year_pseudo_range > 0):
+            raise_bad(birth_year_pseudo_range, "birth_year_pseudo_range")
+        check_prob(p_not_male_or_female, "p_not_male_or_female")
+        check_prob(
+            p_female_given_male_or_female, "p_female_given_male_or_female"
+        )
+        if not (mean_oa_population > 0):
+            raise_bad(mean_oa_population, "mean_oa_population")
+        check_prob(
+            p_unknown_or_pseudo_postcode, "p_unknown_or_pseudo_postcode"
+        )
+        check_prob(p_minor_forename_error, "p_minor_forename_error")
+        check_prob(p_minor_surname_error, "p_minor_surname_error")
+        check_prob(
+            p_proband_middle_name_missing, "p_proband_middle_name_missing"
+        )
+        check_prob(
+            p_sample_middle_name_missing, "p_sample_middle_name_missing"
+        )
+        check_prob(p_gender_error, "p_gender_error")
+        check_prob(p_minor_postcode_error, "p_minor_postcode_error")
 
         if verbose:
             log.debug("Building MatchConfig...")

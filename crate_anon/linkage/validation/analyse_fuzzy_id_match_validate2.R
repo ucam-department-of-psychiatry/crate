@@ -658,54 +658,97 @@ imd_centile_100_most_deprived <- function(index_of_multiple_deprivation)
 
 load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
 {
-    # data.table::fread() messes up the quotes in JSON; probably possible to
-    # tweak it, but this is easier!
     cat(paste0("- Loading from: ", filename, "\n"))
-    d <- data.table(read.csv(filename, nrows = nrows))
-    cat("  ... loaded; processing...\n")
-    if (strip_irrelevant) {
-        # Get rid of columns we don't care about.
-        # d <- d[, .(local_id, other_info)]
-    }
-    # Now expand the "other_info" column, which is JSON.
+    # Read from JSON lines
     # https://stackoverflow.com/questions/31599299/expanding-a-json-column-in-r
+    # https://stackoverflow.com/questions/55120019/how-to-read-a-json-file-line-by-line-in-r
     de_null <- function(x, na_value) {
         # RJSONIO::fromJSON("{'a': null}") produces NULL. rbindlist() later
         # complains, so let's convert NULL to NA explicitly.
         # Likewise empty strings.
         return(ifelse(is.null(x) | x == "", na_value, x))
     }
-    d <- lapply(as.character(d$other_info), RJSONIO::fromJSON) %>%
+    d <- (
+        readLines(filename, n = nrows) %>%
+        lapply(RJSONIO::fromJSON) %>%
+        lapply(as.character(d$other_info), RJSONIO::fromJSON) %>%
         lapply(
             function(e) {
+                other_info <- e$other_info
                 list(
-                    hashed_nhs_number = e$hashed_nhs_number,
+                    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    # main
+                    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    local_id = e$local_id,
 
-                    blurred_dob = de_null(e$blurred_dob, NA_character_),
-                    gender = de_null(e$gender, NA_character_),
-                    raw_ethnicity = de_null(e$ethnicity, NA_character_),
+                    hashed_first_name = e$first_name$hashed_name,
+                    first_name_frequency = e$first_name$name_freq,
+                    hashed_first_name_metaphone = e$first_name$hashed_metaphone,
+                    first_name_metaphone_frequency = e$first_name$metaphone_freq,
+
+                    hashed_middle_names = XXX,
+                    middle_name_frequencies = XXX,
+                    hashed_middle_name_metaphones = XXX,
+                    middle_name_metaphone_frequencies = XXX,
+
+                    hashed_surname = e$surname$hashed_name,
+                    surname_frequency = e$surname$name_freq,
+                    hashed_surname_metaphone = e$surname$hashed_metaphone,
+                    surname_metaphone_frequency = e$surname$metaphone_freq,
+
+                    hashed_dob = e$dob$hashed_dob,
+
+                    hashed_gender = e$gender$hashed_gender,
+                    gender_frequency = e$gender$gender_req,
+
+                    hashed_postcode_units = XXX,
+                    postcode_unit_frequencies = XXX,
+                    hashed_postcode_sectors = XXX,
+                    postcode_sector_frequencies = XXX,
+
+                    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    # other_info
+                    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    hashed_nhs_number = other_info$hashed_nhs_number,
+
+                    blurred_dob = de_null(
+                        other_info$blurred_dob,
+                        NA_character_
+                    ),
+                    gender = de_null(
+                        other_info$gender,
+                        NA_character_
+                    ),
+                    raw_ethnicity = de_null(
+                        other_info$ethnicity,
+                        NA_character_
+                    ),
                     index_of_multiple_deprivation = de_null(
-                        e$index_of_multiple_deprivation,
+                        other_info$index_of_multiple_deprivation,
                         NA_integer_
                     ),
 
                     first_mh_care_date = de_null(
-                        e$first_mh_care_date,
+                        other_info$first_mh_care_date,
                         NA_character_
                     ),
                     age_at_first_mh_care = de_null(
-                        e$age_at_first_mh_care,
+                        other_info$age_at_first_mh_care,
                         NA_integer_
                     ),
-                    any_icd10_dx_present = e$any_icd10_dx_present,
-                    chapter_f_icd10_dx_present = e$chapter_f_icd10_dx_present,
-                    severe_mental_illness_icd10_dx_present = e$severe_mental_illness_icd10_dx_present
+                    any_icd10_dx_present = other_info$any_icd10_dx_present,
+                    chapter_f_icd10_dx_present =
+                        other_info$chapter_f_icd10_dx_present,
+                    severe_mental_illness_icd10_dx_present =
+                        other_info$severe_mental_illness_icd10_dx_present
                 )
             }
         ) %>%
         rbindlist() %>%
         cbind(d) %>%
         as.data.table()
+    )
+    cat("  ... loaded; processing...\n")
     d[
         index_of_multiple_deprivation == 0,  # invalid
         index_of_multiple_deprivation := NA_integer_
@@ -1637,6 +1680,8 @@ main <- function()
 
 # main()
 
+# TODO: finish off JSON import code
+
 # TODO: handle multiple options for first name, surname?
 #   *** see Downs paper; use some of those strategies?
 #   *** aliases
@@ -1651,4 +1696,3 @@ main <- function()
 # TODO: improve estimates of gender mismatch error, and other errors?
 
 # TODO: rethink analytically about the PCMIS NHS# duplication problem
-# TODO: move "o=" annotations to the RHS again on the figures

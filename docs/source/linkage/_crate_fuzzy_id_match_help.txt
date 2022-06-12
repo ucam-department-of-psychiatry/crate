@@ -108,7 +108,8 @@ hasher (secrecy) options:
                         Hash method (default: HMAC_SHA256)
   --rounding_sf ROUNDING_SF
                         Number of significant figures to use when rounding
-                        frequencies in hashed version (default: 5)
+                        frequencies in hashed version. Use 'None' to disable
+                        rounding. (default: 5)
   --local_id_hash_key LOCAL_ID_HASH_KEY
                         Only applicable to the 'hash' command. Hash the
                         local_id values, using this key (passphrase).
@@ -814,7 +815,8 @@ hasher (secrecy) options:
                         Hash method (default: HMAC_SHA256)
   --rounding_sf ROUNDING_SF
                         Number of significant figures to use when rounding
-                        frequencies in hashed version (default: 5)
+                        frequencies in hashed version. Use 'None' to disable
+                        rounding. (default: 5)
   --local_id_hash_key LOCAL_ID_HASH_KEY
                         Only applicable to the 'hash' command. Hash the
                         local_id values, using this key (passphrase).
