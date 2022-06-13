@@ -83,6 +83,7 @@ from crate_anon.linkage.helpers import (
     is_valid_isoformat_date,
     isoformat_optional_date_str,
     POSTCODE_REGEX,
+    standardize_postcode,
 )
 from crate_anon.linkage.fuzzy_id_match import (
     add_basic_options,
@@ -1117,7 +1118,7 @@ def validate_2_fetch_cdl(
         if postcode_str and POSTCODE_REGEX.match(postcode_str):
             postcodes.append(
                 PostcodeInfo(
-                    postcode=postcode_str.upper(),
+                    postcode=standardize_postcode(postcode_str),
                     start_date=None,
                     end_date=None,
                     index_of_multiple_deprivation=row[
@@ -1368,28 +1369,20 @@ def validate_2_fetch_pcmis(
         first_mh_care_date = coerce_to_pendulum_date(row[q.FIRST_MH_CARE_DATE])
 
         postcodes = []  # type: List[PostcodeInfo]
-        if row[q.PREV_POSTCODE] and POSTCODE_REGEX.match(row[q.PREV_POSTCODE]):
-            postcodes.append(
-                PostcodeInfo(
-                    postcode=row[q.PREV_POSTCODE].upper(),
-                    start_date=None,
-                    end_date=None,
-                    index_of_multiple_deprivation=row[
-                        q.PREV_INDEX_OF_MULTIPLE_DEPRIVATION
-                    ],
+        for postcode_key, imd_key in (
+            (q.PREV_POSTCODE, q.PREV_INDEX_OF_MULTIPLE_DEPRIVATION),
+            (q.POSTCODE, q.INDEX_OF_MULTIPLE_DEPRIVATION),
+        ):
+            postcode_value = row[postcode_key]
+            if postcode_value and POSTCODE_REGEX.match(postcode_value):
+                postcodes.append(
+                    PostcodeInfo(
+                        postcode=standardize_postcode(postcode_value),
+                        start_date=None,
+                        end_date=None,
+                        index_of_multiple_deprivation=row[imd_key],
+                    )
                 )
-            )
-        if row[q.POSTCODE] and POSTCODE_REGEX.match(row[q.POSTCODE]):
-            postcodes.append(
-                PostcodeInfo(
-                    postcode=row[q.POSTCODE].upper(),
-                    start_date=None,
-                    end_date=None,
-                    index_of_multiple_deprivation=row[
-                        q.INDEX_OF_MULTIPLE_DEPRIVATION
-                    ],
-                )
-            )
 
         other = CPFTValidationExtras(
             hashed_nhs_number=cfg.hash_fn(nhs_number),
@@ -1480,7 +1473,7 @@ def _get_rio_postcodes(
     q = QueryColnames
     postcodes = [
         PostcodeInfo(
-            postcode=row[q.POSTCODE],
+            postcode=standardize_postcode(row[q.POSTCODE]),
             start_date=coerce_to_pendulum_date(row[q.START_DATE]),
             end_date=coerce_to_pendulum_date(row[q.END_DATE]),
             index_of_multiple_deprivation=row[q.INDEX_OF_MULTIPLE_DEPRIVATION],
@@ -1889,7 +1882,7 @@ def _get_systmone_postcodes(
     q = QueryColnames
     postcodes = [
         PostcodeInfo(
-            postcode=row[q.POSTCODE],
+            postcode=standardize_postcode(row[q.POSTCODE]),
             start_date=coerce_to_pendulum_date(row[q.START_DATE]),
             end_date=coerce_to_pendulum_date(row[q.END_DATE]),
             index_of_multiple_deprivation=row[q.INDEX_OF_MULTIPLE_DEPRIVATION],

@@ -73,7 +73,7 @@ log = logging.getLogger(__name__)
 
 BAD_DATE_STRINGS = ["1950-31-12", "1950", "blah", "2000-02-30"]
 GOOD_DATE_STRINGS = ["1950-12-31", "1890-01-01", "2000-01-01"]
-BAD_POSTCODES = ["99XX99", "CB99 9XXY", "CB99", "CB2"]
+BAD_POSTCODES = ["99XX99", "CB99 9XXY", "CB99", "CB2", "NW19TTTEMP"]
 GOOD_POSTCODES = [
     "CB99 9XY",
     "CB2 0QQ",
@@ -587,8 +587,9 @@ class FuzzyLinkageTests(unittest.TestCase):
 
     def test_postcode_regex(self) -> None:
         for b in BAD_POSTCODES:
+            sb = standardize_postcode(b)
             self.assertIsNone(
-                POSTCODE_REGEX.match(b), f"Postcode {b} matched but is bad"
+                POSTCODE_REGEX.match(sb), f"Postcode {b} matched but is bad"
             )
         for g in GOOD_POSTCODES:
             sg = standardize_postcode(g)

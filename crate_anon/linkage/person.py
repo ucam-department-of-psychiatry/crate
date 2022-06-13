@@ -1268,6 +1268,9 @@ class PersonWriter:
         if self.filename:
             log.info(f"Saving to: {self.filename}")
             self.file = open(self.filename, "wt")
+            # Don't write to the log if we're not using a filename; we may be
+            # writing to an in-memory structure, in which case the user
+            # probably doesn't care.
         # 2. Create a writer.
         if self.plaintext:
             self.csv_writer = csv.DictWriter(
@@ -1313,4 +1316,8 @@ class PersonWriter:
         # 1. If we opened a file, ensure we close it.
         if self.filename:
             self.file.close()
-            log.info(f"f... finished saving to {self.filename}")
+            if exc_val is None:
+                log.info(f"... finished saving to {self.filename}")
+            else:
+                log.info(f"... exception raised; closing {self.filename}")
+            # As above, we won't write to the log if we don't have a filename.
