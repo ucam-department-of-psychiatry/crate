@@ -2213,7 +2213,7 @@ def v2_outhashed(probands: str, sample: str) -> str:
     """
     A default filename.
     """
-    return f"fuzzy_compare_{probands}_to_{sample}_hashed.jsonl"
+    return f"fuzzy_compare_{probands}_to_{sample}_hashed.csv"
 
 
 def help_v2_fetch(plaintext: bool = True) -> str:

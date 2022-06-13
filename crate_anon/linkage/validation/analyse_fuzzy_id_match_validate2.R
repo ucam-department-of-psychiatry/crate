@@ -63,7 +63,9 @@ debugfunc$wideScreen()
 # Governing constants
 # =============================================================================
 
-ROW_LIMIT <- Inf  # Inf for no limit; finite for debugging
+ROW_LIMIT <- -1
+# -1 (not Inf) for no limit; positive finite for debugging This works both with
+# readLines and data.table::fread, but readLines doesn't accept Inf.
 
 # Theta: absolute log odds threshold for the winner.
 # A probability p = 0.5 equates to odds of 1/1 = 1 and thus log odds of 0.
@@ -94,14 +96,15 @@ PCMIS <- "pcmis"
 RIO <- "rio"
 SYSTMONE <- "systmone"
 
-ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
-# ALL_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
+# ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
+ALL_DATABASES <- CDL  # for debugging
 
-FROM_DATABASES <- ALL_DATABASES
-# FROM_DATABASES <- CDL  # for debugging
+# FROM_DATABASES <- ALL_DATABASES
+FROM_DATABASES <- CDL  # for debugging
 
-TO_DATABASES <- ALL_DATABASES
+# TO_DATABASES <- ALL_DATABASES
 # TO_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
+TO_DATABASES <- CDL
 
 
 # =============================================================================
@@ -115,7 +118,7 @@ OUTPUT_FILE <- file.path(OUTPUT_DIR, "main_results.txt")
 
 get_data_filename <- function(db)
 {
-    file.path(DATA_DIR, paste0("fuzzy_data_", db, "_hashed.csv"))
+    file.path(DATA_DIR, paste0("fuzzy_data_", db, "_hashed.jsonl"))
 }
 
 get_comparison_filename <- function(db1, db2)
@@ -666,45 +669,142 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
         # RJSONIO::fromJSON("{'a': null}") produces NULL. rbindlist() later
         # complains, so let's convert NULL to NA explicitly.
         # Likewise empty strings.
-        return(ifelse(is.null(x) | x == "", na_value, x))
+        return(
+            ifelse(
+                is.null(x),
+                na_value,
+                ifelse(
+                    is.na(x) | x == "",
+                    na_value,
+                    x
+                )
+            )
+        )
+        # DO NOT use: is.null(x) | x == ""
+        # ... because is.null(NULL) | NULL == "" gives logical(0), not FALSE.
+        # x must be a SINGLE VALUE, not a vector; e.g.
+        # is.null(c(NULL, 5)) gives FALSE, not c(TRUE, FALSE)
     }
+    sep <- ";"
     d <- (
         readLines(filename, n = nrows) %>%
-        lapply(RJSONIO::fromJSON) %>%
-        lapply(as.character(d$other_info), RJSONIO::fromJSON) %>%
+        lapply(RJSONIO::fromJSON, simplify = FALSE) %>%
         lapply(
             function(e) {
-                other_info <- e$other_info
-                list(
+                middle_names <- e$middle_names
+                m_names <- paste(
+                    lapply(middle_names, function(p) p$hashed_name),
+                    collapse = sep
+                )
+                m_name_freq <- paste(
+                    lapply(middle_names, function(p) p$name_freq),
+                    collapse = sep
+                )
+                m_metaphones <- paste(
+                    lapply(middle_names, function(p) p$hashed_metaphone),
+                    collapse = sep
+                )
+                m_metaphone_freq <- paste(
+                    lapply(middle_names, function(p) p$metaphone_freq),
+                    collapse = sep
+                )
+
+                postcodes <- e$postcodes
+                p_start_dates <- paste(
+                    lapply(
+                        postcodes,
+                        function(p) de_null(p$start_date, "")
+                    ),
+                    collapse = sep
+                )
+                p_end_dates <- paste(
+                    lapply(
+                        postcodes,
+                        function(p) de_null(p$end_date, "")
+                    ),
+                    collapse = sep
+                )
+                p_units <- paste(
+                    lapply(postcodes, function(p) p$hashed_postcode_unit),
+                    collapse = sep
+                )
+                p_unit_freq <- paste(
+                    lapply(postcodes, function(p) p$unit_freq),
+                    collapse = sep
+                )
+                p_sectors <- paste(
+                    lapply(postcodes, function(p) p$hashed_postcode_sector),
+                    collapse = sep
+                )
+                p_sector_freq <- paste(
+                    lapply(postcodes, function(p) p$sector_freq),
+                    collapse = sep
+                )
+
+                other_info <- fromJSON(e$other_info, simplify = FALSE)
+
+                return(list(
                     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     # main
                     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     local_id = e$local_id,
 
-                    hashed_first_name = e$first_name$hashed_name,
-                    first_name_frequency = e$first_name$name_freq,
-                    hashed_first_name_metaphone = e$first_name$hashed_metaphone,
-                    first_name_metaphone_frequency = e$first_name$metaphone_freq,
+                    hashed_first_name = de_null(
+                        e$first_name$hashed_name,
+                        NA_character_
+                    ),
+                    first_name_frequency = de_null(
+                        e$first_name$name_freq,
+                        NA_real_
+                    ),
+                    hashed_first_name_metaphone = de_null(
+                        e$first_name$hashed_metaphone,
+                        NA_character_
+                    ),
+                    first_name_metaphone_frequency = de_null(
+                        e$first_name$metaphone_freq,
+                        NA_real_
+                    ),
 
-                    hashed_middle_names = XXX,
-                    middle_name_frequencies = XXX,
-                    hashed_middle_name_metaphones = XXX,
-                    middle_name_metaphone_frequencies = XXX,
+                    hashed_middle_names = m_names,
+                    middle_name_frequencies = m_name_freq,
+                    hashed_middle_name_metaphones = m_metaphones,
+                    middle_name_metaphone_frequencies = m_metaphone_freq,
 
-                    hashed_surname = e$surname$hashed_name,
-                    surname_frequency = e$surname$name_freq,
-                    hashed_surname_metaphone = e$surname$hashed_metaphone,
-                    surname_metaphone_frequency = e$surname$metaphone_freq,
+                    hashed_surname = de_null(
+                        e$surname$hashed_name,
+                        NA_character_
+                    ),
+                    surname_frequency = de_null(
+                        e$surname$name_freq,
+                        NA_real_
+                    ),
+                    hashed_surname_metaphone = de_null(
+                        e$surname$hashed_metaphone,
+                        NA_character_
+                    ),
+                    surname_metaphone_frequency = de_null(
+                        e$surname$metaphone_freq,
+                        NA_real_
+                    ),
 
                     hashed_dob = e$dob$hashed_dob,
 
-                    hashed_gender = e$gender$hashed_gender,
-                    gender_frequency = e$gender$gender_req,
+                    hashed_gender = de_null(
+                        e$gender$hashed_gender,
+                        NA_character_
+                    ),
+                    gender_frequency = de_null(
+                        e$gender$gender_freq,
+                        NA_real_
+                    ),
 
-                    hashed_postcode_units = XXX,
-                    postcode_unit_frequencies = XXX,
-                    hashed_postcode_sectors = XXX,
-                    postcode_sector_frequencies = XXX,
+                    hashed_postcode_units = p_units,
+                    postcode_unit_frequencies = p_unit_freq,
+                    hashed_postcode_sectors = p_sectors,
+                    postcode_sector_frequencies = p_sector_freq,
+                    postcode_start_dates = p_start_dates,
+                    postcode_end_dates = p_end_dates,
 
                     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     # other_info
@@ -741,11 +841,10 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
                         other_info$chapter_f_icd10_dx_present,
                     severe_mental_illness_icd10_dx_present =
                         other_info$severe_mental_illness_icd10_dx_present
-                )
+                ))
             }
         ) %>%
         rbindlist() %>%
-        cbind(d) %>%
         as.data.table()
     )
     cat("  ... loaded; processing...\n")
@@ -830,7 +929,6 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
     )]
 
     if (strip_irrelevant) {
-        d[, other_info := NULL]
         d[, raw_ethnicity := NULL]
         d[, first_mh_care_date := NULL]
         d[, any_icd10_dx_present := NULL]
