@@ -55,21 +55,19 @@ class Comparison(object):
     """
     Abstract base class for comparing two pieces of information and calculating
     the posterior probability of a person match.
+
+    This code must be fast, so avoid extraneous parameters.
     """
 
-    def __init__(self, name: str) -> None:
-        """
-        Args:
-            name: name of this comparison, for cosmetic purposes
-        """
-        self.name = name
+    def __init__(self) -> None:
+        pass
 
     def __str__(self) -> str:
         """
         Returns a brief description.
         """
         return (
-            f"{self.name}: {self.d_description} "
+            f"{self.d_description} "
             f"[P(D|H)={self.p_d_given_h}, "
             f"P(D|¬H)={self.p_d_given_not_h}]"
         )
@@ -154,17 +152,13 @@ class DirectComparison(Comparison):
         self,
         p_d_given_same_person: float,
         p_d_given_diff_person: float,
-        **kwargs,
     ) -> None:
         r"""
         Args:
             p_d_given_same_person: :math:`P(D | H)`
             p_d_given_diff_person: :math:`P(D | \neg H)`
         """
-        super().__init__(**kwargs)
-        # if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
-        #     assert 0 <= p_d_given_same_person <= 1
-        #     assert 0 <= p_d_given_diff_person <= 1
+        super().__init__()
         self._p_d_given_h = p_d_given_same_person
         self._p_d_given_not_h = p_d_given_diff_person
 
@@ -195,7 +189,6 @@ class MatchNoMatchComparison(Comparison):
         match: bool,
         p_match_given_same_person: float,
         p_match_given_diff_person: float,
-        **kwargs,
     ) -> None:
         r"""
         Args:
@@ -212,10 +205,7 @@ class MatchNoMatchComparison(Comparison):
                 If no match:
                 :math:`P(D | \neg H) = 1 - P(\text{match given different person}) = 1 - p_f`.
         """  # noqa
-        super().__init__(**kwargs)
-        # if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
-        #     assert 0 <= p_match_given_same_person <= 1
-        #     assert 0 <= p_match_given_diff_person <= 1
+        super().__init__()
         self.match = match
         self.p_match_given_same_person = p_match_given_same_person
         self.p_match_given_diff_person = p_match_given_diff_person
@@ -257,7 +247,6 @@ class FullPartialNoMatchComparison(Comparison):
         p_e: float,
         partial_match: bool,
         p_p: float,
-        **kwargs,
     ) -> None:
         r"""
         Args:
@@ -272,13 +261,8 @@ class FullPartialNoMatchComparison(Comparison):
             p_p:
                 :math:`p_p = P(\text{partial match} | \neg H)`
         """
-        super().__init__(**kwargs)
-        # if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
-        #     assert 0 <= p_f <= 1
-        #     assert 0 <= p_e <= 1
-        #     assert 0 <= p_p <= 1
-        # This one is worth checking dynamically:
-        assert p_f <= p_p, f"p_f={p_f}, p_p={p_p}, but should have p_f <= p_p"
+        super().__init__()
+        assert p_f <= p_p, f"p_p={p_p} < p_f={p_f}, but should have p_f <= p_p"
         self.full_match = full_match
         self.p_f = p_f
         self.p_e = p_e

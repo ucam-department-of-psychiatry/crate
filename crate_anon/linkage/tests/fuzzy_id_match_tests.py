@@ -589,7 +589,7 @@ class FuzzyLinkageTests(unittest.TestCase):
                 _ = DateOfBirth(cfg, b)
         for g in GOOD_DATE_STRINGS:
             d = DateOfBirth(cfg, g)
-            self.assertEqual(d.dob, g)
+            self.assertEqual(d.dob_str, g)
             self.assertEqual(str(d), g)
 
     def test_postcode_regex(self) -> None:

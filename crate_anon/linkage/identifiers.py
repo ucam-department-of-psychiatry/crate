@@ -52,6 +52,7 @@ from crate_anon.common.logfunc import warn_once
 from crate_anon.linkage.constants import VALID_GENDERS
 from crate_anon.linkage.comparison import (
     Comparison,
+    DirectComparison,
     FullPartialNoMatchComparison,
     MatchNoMatchComparison,
 )
@@ -82,8 +83,15 @@ class Identifier(ABC):
     identifiable (plaintext) or de-identified (hashed) form. Optionally, may
     convey start/end dates.
 
-    Note that we trust probabilities from the config, but should check values
-    arising from incoming data, primarily via :meth:`from_hashed_dict`.
+    Note:
+
+    - We trust that probabilities from the config have been validated (i.e. are
+      in the range 0-1), but we should check values arising from incoming data,
+      primarily via :meth:`from_hashed_dict`.
+    - A typical comparison operation involves comparing a lot of people to
+      each other, so it is usually efficient to cache "derived" information
+      (e.g. we should calculate metaphones from names at creation, not at
+      comparison). See :meth:`comparison`.
     """
 
     SEP = "/"  # separator
@@ -603,7 +611,6 @@ class Postcode(Identifier):
             # postcode_sector will be.
             return None
         return FullPartialNoMatchComparison(
-            name="postcode",
             full_match=(self.postcode_unit == other.postcode_unit),
             p_f=self.unit_freq,
             p_e=self.p_minor_postcode_error,
@@ -643,6 +650,9 @@ class DateOfBirth(Identifier):
     """
 
     KEY_HASHED_DOB = "hashed_dob"
+    KEY_HASHED_DOB_MD = "hashed_dob_md"
+    KEY_HASHED_DOB_YD = "hashed_dob_yd"
+    KEY_HASHED_DOB_YM = "hashed_dob_ym"
 
     def __init__(self, cfg: MatchConfig, dob: str = "") -> None:
         """
@@ -663,14 +673,29 @@ class DateOfBirth(Identifier):
         ):
             raise ValueError(f"Bad date: {dob!r}")
 
-        self.dob = dob
-        self.dob_freq = cfg.p_two_people_share_dob
+        self.dob_str = dob
+        # In our validation data, 93.3% of DOB errors were "single component"
+        # errors, e.g. year wrong but month/day right. Within that, there was
+        # no very dominant pattern.
+        if dob:
+            dob_date = coerce_to_pendulum_date(dob)
+            # ISO format is %Y-%m-%d; see
+            # https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes  # noqa
+            # Here we want the shortest full representation; these are not
+            # intended to be human-legible.
+            self.dob_md = dob_date.strftime("%m%d")
+            self.dob_yd = dob_date.strftime("%Y%d")
+            self.dob_ym = dob_date.strftime("%Y%m")
+        else:
+            self.dob_md = ""
+            self.dob_yd = ""
+            self.dob_ym = ""
 
     def plaintext_str_core(self) -> str:
         """
         For CSV.
         """
-        return self.dob
+        return self.dob_str
 
     @classmethod
     def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "DateOfBirth":
@@ -683,14 +708,29 @@ class DateOfBirth(Identifier):
         """
         For JSON.
         """
-        if not self.dob:
+        if not self.dob_str:
             hashed_dob = None
+            hashed_dob_md = None
+            hashed_dob_yd = None
+            hashed_dob_ym = None
         elif self.is_plaintext:
-            hashed_dob = self.cfg.hash_fn(self.dob)
+            hash_fn = self.cfg.hash_fn
+            hashed_dob = hash_fn(self.dob_str)
+            hashed_dob_md = hash_fn(self.dob_md)
+            hashed_dob_yd = hash_fn(self.dob_yd)
+            hashed_dob_ym = hash_fn(self.dob_ym)
         else:
             # Was already hashed
-            hashed_dob = self.dob
-        return {self.KEY_HASHED_DOB: hashed_dob}
+            hashed_dob = self.dob_str
+            hashed_dob_md = self.dob_md
+            hashed_dob_yd = self.dob_yd
+            hashed_dob_ym = self.dob_ym
+        return {
+            self.KEY_HASHED_DOB: hashed_dob,
+            self.KEY_HASHED_DOB_MD: hashed_dob_md,
+            self.KEY_HASHED_DOB_YD: hashed_dob_yd,
+            self.KEY_HASHED_DOB_YM: hashed_dob_ym,
+        }
 
     @classmethod
     def from_hashed_dict(
@@ -701,25 +741,45 @@ class DateOfBirth(Identifier):
         """
         x = DateOfBirth(cfg=cfg)
         x.is_plaintext = False
-        x.dob = getdictval(d, cls.KEY_HASHED_DOB, str)
+        x.dob_str = getdictval(d, cls.KEY_HASHED_DOB, str)
+        x.dob_md = getdictval(d, cls.KEY_HASHED_DOB_MD, str)
+        x.dob_yd = getdictval(d, cls.KEY_HASHED_DOB_YD, str)
+        x.dob_ym = getdictval(d, cls.KEY_HASHED_DOB_YM, str)
         return x
 
     def __bool__(self) -> bool:
-        return bool(self.dob)
+        return bool(self.dob_str)
 
     def ensure_has_freq_info_if_id_present(self) -> None:
-        pass
+        pass  # That info is always in the config; none stored here.
 
     def comparison(self, other: "DateOfBirth") -> Optional[Comparison]:
-        if not self.dob or not other.dob:
+        if not self.dob_str or not other.dob_str:
             # Missing information; infer nothing.
             return None
-        return MatchNoMatchComparison(
-            name="DOB",
-            match=(self.dob == other.dob),
-            p_match_given_same_person=1,  # allow no DOB errors
-            p_match_given_diff_person=self.dob_freq,
-        )
+        cfg = self.cfg
+        if self.dob_str == other.dob_str:
+            # Exact match
+            return DirectComparison(
+                p_d_given_same_person=cfg.p_dob_correct,
+                p_d_given_diff_person=cfg.p_two_people_share_dob_ymd,
+            )
+        elif (
+            self.dob_md == other.dob_md
+            or self.dob_yd == other.dob_yd
+            or self.dob_ym == other.dob_ym
+        ):
+            # Partial match. (But not a full match, from the previous test.)
+            return DirectComparison(
+                p_d_given_same_person=cfg.p_dob_single_component_error,
+                p_d_given_diff_person=cfg.p_two_people_partial_dob_match,
+            )
+        else:
+            # No match
+            return DirectComparison(
+                p_d_given_same_person=cfg.p_dob_major_error,
+                p_d_given_diff_person=cfg.p_two_people_no_dob_similarity,
+            )
 
 
 # =============================================================================
@@ -811,7 +871,6 @@ class Gender(Identifier):
             # Missing information; infer nothing.
             return None
         return MatchNoMatchComparison(
-            name="gender",
             match=(self.gender == other.gender),
             p_match_given_same_person=self.p_match_given_same_person,
             p_match_given_diff_person=self.gender_freq,
@@ -973,7 +1032,6 @@ class Forename(Name):
             # No information
             return None
         return FullPartialNoMatchComparison(
-            name="forename",
             full_match=(self.name == other.name),
             p_f=self.name_freq,
             p_e=self.p_minor_name_error,
@@ -1034,7 +1092,6 @@ class Surname(Name):
             # No information
             return None
         return FullPartialNoMatchComparison(
-            name="surname",
             full_match=(self.name == other.name),
             p_f=self.name_freq,
             p_e=self.p_minor_name_error,

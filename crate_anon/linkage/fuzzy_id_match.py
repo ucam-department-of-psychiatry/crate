@@ -753,9 +753,13 @@ class Switches:
     P_UNKNOWN_OR_PSEUDO_POSTCODE = "p_unknown_or_pseudo_postcode"
 
     P_MINOR_FORENAME_ERROR = "p_minor_forename_error"
-    P_MINOR_SURNAME_ERROR = "p_minor_surname_error"
     P_PROBAND_MIDDLE_NAME_MISSING = "p_proband_middle_name_missing"
     P_SAMPLE_MIDDLE_NAME_MISSING = "p_sample_middle_name_missing"
+    P_MINOR_SURNAME_ERROR = "p_minor_surname_error"
+    P_DOB_ERROR = "p_dob_error"
+    P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR = (
+        "p_dob_single_component_error_if_error"
+    )
     P_GENDER_ERROR = "p_gender_error"
     P_MINOR_POSTCODE_ERROR = "p_minor_postcode_error"
 
@@ -1110,13 +1114,6 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
         "it fails a full match but satisfies a partial (metaphone) match.",
     )
     error_p_group.add_argument(
-        f"--{Switches.P_MINOR_SURNAME_ERROR}",
-        type=float,
-        default=FuzzyDefaults.P_MINOR_SURNAME_ERROR,
-        help="Assumed probability that a surname has an error in that means "
-        "it fails a full match but satisfies a partial (metaphone) match.",
-    )
-    error_p_group.add_argument(
         f"--{Switches.P_PROBAND_MIDDLE_NAME_MISSING}",
         type=float,
         default=FuzzyDefaults.P_PROBAND_MIDDLE_NAME_MISSING,
@@ -1129,6 +1126,31 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
         default=FuzzyDefaults.P_SAMPLE_MIDDLE_NAME_MISSING,
         help="Probability that a middle name, present in the proband, is "
         "missing from the sample.",
+    )
+    error_p_group.add_argument(
+        f"--{Switches.P_MINOR_SURNAME_ERROR}",
+        type=float,
+        default=FuzzyDefaults.P_MINOR_SURNAME_ERROR,
+        help="Assumed probability that a surname has an error in that means "
+        "it fails a full match but satisfies a partial (metaphone) match.",
+    )
+    error_p_group.add_argument(
+        f"--{Switches.P_DOB_ERROR}",
+        type=float,
+        default=FuzzyDefaults.P_DOB_ERROR,
+        help="Assumed probability that a DOB is wrong in some way, leading to "
+        "a proband/candidate partial match or mismatch.",
+    )
+    error_p_group.add_argument(
+        f"--{Switches.P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR}",
+        type=float,
+        default=FuzzyDefaults.P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR,
+        help="Given that a DOB is wrong, what is the probability that the "
+        "error leads to a partial match, in which only one component (year, "
+        "month, or day) is wrong? NOTE: Empirical data suggests this is about "
+        "0.933, but we suggest setting it to 1, as anything below 1 "
+        "sacrifices an opportunity for enormous computational efficiency -- "
+        "<1 will run much slower.",
     )
     error_p_group.add_argument(
         f"--{Switches.P_GENDER_ERROR}",
@@ -1370,6 +1392,16 @@ def get_cfg_from_args(
         p_sample_middle_name_missing=g(
             Switches.P_SAMPLE_MIDDLE_NAME_MISSING,
             FuzzyDefaults.P_SAMPLE_MIDDLE_NAME_MISSING,
+            require_error,
+        ),
+        p_dob_error=g(
+            Switches.P_DOB_ERROR,
+            FuzzyDefaults.P_DOB_ERROR,
+            require_error,
+        ),
+        p_dob_single_component_error_if_error=g(
+            Switches.P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR,
+            FuzzyDefaults.P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR,
             require_error,
         ),
         p_gender_error=g(
@@ -1813,7 +1845,7 @@ normally for testing.""",
             require_error=False,
             require_matching=False,
         )
-        log.info(f"DOB frequency: {cfg.p_two_people_share_dob}")
+        log.info(f"DOB frequency: {cfg.p_two_people_share_dob_ymd}")
 
     elif args.command == Commands.SHOW_POSTCODE_FREQ:
         cfg = get_cfg_from_args(

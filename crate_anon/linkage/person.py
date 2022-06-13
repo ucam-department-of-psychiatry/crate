@@ -721,7 +721,6 @@ class Person(BasePerson):
                     # Otherwise, n > n_proband_middle_names.
                     p_d_given_same_person = cfg.p_proband_middle_name_missing
                 yield DirectComparison(
-                    name="middle_name_surplus",
                     p_d_given_same_person=p_d_given_same_person,
                     p_d_given_diff_person=cfg.p_middle_name_present(n),
                 )
@@ -989,8 +988,21 @@ class People(object):
         """
         self.cfg = cfg
         self.people = []  # type: List[Person]
-        self.dob_to_people = defaultdict(list)  # type: Dict[str, List[Person]]
-        # ... may be plaintext or hashed DOB strings depending on our people
+
+        # These may be plaintext or hashed DOB strings depending on our people:
+        self.dob_md_to_people = defaultdict(
+            list
+        )  # type: Dict[str, List[Person]]  # noqa
+        self.dob_yd_to_people = defaultdict(
+            list
+        )  # type: Dict[str, List[Person]]  # noqa
+        self.dob_ym_to_people = defaultdict(
+            list
+        )  # type: Dict[str, List[Person]]  # noqa
+        self.dob_ymd_to_people = defaultdict(
+            list
+        )  # type: Dict[str, List[Person]]  # noqa
+
         self._known_ids = set()  # type: Set[str]
         self._people_are_plaintext = None  # type: Optional[bool]
 
@@ -1029,7 +1041,10 @@ class People(object):
 
         dob = person.dob
         if dob:
-            self.dob_to_people[dob.dob].append(person)
+            self.dob_md_to_people[dob.dob_md].append(person)
+            self.dob_yd_to_people[dob.dob_yd].append(person)
+            self.dob_ym_to_people[dob.dob_ym].append(person)
+            self.dob_ymd_to_people[dob.dob_str].append(person)
 
     def add_people(self, people: Iterable[Person]) -> None:
         """
@@ -1078,8 +1093,23 @@ class People(object):
         dob = proband.dob
         if not dob:
             return
-        for person in self.dob_to_people[dob.dob]:
-            yield person
+        if self.cfg.complete_dob_mismatch_allowed:
+            # No shortlisting; everyone's a candidate. Slow.
+            for person in self.people:
+                yield person
+        else:
+            # Implement the shortlist by DOB.
+            seen = set()  # type: Set[str]
+            for group in (
+                self.dob_ymd_to_people[dob.dob_str],
+                self.dob_md_to_people[dob.dob_md],
+                self.dob_yd_to_people[dob.dob_yd],
+                self.dob_ym_to_people[dob.dob_ym],
+            ):
+                for person in group:
+                    if person.local_id not in seen:
+                        seen.add(person.local_id)
+                        yield person
 
     def get_unique_match_detailed(self, proband: Person) -> MatchResult:
         """

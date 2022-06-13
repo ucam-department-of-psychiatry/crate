@@ -1778,8 +1778,6 @@ main <- function()
 
 # main()
 
-# TODO: finish off JSON import code
-
 # TODO: handle multiple options for first name, surname?
 #   *** see Downs paper; use some of those strategies?
 #   *** aliases
@@ -1789,8 +1787,8 @@ main <- function()
 #   ? generic Name that is a kind of TemporalIdentifier?
 #   - main tricky bit is the identifiable file format; needs to be easy
 
-# TODO: check if out-by-one DOB is frequent (and if so, how frequent)
-
-# TODO: improve estimates of gender mismatch error, and other errors?
+# TODO: use empirical estimates of remaining error types; see FuzzyDefaults
 
 # TODO: rethink analytically about the PCMIS NHS# duplication problem
+
+# TODO: document new DOB matching

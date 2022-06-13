@@ -41,10 +41,12 @@ from cardinal_pythonlib.probability import log_odds_from_1_in_n
 from cardinal_pythonlib.reprfunc import auto_repr
 
 from crate_anon.linkage.constants import (
+    DAYS_PER_MONTH,
     DAYS_PER_YEAR,
     FuzzyDefaults,
     GENDER_MALE,
     GENDER_FEMALE,
+    MONTHS_PER_YEAR,
 )
 from crate_anon.linkage.frequencies import (
     NameFrequencyInfo,
@@ -95,12 +97,16 @@ class MatchConfig(object):
             FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE
         ),
         p_minor_forename_error: float = FuzzyDefaults.P_MINOR_FORENAME_ERROR,
-        p_minor_surname_error: float = FuzzyDefaults.P_MINOR_SURNAME_ERROR,
         p_proband_middle_name_missing: float = (
             FuzzyDefaults.P_PROBAND_MIDDLE_NAME_MISSING
         ),
         p_sample_middle_name_missing: float = (
             FuzzyDefaults.P_SAMPLE_MIDDLE_NAME_MISSING
+        ),
+        p_minor_surname_error: float = FuzzyDefaults.P_MINOR_SURNAME_ERROR,
+        p_dob_error: float = FuzzyDefaults.P_DOB_ERROR,
+        p_dob_single_component_error_if_error: float = (
+            FuzzyDefaults.P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR
         ),
         p_gender_error: float = FuzzyDefaults.P_GENDER_ERROR,
         p_minor_postcode_error: float = FuzzyDefaults.P_MINOR_POSTCODE_ERROR,
@@ -168,15 +174,20 @@ class MatchConfig(object):
             p_minor_forename_error:
                 Probability that a forename fails a full match but passes a
                 partial match.
-            p_minor_surname_error:
-                Probability that a surname fails a full match but passes a
-                partial match.
             p_proband_middle_name_missing:
                 Probability that a middle name, present in the sample, is
                 missing from the proband.
             p_sample_middle_name_missing:
                 Probability that a middle name, present in the proband, is
                 missing from the sample.
+            p_minor_surname_error:
+                Probability that a surname fails a full match but passes a
+                partial match.
+            p_dob_error:
+                Probability that a DOB is wrong, for the same person.
+            p_dob_single_component_error_if_error:
+                Probability, given that a DOB is wrong, that it is wrong in one
+                (and one only) of year, month, day.
             p_gender_error:
                 Probability that a gender match fails because of a data
                 error.
@@ -194,6 +205,9 @@ class MatchConfig(object):
             verbose:
                 Be verbose on creation?
         """
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Input validation
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         def raise_bad(x_, name_) -> NoReturn:
             raise ValueError(f"Bad {name_}: {x_!r}")
@@ -204,22 +218,28 @@ class MatchConfig(object):
 
         if not (rounding_sf is None or 1 <= rounding_sf):
             raise_bad(rounding_sf, "rounding_sf")
+
         if not (population_size > 0):
             raise_bad(population_size, "population_size")
+
         check_prob(min_name_frequency, "min_name_frequency")
         for i, x in enumerate(p_middle_name_n_present):
             check_prob(x, f"p_middle_name_n_present[{i}]")
-        if not (birth_year_pseudo_range > 0):
+
+        if not (birth_year_pseudo_range >= 1):
             raise_bad(birth_year_pseudo_range, "birth_year_pseudo_range")
+
         check_prob(p_not_male_or_female, "p_not_male_or_female")
         check_prob(
             p_female_given_male_or_female, "p_female_given_male_or_female"
         )
+
         if not (mean_oa_population > 0):
             raise_bad(mean_oa_population, "mean_oa_population")
         check_prob(
             p_unknown_or_pseudo_postcode, "p_unknown_or_pseudo_postcode"
         )
+
         check_prob(p_minor_forename_error, "p_minor_forename_error")
         check_prob(p_minor_surname_error, "p_minor_surname_error")
         check_prob(
@@ -228,11 +248,22 @@ class MatchConfig(object):
         check_prob(
             p_sample_middle_name_missing, "p_sample_middle_name_missing"
         )
+        check_prob(p_dob_error, "p_dob_error")
+        check_prob(
+            p_dob_single_component_error_if_error,
+            "p_dob_single_component_error_if_error",
+        )
         check_prob(p_gender_error, "p_gender_error")
         check_prob(p_minor_postcode_error, "p_minor_postcode_error")
 
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Basic creation
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
         if verbose:
             log.debug("Building MatchConfig...")
+
+        # Hash information
 
         self.hash_fn = make_hasher(hash_method=hash_method, key=hash_key).hash
         self.rounding_sf = rounding_sf
@@ -243,6 +274,8 @@ class MatchConfig(object):
         else:
             # Convert to string if necessary; otherwise, an identity function:
             self.local_id_hash_fn = str
+
+        # Population frequencies
 
         self.population_size = population_size
         # Precalculate this, for access speed:
@@ -259,15 +292,6 @@ class MatchConfig(object):
 
         self.p_gender_error = p_gender_error
         self.p_not_male_or_female = p_not_male_or_female
-
-        self.p_minor_forename_error = p_minor_forename_error
-        self.p_minor_surname_error = p_minor_surname_error
-        self.p_proband_middle_name_missing = p_proband_middle_name_missing
-        self.p_sample_middle_name_missing = p_sample_middle_name_missing
-        self.p_minor_postcode_error = p_minor_postcode_error
-
-        self.min_log_odds_for_match = min_log_odds_for_match
-        self.exceeds_next_best_log_odds = exceeds_next_best_log_odds
 
         p_male_or_female = 1 - p_not_male_or_female
         self.p_female = p_female_given_male_or_female * p_male_or_female
@@ -292,13 +316,105 @@ class MatchConfig(object):
             p_unknown_or_pseudo_postcode=p_unknown_or_pseudo_postcode,
         )
 
-        self.p_two_people_share_dob = 1 / (
+        # Error probabilities
+
+        self.p_minor_forename_error = p_minor_forename_error
+        self.p_minor_surname_error = p_minor_surname_error
+        self.p_proband_middle_name_missing = p_proband_middle_name_missing
+        self.p_sample_middle_name_missing = p_sample_middle_name_missing
+        self.p_dob_error = p_dob_error
+        self.p_dob_single_component_error_if_error = (
+            p_dob_single_component_error_if_error
+        )
+        self.p_minor_postcode_error = p_minor_postcode_error
+
+        # Matching rules
+
+        self.min_log_odds_for_match = min_log_odds_for_match
+        self.exceeds_next_best_log_odds = exceeds_next_best_log_odds
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Some derived frequencies
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        self.p_dob_correct = 1 - self.p_dob_error
+        self.p_dob_single_component_error = (
+            self.p_dob_error * self.p_dob_single_component_error_if_error
+        )
+        self.p_dob_major_error = 1 - (
+            self.p_dob_correct + self.p_dob_single_component_error
+        )
+        assert 0 <= self.p_dob_correct <= 1
+        assert 0 <= self.p_dob_single_component_error <= 1
+        assert 0 <= self.p_dob_major_error <= 1
+        if self.p_dob_major_error > 0:
+            log.warning(
+                f"You are allowing a person's DOB to be completely different, "
+                f"with p = {self.p_dob_major_error}. That is valid but much "
+                f"less efficient computationally."
+            )
+
+        # These ignore the specialness of 29 February:
+        self.p_two_people_share_dob_ymd = 1 / (
             DAYS_PER_YEAR * birth_year_pseudo_range
         )
-        assert 0 <= self.p_two_people_share_dob <= 1
+        p_share_dob_md_not_ymd = (
+            1 / DAYS_PER_YEAR
+        ) - self.p_two_people_share_dob_ymd
+        p_share_dob_yd_not_ymd = (
+            1 / (DAYS_PER_MONTH * birth_year_pseudo_range)
+        ) - self.p_two_people_share_dob_ymd
+        p_share_dob_ym_not_ymd = (
+            1 / (MONTHS_PER_YEAR * birth_year_pseudo_range)
+        ) - self.p_two_people_share_dob_ymd
+        self.p_two_people_partial_dob_match = (
+            p_share_dob_md_not_ymd
+            + p_share_dob_yd_not_ymd
+            + p_share_dob_ym_not_ymd
+        )
+        self.p_two_people_no_dob_similarity = (
+            1
+            - self.p_two_people_share_dob_ymd
+            - self.p_two_people_partial_dob_match
+        )
+        assert 0 <= self.p_two_people_share_dob_ymd <= 1
+        assert 0 <= p_share_dob_md_not_ymd <= 1
+        assert 0 <= p_share_dob_yd_not_ymd <= 1
+        assert 0 <= p_share_dob_ym_not_ymd <= 1
+        assert 0 <= self.p_two_people_partial_dob_match <= 1
+        assert 0 <= self.p_two_people_no_dob_similarity <= 1
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Reporting
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        self.complete_dob_mismatch_allowed = self.p_dob_major_error > 0
+        if self.complete_dob_mismatch_allowed:
+            log.warning(
+                f"You are allowing a person's DOB to be completely different, "
+                f"with p = {self.p_dob_major_error}. That is valid but much "
+                f"less efficient computationally."
+            )
 
         if verbose:
             log.debug(f"... MatchConfig built. Settings: {self}")
+            # log.debug(
+            #     f"p_dob_correct = {self.p_dob_correct}, "
+            #     f"p_dob_single_component_error = "
+            #     f"{self.p_dob_single_component_error}, "
+            #     f"p_dob_major_error = {self.p_dob_major_error}"
+            # )
+            # log.debug(
+            #     f"p_two_people_share_dob_ymd = "
+            #     f"{self.p_two_people_share_dob_ymd}, "
+            #     f"p_share_dob_md_not_ymd = {p_share_dob_md_not_ymd}, "
+            #     f"p_share_dob_yd_not_ymd = {p_share_dob_yd_not_ymd}, "
+            #     f"p_share_dob_ym_not_ymd = {p_share_dob_ym_not_ymd}, "
+            #     f"p_two_people_have_partial_dob_match = "
+            #     f"{self.p_two_people_partial_dob_match}, "
+            #     f"p_two_people_no_dob_similarity = "
+            #     f"{self.p_two_people_no_dob_similarity}"
+            # )
 
     # -------------------------------------------------------------------------
     # String representation
