@@ -2202,17 +2202,25 @@ def v2_outhashed(probands: str, sample: str) -> str:
     return f"fuzzy_compare_{probands}_to_{sample}_hashed.jsonl"
 
 
-def help_v2_fetch() -> str:
+def help_v2_fetch(plaintext: bool = True) -> str:
     """
     Help string for fetching data from all sources.
     Produces Windows output; one line per command (helpful for commenting
     things out).
     """
+    if plaintext:
+        plain = "--plaintext "
+        filename_fn = v2_plaintext
+        hash_options = ""
+    else:
+        plain = ""
+        filename_fn = v2_hashed
+        hash_options = f"%{EnvVar.HASH_OPTIONS}% "
     return "\n".join(
         f'"%{EnvVar.VALIDATOR}%" validate2_fetch_{db} '
-        f'--{Switches.KEY} "%{EnvVar.HASHKEY}%" '
-        f"--output {v2_plaintext(db)} "
+        f"--output {filename_fn(db)} {plain}"
         f'--url "%{EnvVar.db_url_envvar(db)}%" '
+        f"{hash_options}"
         f"|| exit /b"
         for db in ALL_DATABASES
     )
@@ -2228,6 +2236,7 @@ def help_v2_hash() -> str:
         f"crate_fuzzy_id_match {Commands.HASH} "
         f"--{Switches.INPUT} {v2_plaintext(db)} "
         f"--{Switches.OUTPUT} {v2_hashed(db)} "
+        f"--{Switches.INCLUDE_OTHER_INFO} "
         f"%{EnvVar.HASH_OPTIONS}% "
         f"|| exit /b"
         for db in ALL_DATABASES
@@ -2344,23 +2353,20 @@ HELP_VALIDATE_2_CDL = rf"""
 set {EnvVar.HASHKEY}=<SOME_SECRET_KEY>
 set {EnvVar.DATADIR}=<DIRECTORY>
 
-    1. Fetch
+    1. Fetch and hash
+       (If you fetched and hashed separately, you would also need the
+       --{Switches.INCLUDE_OTHER_INFO} option for the hashing step.)
 
 set {EnvVar.VALIDATOR}=\path\to\validate_fuzzy_linkage.py
 set {EnvVar.db_url_envvar(CDL)}=<SQLALCHEMY_URL>
 set {EnvVar.db_url_envvar(PCMIS)}=<SQLALCHEMY_URL>
 set {EnvVar.db_url_envvar(RIO)}=<SQLALCHEMY_URL>
 set {EnvVar.db_url_envvar(SYSTMONE)}=<SQLALCHEMY_URL>
+set {EnvVar.HASH_OPTIONS}=--{Switches.KEY} "%{EnvVar.HASHKEY}%" --{Switches.LOCAL_ID_HASH_KEY} "%{EnvVar.HASHKEY}%" --{Switches.HASH_METHOD} {HashMethods.HMAC_MD5}
 cd "%{EnvVar.DATADIR}%"
-{help_v2_fetch()}
+{help_v2_fetch(plaintext=False)}
 
-    2. Hash
-
-set {EnvVar.HASH_OPTIONS}=--{Switches.KEY} "%{EnvVar.HASHKEY}%" --{Switches.LOCAL_ID_HASH_KEY} "%{EnvVar.HASHKEY}%" --{Switches.INCLUDE_OTHER_INFO} --{Switches.HASH_METHOD} {HashMethods.HMAC_MD5}
-cd "%{EnvVar.DATADIR}%"
-{help_v2_hash()}
-
-    3. Compare.
+    2. Compare.
 
 set {EnvVar.COMMON_OPTIONS}=--{Switches.POPULATION_SIZE} {CAMBS_POPULATION} --{Switches.EXTRA_VALIDATION_OUTPUT}
 cd "%{EnvVar.DATADIR}%"
