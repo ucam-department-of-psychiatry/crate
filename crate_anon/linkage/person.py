@@ -513,12 +513,8 @@ class Person(BasePerson):
                 Usually ``False``; may be ``True`` for validation.
         """
         pk = self.PersonKey
-        if self.cfg.local_id_hasher:
-            local_id = self.cfg.local_id_hasher(self.local_id)
-        else:
-            local_id = self.local_id
         d = {
-            pk.LOCAL_ID: local_id,
+            pk.LOCAL_ID: self.cfg.local_id_hash_fn(self.local_id),
             pk.FIRST_NAME: self.first_name.hashed_dict(include_frequencies),
             pk.MIDDLE_NAMES: [
                 m.hashed_dict(include_frequencies) for m in self.middle_names

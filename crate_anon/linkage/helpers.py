@@ -606,3 +606,15 @@ def optional_int(value: str) -> Optional[int]:
         return int(value)
     except (AssertionError, TypeError, ValueError):
         raise ArgumentTypeError(f"{value!r} is an invalid optional int")
+
+
+# =============================================================================
+# Identity function
+# =============================================================================
+
+
+def identity(x: Any) -> Any:
+    """
+    Returns its input.
+    """
+    return x

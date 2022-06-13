@@ -845,6 +845,9 @@ def warn_or_fail_if_default_key(args: argparse.Namespace) -> None:
     """
     Ensure that we are not using the default (insecure) hash key unless the
     user has specifically authorized this.
+
+    It's pretty unlikely that ``local_id_hash_key`` will be this specific
+    default, because that defaults to ``None``. However, ``key`` might be.
     """
     if (
         args.key == FuzzyDefaults.HASH_KEY
@@ -937,7 +940,11 @@ def add_hasher_options(parser: argparse.ArgumentParser) -> None:
         type=str,
         default=None,
         help=f"Only applicable to the {Commands.HASH!r} command. Hash the "
-        f"local_id values, using this key (passphrase).",
+        f"local_id values, using this key (passphrase). There are good "
+        f"reasons to use a key different to that specified for "
+        f"--{Switches.KEY}. If you leave this blank, or specify an empty "
+        f"string, then local ID values will be left unmodified (e.g. if you "
+        f"have pre-hashed them).",
     )
 
 

@@ -112,7 +112,11 @@ hasher (secrecy) options:
                         rounding. (default: 5)
   --local_id_hash_key LOCAL_ID_HASH_KEY
                         Only applicable to the 'hash' command. Hash the
-                        local_id values, using this key (passphrase).
+                        local_id values, using this key (passphrase). There
+                        are good reasons to use a key different to that
+                        specified for --key. If you leave this blank, or
+                        specify an empty string, then local ID values will be
+                        left unmodified (e.g. if you have pre-hashed them).
                         (default: None)
 
 frequency information for prior probabilities:
@@ -819,7 +823,11 @@ hasher (secrecy) options:
                         rounding. (default: 5)
   --local_id_hash_key LOCAL_ID_HASH_KEY
                         Only applicable to the 'hash' command. Hash the
-                        local_id values, using this key (passphrase).
+                        local_id values, using this key (passphrase). There
+                        are good reasons to use a key different to that
+                        specified for --key. If you leave this blank, or
+                        specify an empty string, then local ID values will be
+                        left unmodified (e.g. if you have pre-hashed them).
                         (default: None)
 
 matching rules:

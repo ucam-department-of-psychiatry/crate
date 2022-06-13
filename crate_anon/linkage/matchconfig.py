@@ -237,11 +237,12 @@ class MatchConfig(object):
         self.hash_fn = make_hasher(hash_method=hash_method, key=hash_key).hash
         self.rounding_sf = rounding_sf
         if local_id_hash_key:
-            self.local_id_hasher = make_hasher(
+            self.local_id_hash_fn = make_hasher(
                 hash_method=hash_method, key=local_id_hash_key
-            )
+            ).hash
         else:
-            self.local_id_hasher = None
+            # Convert to string if necessary; otherwise, an identity function:
+            self.local_id_hash_fn = str
 
         self.population_size = population_size
         # Precalculate this, for access speed:

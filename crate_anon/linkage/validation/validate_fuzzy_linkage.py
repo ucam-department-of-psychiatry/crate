@@ -292,6 +292,27 @@ example).
 CAST() doesn't return NULL on failure (e.g. converting characters to integer);
 it produces an error. Use TRY_CAST() to return NULL on failure.
 
+
+Local ID hash key
+-----------------
+
+For the main hashing system, in ``fuzzy_id_match.py``, it's perfectly plausible
+that the user would use a predefined research ID, and not want that to be
+hashed (even while the identity information is being hashed). It's very likely
+that they would want the research ID hash key to be different from the fuzzy
+linkage hash key. So allowing "no hashing" and "separate key" options, via
+``--local_id_hash_key``, seems sensible.
+
+In this validation function, we might want to extract fully identifiable local
+IDs (``--local_id_hash_key`` unset; ``--plaintext`` set). More likely, we want
+to hash as we fetch (``--local_id_hash_key`` set; ``--plaintext`` not set).
+Separately, for our validation, we want to be able to hash NHS numbers (which
+are not the local ID), as part of the ``other_info`` data that the linkage
+process can retain but will ignore; that accounts for the
+``cfg.hash_fn(nhs_number)`` calls. However, this is for specific internal
+validation only, and therefore it's not really critical which hash key is used,
+since these data will never leave our site.
+
 """
 
 
