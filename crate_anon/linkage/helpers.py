@@ -57,6 +57,7 @@ from pendulum.parsing.exceptions import ParserError
 
 from crate_anon.anonymise.anonregex import get_uk_postcode_regex_string
 from crate_anon.common.logfunc import warn_once
+from crate_anon.common.regex_helpers import anchor
 from crate_anon.linkage.constants import MINUS_INFINITY
 
 if TYPE_CHECKING:
@@ -227,8 +228,10 @@ def open_even_if_zipped(filename: str) -> Generator[StringIO, None, None]:
 # =============================================================================
 
 POSTCODE_REGEX = re.compile(
-    get_uk_postcode_regex_string(at_word_boundaries_only=True)
+    anchor(get_uk_postcode_regex_string(at_word_boundaries_only=False))
     # Need at_word_boundaries_only=True.
+    # We don't want at_word_boundaries_only=True, since that matches e.g.
+    # "VALID_POSTCODE JUNK". We want anchor() instead.
 )
 REMOVE_PUNCTUATION_SPACE_TABLE = str.maketrans("", "", string.punctuation)
 REMOVE_PUNCTUATION_SPACE_TABLE[ord(" ")] = None  # also remove spaces
