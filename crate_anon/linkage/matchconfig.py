@@ -37,6 +37,7 @@ import logging
 from typing import List, NoReturn, Optional, Tuple
 
 from cardinal_pythonlib.hash import make_hasher
+from cardinal_pythonlib.maths_py import round_sf, normal_round_int
 from cardinal_pythonlib.probability import log_odds_from_1_in_n
 from cardinal_pythonlib.reprfunc import auto_repr
 
@@ -347,12 +348,6 @@ class MatchConfig(object):
         assert 0 <= self.p_dob_correct <= 1
         assert 0 <= self.p_dob_single_component_error <= 1
         assert 0 <= self.p_dob_major_error <= 1
-        if self.p_dob_major_error > 0:
-            log.warning(
-                f"You are allowing a person's DOB to be completely different, "
-                f"with p = {self.p_dob_major_error}. That is valid but much "
-                f"less efficient computationally."
-            )
 
         # These ignore the specialness of 29 February:
         self.p_two_people_share_dob_ymd = 1 / (
@@ -390,11 +385,28 @@ class MatchConfig(object):
 
         self.complete_dob_mismatch_allowed = self.p_dob_major_error > 0
         if self.complete_dob_mismatch_allowed:
+            potential_speedup_factor = round_sf(
+                normal_round_int(
+                    1 / (1 - self.p_two_people_no_dob_similarity)
+                ),
+                n=3,
+            )
             log.warning(
                 f"You are allowing a person's DOB to be completely different, "
                 f"with p = {self.p_dob_major_error}. That is valid but much "
-                f"less efficient computationally."
+                f"less efficient computationally (by an estimated factor of "
+                f"about {potential_speedup_factor})."
             )
+            # ... for a 90-year range, this is a factor of about 252.
+            # For a single year, it's about 9; if I'm born on 1 Jan, allowing
+            # single-component errors mean we need to consider 1 Jan, but also
+            # all of Jan, and all other firsts of the month -- total 42 out of
+            # 365 days, or 1/8.69 of the year.
+            # For a multi-year range, the speedup increases: if I'm born on 1
+            # Jan 1950 and we are considering 1900-1999, we'd need to consider
+            # 1950-01-01 (1), ????-01-01 (100), 1950-01-?? (31), 1950-??-01
+            # (12), minus the overlaps (3), giving 141 possibilities but out
+            # of about 36500, i.e. considering only 1/259 of the candidates.
 
         if verbose:
             log.debug(f"... MatchConfig built. Settings: {self}")

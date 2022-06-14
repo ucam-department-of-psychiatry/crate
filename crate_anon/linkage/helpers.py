@@ -463,9 +463,32 @@ def log_posterior_odds_from_pdh_pdnh(
 
     Returns:
         float:
-            posterior odds of H, :math:`ln(\frac{ P(H | D) }{ P(\neg H | D) })`
+            log posterior odds of H,
+            :math:`ln(\frac{ P(H | D) }{ P(\neg H | D) })`
     """
     return log_prior_odds + ln(p_d_given_h) - ln(p_d_given_not_h)
+
+
+@jit(nopython=True)
+def log_likelihood_ratio_from_p(
+    p_d_given_h: float, p_d_given_not_h: float
+) -> float:
+    r"""
+    Calculates the log of the odds ratio.
+    Fast implementation.
+
+    Args:
+        p_d_given_h:
+            :math:`P(D | H)`
+        p_d_given_not_h:
+            :math:`P(D | \neg H)`
+
+    Returns:
+        float:
+            log likelihood ratio,
+            :math:`ln(\frac{ P(D | H) }{ P(D | \neg H) })`
+    """
+    return ln(p_d_given_h) - ln(p_d_given_not_h)
 
 
 # =============================================================================

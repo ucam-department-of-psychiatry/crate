@@ -53,8 +53,8 @@ from crate_anon.linkage.constants import VALID_GENDERS
 from crate_anon.linkage.comparison import (
     Comparison,
     DirectComparison,
-    FullPartialNoMatchComparison,
-    MatchNoMatchComparison,
+    mk_comparison_duo,
+    mk_comparison_trio_full_error_prohibitive,
 )
 from crate_anon.linkage.helpers import (
     get_metaphone,
@@ -520,7 +520,32 @@ class Postcode(Identifier):
             self.unit_freq = None  # type: Optional[float]
             self.sector_freq = None  # type: Optional[float]
 
-        self.p_minor_postcode_error = self.cfg.p_minor_postcode_error
+        # Precalculate comparisons, for speed, but in a way that we can update
+        # them if we are being created via from_hashed_dict().
+        self.comparison_full_match = None  # type: Optional[DirectComparison]
+        self.comparison_partial_match = (
+            None
+        )  # type: Optional[DirectComparison]
+        self.comparison_no_match = None  # type: Optional[DirectComparison]
+        self._set_comparisons()
+
+    def _set_comparisons(self) -> None:
+        # We only perform a postcode comparison if there is at least a partial
+        # match, so the "no match" condition is not important.
+        if self.postcode_unit:
+            (
+                self.comparison_full_match,
+                self.comparison_partial_match,
+                self.comparison_no_match,
+            ) = mk_comparison_trio_full_error_prohibitive(
+                p_f=self.unit_freq,
+                p_p=self.sector_freq,
+                p_e=self.cfg.p_minor_postcode_error,
+            )
+        else:
+            self.comparison_full_match = None
+            self.comparison_partial_match = None
+            self.comparison_no_match = None
 
     def plaintext_str_core(self) -> str:
         """
@@ -583,6 +608,7 @@ class Postcode(Identifier):
         p.postcode_sector = getdictval(d, cls.KEY_HASHED_POSTCODE_SECTOR, str)
         p.unit_freq = getdictprob(d, cls.KEY_UNIT_FREQ)
         p.sector_freq = getdictprob(d, cls.KEY_SECTOR_FREQ)
+        p._set_comparisons()
         return p
 
     def __bool__(self) -> bool:
@@ -610,13 +636,12 @@ class Postcode(Identifier):
             # If postcode_unit is present, we've guaranteed that
             # postcode_sector will be.
             return None
-        return FullPartialNoMatchComparison(
-            full_match=(self.postcode_unit == other.postcode_unit),
-            p_f=self.unit_freq,
-            p_e=self.p_minor_postcode_error,
-            partial_match=(self.postcode_sector == other.postcode_sector),
-            p_p=self.sector_freq,
-        )
+        if self.postcode_unit == other.postcode_unit:
+            return self.comparison_full_match
+        elif self.postcode_sector == other.postcode_sector:
+            return self.comparison_partial_match
+        else:
+            return self.comparison_no_match
 
     # -------------------------------------------------------------------------
     # Extras
@@ -691,6 +716,22 @@ class DateOfBirth(Identifier):
             self.dob_yd = ""
             self.dob_ym = ""
 
+        # Precalculate our comparison objects, for speed.
+        # We don't need a separate function here, because these frequencies are
+        # all set from the config, not our data.
+        self.comparison_full_match = DirectComparison(
+            p_d_given_same_person=cfg.p_dob_correct,
+            p_d_given_diff_person=cfg.p_two_people_share_dob_ymd,
+        )
+        self.comparison_partial_match = DirectComparison(
+            p_d_given_same_person=cfg.p_dob_single_component_error,
+            p_d_given_diff_person=cfg.p_two_people_partial_dob_match,
+        )
+        self.comparison_no_match = DirectComparison(
+            p_d_given_same_person=cfg.p_dob_major_error,
+            p_d_given_diff_person=cfg.p_two_people_no_dob_similarity,
+        )
+
     def plaintext_str_core(self) -> str:
         """
         For CSV.
@@ -757,29 +798,19 @@ class DateOfBirth(Identifier):
         if not self.dob_str or not other.dob_str:
             # Missing information; infer nothing.
             return None
-        cfg = self.cfg
         if self.dob_str == other.dob_str:
             # Exact match
-            return DirectComparison(
-                p_d_given_same_person=cfg.p_dob_correct,
-                p_d_given_diff_person=cfg.p_two_people_share_dob_ymd,
-            )
+            return self.comparison_full_match
         elif (
             self.dob_md == other.dob_md
             or self.dob_yd == other.dob_yd
             or self.dob_ym == other.dob_ym
         ):
             # Partial match. (But not a full match, from the previous test.)
-            return DirectComparison(
-                p_d_given_same_person=cfg.p_dob_single_component_error,
-                p_d_given_diff_person=cfg.p_two_people_partial_dob_match,
-            )
+            return self.comparison_partial_match
         else:
             # No match
-            return DirectComparison(
-                p_d_given_same_person=cfg.p_dob_major_error,
-                p_d_given_diff_person=cfg.p_two_people_no_dob_similarity,
-            )
+            return self.comparison_no_match
 
 
 # =============================================================================
@@ -812,8 +843,23 @@ class Gender(Identifier):
             self.gender_freq = cfg.gender_freq(gender)
         else:
             self.gender_freq = None  # type: Optional[float]
-        self.p_gender_error = cfg.p_gender_error
-        self.p_match_given_same_person = 1 - self.p_gender_error
+
+        self.comparison_match = None  # type: Optional[DirectComparison]
+        self.comparison_no_match = None  # type: Optional[DirectComparison]
+        self._set_comparisons()
+
+    def _set_comparisons(self) -> None:
+        if self.gender_freq:
+            (
+                self.comparison_match,
+                self.comparison_no_match,
+            ) = mk_comparison_duo(
+                p_match_given_same_person=1 - self.cfg.p_gender_error,
+                p_match_given_diff_person=self.gender_freq,
+            )
+        else:
+            self.comparison_match = None
+            self.comparison_no_match = None
 
     def plaintext_str_core(self) -> str:
         """
@@ -851,11 +897,12 @@ class Gender(Identifier):
         """
         Creation of a hashed gender, ultimately from JSON.
         """
-        x = Gender(cfg=cfg)
-        x.is_plaintext = False
-        x.gender = getdictval(d, cls.KEY_HASHED_GENDER, str)
-        x.gender_freq = getdictprob(d, cls.KEY_GENDER_FREQ)
-        return x
+        g = Gender(cfg=cfg)
+        g.is_plaintext = False
+        g.gender = getdictval(d, cls.KEY_HASHED_GENDER, str)
+        g.gender_freq = getdictprob(d, cls.KEY_GENDER_FREQ)
+        g._set_comparisons()
+        return g
 
     def __bool__(self) -> bool:
         return bool(self.gender)
@@ -870,11 +917,10 @@ class Gender(Identifier):
         if not self.gender or not other.gender:
             # Missing information; infer nothing.
             return None
-        return MatchNoMatchComparison(
-            match=(self.gender == other.gender),
-            p_match_given_same_person=self.p_match_given_same_person,
-            p_match_given_diff_person=self.gender_freq,
-        )
+        if self.gender == other.gender:
+            return self.comparison_match
+        else:
+            return self.comparison_no_match
 
 
 # =============================================================================
@@ -920,8 +966,14 @@ class Name(Identifier, ABC):
         self.name_freq = None  # type: Optional[float]
         self.metaphone_freq = None  # type: Optional[float]
 
+        self.comparison_full_match = None  # type: Optional[DirectComparison]
+        self.comparison_partial_match = (
+            None
+        )  # type: Optional[DirectComparison]
+        self.comparison_no_match = None  # type: Optional[DirectComparison]
+
         self.gender = ""
-        self.set_gender(gender)  # may reset frequencies
+        self.set_gender(gender)  # may reset frequencies; will set comparisons
 
     def set_gender(self, gender: str) -> None:
         """
@@ -930,13 +982,20 @@ class Name(Identifier, ABC):
         if gender not in VALID_GENDERS:
             raise ValueError(f"Bad gender: {gender!r}")
         self.gender = gender
-        if self.name:
-            self._reset_frequencies_identifiable()
+        self._reset_frequencies_identifiable()
+        self._set_comparisons()
 
     @abstractmethod
     def _reset_frequencies_identifiable(self) -> None:
         """
         Gender may have changed. Update any probabilities accordingly.
+        """
+        pass
+
+    @abstractmethod
+    def _set_comparisons(self) -> None:
+        """
+        Set comparison objects.
         """
         pass
 
@@ -980,6 +1039,17 @@ class Name(Identifier, ABC):
                 self.ERR_MISSING_FREQ + f" for name {self.name!r}"
             )
 
+    def comparison(self, other: "Name") -> Optional[Comparison]:
+        if not self.name or not other.name:
+            # No information
+            return None
+        if self.name == other.name:
+            return self.comparison_full_match
+        elif self.metaphone == other.metaphone:
+            return self.comparison_partial_match
+        else:
+            return self.comparison_no_match
+
 
 class Forename(Name):
     """
@@ -990,8 +1060,6 @@ class Forename(Name):
         self, cfg: MatchConfig, name: str = "", gender: str = ""
     ) -> None:
         super().__init__(cfg=cfg, name=name, gender=gender)
-
-        self.p_minor_name_error = self.cfg.p_minor_forename_error
 
     def _reset_frequencies_identifiable(self) -> None:
         if self.name:
@@ -1004,6 +1072,23 @@ class Forename(Name):
         else:
             self.name_freq = None
             self.metaphone_freq = None
+        self._set_comparisons()
+
+    def _set_comparisons(self) -> None:
+        if self.name:
+            (
+                self.comparison_full_match,
+                self.comparison_partial_match,
+                self.comparison_no_match,
+            ) = mk_comparison_trio_full_error_prohibitive(
+                p_f=self.name_freq,
+                p_p=self.metaphone_freq,
+                p_e=self.cfg.p_minor_forename_error,
+            )
+        else:
+            self.comparison_full_match = None
+            self.comparison_partial_match = None
+            self.comparison_no_match = None
 
     @classmethod
     def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "Forename":
@@ -1025,19 +1110,8 @@ class Forename(Name):
         n.metaphone = getdictval(d, cls.KEY_HASHED_METAPHONE, str)
         n.name_freq = getdictprob(d, cls.KEY_NAME_FREQ)
         n.metaphone_freq = getdictprob(d, cls.KEY_METAPHONE_FREQ)
+        n._set_comparisons()
         return n
-
-    def comparison(self, other: "Forename") -> Optional[Comparison]:
-        if not self.name or not other.name:
-            # No information
-            return None
-        return FullPartialNoMatchComparison(
-            full_match=(self.name == other.name),
-            p_f=self.name_freq,
-            p_e=self.p_minor_name_error,
-            partial_match=(self.metaphone == other.metaphone),
-            p_p=self.metaphone_freq,
-        )
 
 
 class Surname(Name):
@@ -1049,8 +1123,6 @@ class Surname(Name):
         self, cfg: MatchConfig, name: str = "", gender: str = ""
     ) -> None:
         super().__init__(cfg=cfg, name=name, gender=gender)
-
-        self.p_minor_name_error = self.cfg.p_minor_surname_error
 
     def _reset_frequencies_identifiable(self) -> None:
         if self.name:
@@ -1064,6 +1136,22 @@ class Surname(Name):
             "TODO: implement gender aspects of "
             "Surname._reset_frequencies_identifiable"
         )
+
+    def _set_comparisons(self) -> None:
+        if self.name:
+            (
+                self.comparison_full_match,
+                self.comparison_partial_match,
+                self.comparison_no_match,
+            ) = mk_comparison_trio_full_error_prohibitive(
+                p_f=self.name_freq,
+                p_p=self.metaphone_freq,
+                p_e=self.cfg.p_minor_surname_error,
+            )
+        else:
+            self.comparison_full_match = None
+            self.comparison_partial_match = None
+            self.comparison_no_match = None
 
     @classmethod
     def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "Surname":
@@ -1085,16 +1173,5 @@ class Surname(Name):
         n.metaphone = getdictval(d, cls.KEY_HASHED_METAPHONE, str)
         n.name_freq = getdictprob(d, cls.KEY_NAME_FREQ)
         n.metaphone_freq = getdictprob(d, cls.KEY_METAPHONE_FREQ)
+        n._set_comparisons()
         return n
-
-    def comparison(self, other: "Surname") -> Optional[Comparison]:
-        if not self.name or not other.name:
-            # No information
-            return None
-        return FullPartialNoMatchComparison(
-            full_match=(self.name == other.name),
-            p_f=self.name_freq,
-            p_e=self.p_minor_name_error,
-            partial_match=(self.metaphone == other.metaphone),
-            p_p=self.metaphone_freq,
-        )

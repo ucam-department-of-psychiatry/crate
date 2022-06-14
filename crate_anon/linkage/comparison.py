@@ -40,9 +40,12 @@ same person.
 # Imports
 # =============================================================================
 
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Tuple
 
-from crate_anon.linkage.helpers import log_posterior_odds_from_pdh_pdnh
+from crate_anon.linkage.helpers import (
+    log_likelihood_ratio_from_p,
+    log_posterior_odds_from_pdh_pdnh,
+)
 from crate_anon.linkage.constants import MINUS_INFINITY
 
 
@@ -145,7 +148,9 @@ class FailureComparison(Comparison):
 class DirectComparison(Comparison):
     r"""
     Represents a comparison where the user supplies :math:`P(D | H)` and
-    :math:`P(D | \neg H)` directly.
+    :math:`P(D | \neg H)` directly. This is the fastest. It precalculates the
+    log likelihood ratio for speed; that way, our comparison can be re-used
+    fast.
     """
 
     def __init__(
@@ -161,6 +166,10 @@ class DirectComparison(Comparison):
         super().__init__()
         self._p_d_given_h = p_d_given_same_person
         self._p_d_given_not_h = p_d_given_diff_person
+        self._log_likelihood_ratio = log_likelihood_ratio_from_p(
+            p_d_given_h=p_d_given_same_person,
+            p_d_given_not_h=p_d_given_diff_person,
+        )
 
     @property
     def d_description(self) -> str:
@@ -174,6 +183,10 @@ class DirectComparison(Comparison):
     def p_d_given_not_h(self) -> float:
         return self._p_d_given_not_h
 
+    def posterior_log_odds(self, prior_log_odds: float) -> float:
+        # Fast version
+        return prior_log_odds + self._log_likelihood_ratio
+
 
 class MatchNoMatchComparison(Comparison):
     """
@@ -182,6 +195,8 @@ class MatchNoMatchComparison(Comparison):
     The purpose of this is to represent this choice CLEARLY. Code that produces
     one of these could equally produce one of two :class:`DirectComparison`
     objects, conditional upon ``match``, but this is often clearer.
+
+    Not currently used in main code.
     """
 
     def __init__(
@@ -238,6 +253,8 @@ class FullPartialNoMatchComparison(Comparison):
     Again, this is for clarity. Code that produces one of these could equally
     produce one of three :class:`DirectComparison` objects, conditional upon
     ``full_match`` and ``partial_match``, but this is generally much clearer.
+
+    Not currently used in main code.
     """
 
     def __init__(
@@ -302,6 +319,61 @@ class FullPartialNoMatchComparison(Comparison):
             # Shortcut, since p_d_given_h is 0 and therefore LR is 0:
             return MINUS_INFINITY
         return super().posterior_log_odds(prior_log_odds)
+
+
+# =============================================================================
+# Make a trio of DirectComparison objects (for speed) using an interface that's
+# slightly more friendly, like FullPartialNoMatchComparison.
+# =============================================================================
+
+
+def mk_comparison_duo(
+    p_match_given_same_person: float, p_match_given_diff_person: float
+) -> Tuple[DirectComparison, DirectComparison]:
+    """
+    A method that is a faster alternative to MatchNoMatchComparison.
+
+    - p_match_given_same_person = 1 - p_e
+    - p_match_given_diff_person = p_f
+    """
+    match = DirectComparison(
+        p_d_given_same_person=p_match_given_same_person,  # 1 - p_e
+        p_d_given_diff_person=p_match_given_diff_person,  # p_f
+    )
+    no_match = DirectComparison(
+        p_d_given_same_person=1 - p_match_given_same_person,  # p_e
+        p_d_given_diff_person=1 - p_match_given_diff_person,  # 1 - p_f
+    )
+    return match, no_match
+
+
+def mk_comparison_trio_full_error_prohibitive(
+    p_f: float, p_p: float, p_e: float
+) -> Tuple[DirectComparison, DirectComparison, DirectComparison]:
+    """
+    A method that is a faster alternative to FullPartialNoMatchComparison.
+
+    Args:
+        p_f:
+            :math:`p_f = P(\text{full match} | \neg H)`
+        p_p:
+            :math:`p_p = P(\text{partial match} | \neg H)`
+        p_e:
+            :math:`p_e = P(\text{partial but not full match} | H)`
+
+    Returns:
+        tuple: full_match, partial_match, no_match
+    """
+    full_match = DirectComparison(
+        p_d_given_same_person=1 - p_e, p_d_given_diff_person=p_f
+    )
+    partial_match = DirectComparison(
+        p_d_given_same_person=p_e, p_d_given_diff_person=p_p - p_f
+    )
+    no_match = DirectComparison(
+        p_d_given_same_person=0, p_d_given_diff_person=1 - p_p
+    )
+    return full_match, partial_match, no_match
 
 
 # =============================================================================

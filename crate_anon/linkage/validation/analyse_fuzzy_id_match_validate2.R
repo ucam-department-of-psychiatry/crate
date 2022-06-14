@@ -1791,4 +1791,4 @@ main <- function()
 
 # TODO: rethink analytically about the PCMIS NHS# duplication problem
 
-# TODO: document new DOB matching
+# TODO: document new DOB matching (and see comments in matchconfig.py re speed)
