@@ -96,15 +96,15 @@ PCMIS <- "pcmis"
 RIO <- "rio"
 SYSTMONE <- "systmone"
 
-# ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
-ALL_DATABASES <- CDL  # for debugging
+ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
+# ALL_DATABASES <- CDL  # for debugging
 
-# FROM_DATABASES <- ALL_DATABASES
-FROM_DATABASES <- CDL  # for debugging
+FROM_DATABASES <- ALL_DATABASES
+# FROM_DATABASES <- CDL  # for debugging
 
-# TO_DATABASES <- ALL_DATABASES
+TO_DATABASES <- ALL_DATABASES
 # TO_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
-TO_DATABASES <- CDL
+# TO_DATABASES <- CDL  # for debugging
 
 
 # =============================================================================

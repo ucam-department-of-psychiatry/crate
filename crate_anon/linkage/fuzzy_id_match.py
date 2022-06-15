@@ -36,11 +36,14 @@ See draft paper.
 # =============================================================================
 
 import argparse
+
+from concurrent.futures import ProcessPoolExecutor, wait
 import csv
 from io import StringIO
 import json
 import logging
-from multiprocessing import Pool
+from math import ceil
+
 import sys
 import time
 from typing import Any, List, Tuple, TYPE_CHECKING
@@ -51,6 +54,7 @@ from cardinal_pythonlib.argparse_func import (
 )
 from cardinal_pythonlib.datetimefunc import coerce_to_pendulum_date
 from cardinal_pythonlib.hash import HashMethods
+from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.probability import probability_from_log_odds
 from cardinal_pythonlib.profile import do_cprofile
@@ -174,57 +178,119 @@ class ComparisonOutputColnames:
 
 _ = """
 
-compare_probands_to_sample:
+PARALLEL PROCESSING
 
-    Profiling with 10,000 probands and the exact same people in the sample, on
-    Wombat:
+This is slow:
 
-    - Start (2020-04-25, 11:52): 52 seconds for the first 1,000 probands.
-    - next: 50.99. Not much improvement!
-    - multiprocessing didn't help (overheads?)
-    - multithreading didn't help (GIL?)
-    - we remain at about 25.889 seconds per 400 probands within a
-      10k * 10k set (= 15 probands/sec).
-    - down to 22.5 seconds with DOB shortlisting, and that is with a highly
-      self-similar sample, so that may improve dramatically.
-    - retried multithreading with ThreadPoolExecutor: 20.9 seconds for 400,
-      compared to 23.58 with single-threading; pretty minimal difference.
-    - retried multiprocessing with ProcessPoolExecutor: maybe 2/8 cores at high
-      usage at any given time? Not properly profiled.
-    - then with multiprocessing.Pool...
+    executor = ProcessPoolExecutor(max_workers=max_workers)
+    for result in executor.map(sample.get_unique_match_detailed,
+                               probands.people,
+                               cycle([cfg])):
+        process_result(result)
 
-      - https://stackoverflow.com/questions/18671528/processpoolexecutor-from-concurrent-futures-way-slower-than-multiprocessing-pool
-      - https://helpful.knobs-dials.com/index.php/Python_usage_notes/Multiprocessing_notes
-      - slow, but then added ``chunksize = n_probands // n_workers`` (I think
-        it's the interprocess communication/setup that is slow)...
+This doesn't work as you can't pickle a local function:
 
-      - 147.168 seconds -- but for all 10k rows, so that is equivalent to
-        5.88 seconds for 400, and much better.
-      - Subsequently reached 111.8 s for 10k probands (and 10k sample),
-        for 89 probands/sec.
+    from multiprocessing import Pool
+    chunksize = max(1, min(n_probands // n_workers, max_chunksize))
+    # ... chunksize must be >= 1
+    # ... e.g. max_chunksize = 1000
+    with Pool(processes=n_workers) as pool:
+        for result in pool.imap_unordered(  # one arg per call
+                make_result,  # local function
+                probands.people,
+                chunksize=chunksize):
+            process_result(result)
 
-    - This is an O(n^2) algorithm, in that its time grows linearly with the
-      number of probands to check, and with the number of sample members to
-      check against -- though on average at 1/(365*b) = 1/32850 the gradient
-      for the latter, since we use birthday prefiltering.
+This is fine, though it only collects results at the end:
 
-    - Different DOB, middle name methods and gender check takes us to
-      150.15 s for 10k*10k (2020-05-02). The fake data has lots of DOB overlap
-      so real-world performance is likely to be much better.
+    with Pool(processes=n_workers) as pool:
+        for result in pool.starmap(  # many args
+                sample.get_unique_match_detailed,
+                zip(probands.people, cycle([cfg])),
+                chunksize=chunksize):
+            process_result(result)
 
-    - Using generic ID/frequency structures took this down to 130.5s
-      (2020-05-02), and some simplification to 124.76s, for 10k*10k.
+This is slower than serial for 1k-to-1k matching under Linux (e.g. 19.88 with 8
+workers, chunksize 125, versus 2.76s serial), and about a *hundredfold* slower
+than serial for our CPFT databases under Windows -- perhaps because under
+Windows, Python tries to "fake" a fork() call
+(https://stackoverflow.com/questions/57535979/):
 
-    .. code-block:: none
+    with Pool(processes=n_workers) as pool:
+        for result in pool.imap_unordered(  # one arg per call
+            sample.get_unique_match_detailed,
+            probands.people,
+            chunksize=chunksize,
+        ):
+            process_result(result)
 
-        crate_fuzzy_id_match compare_plaintext \
-            --probands fuzzy_sample_10k.csv \
-            --sample fuzzy_sample_10k.csv \
-            --output fuzzy_output_10k.csv
+This is about the same (parallel/serial) for 1k-to-1k. For 10k-to-10k, about
+379s serial, and 488s parallel (8 workers):
 
-        # to profile, add: --profile --n_workers 1
+    from concurrent.futures import as_completed, ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=n_workers) as executor:
+        futures = [
+            executor.submit(sample.get_unique_match_detailed, proband)
+            for proband in probands.people
+        ]
+        for future in as_completed(futures):
+            process_result(future.result())
 
-"""  # noqa
+We likely have these tensions:
+
+- For multiprocessing, fork() is fairly fast under Linux but nonexistent under
+  Windows. The process creation (including variable duplication) under Windows
+  is slow, so this is limiting.
+
+- Multithreading would make tasks start fast, and this would be the method of
+  choice under C++, but then they hit the Python GIL (which is why Python
+  generally recommends multiprocessing for CPU-bound and multithreading for
+  IO-bound operations; e.g. https://stackoverflow.com/questions/60513406/).
+
+Anyway, performance is too good to bother rewriting in C++.
+
+However, the other thing we could do is to split our probands into equal
+groups, and launch n_workers processes, not len(probands) processes. For
+1k-to-1k, slower (2.6s serial, 20.99s parallel). For 10k-to-10k, faster (338.8s
+serial, 105.5s parallel). With this design, we may as well retain the original
+order, so rather than "for future in as_completed(futures)" we do
+"wait(futures)" then "for future in futures". So we'll do that.
+
+OTHER SPEED CONSIDERATIONS
+
+This is an O(n^2) algorithm, in that its time grows linearly with the number of
+probands to check, and with the number of sample members to check against --
+though on average at 1/(365*b) = 1/32850 the gradient for the latter, with
+"exact DOB" prefiltering (a bit steeper now we allow DOB partial matches).
+
+Other things that helped a lot:
+
+- Simplifying Bayesian comparison structures, and pregenerating them/storing
+  them as part of Identifier objects (because individual Person objects are
+  compared against many others).
+
+- numba.jit() for low-level maths.
+
+"""
+
+
+def process_proband_chunk(
+    probands: List[Person],
+    sample: People,
+    worker_num: int,
+    report_every: int = FuzzyDefaults.REPORT_EVERY,
+) -> List[MatchResult]:
+    """
+    Used for multiprocessing, where a single process handles lots of probands,
+    not one proband per process.
+    """
+    results = []  # type: List[MatchResult]
+    n_probands = len(probands)
+    for i, proband in enumerate(probands, start=1):
+        if i % report_every == 0:
+            log.info(f"Worker {worker_num}: processing {i}/{n_probands}")
+        results.append(sample.get_unique_match_detailed(proband))
+    return results
 
 
 def compare_probands_to_sample(
@@ -232,16 +298,15 @@ def compare_probands_to_sample(
     probands: People,
     sample: People,
     output_filename: str,
-    report_every: int = 100,
     extra_validation_output: bool = False,
-    n_workers: int = FuzzyDefaults.N_PROCESSES,
-    max_chunksize: int = FuzzyDefaults.MAX_CHUNKSIZE,
+    report_every: int = FuzzyDefaults.REPORT_EVERY,
     min_probands_for_parallel: int = FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
+    n_workers: int = FuzzyDefaults.N_PROCESSES,
 ) -> None:
     r"""
     Compares each proband to the sample. Writes to an output file. If
     ``n_workers == 1``, proband order is retained. If parallel processing is
-    used, order may not be preserved.
+    used, order may not be (will likely not be) preserved.
 
     Args:
         cfg:
@@ -252,35 +317,31 @@ def compare_probands_to_sample(
             :class:`People`
         output_filename:
             Output CSV filename.
-        report_every:
-            Report progress every n probands.
         extra_validation_output:
             Add extra columns to the output for validation purposes?
-        n_workers:
-            Number of parallel processes to use.
-        max_chunksize:
-            Maximum chunksize for parallel processing.
+        report_every:
+            Report progress every n probands.
         min_probands_for_parallel:
             Minimum number of probands for which we will bother to use parallel
             processing.
+        n_workers:
+            Number of parallel processes to use.
     """
+    c = ComparisonOutputColnames
 
     def process_result(r: MatchResult) -> None:
-        # Uses "rownum" and "writer" from outer scope.
+        # Uses rownum/c/writer from outer scope.
         nonlocal rownum
         rownum += 1
         if rownum % report_every == 0:
-            log.info(f"Processing result {rownum}/{n_probands}")
-        p = r.proband
-        w = r.winner
+            log.info(f"Writing result {rownum}/{n_probands}")
         matched = r.matched
-        c = ComparisonOutputColnames
         rowdata = {
-            c.PROBAND_LOCAL_ID: p.local_id,
+            c.PROBAND_LOCAL_ID: r.proband.local_id,
             c.MATCHED: int(matched),
             c.LOG_ODDS_MATCH: r.best_log_odds,
             c.P_MATCH: probability_from_log_odds(r.best_log_odds),
-            c.SAMPLE_MATCH_LOCAL_ID: w.local_id if matched else None,
+            c.SAMPLE_MATCH_LOCAL_ID: r.winner.local_id if matched else None,
             c.SECOND_BEST_LOG_ODDS: r.second_best_log_odds,
         }
         if extra_validation_output:
@@ -318,45 +379,30 @@ def compare_probands_to_sample(
         writer.writeheader()
 
         if parallel:
-            chunksize = max(1, min(n_probands // n_workers, max_chunksize))
-            # ... chunksize must be >= 1
-            log.info(
-                f"Using parallel processing with {n_workers} workers and "
-                f"chunksize of {chunksize}."
-            )
-
-            # This is slow:
-            #
-            # executor = ProcessPoolExecutor(max_workers=max_workers)
-            # for result in executor.map(sample.get_unique_match_detailed,
-            #                            probands.people,
-            #                            cycle([cfg])):
-            #     process_result(result)
-            #
-            # This doesn't work as you can't pickle a local function:
-            #
-            # with Pool(processes=n_workers) as pool:
-            #     for result in pool.imap_unordered(  # one arg per call
-            #             make_result,  # local function
-            #             probands.people,
-            #             chunksize=chunksize):
-            #         process_result(result)
-            #
-            # This is fine, though it only collects results at the end:
-            # with Pool(processes=n_workers) as pool:
-            #     for result in pool.starmap(  # many args
-            #             sample.get_unique_match_detailed,
-            #             zip(probands.people, cycle([cfg])),
-            #             chunksize=chunksize):
-            #         process_result(result)
-
-            with Pool(processes=n_workers) as pool:
-                for result in pool.imap_unordered(  # one arg per call
-                    sample.get_unique_match_detailed,
-                    probands.people,
-                    chunksize=chunksize,
-                ):
-                    process_result(result)
+            log.info(f"Using parallel processing: {n_workers} workers")
+            people_per_chunk = ceil(n_probands / n_workers)
+            assert people_per_chunk * n_workers >= n_probands
+            proband_chunks = chunks(probands.people, people_per_chunk)
+            with ProcessPoolExecutor(max_workers=n_workers) as executor:
+                log.info("Submitting parallel jobs...")
+                futures = [
+                    executor.submit(
+                        process_proband_chunk,
+                        probands=proband_chunk,
+                        sample=sample,
+                        worker_num=worker_num,
+                        report_every=report_every,
+                    )
+                    for worker_num, proband_chunk in enumerate(
+                        proband_chunks, start=1
+                    )
+                ]
+                log.info("Waiting for workers...")
+                wait(futures)
+                log.info("Workers done; writing output...")
+                for future in futures:
+                    for result in future.result():
+                        process_result(result)
 
         else:
             log.info("Not using parallel processing.")
@@ -379,10 +425,10 @@ def compare_probands_to_sample_from_files(
     sample_plaintext: bool = True,
     sample_cache_filename: str = "",
     extra_validation_output: bool = False,
-    profile: bool = False,
-    n_workers: int = FuzzyDefaults.N_PROCESSES,
-    max_chunksize: int = FuzzyDefaults.MAX_CHUNKSIZE,
+    report_every: int = FuzzyDefaults.REPORT_EVERY,
     min_probands_for_parallel: int = FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
+    n_workers: int = FuzzyDefaults.N_PROCESSES,
+    profile: bool = False,
 ) -> None:
     """
     Compares each of the people in the probands file to the sample file.
@@ -404,15 +450,15 @@ def compare_probands_to_sample_from_files(
             Is the sample file plaintext (not hashed)?
         extra_validation_output:
             Add extra columns to the output for validation purposes?
-        profile:
-            Profile the code?
-        n_workers:
-            Number of parallel processes to use.
-        max_chunksize:
-            Maximum chunksize for parallel processing.
+        report_every:
+            Report progress every n probands.
         min_probands_for_parallel:
             Minimum number of probands for which we will bother to use parallel
             processing.
+        n_workers:
+            Number of parallel processes to use.
+        profile:
+            Profile the code?
     """
     # Sample
     log.info("Loading (or caching) sample data")
@@ -443,7 +489,7 @@ def compare_probands_to_sample_from_files(
         sample = sample.hashed()
         log.info("... done")
     elif probands_plaintext and not sample_plaintext:
-        log.warning("Odd: comparing plaintext probands to hashed sample!")
+        log.warning("Unusual: comparing plaintext probands to hashed sample.")
         log.info("Hashing probands...")
         probands = probands.hashed()
         log.info("... done")
@@ -460,9 +506,9 @@ def compare_probands_to_sample_from_files(
         sample=sample,
         output_filename=output_filename,
         extra_validation_output=extra_validation_output,
-        n_workers=n_workers,
-        max_chunksize=max_chunksize,
+        report_every=report_every,
         min_probands_for_parallel=min_probands_for_parallel,
+        n_workers=n_workers,
     )
 
 
@@ -727,6 +773,7 @@ class Switches:
     INPUT = "input"
     OUTPUT = "output"
     N_WORKERS = "n_workers"
+    REPORT_EVERY = "report_every"
 
     KEY = "key"
     HASH_METHOD = "hash_method"
@@ -1251,18 +1298,17 @@ def add_comparison_options(
         "or the number of CPUs on your system (other operating systems).",
     )
     comparison_group.add_argument(
-        "--max_chunksize",
-        type=int,
-        default=FuzzyDefaults.MAX_CHUNKSIZE,
-        help="Maximum chunk size (number of probands to pass to a "
-        "subprocess each time).",
-    )
-    comparison_group.add_argument(
         "--min_probands_for_parallel",
         type=int,
         default=FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
         help="Minimum number of probands for which we will bother to use "
         "parallel processing.",
+    )
+    comparison_group.add_argument(
+        f"--{Switches.REPORT_EVERY}",
+        type=int,
+        default=FuzzyDefaults.REPORT_EVERY,
+        help="Report progress every n probands.",
     )
     comparison_group.add_argument(
         "--profile",
@@ -1705,7 +1751,6 @@ normally for testing.""",
         compare_probands_to_sample_from_files(
             cfg=cfg,
             extra_validation_output=args.extra_validation_output,
-            max_chunksize=args.max_chunksize,
             min_probands_for_parallel=args.min_probands_for_parallel,
             n_workers=args.n_workers,
             output_filename=args.output,
@@ -1734,7 +1779,6 @@ normally for testing.""",
         compare_probands_to_sample_from_files(
             cfg=cfg,
             extra_validation_output=args.extra_validation_output,
-            max_chunksize=args.max_chunksize,
             min_probands_for_parallel=args.min_probands_for_parallel,
             n_workers=args.n_workers,
             output_filename=args.output,
@@ -1763,7 +1807,6 @@ normally for testing.""",
         compare_probands_to_sample_from_files(
             cfg=cfg,
             extra_validation_output=args.extra_validation_output,
-            max_chunksize=args.max_chunksize,
             min_probands_for_parallel=args.min_probands_for_parallel,
             n_workers=args.n_workers,
             output_filename=args.output,

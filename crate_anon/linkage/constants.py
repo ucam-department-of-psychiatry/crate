@@ -123,12 +123,11 @@ class FuzzyDefaults:
     # -------------------------------------------------------------------------
     # Performance
     # -------------------------------------------------------------------------
-    MAX_CHUNKSIZE = 1000
     MIN_PROBANDS_FOR_PARALLEL = 1000
     # ... a machine that takes ~30s to set up a basic parallel run (and 107.9s
     # for a 10k-to-10k comparison) processes single results at about 37/s... so
     # the break-even point is probably around 1000. But that does depend on the
-    # sample size too. Call it 100 just to speed up short tests.
+    # sample size too.
 
     # -------------------------------------------------------------------------
     # Population priors
@@ -193,6 +192,7 @@ class FuzzyDefaults:
     # -------------------------------------------------------------------------
     MIN_LOG_ODDS_FOR_MATCH = 5  # theta, in the validation paper
     EXCEEDS_NEXT_BEST_LOG_ODDS = 10  # delta, in the validation paper
+    REPORT_EVERY = 100  # cosmetic only
 
     # -------------------------------------------------------------------------
     # Derived

@@ -1009,7 +1009,9 @@ class People(object):
         if some people have duplicate ``local_id`` values.
         """
         self.cfg = cfg
-        self.people = set()  # type: Set[Person]
+        self.people = []  # type: List[Person]
+        # ... list is preferable to set, as we may slice it for parallel
+        # processing, and it maintains order.
 
         # These may be plaintext or hashed DOB strings depending on our people:
         self.dob_md_to_people = defaultdict(
@@ -1025,6 +1027,7 @@ class People(object):
             list
         )  # type: Dict[str, List[Person]]  # noqa
 
+        self._known_ids = set()  # type: Set[str]
         self._people_are_plaintext = None  # type: Optional[bool]
 
         if person:
@@ -1052,11 +1055,12 @@ class People(object):
             # First person
             self._people_are_plaintext = person.is_plaintext()
 
-        if person in self.people:
+        if person.local_id in self._known_ids:
             raise DuplicateLocalIDError(
                 f"Person with duplicate local ID {person.local_id!r}"
             )
-        self.people.add(person)
+        self._known_ids.add(person.local_id)
+        self.people.append(person)
 
         dob = person.dob
         if dob:
