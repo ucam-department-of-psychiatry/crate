@@ -7,4 +7,7 @@ crate_fuzzy_id_match compare_plaintext \
     --probands crate_fuzzy_sample_1k.csv \
     --sample crate_fuzzy_sample_1k.csv \
     --output crate_fuzzy_output_1k.csv \
-    --profile --n_workers 1
+    --profile \
+    --n_workers 1
+
+# 2022-06-14: 4.224541664123535 s, good profile

@@ -1718,6 +1718,52 @@ performance_summary_at_threshold <- function(
 
 
 # =============================================================================
+# Empirical discrepancy rates
+# =============================================================================
+
+empirical_discrepancy_rates <- function(people_data_1, people_data_2)
+{
+    # Link on NHS numbers. Note -- this is an absolute (gold-standard) linkage,
+    # and nothing to do with our Bayesian system.
+    combined <- merge(
+        x = people_data_1,
+        y = people_data_2,
+        by.x = hashed_nhs_number,
+        by.y = hashed_nhs_number,
+        all.x = FALSE,
+        all.y = FALSE,
+        suffixes = c("_db1", "_db2")
+    )
+    s <- (
+        combined
+        %>% summarize(
+            n_surname_present = sum(
+                !is.na(hashed_surname_db1)
+                & !is.na(hashed_surname_db2)
+            ),
+            n_surname_full_match = sum(
+                !is.na(hashed_surname_db1)
+                & !is.na(hashed_surname_db2)
+                & hashed_surname_db1 == hashed_surname_db2
+            ),
+            n_surname_partial_match = sum(
+                !is.na(hashed_surname_db1)
+                & !is.na(hashed_surname_db2)
+                & hashed_surname_db1 != hashed_surname_db2
+                & hashed_metaphone_db1 != hashed_metaphone_db2
+            ),
+            n_surname_no_match = sum(
+                !is.na(hashed_surname_db1)
+                & !is.na(hashed_surname_db2)
+                & hashed_metaphone_db1 != hashed_metaphone_db2
+            )
+        )
+        %>% as.data.table()
+    )
+    return(s)
+}
+
+# =============================================================================
 # Main
 # =============================================================================
 
@@ -1773,6 +1819,11 @@ main <- function()
     # Not done: demographics predicting specific sub-reasons for non-linkage.
     # (We predict overall non-linkage above.)
 
+    discrepancies <- empirical_discrepancy_rates(
+        people_data_1 = get(mk_people_var(RIO)),
+        people_data_1 = get(mk_people_var(SYSTMONE))
+    )
+
     write_output(paste("Finished:", Sys.time()))
 }
 
@@ -1788,7 +1839,6 @@ main <- function()
 #   - main tricky bit is the identifiable file format; needs to be easy
 
 # TODO: use empirical estimates of remaining error types; see FuzzyDefaults
+# ... TODO: calculate metaphone-only match frequencies
 
 # TODO: rethink analytically about the PCMIS NHS# duplication problem
-
-# TODO: document new DOB matching (and see comments in matchconfig.py re speed)

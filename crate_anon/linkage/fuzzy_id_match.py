@@ -1138,8 +1138,8 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
         f"--{Switches.P_DOB_ERROR}",
         type=float,
         default=FuzzyDefaults.P_DOB_ERROR,
-        help="Assumed probability that a DOB is wrong in some way, leading to "
-        "a proband/candidate partial match or mismatch.",
+        help="Assumed probability (p_e) that a DOB is wrong in some way, "
+        "leading to a proband/candidate partial match or mismatch.",
     )
     error_p_group.add_argument(
         f"--{Switches.P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR}",
@@ -1147,24 +1147,24 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
         default=FuzzyDefaults.P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR,
         help="Given that a DOB is wrong, what is the probability that the "
         "error leads to a partial match, in which only one component (year, "
-        "month, or day) is wrong? NOTE: Empirical data suggests this is about "
-        "0.933, but we suggest setting it to 1, as anything below 1 "
-        "sacrifices an opportunity for enormous computational efficiency -- "
-        "<1 will run much slower.",
+        "month, or day) is wrong? (This is p_ep / p_e.) NOTE: Empirical data "
+        "suggests this is about 0.933, but we suggest setting it to 1, as "
+        "anything below 1 sacrifices an opportunity for enormous "
+        "computational efficiency -- <1 will run much slower.",
     )
     error_p_group.add_argument(
         f"--{Switches.P_GENDER_ERROR}",
         type=float,
         default=FuzzyDefaults.P_GENDER_ERROR,
-        help="Assumed probability that a gender is wrong leading to a "
+        help="Assumed probability (p_e) that a gender is wrong, leading to a "
         "proband/candidate mismatch.",
     )
     error_p_group.add_argument(
         f"--{Switches.P_MINOR_POSTCODE_ERROR}",
         type=float,
         default=FuzzyDefaults.P_MINOR_POSTCODE_ERROR,
-        help="Assumed probability that a postcode has an error in that means "
-        "it fails a full (postcode unit) match but satisfies a partial "
+        help="Assumed probability (p_ep) that a postcode has an error that "
+        "means it fails a full (postcode unit) match but satisfies a partial "
         "(postcode sector) match.",
     )
 

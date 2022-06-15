@@ -171,6 +171,14 @@ class DirectComparison(Comparison):
             p_d_given_not_h=p_d_given_diff_person,
         )
 
+    def __str__(self) -> str:
+        return (
+            f"DirectComparison"
+            f"[P(D|H)={self.p_d_given_h}, "
+            f"P(D|¬H)={self.p_d_given_not_h}, "
+            f"log_likelihood_ratio={self._log_likelihood_ratio}]"
+        )
+
     @property
     def d_description(self) -> str:
         return ""
@@ -184,7 +192,10 @@ class DirectComparison(Comparison):
         return self._p_d_given_not_h
 
     def posterior_log_odds(self, prior_log_odds: float) -> float:
-        # Fast version
+        # Fast version.
+        # (You can't use use numba to compile a member function; the only
+        # option is numba.jitclass() on the whole class. And making
+        # DirectComparison a jitclass actually slowed things down.)
         return prior_log_odds + self._log_likelihood_ratio
 
 
@@ -331,7 +342,7 @@ def mk_comparison_duo(
     p_match_given_same_person: float, p_match_given_diff_person: float
 ) -> Tuple[DirectComparison, DirectComparison]:
     """
-    A method that is a faster alternative to MatchNoMatchComparison.
+    A two-state method that is a faster alternative to MatchNoMatchComparison.
 
     - p_match_given_same_person = 1 - p_e
     - p_match_given_diff_person = p_f
@@ -348,27 +359,28 @@ def mk_comparison_duo(
 
 
 def mk_comparison_trio_full_error_prohibitive(
-    p_f: float, p_p: float, p_e: float
+    p_f: float, p_p: float, p_ep: float
 ) -> Tuple[DirectComparison, DirectComparison, DirectComparison]:
     """
-    A method that is a faster alternative to FullPartialNoMatchComparison.
+    A three-state method that is a faster alternative to
+    FullPartialNoMatchComparison. Assumes p_en = 0, so p_ep = p_e.
 
     Args:
         p_f:
             :math:`p_f = P(\text{full match} | \neg H)`
         p_p:
             :math:`p_p = P(\text{partial match} | \neg H)`
-        p_e:
-            :math:`p_e = P(\text{partial but not full match} | H)`
+        p_ep:
+            :math:`p_{ep} = P(\text{partial but not full match} | H)`
 
     Returns:
         tuple: full_match, partial_match, no_match
     """
     full_match = DirectComparison(
-        p_d_given_same_person=1 - p_e, p_d_given_diff_person=p_f
+        p_d_given_same_person=1 - p_ep, p_d_given_diff_person=p_f
     )
     partial_match = DirectComparison(
-        p_d_given_same_person=p_e, p_d_given_diff_person=p_p - p_f
+        p_d_given_same_person=p_ep, p_d_given_diff_person=p_p - p_f
     )
     no_match = DirectComparison(
         p_d_given_same_person=0, p_d_given_diff_person=1 - p_p
@@ -382,7 +394,7 @@ def mk_comparison_trio_full_error_prohibitive(
 
 
 def bayes_compare(
-    prior_log_odds: float,
+    log_odds: float,
     comparisons: Iterable[Optional[Comparison]],
 ) -> float:
     """
@@ -390,15 +402,18 @@ def bayes_compare(
     Ignore comparisons that are ``None``.
 
     Args:
-        prior_log_odds: prior log odds
+        log_odds: prior log odds
         comparisons: an iterable of :class:`Comparison` objects
 
     Returns:
         float: posterior log odds
     """
-    log_odds = prior_log_odds
+    # High speed function.
+    # Fractionally faster to call the incoming parameter "log_odds" and not
+    # assign it to a further variable here.
     for comparison in filter(None, comparisons):
         log_odds = comparison.posterior_log_odds(log_odds)
+        # If there is a realistic chance of hitting -∞, this saves time:
         if log_odds == MINUS_INFINITY:
             return MINUS_INFINITY
     return log_odds

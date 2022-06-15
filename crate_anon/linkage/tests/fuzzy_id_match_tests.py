@@ -62,7 +62,7 @@ from crate_anon.linkage.helpers import (
     standardize_postcode,
 )
 from crate_anon.linkage.matchconfig import MatchConfig
-from crate_anon.linkage.person import People, Person
+from crate_anon.linkage.person import DuplicateLocalIDError, People, Person
 
 log = logging.getLogger(__name__)
 
@@ -653,3 +653,16 @@ class FuzzyLinkageTests(unittest.TestCase):
             h = i_class.from_hashed_dict(cfg, d)
             self.assertFalse(h.is_plaintext)
             h.ensure_has_freq_info_if_id_present()
+
+    def test_person_equality(self) -> None:
+        cfg = MatchConfig()
+        p1 = Person(cfg, local_id="hello")
+        p2 = Person(cfg, local_id="world")
+        p3 = Person(cfg, local_id="world")
+        self.assertNotEqual(p1, p2)
+        self.assertEqual(p2, p3)
+
+        people = People(cfg)
+        people.add_person(p1)
+        people.add_person(p2)
+        self.assertRaises(DuplicateLocalIDError, people.add_person, p3)

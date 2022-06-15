@@ -540,7 +540,7 @@ class Postcode(Identifier):
             ) = mk_comparison_trio_full_error_prohibitive(
                 p_f=self.unit_freq,
                 p_p=self.sector_freq,
-                p_e=self.cfg.p_minor_postcode_error,
+                p_ep=self.cfg.p_minor_postcode_error,
             )
         else:
             self.comparison_full_match = None
@@ -725,7 +725,7 @@ class DateOfBirth(Identifier):
         )
         self.comparison_partial_match = DirectComparison(
             p_d_given_same_person=cfg.p_dob_single_component_error,
-            p_d_given_diff_person=cfg.p_two_people_partial_dob_match,
+            p_d_given_diff_person=cfg.p_two_people_partial_not_full_dob_match,
         )
         self.comparison_no_match = DirectComparison(
             p_d_given_same_person=cfg.p_dob_major_error,
@@ -1083,7 +1083,7 @@ class Forename(Name):
             ) = mk_comparison_trio_full_error_prohibitive(
                 p_f=self.name_freq,
                 p_p=self.metaphone_freq,
-                p_e=self.cfg.p_minor_forename_error,
+                p_ep=self.cfg.p_minor_forename_error,
             )
         else:
             self.comparison_full_match = None
@@ -1146,7 +1146,7 @@ class Surname(Name):
             ) = mk_comparison_trio_full_error_prohibitive(
                 p_f=self.name_freq,
                 p_p=self.metaphone_freq,
-                p_e=self.cfg.p_minor_surname_error,
+                p_ep=self.cfg.p_minor_surname_error,
             )
         else:
             self.comparison_full_match = None

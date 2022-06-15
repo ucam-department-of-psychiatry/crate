@@ -292,18 +292,21 @@ class Person(BasePerson):
                 The date of birth, in ISO-8061 "YYYY-MM-DD" string format,
                 or as a DateOfBirth object.
             gender:
-                The gender: 'M', 'F', 'X', or ''.
+                The gender: 'M', 'F', 'X', or '', or a Gender object.
             postcodes:
-                Any UK postcodes for this person.
+                Any UK postcodes for this person, with optional associated
+                dates.
         """
         self._is_plaintext = None  # type: Optional[bool]
 
         def chk_plaintext(new_identifier: Identifier) -> None:
+            """
+            Ensure we don't mix plaintext and hashed data.
+            """
             new_plaintext = new_identifier.is_plaintext
             if self._is_plaintext is None:
                 self._is_plaintext = new_plaintext
-                return
-            if new_plaintext != self._is_plaintext:
+            elif new_plaintext != self._is_plaintext:
                 new = self.plain_or_hashed_txt(new_plaintext)
                 old = self.plain_or_hashed_txt(self._is_plaintext)
                 raise ValueError(
@@ -314,6 +317,9 @@ class Person(BasePerson):
 
         assert isinstance(cfg, MatchConfig)
         self.cfg = cfg
+        self.baseline_log_odds_same_person = (
+            self.cfg.baseline_log_odds_same_person
+        )  # for speed
 
         # local_id
         self.local_id = str(local_id) if local_id is not None else None
@@ -475,6 +481,21 @@ class Person(BasePerson):
         return cls.from_hashed_dict(cfg, d)
 
     # -------------------------------------------------------------------------
+    # Equality, hashing -- local_id should be unique
+    # -------------------------------------------------------------------------
+    # Be careful:
+    # - https://inventwithpython.com/blog/2019/02/01/hashable-objects-must-be-immutable/  # noqa
+    # - https://docs.python.org/3/glossary.html [re "hashable"]
+    # Here, we define equality based on local_id, which will not change. In
+    # practice, nothing else will either.
+
+    def __eq__(self, other: "Person") -> bool:
+        return self.local_id == other.local_id
+
+    def __hash__(self) -> int:
+        return hash(self.local_id)
+
+    # -------------------------------------------------------------------------
     # Representation
     # -------------------------------------------------------------------------
 
@@ -619,8 +640,9 @@ class Person(BasePerson):
         Returns:
             float: the log odds they're the same person
         """
+        # High speed function.
         return bayes_compare(
-            prior_log_odds=self.cfg.baseline_log_odds_same_person,
+            log_odds=self.baseline_log_odds_same_person,
             comparisons=self._gen_comparisons(proband),
         )
 
@@ -987,7 +1009,7 @@ class People(object):
         if some people have duplicate ``local_id`` values.
         """
         self.cfg = cfg
-        self.people = []  # type: List[Person]
+        self.people = set()  # type: Set[Person]
 
         # These may be plaintext or hashed DOB strings depending on our people:
         self.dob_md_to_people = defaultdict(
@@ -1003,7 +1025,6 @@ class People(object):
             list
         )  # type: Dict[str, List[Person]]  # noqa
 
-        self._known_ids = set()  # type: Set[str]
         self._people_are_plaintext = None  # type: Optional[bool]
 
         if person:
@@ -1031,13 +1052,11 @@ class People(object):
             # First person
             self._people_are_plaintext = person.is_plaintext()
 
-        if person.local_id in self._known_ids:
+        if person in self.people:
             raise DuplicateLocalIDError(
                 f"Person with duplicate local ID {person.local_id!r}"
             )
-        self._known_ids.add(person.local_id)
-
-        self.people.append(person)
+        self.people.add(person)
 
         dob = person.dob
         if dob:
@@ -1090,6 +1109,7 @@ class People(object):
         Yields:
             proband: a :class:`Person`
         """
+        # A high-speed function.
         dob = proband.dob
         if not dob:
             return
@@ -1099,17 +1119,14 @@ class People(object):
                 yield person
         else:
             # Implement the shortlist by DOB.
-            seen = set()  # type: Set[str]
-            for group in (
-                self.dob_ymd_to_people[dob.dob_str],
-                self.dob_md_to_people[dob.dob_md],
-                self.dob_yd_to_people[dob.dob_yd],
-                self.dob_ym_to_people[dob.dob_ym],
-            ):
-                for person in group:
-                    if person.local_id not in seen:
-                        seen.add(person.local_id)
-                        yield person
+            # Most efficient to let set operations determine uniqueness, then
+            # iterate through the set.
+            shortlist = set(self.dob_ymd_to_people[dob.dob_str])
+            shortlist.update(self.dob_md_to_people[dob.dob_md])
+            shortlist.update(self.dob_yd_to_people[dob.dob_yd])
+            shortlist.update(self.dob_ym_to_people[dob.dob_ym])
+            for person in shortlist:
+                yield person
 
     def get_unique_match_detailed(self, proband: Person) -> MatchResult:
         """

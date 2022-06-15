@@ -362,7 +362,9 @@ class MatchConfig(object):
         p_share_dob_ym_not_ymd = (
             1 / (MONTHS_PER_YEAR * birth_year_pseudo_range)
         ) - self.p_two_people_share_dob_ymd
-        self.p_two_people_partial_dob_match = (
+        # These three are mutually exclusive possibilities (e.g. you can't
+        # share YM and MD without sharing YMD), so we can just sum:
+        self.p_two_people_partial_not_full_dob_match = (
             p_share_dob_md_not_ymd
             + p_share_dob_yd_not_ymd
             + p_share_dob_ym_not_ymd
@@ -370,13 +372,13 @@ class MatchConfig(object):
         self.p_two_people_no_dob_similarity = (
             1
             - self.p_two_people_share_dob_ymd
-            - self.p_two_people_partial_dob_match
+            - self.p_two_people_partial_not_full_dob_match
         )
         assert 0 <= self.p_two_people_share_dob_ymd <= 1
         assert 0 <= p_share_dob_md_not_ymd <= 1
         assert 0 <= p_share_dob_yd_not_ymd <= 1
         assert 0 <= p_share_dob_ym_not_ymd <= 1
-        assert 0 <= self.p_two_people_partial_dob_match <= 1
+        assert 0 <= self.p_two_people_partial_not_full_dob_match <= 1
         assert 0 <= self.p_two_people_no_dob_similarity <= 1
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
