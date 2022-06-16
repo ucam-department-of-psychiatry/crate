@@ -39,7 +39,17 @@ compared between two people.
 
 from abc import ABC, abstractmethod
 import logging
-from typing import Any, Dict, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    Union,
+)
 
 from cardinal_pythonlib.datetimefunc import coerce_to_pendulum_date
 from cardinal_pythonlib.maths_py import round_sf
@@ -116,6 +126,7 @@ class Identifier(ABC):
         self,
         cfg: Optional[MatchConfig],
         is_plaintext: bool,
+        supports_partial_match: bool = True,
         temporal: bool = False,
         start_date: Union[str, Date] = None,
         end_date: Union[str, Date] = None,
@@ -129,6 +140,8 @@ class Identifier(ABC):
                 Is this an identifiable (plaintext) version? If ``False``, then
                 it is a de-identified (hashed) version, whose internal
                 structure can be more complex.
+            supports_partial_match:
+                Supports a partial match, as well as a full match comparison.
             temporal:
                 Store start/end dates (which can be ``None``) along with the
                 information?
@@ -156,9 +169,16 @@ class Identifier(ABC):
 
         self.cfg = cfg
         self.is_plaintext = is_plaintext
+        self.supports_partial_match = supports_partial_match
         self.temporal = temporal
         self.start_date = start_date
         self.end_date = end_date
+
+        self.comparison_full_match = None  # type: Optional[DirectComparison]
+        self.comparison_partial_match = (
+            None
+        )  # type: Optional[DirectComparison]
+        self.comparison_no_match = None  # type: Optional[DirectComparison]
 
     def __str__(self) -> str:
         """
@@ -167,24 +187,25 @@ class Identifier(ABC):
         if not self:
             # No information
             return ""
-        if not self.is_plaintext:
-            raise AssertionError("Don't use str() with de-identified info")
-        # Identifiable
-        id_str = self.plaintext_str_core()
-        if self.temporal:
-            if self.SEP in id_str:
-                raise ValueError(
-                    f"Temporal identifier unsuitable: contains {self.SEP!r}"
+        if self.is_plaintext:
+            # Identifiable
+            id_str = self.plaintext_str_core()
+            if self.temporal:
+                if self.SEP in id_str:
+                    raise ValueError(
+                        f"Temporal identifier unsuitable: "
+                        f"contains {self.SEP!r}"
+                    )
+                return self.SEP.join(
+                    [
+                        id_str,
+                        str(self.start_date),
+                        str(self.end_date),
+                    ]
                 )
-            return self.SEP.join(
-                [
-                    id_str,
-                    str(self.start_date),
-                    str(self.end_date),
-                ]
-            )
-        else:
-            return id_str
+            else:
+                return id_str
+        return f"hashed_{self.__class__.__name__}"
 
     @abstractmethod
     def plaintext_str_core(self) -> str:
@@ -231,6 +252,14 @@ class Identifier(ABC):
     # -------------------------------------------------------------------------
     # Internal methods to support creation
     # -------------------------------------------------------------------------
+
+    def _clear_comparisons(self) -> None:
+        """
+        Reset our comparison objects.
+        """
+        self.comparison_full_match = None
+        self.comparison_partial_match = None
+        self.comparison_no_match = None
 
     @classmethod
     def _get_temporal_triplet(
@@ -372,6 +401,27 @@ class Identifier(ABC):
     # -------------------------------------------------------------------------
 
     @abstractmethod
+    def fully_matches(self, other: "Identifier") -> bool:
+        """
+        Does this identifier fully match the other?
+
+        You can assume that both sides contain relevant information (or this
+        function should not have been called) -- that is, that bool(self) is
+        True and bool(other) is True and self.overlaps(other) is True.
+        """
+        pass
+
+    @abstractmethod
+    def partially_matches(self, other: "Identifier") -> bool:
+        """
+        Does this identifier fully match the other?
+
+        You can assume that both sides contain relevant information (or this
+        function should not have been called) -- that is, that bool(self) is
+        True and bool(other) is True and self.overlaps(other) is True.
+        """
+        pass
+
     def comparison(self, other: "Identifier") -> Optional[Comparison]:
         """
         Compare our identifier to another of the same type. Return None if you
@@ -385,7 +435,14 @@ class Identifier(ABC):
         This is a high-speed function; pre-cache any fixed information that
         requires multi-stage lookup.
         """
-        pass
+        if not (self and other and self.overlaps(other)):
+            # Infer no conclusions from absent information.
+            return None
+        if self.fully_matches(other):
+            return self.comparison_full_match
+        if self.supports_partial_match and self.partially_matches(other):
+            return self.comparison_partial_match
+        return self.comparison_no_match
 
     def overlaps(self, other: "Identifier") -> bool:
         """
@@ -429,6 +486,8 @@ class TemporalIDHolder(Identifier):
     Used for representing postcodes between a database and CSV for validation.
     """
 
+    BAD_METHOD = "Inappropriate function called for TemporalIDHolder"
+
     def __init__(
         self, identifier: str, start_date: Date = None, end_date: Date = None
     ) -> None:
@@ -457,18 +516,18 @@ class TemporalIDHolder(Identifier):
 
     # noinspection PyTypeChecker
     def hashed_dict(self, include_frequencies: bool = True) -> Dict[str, Any]:
-        raise AssertionError("Do not use hashed_dict() with this class")
+        raise AssertionError(self.BAD_METHOD)
 
     # noinspection PyTypeChecker
     @classmethod
     def from_hashed_dict(
         cls, cfg: MatchConfig, d: Dict[str, Any]
     ) -> "TemporalIDHolder":
-        raise AssertionError("Do not use from_hashed_dict() with this class")
+        raise AssertionError(cls.BAD_METHOD)
 
     # noinspection PyTypeChecker
     def _round(self, x: Optional[float]) -> Optional[float]:
-        raise AssertionError("Do not use _round() with this class")
+        raise AssertionError(self.BAD_METHOD)
 
     def __bool__(self) -> bool:
         return bool(self.identifier)
@@ -476,8 +535,14 @@ class TemporalIDHolder(Identifier):
     def ensure_has_freq_info_if_id_present(self) -> None:
         pass
 
+    def fully_matches(self, other: "Identifier") -> bool:
+        raise AssertionError(self.BAD_METHOD)
+
+    def partially_matches(self, other: "Identifier") -> bool:
+        raise AssertionError(self.BAD_METHOD)
+
     def comparison(self, other: "Identifier") -> Optional[Comparison]:
-        raise AssertionError("Do not use hashed_dict() with this class")
+        raise AssertionError(self.BAD_METHOD)
 
 
 # =============================================================================
@@ -535,11 +600,6 @@ class Postcode(Identifier):
 
         # Precalculate comparisons, for speed, but in a way that we can update
         # them if we are being created via from_hashed_dict().
-        self.comparison_full_match = None  # type: Optional[DirectComparison]
-        self.comparison_partial_match = (
-            None
-        )  # type: Optional[DirectComparison]
-        self.comparison_no_match = None  # type: Optional[DirectComparison]
         self._set_comparisons()
 
     def _set_comparisons(self) -> None:
@@ -556,9 +616,7 @@ class Postcode(Identifier):
                 p_ep=self.cfg.p_minor_postcode_error,
             )
         else:
-            self.comparison_full_match = None
-            self.comparison_partial_match = None
-            self.comparison_no_match = None
+            self._clear_comparisons()
 
     def plaintext_str_core(self) -> str:
         """
@@ -635,46 +693,11 @@ class Postcode(Identifier):
                 self.ERR_MISSING_FREQ + f" for postcode {self.postcode_unit!r}"
             )
 
-    def comparison(self, other: "Postcode") -> Optional[Comparison]:
-        """
-        Compare one postcode to another.
-        """
-        # assert self.is_plaintext == other.is_plaintext
-        if (
-            not self.postcode_unit
-            or not other.postcode_unit
-            or not self.overlaps(other)
-        ):
-            # Infer no conclusions from missing information.
-            # If postcode_unit is present, we've guaranteed that
-            # postcode_sector will be.
-            return None
-        if self.postcode_unit == other.postcode_unit:
-            return self.comparison_full_match
-        elif self.postcode_sector == other.postcode_sector:
-            return self.comparison_partial_match
-        else:
-            return self.comparison_no_match
-
-    # -------------------------------------------------------------------------
-    # Extras
-    # -------------------------------------------------------------------------
-
     def fully_matches(self, other: "Postcode") -> bool:
-        """
-        For postcode comparison, we ignore wholly dissimilar postcodes (rather
-        than treating them as evidence against a match).
-        """
-        return self.postcode_unit and self.postcode_unit == other.postcode_unit
+        return self.postcode_unit == other.postcode_unit
 
     def partially_matches(self, other: "Postcode") -> bool:
-        """
-        See :meth:`fully_matches`. Does not exclude a full match also.
-        """
-        return (
-            self.postcode_sector
-            and self.postcode_sector == other.postcode_sector
-        )
+        return self.postcode_sector == other.postcode_sector
 
 
 # =============================================================================
@@ -807,23 +830,15 @@ class DateOfBirth(Identifier):
     def ensure_has_freq_info_if_id_present(self) -> None:
         pass  # That info is always in the config; none stored here.
 
-    def comparison(self, other: "DateOfBirth") -> Optional[Comparison]:
-        if not self.dob_str or not other.dob_str:
-            # Missing information; infer nothing.
-            return None
-        if self.dob_str == other.dob_str:
-            # Exact match
-            return self.comparison_full_match
-        elif (
+    def fully_matches(self, other: "DateOfBirth") -> bool:
+        return self.dob_str == other.dob_str
+
+    def partially_matches(self, other: "DateOfBirth") -> bool:
+        return (
             self.dob_md == other.dob_md
             or self.dob_yd == other.dob_yd
             or self.dob_ym == other.dob_ym
-        ):
-            # Partial match. (But not a full match, from the previous test.)
-            return self.comparison_partial_match
-        else:
-            # No match
-            return self.comparison_no_match
+        )
 
 
 # =============================================================================
@@ -845,7 +860,12 @@ class Gender(Identifier):
             gender:
                 (PLAINTEXT.) The gender.
         """
-        super().__init__(cfg=cfg, is_plaintext=True, temporal=False)
+        super().__init__(
+            cfg=cfg,
+            is_plaintext=True,
+            supports_partial_match=False,
+            temporal=False,
+        )
 
         gender = gender or ""
         if gender not in VALID_GENDERS:
@@ -857,22 +877,19 @@ class Gender(Identifier):
         else:
             self.gender_freq = None  # type: Optional[float]
 
-        self.comparison_match = None  # type: Optional[DirectComparison]
-        self.comparison_no_match = None  # type: Optional[DirectComparison]
         self._set_comparisons()
 
     def _set_comparisons(self) -> None:
         if self.gender_freq:
             (
-                self.comparison_match,
+                self.comparison_full_match,
                 self.comparison_no_match,
             ) = mk_comparison_duo(
                 p_match_given_same_person=1 - self.cfg.p_gender_error,
                 p_match_given_diff_person=self.gender_freq,
             )
         else:
-            self.comparison_match = None
-            self.comparison_no_match = None
+            self._clear_comparisons()
 
     def plaintext_str_core(self) -> str:
         """
@@ -926,14 +943,14 @@ class Gender(Identifier):
                 self.ERR_MISSING_FREQ + f" for gender {self.gender!r}"
             )
 
-    def comparison(self, other: "Gender") -> Optional[Comparison]:
-        if not self.gender or not other.gender:
-            # Missing information; infer nothing.
-            return None
-        if self.gender == other.gender:
-            return self.comparison_match
-        else:
-            return self.comparison_no_match
+    def fully_matches(self, other: "Gender") -> bool:
+        return self.gender == other.gender
+
+    def partially_matches(self, other: "Identifier") -> bool:
+        """
+        Gender is treated as a yes/no match.
+        """
+        return False
 
 
 # =============================================================================
@@ -978,12 +995,6 @@ class Name(Identifier, ABC):
 
         self.name_freq = None  # type: Optional[float]
         self.metaphone_freq = None  # type: Optional[float]
-
-        self.comparison_full_match = None  # type: Optional[DirectComparison]
-        self.comparison_partial_match = (
-            None
-        )  # type: Optional[DirectComparison]
-        self.comparison_no_match = None  # type: Optional[DirectComparison]
 
         self.gender = ""
         self.set_gender(gender)  # may reset frequencies; will set comparisons
@@ -1052,16 +1063,11 @@ class Name(Identifier, ABC):
                 self.ERR_MISSING_FREQ + f" for name {self.name!r}"
             )
 
-    def comparison(self, other: "Name") -> Optional[Comparison]:
-        if not self.name or not other.name:
-            # No information
-            return None
-        if self.name == other.name:
-            return self.comparison_full_match
-        elif self.metaphone == other.metaphone:
-            return self.comparison_partial_match
-        else:
-            return self.comparison_no_match
+    def fully_matches(self, other: "Name") -> bool:
+        return self.name == other.name
+
+    def partially_matches(self, other: "Name") -> bool:
+        return self.metaphone == other.metaphone
 
 
 class Forename(Name):
@@ -1099,9 +1105,7 @@ class Forename(Name):
                 p_ep=self.cfg.p_minor_forename_error,
             )
         else:
-            self.comparison_full_match = None
-            self.comparison_partial_match = None
-            self.comparison_no_match = None
+            self._clear_comparisons()
 
     @classmethod
     def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "Forename":
@@ -1162,9 +1166,7 @@ class Surname(Name):
                 p_ep=self.cfg.p_minor_surname_error,
             )
         else:
-            self.comparison_full_match = None
-            self.comparison_partial_match = None
-            self.comparison_no_match = None
+            self._clear_comparisons()
 
     @classmethod
     def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "Surname":
@@ -1188,3 +1190,82 @@ class Surname(Name):
         n.metaphone_freq = getdictprob(d, cls.KEY_METAPHONE_FREQ)
         n._set_comparisons()
         return n
+
+
+# =============================================================================
+# Comparison of multiple potentially jumbled similar identifiers
+# =============================================================================
+
+
+def gen_best_comparisons(
+    proband_identifiers: List[Identifier],
+    candidate_identifiers: List[Identifier],
+    no_match_comparison: Optional[DirectComparison] = None,
+) -> Generator[DirectComparison, None, None]:
+    """
+    Generates comparisons for two sequences of identifiers (one from the
+    proband, one from the candidate), being indifferent to their order. The
+    method is:
+
+    - Identifiers that are explicitly time-stamped cannot be compared with
+      explicitly non-overlapping identifiers. (But un-time-stamped
+      identifiers can be compared with anything).
+
+    - No identifier can be used for >1 comparison.
+
+    - Full matches are preferred.
+
+    - Partial matches are sought next.
+
+    - If none are achieved, but there are identifiers, yield a single no-match
+      comparison, as specified by the caller. If this is None, we don't bother
+      to yield it.
+
+    - Try to be quick.
+
+    This method is typically used instead of identifier.comparison(other) if
+    there are a collection on both/either side (e.g. surname), not just a
+    single (e.g. DOB).
+    """
+    # Remove uninformative identifiers (for which bool(x) gives False):
+    proband_identifiers = list(filter(None, proband_identifiers))
+    candidate_identifiers = list(filter(None, candidate_identifiers))
+
+    found_something = False
+    candidate_indexes_used = set()  # type: Set[int]
+    proband_indexes_used = set()  # type: Set[int]
+    non_overlapping_c_p = set()  # type: Set[Tuple[int, int]]
+
+    # Look for full matches:
+    for c, candidate_id in enumerate(candidate_identifiers):
+        for p, proband_id in enumerate(proband_identifiers):
+            if not candidate_id.overlaps(proband_id):
+                non_overlapping_c_p.add((c, p))
+                continue
+            if candidate_id.fully_matches(proband_id):
+                found_something = True
+                yield proband_id.comparison_full_match
+                candidate_indexes_used.add(c)
+                proband_indexes_used.add(p)
+                break  # next candidate
+
+    # Try for any partial matches for identifiers not yet fully matched:
+    for c, candidate_id in enumerate(candidate_identifiers):
+        if c in candidate_indexes_used:
+            continue
+        for p, proband_id in enumerate(proband_identifiers):
+            if p in proband_indexes_used:
+                continue
+            if (c, p) in non_overlapping_c_p:
+                # This method avoids calling the overlap() function twice.
+                continue
+            if candidate_id.partially_matches(proband_id):
+                found_something = True
+                yield proband_id.comparison_partial_match
+                candidate_indexes_used.add(c)
+                proband_indexes_used.add(p)
+                break  # next candidate
+
+    # No joy.
+    if not found_something and no_match_comparison:
+        yield no_match_comparison

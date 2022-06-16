@@ -72,6 +72,7 @@ from crate_anon.linkage.helpers import (
 from crate_anon.linkage.identifiers import (
     DateOfBirth,
     Forename,
+    gen_best_comparisons,
     Gender,
     Identifier,
     Postcode,
@@ -672,42 +673,32 @@ class Person(BasePerson):
         # Therefore, while we need to process DOB to get the probabilities
         # right for good candidates, we can do other things first to eliminate
         # bad ones quicker.
-        yield self._comparison_surname(proband)  # might eliminate
-        yield self._comparison_firstname(proband)  # might eliminate
-        yield self._comparison_gender(proband)  # won't absolutely eliminate
-        yield self._comparison_dob(proband)  # see above
-        for c in self._comparisons_middle_names(proband):  # slowest
-            yield c
-        for c in self._comparisons_postcodes(proband):  # doesn't eliminate
-            yield c
 
-    def _comparison_dob(self, proband: "Person") -> Optional[Comparison]:
-        """
-        Returns a comparison for date of birth.
+        # Surname (might eliminate)
+        yield proband.surname.comparison(self.surname)
 
-        There is no special treatment of 29 Feb (since this DOB is
-        approximately 4 times less common than other birthdays, in principle it
-        does merit special treatment, but we ignore that).
-        """
-        return proband.dob.comparison(self.dob)
+        # First name (might eliminate)
+        yield proband.first_name.comparison(self.first_name)
 
-    def _comparison_gender(self, proband: "Person") -> Optional[Comparison]:
-        """
-        Returns a comparison for gender (sex).
-        """
-        return proband.gender.comparison(self.gender)
+        # Gender (won't absolutely eliminate)
+        yield proband.gender.comparison(self.gender)
 
-    def _comparison_surname(self, proband: "Person") -> Optional[Comparison]:
-        """
-        Returns a comparison for surname.
-        """
-        return proband.surname.comparison(self.surname)
+        # DOB (see above)
+        # There is no special treatment of 29 Feb (since this DOB is
+        # approximately 4 times less common than other birthdays, in principle
+        # it does merit special treatment, but we ignore that).
 
-    def _comparison_firstname(self, proband: "Person") -> Optional[Comparison]:
-        """
-        Returns a comparison for first name.
-        """
-        return proband.first_name.comparison(self.first_name)
+        yield proband.dob.comparison(self.dob)
+
+        # Middle names (slowest)
+        yield from self._comparisons_middle_names(proband)
+
+        # Postcodes (doesn't eliminate)
+        yield from gen_best_comparisons(
+            proband_identifiers=proband.postcodes,
+            candidate_identifiers=self.postcodes,
+            no_match_comparison=None,
+        )
 
     def _comparisons_middle_names(
         self, proband: "Person"
@@ -746,31 +737,6 @@ class Person(BasePerson):
                     p_d_given_same_person=p_d_given_same_person,
                     p_d_given_diff_person=cfg.p_middle_name_present(n),
                 )
-
-    def _comparisons_postcodes(
-        self, proband: "Person"
-    ) -> Generator[Comparison, None, None]:
-        """
-        Generates comparisons for postcodes.
-        """
-        proband_postcodes = proband.postcodes
-        # We prefer full matches to partial matches, and we don't allow the
-        # same postcode to be used for both.
-        indexes_of_full_matches = set()  # type: Set[int]
-        for i, self_p in enumerate(self.postcodes):
-            for proband_p in proband_postcodes:
-                if self_p.fully_matches(proband_p):
-                    yield proband_p.comparison(self_p)
-                    indexes_of_full_matches.add(i)
-                    break
-        # Try for any partial matches for postcodes not yet fully matched:
-        for i, self_p in enumerate(self.postcodes):
-            if i in indexes_of_full_matches:
-                continue
-            for proband_p in proband_postcodes:
-                if self_p.partially_matches(proband_p):
-                    yield proband_p.comparison(self_p)
-                    break
 
     # -------------------------------------------------------------------------
     # Info functions
@@ -1114,10 +1080,11 @@ class People(object):
             proband: a :class:`Person`
         """
         # A high-speed function.
+        cfg = self.cfg
         dob = proband.dob
         if not dob:
             return
-        if self.cfg.complete_dob_mismatch_allowed:
+        if cfg.complete_dob_mismatch_allowed:
             # No shortlisting; everyone's a candidate. Slow.
             for person in self.people:
                 yield person
@@ -1125,10 +1092,16 @@ class People(object):
             # Implement the shortlist by DOB.
             # Most efficient to let set operations determine uniqueness, then
             # iterate through the set.
+
+            # First, exact matches:
             shortlist = set(self.dob_ymd_to_people[dob.dob_str])
-            shortlist.update(self.dob_md_to_people[dob.dob_md])
-            shortlist.update(self.dob_yd_to_people[dob.dob_yd])
-            shortlist.update(self.dob_ym_to_people[dob.dob_ym])
+
+            # Now, we'll slow it all down with partial matches:
+            if cfg.partial_dob_mismatch_allowed:
+                shortlist.update(self.dob_md_to_people[dob.dob_md])
+                shortlist.update(self.dob_yd_to_people[dob.dob_yd])
+                shortlist.update(self.dob_ym_to_people[dob.dob_ym])
+
             for person in shortlist:
                 yield person
 

@@ -10,4 +10,5 @@ crate_fuzzy_id_match compare_plaintext \
     --profile \
     --n_workers 1
 
-# 2022-06-14: 4.224541664123535 s, good profile
+# 2022-06-14: 4.2245 s, good profile
+# 2022-06-16: 2.9859 s with exact DOB matches only, 8.111899 s with partials

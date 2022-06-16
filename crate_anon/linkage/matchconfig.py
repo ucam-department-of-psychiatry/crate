@@ -410,6 +410,7 @@ class MatchConfig(object):
         # Reporting
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+        self.partial_dob_mismatch_allowed = self.p_dob_correct < 1
         self.complete_dob_mismatch_allowed = self.p_dob_major_error > 0
         if self.complete_dob_mismatch_allowed:
             potential_speedup_factor = round_sf(

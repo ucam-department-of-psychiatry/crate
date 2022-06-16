@@ -43,6 +43,7 @@ from pendulum import Date
 from crate_anon.linkage.constants import (
     GENDER_FEMALE,
     GENDER_MALE,
+    GENDER_OTHER,
     VALID_GENDERS,
 )
 from crate_anon.linkage.identifiers import (
@@ -181,8 +182,9 @@ class TestCondition(object):
         Asserts that both the raw and hashed versions match, or don't match,
         according to ``self.should_match``.
         """
-        log.info(f"Comparing:\n- {self.person_a!r}\n- {self.person_b!r}")
-
+        log.info(
+            f"Comparing:\n" f"- {self.person_a!r}\n" f"- {self.person_b!r}"
+        )
         log.info("(1) Comparing plaintext")
         matches_raw, log_odds_plaintext = self.matches_plaintext()
         p_plaintext = probability_from_log_odds(log_odds_plaintext)
@@ -206,8 +208,10 @@ class TestCondition(object):
             )
 
         log.info(
-            f"(2) Comparing hashed:\n- {self.hashed_a}\n- {self.hashed_b}"
-        )  # noqa
+            f"(2) Comparing hashed:\n"
+            f"- {self.hashed_a}\n"
+            f"- {self.hashed_b}"
+        )
         matches_hashed, log_odds_hashed = self.matches_hashed()
         p_hashed = probability_from_log_odds(log_odds_hashed)
         p_hashed_str = f"P(match | D) = {p_hashed}"
@@ -426,40 +430,9 @@ class FuzzyLinkageTests(unittest.TestCase):
         self.people_hashed = People(cfg=self.cfg)
         self.people_hashed.add_people(self.all_people_hashed)
 
-    def test_fuzzy_linkage_basics(self) -> None:
-        cfg = self.cfg
-        for surname in ["Smith", "Jones", "Blair", "Cardinal", "XYZ"]:
-            f = cfg.surname_freq(surname)
-            log.info(f"Surname frequency for {surname}: {f}")
-
-        for forename, gender in [
-            ("James", GENDER_MALE),
-            ("Rachel", GENDER_FEMALE),
-            ("Phoebe", GENDER_FEMALE),
-            ("Elizabeth", GENDER_FEMALE),
-            ("Elizabeth", GENDER_MALE),
-            ("Elizabeth", ""),
-            ("Rowan", GENDER_FEMALE),
-            ("Rowan", GENDER_MALE),
-            ("Rowan", ""),
-            ("XYZ", ""),
-        ]:
-            f = cfg.forename_freq(forename, gender)
-            log.info(
-                f"Forename frequency for {forename}, gender {gender}: {f}"
-            )
-
-        # Examples are hospitals and colleges in Cambridge (not residential)
-        # but it gives a broad idea.
-        for postcode in ["CB2 0QQ", "CB2 0SZ", "CB2 3EB", "CB3 9DF"]:
-            p = cfg.debug_postcode_unit_population(postcode)
-            log.info(
-                f"Calculated population for postcode unit {postcode}: {p}"
-            )
-
-        for ps in ["CB2 0", "CB2 1", "CB2 2", "CB2 3"]:
-            p = cfg.debug_postcode_sector_population(ps)
-            log.info(f"Calculated population for postcode sector {ps}: {p}")
+    # -------------------------------------------------------------------------
+    # Basic string transformations
+    # -------------------------------------------------------------------------
 
     def test_standardize_name(self) -> None:
         tests = (
@@ -473,6 +446,12 @@ class FuzzyLinkageTests(unittest.TestCase):
         )
         for item, target in tests:
             self.assertEqual(standardize_name(item), target)
+
+    def test_date_regex(self) -> None:
+        for b in BAD_DATE_STRINGS:
+            self.assertFalse(is_valid_isoformat_date(b))
+        for g in GOOD_DATE_STRINGS:
+            self.assertTrue(is_valid_isoformat_date(g))
 
     def test_standardize_postcode(self) -> None:
         tests = (
@@ -495,6 +474,223 @@ class FuzzyLinkageTests(unittest.TestCase):
         )
         for item, target in tests:
             self.assertEqual(get_postcode_sector(item), target)
+
+    def test_postcode_regex(self) -> None:
+        for b in BAD_POSTCODES:
+            self.assertIsNone(
+                POSTCODE_REGEX.match(b), f"Postcode {b!r} matched but is bad"
+            )
+            sb = standardize_postcode(b)
+            self.assertIsNone(
+                POSTCODE_REGEX.match(sb),
+                f"Postcode {b!r} matched after standardization to {sb!r} "
+                f"but is bad",
+            )
+        for g in GOOD_POSTCODES:
+            sg = standardize_postcode(g)
+            self.assertTrue(
+                POSTCODE_REGEX.match(sg),
+                f"Postcode {sg!r} (from {g!r}) did not match but is good",
+            )
+
+    # -------------------------------------------------------------------------
+    # Frequencies
+    # -------------------------------------------------------------------------
+
+    def test_fuzzy_linkage_frequencies_name(self) -> None:
+        cfg = self.cfg
+        for surname in ["Smith", "Jones", "Blair", "Cardinal", "XYZ"]:
+            f = cfg.surname_freq(surname)
+            log.info(f"Surname frequency for {surname}: {f}")
+
+        for forename, gender in [
+            ("James", GENDER_MALE),
+            ("Rachel", GENDER_FEMALE),
+            ("Phoebe", GENDER_FEMALE),
+            ("Elizabeth", GENDER_FEMALE),
+            ("Elizabeth", GENDER_MALE),
+            ("Elizabeth", ""),
+            ("Rowan", GENDER_FEMALE),
+            ("Rowan", GENDER_MALE),
+            ("Rowan", ""),
+            ("XYZ", ""),
+        ]:
+            f = cfg.forename_freq(forename, gender)
+            log.info(
+                f"Forename frequency for {forename}, gender {gender}: {f}"
+            )
+
+    def test_fuzzy_linkage_frequencies_postcode(self) -> None:
+        cfg = self.cfg
+        # Examples are hospitals and colleges in Cambridge (not residential)
+        # but it gives a broad idea.
+        for postcode in ["CB2 0QQ", "CB2 0SZ", "CB2 3EB", "CB3 9DF"]:
+            p = cfg.debug_postcode_unit_population(postcode)
+            log.info(
+                f"Calculated population for postcode unit {postcode}: {p}"
+            )
+
+        for ps in ["CB2 0", "CB2 1", "CB2 2", "CB2 3"]:
+            p = cfg.debug_postcode_sector_population(ps)
+            log.info(f"Calculated population for postcode sector {ps}: {p}")
+
+    # -------------------------------------------------------------------------
+    # Identifiers
+    # -------------------------------------------------------------------------
+
+    def test_identifier_dob(self) -> None:
+        cfg = MatchConfig()
+        for b in BAD_DATE_STRINGS:
+            with self.assertRaises(ValueError):
+                _ = DateOfBirth(cfg, b)
+        for g in GOOD_DATE_STRINGS:
+            d = DateOfBirth(cfg, g)
+            self.assertEqual(d.dob_str, g)
+            self.assertEqual(str(d), g)
+            self.assertTrue(d.fully_matches(d))
+            self.assertGreater(d.comparison(d).posterior_log_odds(0), 0)
+        partial_matches = (
+            ("2000-01-01", "2007-01-01"),
+            ("2000-01-01", "2000-07-01"),
+            ("2000-01-01", "2000-01-07"),
+        )
+        for d1_str, d2_str in partial_matches:
+            d1 = DateOfBirth(cfg, d1_str)
+            d2 = DateOfBirth(cfg, d2_str)
+            self.assertFalse(d1.fully_matches(d2))
+            self.assertFalse(d2.fully_matches(d1))
+            self.assertTrue(d1.partially_matches(d2))
+            self.assertTrue(d2.partially_matches(d1))
+            self.assertGreater(d1.comparison(d2).posterior_log_odds(0), 0)
+        not_partial_matches = (
+            ("2000-01-01", "2007-07-01"),
+            ("2000-01-01", "2000-07-07"),
+            ("2000-01-01", "2007-01-07"),
+        )
+        for d1_str, d2_str in not_partial_matches:
+            d1 = DateOfBirth(cfg, d1_str)
+            d2 = DateOfBirth(cfg, d2_str)
+            self.assertFalse(d1.fully_matches(d2))
+            self.assertFalse(d2.fully_matches(d1))
+            self.assertFalse(d1.partially_matches(d2))
+            self.assertFalse(d2.partially_matches(d1))
+            self.assertLess(d1.comparison(d2).posterior_log_odds(0), 0)
+
+    def test_identifier_postcode(self) -> None:
+        cfg = MatchConfig()
+        for b in BAD_POSTCODES:
+            with self.assertRaises(ValueError):
+                _ = Postcode(cfg, b)
+        early = Date(2020, 1, 1)
+        late = Date(2021, 12, 31)
+        for g in GOOD_POSTCODES:
+            with self.assertRaises(ValueError):
+                _ = Postcode(cfg, g, start_date=late, end_date=early)
+            p = Postcode(cfg, g)
+            self.assertEqual(p.postcode_unit, standardize_postcode(g))
+            self.assertTrue(p.fully_matches(p))
+            self.assertGreater(p.comparison(p).posterior_log_odds(0), 0)
+        empty = Postcode(cfg, "")
+        self.assertEqual(str(empty), "")
+        partial_matches = (
+            ("CB99 9XY", "CB99 9AB"),
+            ("CB9 9XY", "CB9 9ZZ"),
+        )
+        for p1_str, p2_str in partial_matches:
+            p1 = Postcode(cfg, p1_str)
+            p2 = Postcode(cfg, p2_str)
+            self.assertFalse(p1.fully_matches(p2))
+            self.assertFalse(p2.fully_matches(p1))
+            self.assertTrue(p1.partially_matches(p2))
+            self.assertTrue(p2.partially_matches(p1))
+            self.assertGreater(p1.comparison(p2).posterior_log_odds(0), 0)
+        not_partial_matches = (
+            ("CB99 9XY", "CB99 7AB"),
+            ("CB9 9XY", "CB9 7ZZ"),
+        )
+        for p1_str, p2_str in not_partial_matches:
+            p1 = Postcode(cfg, p1_str)
+            p2 = Postcode(cfg, p2_str)
+            self.assertFalse(p1.fully_matches(p2))
+            self.assertFalse(p2.fully_matches(p1))
+            self.assertFalse(p1.partially_matches(p2))
+            self.assertFalse(p2.partially_matches(p1))
+            self.assertLess(p1.comparison(p2).posterior_log_odds(0), 0)
+
+    def test_identifier_gender(self) -> None:
+        cfg = MatchConfig()
+        for b in BAD_GENDERS:
+            with self.assertRaises(ValueError):
+                _ = Gender(cfg, b)
+        for g_str in VALID_GENDERS:
+            g = Gender(cfg, g_str)
+            log.critical(f"g = {g!r}")
+            self.assertEqual(g.gender, g_str)
+            self.assertEqual(str(g), g_str)
+            if not g:
+                continue
+            self.assertTrue(g.fully_matches(g))
+            self.assertGreater(g.comparison(g).posterior_log_odds(0), 0)
+        empty = Gender(cfg, "")
+        self.assertEqual(str(empty), "")
+        m = Gender(cfg, GENDER_MALE)
+        f = Gender(cfg, GENDER_FEMALE)
+        x = Gender(cfg, GENDER_OTHER)
+        self.assertTrue(m.fully_matches(m))
+        self.assertFalse(m.partially_matches(m))  # no partial matching
+
+        self.assertFalse(m.fully_matches(f))
+        self.assertFalse(m.fully_matches(x))
+        self.assertFalse(f.fully_matches(m))
+        self.assertFalse(f.fully_matches(x))
+        self.assertFalse(m.partially_matches(f))
+        self.assertFalse(m.partially_matches(x))
+        self.assertFalse(f.partially_matches(m))
+        self.assertFalse(f.partially_matches(x))
+
+        self.assertGreater(f.comparison(f).posterior_log_odds(0), 0)
+        self.assertLess(f.comparison(m).posterior_log_odds(0), 0)
+
+    def test_identifier_transformations(self) -> None:
+        """
+        Creating a hashed JSON representation and loading an object from it.
+        """
+        cfg = MatchConfig()
+        identifiable = [
+            Postcode(cfg, postcode="CB2 0QQ"),
+            DateOfBirth(cfg, dob="2000-12-31"),
+            Gender(cfg, gender=GENDER_MALE),
+            Forename(cfg, name="Elizabeth", gender=GENDER_FEMALE),
+            Surname(cfg, name="Smith", gender=GENDER_FEMALE),
+        ]  # type: List[Identifier]
+        for i in identifiable:
+            self.assertTrue(i.is_plaintext)
+            i_class = type(i)  # type: Type[Identifier]
+            d = i.hashed_dict(include_frequencies=True)
+            h = i_class.from_hashed_dict(cfg, d)
+            self.assertFalse(h.is_plaintext)
+            h.ensure_has_freq_info_if_id_present()
+
+    # -------------------------------------------------------------------------
+    # Person checks
+    # -------------------------------------------------------------------------
+
+    def test_person_equality(self) -> None:
+        cfg = MatchConfig()
+        p1 = Person(cfg, local_id="hello")
+        p2 = Person(cfg, local_id="world")
+        p3 = Person(cfg, local_id="world")
+        self.assertNotEqual(p1, p2)
+        self.assertEqual(p2, p3)
+
+        people = People(cfg)
+        people.add_person(p1)
+        people.add_person(p2)
+        self.assertRaises(DuplicateLocalIDError, people.add_person, p3)
+
+    # -------------------------------------------------------------------------
+    # Person comparisons
+    # -------------------------------------------------------------------------
 
     def test_fuzzy_linkage_matches(self) -> None:
         test_values = [
@@ -575,94 +771,3 @@ class FuzzyLinkageTests(unittest.TestCase):
             self.middle_test_2
         ):
             log.info(comp)
-
-    def test_date_regex(self) -> None:
-        for b in BAD_DATE_STRINGS:
-            self.assertFalse(is_valid_isoformat_date(b))
-        for g in GOOD_DATE_STRINGS:
-            self.assertTrue(is_valid_isoformat_date(g))
-
-    def test_identifier_dob(self) -> None:
-        cfg = MatchConfig()
-        for b in BAD_DATE_STRINGS:
-            with self.assertRaises(ValueError):
-                _ = DateOfBirth(cfg, b)
-        for g in GOOD_DATE_STRINGS:
-            d = DateOfBirth(cfg, g)
-            self.assertEqual(d.dob_str, g)
-            self.assertEqual(str(d), g)
-
-    def test_postcode_regex(self) -> None:
-        for b in BAD_POSTCODES:
-            self.assertIsNone(
-                POSTCODE_REGEX.match(b), f"Postcode {b!r} matched but is bad"
-            )
-            sb = standardize_postcode(b)
-            self.assertIsNone(
-                POSTCODE_REGEX.match(sb),
-                f"Postcode {b!r} matched after standardization to {sb!r} "
-                f"but is bad",
-            )
-        for g in GOOD_POSTCODES:
-            sg = standardize_postcode(g)
-            self.assertTrue(
-                POSTCODE_REGEX.match(sg),
-                f"Postcode {sg!r} (from {g!r}) did not match but is good",
-            )
-
-    def test_identifier_postcode(self) -> None:
-        cfg = MatchConfig()
-        for b in BAD_POSTCODES:
-            with self.assertRaises(ValueError):
-                _ = Postcode(cfg, b)
-        early = Date(2020, 1, 1)
-        late = Date(2021, 12, 31)
-        for g in GOOD_POSTCODES:
-            with self.assertRaises(ValueError):
-                _ = Postcode(cfg, g, start_date=late, end_date=early)
-            p = Postcode(cfg, g)
-            self.assertEqual(p.postcode_unit, standardize_postcode(g))
-        empty = Postcode(cfg, "")
-        self.assertEqual(str(empty), "")
-
-    def test_identifier_gender(self) -> None:
-        cfg = MatchConfig()
-        for b in BAD_GENDERS:
-            with self.assertRaises(ValueError):
-                _ = Gender(cfg, b)
-        for g in VALID_GENDERS:
-            gender = Gender(cfg, g)
-            self.assertEqual(gender.gender, g)
-            self.assertEqual(str(g), g)
-        empty = Gender(cfg, "")
-        self.assertEqual(str(empty), "")
-
-    def test_identifier_transformations(self) -> None:
-        cfg = MatchConfig()
-        identifiable = [
-            Postcode(cfg, postcode="CB2 0QQ"),
-            DateOfBirth(cfg, dob="2000-12-31"),
-            Gender(cfg, gender=GENDER_MALE),
-            Forename(cfg, name="Elizabeth", gender=GENDER_FEMALE),
-            Surname(cfg, name="Smith", gender=GENDER_FEMALE),
-        ]  # type: List[Identifier]
-        for i in identifiable:
-            self.assertTrue(i.is_plaintext)
-            i_class = type(i)  # type: Type[Identifier]
-            d = i.hashed_dict(include_frequencies=True)
-            h = i_class.from_hashed_dict(cfg, d)
-            self.assertFalse(h.is_plaintext)
-            h.ensure_has_freq_info_if_id_present()
-
-    def test_person_equality(self) -> None:
-        cfg = MatchConfig()
-        p1 = Person(cfg, local_id="hello")
-        p2 = Person(cfg, local_id="world")
-        p3 = Person(cfg, local_id="world")
-        self.assertNotEqual(p1, p2)
-        self.assertEqual(p2, p3)
-
-        people = People(cfg)
-        people.add_person(p1)
-        people.add_person(p2)
-        self.assertRaises(DuplicateLocalIDError, people.add_person, p3)
