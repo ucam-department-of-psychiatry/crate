@@ -1533,12 +1533,16 @@ _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1 = tuple(
         S1Table.ACTIVITY_EVENT,
         S1Table.CARE_PLAN_REVIEW,
         S1Table.DISCHARGE_DELAY,
-        S1Table.FREETEXT,  # see instead TABLES_REQUIRING_CRATE_PK_REGEX above
+        S1Table.FREETEXT,  # see also TABLES_REQUIRING_CRATE_PK_REGEX above
         S1Table.BED_CLOSURE,
         S1Table.MENTAL_HEALTH_ACT_APPEAL,
         S1Table.MENTAL_HEALTH_ACT_AWOL,
         S1Table.TASK,
     )
+) + tuple(
+    # Also, if we insert a CRATE PK, then the "RowIdentifier" can't be the PK.
+    (t_regex, S1GenericCol.ROW_ID)
+    for t_regex in TABLES_REQUIRING_CRATE_PK_REGEX
 )
 _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = tuple(
     # Similarly. These tables have things that look like PKs, but gave rise to
