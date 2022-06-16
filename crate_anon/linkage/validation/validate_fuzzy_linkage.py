@@ -805,6 +805,18 @@ class PostcodeInfo:
                 f"{self.index_of_multiple_deprivation!r}"
             )
 
+        # Very occasionally we get a silly pair of dates, where the end date is
+        # before the start date. It's hard to know what the right answer is, so
+        # we will discard the (evidently invalid) date information.
+        if (
+            self.start_date
+            and self.end_date
+            and self.end_date < self.start_date
+        ):
+            log.warning("PostcodeInfo: end_date < start_date, removing dates")
+            self.start_date = None
+            self.end_date = None
+
     @property
     def temporal_identifier(self) -> TemporalIDHolder:
         return TemporalIDHolder(
@@ -1778,7 +1790,8 @@ def validate_2_fetch_rio(
             -- system during a period of NHS number creation or updating
             -- details. That also reflects our behaviour with other databases.
 
-        -- Final count: 208538 (on 2022-05-26).
+        -- Final count: 208538 (on 2022-05-26), revised to 208633 (on
+        -- 2022-06-16) after removal of NNNStatus clause.
         -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.ClientIndex = 216739
         -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.Client = 216739
     """  # noqa
