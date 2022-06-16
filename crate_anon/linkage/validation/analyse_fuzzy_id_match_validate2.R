@@ -789,6 +789,9 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
                     ),
 
                     hashed_dob = e$dob$hashed_dob,
+                    hashed_dob_md = e$dob$hashed_dob_md,
+                    hashed_dob_yd = e$dob$hashed_dob_yd,
+                    hashed_dob_ym = e$dob$hashed_dob_ym,
 
                     hashed_gender = de_null(
                         e$gender$hashed_gender,
@@ -1728,8 +1731,8 @@ empirical_discrepancy_rates <- function(people_data_1, people_data_2)
     combined <- merge(
         x = people_data_1,
         y = people_data_2,
-        by.x = hashed_nhs_number,
-        by.y = hashed_nhs_number,
+        by.x = "hashed_nhs_number",
+        by.y = "hashed_nhs_number",
         all.x = FALSE,
         all.y = FALSE,
         suffixes = c("_db1", "_db2")
@@ -1737,26 +1740,91 @@ empirical_discrepancy_rates <- function(people_data_1, people_data_2)
     s <- (
         combined
         %>% summarize(
-            n_surname_present = sum(
+            n_total = n(),
+
+            first_name_n_present = sum(
+                !is.na(hashed_first_name_db1)
+                & !is.na(hashed_first_name_db2)
+            ),
+            first_name_n_full_match = sum(
+                !is.na(hashed_first_name_db1)
+                & !is.na(hashed_first_name_db2)
+                & hashed_first_name_db1 == hashed_first_name_db2
+            ),
+            first_name_n_partial_match = sum(
+                !is.na(hashed_first_name_db1)
+                & !is.na(hashed_first_name_db2)
+                & hashed_first_name_db1 != hashed_first_name_db2
+                & hashed_first_name_metaphone_db1 == hashed_first_name_metaphone_db2
+            ),
+            first_name_n_no_match = sum(
+                !is.na(hashed_first_name_db1)
+                & !is.na(hashed_first_name_db2)
+                & hashed_first_name_metaphone_db1 != hashed_first_name_metaphone_db2
+            ),
+
+            surname_n_present = sum(
                 !is.na(hashed_surname_db1)
                 & !is.na(hashed_surname_db2)
             ),
-            n_surname_full_match = sum(
+            surname_n_full_match = sum(
                 !is.na(hashed_surname_db1)
                 & !is.na(hashed_surname_db2)
                 & hashed_surname_db1 == hashed_surname_db2
             ),
-            n_surname_partial_match = sum(
+            surname_n_partial_match = sum(
                 !is.na(hashed_surname_db1)
                 & !is.na(hashed_surname_db2)
                 & hashed_surname_db1 != hashed_surname_db2
-                & hashed_metaphone_db1 != hashed_metaphone_db2
+                & hashed_surname_metaphone_db1 == hashed_surname_metaphone_db2
             ),
-            n_surname_no_match = sum(
+            surname_n_no_match = sum(
                 !is.na(hashed_surname_db1)
                 & !is.na(hashed_surname_db2)
-                & hashed_metaphone_db1 != hashed_metaphone_db2
+                & hashed_surname_metaphone_db1 != hashed_surname_metaphone_db2
+            ),
+
+            dob_n_present = sum(
+                !is.na(hashed_dob_db1)
+                & !is.na(hashed_dob_db2)
+            ),
+            dob_n_full_match = sum(
+                !is.na(hashed_dob_db1)
+                & !is.na(hashed_dob_db2)
+                & hashed_dob_db1 == hashed_dob_db2
+            ),
+            dob_n_partial_match = sum(
+                !is.na(hashed_dob_db1)
+                & !is.na(hashed_dob_db2)
+                & hashed_dob_db1 != hashed_dob_db2
+                & (
+                    hashed_dob_md_db1 == hashed_dob_md_db2
+                    | hashed_dob_yd_db1 == hashed_dob_yd_db2
+                    | hashed_dob_ym_db1 == hashed_dob_ym_db2
+                )
+            ),
+            dob_n_no_match = sum(
+                !is.na(hashed_dob_db1)
+                & !is.na(hashed_dob_db2)
+                & hashed_dob_db1 != hashed_dob_db2
+                & hashed_dob_md_db1 != hashed_dob_md_db2
+                & hashed_dob_yd_db1 != hashed_dob_yd_db2
+                & hashed_dob_ym_db1 != hashed_dob_ym_db2
             )
+        ) %>%
+        mutate(
+            # f for fraction
+            first_name_f_full_match = first_name_n_full_match / first_name_n_present,
+            first_name_f_partial_match = first_name_n_partial_match / first_name_n_present,
+            first_name_f_no_match = first_name_n_no_match / first_name_n_present,
+
+            surname_f_full_match = surname_n_full_match / surname_n_present,
+            surname_f_partial_match = surname_n_partial_match / surname_n_present,
+            surname_f_no_match = surname_n_no_match / surname_n_present,
+
+            dob_f_full_match = dob_n_full_match / dob_n_present,
+            dob_f_partial_match = dob_n_partial_match / dob_n_present,
+            dob_f_no_match = dob_n_no_match / dob_n_present
         )
         %>% as.data.table()
     )
@@ -1821,13 +1889,17 @@ main <- function()
 
     discrepancies <- empirical_discrepancy_rates(
         people_data_1 = get(mk_people_var(RIO)),
-        people_data_1 = get(mk_people_var(SYSTMONE))
+        people_data_2 = get(mk_people_var(SYSTMONE))
     )
 
     write_output(paste("Finished:", Sys.time()))
 }
 
 # main()
+
+# TODO: *** in empirical_discrepancy_rates(), row count slightly too low?
+
+# TODO: rethink analytically about the PCMIS NHS# duplication problem
 
 # TODO: handle multiple options for first name, surname?
 #   *** see Downs paper; use some of those strategies?
@@ -1840,5 +1912,3 @@ main <- function()
 
 # TODO: use empirical estimates of remaining error types; see FuzzyDefaults
 # ... TODO: calculate metaphone-only match frequencies
-
-# TODO: rethink analytically about the PCMIS NHS# duplication problem

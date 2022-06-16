@@ -596,7 +596,6 @@ def validate_1(
     output_filename: str,
     cache_filename: str = None,
     seed: int = 1234,
-    report_every: int = 100,
 ) -> None:
     """
     Read data and perform split-half validation.
@@ -612,8 +611,6 @@ def validate_1(
             Output CSV filename.
         seed:
             RNG seed
-        report_every:
-            Report progress every n rows.
     """
     # -------------------------------------------------------------------------
     # Load and hash data
@@ -724,7 +721,7 @@ def validate_1(
         ) in data:
             for person in people.people:
                 i += 1
-                if i % report_every == 0:
+                if i % cfg.report_every == 0:
                     log.info(f"... creating CSV row {i}")
                 result = sample.get_unique_match_detailed(person)
 
@@ -2602,6 +2599,7 @@ def main() -> int:
             people=validate_2_fetch_cdl(cfg=cfg, url=args.url, echo=args.echo),
             output_filename=args.output,
             plaintext=args.plaintext,
+            report_every=cfg.report_every,
         )
 
     elif args.command == "validate2_fetch_pcmis":
@@ -2613,6 +2611,7 @@ def main() -> int:
             ),
             output_filename=args.output,
             plaintext=args.plaintext,
+            report_every=cfg.report_every,
         )
 
     elif args.command == "validate2_fetch_rio":
@@ -2622,6 +2621,7 @@ def main() -> int:
             people=validate_2_fetch_rio(cfg=cfg, url=args.url, echo=args.echo),
             output_filename=args.output,
             plaintext=args.plaintext,
+            report_every=cfg.report_every,
         )
 
     elif args.command == "validate2_fetch_systmone":
@@ -2633,6 +2633,7 @@ def main() -> int:
             ),
             output_filename=args.output,
             plaintext=args.plaintext,
+            report_every=cfg.report_every,
         )
 
     else:

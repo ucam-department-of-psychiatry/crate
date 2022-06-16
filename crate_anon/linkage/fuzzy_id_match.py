@@ -256,6 +256,8 @@ serial, 105.5s parallel). With this design, we may as well retain the original
 order, so rather than "for future in as_completed(futures)" we do
 "wait(futures)" then "for future in futures". So we'll do that.
 
+(Still slow under Windows!)
+
 OTHER SPEED CONSIDERATIONS
 
 This is an O(n^2) algorithm, in that its time grows linearly with the number of
@@ -298,15 +300,12 @@ def compare_probands_to_sample(
     probands: People,
     sample: People,
     output_filename: str,
-    extra_validation_output: bool = False,
-    report_every: int = FuzzyDefaults.REPORT_EVERY,
-    min_probands_for_parallel: int = FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
-    n_workers: int = FuzzyDefaults.N_PROCESSES,
 ) -> None:
     r"""
-    Compares each proband to the sample. Writes to an output file. If
-    ``n_workers == 1``, proband order is retained. If parallel processing is
-    used, order may not be (will likely not be) preserved.
+    Compares each proband to the sample. Writes to an output file. Order is
+    retained.
+
+    See notes above (in source code) re parallel processing.
 
     Args:
         cfg:
@@ -317,17 +316,11 @@ def compare_probands_to_sample(
             :class:`People`
         output_filename:
             Output CSV filename.
-        extra_validation_output:
-            Add extra columns to the output for validation purposes?
-        report_every:
-            Report progress every n probands.
-        min_probands_for_parallel:
-            Minimum number of probands for which we will bother to use parallel
-            processing.
-        n_workers:
-            Number of parallel processes to use.
     """
     c = ComparisonOutputColnames
+    extra_validation_output = cfg.extra_validation_output
+    report_every = cfg.report_every
+    n_workers = cfg.n_workers
 
     def process_result(r: MatchResult) -> None:
         # Uses rownum/c/writer from outer scope.
@@ -368,7 +361,7 @@ def compare_probands_to_sample(
     )
 
     # Off we go.
-    parallel = n_workers > 1 and n_probands >= min_probands_for_parallel
+    parallel = n_workers > 1 and n_probands >= cfg.min_probands_for_parallel
     colnames = ComparisonOutputColnames.COMPARISON_OUTPUT_COLNAMES
     if extra_validation_output:
         colnames += ComparisonOutputColnames.COMPARISON_EXTRA_COLNAMES
@@ -424,10 +417,6 @@ def compare_probands_to_sample_from_files(
     probands_plaintext: bool = True,
     sample_plaintext: bool = True,
     sample_cache_filename: str = "",
-    extra_validation_output: bool = False,
-    report_every: int = FuzzyDefaults.REPORT_EVERY,
-    min_probands_for_parallel: int = FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
-    n_workers: int = FuzzyDefaults.N_PROCESSES,
     profile: bool = False,
 ) -> None:
     """
@@ -448,15 +437,6 @@ def compare_probands_to_sample_from_files(
             Is the probands file plaintext (not hashed)?
         sample_plaintext:
             Is the sample file plaintext (not hashed)?
-        extra_validation_output:
-            Add extra columns to the output for validation purposes?
-        report_every:
-            Report progress every n probands.
-        min_probands_for_parallel:
-            Minimum number of probands for which we will bother to use parallel
-            processing.
-        n_workers:
-            Number of parallel processes to use.
         profile:
             Profile the code?
     """
@@ -505,10 +485,6 @@ def compare_probands_to_sample_from_files(
         probands=probands,
         sample=sample,
         output_filename=output_filename,
-        extra_validation_output=extra_validation_output,
-        report_every=report_every,
-        min_probands_for_parallel=min_probands_for_parallel,
-        n_workers=n_workers,
     )
 
 
@@ -772,6 +748,7 @@ class Switches:
     INCLUDE_OTHER_INFO = "include_other_info"
     INPUT = "input"
     OUTPUT = "output"
+    MIN_PROBANDS_FOR_PARALLEL = "min_probands_for_parallel"
     N_WORKERS = "n_workers"
     REPORT_EVERY = "report_every"
 
@@ -880,10 +857,7 @@ added:
         IF THEY DID NOT WIN. (This will be the same as the winner if there was
         a match.) String; blank for no match.
 
-If you use '--{Switches.N_WORKERS} 1`, proband order is reproduced in the
-output. Otherwise, the results file is NOT necessarily sorted as the same order
-as the input proband file (because not sorting improves parallel processing
-efficiency).
+Proband order is retained in the output (even using parallel processing).
 """
 
 
@@ -1298,7 +1272,7 @@ def add_comparison_options(
         "or the number of CPUs on your system (other operating systems).",
     )
     comparison_group.add_argument(
-        "--min_probands_for_parallel",
+        "--{Switches.MIN_PROBANDS_FOR_PARALLEL}",
         type=int,
         default=FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
         help="Minimum number of probands for which we will bother to use "
@@ -1337,6 +1311,8 @@ def get_cfg_from_args(
                 raise AttributeError(f"Missing config setting: {attrname}")
             log.debug(f"Using default {attrname} = {default!r}")
             return default
+
+    require_comparison = require_matching
 
     return MatchConfig(
         hash_key=g(Switches.KEY, FuzzyDefaults.HASH_KEY, require_hasher),
@@ -1469,6 +1445,26 @@ def get_cfg_from_args(
             Switches.EXCEEDS_NEXT_BEST_LOG_ODDS,
             FuzzyDefaults.EXCEEDS_NEXT_BEST_LOG_ODDS,
             require_matching,
+        ),
+        extra_validation_output=g(
+            Switches.EXTRA_VALIDATION_OUTPUT,
+            default=False,
+            required=require_comparison,
+        ),
+        report_every=g(
+            Switches.REPORT_EVERY,
+            FuzzyDefaults.REPORT_EVERY,
+            required=require_comparison,
+        ),
+        min_probands_for_parallel=g(
+            Switches.MIN_PROBANDS_FOR_PARALLEL,
+            FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
+            required=require_comparison,
+        ),
+        n_workers=g(
+            Switches.N_WORKERS,
+            FuzzyDefaults.N_PROCESSES,
+            required=require_comparison,
         ),
         verbose=args.verbose,  # always required
     )
@@ -1750,9 +1746,6 @@ normally for testing.""",
         )
         compare_probands_to_sample_from_files(
             cfg=cfg,
-            extra_validation_output=args.extra_validation_output,
-            min_probands_for_parallel=args.min_probands_for_parallel,
-            n_workers=args.n_workers,
             output_filename=args.output,
             probands_filename=args.probands,
             probands_plaintext=True,
@@ -1778,9 +1771,6 @@ normally for testing.""",
         )
         compare_probands_to_sample_from_files(
             cfg=cfg,
-            extra_validation_output=args.extra_validation_output,
-            min_probands_for_parallel=args.min_probands_for_parallel,
-            n_workers=args.n_workers,
             output_filename=args.output,
             probands_filename=args.probands,
             probands_plaintext=False,
@@ -1806,9 +1796,6 @@ normally for testing.""",
         )
         compare_probands_to_sample_from_files(
             cfg=cfg,
-            extra_validation_output=args.extra_validation_output,
-            min_probands_for_parallel=args.min_probands_for_parallel,
-            n_workers=args.n_workers,
             output_filename=args.output,
             probands_filename=args.probands,
             probands_plaintext=False,
@@ -1850,8 +1837,8 @@ normally for testing.""",
         for metaphone in args.metaphones:
             log.info(
                 f"Forename metaphone {metaphone!r}: "
-                f"F {cfg.forename_metaphone_freq(metaphone, GENDER_FEMALE)}, "  # noqa
-                f"M {cfg.forename_metaphone_freq(metaphone, GENDER_MALE)}, "  # noqa
+                f"F {cfg.forename_metaphone_freq(metaphone, GENDER_FEMALE)}, "
+                f"M {cfg.forename_metaphone_freq(metaphone, GENDER_MALE)}, "
                 f"overall {cfg.forename_metaphone_freq(metaphone, '')}"
             )
 

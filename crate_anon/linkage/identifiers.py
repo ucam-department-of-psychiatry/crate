@@ -99,7 +99,8 @@ class Identifier(ABC):
     TEMPORAL_ID_FORMAT_HELP = (
         f"Temporal identifier format: IDENTIFIER{SEP}STARTDATE{SEP}ENDDATE, "
         f"where dates are in YYYY-MM-DD format or one of "
-        f"{NULL_VALUES_LOWERCASE} (case-insensitive)."
+        f"{NULL_VALUES_LOWERCASE} (case-insensitive). The simpler format of "
+        f"IDENTIFIER (which must not contain {SEP!r}) will also work."
     )
 
     KEY_START_DATE = "start_date"
@@ -237,6 +238,7 @@ class Identifier(ABC):
     ) -> Tuple[str, Optional[Date], Optional[Date]]:
         """
         From a string (e.g. from CSV), split into CONTENTS/START_DATE/END_DATE.
+        If it contains no "/", treat it as CONTENTS/None/None.
 
         Args:
             x:
@@ -248,11 +250,20 @@ class Identifier(ABC):
         """
         # Extract components of the string
         components = x.split(cls.SEP)
+
+        if len(components) == 1:
+            # Separator not present.
+            contents = components[0]
+            return contents, None, None
+
         if len(components) != 3:
             raise ValueError(
-                f"Need 3 components separated by {cls.SEP!r}; got {x!r}"
+                f"Need three components separated by {cls.SEP!r} (or one with "
+                f"no {cls.SEP!r}); got {x!r}"
             )
+
         contents, start_date_str, end_date_str = components
+
         # Start date
         if start_date_str.lower() in cls.NULL_VALUES_LOWERCASE:
             start_date = None  # type: Optional[Date]
@@ -262,15 +273,17 @@ class Identifier(ABC):
                 start_date = pendulum.parse(start_date_str).date()
             except ParserError:
                 raise ValueError(f"Bad date: {start_date_str!r}")
+
         # End date
         if end_date_str.lower() in cls.NULL_VALUES_LOWERCASE:
-            end_date = None
+            end_date = None  # type: Optional[Date]
         else:
             try:
+                # noinspection PyTypeChecker
                 end_date = pendulum.parse(end_date_str).date()
             except ParserError:
                 raise ValueError(f"Bad date: {end_date_str!r}")
-        # Return the elements
+
         return contents, start_date, end_date
 
     @classmethod

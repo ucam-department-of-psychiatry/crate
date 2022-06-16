@@ -198,7 +198,7 @@ frequency information for prior probabilities:
                         assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
                         abode; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
-                        geography database. (default: 0.000796)
+                        geography database. (default: 0.000203)
 
 display options:
   --verbose             Be verbose (default: False)
@@ -212,15 +212,17 @@ usage: crate_fuzzy_id_match compare_plaintext [-h] --probands PROBANDS
                                               --output OUTPUT
                                               [--extra_validation_output]
                                               [--n_workers N_WORKERS]
-                                              [--max_chunksize MAX_CHUNKSIZE]
                                               [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                              [--report_every REPORT_EVERY]
                                               [--profile]
                                               [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
                                               [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
                                               [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
-                                              [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
                                               [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
                                               [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
+                                              [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
+                                              [--p_dob_error P_DOB_ERROR]
+                                              [--p_dob_single_component_error_if_error P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR]
                                               [--p_gender_error P_GENDER_ERROR]
                                               [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
                                               [--population_size POPULATION_SIZE]
@@ -280,10 +282,7 @@ added:
         IF THEY DID NOT WIN. (This will be the same as the winner if there was
         a match.) String; blank for no match.
 
-If you use '--n_workers 1`, proband order is reproduced in the
-output. Otherwise, the results file is NOT necessarily sorted as the same order
-as the input proband file (because not sorting improves parallel processing
-efficiency).
+Proband order is retained in the output (even using parallel processing).
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -321,12 +320,11 @@ comparison options:
                         Number of processes to use in parallel. Defaults to 1
                         (Windows) or the number of CPUs on your system (other
                         operating systems). (default: 8)
-  --max_chunksize MAX_CHUNKSIZE
-                        Maximum chunk size (number of probands to pass to a
-                        subprocess each time). (default: 1000)
   --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
                         Minimum number of probands for which we will bother to
                         use parallel processing. (default: 1000)
+  --report_every REPORT_EVERY
+                        Report progress every n probands. (default: 100)
   --profile             Profile the code (for development only). (default:
                         False)
 
@@ -347,24 +345,38 @@ error probabilities:
                         Assumed probability that a forename has an error in
                         that means it fails a full match but satisfies a
                         partial (metaphone) match. (default: 0.001)
-  --p_minor_surname_error P_MINOR_SURNAME_ERROR
-                        Assumed probability that a surname has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match. (default: 0.001)
   --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
                         Probability that a middle name, present in the sample,
                         is missing from the proband. (default: 0.05)
   --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
                         Probability that a middle name, present in the
                         proband, is missing from the sample. (default: 0.05)
+  --p_minor_surname_error P_MINOR_SURNAME_ERROR
+                        Assumed probability that a surname has an error in
+                        that means it fails a full match but satisfies a
+                        partial (metaphone) match. (default: 0.001)
+  --p_dob_error P_DOB_ERROR
+                        Assumed probability (p_e) that a DOB is wrong in some
+                        way, leading to a proband/candidate partial match or
+                        mismatch. (default: 0.00492)
+  --p_dob_single_component_error_if_error P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR
+                        Given that a DOB is wrong, what is the probability
+                        that the error leads to a partial match, in which only
+                        one component (year, month, or day) is wrong? (This is
+                        p_ep / p_e.) NOTE: Empirical data suggests this is
+                        about 0.933, but we suggest setting it to 1, as
+                        anything below 1 sacrifices an opportunity for
+                        enormous computational efficiency -- <1 will run much
+                        slower. (default: 1)
   --p_gender_error P_GENDER_ERROR
-                        Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch. (default: 0.0029)
+                        Assumed probability (p_e) that a gender is wrong,
+                        leading to a proband/candidate mismatch. (default:
+                        0.0033)
   --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
-                        Assumed probability that a postcode has an error in
-                        that means it fails a full (postcode unit) match but
-                        satisfies a partial (postcode sector) match. (default:
-                        0.001)
+                        Assumed probability (p_ep) that a postcode has an
+                        error that means it fails a full (postcode unit) match
+                        but satisfies a partial (postcode sector) match.
+                        (default: 0.0097)
 
 frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -445,7 +457,7 @@ frequency information for prior probabilities:
                         assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
                         abode; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
-                        geography database. (default: 0.000796)
+                        geography database. (default: 0.000203)
 
 display options:
   --verbose             Be verbose (default: False)
@@ -459,15 +471,17 @@ usage: crate_fuzzy_id_match compare_hashed_to_hashed [-h] --probands PROBANDS
                                                      --output OUTPUT
                                                      [--extra_validation_output]
                                                      [--n_workers N_WORKERS]
-                                                     [--max_chunksize MAX_CHUNKSIZE]
                                                      [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                                     [--report_every REPORT_EVERY]
                                                      [--profile]
                                                      [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
                                                      [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
                                                      [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
-                                                     [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
                                                      [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
                                                      [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
+                                                     [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
+                                                     [--p_dob_error P_DOB_ERROR]
+                                                     [--p_dob_single_component_error_if_error P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR]
                                                      [--p_gender_error P_GENDER_ERROR]
                                                      [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
                                                      [--population_size POPULATION_SIZE]
@@ -527,10 +541,7 @@ added:
         IF THEY DID NOT WIN. (This will be the same as the winner if there was
         a match.) String; blank for no match.
 
-If you use '--n_workers 1`, proband order is reproduced in the
-output. Otherwise, the results file is NOT necessarily sorted as the same order
-as the input proband file (because not sorting improves parallel processing
-efficiency).
+Proband order is retained in the output (even using parallel processing).
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -554,12 +565,11 @@ comparison options:
                         Number of processes to use in parallel. Defaults to 1
                         (Windows) or the number of CPUs on your system (other
                         operating systems). (default: 8)
-  --max_chunksize MAX_CHUNKSIZE
-                        Maximum chunk size (number of probands to pass to a
-                        subprocess each time). (default: 1000)
   --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
                         Minimum number of probands for which we will bother to
                         use parallel processing. (default: 1000)
+  --report_every REPORT_EVERY
+                        Report progress every n probands. (default: 100)
   --profile             Profile the code (for development only). (default:
                         False)
 
@@ -580,24 +590,38 @@ error probabilities:
                         Assumed probability that a forename has an error in
                         that means it fails a full match but satisfies a
                         partial (metaphone) match. (default: 0.001)
-  --p_minor_surname_error P_MINOR_SURNAME_ERROR
-                        Assumed probability that a surname has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match. (default: 0.001)
   --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
                         Probability that a middle name, present in the sample,
                         is missing from the proband. (default: 0.05)
   --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
                         Probability that a middle name, present in the
                         proband, is missing from the sample. (default: 0.05)
+  --p_minor_surname_error P_MINOR_SURNAME_ERROR
+                        Assumed probability that a surname has an error in
+                        that means it fails a full match but satisfies a
+                        partial (metaphone) match. (default: 0.001)
+  --p_dob_error P_DOB_ERROR
+                        Assumed probability (p_e) that a DOB is wrong in some
+                        way, leading to a proband/candidate partial match or
+                        mismatch. (default: 0.00492)
+  --p_dob_single_component_error_if_error P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR
+                        Given that a DOB is wrong, what is the probability
+                        that the error leads to a partial match, in which only
+                        one component (year, month, or day) is wrong? (This is
+                        p_ep / p_e.) NOTE: Empirical data suggests this is
+                        about 0.933, but we suggest setting it to 1, as
+                        anything below 1 sacrifices an opportunity for
+                        enormous computational efficiency -- <1 will run much
+                        slower. (default: 1)
   --p_gender_error P_GENDER_ERROR
-                        Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch. (default: 0.0029)
+                        Assumed probability (p_e) that a gender is wrong,
+                        leading to a proband/candidate mismatch. (default:
+                        0.0033)
   --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
-                        Assumed probability that a postcode has an error in
-                        that means it fails a full (postcode unit) match but
-                        satisfies a partial (postcode sector) match. (default:
-                        0.001)
+                        Assumed probability (p_ep) that a postcode has an
+                        error that means it fails a full (postcode unit) match
+                        but satisfies a partial (postcode sector) match.
+                        (default: 0.0097)
 
 frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -678,7 +702,7 @@ frequency information for prior probabilities:
                         assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
                         abode; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
-                        geography database. (default: 0.000796)
+                        geography database. (default: 0.000203)
 
 display options:
   --verbose             Be verbose (default: False)
@@ -693,8 +717,8 @@ usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] --probands
                                                         --output OUTPUT
                                                         [--extra_validation_output]
                                                         [--n_workers N_WORKERS]
-                                                        [--max_chunksize MAX_CHUNKSIZE]
                                                         [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                                        [--report_every REPORT_EVERY]
                                                         [--profile]
                                                         [--key KEY]
                                                         [--allow_default_hash_key]
@@ -704,9 +728,11 @@ usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] --probands
                                                         [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
                                                         [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
                                                         [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
-                                                        [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
                                                         [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
                                                         [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
+                                                        [--p_minor_surname_error P_MINOR_SURNAME_ERROR]
+                                                        [--p_dob_error P_DOB_ERROR]
+                                                        [--p_dob_single_component_error_if_error P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR]
                                                         [--p_gender_error P_GENDER_ERROR]
                                                         [--p_minor_postcode_error P_MINOR_POSTCODE_ERROR]
                                                         [--population_size POPULATION_SIZE]
@@ -766,10 +792,7 @@ added:
         IF THEY DID NOT WIN. (This will be the same as the winner if there was
         a match.) String; blank for no match.
 
-If you use '--n_workers 1`, proband order is reproduced in the
-output. Otherwise, the results file is NOT necessarily sorted as the same order
-as the input proband file (because not sorting improves parallel processing
-efficiency).
+Proband order is retained in the output (even using parallel processing).
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -800,12 +823,11 @@ comparison options:
                         Number of processes to use in parallel. Defaults to 1
                         (Windows) or the number of CPUs on your system (other
                         operating systems). (default: 8)
-  --max_chunksize MAX_CHUNKSIZE
-                        Maximum chunk size (number of probands to pass to a
-                        subprocess each time). (default: 1000)
   --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
                         Minimum number of probands for which we will bother to
                         use parallel processing. (default: 1000)
+  --report_every REPORT_EVERY
+                        Report progress every n probands. (default: 100)
   --profile             Profile the code (for development only). (default:
                         False)
 
@@ -847,24 +869,38 @@ error probabilities:
                         Assumed probability that a forename has an error in
                         that means it fails a full match but satisfies a
                         partial (metaphone) match. (default: 0.001)
-  --p_minor_surname_error P_MINOR_SURNAME_ERROR
-                        Assumed probability that a surname has an error in
-                        that means it fails a full match but satisfies a
-                        partial (metaphone) match. (default: 0.001)
   --p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING
                         Probability that a middle name, present in the sample,
                         is missing from the proband. (default: 0.05)
   --p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING
                         Probability that a middle name, present in the
                         proband, is missing from the sample. (default: 0.05)
+  --p_minor_surname_error P_MINOR_SURNAME_ERROR
+                        Assumed probability that a surname has an error in
+                        that means it fails a full match but satisfies a
+                        partial (metaphone) match. (default: 0.001)
+  --p_dob_error P_DOB_ERROR
+                        Assumed probability (p_e) that a DOB is wrong in some
+                        way, leading to a proband/candidate partial match or
+                        mismatch. (default: 0.00492)
+  --p_dob_single_component_error_if_error P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR
+                        Given that a DOB is wrong, what is the probability
+                        that the error leads to a partial match, in which only
+                        one component (year, month, or day) is wrong? (This is
+                        p_ep / p_e.) NOTE: Empirical data suggests this is
+                        about 0.933, but we suggest setting it to 1, as
+                        anything below 1 sacrifices an opportunity for
+                        enormous computational efficiency -- <1 will run much
+                        slower. (default: 1)
   --p_gender_error P_GENDER_ERROR
-                        Assumed probability that a gender is wrong leading to
-                        a proband/candidate mismatch. (default: 0.0029)
+                        Assumed probability (p_e) that a gender is wrong,
+                        leading to a proband/candidate mismatch. (default:
+                        0.0033)
   --p_minor_postcode_error P_MINOR_POSTCODE_ERROR
-                        Assumed probability that a postcode has an error in
-                        that means it fails a full (postcode unit) match but
-                        satisfies a partial (postcode sector) match. (default:
-                        0.001)
+                        Assumed probability (p_ep) that a postcode has an
+                        error that means it fails a full (postcode unit) match
+                        but satisfies a partial (postcode sector) match.
+                        (default: 0.0097)
 
 frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -945,7 +981,7 @@ frequency information for prior probabilities:
                         assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
                         abode; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
-                        geography database. (default: 0.000796)
+                        geography database. (default: 0.000203)
 
 display options:
   --verbose             Be verbose (default: False)

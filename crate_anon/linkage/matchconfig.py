@@ -115,6 +115,12 @@ class MatchConfig(object):
         exceeds_next_best_log_odds: float = (
             FuzzyDefaults.EXCEEDS_NEXT_BEST_LOG_ODDS
         ),
+        extra_validation_output: bool = False,
+        report_every: int = FuzzyDefaults.REPORT_EVERY,
+        min_probands_for_parallel: int = (
+            FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL
+        ),
+        n_workers: int = FuzzyDefaults.N_PROCESSES,
         verbose: bool = False,
     ) -> None:
         """
@@ -203,6 +209,16 @@ class MatchConfig(object):
                 must exceed those of the next-best match by this much for the
                 best to be considered a unique winner.
 
+            extra_validation_output:
+                Add extra columns to the output for validation purposes?
+            report_every:
+                Report progress every n probands.
+            min_probands_for_parallel:
+                Minimum number of probands for which we will bother to use
+                parallel processing.
+            n_workers:
+                Number of parallel processes to use, if parallel processing
+                is used.
             verbose:
                 Be verbose on creation?
         """
@@ -380,6 +396,15 @@ class MatchConfig(object):
         assert 0 <= p_share_dob_ym_not_ymd <= 1
         assert 0 <= self.p_two_people_partial_not_full_dob_match <= 1
         assert 0 <= self.p_two_people_no_dob_similarity <= 1
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Technical
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        self.extra_validation_output = extra_validation_output
+        self.report_every = report_every
+        self.min_probands_for_parallel = min_probands_for_parallel
+        self.n_workers = n_workers
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Reporting
