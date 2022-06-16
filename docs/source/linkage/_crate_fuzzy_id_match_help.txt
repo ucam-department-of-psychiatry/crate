@@ -85,8 +85,10 @@ optional arguments:
                         Temporal identifier format:
                         IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
                         MM-DD format or one of ['none', 'null', '?'] (case-
-                        insensitive). Semicolon-separated values are allowed
-                        within ['middle_names', 'postcodes']. (default: None)
+                        insensitive). The simpler format of IDENTIFIER (which
+                        must not contain '/') will also work. Semicolon-
+                        separated values are allowed within ['middle_names',
+                        'postcodes']. (default: None)
   --output OUTPUT       Output file for hashed version. File created by CRATE
                         in JSON Lines (.jsonl) format. (Note the 'jq' tool for
                         inspecting these.) (default: None)
@@ -209,14 +211,13 @@ Help for command 'compare_plaintext'
 usage: crate_fuzzy_id_match compare_plaintext [-h] --probands PROBANDS
                                               --sample SAMPLE
                                               [--sample_cache SAMPLE_CACHE]
-                                              --output OUTPUT
+                                              --output OUTPUT [--profile]
+                                              [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
+                                              [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
                                               [--extra_validation_output]
                                               [--n_workers N_WORKERS]
                                               [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
                                               [--report_every REPORT_EVERY]
-                                              [--profile]
-                                              [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
-                                              [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
                                               [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
                                               [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
                                               [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
@@ -295,9 +296,10 @@ comparison options:
                         are in TemporalIdentifier format. Temporal identifier
                         format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
                         in YYYY-MM-DD format or one of ['none', 'null', '?']
-                        (case-insensitive). Semicolon-separated values are
-                        allowed within ['middle_names', 'postcodes'].
-                        (default: None)
+                        (case-insensitive). The simpler format of IDENTIFIER
+                        (which must not contain '/') will also work.
+                        Semicolon-separated values are allowed within
+                        ['middle_names', 'postcodes']. (default: None)
   --sample SAMPLE       Input filename for sample data. CSV format. Header row
                         present. Columns: ['local_id', 'first_name',
                         'middle_names', 'surname', 'dob', 'gender',
@@ -305,26 +307,15 @@ comparison options:
                         are in TemporalIdentifier format. Temporal identifier
                         format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
                         in YYYY-MM-DD format or one of ['none', 'null', '?']
-                        (case-insensitive). Semicolon-separated values are
-                        allowed within ['middle_names', 'postcodes'].
-                        (default: None)
+                        (case-insensitive). The simpler format of IDENTIFIER
+                        (which must not contain '/') will also work.
+                        Semicolon-separated values are allowed within
+                        ['middle_names', 'postcodes']. (default: None)
   --sample_cache SAMPLE_CACHE
                         File in which to store cached sample info (to speed
                         loading) (default: None)
   --output OUTPUT       Output CSV file for proband/sample comparison.
                         (default: None)
-  --extra_validation_output
-                        Add extra output for validation purposes. (default:
-                        False)
-  --n_workers N_WORKERS
-                        Number of processes to use in parallel. Defaults to 1
-                        (Windows) or the number of CPUs on your system (other
-                        operating systems). (default: 8)
-  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
-                        Minimum number of probands for which we will bother to
-                        use parallel processing. (default: 1000)
-  --report_every REPORT_EVERY
-                        Report progress every n probands. (default: 100)
   --profile             Profile the code (for development only). (default:
                         False)
 
@@ -339,6 +330,20 @@ matching rules:
                         exceed the next-best match to be considered a unique
                         match. Referred to as delta (δ) in the validation
                         paper. (default: 10)
+
+control options:
+  --extra_validation_output
+                        Add extra output for validation purposes. (default:
+                        False)
+  --n_workers N_WORKERS
+                        Number of processes to use in parallel. Defaults to 1
+                        (Windows) or the number of CPUs on your system (other
+                        operating systems). (default: 8)
+  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
+                        Minimum number of probands for which we will bother to
+                        use parallel processing. (default: 1000)
+  --report_every REPORT_EVERY
+                        Report progress every n probands. (default: 100)
 
 error probabilities:
   --p_minor_forename_error P_MINOR_FORENAME_ERROR
@@ -469,13 +474,13 @@ usage: crate_fuzzy_id_match compare_hashed_to_hashed [-h] --probands PROBANDS
                                                      --sample SAMPLE
                                                      [--sample_cache SAMPLE_CACHE]
                                                      --output OUTPUT
+                                                     [--profile]
+                                                     [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
+                                                     [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
                                                      [--extra_validation_output]
                                                      [--n_workers N_WORKERS]
                                                      [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
                                                      [--report_every REPORT_EVERY]
-                                                     [--profile]
-                                                     [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
-                                                     [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
                                                      [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
                                                      [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
                                                      [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
@@ -558,18 +563,6 @@ comparison options:
                         loading) (default: None)
   --output OUTPUT       Output CSV file for proband/sample comparison.
                         (default: None)
-  --extra_validation_output
-                        Add extra output for validation purposes. (default:
-                        False)
-  --n_workers N_WORKERS
-                        Number of processes to use in parallel. Defaults to 1
-                        (Windows) or the number of CPUs on your system (other
-                        operating systems). (default: 8)
-  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
-                        Minimum number of probands for which we will bother to
-                        use parallel processing. (default: 1000)
-  --report_every REPORT_EVERY
-                        Report progress every n probands. (default: 100)
   --profile             Profile the code (for development only). (default:
                         False)
 
@@ -584,6 +577,20 @@ matching rules:
                         exceed the next-best match to be considered a unique
                         match. Referred to as delta (δ) in the validation
                         paper. (default: 10)
+
+control options:
+  --extra_validation_output
+                        Add extra output for validation purposes. (default:
+                        False)
+  --n_workers N_WORKERS
+                        Number of processes to use in parallel. Defaults to 1
+                        (Windows) or the number of CPUs on your system (other
+                        operating systems). (default: 8)
+  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
+                        Minimum number of probands for which we will bother to
+                        use parallel processing. (default: 1000)
+  --report_every REPORT_EVERY
+                        Report progress every n probands. (default: 100)
 
 error probabilities:
   --p_minor_forename_error P_MINOR_FORENAME_ERROR
@@ -715,10 +722,6 @@ usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] --probands
                                                         SAMPLE
                                                         [--sample_cache SAMPLE_CACHE]
                                                         --output OUTPUT
-                                                        [--extra_validation_output]
-                                                        [--n_workers N_WORKERS]
-                                                        [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
-                                                        [--report_every REPORT_EVERY]
                                                         [--profile]
                                                         [--key KEY]
                                                         [--allow_default_hash_key]
@@ -727,6 +730,10 @@ usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] --probands
                                                         [--local_id_hash_key LOCAL_ID_HASH_KEY]
                                                         [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
                                                         [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
+                                                        [--extra_validation_output]
+                                                        [--n_workers N_WORKERS]
+                                                        [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                                        [--report_every REPORT_EVERY]
                                                         [--p_minor_forename_error P_MINOR_FORENAME_ERROR]
                                                         [--p_proband_middle_name_missing P_PROBAND_MIDDLE_NAME_MISSING]
                                                         [--p_sample_middle_name_missing P_SAMPLE_MIDDLE_NAME_MISSING]
@@ -808,26 +815,15 @@ comparison options:
                         are in TemporalIdentifier format. Temporal identifier
                         format: IDENTIFIER/STARTDATE/ENDDATE, where dates are
                         in YYYY-MM-DD format or one of ['none', 'null', '?']
-                        (case-insensitive). Semicolon-separated values are
-                        allowed within ['middle_names', 'postcodes'].
-                        (default: None)
+                        (case-insensitive). The simpler format of IDENTIFIER
+                        (which must not contain '/') will also work.
+                        Semicolon-separated values are allowed within
+                        ['middle_names', 'postcodes']. (default: None)
   --sample_cache SAMPLE_CACHE
                         File in which to store cached sample info (to speed
                         loading) (default: None)
   --output OUTPUT       Output CSV file for proband/sample comparison.
                         (default: None)
-  --extra_validation_output
-                        Add extra output for validation purposes. (default:
-                        False)
-  --n_workers N_WORKERS
-                        Number of processes to use in parallel. Defaults to 1
-                        (Windows) or the number of CPUs on your system (other
-                        operating systems). (default: 8)
-  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
-                        Minimum number of probands for which we will bother to
-                        use parallel processing. (default: 1000)
-  --report_every REPORT_EVERY
-                        Report progress every n probands. (default: 100)
   --profile             Profile the code (for development only). (default:
                         False)
 
@@ -863,6 +859,20 @@ matching rules:
                         exceed the next-best match to be considered a unique
                         match. Referred to as delta (δ) in the validation
                         paper. (default: 10)
+
+control options:
+  --extra_validation_output
+                        Add extra output for validation purposes. (default:
+                        False)
+  --n_workers N_WORKERS
+                        Number of processes to use in parallel. Defaults to 1
+                        (Windows) or the number of CPUs on your system (other
+                        operating systems). (default: 8)
+  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
+                        Minimum number of probands for which we will bother to
+                        use parallel processing. (default: 1000)
+  --report_every REPORT_EVERY
+                        Report progress every n probands. (default: 100)
 
 error probabilities:
   --p_minor_forename_error P_MINOR_FORENAME_ERROR

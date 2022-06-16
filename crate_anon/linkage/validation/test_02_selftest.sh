@@ -9,7 +9,6 @@ VALIDATOR=${THIS_DIR}/validate_fuzzy_linkage.py
 
 WORKDIR=${HOME}/.local/share/crate
 SAMPLE=${WORKDIR}/crate_fuzzy_sample.csv
-SAMPLE_10K=${WORKDIR}/crate_fuzzy_sample_10k.csv
 SAMPLE_HASHED=${WORKDIR}/crate_fuzzy_hashed.jsonl
 
 COMPARISON_P2P=${WORKDIR}/crate_fuzzy_output_p2p.csv
@@ -53,19 +52,12 @@ COMPARISON_H2H=${WORKDIR}/crate_fuzzy_output_h2h.csv
     --include_other_info
 
 # This should produce matches for most (comparing a sample to itself):
-# Using "--n_workers 1" preserves order.
 "${FUZZY}" compare_plaintext \
     --probands "${SAMPLE}" \
     --sample "${SAMPLE}" \
-    --output "${COMPARISON_P2P}" \
-    --n_workers 1
+    --output "${COMPARISON_P2P}"
 
-# This should produce matches for none, since they are internally duplicated!
-# It's here primarily as a speed test.
-"${FUZZY}" compare_plaintext \
-    --probands "${SAMPLE_10K}" \
-    --sample "${SAMPLE_10K}" \
-    --output "${WORKDIR}/crate_fuzzy_output_10k.csv"
+# For larger comparisons, see the speedtest script.
 
 # For Figure 3, a demonstration of the Bayesian approach:
 "${FUZZY}" compare_plaintext \

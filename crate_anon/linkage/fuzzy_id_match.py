@@ -1213,6 +1213,33 @@ def add_matching_rules(parser: argparse.ArgumentParser) -> None:
         "delta (δ) in the validation paper.",
     )
 
+    control_group = parser.add_argument_group("control options")
+    control_group.add_argument(
+        f"--{Switches.EXTRA_VALIDATION_OUTPUT}",
+        action="store_true",
+        help="Add extra output for validation purposes.",
+    )
+    control_group.add_argument(
+        f"--{Switches.N_WORKERS}",
+        type=int,
+        default=FuzzyDefaults.N_PROCESSES,
+        help="Number of processes to use in parallel. Defaults to 1 (Windows) "
+        "or the number of CPUs on your system (other operating systems).",
+    )
+    control_group.add_argument(
+        f"--{Switches.MIN_PROBANDS_FOR_PARALLEL}",
+        type=int,
+        default=FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
+        help="Minimum number of probands for which we will bother to use "
+        "parallel processing.",
+    )
+    control_group.add_argument(
+        f"--{Switches.REPORT_EVERY}",
+        type=int,
+        default=FuzzyDefaults.REPORT_EVERY,
+        help="Report progress every n probands.",
+    )
+
 
 def add_comparison_options(
     parser: argparse.ArgumentParser,
@@ -1258,31 +1285,6 @@ def add_comparison_options(
         type=str,
         required=True,
         help="Output CSV file for proband/sample comparison.",
-    )
-    comparison_group.add_argument(
-        f"--{Switches.EXTRA_VALIDATION_OUTPUT}",
-        action="store_true",
-        help="Add extra output for validation purposes.",
-    )
-    comparison_group.add_argument(
-        f"--{Switches.N_WORKERS}",
-        type=int,
-        default=FuzzyDefaults.N_PROCESSES,
-        help="Number of processes to use in parallel. Defaults to 1 (Windows) "
-        "or the number of CPUs on your system (other operating systems).",
-    )
-    comparison_group.add_argument(
-        "--{Switches.MIN_PROBANDS_FOR_PARALLEL}",
-        type=int,
-        default=FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
-        help="Minimum number of probands for which we will bother to use "
-        "parallel processing.",
-    )
-    comparison_group.add_argument(
-        f"--{Switches.REPORT_EVERY}",
-        type=int,
-        default=FuzzyDefaults.REPORT_EVERY,
-        help="Report progress every n probands.",
     )
     comparison_group.add_argument(
         "--profile",
