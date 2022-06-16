@@ -296,7 +296,22 @@ class OptOutPid(AdminBase):
     __tablename__ = "opt_out_pid"
     __table_args__ = TABLE_KWARGS
 
-    pid = Column("pid", config.pidtype, primary_key=True, comment="Patient ID")
+    pid = Column(
+        "pid",
+        config.pidtype,
+        primary_key=True,
+        autoincrement=False,
+        comment="Patient ID",
+    )
+    # If autoincrement is not specified, it becomes "auto", which turns on the
+    # autoincrement behaviour if the column is of integer type and a primary
+    # key (see sqlalchemy.sql.schema.Column.__init__). In turn, that (under SQL
+    # Server) likely makes it an IDENTITY column, this being an SQL Server
+    # mechanism for auto-incrementing
+    # (https://docs.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql-identity-property?view=sql-server-ver16).  # noqa
+    # And in turn that means that when a value is explicitly inserted, it gives
+    # the error "Cannot insert explicit value for identity column in table
+    # 'opt_out_pid' when IDENTITY_INSERT is set to OFF. (544)"
 
     @classmethod
     def opting_out(cls, session: Session, pid: Union[int, str]) -> bool:
@@ -338,8 +353,13 @@ class OptOutMpid(AdminBase):
     __table_args__ = TABLE_KWARGS
 
     mpid = Column(
-        "mpid", config.mpidtype, primary_key=True, comment="Patient ID"
+        "mpid",
+        config.mpidtype,
+        primary_key=True,
+        autoincrement=False,
+        comment="Patient ID",
     )
+    # See OptOutPid above re autoincrement.
 
     @classmethod
     def opting_out(cls, session: Session, mpid: Union[int, str]) -> bool:
