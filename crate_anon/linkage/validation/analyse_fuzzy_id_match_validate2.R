@@ -106,6 +106,12 @@ TO_DATABASES <- ALL_DATABASES
 # TO_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
 # TO_DATABASES <- CDL  # for debugging
 
+DATABASE_LABEL_MAP <- c(
+    cdl = "CDL",
+    pcmis = "PCMIS (*)",  # highlight the oddity -- duplicate NHS numbers
+    rio = "RiO",
+    systmone = "SystmOne"
+)
 
 # =============================================================================
 # Directories, filenames
@@ -1373,7 +1379,7 @@ mk_generic_pairwise_plot <- function(
     diagonal_background_alpha = 0.1
 )
 {
-    CORE_VARS <- c("from", "to", "theta", "delta")
+    CORE_VARS <- c("from_label", "to_label", "theta", "delta")
     required_vars <- c(CORE_VARS, depvars)
     d <- (
         comp_threshold
@@ -1389,7 +1395,9 @@ mk_generic_pairwise_plot <- function(
         )
         %>% as.data.table()
     )
-    facet_data_diagonal <- unique(d[, .(from, to)])[from == to]
+    facet_data_diagonal <- unique(
+        d[, .(from_label, to_label)]
+    )[from_label == to_label]
     if (x_is_theta) {
         xvar <- "theta"
         colourvar <- "delta"
@@ -1454,7 +1462,7 @@ mk_generic_pairwise_plot <- function(
         )
         + geom_line()
         + geom_point()
-        + facet_grid(from ~ to)
+        + facet_grid(from_label ~ to_label)
         + theme_bw()
         + scale_linetype_manual(values = linetypes)
         + scale_shape_manual(values = shapes)
@@ -1473,7 +1481,7 @@ mk_generic_pairwise_plot <- function(
                 data = cs,
                 mapping = aes(
                     label = overlap_label,
-                    # implicit (for facet plot): from, to
+                    # implicit (for facet plot): from_label, to_label
                     group = NULL,
                     colour = NULL,
                     linetype = NULL,
@@ -1527,6 +1535,15 @@ mk_threshold_plot_mid <- function(comp_threshold, x_is_theta, ...)
 
 mk_save_performance_plot <- function(comp_threshold, comp_simple)
 {
+    comp_threshold <- (
+        comp_threshold
+        %>% mutate(
+            # Make the labels nicer, and add proband/sample indicators.
+            from_label = paste0(recode(from, DATABASE_LABEL_MAP), " [p]"),
+            to_label = paste0(recode(to, DATABASE_LABEL_MAP), " [s]")
+        )
+        %>% as.data.table()
+    )
     panel_a <- mk_threshold_plot_sdt(
         comp_threshold,
         x_is_theta = TRUE,

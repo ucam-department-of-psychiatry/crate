@@ -2163,6 +2163,10 @@ def save_people_from_db(
             Save in plaintext format?
         report_every:
             Report progress every n people.
+
+    Out of interest, the reason why Windows files show as being of zero length
+    until closed (and how to update the display):
+    https://superuser.com/questions/727883.
     """
     with PersonWriter(
         filename=output_filename,
