@@ -1088,10 +1088,8 @@ def validate_2_fetch_cdl(
             ON ons.pcd_nospace = REPLACE(UPPER(ip.PostCode), ' ', '')
         WHERE
             -- We require an NHS number to be known.
-            (
-                TRY_CAST(REPLACE(v.NHS_ID, ' ', '') AS BIGINT) IS NOT NULL
-                AND LEN(REPLACE(v.NHS_ID, ' ', '')) = 10
-            )
+            TRY_CAST(REPLACE(v.NHS_ID, ' ', '') AS BIGINT) IS NOT NULL
+            AND LEN(REPLACE(v.NHS_ID, ' ', '')) = 10
             -- Successful double-check: no change with: v.EPJS_ID != 'xNx'.
 
         -- Final count: 152888 (on 2022-05-26).
@@ -1756,19 +1754,29 @@ def validate_2_fetch_rio(
             AND ge.Deleted = 0
         WHERE
             -- Restrict to patients with NHS numbers:
-            (c.NNNStatus = 1 OR c.NNNStatus = 2)
-            -- 2 = NHS number verified; see table NNNStatus
-            -- Most people have status 1 (about 119k people), compared to
-            -- about 80k for status 2 (on 2020-04-28). Then about 6k have
-            -- status 0 ("trace/verification required"), and about 800 have
-            -- status 3 ("no match found"). Other codes not present.
-            -- A very small number (~40) have a null NHS number despite an
-            -- OK-looking status flag; we'll skip them.
-            AND (
-                TRY_CAST(REPLACE(c.NNN, ' ', '') AS BIGINT) IS NOT NULL
-                AND LEN(REPLACE(c.NNN, ' ', '')) = 10
-            )
+            TRY_CAST(REPLACE(c.NNN, ' ', '') AS BIGINT) IS NOT NULL
+            AND LEN(REPLACE(c.NNN, ' ', '')) = 10
             -- Actually, this is overkill; none have spaces in.
+            -- The "length 10" filter also makes no difference.
+            -- The NOT NULL filter is important, of course.
+
+            -- NHS number verification status?
+            --      AND (c.NNNStatus = 1 OR c.NNNStatus = 2)
+            -- For counts:
+            -- SELECT NNNStatus, COUNT(*) FROM RiO62CAMLive.dbo.Client GROUP BY NNNStatus
+            -- For status codes:
+            -- SELECT * FROM RiO62CAMLive.dbo.NNNStatus
+            --      7333 -> 0 = "Trace/verification required"
+            --      129552 -> 1 = no text given
+            --      79030 -> 2 = [NHS] "Number present and verified"
+            --      824 -> 3 = "No match found"
+            -- ... other codes not present in RiO62CAMLive.dbo.Client.
+            -- A very small number (~40) have a null NHS number despite an
+            -- OK-looking status flag; we'll skip them as above.
+            -- Since these codes seem a bit unreliable, we'll use everyone,
+            -- particularly as they may reflect a check against the national
+            -- system during a period of NHS number creation or updating
+            -- details. That also reflects our behaviour with other databases.
 
         -- Final count: 208538 (on 2022-05-26).
         -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.ClientIndex = 216739

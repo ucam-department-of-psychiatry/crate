@@ -1,4 +1,5 @@
 -- Anonymous queries for empirical error rates: RiO/SystmOne symmetrically.
+-- Also contains results.
 
 -- ============================================================================
 -- If two people are the same (by NHS#), how often are DOBs different?
@@ -151,7 +152,7 @@ INNER JOIN
     -- Neither NHS number has spaces in (empirically).
 WHERE
     -- Exclude test NHS numbers, which start 999:
-    LEFT(sp.NHSNumber, 3) != '999'
+    LEFT(sp.NHSNumber, 3) != '999'  -- makes no difference in practice
 
 
 -- ============================================================================
