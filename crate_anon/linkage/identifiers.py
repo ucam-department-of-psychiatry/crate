@@ -1230,6 +1230,8 @@ def gen_best_comparisons(
     # Remove uninformative identifiers (for which bool(x) gives False):
     proband_identifiers = list(filter(None, proband_identifiers))
     candidate_identifiers = list(filter(None, candidate_identifiers))
+    if not proband_identifiers or not candidate_identifiers:
+        return
 
     found_something = False
     candidate_indexes_used = set()  # type: Set[int]
@@ -1239,6 +1241,8 @@ def gen_best_comparisons(
     # Look for full matches:
     for c, candidate_id in enumerate(candidate_identifiers):
         for p, proband_id in enumerate(proband_identifiers):
+            if p in proband_indexes_used:
+                continue
             if not candidate_id.overlaps(proband_id):
                 non_overlapping_c_p.add((c, p))
                 continue
@@ -1267,5 +1271,5 @@ def gen_best_comparisons(
                 break  # next candidate
 
     # No joy.
-    if not found_something and no_match_comparison:
-        yield no_match_comparison
+    if not found_something:
+        yield no_match_comparison  # may be None
