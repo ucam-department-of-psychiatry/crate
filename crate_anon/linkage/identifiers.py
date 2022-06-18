@@ -1271,5 +1271,5 @@ def gen_best_comparisons(
                 break  # next candidate
 
     # No joy.
-    if not found_something:
-        yield no_match_comparison  # may be None
+    if not found_something and no_match_comparison:
+        yield no_match_comparison
