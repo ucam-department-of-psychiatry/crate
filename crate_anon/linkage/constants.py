@@ -70,6 +70,87 @@ VALID_GENDERS = ["", GENDER_MALE, GENDER_FEMALE, GENDER_OTHER]
 # ... standard three gender codes; "" = missing
 
 
+NONSPECIFIC_NAME_COMPONENTS = set(
+    # Includes nobility particles:
+    # https://en.wikipedia.org/wiki/Nobiliary_particle. Typically "of", "of
+    # the". See also https://en.wikipedia.org/wiki/List_of_family_name_affixes;
+    # https://en.wikipedia.org/wiki/Suffix_(name).
+    x.upper()
+    for x in (
+        # Arabic-speaking countries
+        "Al",
+        "El",
+        # Belgian
+        "de",
+        "der",
+        "van",
+        # Danish
+        "af",
+        # Dutch
+        "tot",
+        "thoe",
+        "van",
+        # English, Welsh, Scottish
+        "of",
+        # French
+        "de",
+        "des",
+        "du",
+        "la",
+        "le",
+        # German
+        "auf",
+        "von",
+        "zu",
+        # Italian
+        "da",
+        "dai",
+        "dal",
+        "dalla",
+        "dei",
+        "del",
+        "Della",
+        "di",
+        # Portuguese,
+        "da",
+        "das",
+        "do",
+        "dos",
+        # Somali
+        "Aw",
+        # Spanish
+        "de",
+        # Swedish
+        "af",
+        "av",
+        "von",
+        # Swiss
+        "de",
+        "von",
+        # Thai
+        "na",
+        "Phra",
+        "Sri",
+        # USA: seniority
+        "Jnr",
+        "Jr",
+        "Snr",
+        "Sr",
+        # USA: numbering
+        "I",
+        "II",
+        "III",
+        "IV",
+        "V",
+        "VI",
+        "VII",
+        "VIII",
+        "IX",
+        "X",
+    )
+)
+
+
 class FuzzyDefaults:
     """
     Some configuration defaults.
@@ -181,10 +262,13 @@ class FuzzyDefaults:
     P_PROBAND_MIDDLE_NAME_MISSING = 0.05
     P_SAMPLE_MIDDLE_NAME_MISSING = 0.05
     P_MINOR_SURNAME_ERROR = 0.001
+
     P_DOB_ERROR = 0.00492  # (E)
     # P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR = 0.933  # (E) (*)
     P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR = 1  # Much faster (*)
+
     P_GENDER_ERROR = 0.0033  # (E)
+
     P_MINOR_POSTCODE_ERROR = 0.0097  # (E)
 
     # -------------------------------------------------------------------------
@@ -197,8 +281,10 @@ class FuzzyDefaults:
     # -------------------------------------------------------------------------
     # Derived
     # -------------------------------------------------------------------------
-
     MIN_P_FOR_MATCH = probability_from_log_odds(MIN_LOG_ODDS_FOR_MATCH)
     P_MIDDLE_NAME_N_PRESENT_STR = ",".join(
         str(x) for x in P_MIDDLE_NAME_N_PRESENT
+    )
+    NONSPECIFIC_NAME_COMPONENTS_CSV = ",".join(
+        sorted(NONSPECIFIC_NAME_COMPONENTS)
     )

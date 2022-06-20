@@ -45,7 +45,7 @@ library(gridExtra)
 # library(lmerTest)
 library(lubridate)
 library(patchwork)
-# library(pROC)
+library(pROC)
 library(RJSONIO)
 # library(scales)  # for muted() colours
 library(tidyverse)
@@ -54,6 +54,7 @@ RLIB_STEM <- "https://egret.psychol.cam.ac.uk/rlib/"
 source(paste0(RLIB_STEM, "debugfunc.R"))
 source(paste0(RLIB_STEM, "miscfile.R"))
 source(paste0(RLIB_STEM, "misclang.R"))
+source(paste0(RLIB_STEM, "miscmath.R"))
 source(paste0(RLIB_STEM, "miscplot.R"))
 
 debugfunc$wideScreen()
@@ -228,6 +229,11 @@ LINEBREAK_1 <- paste(c(rep("=", 79), "\n"), collapse="")
 LINEBREAK_2 <- paste(c(rep("-", 79), "\n"), collapse="")
 PAGE_WIDTH_CM <- 17  # A4 with 2cm margins, 210 - 40 mm
 PAGE_HEIGHT_CM <- 25.7  # 297 - 40 mm
+
+DIAGONAL_PANEL_BG_COLOUR <- "black"
+DIAGONAL_PANEL_BG_ALPHA <- 0.1
+
+LABEL_SIZE <- 2
 
 
 # =============================================================================
@@ -1361,28 +1367,40 @@ bias_at_threshold <- function(
 # Plots
 # =============================================================================
 
+mk_proband_label <- function(from_db_name)
+{
+    paste0(recode(from_db_name, !!!DATABASE_LABEL_MAP), " [p]")
+}
+
+
+mk_sample_label <- function(to_db_name)
+{
+    paste0(recode(to_db_name, !!!DATABASE_LABEL_MAP), " [s]")
+}
+
+
 mk_generic_pairwise_plot <- function(
-    comp_threshold,
+    comp_threshold_labelled,
     depvars,
     linetypes,
     shapes,
     x_is_theta,  # if FALSE, x is delta
     vline_colour = DEFAULT_VLINE_COLOUR,
     with_overlap_label = FALSE,
-    comp_simple = NULL,
+    comp_simple_labelled = NULL,
     overlap_label_y = 0.25,
-    overlap_label_vjust = 0,  # vcentre
+    overlap_label_vjust = 0,  # vbottom
     overlap_label_x = max(THETA_OPTIONS),
     overlap_label_hjust = 1,  # 0 = left-justify, 1 = right-justify
-    overlap_label_size = 2,
-    diagonal_colour = "black",
-    diagonal_background_alpha = 0.1
+    overlap_label_size = LABEL_SIZE,
+    diagonal_colour = DIAGONAL_PANEL_BG_COLOUR,
+    diagonal_background_alpha = DIAGONAL_PANEL_BG_ALPHA
 )
 {
-    CORE_VARS <- c("from_label", "to_label", "theta", "delta")
+    CORE_VARS <- c("from", "to", "from_label", "to_label", "theta", "delta")
     required_vars <- c(CORE_VARS, depvars)
     d <- (
-        comp_threshold
+        comp_threshold_labelled
         %>% select(!!!required_vars)
         %>% pivot_longer(
             all_of(depvars),
@@ -1395,9 +1413,7 @@ mk_generic_pairwise_plot <- function(
         )
         %>% as.data.table()
     )
-    facet_data_diagonal <- unique(
-        d[, .(from_label, to_label)]
-    )[from_label == to_label]
+    facet_data_diagonal <- unique(d[from == to, .(from_label, to_label)])
     if (x_is_theta) {
         xvar <- "theta"
         colourvar <- "delta"
@@ -1418,17 +1434,7 @@ mk_generic_pairwise_plot <- function(
     y_label <- paste(depvars, collapse = ", ")
 
     p <- (
-        ggplot(
-            d,
-            aes_string(
-                x = xvar,
-                y = "value",
-                group = "x_grouper",
-                colour = colourvar,
-                linetype = "quantity",
-                shape = "quantity"
-            )
-        )
+        ggplot(d)
         + geom_rect(
             # Make the leading diagonal panels a different colour.
             # ggplot doesn't support altering the facet colours in a systematic
@@ -1439,16 +1445,6 @@ mk_generic_pairwise_plot <- function(
             #   ... last of these is the best by far.
             # Put the geom_rect at the bottom (first).
             data = facet_data_diagonal,
-            aes(
-                # Reset to NULL anything set in the top-level aes() or
-                # aes_string() call.
-                x = NULL,
-                y = NULL,
-                group = NULL,
-                colour = NULL,
-                linetype = NULL,
-                shape = NULL
-            ),
             xmin = -Inf,
             xmax = Inf,
             ymin = -Inf,
@@ -1460,8 +1456,24 @@ mk_generic_pairwise_plot <- function(
             xintercept = vline_xintercept,
             colour = vline_colour
         )
-        + geom_line()
-        + geom_point()
+        + geom_line(
+            mapping = aes_string(
+                x = xvar,
+                y = "value",
+                group = "x_grouper",
+                colour = colourvar,
+                linetype = "quantity"
+            )
+        )
+        + geom_point(
+            mapping = aes_string(
+                x = xvar,
+                y = "value",
+                group = "x_grouper",
+                colour = colourvar,
+                shape = "quantity"
+            )
+        )
         + facet_grid(from_label ~ to_label)
         + theme_bw()
         + scale_linetype_manual(values = linetypes)
@@ -1470,22 +1482,18 @@ mk_generic_pairwise_plot <- function(
         + ylab(y_label)
     )
     if (with_overlap_label) {
-        if (is.null(comp_simple)) {
-            stop("Must specify comp_simple to use with_overlap_label")
+        if (is.null(comp_simple_labelled)) {
+            stop("Must specify comp_simple_labelled to use with_overlap_label")
         }
-        cs <- data.table::copy(comp_simple)
+        cs <- data.table::copy(comp_simple_labelled)
         cs[, overlap_label := paste0("o = ", n_overlap)]
         p <- (
             p
             + geom_text(
                 data = cs,
                 mapping = aes(
-                    label = overlap_label,
+                    label = overlap_label
                     # implicit (for facet plot): from_label, to_label
-                    group = NULL,
-                    colour = NULL,
-                    linetype = NULL,
-                    shape = NULL
                 ),
                 x = overlap_label_x,
                 hjust = overlap_label_hjust,
@@ -1499,7 +1507,7 @@ mk_generic_pairwise_plot <- function(
 }
 
 
-mk_threshold_plot_sdt <- function(comp_threshold, x_is_theta, ...)
+mk_threshold_plot_sdt <- function(comp_threshold_labelled, x_is_theta, ...)
 {
     # The quantities that are informative and independent of the prevalence
     # (and thus reflect qualities of the test) include TPR (sensitivity,
@@ -1510,7 +1518,7 @@ mk_threshold_plot_sdt <- function(comp_threshold, x_is_theta, ...)
     # TNR = 1 - FPR, and TPR = 1 - FNR, so no need to plot both.
     # Let's use: TPR, FPR.
     return(mk_generic_pairwise_plot(
-        comp_threshold,
+        comp_threshold_labelled,
         depvars = c("TPR", "FPR"),
         linetypes = c("solid", "dotted", "dotted"),
         shapes = c(24, 25),  # up triangle, down triangle
@@ -1520,10 +1528,10 @@ mk_threshold_plot_sdt <- function(comp_threshold, x_is_theta, ...)
 }
 
 
-mk_threshold_plot_mid <- function(comp_threshold, x_is_theta, ...)
+mk_threshold_plot_mid <- function(comp_threshold_labelled, x_is_theta, ...)
 {
     return(mk_generic_pairwise_plot(
-        comp_threshold,
+        comp_threshold_labelled,
         depvars = "MID",
         linetypes = "solid",
         shapes = 4,  # X
@@ -1533,35 +1541,307 @@ mk_threshold_plot_mid <- function(comp_threshold, x_is_theta, ...)
 }
 
 
+mk_auroc_plot_ignoring_delta <- function(
+    replace_neg_inf_log_odds_with = -1e5,
+    diagonal_colour = DIAGONAL_PANEL_BG_COLOUR,
+    diagonal_background_alpha = DIAGONAL_PANEL_BG_ALPHA,
+    auroc_dp = 3,
+    auroc_label_x = 1,
+    auroc_label_y = 0.1,
+    auroc_label_vjust = 0,  # vbottom
+    auroc_label_hjust = 1,  # right-justify
+    auroc_label_size = LABEL_SIZE,
+    random_line_colour = "grey",
+    default_theta = DEFAULT_THETA,
+    default_theta_shape = 4  # 4 cross, 19 filled circle
+    # point_shape = 1,  # hollow circle
+    # point_alpha = 0.1
+)
+{
+    # An AUROC plot for a fixed value of delta.
+    # The normal decision criteria are
+    # (A) log_odds_match >= theta;
+    # (B) log_odds_match >= second_best_log_odds + delta.
+    # An AUROC curve requires a continuous (or binary) predictor and a binary
+    # (true) outcome. Clearly, log_odds_match has to be part of that predictor.
+    # If delta is ignored, and we only examine (A), then log_odds_match is
+    # itself the predictor.
+    detailed_data <- NULL
+    summary_data <- NULL
+    facet_data_diagonal <- NULL
+    for (db1 in FROM_DATABASES) {
+        for (db2 in TO_DATABASES) {
+            compdata <- get(mk_comparison_var(db1, db2))
+            from_label <- mk_proband_label(db1)
+            to_label <- mk_sample_label(db2)
+            facet_data_diagonal <- rbind(
+                facet_data_diagonal,
+                data.table(
+                    from = db1,
+                    to = db2,
+                    from_label = from_label,
+                    to_label = to_label
+                )
+            )
+            compdata_finite_odds <- compdata[, .(
+                log_odds_match,
+                second_best_log_odds,
+                proband_in_sample
+            )]
+            # pROC requires a finite predictor, so:
+            compdata_finite_odds[
+                !is.finite(log_odds_match),
+                log_odds_match := replace_neg_inf_log_odds_with
+            ]
+            if (length(unique(compdata_finite_odds$proband_in_sample)) == 1) {
+                # pROC::roc() would say: 'response' must have two levels
+                # This will happen when we compare a database to itself.
+                next
+            }
+            r <- pROC::roc(
+                data = compdata_finite_odds,
+                predictor = log_odds_match,
+                response = proband_in_sample,
+                levels = c(FALSE, TRUE),  # controls, cases (respectively)
+                direction = "<"  # controls < cases
+            )
+            detailed_data <- rbind(
+                detailed_data,
+                data.table(
+                    from = db1,
+                    to = db2,
+                    from_label = from_label,
+                    to_label = to_label,
+                    specificity = r$specificities,
+                    sensitivity = r$sensitivities,
+                    threshold = r$thresholds
+                )
+            )
+            summary_data <- rbind(
+                summary_data,
+                data.table(
+                    from = db1,
+                    to = db2,
+                    from_label = from_label,
+                    to_label = to_label,
+                    auroc = r$auc
+                )
+            )
+        }
+    }
+    detailed_data[, fpr := 1 - specificity]
+
+    summary_data[,
+        auroc_pretty := paste0(
+            "AUROC: ",
+            miscmath$format_dp(auroc, dp = auroc_dp)
+        )
+    ]
+    # For AUROC "randomness" line:
+    summary_data[, random_line_intercept := 0]
+    summary_data[, random_line_slope := 1]
+
+    threshold_data <- rbind(
+        (
+            detailed_data
+            %>% group_by(from, to, from_label, to_label)
+            %>% filter(
+                threshold == max(
+                    ifelse(
+                        threshold <= default_theta,
+                        threshold,
+                        NA_real_
+                    ),
+                    na.rm = TRUE
+                )
+            )
+            %>% mutate(condition = "max_below")
+            %>% as.data.table()
+        ),
+        (
+            detailed_data
+            %>% group_by(from, to, from_label, to_label)
+            %>% filter(
+                threshold == min(
+                    ifelse(
+                        threshold >= default_theta,
+                        threshold,
+                        NA_real_
+                    ),
+                    na.rm = TRUE
+                )
+            )
+            %>% mutate(condition = "min_above")
+            %>% as.data.table()
+        )
+    )
+
+    # https://stackoverflow.com/questions/21435339/data-table-vs-dplyr-can-one-do-something-well-the-other-cant-or-does-poorly
+    # https://dplyr.tidyverse.org/reference/do.html
+    # https://dplyr.tidyverse.org/reference/summarise.html
+    interp <- function(threshold, specificity, sensitivity, fpr,
+                       target_threshold = default_theta) {
+        # Interpolate across several variables to make them align with
+        # "threshold" if it were "target_threshold".
+        stopifnot(length(threshold) == 2)
+        a <- threshold[1]
+        b <- threshold[2]
+        width <- b - a
+        if (width == 0) {
+            props <- c(0.5, 0.5)
+        } else {
+            # If we have:
+            # A ----------------------------- TARGET ------- B
+            # then we want A * lower + big_chunk * B.
+            props <- c(
+                (b - target_threshold) / width,  # A fraction
+                (target_threshold - a) / width  # B fraction
+            )
+        }
+        return(tibble(
+            threshold = target_threshold,
+            specificity = sum(props * specificity),
+            sensitivity = sum(props * sensitivity),
+            fpr = sum(props * fpr),
+            condition = "interpolated"
+        ))
+    }
+    # Test: interp(c(0, 1), c(0, 1), c(2, 3), c(1, 0), 0.75)
+    threshold_data <- rbind(
+        threshold_data,
+        (
+            threshold_data
+            %>% group_by(from, to, from_label, to_label)
+            %>% summarize(
+                interp(threshold, specificity, sensitivity, fpr),
+                .groups = "drop"
+            )
+            %>% as.data.table()
+        )
+    )
+    setkeyv(threshold_data, c("from_label", "to_label", "condition"))
+
+    # The raw tables don't contain any rows where the "from" and "to" databases
+    # are the same, so for shading, we'll just make a dummy table, as above.
+    facet_data_diagonal <- facet_data_diagonal[from == to]
+
+    # We'll go a bit beyond what ggroc() offers, but follow it broadly.
+    p <- (
+        # There is a bug with respect to geom_abline() and scale_x_reverse(). See
+        # https://stackoverflow.com/questions/28603078/why-geom-abline-does-not-honor-scales-x-reverse
+        # So we plot FPR (1 - specificity) directly, rather than plotting
+        # specificity and reversing.
+        ggplot()
+        + geom_rect(
+            data = facet_data_diagonal,
+            xmin = -Inf,
+            xmax = Inf,
+            ymin = -Inf,
+            ymax = Inf,
+            fill = diagonal_colour,
+            alpha = diagonal_background_alpha
+        )
+        + geom_abline(
+            data = summary_data,
+            mapping = aes(
+                # Using an aesthetic means we can avoid drawing in the blank
+                # leading diagonal panels.
+                intercept = random_line_intercept,
+                slope = random_line_slope
+            ),
+            colour = random_line_colour
+        )
+        + geom_line(
+            data = detailed_data,
+            mapping = aes(
+                x = fpr,  # = 1 - specificity
+                y = sensitivity
+            )
+        )
+        # + geom_point(
+        #     # Too many points!
+        #     data = detailed_data,
+        #     mapping = aes(
+        #         x = fpr,  # = 1 - specificity
+        #         y = sensitivity
+        #     ),
+        #     shape = point_shape,
+        #     alpha = point_alpha
+        # )
+        + geom_point(
+            data = threshold_data[condition == "interpolated"],
+            mapping = aes(
+                x = fpr,
+                y = sensitivity
+            ),
+            shape = default_theta_shape
+        )
+        + geom_text(
+            data = summary_data,
+            mapping = aes(
+                label = auroc_pretty
+            ),
+            x = auroc_label_x,
+            y = auroc_label_y,
+            hjust = auroc_label_hjust,
+            vjust = auroc_label_vjust,
+            size = auroc_label_size
+        )
+        + theme_bw()
+        + xlab("FPR (1 − specificity)")
+        + scale_x_continuous(
+            labels = function(x) {
+                miscmath$format_dp_unless_integer(x, dp = 2)
+            }
+        )
+        + ylab("TPR (sensitivity)")
+        + facet_grid(from_label ~ to_label)
+    )
+    # ggsave(file.path(OUTPUT_DIR, "tmp.pdf"), p)
+    # ggsave(file.path(OUTPUT_DIR, "tmp.pdf"), ggroc(r))
+    return(p)
+}
+
+
 mk_save_performance_plot <- function(comp_threshold, comp_simple)
 {
-    comp_threshold <- (
+    comp_threshold_labelled <- (
         comp_threshold
         %>% mutate(
             # Make the labels nicer, and add proband/sample indicators.
-            from_label = paste0(recode(from, DATABASE_LABEL_MAP), " [p]"),
-            to_label = paste0(recode(to, DATABASE_LABEL_MAP), " [s]")
+            from_label = mk_proband_label(from),
+            to_label = mk_sample_label(to)
         )
         %>% as.data.table()
     )
-    panel_a <- mk_threshold_plot_sdt(
-        comp_threshold,
+    comp_simple_labelled <- (
+        comp_simple
+        %>% mutate(
+            from_label = mk_proband_label(from),
+            to_label = mk_sample_label(to)
+        )
+        %>% as.data.table()
+    )
+    tpr_fpr_theta <- mk_threshold_plot_sdt(
+        comp_threshold_labelled,
         x_is_theta = TRUE,
         with_overlap_label = TRUE,
-        comp_simple = comp_simple
+        comp_simple_labelled = comp_simple_labelled
     )
-    panel_b <- mk_threshold_plot_sdt(comp_threshold, x_is_theta = FALSE)
-    panel_c <- mk_threshold_plot_mid(comp_threshold, x_is_theta = TRUE)
-    panel_d <- mk_threshold_plot_mid(comp_threshold, x_is_theta = FALSE)
+    tpr_fpr_delta <- mk_threshold_plot_sdt(comp_threshold_labelled, x_is_theta = FALSE)
+    mid_theta <- mk_threshold_plot_mid(comp_threshold_labelled, x_is_theta = TRUE)
+    mid_delta <- mk_threshold_plot_mid(comp_threshold_labelled, x_is_theta = FALSE)
+    auroc_plots <- mk_auroc_plot_ignoring_delta()
     composite <- (
-        (panel_a | panel_b) /
-        (panel_c | panel_d)
+        (auroc_plots | plot_spacer()) /
+        (tpr_fpr_theta | tpr_fpr_delta) /
+        (mid_theta | mid_delta)
     ) + plot_annotation(tag_levels = "A")
     ggsave(
         file.path(OUTPUT_DIR, "fig_pairwise_thresholds.pdf"),
         composite,
         width = PAGE_WIDTH_CM * 1.1 * 2,
-        height = PAGE_HEIGHT_CM * 1.1,
+        height = PAGE_HEIGHT_CM * 1.1 * 1.5,
         units = "cm"
     )
 }

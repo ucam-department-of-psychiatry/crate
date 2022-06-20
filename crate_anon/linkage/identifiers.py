@@ -962,11 +962,14 @@ class Name(Identifier, ABC):
     """
     Base class for names.
 
+    Note that this is a pretty difficult generic problem. See
+    https://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-names/
+
     We will need some special gender features for both forenames and surnames:
 
     - UK forename frequency depends on gender.
     - The probability that someone's surname changes depends on gender.
-    """
+    """  # noqa
 
     KEY_HASHED_NAME = "hashed_name"
     KEY_HASHED_METAPHONE = "hashed_metaphone"
