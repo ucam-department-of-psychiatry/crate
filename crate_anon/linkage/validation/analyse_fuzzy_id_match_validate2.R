@@ -247,6 +247,36 @@ all_unique <- function(x)
 }
 
 
+part_of_duplicated_group <- function(x)
+{
+    # If you count based on duplicated(), you count the "extras"; for example,
+    # for
+    #       x <- c(1, 1, 1, 2, 3, 4)
+    # then
+    #       sum(duplicated(x))
+    # is 2 (the second and third items are the duplicates). But for "the number
+    # of records with a duplicated NHS number" we would want 3 here. Hence this
+    # function which returns a boolean vector, like duplicated(), but includes
+    # the first item.
+
+    duplicates <- unique(x[duplicated(x)])
+    return(x %in% duplicates)
+}
+
+
+n_with_duplicates <- function(x)
+{
+    return(sum(part_of_duplicated_group(x)))
+}
+
+
+n_unique_duplicates <- function(x)
+{
+    duplicates <- unique(x[duplicated(x)])
+    return(length(duplicates))
+}
+
+
 write_output <- function(x, append = TRUE, filename = OUTPUT_FILE, width = 1000)
 {
     # 1. Output to file
@@ -1100,7 +1130,9 @@ get_demographics <- function(d, db_name)
         db_name = db_name,
 
         n_total = nrow(d),
-        n_duplicated_nhs_number = sum(duplicated(d$hashed_nhs_number)),
+        # n_duplicated_nhs_number = sum(duplicated(d$hashed_nhs_number)),
+        n_records_duplicated_nhs_number = n_with_duplicates(d$hashed_nhs_number),
+        n_distinct_duplicated_nhs_numbers = n_unique_duplicates(d$hashed_nhs_number),
 
         dob_year_min = min(year(d$blurred_dob), na.rm = TRUE),
         dob_year_max = max(year(d$blurred_dob), na.rm = TRUE),
@@ -2128,6 +2160,20 @@ empirical_discrepancy_rates <- function(people_data_1, people_data_2)
     return(s)
 }
 
+
+show_duplicate_nhsnum_effect <- function(probands, sample, comparison)
+{
+    probands[,
+        is_nhsnum_duplicated :=
+            part_of_duplicated_group(hashed_nhs_number)
+    ]
+    sample[,
+        is_nhsnum_duplicated :=
+            part_of_duplicated_group(hashed_nhs_number)
+    ]
+}
+
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -2189,14 +2235,16 @@ main <- function()
         people_data_2 = get(mk_people_var(SYSTMONE))
     )
 
+    duplicate_nhs_numbers_in_sample <- show_duplicate_nhsnum_effect(
+        probands = get(mk_people_var(RIO)),
+        sample = get(mk_people_var(PCMIS)),
+        comparison = get(mk_comparison_var(RIO, PCMIS))
+    )
+
     write_output(paste("Finished:", Sys.time()))
 }
 
 # main()
-
-# TODO: *** in empirical_discrepancy_rates(), row count slightly too low?
-
-# TODO: rethink analytically about the PCMIS NHS# duplication problem
 
 # TODO: handle multiple options for first name, surname?
 #   *** see Downs paper; use some of those strategies?
@@ -2208,4 +2256,3 @@ main <- function()
 #   - main tricky bit is the identifiable file format; needs to be easy
 
 # TODO: use empirical estimates of remaining error types; see FuzzyDefaults
-# ... TODO: calculate metaphone-only match frequencies
