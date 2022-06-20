@@ -1906,8 +1906,10 @@ people_missingness_summary <- function(people)
 
 extract_miss_info <- function(
     probands, sample, comparison,
+    sample_db_name,
     theta = DEFAULT_THETA, delta = DEFAULT_DELTA,
-    allow.cartesian = TRUE  # for duplicate NHS numbers, i.e. PCMIS
+    allow.cartesian = TRUE,
+    remove_sample_duplicates = TRUE
 )
 {
     decided <- decide_at_thresholds(comparison, theta, delta)
@@ -1935,21 +1937,50 @@ extract_miss_info <- function(
         "dx_group_simple"
     )
     miss_hashed_nhs <- comp_misses$hashed_nhs_number_proband
+    miss_probands <- probands[
+        hashed_nhs_number %in% miss_hashed_nhs,
+        ..person_columns
+    ]
+    miss_sample_candidates <- sample[
+        hashed_nhs_number %in% miss_hashed_nhs,
+        ..person_columns
+    ]
+    # If there are duplicates in the sample here, we should remove them,
+    # because otherwise we will over-count the error types. This is a bit
+    # tricky.
+    if (remove_sample_duplicates) {
+        # Order is arbitrary here.
+        miss_sample_candidates[, is_duplicate := duplicated(hashed_nhs_number)]
+        n_duplicates <- sum(miss_sample_candidates$is_duplicate)
+        if (n_duplicates > 0) {
+            warning(paste0(
+                "Removing ",
+                n_duplicates,
+                " duplicates (by hashed_nhs_number) from ",
+                "miss_sample_candidates for database ",
+                sample_db_name
+            ))
+            miss_sample_candidates <- miss_sample_candidates[is_duplicate == FALSE]
+        }
+    }
     failure_info <- merge(  # fi = failure_info
-        x = probands[hashed_nhs_number %in% miss_hashed_nhs, ..person_columns],
-        y = sample[hashed_nhs_number %in% miss_hashed_nhs, ..person_columns],
+        x = miss_probands,
+        y = miss_sample_candidates,
         by.x = "hashed_nhs_number",
         by.y = "hashed_nhs_number",
-        all.x = TRUE,
-        all.y = FALSE,
+        all.x = TRUE,  # all missed probands
+        all.y = FALSE,  # not all candidates, just those that (in truth) match the missed probands
         suffixes = c("_proband", "_sample"),
         allow.cartesian = allow.cartesian
+        # ... see: ?'[.data.table'
+        # ... one way of handling for duplicate NHS numbers, i.e. PCMIS
+        # ... but irrelevant if remove_sample_duplicates, as above
     )
     return(failure_info)
 }
 
 
-failure_summary <- function(failure_info)
+miss_summary <- function(failure_info)
 {
     n <- nrow(failure_info)
     prop_missing <- function(x) {
@@ -1966,43 +1997,43 @@ failure_summary <- function(failure_info)
         %>% summarize(
             n_missed = n,
 
-            proband_missing_first_name = prop_missing(first_name_frequency_proband),
-            proband_missing_middle_names = prop_missing(middle_name_frequencies_proband),
-            proband_missing_surname = prop_missing(surname_frequency_proband),
-            proband_missing_gender = prop_missing(gender_frequency_proband),
-            proband_missing_postcode = prop_missing(postcode_unit_frequencies_proband),
+            miss_proband_missing_first_name = prop_missing(first_name_frequency_proband),
+            miss_proband_missing_middle_names = prop_missing(middle_name_frequencies_proband),
+            miss_proband_missing_surname = prop_missing(surname_frequency_proband),
+            miss_proband_missing_gender = prop_missing(gender_frequency_proband),
+            miss_proband_missing_postcode = prop_missing(postcode_unit_frequencies_proband),
 
-            sample_missing_first_name = prop_missing(first_name_frequency_sample),
-            sample_missing_middle_names = prop_missing(middle_name_frequencies_sample),
-            sample_missing_surname = prop_missing(surname_frequency_sample),
-            sample_missing_gender = prop_missing(gender_frequency_sample),
-            sample_missing_postcode = prop_missing(postcode_unit_frequencies_sample),
+            miss_sample_missing_first_name = prop_missing(first_name_frequency_sample),
+            miss_sample_missing_middle_names = prop_missing(middle_name_frequencies_sample),
+            miss_sample_missing_surname = prop_missing(surname_frequency_sample),
+            miss_sample_missing_gender = prop_missing(gender_frequency_sample),
+            miss_sample_missing_postcode = prop_missing(postcode_unit_frequencies_sample),
 
-            mismatch_first_name = prop_mismatch(
+            miss_mismatch_first_name = prop_mismatch(
                 hashed_first_name_proband,
                 hashed_first_name_sample
             ),
-            mismatch_first_name_metaphone = prop_mismatch(
+            miss_mismatch_first_name_metaphone = prop_mismatch(
                 hashed_first_name_metaphone_proband,
                 hashed_first_name_metaphone_sample
             ),
-            mismatch_surname = prop_mismatch(
+            miss_mismatch_surname = prop_mismatch(
                 hashed_surname_proband,
                 hashed_surname_sample
             ),
-            mismatch_surname_metaphone = prop_mismatch(
+            miss_mismatch_surname_metaphone = prop_mismatch(
                 hashed_surname_metaphone_proband,
                 hashed_surname_metaphone_sample
             ),
-            mismatch_dob = prop_mismatch(
+            miss_mismatch_dob = prop_mismatch(
                 hashed_dob_proband,
                 hashed_dob_sample
             ),
-            mismatch_gender = prop_mismatch(
+            miss_mismatch_gender = prop_mismatch(
                 hashed_gender_proband,
                 hashed_gender_sample
             ),
-            firstname_surname_swapped = sum(
+            miss_firstname_surname_swapped = sum(
                 mismatch(hashed_first_name_proband, hashed_first_name_sample)
                 & mismatch(hashed_surname_proband, hashed_surname_sample)
                 & (hashed_first_name_proband == hashed_surname_sample)
@@ -2032,16 +2063,17 @@ performance_summary_at_threshold <- function(
                 delta = delta,
                 comparison
             )
-            failure_info <- failure_summary(
+            miss_info <- miss_summary(
                 extract_miss_info(
                     probands,
                     sample,
                     comparison,
+                    sample_db_name = db2,
                     theta = theta,
                     delta = delta
                 )
             )
-            combined_summary <- cbind(main_performance_summary, failure_info)
+            combined_summary <- cbind(main_performance_summary, miss_info)
             perf_summ <- rbind(perf_summ, combined_summary)
         }
     }
@@ -2217,8 +2249,6 @@ main <- function()
     # Reasons for non-linkage, etc.
     pst <- performance_summary_at_threshold()
     write_output(pst)
-    # !!! WARNING: the calculation for duplicate NHS numbers needs thought.
-    #     See allow.cartesian above.
 
     pst_simplified <- (
         pst
