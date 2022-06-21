@@ -168,7 +168,7 @@ def sqla_transaction_commit():
 # =============================================================================
 
 
-class NlprpProcessRequest(object):
+class NlprpProcessRequest:
     """
     Represents an NLPRP :ref:`process <nlprp_process>` command. Takes the
     request JSON, and offers efficient views on it.
@@ -272,7 +272,7 @@ class NlprpProcessRequest(object):
 
 
 @view_defaults(renderer="json")  # all views can now return JsonObjectType
-class NlpWebViews(object):
+class NlpWebViews:
     """
     Class to provide HTTP views (via Pyramid) for our NLPRP server.
     """

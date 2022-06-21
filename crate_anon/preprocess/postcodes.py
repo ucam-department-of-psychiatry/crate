@@ -221,7 +221,7 @@ def commit_and_announce(session: Session) -> None:
 # =============================================================================
 
 
-class ExtendedBase(object):
+class ExtendedBase:
     """
     Mixin to extend the SQLAlchemy ORM Base class by specifying table creation
     parameters (specifically, for MySQL, to set the character set and
@@ -259,7 +259,7 @@ class GenericLookupClassMeta(DeclarativeMeta, ABCMeta):
         from sqlalchemy.ext.declarative import declarative_base
         from sqlalchemy.sql.schema import MetaData
 
-        class ExtendedBase(object):
+        class ExtendedBase:
             __table_args__ = {'mysql_charset': 'utf8', 'mysql_engine': 'InnoDB'}
 
         metadata = MetaData()

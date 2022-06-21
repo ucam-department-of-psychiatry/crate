@@ -248,7 +248,7 @@ def ensure_no_source_type_mismatch(
 # =============================================================================
 
 
-class DataDictionary(object):
+class DataDictionary:
     """
     Class representing an entire data dictionary.
     """

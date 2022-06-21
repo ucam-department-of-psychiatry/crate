@@ -51,7 +51,7 @@ from typing import Dict, List, Optional
 from unidecode import unidecode
 
 
-class EponymInfo(object):
+class EponymInfo:
     """
     Reserved for future use, the intention being maybe some classification by
     how rare or common (a) the eponymous disease is, and (b) the name itself

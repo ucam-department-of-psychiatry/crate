@@ -60,7 +60,7 @@ ON_READTHEDOCS = os.environ.get("READTHEDOCS") == "True"
 # =============================================================================
 
 
-class CratePath(object):
+class CratePath:
     """
     Directories within the CRATE Python package.
     """
@@ -83,7 +83,7 @@ class CratePath(object):
 # =============================================================================
 
 
-class DockerConstants(object):
+class DockerConstants:
     """
     Constants for the Docker environment.
     """
@@ -104,7 +104,7 @@ class DockerConstants(object):
 # =============================================================================
 
 
-class EnvVar(object):
+class EnvVar:
     """
     Environment variable names.
     """
@@ -129,7 +129,7 @@ class EnvVar(object):
 # =============================================================================
 
 
-class HelpUrl(object):
+class HelpUrl:
     """
     Makes help URLs, for an approximation to context-sensitive help within the
     web site.

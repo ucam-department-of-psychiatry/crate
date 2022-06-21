@@ -581,7 +581,7 @@ def make_nlprp_response(
 # =============================================================================
 
 
-class NlprpMessage(object):
+class NlprpMessage:
     """
     Represents an NLPRP (natural language processing request protocol) message,
     be it a request (client to server) or a response (server to client).
@@ -792,7 +792,7 @@ class NlprpResponse(NlprpMessage):
         )
 
 
-class NlprpServerProcessor(object):
+class NlprpServerProcessor:
     """
     Class for containing information about am NLP processor known to an NLPRP
     server.

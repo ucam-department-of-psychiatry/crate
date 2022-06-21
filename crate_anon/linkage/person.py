@@ -348,7 +348,7 @@ class Person(BasePerson):
             self.first_name = first_name
         else:
             self.first_name = Forename(
-                cfg=cfg, name=first_name, gender=self.gender.gender
+                cfg=cfg, name=first_name, gender=self.gender.gender_str
             )
         chk_plaintext(self.first_name)
 
@@ -361,7 +361,7 @@ class Person(BasePerson):
             if not m:
                 continue
             if not isinstance(m, Forename):
-                m = Forename(cfg=cfg, name=m, gender=self.gender.gender)
+                m = Forename(cfg=cfg, name=m, gender=self.gender.gender_str)
             chk_plaintext(m)
             self.middle_names.append(m)
 
@@ -371,7 +371,7 @@ class Person(BasePerson):
             self.surname = surname
         else:
             self.surname = Surname(
-                cfg=cfg, name=surname, gender=self.gender.gender
+                cfg=cfg, name=surname, gender=self.gender.gender_str
             )
         chk_plaintext(self.surname)
 
@@ -890,7 +890,7 @@ class Person(BasePerson):
 # =============================================================================
 
 
-class MatchResult(object):
+class MatchResult:
     """
     Result of a comparison between a proband (person) and a sample (group of
     people).
@@ -957,7 +957,7 @@ class MatchResult(object):
 # Try staring at the word "people" for a while and watch it look odd...
 
 
-class People(object):
+class People:
     """
     Represents a group of people, and implements a shortlist.
     """

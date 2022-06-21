@@ -34,10 +34,10 @@ crate_anon/linkage/matchconfig.py
 # =============================================================================
 
 import logging
-from typing import List, NoReturn, Optional, Tuple
+from typing import Dict, List, NoReturn, Optional, Set, Tuple
 
 from cardinal_pythonlib.hash import make_hasher
-from cardinal_pythonlib.maths_py import round_sf, normal_round_int
+from cardinal_pythonlib.maths_py import mean, round_sf, normal_round_int
 from cardinal_pythonlib.probability import log_odds_from_1_in_n
 from cardinal_pythonlib.reprfunc import auto_repr
 
@@ -45,15 +45,18 @@ from crate_anon.linkage.constants import (
     DAYS_PER_MONTH,
     DAYS_PER_YEAR,
     FuzzyDefaults,
-    GENDER_MALE,
     GENDER_FEMALE,
+    GENDER_MALE,
+    GENDER_MISSING,
+    GENDER_OTHER,
     MONTHS_PER_YEAR,
+    VALID_GENDERS,
 )
 from crate_anon.linkage.frequencies import (
     NameFrequencyInfo,
     PostcodeFrequencyInfo,
 )
-from crate_anon.linkage.helpers import standardize_name
+from crate_anon.linkage.helpers import safe_upper, standardize_name
 
 log = logging.getLogger(__name__)
 
@@ -63,7 +66,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 
-class MatchConfig(object):
+class MatchConfig:
     """
     Master config class. It's more convenient to pass one of these round than
     lots of its components.
@@ -86,6 +89,12 @@ class MatchConfig(object):
         p_middle_name_n_present: List[float] = (
             FuzzyDefaults.P_MIDDLE_NAME_N_PRESENT
         ),
+        accent_transliterations_csv: str = (
+            FuzzyDefaults.ACCENT_TRANSLITERATIONS_SLASH_CSV
+        ),
+        nonspecific_name_components_csv: str = (
+            FuzzyDefaults.NONSPECIFIC_NAME_COMPONENTS_CSV
+        ),
         birth_year_pseudo_range: float = FuzzyDefaults.BIRTH_YEAR_PSEUDO_RANGE,
         p_not_male_or_female: float = FuzzyDefaults.P_NOT_MALE_OR_FEMALE,
         p_female_given_male_or_female: float = (
@@ -105,6 +114,9 @@ class MatchConfig(object):
             FuzzyDefaults.P_SAMPLE_MIDDLE_NAME_MISSING
         ),
         p_minor_surname_error: float = FuzzyDefaults.P_MINOR_SURNAME_ERROR,
+        p_major_surname_error_csv: str = (
+            FuzzyDefaults.P_MAJOR_SURNAME_ERROR_CSV
+        ),
         p_dob_error: float = FuzzyDefaults.P_DOB_ERROR,
         p_dob_single_component_error_if_error: float = (
             FuzzyDefaults.P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR
@@ -156,6 +168,13 @@ class MatchConfig(object):
                 List of probabilities. The first is P(middle name 1 present).
                 The second is P(middle name 2 present | middle name 1 present),
                 and so on. The last value is re-used ad infinitum as required.
+            accent_transliterations_csv:
+                Accent transliteration map. String of the form "Ä/AE,Ö/OE" --
+                comma-separated pairs, with slashed separating each pair.
+            nonspecific_name_components_csv:
+                CSV-separated list of nonspecific name components (e.g.
+                nobiliary particles), which will be avoided as equivalent name
+                fragments.
 
             birth_year_pseudo_range:
                 b, such that P(two people share a DOB) = 1/(365.25 * b).
@@ -190,6 +209,9 @@ class MatchConfig(object):
             p_minor_surname_error:
                 Probability that a surname fails a full match but passes a
                 partial match.
+            p_major_surname_error_csv:
+                CSV of ``gender:p`` pairs, representing the probability of a
+                complete surname mismatch by gender.
             p_dob_error:
                 Probability that a DOB is wrong, for the same person.
             p_dob_single_component_error_if_error:
@@ -292,7 +314,7 @@ class MatchConfig(object):
             # Convert to string if necessary; otherwise, an identity function:
             self.local_id_hash_fn = str
 
-        # Population frequencies
+        # Overall population
 
         self.population_size = population_size
         # Precalculate this, for access speed:
@@ -300,20 +322,10 @@ class MatchConfig(object):
             self.population_size
         )
 
+        # Name handling
+
         self.forename_csv_filename = forename_sex_csv_filename
         self.surname_csv_filename = surname_csv_filename
-        self.min_name_frequency = min_name_frequency
-        self.p_middle_name_n_present = p_middle_name_n_present
-
-        self.birth_year_pseudo_range = birth_year_pseudo_range
-
-        self.p_gender_error = p_gender_error
-        self.p_not_male_or_female = p_not_male_or_female
-
-        p_male_or_female = 1 - p_not_male_or_female
-        self.p_female = p_female_given_male_or_female * p_male_or_female
-        self.p_male = p_male_or_female - self.p_female
-
         self._forename_freq = NameFrequencyInfo(
             csv_filename=forename_sex_csv_filename,
             cache_filename=forename_cache_filename,
@@ -326,6 +338,43 @@ class MatchConfig(object):
             min_frequency=min_name_frequency,
             by_gender=False,
         )
+        self.min_name_frequency = min_name_frequency
+        self.p_middle_name_n_present = p_middle_name_n_present
+        accent_dict = {}  # type: Dict[str, str]
+        for accent_pair in accent_transliterations_csv.split(","):
+            accent_components = accent_pair.split("/")
+            if len(accent_components) != 2:
+                raise ValueError(
+                    f"Bad accent_transliterations_csv: "
+                    f"{accent_transliterations_csv!r}"
+                )
+            accented = safe_upper(accent_components[0].strip())
+            plain = safe_upper(accent_components[1].strip())
+            if len(accented) != 1:
+                raise ValueError(
+                    f"Bad accent_transliterations_csv: "
+                    f"{accent_transliterations_csv!r} -- contains accented "
+                    f"character {accented!r}, which should be of length 1"
+                )
+            accent_dict[accented] = plain
+        self.accent_transliterations = str.maketrans(accent_dict)
+        self.nonspecific_name_components = set()  # type: Set[str]
+        for nonspec in nonspecific_name_components_csv.split(","):
+            self.nonspecific_name_components.add(nonspec.strip().upper())
+
+        # Population frequencies: DOB
+
+        self.birth_year_pseudo_range = birth_year_pseudo_range
+
+        # Population frequencies: sex/gender
+
+        self.p_not_male_or_female = p_not_male_or_female
+        p_male_or_female = 1 - p_not_male_or_female
+        self.p_female = p_female_given_male_or_female * p_male_or_female
+        self.p_male = p_male_or_female - self.p_female
+
+        # Population frequencies: postcode
+
         self._postcode_freq = PostcodeFrequencyInfo(
             csv_filename=postcode_csv_filename,
             cache_filename=postcode_cache_filename,
@@ -337,12 +386,57 @@ class MatchConfig(object):
 
         self.p_minor_forename_error = p_minor_forename_error
         self.p_minor_surname_error = p_minor_surname_error
+
+        self.p_major_surname_error = {}  # type: Dict[str, float]
+        for gender_p_str in p_major_surname_error_csv.split(","):
+            g_p_components = gender_p_str.split(":")
+            if len(g_p_components) != 2:
+                raise ValueError(
+                    f"Bad p_major_surname_error_csv: "
+                    f"{p_major_surname_error_csv!r}"
+                )
+            g = g_p_components[0]
+            try:
+                p = float(g_p_components[1])
+            except (ValueError, TypeError):
+                raise ValueError(
+                    f"Bad frequency in p_major_surname_error_csv: "
+                    f"{p_major_surname_error_csv!r}"
+                )
+            check_prob(p, "p_major_surname_error_csv")
+            self.p_major_surname_error[g] = p
+        if GENDER_FEMALE not in self.p_major_surname_error:
+            raise ValueError(
+                f"Gender {GENDER_FEMALE} not specified in "
+                f"p_major_surname_error_csv"
+            )
+        if GENDER_MALE not in self.p_major_surname_error:
+            raise ValueError(
+                f"Gender {GENDER_MALE} not specified in "
+                f"p_major_surname_error_csv"
+            )
+        mean_m_f = mean(
+            [
+                self.p_major_surname_error[GENDER_FEMALE],
+                self.p_major_surname_error[GENDER_MALE],
+            ]
+        )
+        self.p_major_surname_error.setdefault(GENDER_OTHER, mean_m_f)
+        self.p_major_surname_error.setdefault(GENDER_MISSING, mean_m_f)
+        if set(self.p_major_surname_error.keys()) != set(VALID_GENDERS):
+            raise ValueError(
+                f"Missing or bad genders in p_major_surname_error_csv: "
+                f"{p_major_surname_error_csv!r} -- genders should be "
+                f"{VALID_GENDERS}"
+            )
+
         self.p_proband_middle_name_missing = p_proband_middle_name_missing
         self.p_sample_middle_name_missing = p_sample_middle_name_missing
         self.p_dob_error = p_dob_error
         self.p_dob_single_component_error_if_error = (
             p_dob_single_component_error_if_error
         )
+        self.p_gender_error = p_gender_error
         self.p_minor_postcode_error = p_minor_postcode_error
 
         # Matching rules
@@ -618,6 +712,13 @@ class MatchConfig(object):
         return self._postcode_freq.debug_postcode_sector_population(
             postcode_sector, prestandardized=prestandardized
         )
+
+    # -------------------------------------------------------------------------
+    # Error frequency information
+    # -------------------------------------------------------------------------
+
+    def get_p_major_surname_error(self, gender: str) -> float:
+        return self.p_major_surname_error[gender]
 
     # -------------------------------------------------------------------------
     # Comparisons

@@ -42,7 +42,7 @@ from crate_anon.nlp_webserver.server_processor import ServerProcessor
 log = logging.getLogger(__name__)
 
 
-class CloudRunInfo(object):
+class CloudRunInfo:
     """
     Represents session-wide information about an NLP cloud run, including
     details of the server and our chosen processors and config.

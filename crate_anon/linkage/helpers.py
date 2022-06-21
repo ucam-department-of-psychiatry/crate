@@ -44,12 +44,23 @@ import pickle
 import random
 import re
 import string
-from typing import Any, Dict, Generator, Optional, Type, TYPE_CHECKING
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Set,
+    Type,
+    TYPE_CHECKING,
+    Union,
+)
+import unicodedata
 from zipfile import ZipFile
 
+import regex
 from cardinal_pythonlib.datetimefunc import coerce_to_pendulum_date
 from cardinal_pythonlib.fileops import mkdir_p
-from cardinal_pythonlib.stringfunc import mangle_unicode_to_ascii
 from fuzzy import DMetaphone
 from numba import jit
 from pendulum import Date
@@ -58,7 +69,13 @@ from pendulum.parsing.exceptions import ParserError
 from crate_anon.anonymise.anonregex import get_uk_postcode_regex_string
 from crate_anon.common.logfunc import warn_once
 from crate_anon.common.regex_helpers import anchor
-from crate_anon.linkage.constants import MINUS_INFINITY
+from crate_anon.linkage.constants import (
+    FuzzyDefaults,
+    MANGLE_PRETRANSLATE,
+    MINUS_INFINITY,
+    SAFE_UPPER_PRETRANSLATE,
+    SIMPLIFY_PUNCTUATION_WHITESPACE_TRANS,
+)
 
 if TYPE_CHECKING:
     from crate_anon.linkage.matchconfig import MatchConfig
@@ -234,28 +251,147 @@ POSTCODE_REGEX = re.compile(
     # "VALID_POSTCODE JUNK". We want anchor() instead.
 )
 REMOVE_PUNCTUATION_SPACE_TABLE = str.maketrans("", "", string.punctuation)
+# ... the three-argument version of str.maketrans removes anything in the third
+# category. The object returned is a dictionary mapping integer ASCII values
+# to replacement character values (or None).
 REMOVE_PUNCTUATION_SPACE_TABLE[ord(" ")] = None  # also remove spaces
+NONWORD_REGEX = regex.compile(r"\W")
+ONE_OR_MORE_SPACE_REGEX = regex.compile(r"\s+")
+
+
+def mangle_unicode_to_ascii(s: Any) -> str:
+    """
+    Mangle unicode to ASCII, losing accents etc. in the process.
+    This is a slightly different version to that in cardinal_pythonlib, because
+    the Eszett gets a rough ride:
+
+    .. code-block:: python
+
+        "Straße Clérambault".encode("ascii", "ignore")  # b'Strae Clerambault'
+
+    So we add the ``MANGLE_PRETRANSLATE`` step.
+    """
+    if s is None:
+        return ""
+    if not isinstance(s, str):
+        s = str(s)
+    return (
+        unicodedata.normalize("NFKD", s)
+        .translate(MANGLE_PRETRANSLATE)
+        .encode("ascii", "ignore")  # gets rid of accents
+        .decode("ascii")  # back to a string
+    )
+
+
+def safe_upper(name: str) -> str:
+    """
+    Convert to upper case, but don't mess up a few specific accents. Note that:
+
+    - 'ß'.upper() == 'SS' but 'ẞ'.upper() == 'ẞ'
+
+    ... here, we will use an upper-case Eszett, and the "SS" will be dealt with
+    through transliteration.
+    """
+    return name.translate(SAFE_UPPER_PRETRANSLATE).upper()
+
+
+def remove_redundant_whitespace(name: str) -> str:
+    """
+    Strip at edges; remove double-spaces; remove any other whitespace by a
+    single space.
+    """
+    return ONE_OR_MORE_SPACE_REGEX.sub(
+        " ", name.translate(SIMPLIFY_PUNCTUATION_WHITESPACE_TRANS)
+    ).strip()
 
 
 def standardize_name(name: str) -> str:
     """
-    Converts names to a standard form: upper case, no spaces, no punctuation.
-    If you have a string that may contain multiple names, you should split it
-    before standardizing.
+    Converts a name to a standard form: upper case (will also e.g. translate
+    Eszett to SS), no spaces, no punctuation.
 
-    Examples:
+    This is the format used by the US surname database, e.g. ACOSTAPEREZ for
+    (probably) Acosta Perez, and just PEREZ without e.g. PÉREZ.
 
-    .. code-block:: python
+    We use this for our name frequency databases. For other purposes, we use
+    a more sophisticated approach; see e.g. surname_alternative_fragments().
 
-        from crate_anon.tools.fuzzy_id_match import *
-        standardize_name("Alice")
-        standardize_name("Mary Ellen")
-        standardize_name("D'Souza")
-        standardize_name("de Clérambault")
+    Examples: see unit tests.
     """
     return mangle_unicode_to_ascii(
         name.upper().translate(REMOVE_PUNCTUATION_SPACE_TABLE)
     )
+
+
+def _gen_name_versions(
+    x: str,
+    accent_transliterations: Dict[
+        int, Union[str, int, None]
+    ] = FuzzyDefaults.ACCENT_TRANSLITERATIONS_TRANS,
+) -> Generator[str, None, None]:
+    """
+    Generate the string itself and accent-mangled and accent-transliterated
+    versions thereof. We assume that either nothing happens, mangling
+    happens, or transliteration happens, but not some nasty combination.
+    """
+    # The string:
+    yield x
+    # Mangled, e.g. Ü to U:
+    yield mangle_unicode_to_ascii(x)
+    # Transliterated, e.g. Ü to UE.
+    yield x.translate(accent_transliterations)
+
+
+def surname_alternative_fragments(
+    surname: str,
+    accent_transliterations: Dict[
+        int, Union[str, int, None]
+    ] = FuzzyDefaults.ACCENT_TRANSLITERATIONS_TRANS,
+    nonspecific_name_components: Set[
+        str
+    ] = FuzzyDefaults.NONSPECIFIC_NAME_COMPONENTS,
+) -> List[str]:
+    """
+    Return a list of fragments that may occur as substitutes for the name
+    (including the name itself). Those fragments include:
+
+    - Parts of double-barrelled surnames.
+    - ASCII-mangled versions of accents (e.g. Ü to U).
+    - Transliterated versions of accents (e.g. Ü to UE).
+
+    Upper case will be used throughout.
+
+    Args:
+        surname:
+            The name to process. This should contain all original accents,
+            spacing, and punctuation (i.e. should NOT have been standardized as
+            above). Case is unimportant (we will use upper case internally).
+        accent_transliterations:
+            A mapping from accents to potential transliterated versions, in the
+            form of a Python string translation table.
+        nonspecific_name_components:
+            Name fragments that should not be produced in their own right, e.g.
+            nobiliary particles such as "van" in "van Beethoven".
+
+    Returns:
+        A list of fragments: full name first, then other fragments in
+        alphabetical order.
+    """
+    if not surname:
+        return []
+    # Very basic standardization: upper case, sort out whitespace.
+    surname = safe_upper(remove_redundant_whitespace(surname))
+    fragments = set()  # type: Set[str]
+    # The name itself:
+    fragments.update(_gen_name_versions(surname, accent_transliterations))
+    # Components:
+    for fragment in NONWORD_REGEX.split(surname):
+        if fragment in nonspecific_name_components:
+            continue
+        fragments.update(_gen_name_versions(fragment, accent_transliterations))
+    # This process may well have worked through duplicates, but the set will
+    # take care of those. Return the name first.
+    return [surname] + sorted(fragments - {surname})
 
 
 def get_metaphone(x: str) -> str:

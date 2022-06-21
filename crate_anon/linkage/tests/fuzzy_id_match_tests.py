@@ -53,14 +53,18 @@ from crate_anon.linkage.identifiers import (
     Identifier,
     Postcode,
     Surname,
+    SurnameFragment,
     TemporalIDHolder,
 )
 from crate_anon.linkage.helpers import (
     get_postcode_sector,
     is_valid_isoformat_date,
     POSTCODE_REGEX,
+    remove_redundant_whitespace,
+    safe_upper,
     standardize_name,
     standardize_postcode,
+    surname_alternative_fragments,
 )
 from crate_anon.linkage.matchconfig import MatchConfig
 from crate_anon.linkage.person import DuplicateLocalIDError, People, Person
@@ -97,7 +101,7 @@ BAD_GENDERS = ["Y", "male", "female", "?"]
 # =============================================================================
 
 
-class TestCondition(object):
+class TestCondition:
     """
     Two representations of a person and whether they should match.
     """
@@ -437,15 +441,89 @@ class FuzzyLinkageTests(unittest.TestCase):
     def test_standardize_name(self) -> None:
         tests = (
             # name, standardized version
-            ("ALJAZEERA", "ALJAZEERA"),
-            ("aljazeera", "ALJAZEERA"),
             ("Al Jazeera", "ALJAZEERA"),
             ("Al'Jazeera", "ALJAZEERA"),
             ("Al'Jazeera'", "ALJAZEERA"),
+            ("Alice", "ALICE"),
+            ("ALJAZEERA", "ALJAZEERA"),
+            ("aljazeera", "ALJAZEERA"),
+            ("D'Souza", "DSOUZA"),
+            ("de Clérambault", "DECLERAMBAULT"),
+            ("Mary Ellen", "MARYELLEN"),
             ('"Al Jazeera"', "ALJAZEERA"),
         )
         for item, target in tests:
             self.assertEqual(standardize_name(item), target)
+
+    def test_safe_upper(self) -> None:
+        tests = (
+            ("Beethoven", "BEETHOVEN"),
+            ("Clérambault", "CLÉRAMBAULT"),
+            ("Straße", "STRAẞE"),
+        )
+        for a, b in tests:
+            self.assertEqual(safe_upper(a), b)
+
+    def test_remove_redundant_whitespace(self) -> None:
+        tests = (
+            (" van \t \r \n Beethoven ", "van Beethoven"),
+            ("‘John said “hello”.’", "'John said \"hello\".'"),
+            ("a–b—c−d-e", "a-b-c-d-e"),
+        )
+        for a, b in tests:
+            self.assertEqual(remove_redundant_whitespace(a), b)
+
+    def test_surname_fragments(self) -> None:
+        cfg = self.cfg
+        accent_transliterations = cfg.accent_transliterations
+        nonspecific_name_components = cfg.nonspecific_name_components
+        tests = (
+            # In the expected answer, the original name comes first; then
+            # alphabetical order. Some examples are silly.
+            # France/French
+            (
+                "Côte d'Ivoire",
+                ["CÔTE D'IVOIRE", "COTE", "COTE D'IVOIRE", "CÔTE", "IVOIRE"],
+            ),
+            (
+                "de Clérambault",
+                [
+                    "DE CLÉRAMBAULT",
+                    "CLERAMBAULT",
+                    "CLÉRAMBAULT",
+                    "DE CLERAMBAULT",
+                ],
+            ),
+            (
+                "de la Billière",
+                ["DE LA BILLIÈRE", "BILLIERE", "BILLIÈRE", "DE LA BILLIERE"],
+            ),
+            ("Façade", ["FAÇADE", "FACADE"]),
+            ("Giscard d'Estaing", ["GISCARD D'ESTAING", "ESTAING", "GISCARD"]),
+            ("L'Estrange", ["L'ESTRANGE", "ESTRANGE"]),
+            ("L’Estrange", ["L'ESTRANGE", "ESTRANGE"]),
+            # Germany (and in Beethoven's case, ancestrally Belgium).
+            ("Beethoven", ["BEETHOVEN"]),
+            ("Müller", ["MÜLLER", "MUELLER", "MULLER"]),
+            ("Straße", ["STRAẞE", "STRASSE"]),
+            ("van  Beethoven", ["VAN BEETHOVEN", "BEETHOVEN"]),
+            # Italy
+            ("Calabrò", ["CALABRÒ", "CALABRO"]),
+            ("De Marinis", ["DE MARINIS", "MARINIS"]),
+            ("di Bisanzio", ["DI BISANZIO", "BISANZIO"]),
+            # Sweden
+            ("Nyström", ["NYSTRÖM", "NYSTROEM", "NYSTROM"]),
+            # Hmm. NYSTROEM is a German-style transliteration. Still, OK-ish.
+        )
+        for surname, target_fragments in tests:
+            self.assertEqual(
+                surname_alternative_fragments(
+                    surname=surname,
+                    accent_transliterations=accent_transliterations,
+                    nonspecific_name_components=nonspecific_name_components,
+                ),
+                target_fragments,
+            )
 
     def test_date_regex(self) -> None:
         for b in BAD_DATE_STRINGS:
@@ -539,7 +617,7 @@ class FuzzyLinkageTests(unittest.TestCase):
     # -------------------------------------------------------------------------
 
     def test_identifier_dob(self) -> None:
-        cfg = MatchConfig()
+        cfg = self.cfg
         for b in BAD_DATE_STRINGS:
             with self.assertRaises(ValueError):
                 _ = DateOfBirth(cfg, b)
@@ -577,7 +655,7 @@ class FuzzyLinkageTests(unittest.TestCase):
             self.assertLess(d1.comparison(d2).posterior_log_odds(0), 0)
 
     def test_identifier_postcode(self) -> None:
-        cfg = MatchConfig()
+        cfg = self.cfg
         for b in BAD_POSTCODES:
             with self.assertRaises(ValueError):
                 _ = Postcode(cfg, b)
@@ -618,14 +696,14 @@ class FuzzyLinkageTests(unittest.TestCase):
             self.assertLess(p1.comparison(p2).posterior_log_odds(0), 0)
 
     def test_identifier_gender(self) -> None:
-        cfg = MatchConfig()
+        cfg = self.cfg
         for b in BAD_GENDERS:
             with self.assertRaises(ValueError):
                 _ = Gender(cfg, b)
         for g_str in VALID_GENDERS:
             g = Gender(cfg, g_str)
             log.critical(f"g = {g!r}")
-            self.assertEqual(g.gender, g_str)
+            self.assertEqual(g.gender_str, g_str)
             self.assertEqual(str(g), g_str)
             if not g:
                 continue
@@ -651,15 +729,83 @@ class FuzzyLinkageTests(unittest.TestCase):
         self.assertGreater(f.comparison(f).posterior_log_odds(0), 0)
         self.assertLess(f.comparison(m).posterior_log_odds(0), 0)
 
+    def test_identifier_surname_fragment(self) -> None:
+        cfg = self.cfg
+        f1 = SurnameFragment(
+            cfg,
+            exact="Smith",
+            exact_freq=0.01,
+            partial="SM0",
+            partial_freq=0.02,
+            p_major_surname_error_for_gender=0.06,
+        )
+        h1 = f1.hashed()
+        self.assertTrue(f1.fully_matches(f1))
+        self.assertTrue(f1.partially_matches(f1))
+        self.assertFalse(f1.fully_matches(h1))
+        self.assertFalse(f1.partially_matches(h1))
+        self.assertTrue(h1.fully_matches(h1))
+        self.assertTrue(h1.partially_matches(h1))
+
+    def test_identifier_surname(self) -> None:
+        cfg = self.cfg
+        g = GENDER_FEMALE
+        smith = Surname(cfg, name="Smith", gender=g)
+        hashed_smith = smith.hashed()
+        mozart_smith = Surname(cfg, name="Mozart-Smith", gender=g)
+        mozart = Surname(cfg, name="Mozart", gender=g)
+        jones = Surname(cfg, name="Jones", gender=g)
+        smythe = Surname(cfg, name="Smythe", gender=g)
+        hashed_smythe = smythe.hashed()
+        matching = [
+            (smith, smith),
+            (hashed_smith, hashed_smith),
+            (mozart_smith, mozart),
+            (mozart_smith, smith),
+            (jones, jones),
+            (smythe, smythe),
+            (hashed_smythe, hashed_smythe),
+        ]
+        partially_matching = [
+            (smith, smythe),
+            (hashed_smith, hashed_smythe),
+        ]
+        nonmatching = [
+            (smith, hashed_smith),
+            (smythe, hashed_smythe),
+            (smith, jones),
+            (jones, mozart_smith),
+        ]
+        for a, b in matching:
+            self.assertTrue(a.fully_matches(b))
+        for a, b in partially_matching:
+            self.assertFalse(a.fully_matches(b))
+            self.assertTrue(a.partially_matches(b))
+        for a, b in nonmatching:
+            self.assertFalse(a.fully_matches(b))
+            self.assertFalse(a.partially_matches(b))
+
+    # -------------------------------------------------------------------------
+    # Lots of identifiers
+    # -------------------------------------------------------------------------
+
     def test_identifier_transformations(self) -> None:
         """
         Creating a hashed JSON representation and loading an object from it.
         """
-        cfg = MatchConfig()
+        cfg = self.cfg
         identifiable = [
             Postcode(cfg, postcode="CB2 0QQ"),
             DateOfBirth(cfg, dob="2000-12-31"),
             Gender(cfg, gender=GENDER_MALE),
+            SurnameFragment(
+                cfg,
+                exact="Smith",
+                exact_freq=0.01,
+                partial="SM0",
+                partial_freq=0.02,
+                p_major_surname_error_for_gender=0.06,
+            ),
             Forename(cfg, name="Elizabeth", gender=GENDER_FEMALE),
             Surname(cfg, name="Smith", gender=GENDER_FEMALE),
         ]  # type: List[Identifier]
@@ -676,7 +822,7 @@ class FuzzyLinkageTests(unittest.TestCase):
     # -------------------------------------------------------------------------
 
     def test_person_equality(self) -> None:
-        cfg = MatchConfig()
+        cfg = self.cfg
         p1 = Person(cfg, local_id="hello")
         p2 = Person(cfg, local_id="world")
         p3 = Person(cfg, local_id="world")

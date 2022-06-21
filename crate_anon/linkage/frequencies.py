@@ -68,7 +68,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 
-class NameFrequencyInfo(object):
+class NameFrequencyInfo:
     """
     Holds frequencies of a class of names (e.g. first names or surnames), and
     also of their hashed versions.
@@ -83,6 +83,7 @@ class NameFrequencyInfo(object):
     ) -> None:
         """
         Initializes the object from a CSV file.
+        Uses standardize_name().
 
         Args:
             csv_filename:
@@ -182,7 +183,7 @@ class NameFrequencyInfo(object):
 # =============================================================================
 
 
-class PostcodeFrequencyInfo(object):
+class PostcodeFrequencyInfo:
     """
     Holds frequencies of UK postcodes, and also their hashed versions.
     Handles pseudo-postcodes somewhat separately.

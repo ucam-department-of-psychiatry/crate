@@ -77,7 +77,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 
-class CloudRequestSender(object):
+class CloudRequestSender:
     """
     Class to encapsulate a NLP request outbound to a cloud NLP server.
     """

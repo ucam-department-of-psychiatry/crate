@@ -832,7 +832,7 @@ def get_nlp_config_filename_or_exit() -> str:
 # =============================================================================
 
 
-class NlpDefinition(object):
+class NlpDefinition:
     """
     Class representing an NLP master definition as read from config file.
 

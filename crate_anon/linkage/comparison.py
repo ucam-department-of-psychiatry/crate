@@ -54,7 +54,7 @@ from crate_anon.linkage.constants import MINUS_INFINITY
 # =============================================================================
 
 
-class Comparison(object):
+class Comparison:
     """
     Abstract base class for comparing two pieces of information and calculating
     the posterior probability of a person match.

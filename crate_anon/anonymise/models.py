@@ -69,7 +69,7 @@ admin_meta = MetaData()
 AdminBase = declarative_base(metadata=admin_meta)
 
 
-class PatientInfoConstants(object):
+class PatientInfoConstants:
     SECRET_MAP_TABLENAME = "secret_map"
     PID_FIELDNAME = "pid"
     MPID_FIELDNAME = "mpid"

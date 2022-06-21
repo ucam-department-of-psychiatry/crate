@@ -58,7 +58,6 @@ import pendulum
 from pendulum.parsing.exceptions import ParserError
 from pendulum import Date
 
-from crate_anon.common.logfunc import warn_once
 from crate_anon.linkage.constants import VALID_GENDERS
 from crate_anon.linkage.comparison import (
     Comparison,
@@ -76,6 +75,7 @@ from crate_anon.linkage.helpers import (
     POSTCODE_REGEX,
     standardize_name,
     standardize_postcode,
+    surname_alternative_fragments,
 )
 from crate_anon.linkage.matchconfig import MatchConfig
 
@@ -350,10 +350,10 @@ class Identifier(ABC):
         Implements config-defined rounding for frequency representations of
         hashed values.
 
-        Rounds frequencies to a certain number of significant figures.
-        (Don't supply exact floating-point numbers for frequencies; may be
-        more identifying. Don't use decimal places; we have to deal with
-        some small numbers.)
+        Rounds frequencies to a certain number of significant figures. (Don't
+        supply exact floating-point numbers for frequencies; may be more
+        identifying. Don't use decimal places; we have to deal with some small
+        numbers.)
         """
         if x is None:
             return None
@@ -473,6 +473,15 @@ class Identifier(ABC):
                 and other.end_date < self.start_date
             )
         )
+
+    # -------------------------------------------------------------------------
+    # Debugging
+    # -------------------------------------------------------------------------
+
+    def hashed(self, include_frequencies: bool = True) -> "Identifier":
+        d = self.hashed_dict(include_frequencies=include_frequencies)
+        cls = type(self)  # type: Type[Identifier]
+        return cls.from_hashed_dict(self.cfg, d)
 
 
 # =============================================================================
@@ -871,7 +880,7 @@ class Gender(Identifier):
         if gender not in VALID_GENDERS:
             raise ValueError(f"Bad gender: {gender!r}")
 
-        self.gender = gender
+        self.gender_str = gender
         if gender:
             self.gender_freq = cfg.gender_freq(gender)
         else:
@@ -895,7 +904,7 @@ class Gender(Identifier):
         """
         For CSV.
         """
-        return self.gender
+        return self.gender_str
 
     @classmethod
     def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "Gender":
@@ -908,13 +917,13 @@ class Gender(Identifier):
         """
         For JSON.
         """
-        if not self.gender:
+        if not self.gender_str:
             hashed_gender = None
         elif self.is_plaintext:
-            hashed_gender = self.cfg.hash_fn(self.gender)
+            hashed_gender = self.cfg.hash_fn(self.gender_str)
         else:
             # Was already hashed
-            hashed_gender = self.gender
+            hashed_gender = self.gender_str
         d = {
             self.KEY_HASHED_GENDER: hashed_gender,
         }
@@ -929,22 +938,22 @@ class Gender(Identifier):
         """
         g = Gender(cfg=cfg)
         g.is_plaintext = False
-        g.gender = getdictval(d, cls.KEY_HASHED_GENDER, str)
+        g.gender_str = getdictval(d, cls.KEY_HASHED_GENDER, str)
         g.gender_freq = getdictprob(d, cls.KEY_GENDER_FREQ)
         g._set_comparisons()
         return g
 
     def __bool__(self) -> bool:
-        return bool(self.gender)
+        return bool(self.gender_str)
 
     def ensure_has_freq_info_if_id_present(self) -> None:
-        if self.gender and self.gender_freq is None:
+        if self.gender_str and self.gender_freq is None:
             raise ValueError(
-                self.ERR_MISSING_FREQ + f" for gender {self.gender!r}"
+                self.ERR_MISSING_FREQ + f" for gender {self.gender_str!r}"
             )
 
     def fully_matches(self, other: "Gender") -> bool:
-        return self.gender == other.gender
+        return self.gender_str == other.gender_str
 
     def partially_matches(self, other: "Identifier") -> bool:
         """
@@ -958,7 +967,7 @@ class Gender(Identifier):
 # =============================================================================
 
 
-class Name(Identifier, ABC):
+class BasicName(Identifier, ABC):
     """
     Base class for names.
 
@@ -999,8 +1008,8 @@ class Name(Identifier, ABC):
         self.name_freq = None  # type: Optional[float]
         self.metaphone_freq = None  # type: Optional[float]
 
-        self.gender = ""
-        self.set_gender(gender)  # may reset frequencies; will set comparisons
+        self.gender = ""  # changed in next step
+        self.set_gender(gender)  # will reset frequencies and comparisons
 
     def set_gender(self, gender: str) -> None:
         """
@@ -1009,13 +1018,13 @@ class Name(Identifier, ABC):
         if gender not in VALID_GENDERS:
             raise ValueError(f"Bad gender: {gender!r}")
         self.gender = gender
-        self._reset_frequencies_identifiable()
-        self._set_comparisons()
+        self._reset_frequencies_identifiable()  # will set comparisons
 
     @abstractmethod
     def _reset_frequencies_identifiable(self) -> None:
         """
-        Gender may have changed. Update any probabilities accordingly.
+        Gender may have changed. Update any probabilities accordingly,
+        and call self._set_comparisons().
         """
         pass
 
@@ -1066,14 +1075,14 @@ class Name(Identifier, ABC):
                 self.ERR_MISSING_FREQ + f" for name {self.name!r}"
             )
 
-    def fully_matches(self, other: "Name") -> bool:
+    def fully_matches(self, other: "BasicName") -> bool:
         return self.name == other.name
 
-    def partially_matches(self, other: "Name") -> bool:
+    def partially_matches(self, other: "BasicName") -> bool:
         return self.metaphone == other.metaphone
 
 
-class Forename(Name):
+class Forename(BasicName):
     """
     Represents a forename (given name).
     """
@@ -1134,42 +1143,176 @@ class Forename(Name):
         return n
 
 
-class Surname(Name):
+class SurnameFragment(Identifier):
+    """
+    Collate information about a name fragment. This identifier is unlikely to
+    be used directly for comparisons, but is used by Surname.
+    """
+
+    BAD_METHOD = "Inappropriate function called for SurnameFragment"
+
+    KEY_HASHED_EXACT = "hashed_exact"
+    KEY_EXACT_FREQ = "exact_freq"
+    KEY_HASHED_PARTIAL = "hashed_partial"
+    KEY_PARTIAL_FREQ = "partial_freq"
+    KEY_P_ERROR_NO_MATCH = "p_error_no_match"
+
+    # -------------------------------------------------------------------------
+    # Creation
+    # -------------------------------------------------------------------------
+
+    def __init__(
+        self,
+        cfg: MatchConfig,
+        exact: str = "",
+        exact_freq: float = None,
+        partial: str = "",
+        partial_freq: float = None,
+        p_major_surname_error_for_gender: float = None,
+    ) -> None:
+        super().__init__(cfg, is_plaintext=True, temporal=False)
+
+        self.exact = exact
+        self.exact_freq = exact_freq  # p_f
+        self.partial = partial
+        self.partial_freq = partial_freq  # p_p
+        self.p_error_no_match = p_major_surname_error_for_gender  # p_en
+
+        self._set_comparisons()
+
+    @classmethod
+    def from_hashed_dict(
+        cls, cfg: MatchConfig, d: Dict[str, Any]
+    ) -> "SurnameFragment":
+        f = SurnameFragment(cfg)
+        f.is_plaintext = False
+        f.exact = getdictval(d, cls.KEY_HASHED_EXACT, str)
+        f.partial = getdictval(d, cls.KEY_HASHED_PARTIAL, str)
+        f.exact_freq = getdictprob(d, cls.KEY_EXACT_FREQ)
+        f.partial_freq = getdictprob(d, cls.KEY_PARTIAL_FREQ)
+        f.p_error_no_match = getdictprob(d, cls.KEY_P_ERROR_NO_MATCH)
+        f._set_comparisons()
+        return f
+
+    # -------------------------------------------------------------------------
+    # Creation helper functions
+    # -------------------------------------------------------------------------
+
+    def _set_comparisons(self) -> None:
+        if self.exact:
+            cfg = self.cfg
+            p_pnf = self.partial_freq - self.exact_freq
+
+            self.comparison_full_match = DirectComparison(
+                p_d_given_same_person=1 - cfg.p_minor_surname_error,
+                p_d_given_diff_person=self.exact_freq,
+            )
+            self.comparison_partial_match = DirectComparison(
+                p_d_given_same_person=cfg.p_minor_surname_error,
+                p_d_given_diff_person=p_pnf,
+            )
+            self.comparison_no_match = DirectComparison(
+                p_d_given_same_person=self.p_error_no_match,
+                p_d_given_diff_person=1 - self.partial_freq,
+            )
+        else:
+            self._clear_comparisons()
+
+    # -------------------------------------------------------------------------
+    # Representation
+    # -------------------------------------------------------------------------
+
+    def hashed_dict(self, include_frequencies: bool = True) -> Dict[str, Any]:
+        if self.is_plaintext:
+            hashed_exact = self.cfg.hash_fn(self.exact)
+            hashed_partial = self.cfg.hash_fn(self.partial)
+        else:
+            # Was already hashed
+            hashed_exact = self.exact
+            hashed_partial = self.partial
+        d = {
+            self.KEY_HASHED_EXACT: hashed_exact,
+            self.KEY_HASHED_PARTIAL: hashed_partial,
+        }
+        if include_frequencies:
+            d[self.KEY_EXACT_FREQ] = self._round(self.exact_freq)
+            d[self.KEY_PARTIAL_FREQ] = self._round(self.partial_freq)
+            d[self.KEY_P_ERROR_NO_MATCH] = self._round(self.p_error_no_match)
+        return d
+
+    # -------------------------------------------------------------------------
+    # Unused methods from Identifier
+    # -------------------------------------------------------------------------
+
+    def plaintext_str_core(self) -> str:
+        raise AssertionError(self.BAD_METHOD)
+
+    @classmethod
+    def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "SurnameFragment":
+        raise AssertionError(cls.BAD_METHOD)
+
+    # -------------------------------------------------------------------------
+    # Other methods from Identifier
+    # -------------------------------------------------------------------------
+
+    def __bool__(self) -> bool:
+        return bool(self.exact)
+
+    def ensure_has_freq_info_if_id_present(self) -> None:
+        pass
+
+    def fully_matches(self, other: "SurnameFragment") -> bool:
+        return self.exact == other.exact
+
+    def partially_matches(self, other: "SurnameFragment") -> bool:
+        return self.partial == other.partial
+
+
+class Surname(Identifier):
     """
     Represents a surname (family name).
+    We don't inherit from BasicName, but from Identifier, because surnames
+    need to deal with fragmentation problems.
+
+    Identifiably, we store the unmodified (unstandardized) name.
+
+    We need to be able to match on parts. For example, "van Beethoven" should
+    match "van Beethoven" but also "Beethoven". What frequency should we use
+    for those parts? This has to be the frequency of the part (not the
+    composite). For example, if someone is called "Mozart-Smith", then a match
+    on "Mozart-Smith" or "Mozart" is less likely in the population, and thus
+    more informative, than a match on "Smith". So, we need frequency
+    information associated with each part. Thus, we break the use of
+    the monolithic ``comparison_full_match`` etc., even though that is a fast
+    method for other identifiers.
     """
+
+    KEY_FRAGMENTS = "fragments"
+
+    # -------------------------------------------------------------------------
+    # Creation
+    # -------------------------------------------------------------------------
 
     def __init__(
         self, cfg: MatchConfig, name: str = "", gender: str = ""
     ) -> None:
-        super().__init__(cfg=cfg, name=name, gender=gender)
+        super().__init__(cfg, is_plaintext=True, temporal=False)
+        self.raw_surname = name
 
-    def _reset_frequencies_identifiable(self) -> None:
-        if self.name:
-            self.name_freq = self.cfg.surname_freq(
-                self.name, prestandardized=True
-            )
-            self.metaphone_freq = self.cfg.surname_metaphone_freq(
-                self.metaphone
-            )
-        warn_once(
-            "TODO: implement gender aspects of "
-            "Surname._reset_frequencies_identifiable"
-        )
+        # There is some duplication here for speed and to cope with the
+        # difference between identifiable and hashed versions. We want a set
+        # version for rapid overlap checking, and an ordered list to pick by
+        # frequency sometimes.
+        self.exact_set = set()  # type: Set[str]
+        self.partial_set = set()  # type: Set[str]
+        self.fragments = []  # type: List[SurnameFragment]
+        self.gender = ""  # changed in next step
+        self.set_gender(gender)  # will reset frequencies/comparisons
 
-    def _set_comparisons(self) -> None:
-        if self.name:
-            (
-                self.comparison_full_match,
-                self.comparison_partial_match,
-                self.comparison_no_match,
-            ) = mk_comparison_trio_full_error_prohibitive(
-                p_f=self.name_freq,
-                p_p=self.metaphone_freq,
-                p_ep=self.cfg.p_minor_surname_error,
-            )
-        else:
-            self._clear_comparisons()
+        # Break some superclass features to ensure nobody misuses this
+        del self.comparison_full_match
+        del self.comparison_partial_match
+        del self.comparison_no_match
 
     @classmethod
     def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "Surname":
@@ -1187,12 +1330,135 @@ class Surname(Name):
         """
         n = Surname(cfg=cfg)
         n.is_plaintext = False
-        n.name = getdictval(d, cls.KEY_HASHED_NAME, str)
-        n.metaphone = getdictval(d, cls.KEY_HASHED_METAPHONE, str)
-        n.name_freq = getdictprob(d, cls.KEY_NAME_FREQ)
-        n.metaphone_freq = getdictprob(d, cls.KEY_METAPHONE_FREQ)
-        n._set_comparisons()
+        fragments_json_list = getdictval(d, cls.KEY_FRAGMENTS, list)
+        n.fragments = [
+            SurnameFragment.from_hashed_dict(cfg, fragment_dict)
+            for fragment_dict in fragments_json_list
+        ]
+        n._reset_name_sets()
         return n
+
+    # -------------------------------------------------------------------------
+    # Representation
+    # -------------------------------------------------------------------------
+
+    def plaintext_str_core(self) -> str:
+        return self.raw_surname
+
+    def hashed_dict(self, include_frequencies: bool = True) -> Dict[str, Any]:
+        fragments = [
+            f.hashed_dict(include_frequencies=include_frequencies)
+            for f in self.fragments
+        ]
+        return {self.KEY_FRAGMENTS: fragments}
+
+    # -------------------------------------------------------------------------
+    # Methods to support creation
+    # -------------------------------------------------------------------------
+
+    def set_gender(self, gender: str) -> None:
+        """
+        Special operation for identifiable reading.
+        """
+        if gender not in VALID_GENDERS:
+            raise ValueError(f"Bad gender: {gender!r}")
+        self.gender = gender
+        self._reset_identifiable()  # will set comparisons
+
+    def _reset_identifiable(self) -> None:
+        """
+        If the name or gender has changed, in an identifiable copy, reset our
+        fragment information (with their comparisons), and the name fragment
+        sets for fast comparison.
+        """
+        cfg = self.cfg
+        self.fragments = []
+        if self.raw_surname:
+            for exact in surname_alternative_fragments(
+                surname=self.raw_surname,
+                accent_transliterations=cfg.accent_transliterations,
+                nonspecific_name_components=cfg.nonspecific_name_components,
+            ):
+                # Standardization necessary for freq. lookup and metaphone.
+                exact_std = standardize_name(exact)
+                partial = get_metaphone(exact_std)
+                self.fragments.append(
+                    SurnameFragment(
+                        cfg=cfg,
+                        exact=exact,
+                        exact_freq=self.cfg.surname_freq(
+                            exact_std, prestandardized=True
+                        ),
+                        partial=partial,
+                        partial_freq=cfg.surname_metaphone_freq(partial),
+                        p_major_surname_error_for_gender=(
+                            cfg.get_p_major_surname_error(self.gender)
+                        ),
+                    )
+                )
+                self.exact_set.add(exact)
+                self.partial_set.add(partial)
+        self._reset_name_sets()
+
+    def _reset_name_sets(self) -> None:
+        """
+        Reset our fast comparison sets from the name fragments.
+        """
+        self.exact_set = set()
+        self.partial_set = set()
+        for f in self.fragments:
+            self.exact_set.add(f.exact)
+            self.partial_set.add(f.partial)
+
+    # -------------------------------------------------------------------------
+    # Basic tests
+    # -------------------------------------------------------------------------
+
+    def __bool__(self) -> bool:
+        return bool(self.fragments)
+
+    def ensure_has_freq_info_if_id_present(self) -> None:
+        for f in self.fragments:
+            f.ensure_has_freq_info_if_id_present()
+
+    # -------------------------------------------------------------------------
+    # Comparison
+    # -------------------------------------------------------------------------
+
+    def fully_matches(self, other: "Surname") -> bool:
+        return bool(self.exact_set.intersection(other.exact_set))
+
+    def partially_matches(self, other: "Surname") -> bool:
+        return bool(self.partial_set.intersection(other.partial_set))
+
+    def comparison(self, other: "Surname") -> Optional[Comparison]:
+        """
+        Specialized version for surname.
+        """
+        if not (self and other and self.overlaps(other)):
+            # Infer no conclusions from absent information.
+            return None
+        overlap_exact = self.exact_set.intersection(other.exact_set)
+        if overlap_exact:
+            # Exact match. But possibly >1, e.g. "Mozart-Smith" has matched
+            # "Mozart-Smith", "Mozart", and "Smith". Reasonable to pick the
+            # most informative (rarest) version.
+            candidates = [
+                f for f in self.fragments if f.exact in overlap_exact
+            ]
+            candidates.sort(key=lambda f: f.exact_freq)
+            # Sorted in ascending order, so first is best.
+            return candidates[0].comparison_full_match
+        overlap_partial = self.partial_set.intersection(other.partial_set)
+        if overlap_partial:
+            # Similarly:
+            candidates = [
+                f for f in self.fragments if f.partial in overlap_partial
+            ]
+            candidates.sort(key=lambda f: f.partial_freq)
+            return candidates[0].comparison_partial_match
+        # For "no match", we use the whole original name and its frequencies:
+        return self.fragments[0].comparison_no_match
 
 
 # =============================================================================
@@ -1212,7 +1478,7 @@ def gen_best_comparisons(
 
     - Identifiers that are explicitly time-stamped cannot be compared with
       explicitly non-overlapping identifiers. (But un-time-stamped
-      identifiers can be compared with anything).
+      identifiers can be compared with anything.)
 
     - No identifier can be used for >1 comparison.
 
@@ -1242,6 +1508,8 @@ def gen_best_comparisons(
     # Look for full matches:
     for c, candidate_id in enumerate(candidate_identifiers):
         for p, proband_id in enumerate(proband_identifiers):
+            if p in proband_indexes_used:
+                continue
             if not candidate_id.overlaps(proband_id):
                 non_overlapping_c_p.add((c, p))
                 continue
@@ -1269,6 +1537,6 @@ def gen_best_comparisons(
                 proband_indexes_used.add(p)
                 break  # next candidate
 
-    # No joy.
+    # No joy?
     if not found_something and no_match_comparison:
         yield no_match_comparison

@@ -50,7 +50,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 
-class DDHint(object):
+class DDHint:
     """
     Represents a hint for creating data dictionaries.
     """

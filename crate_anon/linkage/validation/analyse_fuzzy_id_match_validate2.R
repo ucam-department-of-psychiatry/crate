@@ -296,6 +296,12 @@ write_output <- function(x, append = TRUE, filename = OUTPUT_FILE, width = 1000)
 }
 
 
+format_sig_fig <- function(x, sf = 3)
+{
+    formatC(signif(x, digits = sf), digits = sf, format = "fg", flag = "#")
+}
+
+
 # =============================================================================
 # Loading data and basic preprocessing
 # =============================================================================
@@ -1904,16 +1910,24 @@ people_missingness_summary <- function(people)
 }
 
 
-extract_miss_info <- function(
+extract_miss_or_misidentified_info <- function(
     probands, sample, comparison,
     sample_db_name,
     theta = DEFAULT_THETA, delta = DEFAULT_DELTA,
     allow.cartesian = TRUE,
-    remove_sample_duplicates = TRUE
+    remove_sample_duplicates = TRUE,
+    rowtype = c("miss", "misidentified")
 )
 {
+    rowtype <- match.arg(rowtype)
     decided <- decide_at_thresholds(comparison, theta, delta)
-    comp_misses <- decided[proband_in_sample & !declare_match]
+    if (rowtype == "miss") {
+        comp_selected <- decided[proband_in_sample & !declare_match]
+    } else if (rowtype == "misidentified") {
+        comp_selected <- decided[proband_in_sample & misidentified]
+    } else {
+        stop("bad rowtype")
+    }
     person_columns <- c(
         # For linkage
         "hashed_nhs_number",
@@ -1936,7 +1950,7 @@ extract_miss_info <- function(
         "diagnostic_group",
         "dx_group_simple"
     )
-    miss_hashed_nhs <- comp_misses$hashed_nhs_number_proband
+    miss_hashed_nhs <- comp_selected$hashed_nhs_number_proband
     miss_probands <- probands[
         hashed_nhs_number %in% miss_hashed_nhs,
         ..person_columns
@@ -1980,7 +1994,7 @@ extract_miss_info <- function(
 }
 
 
-miss_summary <- function(failure_info)
+failure_summary <- function(failure_info, colprefix)
 {
     n <- nrow(failure_info)
     prop_missing <- function(x) {
@@ -1992,48 +2006,48 @@ miss_summary <- function(failure_info)
     prop_mismatch <- function(x, y) {
         sum(mismatch(x, y)) / n
     }
-    failure_summary <- (
+    failsumm <- (
         failure_info
         %>% summarize(
-            n_missed = n,
+            n = n,
 
-            miss_proband_missing_first_name = prop_missing(first_name_frequency_proband),
-            miss_proband_missing_middle_names = prop_missing(middle_name_frequencies_proband),
-            miss_proband_missing_surname = prop_missing(surname_frequency_proband),
-            miss_proband_missing_gender = prop_missing(gender_frequency_proband),
-            miss_proband_missing_postcode = prop_missing(postcode_unit_frequencies_proband),
+            proband_missing_first_name = prop_missing(first_name_frequency_proband),
+            proband_missing_middle_names = prop_missing(middle_name_frequencies_proband),
+            proband_missing_surname = prop_missing(surname_frequency_proband),
+            proband_missing_gender = prop_missing(gender_frequency_proband),
+            proband_missing_postcode = prop_missing(postcode_unit_frequencies_proband),
 
-            miss_sample_missing_first_name = prop_missing(first_name_frequency_sample),
-            miss_sample_missing_middle_names = prop_missing(middle_name_frequencies_sample),
-            miss_sample_missing_surname = prop_missing(surname_frequency_sample),
-            miss_sample_missing_gender = prop_missing(gender_frequency_sample),
-            miss_sample_missing_postcode = prop_missing(postcode_unit_frequencies_sample),
+            sample_missing_first_name = prop_missing(first_name_frequency_sample),
+            sample_missing_middle_names = prop_missing(middle_name_frequencies_sample),
+            sample_missing_surname = prop_missing(surname_frequency_sample),
+            sample_missing_gender = prop_missing(gender_frequency_sample),
+            sample_missing_postcode = prop_missing(postcode_unit_frequencies_sample),
 
-            miss_mismatch_first_name = prop_mismatch(
+            mismatch_first_name = prop_mismatch(
                 hashed_first_name_proband,
                 hashed_first_name_sample
             ),
-            miss_mismatch_first_name_metaphone = prop_mismatch(
+            mismatch_first_name_metaphone = prop_mismatch(
                 hashed_first_name_metaphone_proband,
                 hashed_first_name_metaphone_sample
             ),
-            miss_mismatch_surname = prop_mismatch(
+            mismatch_surname = prop_mismatch(
                 hashed_surname_proband,
                 hashed_surname_sample
             ),
-            miss_mismatch_surname_metaphone = prop_mismatch(
+            mismatch_surname_metaphone = prop_mismatch(
                 hashed_surname_metaphone_proband,
                 hashed_surname_metaphone_sample
             ),
-            miss_mismatch_dob = prop_mismatch(
+            mismatch_dob = prop_mismatch(
                 hashed_dob_proband,
                 hashed_dob_sample
             ),
-            miss_mismatch_gender = prop_mismatch(
+            mismatch_gender = prop_mismatch(
                 hashed_gender_proband,
                 hashed_gender_sample
             ),
-            miss_firstname_surname_swapped = sum(
+            firstname_surname_swapped = sum(
                 mismatch(hashed_first_name_proband, hashed_first_name_sample)
                 & mismatch(hashed_surname_proband, hashed_surname_sample)
                 & (hashed_first_name_proband == hashed_surname_sample)
@@ -2042,6 +2056,8 @@ miss_summary <- function(failure_info)
         )
         %>% as.data.table()
     )
+    colnames(failsumm) <- paste0(colprefix, colnames(failsumm))
+    return(failsumm)
 }
 
 
@@ -2063,17 +2079,35 @@ performance_summary_at_threshold <- function(
                 delta = delta,
                 comparison
             )
-            miss_info <- miss_summary(
-                extract_miss_info(
+            miss_info <- failure_summary(
+                extract_miss_or_misidentified_info(
                     probands,
                     sample,
                     comparison,
                     sample_db_name = db2,
                     theta = theta,
-                    delta = delta
-                )
+                    delta = delta,
+                    rowtype = "miss"
+                ),
+                colprefix = "miss_"
             )
-            combined_summary <- cbind(main_performance_summary, miss_info)
+            mismatch_info <- failure_summary(
+                extract_miss_or_misidentified_info(
+                    probands,
+                    sample,
+                    comparison,
+                    sample_db_name = db2,
+                    theta = theta,
+                    delta = delta,
+                    rowtype = "misidentified"
+                ),
+                colprefix = "misidentified_"
+            )
+            combined_summary <- cbind(
+                main_performance_summary,
+                miss_info,
+                mismatch_info
+            )
             perf_summ <- rbind(perf_summ, combined_summary)
         }
     }
@@ -2256,6 +2290,23 @@ main <- function()
         %>% as.data.table()
     )
     write_output(pst_simplified)
+    pst_table <- (
+        pst_simplified
+        %>% mutate(
+            text = paste0(
+                "TPR: ", format_sig_fig(TPR), "; ",
+                "FPR: ", format_sig_fig(FPR), "; ",
+                "MID: ", format_sig_fig(MID)
+            )
+        )
+        %>% select(from, to, text)
+        %>% pivot_wider(
+            names_from = to,
+            names_prefix = "to_",
+            values_from = text
+        )
+    )
+    write_output(pst_table)
 
     # Not done: demographics predicting specific sub-reasons for non-linkage.
     # (We predict overall non-linkage above.)

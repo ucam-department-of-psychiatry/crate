@@ -66,88 +66,37 @@ UK_POPULATION_2017 = 66040000  # 2017 figure, 66.04m
 GENDER_MALE = "M"
 GENDER_FEMALE = "F"
 GENDER_OTHER = "X"
-VALID_GENDERS = ["", GENDER_MALE, GENDER_FEMALE, GENDER_OTHER]
+GENDER_MISSING = ""
+VALID_GENDERS = [GENDER_MISSING, GENDER_MALE, GENDER_FEMALE, GENDER_OTHER]
 # ... standard three gender codes; "" = missing
 
 
-NONSPECIFIC_NAME_COMPONENTS = set(
-    # Includes nobility particles:
-    # https://en.wikipedia.org/wiki/Nobiliary_particle. Typically "of", "of
-    # the". See also https://en.wikipedia.org/wiki/List_of_family_name_affixes;
-    # https://en.wikipedia.org/wiki/Suffix_(name).
-    x.upper()
-    for x in (
-        # Arabic-speaking countries
-        "Al",
-        "El",
-        # Belgian
-        "de",
-        "der",
-        "van",
-        # Danish
-        "af",
-        # Dutch
-        "tot",
-        "thoe",
-        "van",
-        # English, Welsh, Scottish
-        "of",
-        # French
-        "de",
-        "des",
-        "du",
-        "la",
-        "le",
-        # German
-        "auf",
-        "von",
-        "zu",
-        # Italian
-        "da",
-        "dai",
-        "dal",
-        "dalla",
-        "dei",
-        "del",
-        "Della",
-        "di",
-        # Portuguese,
-        "da",
-        "das",
-        "do",
-        "dos",
-        # Somali
-        "Aw",
-        # Spanish
-        "de",
-        # Swedish
-        "af",
-        "av",
-        "von",
-        # Swiss
-        "de",
-        "von",
-        # Thai
-        "na",
-        "Phra",
-        "Sri",
-        # USA: seniority
-        "Jnr",
-        "Jr",
-        "Snr",
-        "Sr",
-        # USA: numbering
-        "I",
-        "II",
-        "III",
-        "IV",
-        "V",
-        "VI",
-        "VII",
-        "VIII",
-        "IX",
-        "X",
-    )
+SIMPLIFY_PUNCTUATION_WHITESPACE_TRANS = str.maketrans(
+    {
+        "\t": " ",
+        "\n": " ",
+        "\r": " ",
+        "“": '"',
+        "”": '"',
+        "‘": "'",
+        "’": "'",
+        "–": "-",
+        "—": "-",
+        "−": "-",
+    }
+)
+
+
+# A capital Eszett was introduced for the first time in 2017. Before that, SS
+# was the capital version. See https://en.wikipedia.org/wiki/%C3%9F.
+ESZETT_LOWER_CASE = "ß"
+ESZETT_UPPER_CASE = "ẞ"
+SAFE_UPPER_PRETRANSLATE = str.maketrans({ESZETT_LOWER_CASE: ESZETT_UPPER_CASE})
+MANGLE_PRETRANSLATE = str.maketrans(
+    {
+        ESZETT_LOWER_CASE: "ss",
+        ESZETT_UPPER_CASE: "SS",
+    }
 )
 
 
@@ -261,7 +210,12 @@ class FuzzyDefaults:
     P_MINOR_FORENAME_ERROR = 0.001
     P_PROBAND_MIDDLE_NAME_MISSING = 0.05
     P_SAMPLE_MIDDLE_NAME_MISSING = 0.05
+
     P_MINOR_SURNAME_ERROR = 0.001
+    P_MAJOR_SURNAME_ERROR = {
+        GENDER_FEMALE: 0.0678,  # (E)
+        GENDER_MALE: 0.0222,  # (E)
+    }
 
     P_DOB_ERROR = 0.00492  # (E)
     # P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR = 0.933  # (E) (*)
@@ -279,12 +233,116 @@ class FuzzyDefaults:
     REPORT_EVERY = 100  # cosmetic only
 
     # -------------------------------------------------------------------------
+    # Name handling
+    # -------------------------------------------------------------------------
+
+    NONSPECIFIC_NAME_COMPONENTS = set(
+        # Includes nobiliary particles:
+        # https://en.wikipedia.org/wiki/Nobiliary_particle. Typically "of", "of
+        # the". See also
+        # https://en.wikipedia.org/wiki/List_of_family_name_affixes;
+        # https://en.wikipedia.org/wiki/Suffix_(name).
+        x.upper()
+        for x in (
+            # Arabic-speaking countries
+            "Al",
+            "El",
+            # Belgian
+            "de",
+            "der",
+            "van",
+            # Danish
+            "af",
+            # Dutch
+            "tot",
+            "thoe",
+            "van",
+            # English, Welsh, Scottish
+            "of",
+            # French
+            "d",  # e.g. Giscard d'Estaing
+            "de",
+            "des",
+            "du",
+            "l",  # e.g. L'Estrange
+            "la",
+            "le",
+            # German
+            "auf",
+            "von",
+            "zu",
+            # Italian
+            "da",
+            "dai",
+            "dal",
+            "dalla",
+            "dei",
+            "del",
+            "dell",
+            "della",
+            "di",
+            # Portuguese,
+            "da",
+            "das",
+            "do",
+            "dos",
+            # Somali
+            "Aw",
+            # Spanish
+            "de",
+            # Swedish
+            "af",
+            "av",
+            "von",
+            # Swiss
+            "de",
+            "von",
+            # Thai
+            "na",
+            "Phra",
+            "Sri",
+            # USA: seniority
+            "Jnr",
+            "Jr",
+            "Snr",
+            "Sr",
+            # USA: numbering
+            "I",
+            "II",
+            "III",
+            "IV",
+            "V",
+            "VI",
+            "VII",
+            "VIII",
+            "IX",
+            "X",
+        )
+    )
+    ACCENT_TRANSLITERATIONS = [
+        # German: https://en.wikipedia.org/wiki/German_orthography
+        ("Ä", "AE"),
+        ("Ö", "OE"),
+        ("Ü", "UE"),
+        ("ß", "SS"),
+    ]
+
+    # -------------------------------------------------------------------------
     # Derived
     # -------------------------------------------------------------------------
     MIN_P_FOR_MATCH = probability_from_log_odds(MIN_LOG_ODDS_FOR_MATCH)
     P_MIDDLE_NAME_N_PRESENT_STR = ",".join(
         str(x) for x in P_MIDDLE_NAME_N_PRESENT
     )
+    P_MAJOR_SURNAME_ERROR_CSV = ",".join(
+        f"{k}:{v}" for k, v in P_MAJOR_SURNAME_ERROR.items()
+    )
     NONSPECIFIC_NAME_COMPONENTS_CSV = ",".join(
         sorted(NONSPECIFIC_NAME_COMPONENTS)
+    )
+    ACCENT_TRANSLITERATIONS_SLASH_CSV = ",".join(
+        f"{accent}/{plain}" for accent, plain in ACCENT_TRANSLITERATIONS
+    )
+    ACCENT_TRANSLITERATIONS_TRANS = str.maketrans(
+        {accent: plain for accent, plain in ACCENT_TRANSLITERATIONS}
     )

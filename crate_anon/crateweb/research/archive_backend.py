@@ -61,7 +61,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 
-class ArchiveContextKeys(object):
+class ArchiveContextKeys:
     """
     Names of objects that become part of the context in which archive templates
     operate. Some are also used as URL parameter keys.

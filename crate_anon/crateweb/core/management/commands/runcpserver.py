@@ -265,7 +265,7 @@ class Command(BaseCommand):
 #         os.remove(pidfile)
 
 
-class Missing(object):
+class Missing:
     """
     CherryPy "application" that is a basic web interface to say "not here".
     """

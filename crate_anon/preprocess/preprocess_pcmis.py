@@ -253,7 +253,7 @@ VIEW_PT_DETAIL_W_GEOG = PCMIS_TABLE_MASTER_PATIENT + CRATE_VIEW_SUFFIX
 # =============================================================================
 
 
-class PcmisConfigOptions(object):
+class PcmisConfigOptions:
     """
     Hold configuration options for this program.
     """

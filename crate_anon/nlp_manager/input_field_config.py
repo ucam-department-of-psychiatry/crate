@@ -97,7 +97,7 @@ TIMING_PROGRESS_DB_DELETE = "progress_db_delete"
 # =============================================================================
 
 
-class InputFieldConfig(object):
+class InputFieldConfig:
     """
     Class defining an input field for NLP (containing text).
 

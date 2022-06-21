@@ -74,6 +74,7 @@ from crate_anon.linkage.constants import (
     FuzzyDefaults,
     GENDER_FEMALE,
     GENDER_MALE,
+    VALID_GENDERS,
 )
 from crate_anon.linkage.matchconfig import MatchConfig
 from crate_anon.linkage.person import (
@@ -759,12 +760,14 @@ class Switches:
 
     POPULATION_SIZE = "population_size"
 
+    ACCENT_TRANSLITERATIONS = "accent_transliterations"
     FORENAME_CACHE_FILENAME = "forename_cache_filename"
     FORENAME_SEX_FREQ_CSV = "forename_sex_freq_csv"
+    MIN_NAME_FREQUENCY = "min_name_frequency"
+    NONSPECIFIC_NAME_COMPONENTS = "nonspecific_name_components"
+    P_MIDDLE_NAME_N_PRESENT = "p_middle_name_n_present"
     SURNAME_CACHE_FILENAME = "surname_cache_filename"
     SURNAME_FREQ_CSV = "surname_freq_csv"
-    MIN_NAME_FREQUENCY = "min_name_frequency"
-    P_MIDDLE_NAME_N_PRESENT = "p_middle_name_n_present"
 
     BIRTH_YEAR_PSEUDO_RANGE = "birth_year_pseudo_range"
 
@@ -780,6 +783,7 @@ class Switches:
     P_PROBAND_MIDDLE_NAME_MISSING = "p_proband_middle_name_missing"
     P_SAMPLE_MIDDLE_NAME_MISSING = "p_sample_middle_name_missing"
     P_MINOR_SURNAME_ERROR = "p_minor_surname_error"
+    P_MAJOR_SURNAME_ERROR = "p_major_surname_error"
     P_DOB_ERROR = "p_dob_error"
     P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR = (
         "p_dob_single_component_error_if_error"
@@ -905,7 +909,7 @@ def add_subparsers(
     parser.add_argument(
         "--allhelp",
         action=ShowAllSubparserHelpAction,
-        help="show help for all commands and exit",
+        help="Show help for all commands and exit.",
     )
     subparsers = parser.add_subparsers(
         title="commands",
@@ -922,19 +926,19 @@ def add_basic_options(parser: argparse.ArgumentParser) -> None:
     Adds a subparser for global options.
     """
     arggroup = parser.add_argument_group("display options")
-    arggroup.add_argument("--verbose", action="store_true", help="Be verbose")
+    arggroup.add_argument("--verbose", action="store_true", help="Be verbose.")
 
 
 def add_hasher_options(parser: argparse.ArgumentParser) -> None:
     """
     Adds a subparser for hasher options.
     """
-    hasher_group = parser.add_argument_group("hasher (secrecy) options")
+    hasher_group = parser.add_argument_group("Hasher (secrecy) options")
     hasher_group.add_argument(
         f"--{Switches.KEY}",
         type=str,
         default=FuzzyDefaults.HASH_KEY,
-        help="Key (passphrase) for hasher",
+        help="Key (passphrase) for hasher.",
     )
     hasher_group.add_argument(
         f"--{Switches.ALLOW_DEFAULT_HASH_KEY}",
@@ -951,7 +955,7 @@ def add_hasher_options(parser: argparse.ArgumentParser) -> None:
             HashMethods.HMAC_SHA512,
         ],
         default=FuzzyDefaults.HASH_METHOD,
-        help="Hash method",
+        help="Hash method.",
     )
     hasher_group.add_argument(
         f"--{Switches.ROUNDING_SF}",
@@ -979,7 +983,7 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
     In a function because we use these in validate_fuzzy_linkage.py too.
     """
     priors_group = parser.add_argument_group(
-        "frequency information for prior probabilities"
+        "Frequency information for prior probabilities"
     )
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1003,7 +1007,7 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         f"--{Switches.FORENAME_CACHE_FILENAME}",
         type=str,
         default=FuzzyDefaults.FORENAME_CACHE_FILENAME,
-        help="File in which to store cached forename info (to speed loading)",
+        help="File in which to store cached forename info (to speed loading).",
     )
     priors_group.add_argument(
         f"--{Switches.FORENAME_SEX_FREQ_CSV}",
@@ -1017,7 +1021,7 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         f"--{Switches.SURNAME_CACHE_FILENAME}",
         type=str,
         default=FuzzyDefaults.SURNAME_CACHE_FILENAME,
-        help="File in which to store cached surname info (to speed loading)",
+        help="File in which to store cached surname info (to speed loading).",
     )
     priors_group.add_argument(
         f"--{Switches.SURNAME_FREQ_CSV}",
@@ -1048,6 +1052,21 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         "first middle name). The second number is P(has a second middle "
         "name | has a first middle name), and so on. The last number "
         "present will be re-used ad infinitum if someone has more names.",
+    )
+    priors_group.add_argument(
+        f"--{Switches.ACCENT_TRANSLITERATIONS}",
+        type=str,
+        default=FuzzyDefaults.ACCENT_TRANSLITERATIONS_SLASH_CSV,
+        help="CSV list of 'accented/plain' pairs, representing how accented "
+        "characters may be transliterated (if they are not reproduced "
+        "accurately or simply mangled into ASCII).",
+    )
+    priors_group.add_argument(
+        f"--{Switches.NONSPECIFIC_NAME_COMPONENTS}",
+        type=str,
+        default=FuzzyDefaults.NONSPECIFIC_NAME_COMPONENTS_CSV,
+        help="CSV list of name components that should not be used as "
+        "alternatives in their own right, such as nobiliary particles.",
     )
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1126,7 +1145,7 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
     """
     Adds a subparser for error probabilities.
     """
-    error_p_group = parser.add_argument_group("error probabilities")
+    error_p_group = parser.add_argument_group("Error probabilities")
     error_p_group.add_argument(
         f"--{Switches.P_MINOR_FORENAME_ERROR}",
         type=float,
@@ -1154,6 +1173,16 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
         default=FuzzyDefaults.P_MINOR_SURNAME_ERROR,
         help="Assumed probability that a surname has an error in that means "
         "it fails a full match but satisfies a partial (metaphone) match.",
+    )
+    error_p_group.add_argument(
+        f"--{Switches.P_MAJOR_SURNAME_ERROR}",
+        type=str,
+        default=FuzzyDefaults.P_MAJOR_SURNAME_ERROR_CSV,
+        help=f"Comma-separated list of 'gender:p' values, where gender must "
+        f"include {GENDER_FEMALE!r} and {GENDER_MALE!r} but can include "
+        f"{VALID_GENDERS}, and p is the probability that two records for the "
+        f"same person have a different surname (neither full nor partial "
+        f"match). Culturally, this varies by gender.",
     )
     error_p_group.add_argument(
         f"--{Switches.P_DOB_ERROR}",
@@ -1194,7 +1223,7 @@ def add_matching_rules(parser: argparse.ArgumentParser) -> None:
     """
     Adds a  subparser for matching rules.
     """
-    match_rule_group = parser.add_argument_group("matching rules")
+    match_rule_group = parser.add_argument_group("Matching rules")
     match_rule_group.add_argument(
         f"--{Switches.MIN_LOG_ODDS_FOR_MATCH}",
         type=float,
@@ -1213,7 +1242,7 @@ def add_matching_rules(parser: argparse.ArgumentParser) -> None:
         "delta (δ) in the validation paper.",
     )
 
-    control_group = parser.add_argument_group("control options")
+    control_group = parser.add_argument_group("Control options")
     control_group.add_argument(
         f"--{Switches.EXTRA_VALIDATION_OUTPUT}",
         action="store_true",
@@ -1259,7 +1288,7 @@ def add_comparison_options(
         if sample_is_hashed
         else Person.PLAINTEXT_CSV_FORMAT_HELP
     )
-    comparison_group = parser.add_argument_group("comparison options")
+    comparison_group = parser.add_argument_group("Comparison options")
     comparison_group.add_argument(
         "--probands",
         type=str,
@@ -1363,6 +1392,16 @@ def get_cfg_from_args(
                 require_main_config,
             ).split(",")
         ],
+        accent_transliterations_csv=g(
+            Switches.ACCENT_TRANSLITERATIONS,
+            FuzzyDefaults.ACCENT_TRANSLITERATIONS_SLASH_CSV,
+            require_main_config,
+        ),
+        nonspecific_name_components_csv=g(
+            Switches.NONSPECIFIC_NAME_COMPONENTS,
+            FuzzyDefaults.NONSPECIFIC_NAME_COMPONENTS_CSV,
+            require_main_config,
+        ),
         birth_year_pseudo_range=g(
             Switches.BIRTH_YEAR_PSEUDO_RANGE,
             FuzzyDefaults.BIRTH_YEAR_PSEUDO_RANGE,
@@ -1406,6 +1445,11 @@ def get_cfg_from_args(
         p_minor_surname_error=g(
             Switches.P_MINOR_SURNAME_ERROR,
             FuzzyDefaults.P_MINOR_SURNAME_ERROR,
+            require_error,
+        ),
+        p_major_surname_error_csv=g(
+            Switches.P_MAJOR_SURNAME_ERROR,
+            FuzzyDefaults.P_MAJOR_SURNAME_ERROR_CSV,
             require_error,
         ),
         p_proband_middle_name_missing=g(
