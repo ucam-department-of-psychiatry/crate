@@ -1789,10 +1789,10 @@ def gen_best_comparisons(
     for c, candidate_id in enumerate(candidate_identifiers):
         for p, proband_id in enumerate(proband_identifiers):
             if p in proband_indexes_used:
-                continue  # next proband
+                continue
             if not candidate_id.overlaps(proband_id):
                 non_overlapping_c_p.add((c, p))
-                continue  # next proband
+                continue
             if candidate_id.fully_matches(proband_id):
                 found_something = True
                 yield proband_id.comparison_full_match
