@@ -2322,18 +2322,41 @@ main <- function()
         comparison = get(mk_comparison_var(RIO, PCMIS))
     )
 
+    write_output(
+        mean(people_systmone$first_name_frequency)
+    )  # 0.003866141
+    write_output(
+        mean(people_systmone$first_name_metaphone_frequency)
+    )  # 0.006856901
+    write_output(
+        mean(people_systmone$surname_frequency, na.rm = TRUE)
+    )  # 0.000548923
+    write_output(
+        mean(people_systmone$surname_metaphone_frequency, na.rm = TRUE)
+    )  # 0.001779113
+
     write_output(paste("Finished:", Sys.time()))
 }
 
 # main()
+
+
+# TODO: support first two characters
+
+# TODO: multiple known surnames (optionally time-stamped)
 
 # TODO: handle multiple options for first name, surname?
 #   *** see Downs paper; use some of those strategies?
 #   *** aliases
 #   *** former surnames
 #   *** forename comparison to middle name
-#   *** first two characters of forename
+#   *** first two characters of forename/surname (p5, Stage 2).
 #   ? generic Name that is a kind of TemporalIdentifier?
 #   - main tricky bit is the identifiable file format; needs to be easy
 
 # TODO: use empirical estimates of remaining error types; see FuzzyDefaults
+
+# TODO: support exact comparisons via other_info (all string; specify
+# proband key/sample key)
+
+# TODO: re-extract (move back to identifiable extraction?) and retest linkage

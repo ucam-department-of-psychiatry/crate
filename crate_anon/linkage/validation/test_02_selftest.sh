@@ -9,6 +9,7 @@ VALIDATOR=${THIS_DIR}/validate_fuzzy_linkage.py
 
 WORKDIR=${HOME}/.local/share/crate
 SAMPLE=${WORKDIR}/crate_fuzzy_sample.csv
+SAMPLE_CACHE=${WORKDIR}/crate_fuzzy_sample_cache.jsonl
 SAMPLE_HASHED=${WORKDIR}/crate_fuzzy_hashed.jsonl
 
 COMPARISON_P2P=${WORKDIR}/crate_fuzzy_output_p2p.csv
@@ -51,10 +52,21 @@ COMPARISON_H2H=${WORKDIR}/crate_fuzzy_output_h2h.csv
     --output "${WORKDIR}/crate_fuzzy_hashed_with_other_info.jsonl" \
     --include_other_info
 
+rm "${SAMPLE_CACHE}"
+# This should produce matches for most (comparing a sample to itself):
+# (a) From plaintext
+"${FUZZY}" compare_plaintext \
+    --probands "${SAMPLE}" \
+    --sample "${SAMPLE}" \
+    --sample_cache "${SAMPLE_CACHE}" \
+    --output "${COMPARISON_P2P}"
+
+# (b) From the cache at the previous step
 # This should produce matches for most (comparing a sample to itself):
 "${FUZZY}" compare_plaintext \
     --probands "${SAMPLE}" \
     --sample "${SAMPLE}" \
+    --sample_cache "${SAMPLE_CACHE}" \
     --output "${COMPARISON_P2P}"
 
 # For larger comparisons, see the speedtest script.

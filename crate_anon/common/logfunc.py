@@ -46,12 +46,14 @@ log = logging.getLogger(__name__)
 _warned = set()  # type: Set[str]
 
 
-def warn_once(msg: str, logger: logging.Logger = None) -> None:
+def warn_once(
+    msg: str, logger: logging.Logger = None, level: int = logging.WARN
+) -> None:
     """
     Warns the user once only.
     """
     global _warned
     logger = logger or log
     if msg not in _warned:
-        logger.warning(msg)
+        logger.log(level, msg)
         _warned.add(msg)

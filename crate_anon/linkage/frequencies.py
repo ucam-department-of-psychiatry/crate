@@ -37,30 +37,174 @@ from publicly available data.
 # Imports
 # =============================================================================
 
-from collections import Counter
+from collections import Counter, defaultdict
 import csv
+import json
 import logging
-from typing import (
-    Dict,
-    Set,
-    Tuple,
-    Union,
-)
+from typing import Any, Dict, List, Sequence, Set, Tuple
+
+from cardinal_pythonlib.reprfunc import auto_repr
+import jsonlines
 
 from crate_anon.common.logfunc import warn_once
 from crate_anon.linkage.constants import FuzzyDefaults
 from crate_anon.linkage.helpers import (
-    cache_load,
-    cache_save,
+    get_first_two_char,
     get_metaphone,
     get_postcode_sector,
     is_pseudo_postcode,
+    mkdir_for_filename,
     open_even_if_zipped,
     standardize_name,
     standardize_postcode,
 )
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# BasicNameMetaphoneFreq
+# =============================================================================
+
+
+class BasicNameFreqInfo:
+    """
+    Used for calculating P(share F2C but not name or metaphone).
+
+    Note that the metaphone can be "", e.g. if the name is "W". But we can
+    still calculate the frequency of those metaphones cumulatively across all
+    our names.
+    """
+
+    KEY_NAME = "n"
+    KEY_P_NAME = "pn"
+    KEY_GENDER = "g"
+    KEY_METAPHONE = "m"
+    KEY_P_METAPHONE = "pm"
+    KEY_F2C = "f"
+    KEY_P_F2C = "pf"
+    KEY_P_F2C_NOT_NAME_METAPHONE = "pfo"
+
+    def __init__(
+        self,
+        name: str,
+        p_name: float,
+        gender: str = "",
+        metaphone: str = "",
+        p_metaphone: float = 0.0,
+        f2c: str = "",
+        p_f2c: float = 0.0,
+        p_f2c_not_name_metaphone: float = 0.0,
+        synthetic: bool = False,
+    ) -> None:
+        """
+        The constructor allows initialization with just a name and its
+        frequency (with other probabilities being set later), or from a saved
+        representation with full details.
+
+        Args:
+            name:
+                Name.
+            p_name:
+                Population probability (frequency) of this name, within the
+                specified gender if there is one.
+            gender:
+                Specified gender, or a blank string for non-gender-associated
+                names.
+            metaphone:
+                "Sounds-like" representation as the first part of a double
+                metaphone.
+            p_metaphone:
+                Population frequency (probability) of the metaphone.
+            f2c:
+                First two characters (F2C) of the name.
+            p_f2c:
+                Population probability of the F2C.
+            p_f2c_not_name_metaphone:
+                Probability that someone in the population shares this F2C, but
+                not this name or metaphone.
+            synthetic:
+                Is this record made up (e.g. an unknown name, or a mean of two
+                other records)?
+        """
+        name = standardize_name(name)
+        self.name = name
+        self.gender = gender
+        self.p_name = p_name
+
+        self.metaphone = metaphone or get_metaphone(name)
+        self.p_metaphone = p_metaphone
+
+        self.f2c = f2c or get_first_two_char(name)
+        self.p_f2c = p_f2c  # not important! For info only.
+        self.p_f2c_not_name_metaphone = p_f2c_not_name_metaphone
+
+        self.synthetic = synthetic
+
+    def __repr__(self) -> str:
+        return auto_repr(self, sort_attrs=False)
+
+    @property
+    def p_metaphone_not_name(self) -> float:
+        return self.p_metaphone - self.p_name
+
+    @property
+    def p_no_match(self) -> float:
+        assert (
+            self.p_metaphone >= self.p_name
+        ), "Set p_metaphone before using p_no_match"
+        return 1 - self.p_metaphone - self.p_f2c_not_name_metaphone
+        # p_metaphone includes p_name
+
+    def as_dict(self) -> Dict[str, Any]:
+        """
+        Returns a JSON representation.
+        """
+        return {
+            self.KEY_NAME: self.name,
+            self.KEY_GENDER: self.gender,
+            self.KEY_P_NAME: self.p_name,
+            self.KEY_METAPHONE: self.metaphone,
+            self.KEY_P_METAPHONE: self.p_metaphone,
+            self.KEY_F2C: self.f2c,
+            self.KEY_P_F2C: self.p_f2c,
+            self.KEY_P_F2C_NOT_NAME_METAPHONE: self.p_f2c_not_name_metaphone,
+        }
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "BasicNameFreqInfo":
+        """
+        Create from JSON representation.
+        """
+        return BasicNameFreqInfo(
+            name=d[cls.KEY_NAME],
+            gender=d[cls.KEY_GENDER],
+            p_name=d[cls.KEY_P_NAME],
+            metaphone=d[cls.KEY_METAPHONE],
+            p_metaphone=d[cls.KEY_P_METAPHONE],
+            f2c=d[cls.KEY_F2C],
+            p_f2c=d[cls.KEY_P_F2C],
+            p_f2c_not_name_metaphone=d[cls.KEY_P_F2C_NOT_NAME_METAPHONE],
+        )
+
+    @staticmethod
+    def weighted_mean(
+        objects: Sequence["BasicNameFreqInfo"], weights: Sequence[float]
+    ):
+        """
+        Returns an object with the weighted probabilities across the objects
+        specified. Used for gender weighting.
+        """
+        assert len(objects) == len(weights) > 0
+        first = objects[0]
+        result = BasicNameFreqInfo(name=first.name, p_name=0.0, synthetic=True)
+        for i, obj in enumerate(objects):
+            w = weights[i]
+            result.p_name += w * obj.p_name
+            result.p_metaphone += w * obj.p_name
+            result.p_f2c += w * obj.p_f2c
+            result.p_f2c_not_name_metaphone += w * obj.p_f2c_not_name_metaphone
+        return result
 
 
 # =============================================================================
@@ -71,7 +215,7 @@ log = logging.getLogger(__name__)
 class NameFrequencyInfo:
     """
     Holds frequencies of a class of names (e.g. first names or surnames), and
-    also of their hashed versions.
+    also of their fuzzy (metaphone) versions.
     """
 
     def __init__(
@@ -99,54 +243,251 @@ class NameFrequencyInfo:
         self._csv_filename = csv_filename
         self._cache_filename = cache_filename
         self._min_frequency = min_frequency
-        self._name_freq = {}  # type: Dict[Union[str, Tuple[str, str]], float]
-        self._metaphone_freq = (
+        self.by_gender = by_gender
+
+        self.infolist = []  # type: List[BasicNameFreqInfo]
+
+        # We key the following by (name, gender), even if gender is "".
+        # This makes the code much simpler.
+        self.name_gender_idx = (
             {}
-        )  # type: Dict[Union[str, Tuple[str, str]], float]  # noqa
-        self._by_gender = by_gender
+        )  # type: Dict[Tuple[str, str], BasicNameFreqInfo]
+        self.metaphone_freq = {}  # type: Dict[Tuple[str, str], float]
+        self.f2c_freq = {}  # type: Dict[Tuple[str, str], float]
+        self.f2c_to_infolist = defaultdict(
+            list
+        )  # type: Dict[Tuple[str, str], List[BasicNameFreqInfo]]
 
         try:
-            self._name_freq, self._metaphone_freq = cache_load(cache_filename)
-            for d in [self._name_freq, self._metaphone_freq]:
-                keytype = tuple if by_gender else str
-                for k in d.keys():
-                    assert isinstance(k, keytype), (
-                        f"Cache file {cache_filename!r} has the wrong key "
-                        f"type (is {type(k)}, should be {keytype}. "
-                        f"Please delete this file and try again."
-                    )
+            self._load_from_cache(cache_filename)
+        except ValueError:
+            log.critical(f"Bad cache: please delete {cache_filename}")
+            raise
         except FileNotFoundError:
-            # For extra speed:
-            name_freq = self._name_freq
-            metaphone_freq = self._metaphone_freq
-            # Load
-            with open_even_if_zipped(csv_filename) as f:
-                csvreader = csv.reader(f)
-                for row in csvreader:
-                    name = standardize_name(row[0])
-                    if by_gender:
-                        gender = row[1]
-                        freq_str = row[2]
-                    else:
-                        freq_str = row[1]
-                    freq = max(float(freq_str), min_frequency)
-                    metaphone = get_metaphone(name)
-                    # Note that the metaphone can be "", e.g. if the name is
-                    # "W". But we can still calculate the frequency of those
-                    # metaphones cumulatively across all our names.
-                    if by_gender:
-                        name_key = name, gender
-                        metaphone_key = metaphone, gender
-                    else:
-                        name_key = name
-                        metaphone_key = metaphone
-                    name_freq[name_key] = freq
-                    # https://stackoverflow.com/questions/12992165/python-dictionary-increment  # noqa
-                    metaphone_freq[metaphone_key] = (
-                        metaphone_freq.get(metaphone_key, 0) + freq
+            self._load_from_csv(csv_filename)
+            self._save_to_cache(cache_filename)
+
+    def _load_from_cache(self, cache_filename: str) -> None:
+        """
+        Loads from a JSONL cache.
+        """
+        log.info(f"Reading from cache: {cache_filename}")
+        with jsonlines.open(cache_filename) as reader:
+            self.infolist = [BasicNameFreqInfo.from_dict(d) for d in reader]
+        log.info(f"... finished reading from: {cache_filename}")
+        self._index(update_infolist=False)
+
+    def _save_to_cache(self, cache_filename: str) -> None:
+        """
+        Saves to a JSONL cache.
+        """
+        log.info(f"Writing to cache: {cache_filename}")
+        mkdir_for_filename(cache_filename)
+        with jsonlines.open(cache_filename, mode="w") as writer:
+            for i in self.infolist:
+                writer.write(i.as_dict())
+        log.info(f"... finished writing to cache: {cache_filename}")
+
+    def _load_from_csv(self, csv_filename: str) -> None:
+        """
+        Read from the original data.
+        """
+        log.info(f"Reading source data: {csv_filename}")
+        by_gender = self.by_gender
+        min_frequency = self._min_frequency
+        self.infolist = []
+        with open_even_if_zipped(csv_filename) as f:
+            for row in csv.reader(f):
+                if by_gender:
+                    gender = row[1]
+                    freq_str = row[2]
+                else:
+                    gender = ""
+                    freq_str = row[1]
+                self.infolist.append(
+                    BasicNameFreqInfo(
+                        name=row[0],
+                        p_name=max(float(freq_str), min_frequency),
+                        gender=gender,
                     )
-            # Save to cache
-            cache_save(cache_filename, [name_freq, metaphone_freq])
+                )
+        log.info(f"... finished reading from: {csv_filename}")
+        self._index(update_infolist=True)
+
+    def _index(self, update_infolist: bool) -> None:
+        """
+        Build our internal indexes, having loaded `self.infolist`.
+
+        Example for thinking (with fictional metaphones; these might be
+        wrong!):
+
+        .. code-block:: none
+
+            #   name        p       metaphone   f2c
+            1   SMITH       0.2     SMT         SM
+            2   SMYTHE      0.05    SMT         SM
+            3   SCHMITH     0.01    SMT         SC
+            4   SMALL       0.04    SML         SM
+            5   JONES       0.2     JNS         JO
+            6   JOPLIN      0.1     JPL         JO
+            7   WALKER      0.2     WLK         WA
+            8   ZEBRA       0.2     ZBR         ZE
+
+        With respect to a proband called SMITH:
+
+        - P(another person's name is SMITH) = 0.2 [1];
+
+        - P(another person's metaphone is SMT) = 0.26 [1, 2, 3];
+        - P(another person's metaphone is SMT but their name is not SMITH) =
+          0.06 [2, 3], being the preceding minus [1];
+
+        - P(another person's F2C is SM) = 0.29 [1, 2, 4];
+        - P(another person's F2C is SM but their metaphone is not SMT and their
+          name is not SMITH) = 0.04 [4].
+
+        With respect to a proband called SMALL:
+
+        - P(another person's name is SMALL) = 0.04 [4];
+
+        - P(... metaphone SML) = 0.04 [4];
+        - P(... metaphone SML, name not SMALL) = 0, being the preceding minus
+          [4];
+
+        - P(... F2C SM) = 0.29 [1, 2, 4];
+        - P(... F2C SM but metaphone not SML and name not SMALL) = 0.25 [1, 2].
+
+        This makes it apparent that:
+
+        - P(another person matches on name) = P(name in the population).
+
+        - Since names have a one-to-one or many-to-one relationship with
+          metaphones (one name can only have one metaphone but two names can
+          share a metaphone), P(metaphone match but not name match) is
+          P(metaphone match) minus P(name match).
+
+        - There is obviously a quantity P(F2C) that is constant for every F2C.
+          Also, the relationship between names and F2C is one-to-one or
+          many-to-one, as for metaphones. However, if F2C are second in the
+          hierarchy, such that we need to calculate P(F2C match but not name OR
+          METAPHONE match), it becomes relevant that the relationship between
+          metaphones and F2C is many-to-many [see examples 1-4 above].
+
+          THEREFORE, P(F2C match but name or metaphone match) is SPECIFIC TO
+          A NAME.
+
+        """
+        log.info("Indexing name frequency info...")
+
+        # Reset
+        self.name_gender_idx = {}
+        self.metaphone_freq = {}
+        self.f2c_freq = {}
+        self.f2c_to_infolist = defaultdict(list)
+
+        # For extra speed:
+        name_gender_idx = self.name_gender_idx
+        metaphone_freq = self.metaphone_freq
+        f2c_freq = self.f2c_freq
+        f2c_to_infolist = self.f2c_to_infolist
+
+        meta_to_infolist = defaultdict(
+            list
+        )  # type: Dict[Tuple[str, str], List[BasicNameFreqInfo]]
+
+        for i in self.infolist:
+            name_key = i.name, i.gender
+            metaphone_key = i.metaphone, i.gender
+            f2c_key = i.f2c, i.gender
+            p_name = i.p_name
+
+            # Enable rapid lookup by name/gender
+            name_gender_idx[name_key] = i
+
+            # Calculate metaphone frequency (maybe for writing back to name
+            # info objects, but certainly for frequency information relating to
+            # unknown names with known metaphones).
+            metaphone_freq[metaphone_key] = (
+                metaphone_freq.get(metaphone_key, 0) + p_name
+            )
+
+            # Calculate F2C frequency (not very important!).
+            f2c_freq[f2c_key] = f2c_freq.get(f2c_key, 0) + p_name
+
+            # Enable lookup by F2C
+            f2c_to_infolist[f2c_key].append(i)
+
+            if update_infolist:
+                # Enable temporary lookup by metaphone
+                meta_to_infolist[metaphone_key].append(i)
+
+        if update_infolist:
+            log.info("... calculating additional frequency info (slow)...")
+            # Store metaphone frequency for each name.
+            for metaphone_key, metaphone_infolist in meta_to_infolist.items():
+                p_meta = metaphone_freq[metaphone_key]
+                for i in metaphone_infolist:  # type: BasicNameFreqInfo
+                    i.p_metaphone = p_meta
+            # This is not very important, but... store F2C frequency.
+            for f2c_key, f2c_infolist in f2c_to_infolist.items():
+                p_f2c = f2c_freq[f2c_key]
+                for i in f2c_infolist:  # type: BasicNameFreqInfo
+                    i.p_f2c = p_f2c
+            # Calculate P(F2C match but not name or metaphone match).
+            # This is name-specific; see above.
+            for i in self.infolist:
+                f2c_key = i.f2c, i.gender
+                i.p_f2c_not_name_metaphone = 0.0
+                for other in f2c_to_infolist[f2c_key]:  # ... same F2C...
+                    if other.name != i.name and other.metaphone != i.metaphone:
+                        # ... but different name and metaphone...
+                        i.p_f2c_not_name_metaphone += other.p_name
+
+        log.info("... finished indexing name frequency info")
+
+    def name_frequency_info(
+        self, name: str, gender: str = "", prestandardized: bool = True
+    ) -> BasicNameFreqInfo:
+        """
+        Look up frequency information for a name (with gender, optionally).
+        """
+        if not prestandardized:
+            name = standardize_name(name)
+        key = name, gender
+        result = self.name_gender_idx.get(key, None)
+        if result is not None:
+            return result
+        return self._unknown_name_info(name, gender)
+
+    def _unknown_name_info(
+        self, name: str, gender: str = ""
+    ) -> BasicNameFreqInfo:
+        """
+        Return a default set of information for unknown names. We do not alter
+        our saved information.
+
+        It's possible that an unknown name has a known metaphone or F2C,
+        though, so we account for that.
+        """
+        result = BasicNameFreqInfo(
+            name=name,
+            p_name=self._min_frequency,
+            gender=gender,
+            synthetic=True,
+        )
+        metaphone = result.metaphone
+        meta_key = metaphone, gender
+        result.p_metaphone = self.metaphone_freq.get(
+            meta_key, self._min_frequency
+        )
+        f2c_key = result.f2c, gender
+        result.p_f2c = self.f2c_freq.get(f2c_key, self._min_frequency)
+        p_f2c_not_name_metaphone = 0.0
+        for i in self.f2c_to_infolist[f2c_key]:  # same F2C
+            if i.metaphone != metaphone:  # but not same metaphone
+                # and by definition not the same name, or we wouldn't be here
+                p_f2c_not_name_metaphone += i.p_name
+        result.p_f2c_not_name_metaphone = p_f2c_not_name_metaphone
+        return result
 
     def name_frequency(
         self, name: str, gender: str = "", prestandardized: bool = True
@@ -162,20 +503,24 @@ class NameFrequencyInfo:
         Returns:
             the name's frequency in the population
         """
-        if not prestandardized:
-            name = standardize_name(name)
-        key = (name, gender) if self._by_gender else name
-        # Note operator precedence! Do NOT do this:
-        # key = name, gender if self._by_gender else name
-        return self._name_freq.get(key, self._min_frequency)
+        return self.name_frequency_info(
+            name, gender, prestandardized=prestandardized
+        ).p_name
 
     def metaphone_frequency(self, metaphone: str, gender: str = "") -> float:
         """
-        Returns the frequency of a metaphone
+        Returns the frequency of a metaphone.
         """
-        key = (metaphone, gender) if self._by_gender else metaphone
-        # ... as above!
-        return self._metaphone_freq.get(key, self._min_frequency)
+        key = metaphone, gender
+        return self.metaphone_freq.get(key, self._min_frequency)
+
+    def first_two_char_frequency(self, f2c: str, gender: str = "") -> float:
+        """
+        Returns the frequency of the first two characters of a name.
+        This one isn't very important; we want a more refined probability.
+        """
+        key = f2c, gender
+        return self.f2c_freq.get(key, self._min_frequency)
 
 
 # =============================================================================
@@ -189,6 +534,10 @@ class PostcodeFrequencyInfo:
     Handles pseudo-postcodes somewhat separately.
     """
 
+    KEY_POSTCODE_UNIT_FREQ = "postcode_unit_freq"
+    KEY_POSTCODE_SECTOR_FREQ = "postcode_sector_freq"
+    KEY_TOTAL_POPULATION = "total_population"
+
     def __init__(
         self,
         csv_filename: str,
@@ -197,6 +546,7 @@ class PostcodeFrequencyInfo:
         p_unknown_or_pseudo_postcode: float = (
             FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE
         ),
+        report_every: int = 10000,
     ) -> None:
         """
         Initializes the object from a CSV file.
@@ -217,6 +567,8 @@ class PostcodeFrequencyInfo:
                 Probability that a random person will have a pseudo-postcode,
                 e.g. ZZ99 3VZ (no fixed above) or a postcode not known to our
                 database.
+            report_every:
+                How often to report progress during loading.
         """
         assert csv_filename and cache_filename
         assert mean_oa_population > 0
@@ -233,61 +585,121 @@ class PostcodeFrequencyInfo:
         self._total_population = 0
 
         try:
-            (
-                self._postcode_unit_freq,
-                self._postcode_sector_freq,
-                self._total_population,
-            ) = cache_load(cache_filename)
+            self._load_from_cache(cache_filename)
+        except (KeyError, ValueError):
+            log.critical(f"Bad cache: please delete {cache_filename}")
+            raise
         except FileNotFoundError:
-            oa_unit_counter = Counter()
-            unit_to_oa = {}  # type: Dict[str, str]
-            sector_to_oas = {}  # type: Dict[str, Set[str]]
-
-            # Load data
-            report_every = 10000
-            with open_even_if_zipped(csv_filename) as f:
-                csvreader = csv.DictReader(f)
-                for rownum, row in enumerate(csvreader, start=1):
-                    unit = standardize_postcode(row["pcds"])
-                    sector = get_postcode_sector(unit)
-                    oa = row["oa11"]
-                    if rownum % report_every == 0:
-                        log.debug(
-                            f"Row# {rownum}: postcode unit {unit}, "
-                            f"postcode sector {sector}, Output Area {oa}"
-                        )
-
-                    unit_to_oa[unit] = oa
-                    oa_unit_counter[oa] += 1  # one more unit for this OA
-                    if sector in sector_to_oas:
-                        sector_to_oas[sector].add(oa)
-                    else:
-                        sector_to_oas[sector] = {oa}
-
-            # Calculate
-            log.info("Calculating population frequencies for postcodes...")
-            unit_freq = self._postcode_unit_freq
-            sector_freq = self._postcode_sector_freq
-            n_oas = len(oa_unit_counter)
-            log.info(f"Number of Output Areas: {n_oas}")
-            self._total_population = n_oas * mean_oa_population
-            log.info(f"Calculated total population: {self._total_population}")
-            for unit, oa in unit_to_oa.items():
-                n_units_in_this_oa = oa_unit_counter[oa]
-                unit_population = mean_oa_population / n_units_in_this_oa
-                unit_freq[unit] = unit_population / self._total_population
-            for sector, oas in sector_to_oas.items():
-                n_oas_in_this_sector = len(oas)
-                sector_population = mean_oa_population * n_oas_in_this_sector
-                sector_freq[sector] = (
-                    sector_population / self._total_population
-                )  # noqa
-            log.info("... done")
-            # Save to cache
-            cache_save(
-                cache_filename,
-                [unit_freq, sector_freq, self._total_population],
+            self._load_from_csv(
+                csv_filename,
+                mean_oa_population=mean_oa_population,
+                report_every=report_every,
             )
+            self._save_to_cache(cache_filename)
+
+    def _load_from_cache(self, cache_filename: str) -> None:
+        """
+        Loads from a JSON cache.
+
+        May raise KeyError, ValueError.
+        """
+        log.info(f"Reading from cache: {cache_filename}")
+        with open(cache_filename) as file:
+            d = json.load(file)
+
+        # May raise KeyError:
+        self._postcode_unit_freq = d[self.KEY_POSTCODE_UNIT_FREQ]
+        self._postcode_sector_freq = d[self.KEY_POSTCODE_SECTOR_FREQ]
+        self._total_population = d[self.KEY_TOTAL_POPULATION]
+
+        if not isinstance(self._postcode_unit_freq, dict):
+            raise ValueError(
+                f"Bad cache: {self.KEY_POSTCODE_UNIT_FREQ} is of wrong type "
+                f"{type(self._postcode_unit_freq)}"
+            )
+        if not isinstance(self._postcode_sector_freq, dict):
+            raise ValueError(
+                f"Bad cache: {self.KEY_POSTCODE_SECTOR_FREQ} is of wrong type "
+                f"{type(self._postcode_sector_freq)}"
+            )
+        if not isinstance(self._total_population, int):
+            raise ValueError(
+                f"Bad cache: {self.KEY_TOTAL_POPULATION} is of wrong type "
+                f"{type(self._total_population)}"
+            )
+
+        log.info(f"... finished reading from: {cache_filename}")
+
+    def _save_to_cache(self, cache_filename: str) -> None:
+        """
+        Saves to a JSON cache.
+        """
+        log.info(f"Writing to cache: {cache_filename}")
+        mkdir_for_filename(cache_filename)
+        d = {
+            self.KEY_POSTCODE_UNIT_FREQ: self._postcode_unit_freq,
+            self.KEY_POSTCODE_SECTOR_FREQ: self._postcode_sector_freq,
+            self.KEY_TOTAL_POPULATION: self._total_population,
+        }
+        with open(cache_filename, mode="w") as file:
+            json.dump(d, file)
+        log.info(f"... finished writing to cache: {cache_filename}")
+
+    def _load_from_csv(
+        self, csv_filename: str, mean_oa_population: float, report_every: int
+    ) -> None:
+        """
+        Read from the original data.
+        """
+        log.info(f"Reading source data: {csv_filename}")
+
+        self._postcode_unit_freq = {}
+        self._postcode_sector_freq = {}
+
+        oa_unit_counter = Counter()
+        unit_to_oa = {}  # type: Dict[str, str]
+        sector_to_oas = {}  # type: Dict[str, Set[str]]
+
+        # Load data
+        with open_even_if_zipped(csv_filename) as f:
+            csvreader = csv.DictReader(f)
+            for rownum, row in enumerate(csvreader, start=1):
+                unit = standardize_postcode(row["pcds"])
+                sector = get_postcode_sector(unit)
+                oa = row["oa11"]
+                if rownum % report_every == 0:
+                    log.debug(
+                        f"Row# {rownum}: postcode unit {unit}, "
+                        f"postcode sector {sector}, Output Area {oa}"
+                    )
+
+                unit_to_oa[unit] = oa
+                oa_unit_counter[oa] += 1  # one more unit for this OA
+                if sector in sector_to_oas:
+                    sector_to_oas[sector].add(oa)
+                else:
+                    sector_to_oas[sector] = {oa}
+
+        # Calculate
+        log.info("Calculating population frequencies for postcodes...")
+        unit_freq = self._postcode_unit_freq
+        sector_freq = self._postcode_sector_freq
+        n_oas = len(oa_unit_counter)
+        log.info(f"Number of Output Areas: {n_oas}")
+        self._total_population = n_oas * mean_oa_population
+        log.info(f"Calculated total population: {self._total_population}")
+        for unit, oa in unit_to_oa.items():
+            n_units_in_this_oa = oa_unit_counter[oa]
+            unit_population = mean_oa_population / n_units_in_this_oa
+            unit_freq[unit] = unit_population / self._total_population
+        for sector, oas in sector_to_oas.items():
+            n_oas_in_this_sector = len(oas)
+            sector_population = mean_oa_population * n_oas_in_this_sector
+            sector_freq[sector] = (
+                sector_population / self._total_population
+            )  # noqa
+
+        log.info(f"... finished reading from: {csv_filename}")
 
     def postcode_unit_sector_frequency(
         self, postcode_unit: str, prestandardized: bool = False

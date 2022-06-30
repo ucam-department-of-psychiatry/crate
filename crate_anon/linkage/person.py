@@ -25,7 +25,7 @@ crate_anon/linkage/person.py
 
 ===============================================================================
 
-**Person/people representations for fuzzy matching.**
+**Person representations for fuzzy matching.**
 
 """
 
@@ -34,36 +34,26 @@ crate_anon/linkage/person.py
 # Imports
 # =============================================================================
 
-from collections import defaultdict
-import copy
-import csv
 from dataclasses import dataclass, field
 import json
-from io import TextIOBase
 import logging
 import random
-from types import TracebackType
 from typing import (
     Any,
     Dict,
     Generator,
-    Iterable,
     List,
     Optional,
-    Set,
-    Type,
     Union,
 )
 
 from cardinal_pythonlib.reprfunc import auto_repr
-import jsonlines
 
 from crate_anon.linkage.comparison import (
     bayes_compare,
     Comparison,
     DirectComparison,
 )
-from crate_anon.linkage.constants import MINUS_INFINITY
 from crate_anon.linkage.helpers import (
     getdictval,
     mutate_name,
@@ -75,6 +65,7 @@ from crate_anon.linkage.identifiers import (
     gen_best_comparisons,
     Gender,
     Identifier,
+    PerfectID,
     Postcode,
     Surname,
     TemporalIDHolder,
@@ -82,15 +73,6 @@ from crate_anon.linkage.identifiers import (
 from crate_anon.linkage.matchconfig import MatchConfig
 
 log = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Exceptions
-# =============================================================================
-
-
-class DuplicateLocalIDError(Exception):
-    pass
 
 
 # =============================================================================
@@ -104,16 +86,15 @@ class BasePerson:
     """
 
     class PersonKey:
-        LOCAL_ID = "local_id"
-        # ... person ID within the relevant database (proband/sample)
+        LOCAL_ID = "local_id"  # person ID within relevant DB (proband/sample)
         FIRST_NAME = "first_name"
         MIDDLE_NAMES = "middle_names"
         SURNAME = "surname"
         DOB = "dob"
         GENDER = "gender"
         POSTCODES = "postcodes"
-        OTHER_INFO = "other_info"
-        # ... anything the user may want to attach
+        PERFECT_ID = "perfect_id"
+        OTHER_INFO = "other_info"  # anything the user may want to attach
 
     # [getattr(PersonKey, x) for x in vars(PersonKey)...] does not work here as
     # PersonKey is not in scope within a list comprehension here; see
@@ -129,10 +110,16 @@ class BasePerson:
     SEMICOLON_DELIMIT = [PersonKey.MIDDLE_NAMES, PersonKey.POSTCODES]
     TEMPORAL_IDENTIFIERS = [PersonKey.POSTCODES]
     PLAINTEXT_CSV_FORMAT_HELP = (
-        f"CSV format. Header row present. Columns: {ALL_PERSON_KEYS}. "
+        f"CSV format with header row. Columns: {ALL_PERSON_KEYS}. "
         f"The fields {TEMPORAL_IDENTIFIERS} are in TemporalIdentifier format. "
         f"{Identifier.TEMPORAL_ID_FORMAT_HELP} "
-        f"Semicolon-separated values are allowed within {SEMICOLON_DELIMIT}."
+        f"Semicolon-separated values are allowed within {SEMICOLON_DELIMIT}. "
+        f"{PersonKey.PERFECT_ID}, if specified, contains one or more "
+        f"perfect person identifiers as key:value pairs, e.g. "
+        f"'nhs:12345;ni:AB6789XY'. The keys will be forced to lower case; "
+        f"values will be forced to upper case. "
+        f"{PersonKey.OTHER_INFO!r} is an arbitrary string for you to use "
+        f"(e.g. for validation)."
     )
     HASHED_JSONLINES_FORMAT_HELP = (
         "File created by CRATE in JSON Lines (.jsonl) format. (Note the 'jq' "
@@ -157,7 +144,7 @@ class BasePerson:
         d = {}  # type: Dict[str, str]
         for k in self.ALL_PERSON_KEYS:
             a = getattr(self, k)
-            if k in self.SEMICOLON_DELIMIT:
+            if k in self.SEMICOLON_DELIMIT and k != self.PersonKey.PERFECT_ID:
                 v = ";".join(str(x) for x in a)
             else:
                 v = str(a)
@@ -188,14 +175,16 @@ def identifiable_person_str(self: Union["SimplePerson", "Person"]) -> str:
         + [str(self.surname)]
     )
     postcodes = " - ".join(str(x) for x in self.postcodes)
+    k = BasePerson.PersonKey
     details = ", ".join(
         [
-            f"local_id={self.local_id}",
+            f"{k.LOCAL_ID}={self.local_id}",
+            f"{k.PERFECT_ID}={self.perfect_id}",
             f"name={names}",
-            f"gender={self.gender}",
-            f"dob={self.dob}",
-            f"postcode={postcodes}",
-            f"other={self.other_info!r}",
+            f"{k.GENDER}={self.gender}",
+            f"{k.DOB}={self.dob}",
+            f"{k.POSTCODES}={postcodes}",
+            f"{k.OTHER_INFO}={self.other_info!r}",
         ]
     )
     classname = type(self).__name__
@@ -230,6 +219,8 @@ class SimplePerson(BasePerson):
     dob: str = ""
     gender: str = ""
     postcodes: List[TemporalIDHolder] = field(default_factory=lambda: [])
+    perfect_keys: Dict[str, str] = field(default_factory=lambda: {})
+    perfect_id: str = ""  # a bit mangled
 
     def __str__(self) -> str:
         return identifiable_person_str(self)
@@ -269,6 +260,7 @@ class Person(BasePerson):
         dob: Union[str, DateOfBirth] = "",
         gender: Union[str, Gender] = "",
         postcodes: List[Union[Postcode, TemporalIDHolder]] = None,
+        perfect_id: Union[PerfectID, Dict[str, str]] = None,
     ) -> None:
         """
         Args:
@@ -297,6 +289,11 @@ class Person(BasePerson):
             postcodes:
                 Any UK postcodes for this person, with optional associated
                 dates.
+            perfect_id:
+                Any named person-unique identifiers (e.g. UK NHS numbers, UK
+                National Insurance numbers), for non-fuzzy matching. Dictionary
+                keys will be forced to lower case, and dictionary values to
+                upper case.
         """
         self._is_plaintext = None  # type: Optional[bool]
 
@@ -406,6 +403,13 @@ class Person(BasePerson):
             chk_plaintext(p)
             self.postcodes.append(p)
 
+        # perfect_id
+        if isinstance(perfect_id, PerfectID):
+            self.perfect_id = perfect_id
+        else:
+            self.perfect_id = PerfectID(cfg=cfg, identifiers=perfect_id)
+        chk_plaintext(self.perfect_id)
+
     @classmethod
     def from_plaintext_csv(
         cls, cfg: MatchConfig, rowdict: Dict[str, str]
@@ -419,24 +423,29 @@ class Person(BasePerson):
         """
         kwargs = {}  # type: Dict[str, Any]
         for attr in cls.ALL_PERSON_KEYS:
-            v = rowdict[attr]
+            vstr = rowdict[attr]
             if attr in cls.SEMICOLON_DELIMIT:
-                v = [x.strip() for x in v.split(";") if x]
-                if attr in cls.TEMPORAL_IDENTIFIERS:
+                v = [x.strip() for x in vstr.split(";") if x]
+                if attr == cls.PersonKey.PERFECT_ID:
+                    v = PerfectID.from_plaintext_str(cfg, vstr)
+                elif attr in cls.TEMPORAL_IDENTIFIERS:
                     v = [
                         TemporalIDHolder.from_plaintext_str(cfg, x) for x in v
                     ]
             else:
                 # All TEMPORAL_IDENTIFIERS are in SEMICOLON_DELIMIT
                 assert attr not in cls.TEMPORAL_IDENTIFIERS
+                v = vstr
             kwargs[attr] = v
         return Person(cfg=cfg, **kwargs)
 
     @classmethod
-    def from_hashed_dict(cls, cfg: MatchConfig, d: Dict[str, Any]) -> "Person":
+    def from_json_dict(
+        cls, cfg: MatchConfig, d: Dict[str, Any], hashed: bool = True
+    ) -> "Person":
         """
-        Restore a hashed version from a dictionary (which has been read from
-        JSON).
+        Restore a hashed or plaintext version from a dictionary (which has been
+        read from JSONL).
         """
         pk = cls.PersonKey
         middle_names = []  # type: List[Forename]
@@ -446,7 +455,7 @@ class Person(BasePerson):
                     f"{pk.MIDDLE_NAMES} contains something that is not a "
                     f"dict: {mnd!r}"
                 )
-            middle_names.append(Forename.from_hashed_dict(cfg, mnd))
+            middle_names.append(Forename.from_dict(cfg, mnd, hashed))
         postcodes = []  # type: List[Postcode]
         for pd in getdictval(d, pk.POSTCODES, list):
             if not isinstance(pd, dict):
@@ -454,23 +463,28 @@ class Person(BasePerson):
                     f"{pk.POSTCODES} contains something that is not a "
                     f"dict: {pd!r}"
                 )
-            postcodes.append(Postcode.from_hashed_dict(cfg, pd))
+            postcodes.append(Postcode.from_dict(cfg, pd, hashed))
         return Person(
             cfg=cfg,
             local_id=getdictval(d, pk.LOCAL_ID, str),
             other_info=getdictval(d, pk.OTHER_INFO, str, mandatory=False),
-            first_name=Forename.from_hashed_dict(
-                cfg, getdictval(d, pk.FIRST_NAME, dict)
+            first_name=Forename.from_dict(
+                cfg, getdictval(d, pk.FIRST_NAME, dict), hashed
             ),
             middle_names=middle_names,
-            surname=Surname.from_hashed_dict(
-                cfg, getdictval(d, pk.SURNAME, dict)
+            surname=Surname.from_dict(
+                cfg, getdictval(d, pk.SURNAME, dict), hashed
             ),
-            dob=DateOfBirth.from_hashed_dict(cfg, getdictval(d, pk.DOB, dict)),
-            gender=Gender.from_hashed_dict(
-                cfg, getdictval(d, pk.GENDER, dict)
+            dob=DateOfBirth.from_dict(
+                cfg, getdictval(d, pk.DOB, dict), hashed
+            ),
+            gender=Gender.from_dict(
+                cfg, getdictval(d, pk.GENDER, dict), hashed
             ),
             postcodes=postcodes,
+            perfect_id=PerfectID.from_dict(
+                cfg, getdictval(d, pk.PERFECT_ID, dict), hashed
+            ),
         )
 
     @classmethod
@@ -479,7 +493,7 @@ class Person(BasePerson):
         Restore a hashed version from a string representing JSON.
         """
         d = json.loads(s)
-        return cls.from_hashed_dict(cfg, d)
+        return cls.from_json_dict(cfg, d)
 
     # -------------------------------------------------------------------------
     # Equality, hashing -- local_id should be unique
@@ -517,8 +531,9 @@ class Person(BasePerson):
             return f"Hashed person with local_id={self.local_id!r}"
         return identifiable_person_str(self)
 
-    def hashed_dict(
+    def as_dict(
         self,
+        hashed: bool = True,
         include_frequencies: bool = True,
         include_other_info: bool = False,
     ) -> Dict[str, Any]:
@@ -526,6 +541,8 @@ class Person(BasePerson):
         For JSON.
 
         Args:
+            hashed:
+                Create a hashed/encrypted version?
             include_frequencies:
                 Include frequency information. If you don't, this makes the
                 resulting file suitable for use as a sample, but not as a
@@ -535,45 +552,44 @@ class Person(BasePerson):
                 Usually ``False``; may be ``True`` for validation.
         """
         pk = self.PersonKey
+
+        # This could be terser, but to be clear:
+        if hashed:
+            if self._is_plaintext:
+                encrypt = True
+                local_id = self.cfg.local_id_hash_fn(self.local_id)
+            else:
+                encrypt = False  # already encrypted; don't do it twice
+                local_id = self.local_id
+        else:
+            if self._is_plaintext:
+                encrypt = False
+                local_id = self.local_id
+            else:
+                raise AssertionError(
+                    "Can't create plaintext from hashed Person"
+                )
+
         d = {
-            pk.LOCAL_ID: self.cfg.local_id_hash_fn(self.local_id),
-            pk.FIRST_NAME: self.first_name.hashed_dict(include_frequencies),
+            pk.LOCAL_ID: local_id,
+            pk.FIRST_NAME: self.first_name.as_dict(
+                encrypt, include_frequencies
+            ),
             pk.MIDDLE_NAMES: [
-                m.hashed_dict(include_frequencies) for m in self.middle_names
+                m.as_dict(encrypt, include_frequencies)
+                for m in self.middle_names
             ],
-            pk.SURNAME: self.surname.hashed_dict(include_frequencies),
-            pk.DOB: self.dob.hashed_dict(include_frequencies),
-            pk.GENDER: self.gender.hashed_dict(include_frequencies),
+            pk.SURNAME: self.surname.as_dict(encrypt, include_frequencies),
+            pk.DOB: self.dob.as_dict(encrypt, include_frequencies),
+            pk.GENDER: self.gender.as_dict(encrypt, include_frequencies),
             pk.POSTCODES: [
-                p.hashed_dict(include_frequencies) for p in self.postcodes
+                p.as_dict(encrypt, include_frequencies) for p in self.postcodes
             ],
+            pk.PERFECT_ID: self.perfect_id.as_dict(encrypt),
         }
         if include_other_info:
             d[pk.OTHER_INFO] = self.other_info
         return d
-
-    def hashed_json_str(
-        self,
-        include_frequencies: bool = True,
-        include_other_info: bool = False,
-    ) -> str:
-        """
-        A string version of the hashed person in JSON format.
-
-        Args:
-            include_frequencies:
-                Include frequency information. If you don't, this makes the
-                resulting file suitable for use as a sample, but not as a
-                proband file.
-            include_other_info:
-                include the (potentially identifying) ``other_info`` data?
-                Usually ``False``; may be ``True`` for validation.
-        """
-        d = self.hashed_dict(
-            include_frequencies=include_frequencies,
-            include_other_info=include_other_info,
-        )
-        return json.dumps(d)
 
     def copy(self) -> "Person":
         """
@@ -581,18 +597,21 @@ class Person(BasePerson):
 
         - :func:`copy.deepcopy` is incredibly slow, yet :func:`copy.copy` isn't
           enough when we want to mutate this object.
-        - So we do it quasi-manually. It's just lists that we want to treat as
-          special.
+        - We did do it quasi-manually, copying attributes but using
+          ``[copy.copy(x) for x in value]`` if the value was a list.
+        - However, since we have functions to convert to/from a dict
+          representation, we may as well use them.
         """
-        copy_attrs = self.ALL_PERSON_KEYS
-        kwargs = {}  # type: Dict[str, Any]
-        for attrname in copy_attrs:
-            value = getattr(self, attrname)
-            if isinstance(value, list):  # special handling here
-                value = [copy.copy(x) for x in value]
-            kwargs[attrname] = value
-        return Person(cfg=self.cfg, **kwargs)
-        # todo: *** check this works
+        hashed = self.is_hashed()
+        return self.from_json_dict(
+            self.cfg,
+            self.as_dict(
+                hashed=hashed,
+                include_frequencies=True,
+                include_other_info=True,
+            ),
+            hashed=hashed,
+        )
 
     # -------------------------------------------------------------------------
     # Created hashed version
@@ -621,11 +640,12 @@ class Person(BasePerson):
                 include the (potentially identifying) ``other_info`` data?
                 Usually ``False``; may be ``True`` for validation.
         """
-        d = self.hashed_dict(
+        d = self.as_dict(
+            hashed=True,
             include_frequencies=include_frequencies,
             include_other_info=include_other_info,
         )
-        return self.from_hashed_dict(self.cfg, d)
+        return self.from_json_dict(self.cfg, d)
 
     # -------------------------------------------------------------------------
     # Main comparison function
@@ -883,465 +903,3 @@ class Person(BasePerson):
         self.postcodes[which] = Postcode(
             cfg, postcode=mutate_postcode(oldpostcode.postcode_unit, cfg)
         )
-
-
-# =============================================================================
-# Result of a match attempt
-# =============================================================================
-
-
-class MatchResult:
-    """
-    Result of a comparison between a proband (person) and a sample (group of
-    people).
-    """
-
-    def __init__(
-        self,
-        winner: Person = None,
-        best_log_odds: float = MINUS_INFINITY,
-        second_best_log_odds: float = MINUS_INFINITY,
-        best_candidate: Person = None,
-        second_best_candidate: Person = None,
-        proband: Person = None,
-    ):
-        """
-        Args:
-            winner:
-                The person in the sample (candidate) who matches the proband,
-                if there is a winner by our rules; ``None`` if there is no
-                winner.
-            best_log_odds:
-                Natural log odds of the best candidate being the same as the
-                proband, –∞ if there are no candidates
-            second_best_log_odds:
-                The log odds of the closest other contender, which may be  –∞.
-            best_candidate:
-                The person in the sample (candidate) who is the closest match
-                to the proband. May be ``None``. If there is a winner, this is
-                also the best person -- but the best person may not be the
-                winner (if they are not likely enough, or if there is another
-                close contender).
-            second_best_candidate:
-                The runner-up (second-best) candidate person, or ``None``.
-            proband:
-                The proband used for the comparison. (Helpful for parallel
-                processing.)
-        """
-        self.winner = winner
-        self.best_log_odds = best_log_odds
-        self.second_best_log_odds = second_best_log_odds
-        self.best_candidate = best_candidate
-        self.second_best_candidate = second_best_candidate
-        self.proband = proband
-
-    @property
-    def matched(self) -> bool:
-        return self.winner is not None
-
-    def __repr__(self) -> str:
-        attrs = [
-            f"winner={self.winner}",
-            f"best_log_odds={self.best_log_odds}",
-            f"second_best_log_odds={self.second_best_log_odds}",
-            f"best_candidate={self.best_candidate}",
-            f"second_best_candidate={self.second_best_candidate}",
-            f"proband={self.proband}",
-        ]
-        return f"MatchResult({', '.join(attrs)}"
-
-
-# =============================================================================
-# People: a collection of Person objects
-# =============================================================================
-# Try staring at the word "people" for a while and watch it look odd...
-
-
-class People:
-    """
-    Represents a group of people, and implements a shortlist.
-    """
-
-    def __init__(
-        self,
-        cfg: MatchConfig,
-        person: Person = None,
-        people: Iterable[Person] = None,
-    ) -> None:
-        """
-        Creates a blank collection.
-
-        Raises :exc:`crate_anon.linkage.fuzzy_id_match.DuplicateLocalIDError`
-        if some people have duplicate ``local_id`` values.
-        """
-        self.cfg = cfg
-        self.people = []  # type: List[Person]
-        # ... list is preferable to set, as we may slice it for parallel
-        # processing, and it maintains order.
-
-        # These may be plaintext or hashed DOB strings depending on our people:
-        self.dob_md_to_people = defaultdict(
-            list
-        )  # type: Dict[str, List[Person]]  # noqa
-        self.dob_yd_to_people = defaultdict(
-            list
-        )  # type: Dict[str, List[Person]]  # noqa
-        self.dob_ym_to_people = defaultdict(
-            list
-        )  # type: Dict[str, List[Person]]  # noqa
-        self.dob_ymd_to_people = defaultdict(
-            list
-        )  # type: Dict[str, List[Person]]  # noqa
-
-        self._known_ids = set()  # type: Set[str]
-        self._people_are_plaintext = None  # type: Optional[bool]
-
-        if person:
-            self.add_person(person)
-        if people:
-            self.add_people(people)
-
-    def add_person(self, person: Person) -> None:
-        """
-        Adds a single person.
-
-        Raises :exc:`crate_anon.linkage.fuzzy_id_match.DuplicateLocalIDError`
-        if the person has a ``local_id`` value already in our collection.
-        """
-        if self.people:
-            # Not the first person.
-            if person.is_plaintext() != self._people_are_plaintext:
-                new = Person.plain_or_hashed_txt(person.is_plaintext())
-                old = Person.plain_or_hashed_txt(self._people_are_plaintext)
-                raise ValueError(
-                    f"Trying to add a {new} person but all existing people "
-                    f"are {old}"
-                )
-        else:
-            # First person
-            self._people_are_plaintext = person.is_plaintext()
-
-        if person.local_id in self._known_ids:
-            raise DuplicateLocalIDError(
-                f"Person with duplicate local ID {person.local_id!r}"
-            )
-        self._known_ids.add(person.local_id)
-        self.people.append(person)
-
-        dob = person.dob
-        if dob:
-            self.dob_md_to_people[dob.dob_md].append(person)
-            self.dob_yd_to_people[dob.dob_yd].append(person)
-            self.dob_ym_to_people[dob.dob_ym].append(person)
-            self.dob_ymd_to_people[dob.dob_str].append(person)
-
-    def add_people(self, people: Iterable[Person]) -> None:
-        """
-        Adds multiple people.
-
-        Raises :exc:`crate_anon.linkage.fuzzy_id_match.DuplicateLocalIDError`
-        if some people have duplicate ``local_id`` values with respect to those
-        we already know.
-        """
-        for person in people:
-            self.add_person(person)
-
-    def size(self) -> int:
-        """
-        Returns the number of people in this object.
-        """
-        return len(self.people)
-
-    def ensure_valid_as_probands(self) -> None:
-        """
-        Ensures all people have sufficient information to act as a proband,
-        or raises :exc:`ValueError`.
-        """
-        log.info("Validating probands...")
-        for p in self.people:
-            p.ensure_valid_as_proband()
-        log.info("... OK")
-
-    def ensure_valid_as_sample(self) -> None:
-        """
-        Ensures all people have sufficient information to act as a candidate
-        from a sample, or raises :exc:`ValueError`.
-        """
-        log.info("Validating sample...")
-        for p in self.people:
-            p.ensure_valid_as_candidate()
-        log.info("... OK")
-
-    def gen_shortlist(self, proband: Person) -> Generator[Person, None, None]:
-        """
-        Generates a shortlist of potential candidates, by date of birth.
-
-        Yields:
-            proband: a :class:`Person`
-        """
-        # A high-speed function.
-        cfg = self.cfg
-        dob = proband.dob
-        if not dob:
-            return
-        if cfg.complete_dob_mismatch_allowed:
-            # No shortlisting; everyone's a candidate. Slow.
-            for person in self.people:
-                yield person
-        else:
-            # Implement the shortlist by DOB.
-            # Most efficient to let set operations determine uniqueness, then
-            # iterate through the set.
-
-            # First, exact matches:
-            shortlist = set(self.dob_ymd_to_people[dob.dob_str])
-
-            # Now, we'll slow it all down with partial matches:
-            if cfg.partial_dob_mismatch_allowed:
-                shortlist.update(self.dob_md_to_people[dob.dob_md])
-                shortlist.update(self.dob_yd_to_people[dob.dob_yd])
-                shortlist.update(self.dob_ym_to_people[dob.dob_ym])
-
-            for person in shortlist:
-                yield person
-
-    def get_unique_match_detailed(self, proband: Person) -> MatchResult:
-        """
-        Returns a single person matching the proband, or ``None`` if there is
-        no match (as defined by the probability settings in ``cfg``).
-
-        Args:
-            proband: a :class:`Person`
-        """
-
-        # 2020-04-25: Do this in one pass.
-        # A bit like
-        # https://www.geeksforgeeks.org/python-program-to-find-second-largest-number-in-a-list/  # noqa
-        # ... but modified, as that fails to deal with joint winners
-        # ... and it's not a super algorithm anyway.
-
-        # Step 1. Scan everything in a single pass, establishing the best
-        # candidate and the runner-up.
-        cfg = self.cfg
-        best_log_odds = MINUS_INFINITY
-        second_best_log_odds = MINUS_INFINITY
-
-        best_candidate = None  # type: Optional[Person]
-        second_best_candidate = None  # type: Optional[Person]
-        for candidate in self.gen_shortlist(proband):
-            log_odds = candidate.log_odds_same(proband)
-            if log_odds > best_log_odds:
-                second_best_log_odds = best_log_odds
-                second_best_candidate = best_candidate
-                best_log_odds = log_odds
-                best_candidate = candidate
-            elif log_odds > second_best_log_odds:
-                second_best_log_odds = log_odds
-                second_best_candidate = candidate
-
-        result = MatchResult(
-            best_log_odds=best_log_odds,
-            second_best_log_odds=second_best_log_odds,
-            best_candidate=best_candidate,
-            second_best_candidate=second_best_candidate,
-            proband=proband,
-        )
-
-        # Is there a winner?
-        if (
-            best_candidate
-            and best_log_odds >= cfg.min_log_odds_for_match
-            and best_log_odds
-            >= (second_best_log_odds + cfg.exceeds_next_best_log_odds)
-        ):
-            # (a) There needs to be a best candidate.
-            # (b) The best needs to be good enough.
-            # (c) The best must beat the runner-up by a sufficient margin.
-            result.winner = best_candidate
-
-        return result
-
-    def get_unique_match(self, proband: Person) -> Optional[Person]:
-        """
-        Returns a single person matching the proband, or ``None`` if there is
-        no match (as defined by the probability settings in ``cfg``).
-
-        Args:
-            proband: a :class:`Person`
-
-        Returns:
-            the winner (a :class:`Person`) or ``None``
-        """
-        result = self.get_unique_match_detailed(proband)
-        return result.winner
-
-    def hashed(self) -> "People":
-        """
-        Returns a hashed version of itself.
-        """
-        return People(cfg=self.cfg, people=[p.hashed() for p in self.people])
-
-    def copy(self) -> "People":
-        """
-        Returns a copy of itself.
-        """
-        return People(cfg=self.cfg, people=[p.copy() for p in self.people])
-
-
-# =============================================================================
-# Loading people data
-# =============================================================================
-
-
-def gen_person_from_file(
-    cfg: MatchConfig, filename: str, plaintext: bool = True
-) -> Generator[Person, None, None]:
-    """
-    Read a list of people from a CSV/JSONLines file. See
-    :class:`BasePerson.PersonKey` for the column details.
-
-    Args:
-        cfg:
-            Configuration object.
-        filename:
-            Filename to read.
-        plaintext:
-            Read in plaintext (from CSV), rather than hashed (from JSON Lines),
-            format?
-
-    Yields:
-        Person objects
-    """
-    log.info(f"Reading file: {filename}")
-    assert filename
-    if plaintext:
-        # CSV file
-        with open(filename, "rt") as f:
-            reader = csv.DictReader(f)
-            for rowdict in reader:
-                yield Person.from_plaintext_csv(cfg, rowdict)
-    else:
-        # JSON Lines file
-        with jsonlines.open(filename) as reader:
-            for obj in reader:
-                yield Person.from_hashed_dict(cfg, obj)
-    log.info(f"... finished reading from {filename}")
-
-
-# =============================================================================
-# Saving people data
-# =============================================================================
-
-
-class PersonWriter:
-    """
-    A context manager for writing :class:`Person` objects to CSV (plaintext) or
-    JSONL (hashed).
-    """
-
-    def __init__(
-        self,
-        file: TextIOBase = None,
-        filename: str = None,
-        plaintext: bool = False,
-        include_frequencies: bool = True,
-        include_other_info: bool = False,
-    ) -> None:
-        """
-        Args:
-            file:
-                File-like object to which to write. Use either this or
-                ``filename``, not both.
-            filename:
-                Filename to which to write. Use either this or ``file``, not
-                both.
-            plaintext:
-                Plaintext (in CSV)? If False, will be written hashed (in
-                JSONL).
-            include_frequencies:
-                (For hashed writing only.) Include frequency information.
-                Without this, the resulting file is suitable for use as a
-                sample, but not as a proband file.
-            include_other_info:
-                (For hashed writing only.) Include the (potentially
-                identifying) ``other_info`` data? Usually ``False``; may be
-                ``True`` for validation.
-        """
-        assert bool(file) != bool(
-            filename
-        ), "Specify either file or filename (and not both)"
-        if include_other_info:
-            log.warning(
-                "include_other_info is set; use this for validation only"
-            )
-
-        self.filename = filename
-        self.file = file
-        self.plaintext = plaintext
-        self.include_frequencies = include_frequencies
-        self.include_other_info = include_other_info
-
-        self.csv_writer = None  # type: Optional[csv.DictWriter]
-
-    def __enter__(self) -> "PersonWriter":
-        """
-        Used by the ``with`` statement; the thing returned is what you get
-        from ``with``.
-        """
-        # 1. Ensure we have a file.
-        if self.filename:
-            log.info(f"Saving to: {self.filename}")
-            self.file = open(self.filename, "wt")
-            # Don't write to the log if we're not using a filename; we may be
-            # writing to an in-memory structure, in which case the user
-            # probably doesn't care.
-        # 2. Create a writer.
-        if self.plaintext:
-            self.csv_writer = csv.DictWriter(
-                self.file, fieldnames=SimplePerson.ALL_PERSON_KEYS
-            )
-            self.csv_writer.writeheader()
-        else:
-            self.jsonl_writer = jsonlines.Writer(self.file)
-        return self
-
-    def write(self, person: Union[SimplePerson, Person]) -> None:
-        """
-        Write a person to the file.
-        """
-        if self.plaintext:
-            self.csv_writer.writerow(person.plaintext_csv_dict())
-        else:
-            if isinstance(person, SimplePerson):
-                raise ValueError(
-                    "Cannot write a hashed version of a SimplePerson"
-                )
-            self.jsonl_writer.write(
-                person.hashed_dict(
-                    include_frequencies=self.include_frequencies,
-                    include_other_info=self.include_other_info,
-                )
-            )
-
-    def __exit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
-    ) -> None:
-        """
-        Reverse the operations of __enter__().
-        """
-        # 2. Close the writers.
-        if self.plaintext:
-            pass
-        else:
-            self.jsonl_writer.close()
-        # 1. If we opened a file, ensure we close it.
-        if self.filename:
-            self.file.close()
-            if exc_val is None:
-                log.info(f"... finished saving to {self.filename}")
-            else:
-                log.info(f"... exception raised; closing {self.filename}")
-            # As above, we won't write to the log if we don't have a filename.

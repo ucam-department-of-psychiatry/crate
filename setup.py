@@ -98,6 +98,7 @@ INSTALL_REQUIRES = [
     # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa: E501
     "numba==0.55.2",  # just-in-time compilation of functions
+    "numpy==1.22.4",  # numerical work
     "openpyxl==3.0.7",  # read Excel
     "pendulum==2.1.2",  # dates/times
     "Pillow==9.0.1",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501

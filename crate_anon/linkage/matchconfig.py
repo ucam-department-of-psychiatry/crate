@@ -34,10 +34,10 @@ crate_anon/linkage/matchconfig.py
 # =============================================================================
 
 import logging
-from typing import Dict, List, NoReturn, Optional, Set, Tuple
+from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union
 
 from cardinal_pythonlib.hash import make_hasher
-from cardinal_pythonlib.maths_py import mean, round_sf, normal_round_int
+from cardinal_pythonlib.maths_py import round_sf, normal_round_int
 from cardinal_pythonlib.probability import log_odds_from_1_in_n
 from cardinal_pythonlib.reprfunc import auto_repr
 
@@ -50,13 +50,21 @@ from crate_anon.linkage.constants import (
     GENDER_MISSING,
     GENDER_OTHER,
     MONTHS_PER_YEAR,
+    Switches,
     VALID_GENDERS,
 )
 from crate_anon.linkage.frequencies import (
+    BasicNameFreqInfo,
     NameFrequencyInfo,
     PostcodeFrequencyInfo,
 )
-from crate_anon.linkage.helpers import safe_upper, standardize_name
+from crate_anon.linkage.helpers import (
+    dict_from_str,
+    safe_upper,
+    standardize_name,
+    standardize_perfect_id_key,
+    standardize_perfect_id_value,
+)
 
 log = logging.getLogger(__name__)
 
@@ -106,27 +114,29 @@ class MatchConfig:
         p_unknown_or_pseudo_postcode: float = (
             FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE
         ),
-        p_minor_forename_error: float = FuzzyDefaults.P_MINOR_FORENAME_ERROR,
+        p_ep1_forename: str = FuzzyDefaults.P_EP1_FORENAME_CSV,
+        p_ep2np1_forename: str = FuzzyDefaults.P_EP2NP1_FORENAME_CSV,
+        p_en_forename: str = FuzzyDefaults.P_EN_FORENAME_CSV,
         p_proband_middle_name_missing: float = (
             FuzzyDefaults.P_PROBAND_MIDDLE_NAME_MISSING
         ),
         p_sample_middle_name_missing: float = (
             FuzzyDefaults.P_SAMPLE_MIDDLE_NAME_MISSING
         ),
-        p_minor_surname_error: float = FuzzyDefaults.P_MINOR_SURNAME_ERROR,
-        p_major_surname_error_csv: str = (
-            FuzzyDefaults.P_MAJOR_SURNAME_ERROR_CSV
-        ),
-        p_dob_error: float = FuzzyDefaults.P_DOB_ERROR,
-        p_dob_single_component_error_if_error: float = (
-            FuzzyDefaults.P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR
-        ),
-        p_gender_error: float = FuzzyDefaults.P_GENDER_ERROR,
-        p_minor_postcode_error: float = FuzzyDefaults.P_MINOR_POSTCODE_ERROR,
+        p_ep1_surname: str = FuzzyDefaults.P_EP1_SURNAME_CSV,
+        p_ep2np1_surname: str = FuzzyDefaults.P_EP2NP1_SURNAME_CSV,
+        p_en_surname: str = FuzzyDefaults.P_EN_SURNAME_CSV,
+        p_ep_dob: float = FuzzyDefaults.P_EP_DOB,
+        p_en_dob: float = FuzzyDefaults.P_EN_DOB,
+        p_e_gender: float = FuzzyDefaults.P_E_GENDER,
+        p_ep_postcode: float = FuzzyDefaults.P_EP_POSTCODE,
         min_log_odds_for_match: float = FuzzyDefaults.MIN_LOG_ODDS_FOR_MATCH,
         exceeds_next_best_log_odds: float = (
             FuzzyDefaults.EXCEEDS_NEXT_BEST_LOG_ODDS
         ),
+        perfect_id_translation: Union[
+            Dict[str, str], str
+        ] = FuzzyDefaults.PERFECT_ID_TRANSLATION,
         extra_validation_output: bool = False,
         report_every: int = FuzzyDefaults.REPORT_EVERY,
         min_probands_for_parallel: int = (
@@ -197,32 +207,38 @@ class MatchConfig:
                 e.g. ZZ99 3VZ (no fixed above) or a postcode not known to our
                 database.
 
-            p_minor_forename_error:
-                Probability that a forename fails a full match but passes a
-                partial match.
+            p_ep1_forename:
+                Error probability that a forename fails a full match but passes
+                a partial 1 (metaphone) match. [GPD]
+            p_ep2np1_forename:
+                Error probability that a forename fails a full match and a
+                partial 1 match but passes a partial 2 (F2C) match. [GPD]
+            p_en_forename:
+                Error probability that a forename yields no match at all. [GPD]
             p_proband_middle_name_missing:
                 Probability that a middle name, present in the sample, is
                 missing from the proband.
             p_sample_middle_name_missing:
                 Probability that a middle name, present in the proband, is
                 missing from the sample.
-            p_minor_surname_error:
-                Probability that a surname fails a full match but passes a
-                partial match.
-            p_major_surname_error_csv:
-                CSV of ``gender:p`` pairs, representing the probability of a
-                complete surname mismatch by gender.
-            p_dob_error:
-                Probability that a DOB is wrong, for the same person.
-            p_dob_single_component_error_if_error:
-                Probability, given that a DOB is wrong, that it is wrong in one
-                (and one only) of year, month, day.
-            p_gender_error:
-                Probability that a gender match fails because of a data
-                error.
-            p_minor_postcode_error:
-                Probability that a postcode fails a full match but passes a
-                partial match.
+            p_ep1_surname:
+                Error probability that a surname fails a full match but passes
+                a partial 1 (metaphone) match. [GPD]
+            p_ep2np1_surname:
+                Error probability that a surname fails a full match and a
+                partial 1 match but passes a partial 2 (F2C) match. [GPD]
+            p_en_surname:
+                Error probability that a surname yields no match at all. [GPD]
+            p_ep_dob:
+                Error probability that a DOB fails a full (YMD) match but
+                passes a partial (YM, MD, or YD) match.
+            p_en_dob:
+                Error probability that a DOB produces no match at all.
+            p_e_gender:
+                Error probability of no gender match.
+            p_ep_postcode:
+                Error probability that a postcode fails a full match but passes
+                a partial match.
 
             min_log_odds_for_match:
                 minimum log odds of a match, to consider two people a match
@@ -230,6 +246,9 @@ class MatchConfig:
                 In a multi-person comparison, the log odds of the best match
                 must exceed those of the next-best match by this much for the
                 best to be considered a unique winner.
+            perfect_id_translation:
+                Option dictionary mapping the perfect ID names in the proband
+                to the equivalents in the sample, e.g. {"nhsnum": "nhsnumber"}.
 
             extra_validation_output:
                 Add extra columns to the output for validation purposes?
@@ -243,57 +262,80 @@ class MatchConfig:
                 is used.
             verbose:
                 Be verbose on creation?
+
+        - [GPD] In ``{gender:p, ...}`` dict-as-string format.
+
+        - F2C = First two characters.
         """
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Input validation
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-        def raise_bad(x_, name_) -> NoReturn:
+        def raise_bad(x_: Any, name_: str) -> NoReturn:
+            """
+            Raise an informative ValueError.
+            """
             raise ValueError(f"Bad {name_}: {x_!r}")
 
-        def check_prob(p_, name_) -> None:
+        def check_prob(p_: float, name_: str) -> float:
+            """
+            Ensure that something is a probability, and return it.
+            """
             if not 0 <= p_ <= 1:
                 raise_bad(p_, name_)
+            return p_
 
-        if not (rounding_sf is None or 1 <= rounding_sf):
-            raise_bad(rounding_sf, "rounding_sf")
+        def mk_gender_p_dict(csv_: str, name_: str) -> Dict[str, float]:
+            """
+            Transform a comma-separated list of ``gender:p`` values into
+            a corresponding dictionary, and fill in the blanks.
+            """
+            d = {}  # type: Dict[str, float]
+            for gender_p_str in csv_.split(","):
+                g_p_components = gender_p_str.split(":")
+                if len(g_p_components) != 2:
+                    raise ValueError(f"Bad {name_}: {csv_!r}")
+                g = g_p_components[0].strip()
+                try:
+                    p = check_prob(float(g_p_components[1].strip()), name_)
+                except (ValueError, TypeError):
+                    raise ValueError(f"Bad probability in {name_}: {csv_!r}")
+                d[g] = p
+            if GENDER_FEMALE not in d:
+                raise ValueError(
+                    f"Gender {GENDER_FEMALE} not specified in {name_}"
+                )
+            if GENDER_MALE not in d:
+                raise ValueError(
+                    f"Gender {GENDER_MALE} not specified in {name_}"
+                )
+            weighted_mean_m_f = (
+                self.p_female_given_m_or_f * d[GENDER_FEMALE]
+                + self.p_male_given_m_or_f * d[GENDER_MALE]
+            )
+            d.setdefault(GENDER_OTHER, weighted_mean_m_f)
+            d.setdefault(GENDER_MISSING, weighted_mean_m_f)
+            if set(d.keys()) != set(VALID_GENDERS):
+                raise ValueError(
+                    f"Missing or bad genders in {name_}: {csv_!r} -- genders "
+                    f"should be {VALID_GENDERS}"
+                )
+            return d
 
-        if not (population_size > 0):
-            raise_bad(population_size, "population_size")
-
-        check_prob(min_name_frequency, "min_name_frequency")
-        for i, x in enumerate(p_middle_name_n_present):
-            check_prob(x, f"p_middle_name_n_present[{i}]")
-
-        if not (birth_year_pseudo_range >= 1):
-            raise_bad(birth_year_pseudo_range, "birth_year_pseudo_range")
-
-        check_prob(p_not_male_or_female, "p_not_male_or_female")
-        check_prob(
-            p_female_given_male_or_female, "p_female_given_male_or_female"
-        )
-
-        if not (mean_oa_population > 0):
-            raise_bad(mean_oa_population, "mean_oa_population")
-        check_prob(
-            p_unknown_or_pseudo_postcode, "p_unknown_or_pseudo_postcode"
-        )
-
-        check_prob(p_minor_forename_error, "p_minor_forename_error")
-        check_prob(p_minor_surname_error, "p_minor_surname_error")
-        check_prob(
-            p_proband_middle_name_missing, "p_proband_middle_name_missing"
-        )
-        check_prob(
-            p_sample_middle_name_missing, "p_sample_middle_name_missing"
-        )
-        check_prob(p_dob_error, "p_dob_error")
-        check_prob(
-            p_dob_single_component_error_if_error,
-            "p_dob_single_component_error_if_error",
-        )
-        check_prob(p_gender_error, "p_gender_error")
-        check_prob(p_minor_postcode_error, "p_minor_postcode_error")
+        def mk_p_c_dict(
+            p_ep1_: Dict[str, float],
+            p_ep2np1_: Dict[str, float],
+            p_en_: Dict[str, float],
+        ) -> Dict[str, float]:
+            """
+            Calculates p_c from the others.
+            """
+            d = {}  # type: Dict[str, float]
+            for g in VALID_GENDERS:
+                p_c_ = 1 - p_ep1_[g] - p_ep2np1_[g] - p_en_[g]
+                assert 0 <= p_c_ <= 1
+                d[g] = p_c_
+            return d
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Basic creation
@@ -305,6 +347,8 @@ class MatchConfig:
         # Hash information
 
         self.hash_fn = make_hasher(hash_method=hash_method, key=hash_key).hash
+        if not (rounding_sf is None or 1 <= rounding_sf):
+            raise_bad(rounding_sf, Switches.ROUNDING_SF)
         self.rounding_sf = rounding_sf
         if local_id_hash_key:
             self.local_id_hash_fn = make_hasher(
@@ -316,30 +360,19 @@ class MatchConfig:
 
         # Overall population
 
+        if not (population_size > 0):
+            raise_bad(population_size, Switches.POPULATION_SIZE)
         self.population_size = population_size
         # Precalculate this, for access speed:
         self.baseline_log_odds_same_person = log_odds_from_1_in_n(
             self.population_size
         )
 
-        # Name handling
+        # Name handling: generic
 
-        self.forename_csv_filename = forename_sex_csv_filename
-        self.surname_csv_filename = surname_csv_filename
-        self._forename_freq = NameFrequencyInfo(
-            csv_filename=forename_sex_csv_filename,
-            cache_filename=forename_cache_filename,
-            min_frequency=min_name_frequency,
-            by_gender=True,
+        self.min_name_frequency = check_prob(
+            min_name_frequency, Switches.MIN_NAME_FREQUENCY
         )
-        self._surname_freq = NameFrequencyInfo(
-            csv_filename=surname_csv_filename,
-            cache_filename=surname_cache_filename,
-            min_frequency=min_name_frequency,
-            by_gender=False,
-        )
-        self.min_name_frequency = min_name_frequency
-        self.p_middle_name_n_present = p_middle_name_n_present
         accent_dict = {}  # type: Dict[str, str]
         for accent_pair in accent_transliterations_csv.split(","):
             accent_components = accent_pair.split("/")
@@ -362,134 +395,181 @@ class MatchConfig:
         for nonspec in nonspecific_name_components_csv.split(","):
             self.nonspecific_name_components.add(nonspec.strip().upper())
 
+        # Name handling: forenames, middle names
+
+        self.forename_csv_filename = forename_sex_csv_filename
+        self.forename_freq_info = NameFrequencyInfo(
+            csv_filename=forename_sex_csv_filename,
+            cache_filename=forename_cache_filename,
+            min_frequency=min_name_frequency,
+            by_gender=True,
+        )
+        for i, x in enumerate(p_middle_name_n_present):
+            check_prob(x, f"{Switches.P_MIDDLE_NAME_N_PRESENT}[{i}]")
+        self.p_middle_name_n_present = p_middle_name_n_present
+
+        # Name handling: surnames
+
+        self.surname_csv_filename = surname_csv_filename
+        self.surname_freq_info = NameFrequencyInfo(
+            csv_filename=surname_csv_filename,
+            cache_filename=surname_cache_filename,
+            min_frequency=min_name_frequency,
+            by_gender=False,
+        )
+
         # Population frequencies: DOB
 
         self.birth_year_pseudo_range = birth_year_pseudo_range
+        if not (birth_year_pseudo_range >= 1):
+            raise_bad(
+                birth_year_pseudo_range, Switches.BIRTH_YEAR_PSEUDO_RANGE
+            )
 
         # Population frequencies: sex/gender
 
-        self.p_not_male_or_female = p_not_male_or_female
+        # ... Check this before using mk_gender_p_dict:
+        self.p_female_given_m_or_f = check_prob(
+            p_female_given_male_or_female,
+            Switches.P_FEMALE_GIVEN_MALE_OR_FEMALE,
+        )
+        self.p_male_given_m_or_f = 1 - self.p_female_given_m_or_f
+        self.p_not_male_or_female = check_prob(
+            p_not_male_or_female, Switches.P_NOT_MALE_OR_FEMALE
+        )
         p_male_or_female = 1 - p_not_male_or_female
         self.p_female = p_female_given_male_or_female * p_male_or_female
         self.p_male = p_male_or_female - self.p_female
 
         # Population frequencies: postcode
 
-        self._postcode_freq = PostcodeFrequencyInfo(
+        if not (mean_oa_population > 0):
+            raise_bad(mean_oa_population, Switches.MEAN_OA_POPULATION)
+        self.postcode_freq = PostcodeFrequencyInfo(
             csv_filename=postcode_csv_filename,
             cache_filename=postcode_cache_filename,
             mean_oa_population=mean_oa_population,
-            p_unknown_or_pseudo_postcode=p_unknown_or_pseudo_postcode,
+            p_unknown_or_pseudo_postcode=check_prob(
+                p_unknown_or_pseudo_postcode,
+                Switches.P_UNKNOWN_OR_PSEUDO_POSTCODE,
+            ),
         )
 
-        # Error probabilities
+        # Error probabilities: forenames, middle names
 
-        self.p_minor_forename_error = p_minor_forename_error
-        self.p_minor_surname_error = p_minor_surname_error
-
-        self.p_major_surname_error = {}  # type: Dict[str, float]
-        for gender_p_str in p_major_surname_error_csv.split(","):
-            g_p_components = gender_p_str.split(":")
-            if len(g_p_components) != 2:
-                raise ValueError(
-                    f"Bad p_major_surname_error_csv: "
-                    f"{p_major_surname_error_csv!r}"
-                )
-            g = g_p_components[0]
-            try:
-                p = float(g_p_components[1])
-            except (ValueError, TypeError):
-                raise ValueError(
-                    f"Bad frequency in p_major_surname_error_csv: "
-                    f"{p_major_surname_error_csv!r}"
-                )
-            check_prob(p, "p_major_surname_error_csv")
-            self.p_major_surname_error[g] = p
-        if GENDER_FEMALE not in self.p_major_surname_error:
-            raise ValueError(
-                f"Gender {GENDER_FEMALE} not specified in "
-                f"p_major_surname_error_csv"
-            )
-        if GENDER_MALE not in self.p_major_surname_error:
-            raise ValueError(
-                f"Gender {GENDER_MALE} not specified in "
-                f"p_major_surname_error_csv"
-            )
-        mean_m_f = mean(
-            [
-                self.p_major_surname_error[GENDER_FEMALE],
-                self.p_major_surname_error[GENDER_MALE],
-            ]
+        self.p_ep1_forename = mk_gender_p_dict(
+            p_ep1_forename, Switches.P_EP1_FORENAME
         )
-        self.p_major_surname_error.setdefault(GENDER_OTHER, mean_m_f)
-        self.p_major_surname_error.setdefault(GENDER_MISSING, mean_m_f)
-        if set(self.p_major_surname_error.keys()) != set(VALID_GENDERS):
-            raise ValueError(
-                f"Missing or bad genders in p_major_surname_error_csv: "
-                f"{p_major_surname_error_csv!r} -- genders should be "
-                f"{VALID_GENDERS}"
-            )
-
-        self.p_proband_middle_name_missing = p_proband_middle_name_missing
-        self.p_sample_middle_name_missing = p_sample_middle_name_missing
-        self.p_dob_error = p_dob_error
-        self.p_dob_single_component_error_if_error = (
-            p_dob_single_component_error_if_error
+        self.p_ep2np1_forename = mk_gender_p_dict(
+            p_ep2np1_forename, Switches.P_EP2NP1_FORENAME
         )
-        self.p_gender_error = p_gender_error
-        self.p_minor_postcode_error = p_minor_postcode_error
+        self.p_en_forename = mk_gender_p_dict(
+            p_en_forename, Switches.P_EN_FORENAME
+        )
+        self.p_c_forename = mk_p_c_dict(
+            p_ep1_=self.p_ep1_forename,
+            p_ep2np1_=self.p_ep2np1_forename,
+            p_en_=self.p_en_forename,
+        )
+
+        self.p_proband_middle_name_missing = check_prob(
+            p_proband_middle_name_missing,
+            Switches.P_PROBAND_MIDDLE_NAME_MISSING,
+        )
+        self.p_sample_middle_name_missing = check_prob(
+            p_sample_middle_name_missing, Switches.P_SAMPLE_MIDDLE_NAME_MISSING
+        )
+
+        # Error probabilities: surnames
+
+        self.p_ep1_surname = mk_gender_p_dict(
+            p_ep1_surname, Switches.P_EP1_SURNAME
+        )
+        self.p_ep2np1_surname = mk_gender_p_dict(
+            p_ep2np1_surname, Switches.P_EP2NP1_SURNAME
+        )
+        self.p_en_surname = mk_gender_p_dict(
+            p_en_surname, Switches.P_EN_SURNAME
+        )
+        self.p_c_surname = mk_p_c_dict(
+            p_ep1_=self.p_ep1_surname,
+            p_ep2np1_=self.p_ep2np1_surname,
+            p_en_=self.p_en_surname,
+        )
+
+        # Error probabilities: DOB
+
+        self.p_ep_dob = check_prob(p_ep_dob, Switches.P_EP_DOB)
+        self.p_en_dob = check_prob(p_en_dob, Switches.P_EN_DOB)
+
+        # Error probabilities: gender
+
+        self.p_e_gender_error = check_prob(
+            p_e_gender,
+            Switches.P_E_GENDER,
+        )
+
+        # Error probabilities: postcode
+
+        self.p_ep_postcode_minor_error = check_prob(
+            p_ep_postcode, Switches.P_EP_POSTCODE
+        )
 
         # Matching rules
 
         self.min_log_odds_for_match = min_log_odds_for_match
         self.exceeds_next_best_log_odds = exceeds_next_best_log_odds
+        if perfect_id_translation is None:
+            perfect_id_xlate_raw = {}
+        elif isinstance(perfect_id_translation, dict):
+            perfect_id_xlate_raw = perfect_id_translation
+        elif isinstance(perfect_id_translation, str):
+            perfect_id_xlate_raw = dict_from_str(perfect_id_translation)
+        else:
+            raise ValueError(
+                f"Bad perfect_id_translation: {perfect_id_translation!r}"
+            )
+        self.perfect_id_translation = {
+            standardize_perfect_id_key(k): standardize_perfect_id_value(v)
+            for k, v in perfect_id_xlate_raw.values()
+        }
+        if self.perfect_id_translation:
+            log.info(
+                f"Using proband-to-sample perfect ID translation: "
+                f"{self.perfect_id_translation}"
+            )
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Some derived frequencies
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-        self.p_dob_correct = 1 - self.p_dob_error
-        self.p_dob_single_component_error = (
-            self.p_dob_error * self.p_dob_single_component_error_if_error
-        )
-        self.p_dob_major_error = 1 - (
-            self.p_dob_correct + self.p_dob_single_component_error
-        )
-        assert 0 <= self.p_dob_correct <= 1
-        assert 0 <= self.p_dob_single_component_error <= 1
-        assert 0 <= self.p_dob_major_error <= 1
+        # DOB:
 
+        self.p_c_dob = 1 - self.p_ep_dob - self.p_en_dob
+        assert 0 <= self.p_c_dob <= 1
         # These ignore the specialness of 29 February:
-        self.p_two_people_share_dob_ymd = 1 / (
-            DAYS_PER_YEAR * birth_year_pseudo_range
-        )
-        p_share_dob_md_not_ymd = (
-            1 / DAYS_PER_YEAR
-        ) - self.p_two_people_share_dob_ymd
+        self.p_f_dob = 1 / (DAYS_PER_YEAR * birth_year_pseudo_range)
+        p_share_dob_md_not_ymd = (1 / DAYS_PER_YEAR) - self.p_f_dob
         p_share_dob_yd_not_ymd = (
             1 / (DAYS_PER_MONTH * birth_year_pseudo_range)
-        ) - self.p_two_people_share_dob_ymd
+        ) - self.p_f_dob
         p_share_dob_ym_not_ymd = (
             1 / (MONTHS_PER_YEAR * birth_year_pseudo_range)
-        ) - self.p_two_people_share_dob_ymd
+        ) - self.p_f_dob
         # These three are mutually exclusive possibilities (e.g. you can't
         # share YM and MD without sharing YMD), so we can just sum:
-        self.p_two_people_partial_not_full_dob_match = (
+        self.p_pnf_dob = (
             p_share_dob_md_not_ymd
             + p_share_dob_yd_not_ymd
             + p_share_dob_ym_not_ymd
         )
-        self.p_two_people_no_dob_similarity = (
-            1
-            - self.p_two_people_share_dob_ymd
-            - self.p_two_people_partial_not_full_dob_match
-        )
-        assert 0 <= self.p_two_people_share_dob_ymd <= 1
+        self.p_n_dob = 1 - self.p_f_dob - self.p_pnf_dob
+        assert 0 <= self.p_f_dob <= 1
         assert 0 <= p_share_dob_md_not_ymd <= 1
         assert 0 <= p_share_dob_yd_not_ymd <= 1
         assert 0 <= p_share_dob_ym_not_ymd <= 1
-        assert 0 <= self.p_two_people_partial_not_full_dob_match <= 1
-        assert 0 <= self.p_two_people_no_dob_similarity <= 1
+        assert 0 <= self.p_pnf_dob <= 1
+        assert 0 <= self.p_n_dob <= 1
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Technical
@@ -504,20 +584,18 @@ class MatchConfig:
         # Reporting
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-        self.partial_dob_mismatch_allowed = self.p_dob_correct < 1
-        self.complete_dob_mismatch_allowed = self.p_dob_major_error > 0
+        self.partial_dob_mismatch_allowed = self.p_c_dob < 1
+        self.complete_dob_mismatch_allowed = self.p_en_dob > 0
         if self.complete_dob_mismatch_allowed:
             potential_speedup_factor = round_sf(
-                normal_round_int(
-                    1 / (1 - self.p_two_people_no_dob_similarity)
-                ),
+                normal_round_int(1 / (1 - self.p_n_dob)),
                 n=3,
             )
             log.warning(
                 f"You are allowing a person's DOB to be completely different, "
-                f"with p = {self.p_dob_major_error}. That is valid but much "
-                f"less efficient computationally (by an estimated factor of "
-                f"about {potential_speedup_factor})."
+                f"with p = {self.p_en_dob}. That is valid but much less "
+                f"efficient computationally (by an estimated factor of about "
+                f"{potential_speedup_factor})."
             )
             # ... for a 90-year range, this is a factor of about 252.
             # For a single year, it's about 9; if I'm born on 1 Jan, allowing
@@ -561,19 +639,9 @@ class MatchConfig:
     # Identifier frequency information
     # -------------------------------------------------------------------------
 
-    def mean_across_genders(self, value_f: float, value_m: float) -> float:
-        """
-        Given frequencies for M and F, return the population mean.
-
-        Args:
-            value_f: female value
-            value_m: male value
-        """
-        return value_f * self.p_female + value_m * self.p_male
-
-    def forename_freq(
+    def get_forename_freq_info(
         self, name: str, gender: str, prestandardized: bool = False
-    ) -> float:
+    ) -> BasicNameFreqInfo:
         """
         Returns the baseline frequency of a forename.
 
@@ -584,39 +652,17 @@ class MatchConfig:
         """
         if not prestandardized:
             name = standardize_name(name)
-        if gender in (GENDER_MALE, GENDER_FEMALE):
-            freq = self._forename_freq.name_frequency(
-                name, gender, prestandardized=True
-            )
-        else:
-            freq_f = self._forename_freq.name_frequency(
-                name, GENDER_FEMALE, prestandardized=True
-            )
-            freq_m = self._forename_freq.name_frequency(
-                name, GENDER_MALE, prestandardized=True
-            )
-            freq = self.mean_across_genders(freq_f, freq_m)
-        return freq
-
-    def forename_metaphone_freq(self, metaphone: str, gender: str) -> float:
-        """
-        Returns the baseline frequency of a forename's metaphone.
-
-        Args:
-            metaphone: the metaphone to check
-            gender: the gender to look up for
-        """
-        if gender in (GENDER_MALE, GENDER_FEMALE):
-            freq = self._forename_freq.metaphone_frequency(metaphone, gender)
-        else:
-            freq_f = self._forename_freq.metaphone_frequency(
-                metaphone, GENDER_FEMALE
-            )
-            freq_m = self._forename_freq.metaphone_frequency(
-                metaphone, GENDER_MALE
-            )
-            freq = self.mean_across_genders(freq_f, freq_m)
-        return freq
+        freq_func = self.forename_freq_info.name_frequency_info
+        if gender in (GENDER_FEMALE, GENDER_MALE):
+            return freq_func(name, gender, prestandardized=True)
+        # Otherwise, take the mean across genders:
+        return BasicNameFreqInfo.weighted_mean(
+            objects=[
+                freq_func(name, GENDER_FEMALE, prestandardized=True),
+                freq_func(name, GENDER_MALE, prestandardized=True),
+            ],
+            weights=[self.p_female, self.p_male],
+        )
 
     def p_middle_name_present(self, n: int) -> float:
         """
@@ -635,7 +681,9 @@ class MatchConfig:
             return self.p_middle_name_n_present[-1]
         return self.p_middle_name_n_present[n - 1]
 
-    def surname_freq(self, name: str, prestandardized: bool = False) -> float:
+    def get_surname_freq_info(
+        self, name: str, prestandardized: bool = False
+    ) -> BasicNameFreqInfo:
         """
         Returns the baseline frequency of a surname.
 
@@ -643,20 +691,9 @@ class MatchConfig:
             name: the name to check
             prestandardized: was it pre-standardized?
         """
-        freq = self._surname_freq.name_frequency(
+        return self.surname_freq_info.name_frequency_info(
             name, prestandardized=prestandardized
         )
-        return freq
-
-    def surname_metaphone_freq(self, metaphone: str) -> float:
-        """
-        Returns the baseline frequency of a surname's metaphone.
-
-        Args:
-            metaphone: the metaphone to check
-        """
-        freq = self._surname_freq.metaphone_frequency(metaphone)
-        return freq
 
     def gender_freq(self, gender: str) -> Optional[float]:
         if not gender:
@@ -672,16 +709,20 @@ class MatchConfig:
         """
         Is this a valid postcode?
         """
-        return self._postcode_freq.debug_is_valid_postcode(postcode_unit)
+        return self.postcode_freq.debug_is_valid_postcode(postcode_unit)
 
     def postcode_unit_sector_freq(
         self, postcode_unit: str, prestandardized: bool = False
     ) -> Tuple[float, float]:
         """
         Returns the frequency for a full postcode, or postcode unit (the
-        proportion of the population who live in that postcode).
+        proportion of the population who live in that postcode), and the
+        corresponding larger-scale postcode sector.
+
+        The underlying function ensures that the sector frequency is as least
+        as big as the unit frequency.
         """
-        return self._postcode_freq.postcode_unit_sector_frequency(
+        return self.postcode_freq.postcode_unit_sector_frequency(
             postcode_unit, prestandardized=prestandardized
         )
 
@@ -695,7 +736,7 @@ class MatchConfig:
             postcode_unit: the postcode unit to check
             prestandardized: was the postcode pre-standardized in format?
         """
-        return self._postcode_freq.debug_postcode_unit_population(
+        return self.postcode_freq.debug_postcode_unit_population(
             postcode_unit, prestandardized=prestandardized
         )
 
@@ -709,16 +750,9 @@ class MatchConfig:
             postcode_sector: the postcode sector to check
             prestandardized: was the postcode pre-standardized in format?
         """
-        return self._postcode_freq.debug_postcode_sector_population(
+        return self.postcode_freq.debug_postcode_sector_population(
             postcode_sector, prestandardized=prestandardized
         )
-
-    # -------------------------------------------------------------------------
-    # Error frequency information
-    # -------------------------------------------------------------------------
-
-    def get_p_major_surname_error(self, gender: str) -> float:
-        return self.p_major_surname_error[gender]
 
     # -------------------------------------------------------------------------
     # Comparisons
@@ -736,3 +770,10 @@ class MatchConfig:
             bool: binary decision
         """
         return log_odds_match >= self.min_log_odds_for_match
+
+    # -------------------------------------------------------------------------
+    # Perfect ID handling
+    # -------------------------------------------------------------------------
+
+    def remap_perfect_id_key(self, key: str) -> str:
+        return self.perfect_id_translation.get(key, key)

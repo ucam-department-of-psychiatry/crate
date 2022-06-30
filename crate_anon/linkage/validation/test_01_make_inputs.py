@@ -29,76 +29,106 @@ Create some test data for fuzzy linkage validation.
 
 """
 
-import csv
 import os
 
-from cardinal_pythonlib.file_io import writeline_nl
+from crate_anon.linkage.constants import FuzzyDefaults, GENDER_FEMALE
 from crate_anon.linkage.fuzzy_id_match import (
-    SimplePerson,
-    FuzzyDefaults,
+    Commands,
     get_demo_people,
 )
+from crate_anon.linkage.person import SimplePerson
+from crate_anon.linkage.person_io import PersonWriter, write_people
 
 
 def mk_large(filename: str, n: int) -> None:
     print(f"- Creating {filename}")
     people = get_demo_people()
-    with open(filename, "wt") as f_:
-        writer = csv.DictWriter(f_, fieldnames=SimplePerson.ALL_PERSON_KEYS)
-        writer.writeheader()
+    with PersonWriter(filename=filename, plaintext=True) as writer:
         i = 1
         done = False
         while not done:
             for person in people:
                 person.local_id = f"id_{i}"
-                writer.writerow(person.plaintext_csv_dict())
+                writer.write(person)
                 i += 1
                 if i > n:
                     done = True
                     break
 
 
-def write_file(filename: str, contents: str) -> None:
-    print(f"- Creating {filename}")
-    with open(filename, "wt") as f:
-        writeline_nl(f, contents.strip())
+def main() -> None:
+    p1 = SimplePerson(
+        local_id="1",
+        first_name="Alice",
+        surname="Jones",
+        dob="1950-01-01",
+        gender=GENDER_FEMALE,
+    )
+    p2 = SimplePerson(
+        local_id="2",
+        first_name="Alice",
+        surname="Smith",
+        dob="1994-07-29",
+        gender=GENDER_FEMALE,
+    )
+    p3 = SimplePerson(
+        local_id="3",
+        first_name="Alice",
+        surname="Smith",
+        dob="1950-01-01",
+        gender=GENDER_FEMALE,
+    )
+    p4 = SimplePerson(
+        local_id="4",
+        first_name="Alys",
+        surname="Smith",
+        dob="1950-01-01",
+        gender=GENDER_FEMALE,
+    )
+    p5 = SimplePerson(
+        local_id="5",
+        first_name="Alys",
+        surname="Smythe",
+        dob="1950-01-01",
+        gender=GENDER_FEMALE,
+    )
+
+    sample_base = os.path.join(
+        FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_sample.csv"
+    )
+    print(f"- Creating {sample_base}")
+    os.system(
+        f'crate_fuzzy_id_match {Commands.PRINT_DEMO_SAMPLE} > "{sample_base}"'
+    )
+
+    mk_large(
+        os.path.join(
+            FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_sample_1k.csv"
+        ),
+        1000,
+    )
+    mk_large(
+        os.path.join(
+            FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_sample_10k.csv"
+        ),
+        10000,
+    )
+    write_people(
+        filename=os.path.join(
+            FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_demo_fig3_sample.csv"
+        ),
+        people=[p1, p2, p3, p4, p5],
+        plaintext=True,
+    )
+    write_people(
+        filename=os.path.join(
+            FuzzyDefaults.DEFAULT_CACHE_DIR,
+            "crate_fuzzy_demo_fig3_probands.csv",
+        ),
+        people=[p3],
+        plaintext=True,
+    )
 
 
-SAMPLE_BASE = os.path.join(
-    FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_sample.csv"
-)
-print(f"- Creating {SAMPLE_BASE}")
-os.system(f'crate_fuzzy_id_match print_demo_sample > "{SAMPLE_BASE}"')
-
-mk_large(
-    os.path.join(FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_sample_1k.csv"),
-    1000,
-)
-mk_large(
-    os.path.join(
-        FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_sample_10k.csv"
-    ),
-    10000,
-)
-write_file(
-    filename=os.path.join(
-        FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_demo_fig3_sample.csv"
-    ),
-    contents="""
-local_id,first_name,middle_names,surname,dob,gender,postcodes,other_info
-1,Alice,,Jones,1950-01-01,F,,
-2,Alice,,Smith,1994-07-29,F,,
-3,Alice,,Smith,1950-01-01,F,,
-4,Alys,,Smith,1950-01-01,F,,
-5,Alys,,Smythe,1950-01-01,F,,
-    """,
-)
-write_file(
-    filename=os.path.join(
-        FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_demo_fig3_probands.csv"
-    ),
-    contents="""
-local_id,first_name,middle_names,surname,dob,gender,postcodes,other_info
-3,Alice,,Smith,1950-01-01,F,,
-    """,
-)
+if __name__ == "__main__":
+    main()

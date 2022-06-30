@@ -77,8 +77,6 @@ from crate_anon.linkage.identifiers import TemporalIDHolder
 from crate_anon.linkage.matchconfig import MatchConfig
 from crate_anon.linkage.helpers import (
     age_years,
-    cache_load,
-    cache_save,
     is_valid_isoformat_blurred_date,
     is_valid_isoformat_date,
     isoformat_optional_date_str,
@@ -99,11 +97,9 @@ from crate_anon.linkage.fuzzy_id_match import (
     Switches,
     warn_or_fail_if_default_key,
 )
-from crate_anon.linkage.person import (
-    People,
-    Person,
-    PersonWriter,
-)
+from crate_anon.linkage.people import People
+from crate_anon.linkage.person import Person
+from crate_anon.linkage.person_io import PersonWriter
 
 log = logging.getLogger(__name__)
 
@@ -594,7 +590,6 @@ def validate_1(
     cfg: MatchConfig,
     people_filename: str,
     output_filename: str,
-    cache_filename: str = None,
     seed: int = 1234,
 ) -> None:
     """
@@ -605,8 +600,6 @@ def validate_1(
             The main :class:`MatchConfig` object.
         people_filename:
             Filename of people; see :func:`read_people`.
-        cache_filename:
-            Cache filename, for faster loading.
         output_filename:
             Output CSV filename.
         seed:
@@ -615,64 +608,27 @@ def validate_1(
     # -------------------------------------------------------------------------
     # Load and hash data
     # -------------------------------------------------------------------------
-    try:
-        if not cache_filename:
-            raise FileNotFoundError
-        (
-            in_plaintext,
-            out_plaintext,
-            in_hashed,
-            out_hashed,
-            in_deletions,
-            out_deletions,
-            in_deletions_hashed,
-            out_deletions_hashed,
-            in_typos,
-            out_typos,
-            in_typos_hashed,
-            out_typos_hashed,
-        ) = cache_load(cache_filename)
-        log.info(f"Read from cache: {cache_filename}")
-    except FileNotFoundError:
-        in_plaintext, out_plaintext = read_people_alternate_groups(
-            cfg, people_filename
-        )
-        log.info(f"Seeding random number generator with: {seed}")
-        random.seed(seed)
-        log.info("Making copies with deliberate deletions...")
-        in_deletions = make_deletion_data(in_plaintext, cfg)
-        out_deletions = make_deletion_data(out_plaintext, cfg)
-        log.info("Making copies with deliberate typos...")
-        in_typos = make_typo_data(in_plaintext, cfg)
-        out_typos = make_typo_data(out_plaintext, cfg)
+    in_plaintext, out_plaintext = read_people_alternate_groups(
+        cfg, people_filename
+    )
+    log.info(f"Seeding random number generator with: {seed}")
+    random.seed(seed)
+    log.info("Making copies with deliberate deletions...")
+    in_deletions = make_deletion_data(in_plaintext, cfg)
+    out_deletions = make_deletion_data(out_plaintext, cfg)
+    log.info("Making copies with deliberate typos...")
+    in_typos = make_typo_data(in_plaintext, cfg)
+    out_typos = make_typo_data(out_plaintext, cfg)
 
-        log.info("Hashing...")
-        in_hashed = in_plaintext.hashed()
-        out_hashed = out_plaintext.hashed()
-        in_deletions_hashed = in_deletions.hashed()
-        out_deletions_hashed = out_deletions.hashed()
-        in_typos_hashed = in_typos.hashed()
-        out_typos_hashed = out_typos.hashed()
-        log.info("... done")
+    log.info("Hashing...")
+    in_hashed = in_plaintext.hashed()
+    out_hashed = out_plaintext.hashed()
+    in_deletions_hashed = in_deletions.hashed()
+    out_deletions_hashed = out_deletions.hashed()
+    in_typos_hashed = in_typos.hashed()
+    out_typos_hashed = out_typos.hashed()
+    log.info("... done")
 
-        if cache_filename:
-            cache_save(
-                cache_filename,
-                [
-                    in_plaintext,
-                    out_plaintext,
-                    in_hashed,
-                    out_hashed,
-                    in_deletions,
-                    out_deletions,
-                    in_deletions_hashed,
-                    out_deletions_hashed,
-                    in_typos,
-                    out_typos,
-                    in_typos_hashed,
-                    out_typos_hashed,
-                ],
-            )
     # -------------------------------------------------------------------------
     # Calculate validation data and save it
     # -------------------------------------------------------------------------

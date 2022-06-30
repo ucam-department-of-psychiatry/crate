@@ -40,13 +40,13 @@ same person.
 # Imports
 # =============================================================================
 
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, Optional
 
 from crate_anon.linkage.helpers import (
     log_likelihood_ratio_from_p,
     log_posterior_odds_from_pdh_pdnh,
 )
-from crate_anon.linkage.constants import MINUS_INFINITY
+from crate_anon.linkage.constants import INFINITY, MINUS_INFINITY
 
 
 # =============================================================================
@@ -100,6 +100,9 @@ class Comparison:
 
     def posterior_log_odds(self, prior_log_odds: float) -> float:
         """
+        Returns the posterior log odds, given the prior log odds. Often
+        overriden in derived classes for a faster version.
+
         Args:
             prior_log_odds:
                 prior log odds that they're the same person
@@ -118,18 +121,16 @@ class Comparison:
         )
 
 
-class FailureComparison(Comparison):
+class ImpossibleComparison(Comparison):
     """
-    Special comparison to denote failure, i.e. for when P(D | H) = 0, that
-    doesn't bother with all the calculations involved in calculating a
-    likelihood ratio of 0.
-
-    Currently unused.
+    Special comparison to denote impossibility/failure, i.e. for when P(D | H)
+    = 0, that doesn't bother with all the calculations involved in calculating
+    a likelihood ratio of 0.
     """
 
     @property
     def d_description(self) -> str:
-        return "FailureComparison"
+        return "ImpossibleComparison"
 
     @property
     def p_d_given_h(self) -> float:
@@ -145,12 +146,38 @@ class FailureComparison(Comparison):
         return MINUS_INFINITY
 
 
+class CertainComparison(Comparison):
+    """
+    Special comparison to denote failure, i.e. for when P(D | H) = 0, that
+    doesn't bother with all the calculations involved in calculating a
+    likelihood ratio of 0.
+    """
+
+    @property
+    def d_description(self) -> str:
+        return "CertainComparison"
+
+    @property
+    def p_d_given_h(self) -> float:
+        # Unimportant as long as it's not 0.
+        return 1
+
+    @property
+    def p_d_given_not_h(self) -> float:
+        # Not used. But zero.
+        return 0  # makes things "in principle" calculable
+
+    def posterior_log_odds(self, prior_log_odds: float) -> float:
+        # Nice and quick:
+        return INFINITY
+
+
 class DirectComparison(Comparison):
     r"""
     Represents a comparison where the user supplies :math:`P(D | H)` and
-    :math:`P(D | \neg H)` directly. This is the fastest. It precalculates the
-    log likelihood ratio for speed; that way, our comparison can be re-used
-    fast.
+    :math:`P(D | \neg H)` directly. This is the fastest real comparison. It
+    precalculates the log likelihood ratio for speed; that way, our comparison
+    can be re-used fast.
     """
 
     def __init__(
@@ -333,62 +360,6 @@ class FullPartialNoMatchComparison(Comparison):
 
 
 # =============================================================================
-# Make a trio of DirectComparison objects (for speed) using an interface that's
-# slightly more friendly, like FullPartialNoMatchComparison.
-# =============================================================================
-
-
-def mk_comparison_duo(
-    p_match_given_same_person: float, p_match_given_diff_person: float
-) -> Tuple[DirectComparison, DirectComparison]:
-    """
-    A two-state method that is a faster alternative to MatchNoMatchComparison.
-
-    - p_match_given_same_person = 1 - p_e
-    - p_match_given_diff_person = p_f
-    """
-    match = DirectComparison(
-        p_d_given_same_person=p_match_given_same_person,  # 1 - p_e
-        p_d_given_diff_person=p_match_given_diff_person,  # p_f
-    )
-    no_match = DirectComparison(
-        p_d_given_same_person=1 - p_match_given_same_person,  # p_e
-        p_d_given_diff_person=1 - p_match_given_diff_person,  # 1 - p_f
-    )
-    return match, no_match
-
-
-def mk_comparison_trio_full_error_prohibitive(
-    p_f: float, p_p: float, p_ep: float
-) -> Tuple[DirectComparison, DirectComparison, DirectComparison]:
-    """
-    A three-state method that is a faster alternative to
-    FullPartialNoMatchComparison. Assumes p_en = 0, so p_ep = p_e.
-
-    Args:
-        p_f:
-            :math:`p_f = P(\text{full match} | \neg H)`
-        p_p:
-            :math:`p_p = P(\text{partial match} | \neg H)`
-        p_ep:
-            :math:`p_{ep} = P(\text{partial but not full match} | H)`
-
-    Returns:
-        tuple: full_match, partial_match, no_match
-    """
-    full_match = DirectComparison(
-        p_d_given_same_person=1 - p_ep, p_d_given_diff_person=p_f
-    )
-    partial_match = DirectComparison(
-        p_d_given_same_person=p_ep, p_d_given_diff_person=p_p - p_f
-    )
-    no_match = DirectComparison(
-        p_d_given_same_person=0, p_d_given_diff_person=1 - p_p
-    )
-    return full_match, partial_match, no_match
-
-
-# =============================================================================
 # The main Bayesian comparison point
 # =============================================================================
 
@@ -416,4 +387,6 @@ def bayes_compare(
         # If there is a realistic chance of hitting -∞, this saves time:
         if log_odds == MINUS_INFINITY:
             return MINUS_INFINITY
+        # We could check for +∞ too, but that (via PerfectID) is done outside
+        # the Bayesian process.
     return log_odds

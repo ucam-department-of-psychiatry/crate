@@ -56,16 +56,16 @@ from cardinal_pythonlib.datetimefunc import coerce_to_pendulum_date
 from cardinal_pythonlib.hash import HashMethods
 from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+from cardinal_pythonlib.maths_py import round_sf
 from cardinal_pythonlib.probability import probability_from_log_odds
 from cardinal_pythonlib.profile import do_cprofile
 
 from crate_anon.common.constants import EXIT_FAILURE, EXIT_SUCCESS
 from crate_anon.linkage.helpers import (
-    cache_load,
-    cache_save,
     get_metaphone,
     get_postcode_sector,
     optional_int,
+    standardize_name,
     standardize_postcode,
 )
 from crate_anon.linkage.identifiers import TemporalIDHolder
@@ -74,17 +74,18 @@ from crate_anon.linkage.constants import (
     FuzzyDefaults,
     GENDER_FEMALE,
     GENDER_MALE,
-    VALID_GENDERS,
+    GENDER_MISSING,
+    GENDER_OTHER,
+    Switches,
 )
 from crate_anon.linkage.matchconfig import MatchConfig
-from crate_anon.linkage.person import (
+from crate_anon.linkage.matchresult import MatchResult
+from crate_anon.linkage.people import DuplicateIDError, People
+from crate_anon.linkage.person import SimplePerson, Person
+from crate_anon.linkage.person_io import (
     gen_person_from_file,
-    SimplePerson,
-    DuplicateLocalIDError,
-    MatchResult,
-    People,
-    Person,
     PersonWriter,
+    write_people,
 )
 from crate_anon.version import CRATE_VERSION
 
@@ -149,6 +150,28 @@ covers SSDEEP, TLSH, sdhash, and others.
 # =============================================================================
 
 CRATE_FETCH_WORDLISTS = "crate_fetch_wordlists"
+
+
+class Commands:
+    """
+    Main commands.
+    """
+
+    HASH = "hash"
+    COMPARE_PLAINTEXT = "compare_plaintext"
+    COMPARE_HASHED_TO_HASHED = "compare_hashed_to_hashed"
+    COMPARE_HASHED_TO_PLAINTEXT = "compare_hashed_to_plaintext"
+
+    PRINT_DEMO_SAMPLE = "print_demo_sample"
+    SHOW_METAPHONE = "show_metaphone"
+    SHOW_FORENAME_FREQ = "show_forename_freq"
+    SHOW_FORENAME_METAPHONE_FREQ = "show_forename_metaphone_freq"
+    SHOW_FORENAME_F2C_FREQ = "show_forename_f2c_freq"
+    SHOW_SURNAME_FREQ = "show_surname_freq"
+    SHOW_SURNAME_METAPHONE_FREQ = "show_surname_metaphone_freq"
+    SHOW_SURNAME_F2C_FREQ = "show_surname_f2c_freq"
+    SHOW_DOB_FREQ = "show_dob_freq"
+    SHOW_POSTCODE_FREQ = "show_postcode_freq"
 
 
 # =============================================================================
@@ -447,16 +470,28 @@ def compare_probands_to_sample_from_files(
         if sample_cache_filename:
             log.info(f"Using sample cache: {sample_cache_filename}")
             try:
-                (sample,) = cache_load(sample_cache_filename)
+                sample = read_people(
+                    cfg, sample_cache_filename, plaintext=True, jsonl=True
+                )
             except FileNotFoundError:
-                sample = read_people(cfg, sample_filename)
-                cache_save(sample_cache_filename, [sample])
+                sample = read_people(
+                    cfg, sample_filename, plaintext=True, jsonl=False
+                )
+                write_people(
+                    sample,
+                    filename=sample_cache_filename,
+                    plaintext=True,
+                    include_frequencies=True,
+                    include_other_info=False,
+                )
         else:
             # You may want to avoid a cache, for security.
             log.info("No sample cache in use.")
-            sample = read_people(cfg, sample_filename)
+            sample = read_people(
+                cfg, sample_filename, plaintext=True, jsonl=False
+            )
     else:
-        sample = read_people(cfg, sample_filename, plaintext=False)
+        sample = read_people(cfg, sample_filename, plaintext=False, jsonl=True)
 
     # Probands
     log.info("Loading proband data")
@@ -498,6 +533,7 @@ def read_people_alternate_groups(
     cfg: MatchConfig,
     filename: str,
     plaintext: bool = True,
+    jsonl: bool = False,
 ) -> Tuple[People, People]:
     """
     Read people from a file, splitting consecutive people into "first group",
@@ -509,22 +545,26 @@ def read_people_alternate_groups(
     a = People(cfg=cfg)
     b = People(cfg=cfg)
     for i, person in enumerate(
-        gen_person_from_file(cfg, filename, plaintext), start=2
+        gen_person_from_file(cfg, filename, plaintext=plaintext, jsonl=jsonl),
+        start=2,
     ):
         try:
             if i % 2 == 0:
                 a.add_person(person)
             else:
                 b.add_person(person)
-        except DuplicateLocalIDError as exc:
+        except DuplicateIDError as exc:
             msg = f"{exc} at line {i} of {filename}"
             log.error(msg)
-            raise DuplicateLocalIDError(msg)
+            raise DuplicateIDError(msg)
     return a, b
 
 
 def read_people(
-    cfg: MatchConfig, filename: str, plaintext: bool = True
+    cfg: MatchConfig,
+    filename: str,
+    plaintext: bool = True,
+    jsonl: bool = False,
 ) -> People:
     """
     Read a list of people from a CSV/JSONLines file.
@@ -535,14 +575,15 @@ def read_people(
     """
     people = People(cfg=cfg)
     for i, person in enumerate(
-        gen_person_from_file(cfg, filename, plaintext), start=2
+        gen_person_from_file(cfg, filename, plaintext=plaintext, jsonl=jsonl),
+        start=2,
     ):
         try:
             people.add_person(person)
-        except DuplicateLocalIDError as exc:
+        except DuplicateIDError as exc:
             msg = f"{exc} at line {i} of {filename}"
             log.error(msg)
-            raise DuplicateLocalIDError(msg)
+            raise DuplicateIDError(msg)
     return people
 
 
@@ -728,92 +769,13 @@ def get_demo_csv() -> str:
     people = get_demo_people()
     assert len(people) >= 1
     output = StringIO()
-    with PersonWriter(file=output, plaintext=True) as writer:
-        for person in people:
-            writer.write(person)
+    write_people(people=people, file=output, plaintext=True)
     return output.getvalue()
 
 
 # =============================================================================
 # Command-line entry point
 # =============================================================================
-
-
-class Switches:
-    """
-    Argparse option switches that are used in several places.
-    """
-
-    ALLOW_DEFAULT_HASH_KEY = "allow_default_hash_key"
-    EXTRA_VALIDATION_OUTPUT = "extra_validation_output"
-    INCLUDE_OTHER_INFO = "include_other_info"
-    INPUT = "input"
-    OUTPUT = "output"
-    MIN_PROBANDS_FOR_PARALLEL = "min_probands_for_parallel"
-    N_WORKERS = "n_workers"
-    REPORT_EVERY = "report_every"
-
-    KEY = "key"
-    HASH_METHOD = "hash_method"
-    ROUNDING_SF = "rounding_sf"
-    LOCAL_ID_HASH_KEY = "local_id_hash_key"
-
-    POPULATION_SIZE = "population_size"
-
-    ACCENT_TRANSLITERATIONS = "accent_transliterations"
-    FORENAME_CACHE_FILENAME = "forename_cache_filename"
-    FORENAME_SEX_FREQ_CSV = "forename_sex_freq_csv"
-    MIN_NAME_FREQUENCY = "min_name_frequency"
-    NONSPECIFIC_NAME_COMPONENTS = "nonspecific_name_components"
-    P_MIDDLE_NAME_N_PRESENT = "p_middle_name_n_present"
-    SURNAME_CACHE_FILENAME = "surname_cache_filename"
-    SURNAME_FREQ_CSV = "surname_freq_csv"
-
-    BIRTH_YEAR_PSEUDO_RANGE = "birth_year_pseudo_range"
-
-    P_NOT_MALE_OR_FEMALE = "p_not_male_or_female"
-    P_FEMALE_GIVEN_MALE_OR_FEMALE = "p_female_given_male_or_female"
-
-    POSTCODE_CACHE_FILENAME = "postcode_cache_filename"
-    POSTCODE_CSV_FILENAME = "postcode_csv_filename"
-    MEAN_OA_POPULATION = "mean_oa_population"
-    P_UNKNOWN_OR_PSEUDO_POSTCODE = "p_unknown_or_pseudo_postcode"
-
-    P_MINOR_FORENAME_ERROR = "p_minor_forename_error"
-    P_PROBAND_MIDDLE_NAME_MISSING = "p_proband_middle_name_missing"
-    P_SAMPLE_MIDDLE_NAME_MISSING = "p_sample_middle_name_missing"
-    P_MINOR_SURNAME_ERROR = "p_minor_surname_error"
-    P_MAJOR_SURNAME_ERROR = "p_major_surname_error"
-    P_DOB_ERROR = "p_dob_error"
-    P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR = (
-        "p_dob_single_component_error_if_error"
-    )
-    P_GENDER_ERROR = "p_gender_error"
-    P_MINOR_POSTCODE_ERROR = "p_minor_postcode_error"
-
-    MIN_LOG_ODDS_FOR_MATCH = "min_log_odds_for_match"
-    EXCEEDS_NEXT_BEST_LOG_ODDS = "exceeds_next_best_log_odds"
-
-
-class Commands:
-    """
-    Main commands.
-    """
-
-    HASH = "hash"
-    COMPARE_PLAINTEXT = "compare_plaintext"
-    COMPARE_HASHED_TO_HASHED = "compare_hashed_to_hashed"
-    COMPARE_HASHED_TO_PLAINTEXT = "compare_hashed_to_plaintext"
-
-    PRINT_DEMO_SAMPLE = "print_demo_sample"
-    SHOW_METAPHONE = "show_metaphone"
-    SHOW_FORENAME_FREQ = "show_forename_freq"
-    SHOW_FORENAME_METAPHONE_FREQ = "show_forename_metaphone_freq"
-    SHOW_SURNAME_FREQ = "show_surname_freq"
-    SHOW_SURNAME_METAPHONE_FREQ = "show_surname_metaphone_freq"
-    SHOW_DOB_FREQ = "show_dob_freq"
-    SHOW_POSTCODE_FREQ = "show_postcode_freq"
-
 
 # -----------------------------------------------------------------------------
 # Long help strings
@@ -1059,7 +1021,8 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         default=FuzzyDefaults.ACCENT_TRANSLITERATIONS_SLASH_CSV,
         help="CSV list of 'accented/plain' pairs, representing how accented "
         "characters may be transliterated (if they are not reproduced "
-        "accurately or simply mangled into ASCII).",
+        "accurately or simply mangled into ASCII). Only upper-case versions "
+        "are required (anything supplied will be converted to upper case).",
     )
     priors_group.add_argument(
         f"--{Switches.NONSPECIFIC_NAME_COMPONENTS}",
@@ -1079,7 +1042,7 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         default=FuzzyDefaults.BIRTH_YEAR_PSEUDO_RANGE,
         help=f"Birth year pseudo-range. The sole purpose is to calculate the "
         f"probability of two random people sharing a DOB, which is taken "
-        f"as 1/({DAYS_PER_YEAR} * b). This option is b.",
+        f"as 1/({DAYS_PER_YEAR} * b), even for 29 Feb. This option is b.",
     )
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1090,7 +1053,8 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         f"--{Switches.P_NOT_MALE_OR_FEMALE}",
         type=float,
         default=FuzzyDefaults.P_NOT_MALE_OR_FEMALE,
-        help="Probability that a person in the population has gender 'X'.",
+        help=f"Probability that a person in the population has gender "
+        f"{GENDER_OTHER!r}.",
     )
     priors_group.add_argument(
         f"--{Switches.P_FEMALE_GIVEN_MALE_OR_FEMALE}",
@@ -1146,13 +1110,36 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
     Adds a subparser for error probabilities.
     """
     error_p_group = parser.add_argument_group("Error probabilities")
-    error_p_group.add_argument(
-        f"--{Switches.P_MINOR_FORENAME_ERROR}",
-        type=float,
-        default=FuzzyDefaults.P_MINOR_FORENAME_ERROR,
-        help="Assumed probability that a forename has an error in that means "
-        "it fails a full match but satisfies a partial (metaphone) match.",
+    # gdh = gender dict help
+    gdh = (
+        f"(Comma-separated list of 'gender:p' values, where gender must "
+        f"include {GENDER_FEMALE}, {GENDER_MALE} and can include "
+        f"{GENDER_OTHER}, {GENDER_MISSING!r}.)"
     )
+
+    error_p_group.add_argument(
+        f"--{Switches.P_EP1_FORENAME}",
+        type=float,
+        default=FuzzyDefaults.P_EP1_FORENAME_CSV,
+        help=f"Probability that a forename has an error such that it fails a "
+        f"full match but satisfies a partial 1 (metaphone) match. {gdh}",
+    )
+    error_p_group.add_argument(
+        f"--{Switches.P_EP2NP1_FORENAME}",
+        type=float,
+        default=FuzzyDefaults.P_EP2NP1_FORENAME_CSV,
+        help=f"Probability that a forename has an error such that it fails a "
+        f"full/partial 1 match but satisfies a partial 2 (first two "
+        f"character) match. {gdh}",
+    )
+    error_p_group.add_argument(
+        f"--{Switches.P_EN_FORENAME}",
+        type=float,
+        default=FuzzyDefaults.P_EN_FORENAME_CSV,
+        help=f"Probability that a forename has an error such that it produces "
+        f"no match at all. {gdh}",
+    )
+
     error_p_group.add_argument(
         f"--{Switches.P_PROBAND_MIDDLE_NAME_MISSING}",
         type=float,
@@ -1167,52 +1154,59 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
         help="Probability that a middle name, present in the proband, is "
         "missing from the sample.",
     )
+
     error_p_group.add_argument(
-        f"--{Switches.P_MINOR_SURNAME_ERROR}",
+        f"--{Switches.P_EP1_SURNAME}",
         type=float,
-        default=FuzzyDefaults.P_MINOR_SURNAME_ERROR,
-        help="Assumed probability that a surname has an error in that means "
-        "it fails a full match but satisfies a partial (metaphone) match.",
+        default=FuzzyDefaults.P_EP1_SURNAME_CSV,
+        help=f"Probability that a surname has an error such that it fails a "
+        f"full match but satisfies a partial 1 (metaphone) match. {gdh}",
     )
     error_p_group.add_argument(
-        f"--{Switches.P_MAJOR_SURNAME_ERROR}",
-        type=str,
-        default=FuzzyDefaults.P_MAJOR_SURNAME_ERROR_CSV,
-        help=f"Comma-separated list of 'gender:p' values, where gender must "
-        f"include {GENDER_FEMALE!r} and {GENDER_MALE!r} but can include "
-        f"{VALID_GENDERS}, and p is the probability that two records for the "
-        f"same person have a different surname (neither full nor partial "
-        f"match). Culturally, this varies by gender.",
+        f"--{Switches.P_EP2NP1_SURNAME}",
+        type=float,
+        default=FuzzyDefaults.P_EP2NP1_SURNAME_CSV,
+        help=f"Probability that a surname has an error such that it fails a "
+        f"full/partial 1 match but satisfies a partial 2 (first two "
+        f"character) match. {gdh}",
     )
     error_p_group.add_argument(
-        f"--{Switches.P_DOB_ERROR}",
+        f"--{Switches.P_EN_SURNAME}",
         type=float,
-        default=FuzzyDefaults.P_DOB_ERROR,
-        help="Assumed probability (p_e) that a DOB is wrong in some way, "
-        "leading to a proband/candidate partial match or mismatch.",
+        default=FuzzyDefaults.P_EN_SURNAME_CSV,
+        help=f"Probability that a surname has an error such that it produces "
+        f"no match at all. {gdh}",
+    )
+
+    error_p_group.add_argument(
+        f"--{Switches.P_EP_DOB}",
+        type=float,
+        default=FuzzyDefaults.P_EP_DOB,
+        help="Probability that a DOB is wrong in some way that causes a "
+        "partial match (YM, MD, or YD) but not a full (YMD) match.",
     )
     error_p_group.add_argument(
-        f"--{Switches.P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR}",
+        f"--{Switches.P_EN_DOB}",
         type=float,
-        default=FuzzyDefaults.P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR,
-        help="Given that a DOB is wrong, what is the probability that the "
-        "error leads to a partial match, in which only one component (year, "
-        "month, or day) is wrong? (This is p_ep / p_e.) NOTE: Empirical data "
-        "suggests this is about 0.933, but we suggest setting it to 1, as "
-        "anything below 1 sacrifices an opportunity for enormous "
-        "computational efficiency -- <1 will run much slower.",
+        default=FuzzyDefaults.P_EN_DOB,
+        help=f"Probability that a DOB error leads to no match (neither full, "
+        f"nor partial as defined above). Empirically, this is about "
+        f"{round_sf(FuzzyDefaults.P_EN_DOB_TRUE, 3)}. However, we suggest "
+        f"setting it to 0, as anything higher will run much slower.",
     )
+
     error_p_group.add_argument(
-        f"--{Switches.P_GENDER_ERROR}",
+        f"--{Switches.P_E_GENDER}",
         type=float,
-        default=FuzzyDefaults.P_GENDER_ERROR,
+        default=FuzzyDefaults.P_E_GENDER,
         help="Assumed probability (p_e) that a gender is wrong, leading to a "
         "proband/candidate mismatch.",
     )
+
     error_p_group.add_argument(
-        f"--{Switches.P_MINOR_POSTCODE_ERROR}",
+        f"--{Switches.P_EP_POSTCODE}",
         type=float,
-        default=FuzzyDefaults.P_MINOR_POSTCODE_ERROR,
+        default=FuzzyDefaults.P_EP_POSTCODE,
         help="Assumed probability (p_ep) that a postcode has an error that "
         "means it fails a full (postcode unit) match but satisfies a partial "
         "(postcode sector) match.",
@@ -1240,6 +1234,14 @@ def add_matching_rules(parser: argparse.ArgumentParser) -> None:
         help="Minimum log (ln) odds by which a best match must exceed the "
         "next-best match to be considered a unique match. Referred to as "
         "delta (δ) in the validation paper.",
+    )
+    match_rule_group.add_argument(
+        f"--{Switches.PERFECT_ID_TRANSLATION}",
+        type=str,
+        help="Optional dictionary of the form {'nhsnum':'nhsnumber', "
+        "'ni_num':'national_insurance'}, mapping the names of perfect "
+        "(person-unique) identifiers as found in the proband data to their "
+        "equivalents in the sample.",
     )
 
     control_group = parser.add_argument_group("Control options")
@@ -1307,7 +1309,8 @@ def add_comparison_options(
         default=None,
         # The cache might contain sensitive information; don't offer it by
         # default.
-        help="File in which to store cached sample info (to speed loading)",
+        help="JSONL file in which to store cached sample info (to speed "
+        "loading)",
     )
     comparison_group.add_argument(
         f"--{Switches.OUTPUT}",
@@ -1334,7 +1337,7 @@ def get_cfg_from_args(
     Uses defaults where not specified.
     """
 
-    def g(attrname: str, default: Any, required: bool) -> Any:
+    def getparam(attrname: str, default: Any, required: bool) -> Any:
         try:
             return getattr(args, attrname)
         except AttributeError:
@@ -1346,168 +1349,192 @@ def get_cfg_from_args(
     require_comparison = require_matching
 
     return MatchConfig(
-        hash_key=g(Switches.KEY, FuzzyDefaults.HASH_KEY, require_hasher),
-        hash_method=g(
+        hash_key=getparam(
+            Switches.KEY, FuzzyDefaults.HASH_KEY, require_hasher
+        ),
+        hash_method=getparam(
             Switches.HASH_METHOD, FuzzyDefaults.HASH_METHOD, require_hasher
         ),
-        rounding_sf=g(
+        rounding_sf=getparam(
             Switches.ROUNDING_SF, FuzzyDefaults.ROUNDING_SF, require_hasher
         ),
-        local_id_hash_key=g(Switches.LOCAL_ID_HASH_KEY, None, require_hasher),
-        population_size=g(
+        local_id_hash_key=getparam(
+            Switches.LOCAL_ID_HASH_KEY, None, require_hasher
+        ),
+        population_size=getparam(
             Switches.POPULATION_SIZE,
             FuzzyDefaults.POPULATION_SIZE,
             require_main_config,
         ),
-        forename_cache_filename=g(
+        forename_cache_filename=getparam(
             Switches.FORENAME_CACHE_FILENAME,
             FuzzyDefaults.FORENAME_CACHE_FILENAME,
             require_main_config,
         ),
-        forename_sex_csv_filename=g(
+        forename_sex_csv_filename=getparam(
             Switches.FORENAME_SEX_FREQ_CSV,
             FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
             require_main_config,
         ),
-        surname_cache_filename=g(
+        surname_cache_filename=getparam(
             Switches.SURNAME_CACHE_FILENAME,
             FuzzyDefaults.SURNAME_CACHE_FILENAME,
             require_main_config,
         ),
-        surname_csv_filename=g(
+        surname_csv_filename=getparam(
             Switches.SURNAME_FREQ_CSV,
             FuzzyDefaults.SURNAME_FREQ_CSV,
             require_main_config,
         ),
-        min_name_frequency=g(
+        min_name_frequency=getparam(
             Switches.MIN_NAME_FREQUENCY,
             FuzzyDefaults.NAME_MIN_FREQ,
             require_main_config,
         ),
         p_middle_name_n_present=[
             float(x)
-            for x in g(
+            for x in getparam(
                 Switches.P_MIDDLE_NAME_N_PRESENT,
                 FuzzyDefaults.P_MIDDLE_NAME_N_PRESENT_STR,
                 require_main_config,
             ).split(",")
         ],
-        accent_transliterations_csv=g(
+        accent_transliterations_csv=getparam(
             Switches.ACCENT_TRANSLITERATIONS,
             FuzzyDefaults.ACCENT_TRANSLITERATIONS_SLASH_CSV,
             require_main_config,
         ),
-        nonspecific_name_components_csv=g(
+        nonspecific_name_components_csv=getparam(
             Switches.NONSPECIFIC_NAME_COMPONENTS,
             FuzzyDefaults.NONSPECIFIC_NAME_COMPONENTS_CSV,
             require_main_config,
         ),
-        birth_year_pseudo_range=g(
+        birth_year_pseudo_range=getparam(
             Switches.BIRTH_YEAR_PSEUDO_RANGE,
             FuzzyDefaults.BIRTH_YEAR_PSEUDO_RANGE,
             require_main_config,
         ),
-        p_not_male_or_female=g(
+        p_not_male_or_female=getparam(
             Switches.P_NOT_MALE_OR_FEMALE,
             FuzzyDefaults.P_NOT_MALE_OR_FEMALE,
             require_main_config,
         ),
-        p_female_given_male_or_female=g(
+        p_female_given_male_or_female=getparam(
             Switches.P_FEMALE_GIVEN_MALE_OR_FEMALE,
             FuzzyDefaults.P_FEMALE_GIVEN_MALE_OR_FEMALE,
             require_main_config,
         ),
-        postcode_cache_filename=g(
+        postcode_cache_filename=getparam(
             Switches.POSTCODE_CACHE_FILENAME,
             FuzzyDefaults.POSTCODE_CACHE_FILENAME,
             require_main_config,
         ),
-        postcode_csv_filename=g(
+        postcode_csv_filename=getparam(
             Switches.POSTCODE_CSV_FILENAME,
             FuzzyDefaults.POSTCODE_CACHE_FILENAME,
             require_main_config,
         ),
-        mean_oa_population=g(
+        mean_oa_population=getparam(
             Switches.MEAN_OA_POPULATION,
             FuzzyDefaults.MEAN_OA_POPULATION,
             require_main_config,
         ),
-        p_unknown_or_pseudo_postcode=g(
+        p_unknown_or_pseudo_postcode=getparam(
             Switches.P_UNKNOWN_OR_PSEUDO_POSTCODE,
             FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE,
             require_main_config,
         ),
-        p_minor_forename_error=g(
-            Switches.P_MINOR_FORENAME_ERROR,
-            FuzzyDefaults.P_MINOR_FORENAME_ERROR,
+        p_ep1_forename=getparam(
+            Switches.P_EP1_FORENAME,
+            FuzzyDefaults.P_EP1_FORENAME_CSV,
             require_error,
         ),
-        p_minor_surname_error=g(
-            Switches.P_MINOR_SURNAME_ERROR,
-            FuzzyDefaults.P_MINOR_SURNAME_ERROR,
+        p_ep2np1_forename=getparam(
+            Switches.P_EP2NP1_FORENAME,
+            FuzzyDefaults.P_EP2NP1_FORENAME_CSV,
             require_error,
         ),
-        p_major_surname_error_csv=g(
-            Switches.P_MAJOR_SURNAME_ERROR,
-            FuzzyDefaults.P_MAJOR_SURNAME_ERROR_CSV,
+        p_en_forename=getparam(
+            Switches.P_EN_FORENAME,
+            FuzzyDefaults.P_EN_FORENAME_CSV,
             require_error,
         ),
-        p_proband_middle_name_missing=g(
+        p_proband_middle_name_missing=getparam(
             Switches.P_PROBAND_MIDDLE_NAME_MISSING,
             FuzzyDefaults.P_PROBAND_MIDDLE_NAME_MISSING,
             require_error,
         ),
-        p_sample_middle_name_missing=g(
+        p_sample_middle_name_missing=getparam(
             Switches.P_SAMPLE_MIDDLE_NAME_MISSING,
             FuzzyDefaults.P_SAMPLE_MIDDLE_NAME_MISSING,
             require_error,
         ),
-        p_dob_error=g(
-            Switches.P_DOB_ERROR,
-            FuzzyDefaults.P_DOB_ERROR,
+        p_ep1_surname=getparam(
+            Switches.P_EP1_SURNAME,
+            FuzzyDefaults.P_EP1_SURNAME_CSV,
             require_error,
         ),
-        p_dob_single_component_error_if_error=g(
-            Switches.P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR,
-            FuzzyDefaults.P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR,
+        p_ep2np1_surname=getparam(
+            Switches.P_EP2NP1_SURNAME,
+            FuzzyDefaults.P_EP2NP1_SURNAME_CSV,
             require_error,
         ),
-        p_gender_error=g(
-            Switches.P_GENDER_ERROR,
-            FuzzyDefaults.P_GENDER_ERROR,
+        p_en_surname=getparam(
+            Switches.P_EN_SURNAME,
+            FuzzyDefaults.P_EN_SURNAME_CSV,
             require_error,
         ),
-        p_minor_postcode_error=g(
-            Switches.P_MINOR_POSTCODE_ERROR,
-            FuzzyDefaults.P_MINOR_POSTCODE_ERROR,
+        p_ep_dob=getparam(
+            Switches.P_EP_DOB,
+            FuzzyDefaults.P_EP_DOB,
             require_error,
         ),
-        min_log_odds_for_match=g(
+        p_en_dob=getparam(
+            Switches.P_EN_DOB,
+            FuzzyDefaults.P_EN_DOB,
+            require_error,
+        ),
+        p_e_gender=getparam(
+            Switches.P_E_GENDER,
+            FuzzyDefaults.P_E_GENDER,
+            require_error,
+        ),
+        p_ep_postcode=getparam(
+            Switches.P_EP_POSTCODE,
+            FuzzyDefaults.P_EP_POSTCODE,
+            require_error,
+        ),
+        min_log_odds_for_match=getparam(
             Switches.MIN_LOG_ODDS_FOR_MATCH,
             FuzzyDefaults.MIN_LOG_ODDS_FOR_MATCH,
             require_matching,
         ),
-        exceeds_next_best_log_odds=g(
+        exceeds_next_best_log_odds=getparam(
             Switches.EXCEEDS_NEXT_BEST_LOG_ODDS,
             FuzzyDefaults.EXCEEDS_NEXT_BEST_LOG_ODDS,
             require_matching,
         ),
-        extra_validation_output=g(
+        perfect_id_translation=getparam(
+            Switches.PERFECT_ID_TRANSLATION,
+            FuzzyDefaults.PERFECT_ID_TRANSLATION,
+            require_matching,
+        ),
+        extra_validation_output=getparam(
             Switches.EXTRA_VALIDATION_OUTPUT,
             default=False,
             required=require_comparison,
         ),
-        report_every=g(
+        report_every=getparam(
             Switches.REPORT_EVERY,
             FuzzyDefaults.REPORT_EVERY,
             required=require_comparison,
         ),
-        min_probands_for_parallel=g(
+        min_probands_for_parallel=getparam(
             Switches.MIN_PROBANDS_FOR_PARALLEL,
             FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL,
             required=require_comparison,
         ),
-        n_workers=g(
+        n_workers=getparam(
             Switches.N_WORKERS,
             FuzzyDefaults.N_PROCESSES,
             required=require_comparison,
@@ -1696,10 +1723,20 @@ normally for testing.""",
         help="Show frequencies of forename metaphones",
     )
     show_forename_metaphone_freq_parser.add_argument(
-        "metaphones", nargs="+", help="Forenames to check"
+        "metaphones", nargs="+", help="Metaphones to check"
     )
     add_config_options(show_forename_metaphone_freq_parser)
     add_basic_options(show_forename_metaphone_freq_parser)
+
+    show_forename_f2c_freq_parser = subparsers.add_parser(
+        Commands.SHOW_FORENAME_F2C_FREQ,
+        help="Show frequencies of forename first two characters",
+    )
+    show_forename_f2c_freq_parser.add_argument(
+        "f2c", nargs="+", help="First-two-character groups to check"
+    )
+    add_config_options(show_forename_f2c_freq_parser)
+    add_basic_options(show_forename_f2c_freq_parser)
 
     show_surname_freq_parser = subparsers.add_parser(
         Commands.SHOW_SURNAME_FREQ,
@@ -1720,6 +1757,16 @@ normally for testing.""",
     )
     add_config_options(show_surname_metaphone_freq_parser)
     add_basic_options(show_surname_metaphone_freq_parser)
+
+    show_surname_f2c_freq_parser = subparsers.add_parser(
+        Commands.SHOW_SURNAME_F2C_FREQ,
+        help="Show frequencies of surname first two characters",
+    )
+    show_surname_f2c_freq_parser.add_argument(
+        "f2c", nargs="+", help="First-two-character groups to check"
+    )
+    add_config_options(show_surname_f2c_freq_parser)
+    add_basic_options(show_surname_f2c_freq_parser)
 
     show_dob_freq_parser = subparsers.add_parser(
         Commands.SHOW_DOB_FREQ,
@@ -1864,12 +1911,14 @@ normally for testing.""",
             require_error=False,
             require_matching=False,
         )
+        freq_func = cfg.get_forename_freq_info
         for forename in args.forenames:
+            forename = standardize_name(forename)
             log.info(
                 f"Forename {forename!r}: "
-                f"F {cfg.forename_freq(forename, GENDER_FEMALE)}, "
-                f"M {cfg.forename_freq(forename, GENDER_MALE)}, "
-                f"overall {cfg.forename_freq(forename, '')}"
+                f"F {freq_func(forename, GENDER_FEMALE)}, "
+                f"M {freq_func(forename, GENDER_MALE)}, "
+                f"overall {freq_func(forename, GENDER_MISSING)}"
             )
 
     elif args.command == Commands.SHOW_FORENAME_METAPHONE_FREQ:
@@ -1880,12 +1929,30 @@ normally for testing.""",
             require_error=False,
             require_matching=False,
         )
+        meta_freq_func = cfg.forename_freq_info.metaphone_frequency
         for metaphone in args.metaphones:
+            metaphone = metaphone.upper()
             log.info(
                 f"Forename metaphone {metaphone!r}: "
-                f"F {cfg.forename_metaphone_freq(metaphone, GENDER_FEMALE)}, "
-                f"M {cfg.forename_metaphone_freq(metaphone, GENDER_MALE)}, "
-                f"overall {cfg.forename_metaphone_freq(metaphone, '')}"
+                f"F {meta_freq_func(metaphone, GENDER_FEMALE)}, "
+                f"M {meta_freq_func(metaphone, GENDER_MALE)}"
+            )
+
+    elif args.command == Commands.SHOW_FORENAME_F2C_FREQ:
+        cfg = get_cfg_from_args(
+            args,
+            require_hasher=False,
+            require_main_config=True,
+            require_error=False,
+            require_matching=False,
+        )
+        f2c_freq_func = cfg.forename_freq_info.first_two_char_frequency
+        for f2c in args.f2c:
+            f2c = f2c.upper()
+            log.info(
+                f"Forename first two characters {f2c!r}: "
+                f"F {f2c_freq_func(f2c, GENDER_FEMALE)}, "
+                f"M {f2c_freq_func(f2c, GENDER_MALE)}"
             )
 
     elif args.command == Commands.SHOW_SURNAME_FREQ:
@@ -1897,7 +1964,10 @@ normally for testing.""",
             require_matching=False,
         )
         for surname in args.surnames:
-            log.info(f"Surname {surname!r}: {cfg.surname_freq(surname)}")
+            surname = standardize_name(surname)
+            log.info(
+                f"Surname {surname!r}: {cfg.get_surname_freq_info(surname)}"
+            )
 
     elif args.command == Commands.SHOW_SURNAME_METAPHONE_FREQ:
         cfg = get_cfg_from_args(
@@ -1910,7 +1980,22 @@ normally for testing.""",
         for metaphone in args.metaphones:
             log.info(
                 f"Surname metaphone {metaphone!r}: "
-                f"{cfg.surname_metaphone_freq(metaphone)}"
+                f"{cfg.surname_freq_info.metaphone_frequency(metaphone)}"
+            )
+
+    elif args.command == Commands.SHOW_SURNAME_F2C_FREQ:
+        cfg = get_cfg_from_args(
+            args,
+            require_hasher=False,
+            require_main_config=True,
+            require_error=False,
+            require_matching=False,
+        )
+        for f2c in args.f2c:
+            f2c = f2c.upper()
+            log.info(
+                f"Surname first two characters {f2c!r}: "
+                f"{cfg.surname_freq_info.first_two_char_frequency(f2c)}"
             )
 
     elif args.command == Commands.SHOW_DOB_FREQ:
@@ -1921,7 +2006,7 @@ normally for testing.""",
             require_error=False,
             require_matching=False,
         )
-        log.info(f"DOB frequency: {cfg.p_two_people_share_dob_ymd}")
+        log.info(f"DOB frequency: {cfg.p_f_dob}")
 
     elif args.command == Commands.SHOW_POSTCODE_FREQ:
         cfg = get_cfg_from_args(

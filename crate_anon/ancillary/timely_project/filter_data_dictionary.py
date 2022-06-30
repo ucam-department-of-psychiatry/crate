@@ -197,7 +197,7 @@ def filter_dd(
     Reads a data dictionary, filters it, and writes the output.
     """
     assert 1 <= stage <= N_STAGES
-    log.info(f"Processing CPFT RiO data dictionary for TIMELY Stage {stage}")
+    log.info(f"Processing data dictionary for TIMELY Stage {stage}")
     log.info(f"Reading data dictionary: {input_filename}")
     # We don't care about the actual config, so we use a mock one:
     config = Config(mock=True, open_databases=False)

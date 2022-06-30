@@ -27,6 +27,8 @@ crate_anon/linkage/helpers.py
 
 **Helper functions for linkage tools.**
 
+Avoid using pickle for caching; it is insecure (arbitrary code execution).
+
 """
 
 
@@ -40,7 +42,6 @@ from io import StringIO, TextIOWrapper
 import logging
 from math import log as math_ln
 import os
-import pickle
 import random
 import re
 import string
@@ -51,6 +52,7 @@ from typing import (
     List,
     Optional,
     Set,
+    Tuple,
     Type,
     TYPE_CHECKING,
     Union,
@@ -156,56 +158,22 @@ For a sense of metaphones:
 >>> dmeta("Knuth")  # https://stackabuse.com/phonetic-similarity-of-words-a-vectorized-approach-in-python/
 [b'N0', b'NT']
 
+>>> dmeta("Clérambault")  # raises UnicodeEncodeError
+
 """  # noqa
 
 
 # =============================================================================
-# Caching
+# For caching
 # =============================================================================
 
 
-def cache_load(filename: str) -> Any:
+def mkdir_for_filename(filename: str) -> None:
     """
-    Reads from a cache.
-
-    Args:
-        filename: cache filename (pickle format)
-
-    Returns:
-        the result
-
-    Raises:
-        :exc:`FileNotFoundError` if it doesn't exist.
-
-    See
-    https://stackoverflow.com/questions/82831/how-do-i-check-whether-a-file-exists-without-exceptions
-
-    """  # noqa
-    assert filename
-    try:
-        log.info(f"Reading from cache: {filename}")
-        result = pickle.load(open(filename, "rb"))
-        log.info("... done")
-        return result
-    except FileNotFoundError:
-        log.info("... cache not found")
-        raise
-
-
-def cache_save(filename: str, data: Any) -> None:
-    """
-    Writes to a cache.
-
-    Args:
-        filename: cache filename (pickle format)
-        data: data to write
+    Ensures that a directory exists for the filename.
     """
     assert filename
-    log.info(f"Saving to cache: {filename}")
-    dirname = os.path.dirname(filename)
-    mkdir_p(dirname)
-    pickle.dump(data, open(filename, "wb"), protocol=pickle.HIGHEST_PROTOCOL)
-    log.info("... done")
+    mkdir_p(os.path.dirname(filename))
 
 
 # =============================================================================
@@ -241,15 +209,9 @@ def open_even_if_zipped(filename: str) -> Generator[StringIO, None, None]:
 
 
 # =============================================================================
-# String manipulation and postcodes
+# Name manipulation
 # =============================================================================
 
-POSTCODE_REGEX = re.compile(
-    anchor(get_uk_postcode_regex_string(at_word_boundaries_only=False))
-    # Need at_word_boundaries_only=True.
-    # We don't want at_word_boundaries_only=True, since that matches e.g.
-    # "VALID_POSTCODE JUNK". We want anchor() instead.
-)
 REMOVE_PUNCTUATION_SPACE_TABLE = str.maketrans("", "", string.punctuation)
 # ... the three-argument version of str.maketrans removes anything in the third
 # category. The object returned is a dictionary mapping integer ASCII values
@@ -424,9 +386,29 @@ def get_metaphone(x: str) -> str:
     metaphones = dmeta(x)
     first_part = metaphones[0]  # the first part only
     if first_part is None:
-        warn_once(f"No metaphone for {x!r}", log)
+        warn_once(f"No metaphone for {x!r}", log, level=logging.DEBUG)
         return ""
     return first_part.decode("ascii")
+
+
+def get_first_two_char(x: str) -> str:
+    """
+    Returns the first two characters of a string. Having this as a function is
+    slight overkill.
+    """
+    return x[:2]
+
+
+# =============================================================================
+# Postcode manipulation
+# =============================================================================
+
+POSTCODE_REGEX = re.compile(
+    anchor(get_uk_postcode_regex_string(at_word_boundaries_only=False))
+    # Need at_word_boundaries_only=True.
+    # We don't want at_word_boundaries_only=True, since that matches e.g.
+    # "VALID_POSTCODE JUNK". We want anchor() instead.
+)
 
 
 def standardize_postcode(postcode_unit_or_sector: str) -> str:
@@ -665,6 +647,14 @@ def getdictval(
     return v
 
 
+def validateprob(p: float, description: str) -> None:
+    """
+    Checks a probability or raises :exc:`ValueError`.
+    """
+    if not 0 <= p <= 1:
+        raise ValueError(f"Bad probability for {description}: {p}")
+
+
 def getdictprob(
     d: Dict[str, Any],
     key: str,
@@ -678,8 +668,7 @@ def getdictprob(
     v = getdictval(d, key, float, mandatory=mandatory, default=default)
     if v is None:
         return None
-    if not 0 <= v <= 1:
-        raise ValueError(f"Bad probability for {key}: {v}")
+    validateprob(v, key)
     return v
 
 
@@ -752,6 +741,21 @@ def age_years(dob: Optional[Date], when: Optional[Date]) -> Optional[int]:
     return None
 
 
+def mk_blurry_dates(d: Union[Date, str]) -> Tuple[str, str, str]:
+    """
+    Returns MONTH_DAY, YEAR_DAY, and YEAR_MONTH versions in a standard form.
+    """
+    # ISO format is %Y-%m-%d; see
+    # https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes  # noqa
+    # Here we want the shortest full representation; these are not intended to
+    # be human-legible.
+    d = coerce_to_pendulum_date(d)
+    dob_md = d.strftime("%m%d")
+    dob_yd = d.strftime("%Y%d")
+    dob_ym = d.strftime("%Y%m")
+    return dob_md, dob_yd, dob_ym
+
+
 # =============================================================================
 # argparse helpers
 # =============================================================================
@@ -780,3 +784,42 @@ def identity(x: Any) -> Any:
     Returns its input.
     """
     return x
+
+
+# =============================================================================
+# Perfect identifiers
+# =============================================================================
+
+
+def dict_from_str(x: str) -> Dict[str, str]:
+    """
+    Reads a dictionary like {'a': 'x', 'b': 'y'} from a string like "{a:x,
+    b:y}".
+    """
+    if not x:
+        return {}
+    w = x.strip()  # working
+    if w[0] != "{" or w[-1] != "}":
+        raise ValueError(f"Bad dict string: {x!r}")
+    w = w[1:-1].strip()
+    d = {}
+    for pair_str in w.split(","):
+        if pair_str.count(":") != 1:
+            raise ValueError(f"Bad dict string: {x!r}")
+        k, v = pair_str.split(":")
+        d[k.strip()] = v.strip()
+    return d
+
+
+def standardize_perfect_id_key(k: str) -> str:
+    """
+    Keys are compared case-insensitive, in lower case.
+    """
+    return k.strip().lower()
+
+
+def standardize_perfect_id_value(k: str) -> str:
+    """
+    Values are compared case-insensitive, in upper case.
+    """
+    return k.strip().upper()

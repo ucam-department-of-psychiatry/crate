@@ -37,6 +37,7 @@ import math
 from multiprocessing import cpu_count
 import os
 import platform
+from typing import Dict
 
 import appdirs
 from cardinal_pythonlib.hash import HashMethods
@@ -46,11 +47,21 @@ from crate_anon.common.constants import EnvVar
 
 
 # =============================================================================
+# Helper functions
+# =============================================================================
+
+
+def _mk_dictstr(x: Dict[str, float]) -> str:
+    return ",".join(f"{k}:{v}" for k, v in x.items())
+
+
+# =============================================================================
 # Constants
 # =============================================================================
 
 # CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS = False  # for debugging only
 
+INFINITY = math.inf
 MINUS_INFINITY = -math.inf
 
 DAYS_PER_YEAR = 365.25  # approximately!
@@ -73,16 +84,16 @@ VALID_GENDERS = [GENDER_MISSING, GENDER_MALE, GENDER_FEMALE, GENDER_OTHER]
 
 SIMPLIFY_PUNCTUATION_WHITESPACE_TRANS = str.maketrans(
     {
-        "\t": " ",
-        "\n": " ",
-        "\r": " ",
-        "“": '"',
-        "”": '"',
-        "‘": "'",
-        "’": "'",
-        "–": "-",
-        "—": "-",
-        "−": "-",
+        "\t": " ",  # tab -> space
+        "\n": " ",  # linefeed -> space
+        "\r": " ",  # carriage return -> space
+        "“": '"',  # curly left double quote -> straight double quote
+        "”": '"',  # curly right double quote -> straight double quote
+        "‘": "'",  # curly left single quote -> straight single quote
+        "’": "'",  # curly right single quote -> straight single quote
+        "–": "-",  # en dash -> hyphen
+        "—": "-",  # em dash -> hyphen
+        "−": "-",  # minus -> hyphen
     }
 )
 
@@ -98,6 +109,70 @@ MANGLE_PRETRANSLATE = str.maketrans(
         ESZETT_UPPER_CASE: "SS",
     }
 )
+
+
+class Switches:
+    """
+    Argparse option switches that are used in several places, and also the
+    names of MatchConfig parameters, used for error messages.
+    """
+
+    ALLOW_DEFAULT_HASH_KEY = "allow_default_hash_key"
+    EXTRA_VALIDATION_OUTPUT = "extra_validation_output"
+    INCLUDE_OTHER_INFO = "include_other_info"
+    INPUT = "input"
+    OUTPUT = "output"
+    MIN_PROBANDS_FOR_PARALLEL = "min_probands_for_parallel"
+    N_WORKERS = "n_workers"
+    REPORT_EVERY = "report_every"
+
+    KEY = "key"
+    HASH_METHOD = "hash_method"
+    ROUNDING_SF = "rounding_sf"
+    LOCAL_ID_HASH_KEY = "local_id_hash_key"
+
+    POPULATION_SIZE = "population_size"
+
+    ACCENT_TRANSLITERATIONS = "accent_transliterations"
+    FORENAME_CACHE_FILENAME = "forename_cache_filename"
+    FORENAME_SEX_FREQ_CSV = "forename_sex_freq_csv"
+    MIN_NAME_FREQUENCY = "min_name_frequency"
+    NONSPECIFIC_NAME_COMPONENTS = "nonspecific_name_components"
+    P_MIDDLE_NAME_N_PRESENT = "p_middle_name_n_present"
+    SURNAME_CACHE_FILENAME = "surname_cache_filename"
+    SURNAME_FREQ_CSV = "surname_freq_csv"
+
+    BIRTH_YEAR_PSEUDO_RANGE = "birth_year_pseudo_range"
+
+    P_NOT_MALE_OR_FEMALE = "p_not_male_or_female"
+    P_FEMALE_GIVEN_MALE_OR_FEMALE = "p_female_given_male_or_female"
+
+    POSTCODE_CACHE_FILENAME = "postcode_cache_filename"
+    POSTCODE_CSV_FILENAME = "postcode_csv_filename"
+    MEAN_OA_POPULATION = "mean_oa_population"
+    P_UNKNOWN_OR_PSEUDO_POSTCODE = "p_unknown_or_pseudo_postcode"
+
+    P_EP1_FORENAME = "p_ep1_forename"
+    P_EP2NP1_FORENAME = "p_ep2np1_forename"
+    P_EN_FORENAME = "p_en_forename"
+
+    P_PROBAND_MIDDLE_NAME_MISSING = "p_proband_middle_name_missing"
+    P_SAMPLE_MIDDLE_NAME_MISSING = "p_sample_middle_name_missing"
+
+    P_EP1_SURNAME = "p_ep1_surname"
+    P_EP2NP1_SURNAME = "p_ep2np1_surname"
+    P_EN_SURNAME = "p_en_surname"
+
+    P_EP_DOB = "p_ep_dob"
+    P_EN_DOB = "p_en_dob"
+
+    P_E_GENDER = "p_e_gender"
+
+    P_EP_POSTCODE = "p_ep_postcode"
+
+    MIN_LOG_ODDS_FOR_MATCH = "min_log_odds_for_match"
+    EXCEEDS_NEXT_BEST_LOG_ODDS = "exceeds_next_best_log_odds"
+    PERFECT_ID_TRANSLATION = "perfect_id_translation"
 
 
 class FuzzyDefaults:
@@ -125,19 +200,19 @@ class FuzzyDefaults:
             appdirs.user_data_dir(appname=_appname)
         )
         if platform.system() == "Windows":
-            N_PROCESSES = 1  # *much* faster!
+            N_PROCESSES = 1  # usually faster!
         else:
             N_PROCESSES = cpu_count()
 
     # Caches
     FORENAME_CACHE_FILENAME = os.path.join(
-        DEFAULT_CACHE_DIR, "fuzzy_forename_cache.pickle"
+        DEFAULT_CACHE_DIR, "fuzzy_forename_cache.jsonl"
     )
     POSTCODE_CACHE_FILENAME = os.path.join(
-        DEFAULT_CACHE_DIR, "fuzzy_postcode_cache.pickle"
+        DEFAULT_CACHE_DIR, "fuzzy_postcode_cache.json"
     )
     SURNAME_CACHE_FILENAME = os.path.join(
-        DEFAULT_CACHE_DIR, "fuzzy_surname_cache.pickle"
+        DEFAULT_CACHE_DIR, "fuzzy_surname_cache.jsonl"
     )
 
     # -------------------------------------------------------------------------
@@ -207,29 +282,51 @@ class FuzzyDefaults:
     # -------------------------------------------------------------------------
     # (E) Empirical; see validation paper.
     # (*) Using the empirical value is much less efficient computationally.
-    P_MINOR_FORENAME_ERROR = 0.001
+    P_EP1_FORENAME = {
+        GENDER_FEMALE: 0.001,  # (E) *** fix
+        GENDER_MALE: 0.001,  # (E) *** fix
+    }
+    P_EP2NP1_FORENAME = {
+        GENDER_FEMALE: 0.001,  # (E) *** fix
+        GENDER_MALE: 0.001,  # (E) *** fix
+    }
+    P_EN_FORENAME = {
+        GENDER_FEMALE: 0.05,  # (E) *** fix
+        GENDER_MALE: 0.02,  # (E) *** fix
+    }
+
     P_PROBAND_MIDDLE_NAME_MISSING = 0.05
     P_SAMPLE_MIDDLE_NAME_MISSING = 0.05
 
-    P_MINOR_SURNAME_ERROR = 0.001
-    P_MAJOR_SURNAME_ERROR = {
-        GENDER_FEMALE: 0.0678,  # (E)
-        GENDER_MALE: 0.0222,  # (E)
+    P_EP1_SURNAME = {
+        GENDER_FEMALE: 0.001,  # (E) *** fix
+        GENDER_MALE: 0.001,  # (E) *** fix
+    }
+    P_EP2NP1_SURNAME = {
+        GENDER_FEMALE: 0.001,  # (E) *** fix
+        GENDER_MALE: 0.001,  # (E) *** fix
+    }
+    P_EN_SURNAME = {
+        GENDER_FEMALE: 0.05,  # (E) *** fix
+        GENDER_MALE: 0.02,  # (E) *** fix
     }
 
-    P_DOB_ERROR = 0.00492  # (E)
-    # P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR = 0.933  # (E) (*)
-    P_DOB_SINGLE_COMPONENT_ERROR_IF_ERROR = 1  # Much faster (*)
+    _P_E_DOB = 0.00492  # DOB not full match (E)
+    _P_EP_DOB_GIVEN_P_E_DOB = 0.933  # P(partial | not full); (E)
+    P_EP_DOB = _P_E_DOB * _P_EP_DOB_GIVEN_P_E_DOB  # (E)
+    P_EN_DOB_TRUE = _P_E_DOB * (1 - _P_EP_DOB_GIVEN_P_E_DOB)  # (E) (*)
+    P_EN_DOB = 0  # Much faster (*)
 
-    P_GENDER_ERROR = 0.0033  # (E)
+    P_E_GENDER = 0.0033  # (E)
 
-    P_MINOR_POSTCODE_ERROR = 0.0097  # (E)
+    P_EP_POSTCODE = 0.0097  # (E)
 
     # -------------------------------------------------------------------------
     # Matching process
     # -------------------------------------------------------------------------
     MIN_LOG_ODDS_FOR_MATCH = 5  # theta, in the validation paper
     EXCEEDS_NEXT_BEST_LOG_ODDS = 10  # delta, in the validation paper
+    PERFECT_ID_TRANSLATION = ""
     REPORT_EVERY = 100  # cosmetic only
 
     # -------------------------------------------------------------------------
@@ -320,23 +417,32 @@ class FuzzyDefaults:
         )
     )
     ACCENT_TRANSLITERATIONS = [
+        # Only upper-case versions are required.
         # German: https://en.wikipedia.org/wiki/German_orthography
         ("Ä", "AE"),
         ("Ö", "OE"),
         ("Ü", "UE"),
-        ("ß", "SS"),
+        (ESZETT_UPPER_CASE, "SS"),
     ]
 
     # -------------------------------------------------------------------------
     # Derived
     # -------------------------------------------------------------------------
+
     MIN_P_FOR_MATCH = probability_from_log_odds(MIN_LOG_ODDS_FOR_MATCH)
+
+    P_EP1_FORENAME_CSV = _mk_dictstr(P_EP1_FORENAME)
+    P_EP2NP1_FORENAME_CSV = _mk_dictstr(P_EP2NP1_FORENAME)
+    P_EN_FORENAME_CSV = _mk_dictstr(P_EN_FORENAME)
+
     P_MIDDLE_NAME_N_PRESENT_STR = ",".join(
         str(x) for x in P_MIDDLE_NAME_N_PRESENT
     )
-    P_MAJOR_SURNAME_ERROR_CSV = ",".join(
-        f"{k}:{v}" for k, v in P_MAJOR_SURNAME_ERROR.items()
-    )
+
+    P_EP1_SURNAME_CSV = _mk_dictstr(P_EP1_SURNAME)
+    P_EP2NP1_SURNAME_CSV = _mk_dictstr(P_EP2NP1_SURNAME)
+    P_EN_SURNAME_CSV = _mk_dictstr(P_EN_SURNAME)
+
     NONSPECIFIC_NAME_COMPONENTS_CSV = ",".join(
         sorted(NONSPECIFIC_NAME_COMPONENTS)
     )

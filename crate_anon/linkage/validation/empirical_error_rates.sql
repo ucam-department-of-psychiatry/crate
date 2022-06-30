@@ -276,24 +276,49 @@ WHERE
 -- ============================================================================
 -- Surname and forename mismatches. Also sex/gender.
 -- ============================================================================
+-- UPPER() is not necessary -- comparisons are case-insensitive.
 
 SELECT
     COUNT(*) AS n_people,  -- 126904
     SUM(
         IIF(
             (
-                REPLACE(UPPER(rcn.GivenName1), ' ', '') !=
-                    REPLACE(UPPER(sp.FirstName), ' ', '')
+                rcn.GivenName1 IS NOT NULL
+                AND sp.FirstName IS NOT NULL
             ),
             1,
             0
         )
-    ) AS n_forename_mismatch,  -- 2992
+    ) AS n_firstname_present,  -- 126884
     SUM(
         IIF(
             (
-                REPLACE(UPPER(rcn.Surname), ' ', '') !=
-                    REPLACE(UPPER(sp.Surname), ' ', '')
+                rcn.GivenName1 IS NOT NULL
+                AND sp.FirstName IS NOT NULL
+                AND REPLACE(rcn.GivenName1, ' ', '') !=
+                    REPLACE(sp.FirstName, ' ', '')
+            ),
+            1,
+            0
+        )
+    ) AS n_firstname_mismatch,  -- 2992
+    SUM(
+        IIF(
+            (
+                rcn.Surname IS NOT NULL
+                AND sp.Surname IS NOT NULL
+            ),
+            1,
+            0
+        )
+    ) AS n_surname_present,  -- 126904
+    SUM(
+        IIF(
+            (
+                rcn.Surname IS NOT NULL
+                AND sp.Surname IS NOT NULL
+                AND REPLACE(rcn.Surname, ' ', '') !=
+                    REPLACE(sp.Surname, ' ', '')
             ),
             1,
             0
@@ -302,34 +327,83 @@ SELECT
     SUM(
         IIF(
             (
-                REPLACE(UPPER(rcn.GivenName1), ' ', '') !=
-                    REPLACE(UPPER(sp.FirstName), ' ', '')
-                AND REPLACE(UPPER(rcn.Surname), ' ', '') !=
-                    REPLACE(UPPER(sp.Surname), ' ', '')
+                rcn.GivenName1 IS NOT NULL
+                AND sp.FirstName IS NOT NULL
+                AND rcn.Surname IS NOT NULL
+                AND sp.Surname IS NOT NULL
             ),
             1,
             0
         )
-    ) AS n_forename_and_surname_mismatch,  -- 560
+    ) AS n_firstname_and_surname_present,  -- 126884
     SUM(
         IIF(
             (
-                -- Forename mismatch:
-                REPLACE(UPPER(rcn.GivenName1), ' ', '') !=
-                    REPLACE(UPPER(sp.FirstName), ' ', '')
-                -- Surname mismatch:
-                AND REPLACE(UPPER(rcn.Surname), ' ', '') !=
-                    REPLACE(UPPER(sp.Surname), ' ', '')
-                -- But forename/surname match, each way:
-                AND REPLACE(UPPER(rcn.GivenName1), ' ', '') =
-                    REPLACE(UPPER(sp.Surname), ' ', '')
-                AND REPLACE(UPPER(rcn.Surname), ' ', '') =
-                    REPLACE(UPPER(sp.FirstName), ' ', '')
+                rcn.GivenName1 IS NOT NULL
+                AND sp.FirstName IS NOT NULL
+                AND rcn.Surname IS NOT NULL
+                AND sp.Surname IS NOT NULL
+                AND REPLACE(rcn.GivenName1, ' ', '') !=
+                    REPLACE(sp.FirstName, ' ', '')
+                AND REPLACE(rcn.Surname, ' ', '') !=
+                    REPLACE(sp.Surname, ' ', '')
             ),
             1,
             0
         )
-    ) AS n_forename_and_surname_mismatch_transposed,  -- 98
+    ) AS n_firstname_and_surname_mismatch,  -- 560
+    SUM(
+        IIF(
+            (
+                rcn.GivenName1 IS NOT NULL
+                AND sp.FirstName IS NOT NULL
+                AND rcn.Surname IS NOT NULL
+                AND sp.Surname IS NOT NULL
+                -- Forename mismatch:
+                AND REPLACE(rcn.GivenName1, ' ', '') !=
+                    REPLACE(sp.FirstName, ' ', '')
+                -- Surname mismatch:
+                AND REPLACE(rcn.Surname, ' ', '') !=
+                    REPLACE(sp.Surname, ' ', '')
+                -- But forename/surname match, each way:
+                AND REPLACE(rcn.GivenName1, ' ', '') =
+                    REPLACE(sp.Surname, ' ', '')
+                AND REPLACE(rcn.Surname, ' ', '') =
+                    REPLACE(sp.FirstName, ' ', '')
+            ),
+            1,
+            0
+        )
+    ) AS n_firstname_and_surname_mismatch_transposed,  -- 98
+    SUM(
+        IIF(
+            (
+                rcn.GivenName1 IS NOT NULL
+                AND sp.FirstName IS NOT NULL
+                AND REPLACE(rcn.GivenName1, ' ', '') !=
+                    REPLACE(sp.FirstName, ' ', '')
+                AND LEFT(REPLACE(rcn.GivenName1, ' ', ''), 2) =
+                    LEFT(REPLACE(sp.FirstName, ' ', ''), 2)
+            ),
+            1,
+            0
+        )
+    ) AS n_firstname_mismatch_but_first_two_char_match,  -- 2071, or 69% of n_firstname_mismatch
+    SUM(
+        IIF(
+            (
+                rcn.Surname IS NOT NULL
+                AND sp.Surname IS NOT NULL
+                AND REPLACE(rcn.Surname, ' ', '') !=
+                    REPLACE(sp.Surname, ' ', '')
+                AND LEFT(REPLACE(rcn.Surname, ' ', ''), 2) =
+                    LEFT(REPLACE(sp.Surname, ' ', ''), 2)
+            ),
+            1,
+            0
+        )
+    ) AS n_surname_mismatch_but_first_two_char_match,  -- 1209, or 19.6% of n_surname_mismatch
+    -- NB "first two characters match" comparator is non-identical people
     SUM(
         IIF(
             (
@@ -389,8 +463,9 @@ WHERE
     AND rcn.AliasType = '1'  -- usual name
 
 
+
 -- ============================================================================
--- Surname mismatches BY gender.
+-- Forename and surname mismatches BY gender.
 -- ============================================================================
 
 SELECT
@@ -400,8 +475,42 @@ SELECT
     SUM(
         IIF(
             (
-                REPLACE(UPPER(rcn.Surname), ' ', '') !=
-                    REPLACE(UPPER(sp.Surname), ' ', '')
+                rcn.GivenName1 IS NOT NULL
+                AND sp.FirstName IS NOT NULL
+            ),
+            1,
+            0
+        )
+    ) AS n_firstname_present,  -- F 72948, M 53474
+    SUM(
+        IIF(
+            (
+                rcn.GivenName1 IS NOT NULL
+                AND sp.FirstName IS NOT NULL
+                AND REPLACE(rcn.GivenName1, ' ', '') !=
+                    REPLACE(sp.FirstName, ' ', '')
+            ),
+            1,
+            0
+        )
+    ) AS n_firstname_mismatch,  -- F 1727, M 1153
+    SUM(
+        IIF(
+            (
+                rcn.Surname IS NOT NULL
+                AND sp.Surname IS NOT NULL
+            ),
+            1,
+            0
+        )
+    ) AS n_surname_present,  -- F 72958, M 53484
+    SUM(
+        IIF(
+            (
+                rcn.Surname IS NOT NULL
+                AND sp.Surname IS NOT NULL
+                AND REPLACE(rcn.Surname, ' ', '') !=
+                    REPLACE(sp.Surname, ' ', '')
             ),
             1,
             0
@@ -424,14 +533,181 @@ WHERE
     AND rcn.EndDate IS NULL
     AND rcn.Deleted = 0
     AND rcn.AliasType = '1'  -- usual name
-    -- Restrict to M/F and no discrepancy:
-    AND rc.Gender IN ('M', 'F')
-    AND sp.Gender = rc.Gender
+    -- Restrict to known and no discrepancy (which, actually, limits to M/F only):
+    AND (sp.Gender = rc.Gender OR (sp.Gender = 'I' AND rc.Gender = 'X'))
 GROUP BY
     rc.Gender,
     sp.Gender
 ORDER BY
     rc.Gender
+
+-- Forename: chisq.test(matrix(c(1727, 1153, 72948 - 1727, 53474 - 1153), nrow = 2))
+-- Surname:  chisq.test(matrix(c(4947, 1185, 72958 - 4947, 53484 - 1185), nrow = 2))
+
+
+-- ============================================================================
+-- Surname and forename "first two char" in NON-matching people
+-- ============================================================================
+-- Let's not do RiO * SystmOne = 200k * 600k = 1.2e11.
+-- Let's link SystmOne to itself (simpler table) using NHS numbers starting 44,
+-- for about 19k^2 = 3.6e8.
+
+SELECT LEFT(rc.NNN, 1), COUNT(*)
+FROM RiO62CAMLive.dbo.Client AS rc
+WHERE TRY_CAST(rc.NNN AS BIGINT) IS NOT NULL
+GROUP BY LEFT(rc.NNN, 1)
+-- RiO: A handful starting 0, 1, 3.
+-- 136k starting 4. 56k starting 6. 16k starting 7.
+
+SELECT LEFT(rc.NNN, 2), COUNT(*)
+FROM RiO62CAMLive.dbo.Client AS rc
+WHERE TRY_CAST(rc.NNN AS BIGINT) IS NOT NULL
+GROUP BY LEFT(rc.NNN, 2)
+-- RiO: 7k starting 44.
+
+SELECT LEFT(sp.NHSNumber, 1), COUNT(*)
+FROM SystmOne.dbo.S1_Patient AS sp
+WHERE TRY_CAST(sp.NHSNumber AS BIGINT) IS NOT NULL
+GROUP BY LEFT(sp.NHSNumber, 1)
+-- SystmOne: A handful starting 0, 1, 2, 3, 9.
+-- 335k starting 4. 150k starting 6. 334k starting 7.
+
+SELECT LEFT(sp.NHSNumber, 2), COUNT(*)
+FROM SystmOne.dbo.S1_Patient AS sp
+WHERE TRY_CAST(sp.NHSNumber AS BIGINT) IS NOT NULL
+GROUP BY LEFT(sp.NHSNumber, 2)
+-- SystmOne: 19,442 starting 44.
+
+-- NOTE: comparisons are case-insensitive:
+SELECT IIF('aa' = 'AA', 1, 0)  -- 1
+
+
+SELECT
+    COUNT(*) AS n_pairs,  -- 377971922
+    SUM(
+        IIF(
+            (
+                s1.FirstName IS NOT NULL
+                AND s2.FirstName IS NOT NULL
+            ),
+            1,
+            0
+        )
+    ) AS n_firstname_present,  -- 377971922
+    SUM(
+        -- In these inequalities, NULL on either side cannot give TRUE.
+        IIF(s1.FirstName != s2.FirstName, 1, 0)
+    ) AS n_firstname_mismatch,  -- 375609742
+    SUM(
+        IIF(
+            (
+                s1.FirstName != s2.FirstName
+                AND LEFT(s1.FirstName, 2) = LEFT(s2.FirstName, 2)
+            ),
+            1,
+            0
+        )
+    ) AS n_firstname_mismatch_but_first_two_char_match,  -- 6149272
+    SUM(
+        IIF(
+            (
+                s1.Surname IS NOT NULL
+                AND s2.Surname IS NOT NULL
+            ),
+            1,
+            0
+        )
+    ) AS n_surname_present,  -- 377971922
+    SUM(
+        IIF(s1.Surname != s2.Surname, 1, 0)
+    ) AS n_surname_mismatch,  -- 377644634
+    SUM(
+        IIF(
+            (
+                s1.Surname != s2.Surname
+                AND LEFT(s1.Surname, 2) = LEFT(s2.Surname, 2)
+            ),
+            1,
+            0
+        )
+    ) AS n_surname_mismatch_but_first_two_char_match  -- 4553710
+FROM
+    SystmOne.dbo.S1_Patient AS s1
+INNER JOIN
+    SystmOne.dbo.S1_Patient AS s2
+    ON TRY_CAST(s1.NHSNumber AS BIGINT) != TRY_CAST(s2.NHSNumber AS BIGINT)
+    -- NHS number MISMATCH.
+    -- Neither NHS number has spaces in (empirically).
+WHERE
+    TRY_CAST(s1.NHSNumber AS BIGINT) IS NOT NULL
+    AND TRY_CAST(s2.NHSNumber AS BIGINT) IS NOT NULL
+    -- Restrict:
+    AND LEFT(s1.NHSNumber, 2) = '44'
+    AND LEFT(s2.NHSNumber, 2) = '44'
+
+
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- ... and by gender (as below):
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+SELECT DISTINCT Gender FROM SystmOne.dbo.S1_Patient
+-- F = female
+-- I = X
+-- M = male
+-- U = unknown
+
+SELECT
+    s1.Gender AS gender,
+    COUNT(*) AS n_pairs,  -- F 108316056, M 81586056
+    -- We won't bother checking for "forename present", "surname present",
+    -- as we checked that above and they were always present for this subset.
+    SUM(
+        IIF(s1.FirstName != s2.FirstName, 1, 0)
+    ) AS n_firstname_mismatch,  -- F 107477738, M 80064330
+    SUM(
+        IIF(
+            (
+                s1.FirstName != s2.FirstName
+                AND LEFT(s1.FirstName, 2) = LEFT(s2.FirstName, 2)
+            ),
+            1,
+            0
+        )
+    ) AS n_firstname_mismatch_but_first_two_char_match,  -- F 1996348, M 1185274
+    SUM(
+        IIF(s1.Surname != s2.Surname, 1, 0)
+    ) AS n_surname_mismatch,  -- F 108226016, M 81512760
+    SUM(
+        IIF(
+            (
+                s1.Surname != s2.Surname
+                AND LEFT(s1.Surname, 2) = LEFT(s2.Surname, 2)
+            ),
+            1,
+            0
+        )
+    ) AS n_surname_mismatch_but_first_two_char_match  -- F 1298188, M 990194
+FROM
+    SystmOne.dbo.S1_Patient AS s1
+INNER JOIN
+    SystmOne.dbo.S1_Patient AS s2
+    ON TRY_CAST(s1.NHSNumber AS BIGINT) != TRY_CAST(s2.NHSNumber AS BIGINT)
+    -- NHS number MISMATCH.
+WHERE
+    TRY_CAST(s1.NHSNumber AS BIGINT) IS NOT NULL
+    AND TRY_CAST(s2.NHSNumber AS BIGINT) IS NOT NULL
+    -- Restrict:
+    AND LEFT(s1.NHSNumber, 2) = '44'
+    AND LEFT(s2.NHSNumber, 2) = '44'
+    -- Gender should match:
+    AND s1.Gender = s2.Gender
+GROUP BY
+    s1.Gender
+ORDER BY
+    s1.Gender
+
+-- Forename: chisq.test(matrix(c(1996348, 1185274, 107477738 - 1996348, 80064330 - 1185274), nrow = 2))
+-- Surname:  chisq.test(matrix(c(1298188,  990194, 108226016 - 1298188, 81512760 -  990194), nrow = 2))
 
 
 -- ============================================================================

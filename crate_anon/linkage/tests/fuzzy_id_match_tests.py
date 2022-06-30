@@ -67,7 +67,8 @@ from crate_anon.linkage.helpers import (
     surname_alternative_fragments,
 )
 from crate_anon.linkage.matchconfig import MatchConfig
-from crate_anon.linkage.person import DuplicateLocalIDError, People, Person
+from crate_anon.linkage.people import DuplicateIDError, People
+from crate_anon.linkage.person import Person
 
 log = logging.getLogger(__name__)
 
@@ -480,7 +481,8 @@ class FuzzyLinkageTests(unittest.TestCase):
         tests = (
             # In the expected answer, the original name comes first; then
             # alphabetical order. Some examples are silly.
-            # France/French
+            #
+            # France/French:
             (
                 "Côte d'Ivoire",
                 ["CÔTE D'IVOIRE", "COTE", "COTE D'IVOIRE", "CÔTE", "IVOIRE"],
@@ -502,16 +504,16 @@ class FuzzyLinkageTests(unittest.TestCase):
             ("Giscard d'Estaing", ["GISCARD D'ESTAING", "ESTAING", "GISCARD"]),
             ("L'Estrange", ["L'ESTRANGE", "ESTRANGE"]),
             ("L’Estrange", ["L'ESTRANGE", "ESTRANGE"]),
-            # Germany (and in Beethoven's case, ancestrally Belgium).
+            # Germany (and in Beethoven's case, ancestrally Belgium):
             ("Beethoven", ["BEETHOVEN"]),
             ("Müller", ["MÜLLER", "MUELLER", "MULLER"]),
             ("Straße", ["STRAẞE", "STRASSE"]),
             ("van  Beethoven", ["VAN BEETHOVEN", "BEETHOVEN"]),
-            # Italy
+            # Italy:
             ("Calabrò", ["CALABRÒ", "CALABRO"]),
             ("De Marinis", ["DE MARINIS", "MARINIS"]),
             ("di Bisanzio", ["DI BISANZIO", "BISANZIO"]),
-            # Sweden
+            # Sweden:
             ("Nyström", ["NYSTRÖM", "NYSTROEM", "NYSTROM"]),
             # Hmm. NYSTROEM is a German-style transliteration. Still, OK-ish.
         )
@@ -578,7 +580,7 @@ class FuzzyLinkageTests(unittest.TestCase):
     def test_fuzzy_linkage_frequencies_name(self) -> None:
         cfg = self.cfg
         for surname in ["Smith", "Jones", "Blair", "Cardinal", "XYZ"]:
-            f = cfg.surname_freq(surname)
+            f = cfg.surname_freq_info(surname)
             log.info(f"Surname frequency for {surname}: {f}")
 
         for forename, gender in [
@@ -593,7 +595,7 @@ class FuzzyLinkageTests(unittest.TestCase):
             ("Rowan", ""),
             ("XYZ", ""),
         ]:
-            f = cfg.forename_freq(forename, gender)
+            f = cfg.get_forename_freq_info(forename, gender)
             log.info(
                 f"Forename frequency for {forename}, gender {gender}: {f}"
             )
@@ -715,30 +717,18 @@ class FuzzyLinkageTests(unittest.TestCase):
         f = Gender(cfg, GENDER_FEMALE)
         x = Gender(cfg, GENDER_OTHER)
         self.assertTrue(m.fully_matches(m))
-        self.assertFalse(m.partially_matches(m))  # no partial matching
 
         self.assertFalse(m.fully_matches(f))
         self.assertFalse(m.fully_matches(x))
         self.assertFalse(f.fully_matches(m))
         self.assertFalse(f.fully_matches(x))
-        self.assertFalse(m.partially_matches(f))
-        self.assertFalse(m.partially_matches(x))
-        self.assertFalse(f.partially_matches(m))
-        self.assertFalse(f.partially_matches(x))
 
         self.assertGreater(f.comparison(f).posterior_log_odds(0), 0)
         self.assertLess(f.comparison(m).posterior_log_odds(0), 0)
 
     def test_identifier_surname_fragment(self) -> None:
         cfg = self.cfg
-        f1 = SurnameFragment(
-            cfg,
-            exact="Smith",
-            exact_freq=0.01,
-            partial="SM0",
-            partial_freq=0.02,
-            p_major_surname_error_for_gender=0.06,
-        )
+        f1 = SurnameFragment(cfg, name="Smith", gender=GENDER_MALE)
         h1 = f1.hashed()
         self.assertTrue(f1.fully_matches(f1))
         self.assertTrue(f1.partially_matches(f1))
@@ -748,33 +738,49 @@ class FuzzyLinkageTests(unittest.TestCase):
         self.assertTrue(h1.partially_matches(h1))
 
     def test_identifier_surname(self) -> None:
+        # https://en.wikipedia.org/wiki/Double-barrelled_name
         cfg = self.cfg
         g = GENDER_FEMALE
-        smith = Surname(cfg, name="Smith", gender=g)
-        hashed_smith = smith.hashed()
-        mozart_smith = Surname(cfg, name="Mozart-Smith", gender=g)
-        mozart = Surname(cfg, name="Mozart", gender=g)
         jones = Surname(cfg, name="Jones", gender=g)
+        mozart = Surname(cfg, name="Mozart", gender=g)
+        mozart_smith_hy = Surname(cfg, name="Mozart-Smith", gender=g)
+        mozart_smith_sp = Surname(cfg, name="Mozart Smith", gender=g)
+        smith = Surname(cfg, name="Smith", gender=g)
         smythe = Surname(cfg, name="Smythe", gender=g)
-        hashed_smythe = smythe.hashed()
+        mozart_hashed = mozart.hashed()
+        mozart_smith_hashed = mozart_smith_hy.hashed()
+        smith_hashed = smith.hashed()
+        smythe_hashed = smythe.hashed()
         matching = [
-            (smith, smith),
-            (hashed_smith, hashed_smith),
-            (mozart_smith, mozart),
-            (mozart_smith, smith),
             (jones, jones),
+            (mozart_smith_hy, mozart),
+            (mozart_smith_hy, mozart_smith_hy),
+            (mozart_smith_hy, mozart_smith_sp),
+            (mozart_smith_hy, smith),
+            (mozart_smith_sp, mozart),
+            (mozart_smith_sp, mozart_smith_hy),
+            (mozart_smith_sp, smith),
+            (smith, smith),
             (smythe, smythe),
-            (hashed_smythe, hashed_smythe),
+            (mozart_hashed, mozart_hashed),
+            (mozart_smith_hashed, mozart_smith_hashed),
+            (smith_hashed, smith_hashed),
+            (smythe_hashed, smythe_hashed),
         ]
         partially_matching = [
+            (mozart_smith_hy, smythe),
+            (mozart_smith_sp, smythe),
             (smith, smythe),
-            (hashed_smith, hashed_smythe),
+            (smith_hashed, smythe_hashed),
+            (mozart_smith_hashed, smythe_hashed),
         ]
         nonmatching = [
-            (smith, hashed_smith),
-            (smythe, hashed_smythe),
+            (jones, mozart_smith_hy),
+            (jones, mozart_smith_sp),
             (smith, jones),
-            (jones, mozart_smith),
+            (smith, mozart),
+            (smith, smith_hashed),
+            (smythe, smythe_hashed),
         ]
         for a, b in matching:
             self.assertTrue(a.fully_matches(b))
@@ -791,31 +797,31 @@ class FuzzyLinkageTests(unittest.TestCase):
 
     def test_identifier_transformations(self) -> None:
         """
-        Creating a hashed JSON representation and loading an object from it.
+        Creating hashed and plaintext JSON representation and loading an
+        identifier back from them.
         """
         cfg = self.cfg
         identifiable = [
             Postcode(cfg, postcode="CB2 0QQ"),
             DateOfBirth(cfg, dob="2000-12-31"),
             Gender(cfg, gender=GENDER_MALE),
-            SurnameFragment(
-                cfg,
-                exact="Smith",
-                exact_freq=0.01,
-                partial="SM0",
-                partial_freq=0.02,
-                p_major_surname_error_for_gender=0.06,
-            ),
             Forename(cfg, name="Elizabeth", gender=GENDER_FEMALE),
+            SurnameFragment(cfg, name="Smith", gender=GENDER_MALE),
             Surname(cfg, name="Smith", gender=GENDER_FEMALE),
         ]  # type: List[Identifier]
         for i in identifiable:
             self.assertTrue(i.is_plaintext)
             i_class = type(i)  # type: Type[Identifier]
-            d = i.hashed_dict(include_frequencies=True)
-            h = i_class.from_hashed_dict(cfg, d)
+
+            hd = i.as_dict(encrypt=True, include_frequencies=True)
+            h = i_class.from_dict(cfg, hd, hashed=True)
             self.assertFalse(h.is_plaintext)
             h.ensure_has_freq_info_if_id_present()
+
+            pd = i.as_dict(encrypt=False, include_frequencies=True)
+            p = i_class.from_dict(cfg, pd, hashed=False)
+            self.assertTrue(p.is_plaintext)
+            p.ensure_has_freq_info_if_id_present()
 
     # -------------------------------------------------------------------------
     # Person checks
@@ -832,7 +838,14 @@ class FuzzyLinkageTests(unittest.TestCase):
         people = People(cfg)
         people.add_person(p1)
         people.add_person(p2)
-        self.assertRaises(DuplicateLocalIDError, people.add_person, p3)
+        self.assertRaises(DuplicateIDError, people.add_person, p3)
+
+    def test_person_copy(self) -> None:
+        for orig, cp in ((self.alice_smith, self.alice_smith.copy()),):
+            for attr in Person.ALL_PERSON_KEYS:
+                orig_value = getattr(orig, attr)
+                copy_value = getattr(cp, attr)
+                self.assertEqual(orig_value, copy_value)
 
     # -------------------------------------------------------------------------
     # Person comparisons
