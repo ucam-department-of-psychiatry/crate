@@ -42,6 +42,8 @@ same person.
 
 from typing import Iterable, Optional
 
+from cardinal_pythonlib.reprfunc import auto_repr
+
 from crate_anon.linkage.helpers import (
     log_likelihood_ratio_from_p,
     log_posterior_odds_from_pdh_pdnh,
@@ -75,6 +77,9 @@ class Comparison:
             f"P(D|¬H)={self.p_d_given_not_h}]"
         )
 
+    def __repr__(self) -> str:
+        return auto_repr(self)
+
     @property
     def d_description(self) -> str:
         """
@@ -97,6 +102,12 @@ class Comparison:
         no match.
         """
         raise NotImplementedError("Implement in derived class!")
+
+    @property
+    def log_likelihood_ratio(self) -> float:
+        return log_likelihood_ratio_from_p(
+            self.p_d_given_h, self.p_d_given_not_h
+        )
 
     def posterior_log_odds(self, prior_log_odds: float) -> float:
         """
@@ -217,6 +228,10 @@ class DirectComparison(Comparison):
     @property
     def p_d_given_not_h(self) -> float:
         return self._p_d_given_not_h
+
+    @property
+    def log_likelihood_ratio(self) -> float:
+        return self._log_likelihood_ratio
 
     def posterior_log_odds(self, prior_log_odds: float) -> float:
         # Fast version.
@@ -390,3 +405,26 @@ def bayes_compare(
         # We could check for +∞ too, but that (via PerfectID) is done outside
         # the Bayesian process.
     return log_odds
+
+
+# =============================================================================
+# Comparing comparisons
+# =============================================================================
+
+
+def likeliest(
+    comparisons: Iterable[Optional[Comparison]],
+) -> Optional[Comparison]:
+    """
+    Returns the comparison, among those supplied, providing the most favourable
+    support for the hypothesis (the highest log likelihood ratio).
+    """
+    sorted_comp = sorted(
+        filter(None, comparisons),
+        key=lambda c: c.log_likelihood_ratio,
+    )
+    # The option reverse=True gives highest-to-lowest sorting. But possibly
+    # fractionally slower; see https://stackoverflow.com/questions/9069298. So
+    # rather than using reverse=True and [0], we use reverse=False
+    # (lowest-to-highest sorting) and [-1].
+    return sorted_comp[-1] if sorted_comp else None

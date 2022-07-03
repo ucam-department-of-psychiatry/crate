@@ -2341,22 +2341,10 @@ main <- function()
 # main()
 
 
-# TODO: support first two characters
-
-# TODO: multiple known surnames (optionally time-stamped)
-
 # TODO: handle multiple options for first name, surname?
 #   *** see Downs paper; use some of those strategies?
-#   *** aliases
-#   *** former surnames
 #   *** forename comparison to middle name
-#   *** first two characters of forename/surname (p5, Stage 2).
-#   ? generic Name that is a kind of TemporalIdentifier?
-#   - main tricky bit is the identifiable file format; needs to be easy
 
 # TODO: use empirical estimates of remaining error types; see FuzzyDefaults
-
-# TODO: support exact comparisons via other_info (all string; specify
-# proband key/sample key)
 
 # TODO: re-extract (move back to identifiable extraction?) and retest linkage

@@ -96,20 +96,41 @@ Geography
 
 [COVERED IN THE PAPER. FURTHER DETAIL HERE.]
 
-UK postcodes have this format:
+UK postcodes have this format (A letter, 9 digit, plus Wikipedia concrete
+examples;
+https://en.wikipedia.org/wiki/Postcodes_in_the_United_Kingdom#Formatting):
 
-+---------------------------------+
-| Postcode                        |
-+-----------------+---------------+
-| Outward code    | Inward code   |
-+------+----------+--------+------+
-| Area | District | Sector | Unit |
-+------+----------+--------+------+
-| SW   | 1W       | 0      | NY   |
-+------+----------+--------+------+
++------------+----------------+------------+----------+
+| Postcode                                            |
++------------+----------------+------------+----------+
+| Outward code                | Inward code           |
++------------+----------------+------------+----------+
+| Area (1-2) | District (1-2) | Sector (1) | Unit (2) |
+| (A, AA)    | (9, 99, 9A)    | (9)        | (AA)     |
++------------+----------------+------------+----------+
+| AA         | 9A             | 9          | AA       |
+| SW         | 1W             | 0          | NY       |
+| EC         | 9A             | 9          | AA       |
++------------+----------------+------------+----------+
+| A          | 9A             | 9          | AA       |
+| W          | 1A             | 0          | AX       |
++------------+----------------+------------+----------+
+| A          | 9              | 9          | AA       |
+| M          | 1              | 1          | AE       |
++------------+----------------+------------+----------+
+| A          | 99             | 9          | AA       |
+| B          | 33             | 8          | TH       |
++------------+----------------+------------+----------+
+| AA         | 9              | 9          | AA       |
+| CR         | 2              | 6          | XH       |
++------------+----------------+------------+----------+
+| AA         | 99             | 9          | AA       |
+| DN         | 55             | 1          | PT       |
++------------+----------------+------------+----------+
 
-See
-https://en.wikipedia.org/wiki/Postcodes_in_the_United_Kingdom#Formatting.
+Then there are "special cases" that don't fit, but they are mostly
+extraterritorial. See
+https://en.wikipedia.org/wiki/Postcodes_in_the_United_Kingdom#Special_cases.
 
 UK census geography is described at
 https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography.

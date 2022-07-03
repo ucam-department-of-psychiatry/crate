@@ -169,6 +169,7 @@ class Switches:
     P_E_GENDER = "p_e_gender"
 
     P_EP_POSTCODE = "p_ep_postcode"
+    P_EN_POSTCODE = "p_en_postcode"
 
     MIN_LOG_ODDS_FOR_MATCH = "min_log_odds_for_match"
     EXCEEDS_NEXT_BEST_LOG_ODDS = "exceeds_next_best_log_odds"
@@ -320,6 +321,7 @@ class FuzzyDefaults:
     P_E_GENDER = 0.0033  # (E)
 
     P_EP_POSTCODE = 0.0097  # (E)
+    P_EN_POSTCODE = 0.01  # (E) *** fix
 
     # -------------------------------------------------------------------------
     # Matching process

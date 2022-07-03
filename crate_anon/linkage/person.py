@@ -34,7 +34,6 @@ crate_anon/linkage/person.py
 # Imports
 # =============================================================================
 
-from dataclasses import dataclass, field
 import json
 import logging
 import random
@@ -76,20 +75,26 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
-# BasePerson
+# Person
 # =============================================================================
 
 
-class BasePerson:
+class Person:
     """
-    Core functions for person classes.
+    A proper representation of a person that can do hashing and comparisons.
+    The information may be incomplete or slightly wrong.
+    Includes frequency information and requires a config.
     """
+
+    # -------------------------------------------------------------------------
+    # Class attributes
+    # -------------------------------------------------------------------------
 
     class PersonKey:
         LOCAL_ID = "local_id"  # person ID within relevant DB (proband/sample)
         FIRST_NAME = "first_name"
         MIDDLE_NAMES = "middle_names"
-        SURNAME = "surname"
+        SURNAMES = "surnames"
         DOB = "dob"
         GENDER = "gender"
         POSTCODES = "postcodes"
@@ -107,8 +112,12 @@ class BasePerson:
     del tmp
 
     # For reading CSV:
-    SEMICOLON_DELIMIT = [PersonKey.MIDDLE_NAMES, PersonKey.POSTCODES]
-    TEMPORAL_IDENTIFIERS = [PersonKey.POSTCODES]
+    SEMICOLON_DELIMIT = [
+        PersonKey.MIDDLE_NAMES,
+        PersonKey.SURNAMES,
+        PersonKey.POSTCODES,
+    ]
+    TEMPORAL_IDENTIFIERS = [PersonKey.SURNAMES, PersonKey.POSTCODES]
     PLAINTEXT_CSV_FORMAT_HELP = (
         f"CSV format with header row. Columns: {ALL_PERSON_KEYS}. "
         f"The fields {TEMPORAL_IDENTIFIERS} are in TemporalIdentifier format. "
@@ -126,125 +135,6 @@ class BasePerson:
         "tool for inspecting these.)"
     )
 
-    def __repr__(self):
-        return auto_repr(self)
-
-    @classmethod
-    def plaintext_csv_columns(cls) -> List[str]:
-        """
-        CSV column names -- including user-specified "other" information.
-        """
-        return cls.ALL_PERSON_KEYS
-
-    def plaintext_csv_dict(self) -> Dict[str, str]:
-        """
-        Returns a dictionary suitable for :class:`csv.DictWriter`.
-        This is for writing identifiable content.
-        """
-        d = {}  # type: Dict[str, str]
-        for k in self.ALL_PERSON_KEYS:
-            a = getattr(self, k)
-            if k in self.SEMICOLON_DELIMIT and k != self.PersonKey.PERFECT_ID:
-                v = ";".join(str(x) for x in a)
-            else:
-                v = str(a)
-            d[k] = v
-        return d
-
-
-# =============================================================================
-# String representation of several person classes
-# =============================================================================
-
-
-def identifiable_person_str(self: Union["SimplePerson", "Person"]) -> str:
-    """
-    A bit ugly; this function refers to attributes of two separate classes.
-    However:
-
-    - There's no point making BasePerson an abstract base class, because there
-      are no abstract methods.
-    - I don't think Person can sensible inherit from the dataclass SimplePerson
-      because its attributes are of different types.
-
-    So, while ugly, this works and the type checker is happy.
-    """
-    names = " ".join(
-        [str(self.first_name)]
-        + [str(m) for m in self.middle_names]
-        + [str(self.surname)]
-    )
-    postcodes = " - ".join(str(x) for x in self.postcodes)
-    k = BasePerson.PersonKey
-    details = ", ".join(
-        [
-            f"{k.LOCAL_ID}={self.local_id}",
-            f"{k.PERFECT_ID}={self.perfect_id}",
-            f"name={names}",
-            f"{k.GENDER}={self.gender}",
-            f"{k.DOB}={self.dob}",
-            f"{k.POSTCODES}={postcodes}",
-            f"{k.OTHER_INFO}={self.other_info!r}",
-        ]
-    )
-    classname = type(self).__name__
-    return f"{classname} with {details}"
-
-
-# =============================================================================
-# SimplePerson
-# =============================================================================
-
-
-@dataclass
-class SimplePerson(BasePerson):
-    """
-    Simple information about a person, without frequency calculations.
-    Does not need a config.
-    Used for two purposes:
-
-    1. Demonstration purposes.
-    2. Validation data fetching -- between database and CSV output.
-
-    Will write CSV, but not read.
-    Will not standardize its content.
-    """
-
-    # Names must match ALL_PERSON_KEYS:
-    local_id: str = ""
-    other_info: str = ""
-    first_name: str = ""
-    middle_names: List[str] = field(default_factory=lambda: [])
-    surname: str = ""
-    dob: str = ""
-    gender: str = ""
-    postcodes: List[TemporalIDHolder] = field(default_factory=lambda: [])
-    perfect_keys: Dict[str, str] = field(default_factory=lambda: {})
-    perfect_id: str = ""  # a bit mangled
-
-    def __str__(self) -> str:
-        return identifiable_person_str(self)
-
-
-# =============================================================================
-# Person
-# =============================================================================
-
-
-class Person(BasePerson):
-    """
-    A proper representation of a person that can do hashing and comparisons.
-    The information may be incomplete or slightly wrong.
-    Includes frequency information and requires a config.
-    """
-
-    @staticmethod
-    def plain_or_hashed_txt(plaintext: bool) -> str:
-        """
-        Used for error messages.
-        """
-        return "plaintext" if plaintext else "hashed"
-
     # -------------------------------------------------------------------------
     # Creation
     # -------------------------------------------------------------------------
@@ -256,7 +146,7 @@ class Person(BasePerson):
         other_info: str = "",
         first_name: Union[str, Forename] = "",
         middle_names: List[Union[str, Forename]] = None,
-        surname: Union[str, Surname] = "",
+        surnames: List[Union[str, Surname, TemporalIDHolder]] = None,
         dob: Union[str, DateOfBirth] = "",
         gender: Union[str, Gender] = "",
         postcodes: List[Union[Postcode, TemporalIDHolder]] = None,
@@ -279,8 +169,9 @@ class Person(BasePerson):
                 The person's first name, as a string or a Forename object.
             middle_names:
                 Any middle names, as strings or Forename objects.
-            surname:
-                The person's surname, as a string or a Surname object.
+            surnames:
+                The person's surname(s), as strings or Surname or
+                TemporalIDHolder objects.
             dob:
                 The date of birth, in ISO-8061 "YYYY-MM-DD" string format,
                 or as a DateOfBirth object.
@@ -362,15 +253,27 @@ class Person(BasePerson):
             chk_plaintext(m)
             self.middle_names.append(m)
 
-        # surname
-        surname = "" if surname is None else surname
-        if isinstance(surname, Surname):
-            self.surname = surname
-        else:
-            self.surname = Surname(
-                cfg=cfg, name=surname, gender=self.gender.gender_str
-            )
-        chk_plaintext(self.surname)
+        # surnames
+        surnames = surnames or []
+        if not isinstance(surnames, list):
+            raise ValueError(f"Bad surnames: {surnames!r}")
+        self.surnames = []  # type: List[Surname]
+        for s in surnames:
+            if not s:
+                continue
+            if isinstance(s, str):
+                s = Surname(cfg=cfg, name=s, gender=self.gender.gender_str)
+            elif isinstance(s, TemporalIDHolder):
+                s = Surname(
+                    cfg=cfg,
+                    name=s.identifier,
+                    start_date=s.start_date,
+                    end_date=s.end_date,
+                )
+            elif not isinstance(s, Surname):
+                raise ValueError(f"Bad surname: {s!r}")
+            chk_plaintext(s)
+            self.surnames.append(s)
 
         # dob (NB mandatory for real work but we still want to be able to
         # create Person objects without a DOB inc. for testing)
@@ -410,6 +313,13 @@ class Person(BasePerson):
             self.perfect_id = PerfectID(cfg=cfg, identifiers=perfect_id)
         chk_plaintext(self.perfect_id)
 
+    @staticmethod
+    def plain_or_hashed_txt(plaintext: bool) -> str:
+        """
+        Used for error messages.
+        """
+        return "plaintext" if plaintext else "hashed"
+
     @classmethod
     def from_plaintext_csv(
         cls, cfg: MatchConfig, rowdict: Dict[str, str]
@@ -447,22 +357,25 @@ class Person(BasePerson):
         Restore a hashed or plaintext version from a dictionary (which has been
         read from JSONL).
         """
+
+        def check_is_dict(d_: Any, name_: str) -> None:
+            if not isinstance(d_, dict):
+                raise ValueError(
+                    f"{name_} contains something that is not a dict: {d_!r}"
+                )
+
         pk = cls.PersonKey
         middle_names = []  # type: List[Forename]
         for mnd in getdictval(d, pk.MIDDLE_NAMES, list):
-            if not isinstance(mnd, dict):
-                raise ValueError(
-                    f"{pk.MIDDLE_NAMES} contains something that is not a "
-                    f"dict: {mnd!r}"
-                )
+            check_is_dict(mnd, pk.MIDDLE_NAMES)
             middle_names.append(Forename.from_dict(cfg, mnd, hashed))
+        surnames = []  # type: List[Surname]
+        for sur in getdictval(d, pk.SURNAMES, list):
+            check_is_dict(sur, pk.SURNAMES)
+            surnames.append(Surname.from_dict(cfg, sur, hashed))
         postcodes = []  # type: List[Postcode]
         for pd in getdictval(d, pk.POSTCODES, list):
-            if not isinstance(pd, dict):
-                raise ValueError(
-                    f"{pk.POSTCODES} contains something that is not a "
-                    f"dict: {pd!r}"
-                )
+            check_is_dict(pd, pk.POSTCODES)
             postcodes.append(Postcode.from_dict(cfg, pd, hashed))
         return Person(
             cfg=cfg,
@@ -472,9 +385,7 @@ class Person(BasePerson):
                 cfg, getdictval(d, pk.FIRST_NAME, dict), hashed
             ),
             middle_names=middle_names,
-            surname=Surname.from_dict(
-                cfg, getdictval(d, pk.SURNAME, dict), hashed
-            ),
+            surnames=surnames,
             dob=DateOfBirth.from_dict(
                 cfg, getdictval(d, pk.DOB, dict), hashed
             ),
@@ -511,25 +422,64 @@ class Person(BasePerson):
         return hash(self.local_id)
 
     # -------------------------------------------------------------------------
-    # Representation
+    # Representation: string
     # -------------------------------------------------------------------------
 
-    def is_plaintext(self) -> bool:
-        """
-        Is this a plaintext (identifiable) Person?
-        """
-        return self._is_plaintext
-
-    def is_hashed(self) -> bool:
-        """
-        Is this a hashed (de-identified) Person?
-        """
-        return not self.is_plaintext()
+    def __repr__(self):
+        return auto_repr(self)
 
     def __str__(self) -> str:
         if self.is_hashed():
             return f"Hashed person with local_id={self.local_id!r}"
-        return identifiable_person_str(self)
+        names = " ".join(
+            [str(self.first_name)]
+            + [str(m) for m in self.middle_names]
+            + [str(s) for s in self.surnames]
+        )
+        postcodes = " - ".join(str(x) for x in self.postcodes)
+        k = self.PersonKey
+        details = ", ".join(
+            [
+                f"{k.LOCAL_ID}={self.local_id}",
+                f"{k.PERFECT_ID}={self.perfect_id}",
+                f"name={names}",
+                f"{k.GENDER}={self.gender}",
+                f"{k.DOB}={self.dob}",
+                f"{k.POSTCODES}={postcodes}",
+                f"{k.OTHER_INFO}={self.other_info!r}",
+            ]
+        )
+        return f"Person with {details}"
+
+    # -------------------------------------------------------------------------
+    # Representation: CSV
+    # -------------------------------------------------------------------------
+
+    @classmethod
+    def plaintext_csv_columns(cls) -> List[str]:
+        """
+        CSV column names -- including user-specified "other" information.
+        """
+        return cls.ALL_PERSON_KEYS
+
+    def plaintext_csv_dict(self) -> Dict[str, str]:
+        """
+        Returns a dictionary suitable for :class:`csv.DictWriter`.
+        This is for writing identifiable content.
+        """
+        d = {}  # type: Dict[str, str]
+        for k in self.ALL_PERSON_KEYS:
+            a = getattr(self, k)
+            if k in self.SEMICOLON_DELIMIT and k != self.PersonKey.PERFECT_ID:
+                v = ";".join(str(x) for x in a)
+            else:
+                v = str(a)
+            d[k] = v
+        return d
+
+    # -------------------------------------------------------------------------
+    # Representation: JSON
+    # -------------------------------------------------------------------------
 
     def as_dict(
         self,
@@ -579,7 +529,9 @@ class Person(BasePerson):
                 m.as_dict(encrypt, include_frequencies)
                 for m in self.middle_names
             ],
-            pk.SURNAME: self.surname.as_dict(encrypt, include_frequencies),
+            pk.SURNAMES: [
+                s.as_dict(encrypt, include_frequencies) for s in self.surnames
+            ],
             pk.DOB: self.dob.as_dict(encrypt, include_frequencies),
             pk.GENDER: self.gender.as_dict(encrypt, include_frequencies),
             pk.POSTCODES: [
@@ -590,6 +542,10 @@ class Person(BasePerson):
         if include_other_info:
             d[pk.OTHER_INFO] = self.other_info
         return d
+
+    # -------------------------------------------------------------------------
+    # Copying
+    # -------------------------------------------------------------------------
 
     def copy(self) -> "Person":
         """
@@ -676,10 +632,6 @@ class Person(BasePerson):
     ) -> Generator[Optional[Comparison], None, None]:
         """
         Generates all relevant comparisons.
-
-        Try to do the comparisons first that are most likely to eliminate a
-        person.
-
         Args:
             proband: another :class:`Person` object.
 
@@ -689,35 +641,37 @@ class Person(BasePerson):
         not the candidate, so use ``proband.thing.comparison(self.thing)``.
 
         """
-        # The shortlisting process will already have ensured a DOB match.
-        # Therefore, while we need to process DOB to get the probabilities
-        # right for good candidates, we can do other things first to eliminate
-        # bad ones quicker.
+        # A perfect match would already have been tested for. The shortlisting
+        # process may already have ensured a DOB partial match, or maybe not.
+        # Regardless, there are no identifiers that will cause a complete
+        # disqualification if they mismatch, so order here becomes unimportant
+        # for speed.
 
-        # Surname (might eliminate)
-        yield proband.surname.comparison(self.surname)
-
-        # First name (might eliminate)
+        # First name
         yield proband.first_name.comparison(self.first_name)
 
-        # Gender (won't absolutely eliminate)
-        yield proband.gender.comparison(self.gender)
+        # Middle names
+        yield from self._comparisons_middle_names(proband)
+
+        # Surnames
+        yield from gen_best_comparisons(
+            proband_identifiers=proband.surnames,
+            candidate_identifiers=self.surnames,
+        )
 
         # DOB (see above)
         # There is no special treatment of 29 Feb (since this DOB is
         # approximately 4 times less common than other birthdays, in principle
         # it does merit special treatment, but we ignore that).
-
         yield proband.dob.comparison(self.dob)
 
-        # Middle names (slowest)
-        yield from self._comparisons_middle_names(proband)
+        # Gender
+        yield proband.gender.comparison(self.gender)
 
-        # Postcodes (doesn't eliminate)
+        # Postcodes
         yield from gen_best_comparisons(
             proband_identifiers=proband.postcodes,
             candidate_identifiers=self.postcodes,
-            no_match_comparison=None,
         )
 
     def _comparisons_middle_names(
@@ -762,6 +716,18 @@ class Person(BasePerson):
     # Info functions
     # -------------------------------------------------------------------------
 
+    def is_plaintext(self) -> bool:
+        """
+        Is this a plaintext (identifiable) Person?
+        """
+        return self._is_plaintext
+
+    def is_hashed(self) -> bool:
+        """
+        Is this a hashed (de-identified) Person?
+        """
+        return not self.is_plaintext()
+
     def has_first_name(self) -> bool:
         """
         Does this person have a first name?
@@ -786,6 +752,10 @@ class Person(BasePerson):
         """
         return len(self.postcodes)
 
+    # -------------------------------------------------------------------------
+    # Validation
+    # -------------------------------------------------------------------------
+
     def ensure_valid_as_proband(
         self, debug_allow_no_dob: bool = False
     ) -> None:
@@ -798,7 +768,8 @@ class Person(BasePerson):
         self.first_name.ensure_has_freq_info_if_id_present()
         for m in self.middle_names:
             m.ensure_has_freq_info_if_id_present()
-        self.surname.ensure_has_freq_info_if_id_present()
+        for s in self.surnames:
+            s.ensure_has_freq_info_if_id_present()
         self.dob.ensure_has_freq_info_if_id_present()
         self.gender.ensure_has_freq_info_if_id_present()
         for p in self.postcodes:
@@ -824,16 +795,13 @@ class Person(BasePerson):
         """
         if self.first_name:
             yield self.first_name
-        for m in self.middle_names:
-            yield m
-        if self.surname:
-            yield self.surname
+        yield from self.middle_names
+        yield from self.surnames
         if self.dob:
             yield self.dob
         if self.gender:
             yield self.gender
-        for p in self.postcodes:
-            yield p
+        yield from self.postcodes
 
     # -------------------------------------------------------------------------
     # Debugging functions to mutate this object

@@ -130,6 +130,7 @@ class MatchConfig:
         p_en_dob: float = FuzzyDefaults.P_EN_DOB,
         p_e_gender: float = FuzzyDefaults.P_E_GENDER,
         p_ep_postcode: float = FuzzyDefaults.P_EP_POSTCODE,
+        p_en_postcode: float = FuzzyDefaults.P_EN_POSTCODE,
         min_log_odds_for_match: float = FuzzyDefaults.MIN_LOG_ODDS_FOR_MATCH,
         exceeds_next_best_log_odds: float = (
             FuzzyDefaults.EXCEEDS_NEXT_BEST_LOG_ODDS
@@ -237,9 +238,11 @@ class MatchConfig:
             p_e_gender:
                 Error probability of no gender match.
             p_ep_postcode:
-                Error probability that a postcode fails a full match but passes
-                a partial match.
-
+                Probability that a postcode fails a full (unit) match but
+                passes a partial (sector) match (due to error or a move within
+                a sector).
+            p_en_postcode:
+                Probability that a postcode gives no match at all.
             min_log_odds_for_match:
                 minimum log odds of a match, to consider two people a match
             exceeds_next_best_log_odds:
@@ -511,9 +514,8 @@ class MatchConfig:
 
         # Error probabilities: postcode
 
-        self.p_ep_postcode_minor_error = check_prob(
-            p_ep_postcode, Switches.P_EP_POSTCODE
-        )
+        self.p_ep_postcode = check_prob(p_ep_postcode, Switches.P_EP_POSTCODE)
+        self.p_en_postcode = check_prob(p_en_postcode, Switches.P_EN_POSTCODE)
 
         # Matching rules
 
@@ -777,3 +779,22 @@ class MatchConfig:
 
     def remap_perfect_id_key(self, key: str) -> str:
         return self.perfect_id_translation.get(key, key)
+
+
+# =============================================================================
+# Dummy config that doesn't load frequency information
+# =============================================================================
+
+
+def mk_dummy_match_config() -> MatchConfig:
+    """
+    Returns a dummy config with empty frequency information.
+    """
+    return MatchConfig(
+        forename_cache_filename="",
+        forename_sex_csv_filename="",
+        surname_cache_filename="",
+        surname_csv_filename="",
+        postcode_cache_filename="",
+        postcode_csv_filename="",
+    )

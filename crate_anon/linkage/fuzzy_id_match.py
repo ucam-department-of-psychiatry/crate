@@ -78,10 +78,10 @@ from crate_anon.linkage.constants import (
     GENDER_OTHER,
     Switches,
 )
-from crate_anon.linkage.matchconfig import MatchConfig
+from crate_anon.linkage.matchconfig import MatchConfig, mk_dummy_match_config
 from crate_anon.linkage.matchresult import MatchResult
 from crate_anon.linkage.people import DuplicateIDError, People
-from crate_anon.linkage.person import SimplePerson, Person
+from crate_anon.linkage.person import Person
 from crate_anon.linkage.person_io import (
     gen_person_from_file,
     PersonWriter,
@@ -631,7 +631,7 @@ def hash_identity_file(
 # =============================================================================
 
 
-def get_demo_people() -> List[SimplePerson]:
+def get_demo_people() -> List[Person]:
     """
     Some demonstration records. All data are fictional. The postcodes are real
     but are institutional, not residential, addresses in Cambridge.
@@ -648,113 +648,137 @@ def get_demo_people() -> List[SimplePerson]:
     def mkother(original_id: str) -> str:
         return json.dumps({"original_id": original_id, "other_info": "?"})
 
+    cfg = mk_dummy_match_config()
+
     return [
-        SimplePerson(
+        Person(
+            cfg=cfg,
             local_id="r1",
             other_info=mkother("1"),
             first_name="Alice",
             middle_names=["Zara"],
-            surname="Smith",
+            surnames=["Smith"],
             dob="1931-01-01",
             gender=GENDER_FEMALE,
             postcodes=[p("CB2 0QQ")],
         ),
-        SimplePerson(
+        Person(
+            cfg=cfg,
             local_id="r2",
             other_info=mkother("2"),
             first_name="Bob",
             middle_names=["Yorick"],
-            surname="Jones",
+            surnames=["Jones"],
             dob="1932-01-01",
             gender=GENDER_MALE,
             postcodes=[p("CB2 3EB")],
         ),
-        SimplePerson(
+        Person(
+            cfg=cfg,
             local_id="r3",
             other_info=mkother("3"),
             first_name="Celia",
             middle_names=["Xena"],
-            surname="Wright",
+            surnames=["Wright"],
             dob="1933-01-01",
             gender=GENDER_FEMALE,
             postcodes=[p("CB2 1TP")],
         ),
-        SimplePerson(
+        Person(
+            cfg=cfg,
             local_id="r4",
             other_info=mkother("4"),
             first_name="David",
             middle_names=["William", "Wallace"],
-            surname="Cartwright",
+            surnames=["Cartwright"],
             dob="1934-01-01",
             gender=GENDER_MALE,
             postcodes=[p("CB2 8PH"), p("CB2 1TP")],
         ),
-        SimplePerson(
+        Person(
+            cfg=cfg,
             local_id="r5",
             other_info=mkother("5"),
             first_name="Emily",
             middle_names=["Violet"],
-            surname="Fisher",
+            surnames=["Fisher"],
             dob="1935-01-01",
             gender=GENDER_FEMALE,
             postcodes=[p("CB3 9DF")],
         ),
-        SimplePerson(
+        Person(
+            cfg=cfg,
             local_id="r6",
             other_info=mkother("6"),
             first_name="Frank",
             middle_names=["Umberto"],
-            surname="Williams",
+            surnames=["Williams"],
             dob="1936-01-01",
             gender=GENDER_MALE,
             postcodes=[p("CB2 1TQ")],
         ),
-        SimplePerson(
+        Person(
+            cfg=cfg,
             local_id="r7",
             other_info=mkother("7"),
             first_name="Greta",
             middle_names=["Tilly"],
-            surname="Taylor",
+            surnames=["Taylor"],
             dob="1937-01-01",
             gender=GENDER_FEMALE,
             postcodes=[p("CB2 1DQ")],
         ),
-        SimplePerson(
+        Person(
+            cfg=cfg,
             local_id="r8",
             other_info=mkother("8"),
             first_name="Harry",
             middle_names=["Samuel"],
-            surname="Davies",
+            surnames=["Davies"],
             dob="1938-01-01",
             gender=GENDER_MALE,
             postcodes=[p("CB3 9ET")],
         ),
-        SimplePerson(
+        Person(
+            cfg=cfg,
             local_id="r9",
             other_info=mkother("9"),
             first_name="Iris",
             middle_names=["Ruth"],
-            surname="Evans",
+            surnames=["Evans", "Jones"],
             dob="1939-01-01",
             gender=GENDER_FEMALE,
             postcodes=[p("CB3 0DG")],
         ),
-        SimplePerson(
+        Person(
+            cfg=cfg,
             local_id="r10",
             other_info=mkother("10"),
             first_name="James",
             middle_names=["Quentin"],
-            surname="Thomas",
+            surnames=[
+                TemporalIDHolder(
+                    identifier="Thomas",
+                    start_date=None,
+                    end_date=d("1962-06-21"),
+                ),
+                TemporalIDHolder(
+                    identifier="Richardson",
+                    start_date=d("1962-06-22"),
+                    end_date=None,
+                ),
+            ],
             dob="1940-01-01",
             gender=GENDER_MALE,
             postcodes=[p("CB2 0SZ")],
         ),
-        SimplePerson(
+        Person(
+            cfg=cfg,
             local_id="r11",
             other_info=mkother("11"),
             first_name="Alice",
             middle_names=[],
-            surname="Smith",
+            surnames=["Smith"],
             dob="1931-01-01",
             gender=GENDER_FEMALE,
             postcodes=[p("CB2 0QQ")],
@@ -1207,9 +1231,16 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
         f"--{Switches.P_EP_POSTCODE}",
         type=float,
         default=FuzzyDefaults.P_EP_POSTCODE,
-        help="Assumed probability (p_ep) that a postcode has an error that "
-        "means it fails a full (postcode unit) match but satisfies a partial "
-        "(postcode sector) match.",
+        help="Assumed probability (p_ep) that a proband/candidate postcode "
+        "pair fails a full (postcode unit) match but satisfies a partial "
+        "(postcode sector) match, through error or a move within a sector.",
+    )
+    error_p_group.add_argument(
+        f"--{Switches.P_EN_POSTCODE}",
+        type=float,
+        default=FuzzyDefaults.P_EN_POSTCODE,
+        help="Assumed probability (p_ep) that a proband/candidate postcode "
+        "pair exhibits no match at all.",
     )
 
 
@@ -1504,6 +1535,9 @@ def get_cfg_from_args(
             FuzzyDefaults.P_EP_POSTCODE,
             require_error,
         ),
+        p_en_postcode=getparam(
+            Switches.P_EN_POSTCODE, FuzzyDefaults.P_EN_POSTCODE, require_error
+        ),
         min_log_odds_for_match=getparam(
             Switches.MIN_LOG_ODDS_FOR_MATCH,
             FuzzyDefaults.MIN_LOG_ODDS_FOR_MATCH,
@@ -1614,7 +1648,7 @@ normally for testing.""",
         action="store_true",
         help=(
             f"Include the (potentially identifying) "
-            f"{SimplePerson.PersonKey.OTHER_INFO!r} data? "
+            f"{Person.PersonKey.OTHER_INFO!r} data? "
             "Usually False; may be set to True for validation."
         ),
     )

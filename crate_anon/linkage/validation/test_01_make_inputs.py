@@ -36,7 +36,8 @@ from crate_anon.linkage.fuzzy_id_match import (
     Commands,
     get_demo_people,
 )
-from crate_anon.linkage.person import SimplePerson
+from crate_anon.linkage.matchconfig import mk_dummy_match_config
+from crate_anon.linkage.person import Person
 from crate_anon.linkage.person_io import PersonWriter, write_people
 
 
@@ -57,38 +58,44 @@ def mk_large(filename: str, n: int) -> None:
 
 
 def main() -> None:
-    p1 = SimplePerson(
+    cfg = mk_dummy_match_config()
+    p1 = Person(
+        cfg=cfg,
         local_id="1",
         first_name="Alice",
-        surname="Jones",
+        surnames=["Jones"],
         dob="1950-01-01",
         gender=GENDER_FEMALE,
     )
-    p2 = SimplePerson(
+    p2 = Person(
+        cfg=cfg,
         local_id="2",
         first_name="Alice",
-        surname="Smith",
+        surnames=["Smith"],
         dob="1994-07-29",
         gender=GENDER_FEMALE,
     )
-    p3 = SimplePerson(
+    p3 = Person(
+        cfg=cfg,
         local_id="3",
         first_name="Alice",
-        surname="Smith",
+        surnames=["Smith"],
         dob="1950-01-01",
         gender=GENDER_FEMALE,
     )
-    p4 = SimplePerson(
+    p4 = Person(
+        cfg=cfg,
         local_id="4",
         first_name="Alys",
-        surname="Smith",
+        surnames=["Smith"],
         dob="1950-01-01",
         gender=GENDER_FEMALE,
     )
-    p5 = SimplePerson(
+    p5 = Person(
+        cfg=cfg,
         local_id="5",
         first_name="Alys",
-        surname="Smythe",
+        surnames=["Smythe"],
         dob="1950-01-01",
         gender=GENDER_FEMALE,
     )

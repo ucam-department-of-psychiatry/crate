@@ -51,7 +51,7 @@ import jsonlines
 
 from crate_anon.linkage.matchconfig import MatchConfig
 from crate_anon.linkage.people import People
-from crate_anon.linkage.person import SimplePerson, Person
+from crate_anon.linkage.person import Person
 
 log = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ def gen_person_from_file(
 ) -> Generator[Person, None, None]:
     """
     Read a list of people from a CSV/JSONLines file. See
-    :class:`BasePerson.PersonKey` for the column details.
+    :class:`Person.PersonKey` for the column details.
 
     Args:
         cfg:
@@ -184,24 +184,20 @@ class PersonWriter:
         # 2. Create a writer.
         if self.plaintext:
             self.csv_writer = csv.DictWriter(
-                self.file, fieldnames=SimplePerson.ALL_PERSON_KEYS
+                self.file, fieldnames=Person.ALL_PERSON_KEYS
             )
             self.csv_writer.writeheader()
         else:
             self.jsonl_writer = jsonlines.Writer(self.file)
         return self
 
-    def write(self, person: Union[SimplePerson, Person]) -> None:
+    def write(self, person: Person) -> None:
         """
         Write a person to the file.
         """
         if self.plaintext:
             self.csv_writer.writerow(person.plaintext_csv_dict())
         else:
-            if isinstance(person, SimplePerson):
-                raise ValueError(
-                    "Cannot write a hashed version of a SimplePerson"
-                )
             self.jsonl_writer.write(
                 person.as_dict(
                     include_frequencies=self.include_frequencies,
@@ -234,7 +230,7 @@ class PersonWriter:
 
 
 def write_people(
-    people: Union[People, Iterable[Union[Person, SimplePerson]]],
+    people: Union[People, Iterable[Person]],
     file: TextIOBase = None,
     filename: str = None,
     plaintext: bool = False,
@@ -242,9 +238,9 @@ def write_people(
     include_other_info: bool = False,
 ) -> None:
     """
-    Writes from a :class:`People` object or an iterable of :class:`Person` or
-    :class:`SimplePerson` objects to a file (specified by name or as a
-    file-like object). See :class:`PeopleWriter`.
+    Writes from a :class:`People` object, or an iterable of :class:`Person`
+    objects, to a file (specified by name or as a file-like object). See
+    :class:`PeopleWriter`.
     """
     with PersonWriter(
         file=file,

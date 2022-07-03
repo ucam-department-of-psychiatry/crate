@@ -239,7 +239,6 @@ class NameFrequencyInfo:
             min_frequency:
                 minimum frequency to allow; see command-line help.
         """
-        assert csv_filename and cache_filename
         self._csv_filename = csv_filename
         self._cache_filename = cache_filename
         self._min_frequency = min_frequency
@@ -257,6 +256,10 @@ class NameFrequencyInfo:
         self.f2c_to_infolist = defaultdict(
             list
         )  # type: Dict[Tuple[str, str], List[BasicNameFreqInfo]]
+
+        if not csv_filename or not cache_filename:
+            log.warning("Using dummy NameFrequencyInfo")
+            return
 
         try:
             self._load_from_cache(cache_filename)
@@ -570,7 +573,6 @@ class PostcodeFrequencyInfo:
             report_every:
                 How often to report progress during loading.
         """
-        assert csv_filename and cache_filename
         assert mean_oa_population > 0
         assert 0 <= p_unknown_or_pseudo_postcode <= 1
 
@@ -583,6 +585,10 @@ class PostcodeFrequencyInfo:
         self._postcode_unit_freq = {}  # type: Dict[str, float]
         self._postcode_sector_freq = {}  # type: Dict[str, float]
         self._total_population = 0
+
+        if not csv_filename or not cache_filename:
+            log.warning("Using dummy PostcodeFrequencyInfo")
+            return
 
         try:
             self._load_from_cache(cache_filename)

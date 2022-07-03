@@ -43,6 +43,7 @@ from pendulum import Date
 from crate_anon.linkage.constants import (
     GENDER_FEMALE,
     GENDER_MALE,
+    GENDER_MISSING,
     GENDER_OTHER,
     VALID_GENDERS,
 )
@@ -182,7 +183,7 @@ class TestCondition:
         log_odds = self.log_odds_same_hashed()
         return self.cfg.person_matches(log_odds), log_odds
 
-    def assert_correct(self) -> None:
+    def check_comparison_as_expected(self) -> None:
         """
         Asserts that both the raw and hashed versions match, or don't match,
         according to ``self.should_match``.
@@ -320,48 +321,48 @@ class FuzzyLinkageTests(unittest.TestCase):
             start_date=Date(2000, 1, 1),
             end_date=Date(2010, 1, 1),
         )
-        self.alice_bcd_unique_2000_add = Person(
+        self.alice_bcd_rarename_2000_add = Person(
             cfg=self.cfg,
             local_id="1",
             first_name="Alice",
             middle_names=["Beatrice", "Celia", "Delilah"],
-            surname="Rarename",
+            surnames=["Rarename"],
             dob="2000-01-01",
             postcodes=[self.p1],
         )
-        self.alec_bcd_unique_2000_add = Person(
+        self.alec_bcd_rarename_2000_add = Person(
             cfg=self.cfg,
             local_id="2",
             first_name="Alec",  # same metaphone as Alice
             middle_names=["Beatrice", "Celia", "Delilah"],
-            surname="Rarename",
+            surnames=["Rarename"],
             dob="2000-01-01",
             postcodes=[self.p1],
         )
-        self.bob_bcd_unique_2000_add = Person(
+        self.bob_bcd_rarename_2000_add = Person(
             cfg=self.cfg,
             local_id="3",
             first_name="Bob",
             middle_names=["Beatrice", "Celia", "Delilah"],
-            surname="Rarename",
+            surnames=["Rarename"],
             dob="2000-01-01",
             postcodes=[self.p1],
         )
-        self.alice_bc_unique_2000_add = Person(
+        self.alice_bc_rarename_2000_add = Person(
             cfg=self.cfg,
             local_id="4",
             first_name="Alice",
             middle_names=["Beatrice", "Celia"],
-            surname="Rarename",
+            surnames=["Rarename"],
             dob="2000-01-01",
             postcodes=[self.p1],
         )
-        self.alice_b_unique_2000_add = Person(
+        self.alice_b_rarename_2000_add = Person(
             cfg=self.cfg,
             local_id="5",
             first_name="Alice",
             middle_names=["Beatrice"],
-            surname="Rarename",
+            surnames=["Rarename"],
             dob="2000-01-01",
             postcodes=[self.p1],
         )
@@ -369,7 +370,7 @@ class FuzzyLinkageTests(unittest.TestCase):
             cfg=self.cfg,
             local_id="6",
             first_name="Alice",
-            surname="Jones",
+            surnames=["Jones"],
             dob="2000-01-01",
             postcodes=[self.p1],
         )
@@ -377,7 +378,7 @@ class FuzzyLinkageTests(unittest.TestCase):
             cfg=self.cfg,
             local_id="7",
             first_name="Bob",
-            surname="Smith",
+            surnames=["Smith"],
             dob="1950-05-30",
             postcodes=[self.p2],
         )
@@ -385,49 +386,49 @@ class FuzzyLinkageTests(unittest.TestCase):
             cfg=self.cfg,
             local_id="8",
             first_name="Alice",
-            surname="Smith",
+            surnames=["Smith"],
             dob="1930-01-01",
         )
         self.alice_smith_2000 = Person(
             cfg=self.cfg,
             local_id="9",
             first_name="Alice",
-            surname="Smith",
+            surnames=["Smith"],
             dob="2000-01-01",
         )
         self.alice_smith = Person(
             cfg=self.cfg,
             local_id="10",
             first_name="Alice",
-            surname="Smith",
+            surnames=["Smith"],
         )
-        self.middle_test_1 = Person(
+        self.alice_bc_smith = Person(
             cfg=self.cfg,
             local_id="11",
             first_name="Alice",
             middle_names=["Betty", "Caroline"],
-            surname="Smith",
+            surnames=["Smith"],
         )
-        self.middle_test_2 = Person(
+        self.alice_bde_smith = Person(
             cfg=self.cfg,
             local_id="12",
             first_name="Alice",
             middle_names=["Betty", "Dorothy", "Elizabeth"],
-            surname="Smith",
+            surnames=["Smith"],
         )
         self.all_people = [
-            self.alice_bcd_unique_2000_add,
-            self.alec_bcd_unique_2000_add,
-            self.bob_bcd_unique_2000_add,
-            self.alice_bc_unique_2000_add,
-            self.alice_b_unique_2000_add,
+            self.alice_bcd_rarename_2000_add,
+            self.alec_bcd_rarename_2000_add,
+            self.bob_bcd_rarename_2000_add,
+            self.alice_bc_rarename_2000_add,
+            self.alice_b_rarename_2000_add,
             self.alice_jones_2000_add,
             self.bob_smith_1950_psych,
             self.alice_smith_1930,
             self.alice_smith_2000,
             self.alice_smith,
-            self.middle_test_1,
-            self.middle_test_2,
+            self.alice_bc_smith,
+            self.alice_bde_smith,
         ]
         self.all_people_hashed = [p.hashed() for p in self.all_people]
         self.people_plaintext = People(cfg=self.cfg)
@@ -580,7 +581,7 @@ class FuzzyLinkageTests(unittest.TestCase):
     def test_fuzzy_linkage_frequencies_name(self) -> None:
         cfg = self.cfg
         for surname in ["Smith", "Jones", "Blair", "Cardinal", "XYZ"]:
-            f = cfg.surname_freq_info(surname)
+            f = cfg.get_surname_freq_info(surname)
             log.info(f"Surname frequency for {surname}: {f}")
 
         for forename, gender in [
@@ -710,19 +711,40 @@ class FuzzyLinkageTests(unittest.TestCase):
             if not g:
                 continue
             self.assertTrue(g.fully_matches(g))
-            self.assertGreater(g.comparison(g).posterior_log_odds(0), 0)
-        empty = Gender(cfg, "")
-        self.assertEqual(str(empty), "")
+            comp = g.comparison(g)
+            if comp:
+                self.assertGreater(comp.posterior_log_odds(0), 0)
+
+        empty = Gender(cfg, GENDER_MISSING)
         m = Gender(cfg, GENDER_MALE)
         f = Gender(cfg, GENDER_FEMALE)
         x = Gender(cfg, GENDER_OTHER)
+
+        empty.ensure_has_freq_info_if_id_present()
+        m.ensure_has_freq_info_if_id_present()
+        f.ensure_has_freq_info_if_id_present()
+        x.ensure_has_freq_info_if_id_present()
+
+        self.assertEqual(str(empty), "")
+
+        self.assertTrue(bool(m))
+        self.assertTrue(bool(f))
+        self.assertTrue(bool(x))
+        self.assertFalse(bool(empty))
+
         self.assertTrue(m.fully_matches(m))
+        self.assertTrue(m.comparison_relevant(m))
+
+        self.assertTrue(f.comparison_relevant(f))
+        self.assertTrue(f.comparison_relevant(f))
 
         self.assertFalse(m.fully_matches(f))
         self.assertFalse(m.fully_matches(x))
         self.assertFalse(f.fully_matches(m))
         self.assertFalse(f.fully_matches(x))
 
+        f_comp_f = f.comparison(f)
+        self.assertIsNotNone(f_comp_f)
         self.assertGreater(f.comparison(f).posterior_log_odds(0), 0)
         self.assertLess(f.comparison(m).posterior_log_odds(0), 0)
 
@@ -841,11 +863,18 @@ class FuzzyLinkageTests(unittest.TestCase):
         self.assertRaises(DuplicateIDError, people.add_person, p3)
 
     def test_person_copy(self) -> None:
-        for orig, cp in ((self.alice_smith, self.alice_smith.copy()),):
+        persons = [self.alice_smith]
+        for orig in persons:
+            cp = orig.copy()
             for attr in Person.ALL_PERSON_KEYS:
                 orig_value = getattr(orig, attr)
                 copy_value = getattr(cp, attr)
-                self.assertEqual(orig_value, copy_value)
+                self.assertEqual(
+                    orig_value,
+                    copy_value,
+                    f"mismatch for {attr}:\n"
+                    f"{orig_value!r}\n!=\n{copy_value!r}",
+                )
 
     # -------------------------------------------------------------------------
     # Person comparisons
@@ -856,15 +885,15 @@ class FuzzyLinkageTests(unittest.TestCase):
             # Very easy match
             TestCondition(
                 cfg=self.cfg,
-                person_a=self.alice_bcd_unique_2000_add,
-                person_b=self.alice_bcd_unique_2000_add,
+                person_a=self.alice_bcd_rarename_2000_add,
+                person_b=self.alice_bcd_rarename_2000_add,
                 should_match=True,
             ),
             # Easy match
             TestCondition(
                 cfg=self.cfg,
-                person_a=self.alice_bc_unique_2000_add,
-                person_b=self.alice_b_unique_2000_add,
+                person_a=self.alice_bc_rarename_2000_add,
+                person_b=self.alice_b_rarename_2000_add,
                 should_match=True,
             ),
             # Easy non-match
@@ -890,21 +919,21 @@ class FuzzyLinkageTests(unittest.TestCase):
             ),
             TestCondition(
                 cfg=self.cfg,
-                person_a=self.alice_bcd_unique_2000_add,
-                person_b=self.alec_bcd_unique_2000_add,
+                person_a=self.alice_bcd_rarename_2000_add,
+                person_b=self.alec_bcd_rarename_2000_add,
                 should_match=True,
             ),
             TestCondition(
                 cfg=self.cfg,
-                person_a=self.alice_bcd_unique_2000_add,
-                person_b=self.bob_bcd_unique_2000_add,
-                should_match=False,
+                person_a=self.alice_bcd_rarename_2000_add,
+                person_b=self.bob_bcd_rarename_2000_add,
+                should_match=True,  # used to be False
             ),
         ]  # type: List[TestCondition]
         log.info("Testing comparisons...")
         for i, test in enumerate(test_values, start=1):
             log.info(f"Comparison {i}...")
-            test.assert_correct()
+            test.check_comparison_as_expected()
 
     def test_fuzzy_more_complex(self) -> None:
         log.info("Testing proband-versus-sample...")
@@ -922,11 +951,11 @@ class FuzzyLinkageTests(unittest.TestCase):
 
         log.info(
             f"Testing middle name comparisons between...\n"
-            f"{self.middle_test_1}\n"
-            f"{self.middle_test_2}"
+            f"{self.alice_bc_smith}\n"
+            f"{self.alice_bde_smith}"
         )
         # noinspection PyProtectedMember
-        for comp in self.middle_test_1._comparisons_middle_names(
-            self.middle_test_2
+        for comp in self.alice_bc_smith._comparisons_middle_names(
+            self.alice_bde_smith
         ):
             log.info(comp)
