@@ -382,7 +382,7 @@ def speedtest(cfg: MatchConfig, set_breakpoint: bool = False) -> None:
         local_id="1",
         first_name="Alice",
         middle_names=["Beatrice", "Celia", "Delilah"],
-        surname="Rarename",
+        surnames=["Rarename"],
         dob="2000-01-01",
         postcodes=[p1],
     )
@@ -390,21 +390,21 @@ def speedtest(cfg: MatchConfig, set_breakpoint: bool = False) -> None:
         cfg=cfg,
         local_id="8",
         first_name="Alice",
-        surname="Smith",
+        surnames=["Smith"],
         dob="1930-01-01",
     )
     alice_smith_2000 = Person(
         cfg=cfg,
         local_id="9",
         first_name="Alice",
-        surname="Smith",
+        surnames=["Smith"],
         dob="2000-01-01",
     )
     alice_smith = Person(
         cfg=cfg,
         local_id="10",
         first_name="Alice",
-        surname="Smith",
+        surnames=["Smith"],
     )
 
     if set_breakpoint:
@@ -1110,7 +1110,7 @@ def validate_2_fetch_cdl(
             other_info=other.json,
             first_name=row[q.FIRST_NAME] or "",
             middle_names=[],
-            surname=row[q.SURNAME] or "",
+            surnames=list(filter(None, [row[q.SURNAME]])),
             gender=gender,
             dob=isoformat_optional_date_str(dob),
             postcodes=postcode_temporal_identifiers(postcodes),
@@ -1367,7 +1367,7 @@ def validate_2_fetch_pcmis(
             other_info=other.json,
             first_name=row[q.FIRST_NAME] or "",
             middle_names=[middle_name] if middle_name else [],
-            surname=row[q.SURNAME] or "",
+            surnames=list(filter(None, [row[q.SURNAME]])),
             gender=gender,
             dob=isoformat_optional_date_str(dob),
             postcodes=postcode_temporal_identifiers(postcodes),
@@ -1789,7 +1789,7 @@ def validate_2_fetch_rio(
             other_info=other.json,
             first_name=first_name,
             middle_names=middle_names,
-            surname=surname,
+            surnames=list(filter(None, [surname])),
             gender=gender,
             dob=isoformat_optional_date_str(dob),
             postcodes=postcode_temporal_identifiers(postcodes),
@@ -2087,7 +2087,7 @@ def validate_2_fetch_systmone(
             other_info=other.json,
             first_name=row[q.FIRST_NAME] or "",
             middle_names=[middle_name] if middle_name else [],
-            surname=row[q.SURNAME] or "",
+            surnames=list(filter(None, [row[q.SURNAME]])),
             gender=gender,
             dob=isoformat_optional_date_str(dob),
             postcodes=postcode_temporal_identifiers(postcodes),

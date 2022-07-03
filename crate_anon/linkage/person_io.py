@@ -97,7 +97,10 @@ def gen_person_from_file(
         else:
             raise ValueError(f"Unknown file type: {filename}")
     if not jsonl and not plaintext:
-        raise ValueError("Can't read hashed data from CSV format")
+        raise ValueError(
+            "Options set wrong: can't read hashed data from CSV format, for "
+            f"file {filename}"
+        )
 
     if jsonl:
         # JSON Lines file
@@ -130,6 +133,7 @@ class PersonWriter:
         file: TextIOBase = None,
         filename: str = None,
         plaintext: bool = False,
+        plaintext_jsonl: bool = False,
         include_frequencies: bool = True,
         include_other_info: bool = False,
     ) -> None:
@@ -142,8 +146,10 @@ class PersonWriter:
                 Filename to which to write. Use either this or ``file``, not
                 both.
             plaintext:
-                Plaintext (in CSV)? If False, will be written hashed (in
-                JSONL).
+                Plaintext (in CSV or JSONL)? If False, will be written hashed
+                (in JSONL).
+            plaintext_jsonl:
+                (For plaintext.) Use JSONL rather than CSV?
             include_frequencies:
                 (For hashed writing only.) Include frequency information.
                 Without this, the resulting file is suitable for use as a
@@ -164,9 +170,10 @@ class PersonWriter:
         self.filename = filename
         self.file = file
         self.plaintext = plaintext
+        self.plaintext_jsonl = plaintext_jsonl
         self.include_frequencies = include_frequencies
         self.include_other_info = include_other_info
-
+        self.using_csv = self.plaintext and not self.plaintext_jsonl
         self.csv_writer = None  # type: Optional[csv.DictWriter]
 
     def __enter__(self) -> "PersonWriter":
@@ -182,7 +189,7 @@ class PersonWriter:
             # writing to an in-memory structure, in which case the user
             # probably doesn't care.
         # 2. Create a writer.
-        if self.plaintext:
+        if self.using_csv:
             self.csv_writer = csv.DictWriter(
                 self.file, fieldnames=Person.ALL_PERSON_KEYS
             )
@@ -195,11 +202,12 @@ class PersonWriter:
         """
         Write a person to the file.
         """
-        if self.plaintext:
+        if self.using_csv:
             self.csv_writer.writerow(person.plaintext_csv_dict())
         else:
             self.jsonl_writer.write(
                 person.as_dict(
+                    hashed=not self.plaintext,
                     include_frequencies=self.include_frequencies,
                     include_other_info=self.include_other_info,
                 )
@@ -215,7 +223,7 @@ class PersonWriter:
         Reverse the operations of __enter__().
         """
         # 2. Close the writers.
-        if self.plaintext:
+        if self.using_csv:
             pass
         else:
             self.jsonl_writer.close()
@@ -234,6 +242,7 @@ def write_people(
     file: TextIOBase = None,
     filename: str = None,
     plaintext: bool = False,
+    plaintext_jsonl: bool = False,
     include_frequencies: bool = True,
     include_other_info: bool = False,
 ) -> None:
@@ -246,6 +255,7 @@ def write_people(
         file=file,
         filename=filename,
         plaintext=plaintext,
+        plaintext_jsonl=plaintext_jsonl,
         include_frequencies=include_frequencies,
         include_other_info=include_other_info,
     ) as writer:

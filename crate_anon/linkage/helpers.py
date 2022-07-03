@@ -226,7 +226,7 @@ def open_even_if_zipped(filename: str) -> Generator[StringIO, None, None]:
             # noinspection PyTypeChecker
             f = stack.enter_context(open(filename, "rt"))
         yield f
-        log.info(f"... finished reading: {filename}")
+        log.debug(f"... finished reading: {filename}")
 
 
 # =============================================================================

@@ -61,7 +61,7 @@ from crate_anon.linkage.helpers import (
 from crate_anon.linkage.identifiers import (
     DateOfBirth,
     Forename,
-    gen_best_comparisons,
+    gen_best_comparisons_unordered,
     Gender,
     Identifier,
     PerfectID,
@@ -119,20 +119,21 @@ class Person:
     ]
     TEMPORAL_IDENTIFIERS = [PersonKey.SURNAMES, PersonKey.POSTCODES]
     PLAINTEXT_CSV_FORMAT_HELP = (
-        f"CSV format with header row. Columns: {ALL_PERSON_KEYS}. "
-        f"The fields {TEMPORAL_IDENTIFIERS} are in TemporalIdentifier format. "
-        f"{Identifier.TEMPORAL_ID_FORMAT_HELP} "
-        f"Semicolon-separated values are allowed within {SEMICOLON_DELIMIT}. "
-        f"{PersonKey.PERFECT_ID}, if specified, contains one or more "
+        f"(1) CSV format with header row. Columns: {ALL_PERSON_KEYS}. "
+        f"(2) Semicolon-separated values are allowed within "
+        f"{SEMICOLON_DELIMIT}. "
+        f"(3) The fields {TEMPORAL_IDENTIFIERS} are in TemporalIdentifier "
+        f"format. {Identifier.TEMPORAL_ID_FORMAT_HELP} "
+        f"(4) {PersonKey.PERFECT_ID}, if specified, contains one or more "
         f"perfect person identifiers as key:value pairs, e.g. "
         f"'nhs:12345;ni:AB6789XY'. The keys will be forced to lower case; "
         f"values will be forced to upper case. "
-        f"{PersonKey.OTHER_INFO!r} is an arbitrary string for you to use "
+        f"(5) {PersonKey.OTHER_INFO!r} is an arbitrary string for you to use "
         f"(e.g. for validation)."
     )
     HASHED_JSONLINES_FORMAT_HELP = (
-        "File created by CRATE in JSON Lines (.jsonl) format. (Note the 'jq' "
-        "tool for inspecting these.)"
+        "File created by CRATE in JSON Lines (.jsonl) format. (You could use "
+        "the 'jq' tool to inspect these.)"
     )
 
     # -------------------------------------------------------------------------
@@ -654,7 +655,7 @@ class Person:
         yield from self._comparisons_middle_names(proband)
 
         # Surnames
-        yield from gen_best_comparisons(
+        yield from gen_best_comparisons_unordered(
             proband_identifiers=proband.surnames,
             candidate_identifiers=self.surnames,
         )
@@ -669,7 +670,7 @@ class Person:
         yield proband.gender.comparison(self.gender)
 
         # Postcodes
-        yield from gen_best_comparisons(
+        yield from gen_best_comparisons_unordered(
             proband_identifiers=proband.postcodes,
             candidate_identifiers=self.postcodes,
         )

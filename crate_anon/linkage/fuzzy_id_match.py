@@ -46,7 +46,7 @@ from math import ceil
 
 import sys
 import time
-from typing import Any, List, Tuple, TYPE_CHECKING
+from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 
 from cardinal_pythonlib.argparse_func import (
     RawDescriptionArgumentDefaultsHelpFormatter,
@@ -381,7 +381,7 @@ def compare_probands_to_sample(
     sample.ensure_valid_as_sample()
     log.info(
         f"Comparing each proband to sample. There are "
-        f"{n_probands} probands and {n_sample} in the sample."
+        f"{n_probands} probands, and {n_sample} candidates in the sample."
     )
 
     # Off we go.
@@ -481,6 +481,7 @@ def compare_probands_to_sample_from_files(
                     sample,
                     filename=sample_cache_filename,
                     plaintext=True,
+                    plaintext_jsonl=True,
                     include_frequencies=True,
                     include_other_info=False,
                 )
@@ -533,7 +534,7 @@ def read_people_alternate_groups(
     cfg: MatchConfig,
     filename: str,
     plaintext: bool = True,
-    jsonl: bool = False,
+    jsonl: Optional[bool] = None,
 ) -> Tuple[People, People]:
     """
     Read people from a file, splitting consecutive people into "first group",
@@ -564,7 +565,7 @@ def read_people(
     cfg: MatchConfig,
     filename: str,
     plaintext: bool = True,
-    jsonl: bool = False,
+    jsonl: Optional[bool] = None,
 ) -> People:
     """
     Read a list of people from a CSV/JSONLines file.
@@ -1045,8 +1046,9 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         default=FuzzyDefaults.ACCENT_TRANSLITERATIONS_SLASH_CSV,
         help="CSV list of 'accented/plain' pairs, representing how accented "
         "characters may be transliterated (if they are not reproduced "
-        "accurately or simply mangled into ASCII). Only upper-case versions "
-        "are required (anything supplied will be converted to upper case).",
+        "accurately and not simply mangled into ASCII like É→E). Only "
+        "upper-case versions are required (anything supplied will be "
+        "converted to upper case).",
     )
     priors_group.add_argument(
         f"--{Switches.NONSPECIFIC_NAME_COMPONENTS}",
@@ -1143,14 +1145,14 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
 
     error_p_group.add_argument(
         f"--{Switches.P_EP1_FORENAME}",
-        type=float,
+        type=str,
         default=FuzzyDefaults.P_EP1_FORENAME_CSV,
         help=f"Probability that a forename has an error such that it fails a "
         f"full match but satisfies a partial 1 (metaphone) match. {gdh}",
     )
     error_p_group.add_argument(
         f"--{Switches.P_EP2NP1_FORENAME}",
-        type=float,
+        type=str,
         default=FuzzyDefaults.P_EP2NP1_FORENAME_CSV,
         help=f"Probability that a forename has an error such that it fails a "
         f"full/partial 1 match but satisfies a partial 2 (first two "
@@ -1158,7 +1160,7 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
     )
     error_p_group.add_argument(
         f"--{Switches.P_EN_FORENAME}",
-        type=float,
+        type=str,
         default=FuzzyDefaults.P_EN_FORENAME_CSV,
         help=f"Probability that a forename has an error such that it produces "
         f"no match at all. {gdh}",
@@ -1181,14 +1183,14 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
 
     error_p_group.add_argument(
         f"--{Switches.P_EP1_SURNAME}",
-        type=float,
+        type=str,
         default=FuzzyDefaults.P_EP1_SURNAME_CSV,
         help=f"Probability that a surname has an error such that it fails a "
         f"full match but satisfies a partial 1 (metaphone) match. {gdh}",
     )
     error_p_group.add_argument(
         f"--{Switches.P_EP2NP1_SURNAME}",
-        type=float,
+        type=str,
         default=FuzzyDefaults.P_EP2NP1_SURNAME_CSV,
         help=f"Probability that a surname has an error such that it fails a "
         f"full/partial 1 match but satisfies a partial 2 (first two "
@@ -1196,7 +1198,7 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
     )
     error_p_group.add_argument(
         f"--{Switches.P_EN_SURNAME}",
-        type=float,
+        type=str,
         default=FuzzyDefaults.P_EN_SURNAME_CSV,
         help=f"Probability that a surname has an error such that it produces "
         f"no match at all. {gdh}",

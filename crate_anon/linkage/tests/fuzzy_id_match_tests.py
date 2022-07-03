@@ -93,7 +93,7 @@ GOOD_POSTCODES = [
     "CB2 0QQ",
     "ZZ99 3VZ",
     "Z Z 9 9 3 V Z",
-    "zz993vz",
+    " zz993vz ",
 ]  # good once standardized, anyway
 BAD_GENDERS = ["Y", "male", "female", "?"]
 
@@ -242,6 +242,19 @@ class TestCondition:
                 f"hashed_b = {self.hashed_b}"
             )
 
+        log.info(
+            "(3) Results of plaintext match should equal result of hashed "
+            "match"
+        )
+        if log_odds_hashed != log_odds_plaintext:
+            raise AssertionError(
+                "Plaintext/hashed comparison discrepancy: "
+                f"person_a = {self.person_a}, "
+                f"person_b = {self.person_b}, "
+                "log_odds_plaintext = {log_odds_plaintext}, "
+                f"log_odds_hashed = {log_odds_hashed}"
+            )
+
 
 # =============================================================================
 # Unit tests
@@ -308,7 +321,7 @@ class FuzzyLinkageTests(unittest.TestCase):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.cfg = MatchConfig()
+        self.cfg = MatchConfig(rounding_sf=None)
         self.p1 = Postcode(
             cfg=self.cfg,
             postcode="CB2 0QQ",  # Addenbrooke's Hospital

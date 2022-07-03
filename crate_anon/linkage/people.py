@@ -191,7 +191,7 @@ class People:
         log.info("Validating probands...")
         for p in self.people:
             p.ensure_valid_as_proband()
-        log.info("... OK")
+        log.debug("... OK")
 
     def ensure_valid_as_sample(self) -> None:
         """
@@ -201,7 +201,7 @@ class People:
         log.info("Validating sample...")
         for p in self.people:
             p.ensure_valid_as_candidate()
-        log.info("... OK")
+        log.debug("... OK")
 
     def get_perfect_match(self, proband: Person) -> Optional[Person]:
         """

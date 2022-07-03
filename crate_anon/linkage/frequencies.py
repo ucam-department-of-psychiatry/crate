@@ -258,7 +258,7 @@ class NameFrequencyInfo:
         )  # type: Dict[Tuple[str, str], List[BasicNameFreqInfo]]
 
         if not csv_filename or not cache_filename:
-            log.warning("Using dummy NameFrequencyInfo")
+            log.debug("Using dummy NameFrequencyInfo")
             return
 
         try:
@@ -277,7 +277,7 @@ class NameFrequencyInfo:
         log.info(f"Reading from cache: {cache_filename}")
         with jsonlines.open(cache_filename) as reader:
             self.infolist = [BasicNameFreqInfo.from_dict(d) for d in reader]
-        log.info(f"... finished reading from: {cache_filename}")
+        log.debug(f"... finished reading from: {cache_filename}")
         self._index(update_infolist=False)
 
     def _save_to_cache(self, cache_filename: str) -> None:
@@ -289,7 +289,7 @@ class NameFrequencyInfo:
         with jsonlines.open(cache_filename, mode="w") as writer:
             for i in self.infolist:
                 writer.write(i.as_dict())
-        log.info(f"... finished writing to cache: {cache_filename}")
+        log.debug(f"... finished writing to cache: {cache_filename}")
 
     def _load_from_csv(self, csv_filename: str) -> None:
         """
@@ -314,7 +314,7 @@ class NameFrequencyInfo:
                         gender=gender,
                     )
                 )
-        log.info(f"... finished reading from: {csv_filename}")
+        log.debug(f"... finished reading from: {csv_filename}")
         self._index(update_infolist=True)
 
     def _index(self, update_infolist: bool) -> None:
@@ -379,7 +379,7 @@ class NameFrequencyInfo:
           A NAME.
 
         """
-        log.info("Indexing name frequency info...")
+        log.debug("Indexing name frequency info...")
 
         # Reset
         self.name_gender_idx = {}
@@ -445,7 +445,7 @@ class NameFrequencyInfo:
                         # ... but different name and metaphone...
                         i.p_f2c_not_name_metaphone += other.p_name
 
-        log.info("... finished indexing name frequency info")
+        log.debug("... finished indexing name frequency info")
 
     def name_frequency_info(
         self, name: str, gender: str = "", prestandardized: bool = True
@@ -587,7 +587,7 @@ class PostcodeFrequencyInfo:
         self._total_population = 0
 
         if not csv_filename or not cache_filename:
-            log.warning("Using dummy PostcodeFrequencyInfo")
+            log.debug("Using dummy PostcodeFrequencyInfo")
             return
 
         try:
@@ -634,7 +634,7 @@ class PostcodeFrequencyInfo:
                 f"{type(self._total_population)}"
             )
 
-        log.info(f"... finished reading from: {cache_filename}")
+        log.debug(f"... finished reading from: {cache_filename}")
 
     def _save_to_cache(self, cache_filename: str) -> None:
         """
@@ -649,7 +649,7 @@ class PostcodeFrequencyInfo:
         }
         with open(cache_filename, mode="w") as file:
             json.dump(d, file)
-        log.info(f"... finished writing to cache: {cache_filename}")
+        log.debug(f"... finished writing to cache: {cache_filename}")
 
     def _load_from_csv(
         self, csv_filename: str, mean_oa_population: float, report_every: int
@@ -705,7 +705,7 @@ class PostcodeFrequencyInfo:
                 sector_population / self._total_population
             )  # noqa
 
-        log.info(f"... finished reading from: {csv_filename}")
+        log.debug(f"... finished reading from: {csv_filename}")
 
     def postcode_unit_sector_frequency(
         self, postcode_unit: str, prestandardized: bool = False
@@ -735,7 +735,9 @@ class PostcodeFrequencyInfo:
             )
         except KeyError:
             if not is_pseudo_postcode(unit):
-                warn_once(f"Unknown postcode: {unit}", log)
+                warn_once(
+                    f"Unknown postcode: {unit}", log, level=logging.DEBUG
+                )
             unit_freq = self._p_unknown_or_pseudo_postcode
             sector_freq = self._p_unknown_or_pseudo_postcode
         assert unit_freq <= sector_freq, (

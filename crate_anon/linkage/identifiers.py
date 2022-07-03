@@ -1174,6 +1174,9 @@ class BasicName(IdentifierFourState, ABC):
     - UK forename frequency depends on gender.
     - The probability that someone's surname changes depends on gender.
 
+    As a result, because we can't access gender once hashed, we need to store
+    error frequencies as well as population frequencies.
+
     Since names can change, we also support optional start/end dates. If none
     are supplied, it simply becomes a non-temporal identifier.
     """  # noqa
@@ -1186,6 +1189,10 @@ class BasicName(IdentifierFourState, ABC):
     KEY_P_F_NAME_FREQ = "p_f"
     KEY_P_P1NF_METAPHONE_NOT_NAME = "p_p1nf"
     KEY_P_P2NP1_F2C_NOT_METAPHONE_OR_NAME = "p_p2np1"
+
+    KEY_P_C = "p_c"
+    KEY_P_EP1 = "p_ep1"
+    KEY_P_EP2NP1 = "p_ep2np1"
 
     def __init__(
         self,
@@ -1226,6 +1233,11 @@ class BasicName(IdentifierFourState, ABC):
         self.p_p1nf_metaphone_not_name = None  # type: Optional[float]
         self.p_p2np1_f2c_not_metaphone_or_name = None  # type: Optional[float]
 
+        # Error probabilities -- to be overridden
+        self.p_c = None  # type: Optional[float]
+        self.p_ep1 = None  # type: Optional[float]
+        self.p_ep2np1 = None  # type: Optional[float]
+
         self.gender = ""  # changed in next step
         self.set_gender(gender)  # will reset frequencies and comparisons
 
@@ -1248,37 +1260,24 @@ class BasicName(IdentifierFourState, ABC):
 
     def _clear_frequencies(self) -> None:
         """
-        Clear our population frequencies.
+        Clear our population/error frequencies.
         """
         self.pf_pop_name_freq = None
         self.p_p1nf_metaphone_not_name = None
         self.p_p2np1_f2c_not_metaphone_or_name = None
 
-    @abstractmethod
+        self.p_c = None
+        self.p_ep1 = None
+        self.p_ep2np1 = None
+
     def _set_comparisons(self) -> None:
         """
-        If we have identifier information, use error information from the
-        config, and frequency information from `self`, to create our
+        If we have identifier information, use error information from `self`
+        (unusually), and frequency information from `self`, to create our
         comparisons. Otherwise, call :meth:`_clear_comparisons`.
         """
-        pass
-
-    def _set_comparisons_inner(
-        self, p_c: float, p_ep1: float, p_ep2np1: float
-    ) -> None:
-        """
-        Args:
-            p_c:
-                Probability of a correct match between proband/candidate
-            p_ep1:
-                P(error such that partial match 1 occurs, but not a full
-                match).
-            p_ep2np1:
-                P(error such that partial match 2 occurs, but not a full match
-                or partial match 1).
-        """
         if self.name:
-            p_en = 1 - p_c - p_ep1 - p_ep2np1
+            p_en = 1 - self.p_c - self.p_ep1 - self.p_ep2np1
             assert 0 <= p_en <= 1, "Bad error probabilities for a BasicName"
 
             p_n_pop_no_match = (
@@ -1292,15 +1291,15 @@ class BasicName(IdentifierFourState, ABC):
             ), "Bad population probabilities for a BasicName"
 
             self.comparison_full_match = DirectComparison(
-                p_d_given_same_person=p_c,
+                p_d_given_same_person=self.p_c,
                 p_d_given_diff_person=self.pf_pop_name_freq,
             )
             self.comparison_partial_match = DirectComparison(
-                p_d_given_same_person=p_ep1,
+                p_d_given_same_person=self.p_ep1,
                 p_d_given_diff_person=self.p_p1nf_metaphone_not_name,
             )
             self.comparison_partial_match_second = DirectComparison(
-                p_d_given_same_person=p_ep2np1,
+                p_d_given_same_person=self.p_ep2np1,
                 p_d_given_diff_person=self.p_p2np1_f2c_not_metaphone_or_name,
             )
             self.comparison_no_match = DirectComparison(
@@ -1357,6 +1356,9 @@ class BasicName(IdentifierFourState, ABC):
             d[self.KEY_P_P2NP1_F2C_NOT_METAPHONE_OR_NAME] = self._round(
                 self.p_p2np1_f2c_not_metaphone_or_name, encrypt
             )
+            d[self.KEY_P_C] = self._round(self.p_c, encrypt)
+            d[self.KEY_P_EP1] = self._round(self.p_ep1, encrypt)
+            d[self.KEY_P_EP2NP1] = self._round(self.p_ep2np1, encrypt)
         return d
 
     def _set_from_json_dict_internal(self, d: Dict[str, Any], hashed: bool):
@@ -1381,6 +1383,10 @@ class BasicName(IdentifierFourState, ABC):
         self.p_p2np1_f2c_not_metaphone_or_name = getdictprob(
             d, self.KEY_P_P2NP1_F2C_NOT_METAPHONE_OR_NAME
         )
+
+        self.p_c = getdictprob(d, self.KEY_P_C)
+        self.p_ep1 = getdictprob(d, self.KEY_P_EP1)
+        self.p_ep2np1 = getdictprob(d, self.KEY_P_EP2NP1)
 
         self._set_comparisons()
 
@@ -1449,22 +1455,20 @@ class SurnameFragment(BasicName):
 
     def _reset_frequencies_identifiable(self) -> None:
         if self.name:
-            f = self.cfg.get_surname_freq_info(self.name, prestandardized=True)
+            cfg = self.cfg
+            f = cfg.get_surname_freq_info(self.name, prestandardized=True)
+            g = self.gender
+
             self.pf_pop_name_freq = f.p_name
             self.p_p1nf_metaphone_not_name = f.p_metaphone_not_name
             self.p_p2np1_f2c_not_metaphone_or_name = f.p_f2c_not_name_metaphone
+
+            self.p_c = cfg.p_c_surname[g]
+            self.p_ep1 = cfg.p_ep1_surname[g]
+            self.p_ep2np1 = cfg.p_ep2np1_surname[g]
         else:
             self._clear_frequencies()
         self._set_comparisons()
-
-    def _set_comparisons(self) -> None:
-        cfg = self.cfg
-        g = self.gender
-        self._set_comparisons_inner(
-            p_c=cfg.p_c_surname[g],
-            p_ep1=cfg.p_ep1_surname[g],
-            p_ep2np1=cfg.p_ep2np1_surname[g],
-        )
 
     # -------------------------------------------------------------------------
     # Unused methods from Identifier
@@ -1749,24 +1753,20 @@ class Forename(BasicName):
 
     def _reset_frequencies_identifiable(self) -> None:
         if self.name:
-            f = self.cfg.get_forename_freq_info(
-                self.name, self.gender, prestandardized=True
-            )
+            cfg = self.cfg
+            g = self.gender
+            f = cfg.get_forename_freq_info(self.name, g, prestandardized=True)
+
             self.pf_pop_name_freq = f.p_name
             self.p_p1nf_metaphone_not_name = f.p_metaphone_not_name
             self.p_p2np1_f2c_not_metaphone_or_name = f.p_f2c_not_name_metaphone
+
+            self.p_c = cfg.p_c_forename[g]
+            self.p_ep1 = cfg.p_ep1_forename[g]
+            self.p_ep2np1 = cfg.p_ep2np1_forename[g]
         else:
             self._clear_frequencies()
         self._set_comparisons()
-
-    def _set_comparisons(self) -> None:
-        cfg = self.cfg
-        g = self.gender
-        self._set_comparisons_inner(
-            p_c=cfg.p_c_forename[g],
-            p_ep1=cfg.p_ep1_forename[g],
-            p_ep2np1=cfg.p_ep2np1_forename[g],
-        )
 
     @classmethod
     def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "Forename":
@@ -1892,7 +1892,7 @@ class ComparisonInfo:
     # saves lookup cost
 
 
-def gen_best_comparisons(
+def gen_best_comparisons_unordered(
     proband_identifiers: List[Identifier],
     candidate_identifiers: List[Identifier],
     max_n_negative: int = INFINITY,

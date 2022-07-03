@@ -2347,4 +2347,4 @@ main <- function()
 
 # TODO: use empirical estimates of remaining error types; see FuzzyDefaults
 
-# TODO: re-extract (move back to identifiable extraction?) and retest linkage
+# TODO: re-extract and re-test linkage

@@ -50,9 +50,10 @@ COMPARISON_H2H=${WORKDIR}/crate_fuzzy_output_h2h.csv
     --allow_default_hash_key \
     --input "${SAMPLE}" \
     --output "${WORKDIR}/crate_fuzzy_hashed_with_other_info.jsonl" \
+    --rounding_sf None \
     --include_other_info
 
-rm "${SAMPLE_CACHE}"
+rm -f "${SAMPLE_CACHE}"
 # This should produce matches for most (comparing a sample to itself):
 # (a) From plaintext
 "${FUZZY}" compare_plaintext \
@@ -82,7 +83,7 @@ rm "${SAMPLE_CACHE}"
     --sample "${SAMPLE_HASHED}" \
     --output "${COMPARISON_H2H}" \
     --n_workers 1
-cmp "${COMPARISON_H2H}" "${COMPARISON_P2P}" || { echo "H2H/P2P mismatch"; exit 1; }
+cmp "${COMPARISON_H2H}" "${COMPARISON_P2P}" || { echo "H2H doesn't match P2P"; exit 1; }
 
 "${FUZZY}" compare_hashed_to_plaintext \
     --allow_default_hash_key \
@@ -91,7 +92,7 @@ cmp "${COMPARISON_H2H}" "${COMPARISON_P2P}" || { echo "H2H/P2P mismatch"; exit 1
     --output "${COMPARISON_H2P}" \
     --n_workers 1 \
     --rounding_sf None
-cmp "${COMPARISON_H2P}" "${COMPARISON_P2P}" || { echo "H2P/P2P mismatch"; exit 1; }
+cmp "${COMPARISON_H2P}" "${COMPARISON_P2P}" || { echo "H2P doesn't match P2P"; exit 1; }
 
 
 # -----------------------------------------------------------------------------

@@ -83,26 +83,26 @@ normally for testing.
 
 optional arguments:
   -h, --help            show this help message and exit
-  --input INPUT         Filename for input (plaintext) data. CSV format with
-                        header row. Columns: ['local_id', 'first_name',
-                        'middle_names', 'surname', 'dob', 'gender',
-                        'postcodes', 'perfect_id', 'other_info']. The fields
-                        ['postcodes'] are in TemporalIdentifier format.
-                        Temporal identifier format:
+  --input INPUT         Filename for input (plaintext) data. (1) CSV format
+                        with header row. Columns: ['local_id', 'first_name',
+                        'middle_names', 'surnames', 'dob', 'gender',
+                        'postcodes', 'perfect_id', 'other_info']. (2)
+                        Semicolon-separated values are allowed within
+                        ['middle_names', 'surnames', 'postcodes']. (3) The
+                        fields ['surnames', 'postcodes'] are in
+                        TemporalIdentifier format. Temporal identifier format:
+                        either just IDENTIFIER, or
                         IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
                         MM-DD format or one of ['none', 'null', '?'] (case-
-                        insensitive). The simpler format of IDENTIFIER (which
-                        must not contain '/') will also work. Semicolon-
-                        separated values are allowed within ['middle_names',
-                        'postcodes']. perfect_id, if specified, contains one
-                        or more perfect person identifiers as key:value pairs,
-                        e.g. 'nhs:12345;ni:AB6789XY'. The keys will be forced
-                        to lower case; values will be forced to upper case.
-                        'other_info' is an arbitrary string for you to use
-                        (e.g. for validation). (default: None)
+                        insensitive). (4) perfect_id, if specified, contains
+                        one or more perfect person identifiers as key:value
+                        pairs, e.g. 'nhs:12345;ni:AB6789XY'. The keys will be
+                        forced to lower case; values will be forced to upper
+                        case. (5) 'other_info' is an arbitrary string for you
+                        to use (e.g. for validation). (default: None)
   --output OUTPUT       Output file for hashed version. File created by CRATE
-                        in JSON Lines (.jsonl) format. (Note the 'jq' tool for
-                        inspecting these.) (default: None)
+                        in JSON Lines (.jsonl) format. (You could use the 'jq'
+                        tool to inspect these.) (default: None)
   --without_frequencies
                         Do not include frequency information. This makes the
                         result suitable for use as a sample file, but not a
@@ -180,8 +180,8 @@ Frequency information for prior probabilities:
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         CSV list of 'accented/plain' pairs, representing how
                         accented characters may be transliterated (if they are
-                        not reproduced accurately or simply mangled into
-                        ASCII). Only upper-case versions are required
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
                         (anything supplied will be converted to upper case).
                         (default: Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
@@ -256,6 +256,7 @@ usage: crate_fuzzy_id_match compare_plaintext [-h] --probands PROBANDS
                                               [--p_en_dob P_EN_DOB]
                                               [--p_e_gender P_E_GENDER]
                                               [--p_ep_postcode P_EP_POSTCODE]
+                                              [--p_en_postcode P_EN_POSTCODE]
                                               [--population_size POPULATION_SIZE]
                                               [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                               [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
@@ -321,40 +322,40 @@ optional arguments:
   -h, --help            show this help message and exit
 
 Comparison options:
-  --probands PROBANDS   Input filename for probands data. CSV format with
+  --probands PROBANDS   Input filename for probands data. (1) CSV format with
                         header row. Columns: ['local_id', 'first_name',
-                        'middle_names', 'surname', 'dob', 'gender',
-                        'postcodes', 'perfect_id', 'other_info']. The fields
-                        ['postcodes'] are in TemporalIdentifier format.
-                        Temporal identifier format:
+                        'middle_names', 'surnames', 'dob', 'gender',
+                        'postcodes', 'perfect_id', 'other_info']. (2)
+                        Semicolon-separated values are allowed within
+                        ['middle_names', 'surnames', 'postcodes']. (3) The
+                        fields ['surnames', 'postcodes'] are in
+                        TemporalIdentifier format. Temporal identifier format:
+                        either just IDENTIFIER, or
                         IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
                         MM-DD format or one of ['none', 'null', '?'] (case-
-                        insensitive). The simpler format of IDENTIFIER (which
-                        must not contain '/') will also work. Semicolon-
-                        separated values are allowed within ['middle_names',
-                        'postcodes']. perfect_id, if specified, contains one
-                        or more perfect person identifiers as key:value pairs,
-                        e.g. 'nhs:12345;ni:AB6789XY'. The keys will be forced
-                        to lower case; values will be forced to upper case.
-                        'other_info' is an arbitrary string for you to use
-                        (e.g. for validation). (default: None)
-  --sample SAMPLE       Input filename for sample data. CSV format with header
-                        row. Columns: ['local_id', 'first_name',
-                        'middle_names', 'surname', 'dob', 'gender',
-                        'postcodes', 'perfect_id', 'other_info']. The fields
-                        ['postcodes'] are in TemporalIdentifier format.
-                        Temporal identifier format:
+                        insensitive). (4) perfect_id, if specified, contains
+                        one or more perfect person identifiers as key:value
+                        pairs, e.g. 'nhs:12345;ni:AB6789XY'. The keys will be
+                        forced to lower case; values will be forced to upper
+                        case. (5) 'other_info' is an arbitrary string for you
+                        to use (e.g. for validation). (default: None)
+  --sample SAMPLE       Input filename for sample data. (1) CSV format with
+                        header row. Columns: ['local_id', 'first_name',
+                        'middle_names', 'surnames', 'dob', 'gender',
+                        'postcodes', 'perfect_id', 'other_info']. (2)
+                        Semicolon-separated values are allowed within
+                        ['middle_names', 'surnames', 'postcodes']. (3) The
+                        fields ['surnames', 'postcodes'] are in
+                        TemporalIdentifier format. Temporal identifier format:
+                        either just IDENTIFIER, or
                         IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
                         MM-DD format or one of ['none', 'null', '?'] (case-
-                        insensitive). The simpler format of IDENTIFIER (which
-                        must not contain '/') will also work. Semicolon-
-                        separated values are allowed within ['middle_names',
-                        'postcodes']. perfect_id, if specified, contains one
-                        or more perfect person identifiers as key:value pairs,
-                        e.g. 'nhs:12345;ni:AB6789XY'. The keys will be forced
-                        to lower case; values will be forced to upper case.
-                        'other_info' is an arbitrary string for you to use
-                        (e.g. for validation). (default: None)
+                        insensitive). (4) perfect_id, if specified, contains
+                        one or more perfect person identifiers as key:value
+                        pairs, e.g. 'nhs:12345;ni:AB6789XY'. The keys will be
+                        forced to lower case; values will be forced to upper
+                        case. (5) 'other_info' is an arbitrary string for you
+                        to use (e.g. for validation). (default: None)
   --sample_cache SAMPLE_CACHE
                         JSONL file in which to store cached sample info (to
                         speed loading) (default: None)
@@ -449,10 +450,14 @@ Error probabilities:
                         leading to a proband/candidate mismatch. (default:
                         0.0033)
   --p_ep_postcode P_EP_POSTCODE
-                        Assumed probability (p_ep) that a postcode has an
-                        error that means it fails a full (postcode unit) match
-                        but satisfies a partial (postcode sector) match.
-                        (default: 0.0097)
+                        Assumed probability (p_ep) that a proband/candidate
+                        postcode pair fails a full (postcode unit) match but
+                        satisfies a partial (postcode sector) match, through
+                        error or a move within a sector. (default: 0.0097)
+  --p_en_postcode P_EN_POSTCODE
+                        Assumed probability (p_ep) that a proband/candidate
+                        postcode pair exhibits no match at all. (default:
+                        0.01)
 
 Frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -502,8 +507,8 @@ Frequency information for prior probabilities:
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         CSV list of 'accented/plain' pairs, representing how
                         accented characters may be transliterated (if they are
-                        not reproduced accurately or simply mangled into
-                        ASCII). Only upper-case versions are required
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
                         (anything supplied will be converted to upper case).
                         (default: Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
@@ -579,6 +584,7 @@ usage: crate_fuzzy_id_match compare_hashed_to_hashed [-h] --probands PROBANDS
                                                      [--p_en_dob P_EN_DOB]
                                                      [--p_e_gender P_E_GENDER]
                                                      [--p_ep_postcode P_EP_POSTCODE]
+                                                     [--p_en_postcode P_EN_POSTCODE]
                                                      [--population_size POPULATION_SIZE]
                                                      [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                      [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
@@ -645,11 +651,11 @@ optional arguments:
 
 Comparison options:
   --probands PROBANDS   Input filename for probands data. File created by
-                        CRATE in JSON Lines (.jsonl) format. (Note the 'jq'
-                        tool for inspecting these.) (default: None)
+                        CRATE in JSON Lines (.jsonl) format. (You could use
+                        the 'jq' tool to inspect these.) (default: None)
   --sample SAMPLE       Input filename for sample data. File created by CRATE
-                        in JSON Lines (.jsonl) format. (Note the 'jq' tool for
-                        inspecting these.) (default: None)
+                        in JSON Lines (.jsonl) format. (You could use the 'jq'
+                        tool to inspect these.) (default: None)
   --sample_cache SAMPLE_CACHE
                         JSONL file in which to store cached sample info (to
                         speed loading) (default: None)
@@ -744,10 +750,14 @@ Error probabilities:
                         leading to a proband/candidate mismatch. (default:
                         0.0033)
   --p_ep_postcode P_EP_POSTCODE
-                        Assumed probability (p_ep) that a postcode has an
-                        error that means it fails a full (postcode unit) match
-                        but satisfies a partial (postcode sector) match.
-                        (default: 0.0097)
+                        Assumed probability (p_ep) that a proband/candidate
+                        postcode pair fails a full (postcode unit) match but
+                        satisfies a partial (postcode sector) match, through
+                        error or a move within a sector. (default: 0.0097)
+  --p_en_postcode P_EN_POSTCODE
+                        Assumed probability (p_ep) that a proband/candidate
+                        postcode pair exhibits no match at all. (default:
+                        0.01)
 
 Frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -797,8 +807,8 @@ Frequency information for prior probabilities:
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         CSV list of 'accented/plain' pairs, representing how
                         accented characters may be transliterated (if they are
-                        not reproduced accurately or simply mangled into
-                        ASCII). Only upper-case versions are required
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
                         (anything supplied will be converted to upper case).
                         (default: Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
@@ -880,6 +890,7 @@ usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] --probands
                                                         [--p_en_dob P_EN_DOB]
                                                         [--p_e_gender P_E_GENDER]
                                                         [--p_ep_postcode P_EP_POSTCODE]
+                                                        [--p_en_postcode P_EN_POSTCODE]
                                                         [--population_size POPULATION_SIZE]
                                                         [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                         [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
@@ -946,25 +957,25 @@ optional arguments:
 
 Comparison options:
   --probands PROBANDS   Input filename for probands data. File created by
-                        CRATE in JSON Lines (.jsonl) format. (Note the 'jq'
-                        tool for inspecting these.) (default: None)
-  --sample SAMPLE       Input filename for sample data. CSV format with header
-                        row. Columns: ['local_id', 'first_name',
-                        'middle_names', 'surname', 'dob', 'gender',
-                        'postcodes', 'perfect_id', 'other_info']. The fields
-                        ['postcodes'] are in TemporalIdentifier format.
-                        Temporal identifier format:
+                        CRATE in JSON Lines (.jsonl) format. (You could use
+                        the 'jq' tool to inspect these.) (default: None)
+  --sample SAMPLE       Input filename for sample data. (1) CSV format with
+                        header row. Columns: ['local_id', 'first_name',
+                        'middle_names', 'surnames', 'dob', 'gender',
+                        'postcodes', 'perfect_id', 'other_info']. (2)
+                        Semicolon-separated values are allowed within
+                        ['middle_names', 'surnames', 'postcodes']. (3) The
+                        fields ['surnames', 'postcodes'] are in
+                        TemporalIdentifier format. Temporal identifier format:
+                        either just IDENTIFIER, or
                         IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
                         MM-DD format or one of ['none', 'null', '?'] (case-
-                        insensitive). The simpler format of IDENTIFIER (which
-                        must not contain '/') will also work. Semicolon-
-                        separated values are allowed within ['middle_names',
-                        'postcodes']. perfect_id, if specified, contains one
-                        or more perfect person identifiers as key:value pairs,
-                        e.g. 'nhs:12345;ni:AB6789XY'. The keys will be forced
-                        to lower case; values will be forced to upper case.
-                        'other_info' is an arbitrary string for you to use
-                        (e.g. for validation). (default: None)
+                        insensitive). (4) perfect_id, if specified, contains
+                        one or more perfect person identifiers as key:value
+                        pairs, e.g. 'nhs:12345;ni:AB6789XY'. The keys will be
+                        forced to lower case; values will be forced to upper
+                        case. (5) 'other_info' is an arbitrary string for you
+                        to use (e.g. for validation). (default: None)
   --sample_cache SAMPLE_CACHE
                         JSONL file in which to store cached sample info (to
                         speed loading) (default: None)
@@ -1080,10 +1091,14 @@ Error probabilities:
                         leading to a proband/candidate mismatch. (default:
                         0.0033)
   --p_ep_postcode P_EP_POSTCODE
-                        Assumed probability (p_ep) that a postcode has an
-                        error that means it fails a full (postcode unit) match
-                        but satisfies a partial (postcode sector) match.
-                        (default: 0.0097)
+                        Assumed probability (p_ep) that a proband/candidate
+                        postcode pair fails a full (postcode unit) match but
+                        satisfies a partial (postcode sector) match, through
+                        error or a move within a sector. (default: 0.0097)
+  --p_en_postcode P_EN_POSTCODE
+                        Assumed probability (p_ep) that a proband/candidate
+                        postcode pair exhibits no match at all. (default:
+                        0.01)
 
 Frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -1133,8 +1148,8 @@ Frequency information for prior probabilities:
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         CSV list of 'accented/plain' pairs, representing how
                         accented characters may be transliterated (if they are
-                        not reproduced accurately or simply mangled into
-                        ASCII). Only upper-case versions are required
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
                         (anything supplied will be converted to upper case).
                         (default: Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
@@ -1279,8 +1294,8 @@ Frequency information for prior probabilities:
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         CSV list of 'accented/plain' pairs, representing how
                         accented characters may be transliterated (if they are
-                        not reproduced accurately or simply mangled into
-                        ASCII). Only upper-case versions are required
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
                         (anything supplied will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
                         CSV list of name components that should not be used as
@@ -1392,8 +1407,8 @@ Frequency information for prior probabilities:
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         CSV list of 'accented/plain' pairs, representing how
                         accented characters may be transliterated (if they are
-                        not reproduced accurately or simply mangled into
-                        ASCII). Only upper-case versions are required
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
                         (anything supplied will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
                         CSV list of name components that should not be used as
@@ -1504,8 +1519,8 @@ Frequency information for prior probabilities:
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         CSV list of 'accented/plain' pairs, representing how
                         accented characters may be transliterated (if they are
-                        not reproduced accurately or simply mangled into
-                        ASCII). Only upper-case versions are required
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
                         (anything supplied will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
                         CSV list of name components that should not be used as
@@ -1616,8 +1631,8 @@ Frequency information for prior probabilities:
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         CSV list of 'accented/plain' pairs, representing how
                         accented characters may be transliterated (if they are
-                        not reproduced accurately or simply mangled into
-                        ASCII). Only upper-case versions are required
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
                         (anything supplied will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
                         CSV list of name components that should not be used as
@@ -1729,8 +1744,8 @@ Frequency information for prior probabilities:
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         CSV list of 'accented/plain' pairs, representing how
                         accented characters may be transliterated (if they are
-                        not reproduced accurately or simply mangled into
-                        ASCII). Only upper-case versions are required
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
                         (anything supplied will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
                         CSV list of name components that should not be used as
@@ -1841,8 +1856,8 @@ Frequency information for prior probabilities:
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         CSV list of 'accented/plain' pairs, representing how
                         accented characters may be transliterated (if they are
-                        not reproduced accurately or simply mangled into
-                        ASCII). Only upper-case versions are required
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
                         (anything supplied will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
                         CSV list of name components that should not be used as
@@ -1949,8 +1964,8 @@ Frequency information for prior probabilities:
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         CSV list of 'accented/plain' pairs, representing how
                         accented characters may be transliterated (if they are
-                        not reproduced accurately or simply mangled into
-                        ASCII). Only upper-case versions are required
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
                         (anything supplied will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
                         CSV list of name components that should not be used as
@@ -2061,8 +2076,8 @@ Frequency information for prior probabilities:
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         CSV list of 'accented/plain' pairs, representing how
                         accented characters may be transliterated (if they are
-                        not reproduced accurately or simply mangled into
-                        ASCII). Only upper-case versions are required
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
                         (anything supplied will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
                         CSV list of name components that should not be used as
