@@ -631,8 +631,22 @@ def hash_identity_file(
 # Demonstration data
 # =============================================================================
 
+_ = """
 
-def get_demo_people() -> List[Person]:
+import logging
+from crate_anon.linkage.fuzzy_id_match import *
+logging.basicConfig(level=logging.INFO)
+cfg = MatchConfig()  # proper frequencies
+# cfg = None  # dummy frequencies; should still work
+pp = get_demo_people(cfg)
+p1 = pp[0]
+p4 = pp[3]
+p1.debug_compare_verbose(p4)
+
+"""
+
+
+def get_demo_people(cfg: MatchConfig = None) -> List[Person]:
     """
     Some demonstration records. All data are fictional. The postcodes are real
     but are institutional, not residential, addresses in Cambridge.
@@ -649,15 +663,14 @@ def get_demo_people() -> List[Person]:
     def mkother(original_id: str) -> str:
         return json.dumps({"original_id": original_id, "other_info": "?"})
 
-    cfg = mk_dummy_match_config()
+    cfg = cfg or mk_dummy_match_config()
 
     return [
         Person(
             cfg=cfg,
             local_id="r1",
             other_info=mkother("1"),
-            first_name="Alice",
-            middle_names=["Zara"],
+            forenames=["Alice", "Zara"],
             surnames=["Smith"],
             dob="1931-01-01",
             gender=GENDER_FEMALE,
@@ -667,8 +680,7 @@ def get_demo_people() -> List[Person]:
             cfg=cfg,
             local_id="r2",
             other_info=mkother("2"),
-            first_name="Bob",
-            middle_names=["Yorick"],
+            forenames=["Bob", "Yorick"],
             surnames=["Jones"],
             dob="1932-01-01",
             gender=GENDER_MALE,
@@ -678,8 +690,7 @@ def get_demo_people() -> List[Person]:
             cfg=cfg,
             local_id="r3",
             other_info=mkother("3"),
-            first_name="Celia",
-            middle_names=["Xena"],
+            forenames=["Celia", "Xena"],
             surnames=["Wright"],
             dob="1933-01-01",
             gender=GENDER_FEMALE,
@@ -689,8 +700,7 @@ def get_demo_people() -> List[Person]:
             cfg=cfg,
             local_id="r4",
             other_info=mkother("4"),
-            first_name="David",
-            middle_names=["William", "Wallace"],
+            forenames=["David", "William", "Wallace"],
             surnames=["Cartwright"],
             dob="1934-01-01",
             gender=GENDER_MALE,
@@ -700,8 +710,7 @@ def get_demo_people() -> List[Person]:
             cfg=cfg,
             local_id="r5",
             other_info=mkother("5"),
-            first_name="Emily",
-            middle_names=["Violet"],
+            forenames=["Emily", "Violet"],
             surnames=["Fisher"],
             dob="1935-01-01",
             gender=GENDER_FEMALE,
@@ -711,8 +720,7 @@ def get_demo_people() -> List[Person]:
             cfg=cfg,
             local_id="r6",
             other_info=mkother("6"),
-            first_name="Frank",
-            middle_names=["Umberto"],
+            forenames=["Frank", "Umberto"],
             surnames=["Williams"],
             dob="1936-01-01",
             gender=GENDER_MALE,
@@ -722,8 +730,7 @@ def get_demo_people() -> List[Person]:
             cfg=cfg,
             local_id="r7",
             other_info=mkother("7"),
-            first_name="Greta",
-            middle_names=["Tilly"],
+            forenames=["Greta", "Tilly"],
             surnames=["Taylor"],
             dob="1937-01-01",
             gender=GENDER_FEMALE,
@@ -733,8 +740,7 @@ def get_demo_people() -> List[Person]:
             cfg=cfg,
             local_id="r8",
             other_info=mkother("8"),
-            first_name="Harry",
-            middle_names=["Samuel"],
+            forenames=["Harry", "Samuel"],
             surnames=["Davies"],
             dob="1938-01-01",
             gender=GENDER_MALE,
@@ -744,8 +750,7 @@ def get_demo_people() -> List[Person]:
             cfg=cfg,
             local_id="r9",
             other_info=mkother("9"),
-            first_name="Iris",
-            middle_names=["Ruth"],
+            forenames=["Iris", "Ruth"],
             surnames=["Evans", "Jones"],
             dob="1939-01-01",
             gender=GENDER_FEMALE,
@@ -755,8 +760,7 @@ def get_demo_people() -> List[Person]:
             cfg=cfg,
             local_id="r10",
             other_info=mkother("10"),
-            first_name="James",
-            middle_names=["Quentin"],
+            forenames=["James", "Quentin"],
             surnames=[
                 TemporalIDHolder(
                     identifier="Thomas",
@@ -777,8 +781,7 @@ def get_demo_people() -> List[Person]:
             cfg=cfg,
             local_id="r11",
             other_info=mkother("11"),
-            first_name="Alice",
-            middle_names=[],
+            forenames=["Alice"],
             surnames=["Smith"],
             dob="1931-01-01",
             gender=GENDER_FEMALE,
@@ -1031,16 +1034,6 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         "a reasonable minimum is 0.0005 percent or 0.000005 or 5e-6.",
     )
     priors_group.add_argument(
-        f"--{Switches.P_MIDDLE_NAME_N_PRESENT}",
-        type=str,
-        default=FuzzyDefaults.P_MIDDLE_NAME_N_PRESENT_STR,
-        help="CSV list of probabilities that a randomly selected person has a "
-        "certain number of middle names. The first number is P(has a "
-        "first middle name). The second number is P(has a second middle "
-        "name | has a first middle name), and so on. The last number "
-        "present will be re-used ad infinitum if someone has more names.",
-    )
-    priors_group.add_argument(
         f"--{Switches.ACCENT_TRANSLITERATIONS}",
         type=str,
         default=FuzzyDefaults.ACCENT_TRANSLITERATIONS_SLASH_CSV,
@@ -1164,21 +1157,6 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
         default=FuzzyDefaults.P_EN_FORENAME_CSV,
         help=f"Probability that a forename has an error such that it produces "
         f"no match at all. {gdh}",
-    )
-
-    error_p_group.add_argument(
-        f"--{Switches.P_PROBAND_MIDDLE_NAME_MISSING}",
-        type=float,
-        default=FuzzyDefaults.P_PROBAND_MIDDLE_NAME_MISSING,
-        help="Probability that a middle name, present in the sample, is "
-        "missing from the proband.",
-    )
-    error_p_group.add_argument(
-        f"--{Switches.P_SAMPLE_MIDDLE_NAME_MISSING}",
-        type=float,
-        default=FuzzyDefaults.P_SAMPLE_MIDDLE_NAME_MISSING,
-        help="Probability that a middle name, present in the proband, is "
-        "missing from the sample.",
     )
 
     error_p_group.add_argument(
@@ -1424,14 +1402,6 @@ def get_cfg_from_args(
             FuzzyDefaults.NAME_MIN_FREQ,
             require_main_config,
         ),
-        p_middle_name_n_present=[
-            float(x)
-            for x in getparam(
-                Switches.P_MIDDLE_NAME_N_PRESENT,
-                FuzzyDefaults.P_MIDDLE_NAME_N_PRESENT_STR,
-                require_main_config,
-            ).split(",")
-        ],
         accent_transliterations_csv=getparam(
             Switches.ACCENT_TRANSLITERATIONS,
             FuzzyDefaults.ACCENT_TRANSLITERATIONS_SLASH_CSV,
@@ -1490,16 +1460,6 @@ def get_cfg_from_args(
         p_en_forename=getparam(
             Switches.P_EN_FORENAME,
             FuzzyDefaults.P_EN_FORENAME_CSV,
-            require_error,
-        ),
-        p_proband_middle_name_missing=getparam(
-            Switches.P_PROBAND_MIDDLE_NAME_MISSING,
-            FuzzyDefaults.P_PROBAND_MIDDLE_NAME_MISSING,
-            require_error,
-        ),
-        p_sample_middle_name_missing=getparam(
-            Switches.P_SAMPLE_MIDDLE_NAME_MISSING,
-            FuzzyDefaults.P_SAMPLE_MIDDLE_NAME_MISSING,
             require_error,
         ),
         p_ep1_surname=getparam(

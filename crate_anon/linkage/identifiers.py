@@ -791,14 +791,17 @@ class Postcode(IdentifierThreeState):
             self.comparison_full_match = DirectComparison(
                 p_d_given_same_person=1 - p_ep,  # p_c
                 p_d_given_diff_person=p_f,
+                description="postcode_full_match",
             )
             self.comparison_partial_match = DirectComparison(
                 p_d_given_same_person=p_ep,
                 p_d_given_diff_person=p_pnf,
+                description="postcode_partial_match",
             )
             self.comparison_no_match = DirectComparison(
                 p_d_given_same_person=p_en,
                 p_d_given_diff_person=1 - p_p,  # p_n
+                description="postcode_no_match",
             )
         else:
             self._clear_comparisons()
@@ -943,14 +946,17 @@ class DateOfBirth(IdentifierThreeState):
         self.comparison_full_match = DirectComparison(
             p_d_given_same_person=cfg.p_c_dob,
             p_d_given_diff_person=cfg.p_f_dob,
+            description="dob_full_match",
         )
         self.comparison_partial_match = DirectComparison(
             p_d_given_same_person=cfg.p_ep_dob,
             p_d_given_diff_person=cfg.p_pnf_dob,
+            description="dob_partial_match",
         )
         self.comparison_no_match = DirectComparison(
             p_d_given_same_person=cfg.p_en_dob,
             p_d_given_diff_person=cfg.p_n_dob,
+            description="dob_no_match",
         )
 
     def __eq__(self, other: Identifier) -> bool:
@@ -1079,10 +1085,12 @@ class Gender(IdentifierTwoState):
             self.comparison_full_match = DirectComparison(
                 p_d_given_same_person=1 - p_e,
                 p_d_given_diff_person=p_f,
+                description="gender_match",
             )
             self.comparison_no_match = DirectComparison(
                 p_d_given_same_person=p_e,
                 p_d_given_diff_person=1 - p_f,
+                description="gender_no_match",
             )
         else:
             self._clear_comparisons()
@@ -1293,18 +1301,22 @@ class BasicName(IdentifierFourState, ABC):
             self.comparison_full_match = DirectComparison(
                 p_d_given_same_person=self.p_c,
                 p_d_given_diff_person=self.pf_pop_name_freq,
+                description="name_full_match",
             )
             self.comparison_partial_match = DirectComparison(
                 p_d_given_same_person=self.p_ep1,
                 p_d_given_diff_person=self.p_p1nf_metaphone_not_name,
+                description="name_partial_match_1_metaphone",
             )
             self.comparison_partial_match_second = DirectComparison(
                 p_d_given_same_person=self.p_ep2np1,
                 p_d_given_diff_person=self.p_p2np1_f2c_not_metaphone_or_name,
+                description="name_partial_match_2_f2c",
             )
             self.comparison_no_match = DirectComparison(
                 p_d_given_same_person=p_en,
                 p_d_given_diff_person=p_n_pop_no_match,
+                description="name_no_match",
             )
         else:
             self._clear_comparisons()

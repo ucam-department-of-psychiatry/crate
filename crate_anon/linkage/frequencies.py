@@ -76,14 +76,15 @@ class BasicNameFreqInfo:
     our names.
     """
 
-    KEY_NAME = "n"
-    KEY_P_NAME = "pn"
-    KEY_GENDER = "g"
-    KEY_METAPHONE = "m"
-    KEY_P_METAPHONE = "pm"
-    KEY_F2C = "f"
-    KEY_P_F2C = "pf"
-    KEY_P_F2C_NOT_NAME_METAPHONE = "pfo"
+    KEY_NAME = "name"
+    KEY_P_NAME = "p_f"
+    KEY_GENDER = "gender"
+    KEY_METAPHONE = "metaphone"
+    KEY_P_METAPHONE = "p_p1"
+    KEY_P_METAPHONE_NOT_NAME = "p_p1nf"
+    KEY_F2C = "f2c"
+    KEY_P_F2C = "p_p2"
+    KEY_P_F2C_NOT_NAME_METAPHONE = "p_p2np1"
 
     def __init__(
         self,
@@ -92,6 +93,7 @@ class BasicNameFreqInfo:
         gender: str = "",
         metaphone: str = "",
         p_metaphone: float = 0.0,
+        p_metaphone_not_name: float = 0.0,
         f2c: str = "",
         p_f2c: float = 0.0,
         p_f2c_not_name_metaphone: float = 0.0,
@@ -116,6 +118,10 @@ class BasicNameFreqInfo:
                 metaphone.
             p_metaphone:
                 Population frequency (probability) of the metaphone.
+            p_metaphone_not_name:
+                Probability that someone in the population shares this
+                metaphone, but not this name. Usually this is ``p_metaphone -
+                p_name``, but you may choose to impose a minimum frequency.
             f2c:
                 First two characters (F2C) of the name.
             p_f2c:
@@ -134,6 +140,7 @@ class BasicNameFreqInfo:
 
         self.metaphone = metaphone or get_metaphone(name)
         self.p_metaphone = p_metaphone
+        self.p_metaphone_not_name = p_metaphone_not_name
 
         self.f2c = f2c or get_first_two_char(name)
         self.p_f2c = p_f2c  # not important! For info only.
@@ -143,10 +150,6 @@ class BasicNameFreqInfo:
 
     def __repr__(self) -> str:
         return auto_repr(self, sort_attrs=False)
-
-    @property
-    def p_metaphone_not_name(self) -> float:
-        return self.p_metaphone - self.p_name
 
     @property
     def p_no_match(self) -> float:
@@ -166,6 +169,7 @@ class BasicNameFreqInfo:
             self.KEY_P_NAME: self.p_name,
             self.KEY_METAPHONE: self.metaphone,
             self.KEY_P_METAPHONE: self.p_metaphone,
+            self.KEY_P_METAPHONE_NOT_NAME: self.p_metaphone_not_name,
             self.KEY_F2C: self.f2c,
             self.KEY_P_F2C: self.p_f2c,
             self.KEY_P_F2C_NOT_NAME_METAPHONE: self.p_f2c_not_name_metaphone,
@@ -182,6 +186,7 @@ class BasicNameFreqInfo:
             p_name=d[cls.KEY_P_NAME],
             metaphone=d[cls.KEY_METAPHONE],
             p_metaphone=d[cls.KEY_P_METAPHONE],
+            p_metaphone_not_name=d[cls.KEY_P_METAPHONE_NOT_NAME],
             f2c=d[cls.KEY_F2C],
             p_f2c=d[cls.KEY_P_F2C],
             p_f2c_not_name_metaphone=d[cls.KEY_P_F2C_NOT_NAME_METAPHONE],
@@ -202,6 +207,7 @@ class BasicNameFreqInfo:
             w = weights[i]
             result.p_name += w * obj.p_name
             result.p_metaphone += w * obj.p_name
+            result.p_metaphone_not_name += w * obj.p_metaphone_not_name
             result.p_f2c += w * obj.p_f2c
             result.p_f2c_not_name_metaphone += w * obj.p_f2c_not_name_metaphone
         return result
@@ -310,7 +316,7 @@ class NameFrequencyInfo:
                 self.infolist.append(
                     BasicNameFreqInfo(
                         name=row[0],
-                        p_name=max(float(freq_str), min_frequency),
+                        p_name=max(min_frequency, float(freq_str)),
                         gender=gender,
                     )
                 )
@@ -388,6 +394,7 @@ class NameFrequencyInfo:
         self.f2c_to_infolist = defaultdict(list)
 
         # For extra speed:
+        min_frequency = self._min_frequency
         name_gender_idx = self.name_gender_idx
         metaphone_freq = self.metaphone_freq
         f2c_freq = self.f2c_freq
@@ -429,10 +436,13 @@ class NameFrequencyInfo:
             for metaphone_key, metaphone_infolist in meta_to_infolist.items():
                 p_meta = metaphone_freq[metaphone_key]
                 for i in metaphone_infolist:  # type: BasicNameFreqInfo
-                    i.p_metaphone = p_meta
+                    i.p_metaphone = max(min_frequency, p_meta)
+                    i.p_metaphone_not_name = max(
+                        min_frequency, p_meta - i.p_name
+                    )
             # This is not very important, but... store F2C frequency.
             for f2c_key, f2c_infolist in f2c_to_infolist.items():
-                p_f2c = f2c_freq[f2c_key]
+                p_f2c = max(min_frequency, f2c_freq[f2c_key])
                 for i in f2c_infolist:  # type: BasicNameFreqInfo
                     i.p_f2c = p_f2c
             # Calculate P(F2C match but not name or metaphone match).
@@ -444,6 +454,9 @@ class NameFrequencyInfo:
                     if other.name != i.name and other.metaphone != i.metaphone:
                         # ... but different name and metaphone...
                         i.p_f2c_not_name_metaphone += other.p_name
+                i.p_f2c_not_name_metaphone = max(
+                    min_frequency, i.p_f2c_not_name_metaphone
+                )
 
         log.debug("... finished indexing name frequency info")
 
@@ -471,25 +484,36 @@ class NameFrequencyInfo:
         It's possible that an unknown name has a known metaphone or F2C,
         though, so we account for that.
         """
+        min_frequency = self._min_frequency
         result = BasicNameFreqInfo(
             name=name,
-            p_name=self._min_frequency,
+            p_name=min_frequency,
             gender=gender,
             synthetic=True,
         )
+
         metaphone = result.metaphone
         meta_key = metaphone, gender
-        result.p_metaphone = self.metaphone_freq.get(
-            meta_key, self._min_frequency
+        result.p_metaphone = max(
+            min_frequency, self.metaphone_freq.get(meta_key, min_frequency)
         )
+        result.p_metaphone_not_name = max(
+            min_frequency, result.p_metaphone - result.p_name
+        )
+
         f2c_key = result.f2c, gender
-        result.p_f2c = self.f2c_freq.get(f2c_key, self._min_frequency)
+        result.p_f2c = max(
+            min_frequency, self.f2c_freq.get(f2c_key, min_frequency)
+        )
         p_f2c_not_name_metaphone = 0.0
         for i in self.f2c_to_infolist[f2c_key]:  # same F2C
             if i.metaphone != metaphone:  # but not same metaphone
                 # and by definition not the same name, or we wouldn't be here
                 p_f2c_not_name_metaphone += i.p_name
-        result.p_f2c_not_name_metaphone = p_f2c_not_name_metaphone
+        result.p_f2c_not_name_metaphone = max(
+            min_frequency, p_f2c_not_name_metaphone
+        )
+
         return result
 
     def name_frequency(

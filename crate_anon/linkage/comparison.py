@@ -72,7 +72,7 @@ class Comparison:
         Returns a brief description.
         """
         return (
-            f"{self.d_description} "
+            f"{self.description} "
             f"[P(D|H)={self.p_d_given_h}, "
             f"P(D|¬H)={self.p_d_given_not_h}]"
         )
@@ -81,7 +81,7 @@ class Comparison:
         return auto_repr(self)
 
     @property
-    def d_description(self) -> str:
+    def description(self) -> str:
         """
         A description of D, the data (e.g. "match" or "mismatch").
         """
@@ -140,7 +140,7 @@ class ImpossibleComparison(Comparison):
     """
 
     @property
-    def d_description(self) -> str:
+    def description(self) -> str:
         return "ImpossibleComparison"
 
     @property
@@ -165,7 +165,7 @@ class CertainComparison(Comparison):
     """
 
     @property
-    def d_description(self) -> str:
+    def description(self) -> str:
         return "CertainComparison"
 
     @property
@@ -195,6 +195,7 @@ class DirectComparison(Comparison):
         self,
         p_d_given_same_person: float,
         p_d_given_diff_person: float,
+        description: str = "DirectComparison",
     ) -> None:
         r"""
         Args:
@@ -208,18 +209,20 @@ class DirectComparison(Comparison):
             p_d_given_h=p_d_given_same_person,
             p_d_given_not_h=p_d_given_diff_person,
         )
+        self._description = description
 
     def __str__(self) -> str:
         return (
             f"DirectComparison"
-            f"[P(D|H)={self.p_d_given_h}, "
+            f"[{self._description}, "
+            f"P(D|H)={self.p_d_given_h}, "
             f"P(D|¬H)={self.p_d_given_not_h}, "
             f"log_likelihood_ratio={self._log_likelihood_ratio}]"
         )
 
     @property
-    def d_description(self) -> str:
-        return ""
+    def description(self) -> str:
+        return self._description
 
     @property
     def p_d_given_h(self) -> float:
@@ -279,7 +282,7 @@ class MatchNoMatchComparison(Comparison):
         self.p_match_given_diff_person = p_match_given_diff_person
 
     @property
-    def d_description(self) -> str:
+    def description(self) -> str:
         return "match" if self.match else "mismatch"
 
     @property
@@ -340,7 +343,7 @@ class FullPartialNoMatchComparison(Comparison):
         self.p_p = p_p
 
     @property
-    def d_description(self) -> str:
+    def description(self) -> str:
         if self.full_match:
             return "full match"
         elif self.partial_match:

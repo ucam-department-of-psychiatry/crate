@@ -48,11 +48,7 @@ from typing import (
 
 from cardinal_pythonlib.reprfunc import auto_repr
 
-from crate_anon.linkage.comparison import (
-    bayes_compare,
-    Comparison,
-    DirectComparison,
-)
+from crate_anon.linkage.comparison import bayes_compare, Comparison
 from crate_anon.linkage.helpers import (
     getdictval,
     mutate_name,
@@ -92,8 +88,7 @@ class Person:
 
     class PersonKey:
         LOCAL_ID = "local_id"  # person ID within relevant DB (proband/sample)
-        FIRST_NAME = "first_name"
-        MIDDLE_NAMES = "middle_names"
+        FORENAMES = "forenames"
         SURNAMES = "surnames"
         DOB = "dob"
         GENDER = "gender"
@@ -113,11 +108,11 @@ class Person:
 
     # For reading CSV:
     SEMICOLON_DELIMIT = [
-        PersonKey.MIDDLE_NAMES,
+        PersonKey.FORENAMES,
         PersonKey.SURNAMES,
         PersonKey.POSTCODES,
     ]
-    TEMPORAL_IDENTIFIERS = [PersonKey.SURNAMES, PersonKey.POSTCODES]
+    TEMPORAL_IDENTIFIERS = SEMICOLON_DELIMIT
     PLAINTEXT_CSV_FORMAT_HELP = (
         f"(1) CSV format with header row. Columns: {ALL_PERSON_KEYS}. "
         f"(2) Semicolon-separated values are allowed within "
@@ -145,13 +140,12 @@ class Person:
         cfg: MatchConfig,
         local_id: str = "",
         other_info: str = "",
-        first_name: Union[str, Forename] = "",
-        middle_names: List[Union[str, Forename]] = None,
-        surnames: List[Union[str, Surname, TemporalIDHolder]] = None,
-        dob: Union[str, DateOfBirth] = "",
-        gender: Union[str, Gender] = "",
-        postcodes: List[Union[Postcode, TemporalIDHolder]] = None,
-        perfect_id: Union[PerfectID, Dict[str, str]] = None,
+        forenames: List[Union[None, str, TemporalIDHolder, Forename]] = None,
+        surnames: List[Union[None, str, TemporalIDHolder, Surname]] = None,
+        dob: Union[None, str, DateOfBirth] = "",
+        gender: Union[None, str, Gender] = "",
+        postcodes: List[Union[None, str, TemporalIDHolder, Postcode]] = None,
+        perfect_id: Union[None, PerfectID, Dict[str, str]] = None,
     ) -> None:
         """
         Args:
@@ -166,10 +160,9 @@ class Person:
                 remember (e.g. in JSON). Only used for validation research
                 (e.g. ensuring linkage is not biased by ethnicity).
 
-            first_name:
-                The person's first name, as a string or a Forename object.
-            middle_names:
-                Any middle names, as strings or Forename objects.
+            forenames:
+                The person's forenames (given names, first/middle names), as
+                strings or Forename objects.
             surnames:
                 The person's surname(s), as strings or Surname or
                 TemporalIDHolder objects.
@@ -231,28 +224,27 @@ class Person:
             self.gender = Gender(cfg=cfg, gender=gender)
         chk_plaintext(self.gender)
 
-        # first_name
-        first_name = "" if first_name is None else first_name
-        if isinstance(first_name, Forename):
-            self.first_name = first_name
-        else:
-            self.first_name = Forename(
-                cfg=cfg, name=first_name, gender=self.gender.gender_str
-            )
-        chk_plaintext(self.first_name)
-
-        # middle_names
-        middle_names = middle_names or []
-        if not isinstance(middle_names, list):
-            raise ValueError(f"Bad middle_names: {middle_names!r}")
-        self.middle_names = []  # type: List[Forename]
-        for m in middle_names:
-            if not m:
+        # forenames
+        forenames = forenames or []
+        if not isinstance(forenames, list):
+            raise ValueError(f"Bad forenames: {forenames!r}")
+        self.forenames = []  # type: List[Forename]
+        for f in forenames:
+            if not f:  # None or ""
                 continue
-            if not isinstance(m, Forename):
-                m = Forename(cfg=cfg, name=m, gender=self.gender.gender_str)
-            chk_plaintext(m)
-            self.middle_names.append(m)
+            elif isinstance(f, str):
+                f = Forename(cfg=cfg, name=f, gender=self.gender.gender_str)
+            elif isinstance(f, TemporalIDHolder):
+                f = Forename(
+                    cfg=cfg,
+                    name=f.identifier,
+                    start_date=f.start_date,
+                    end_date=f.end_date,
+                )
+            elif not isinstance(f, Forename):
+                raise ValueError(f"Bad forename: {f!r}")
+            chk_plaintext(f)
+            self.forenames.append(f)
 
         # surnames
         surnames = surnames or []
@@ -262,7 +254,7 @@ class Person:
         for s in surnames:
             if not s:
                 continue
-            if isinstance(s, str):
+            elif isinstance(s, str):
                 s = Surname(cfg=cfg, name=s, gender=self.gender.gender_str)
             elif isinstance(s, TemporalIDHolder):
                 s = Surname(
@@ -282,7 +274,7 @@ class Person:
         if isinstance(dob, DateOfBirth):
             self.dob = dob
         else:
-            self.dob = DateOfBirth(cfg=cfg, dob=dob)
+            self.dob = DateOfBirth(cfg=cfg, dob=dob or "")
         chk_plaintext(self.dob)
 
         # postcodes
@@ -291,10 +283,10 @@ class Person:
             raise ValueError(f"Bad postcodes: {postcodes!r}")
         self.postcodes = []  # type: List[Postcode]
         for p in postcodes:
-            if not p:
+            if not p:  # None or ""
                 continue
-            if isinstance(p, Postcode):
-                pass
+            elif isinstance(p, str):
+                p = Postcode(cfg=cfg, postcode=p)
             elif isinstance(p, TemporalIDHolder):
                 p = Postcode(
                     cfg=cfg,
@@ -302,7 +294,7 @@ class Person:
                     start_date=p.start_date,
                     end_date=p.end_date,
                 )
-            else:
+            elif not isinstance(p, Postcode):
                 raise ValueError(f"Bad data structure for postcode: {p!r}")
             chk_plaintext(p)
             self.postcodes.append(p)
@@ -366,10 +358,10 @@ class Person:
                 )
 
         pk = cls.PersonKey
-        middle_names = []  # type: List[Forename]
-        for mnd in getdictval(d, pk.MIDDLE_NAMES, list):
-            check_is_dict(mnd, pk.MIDDLE_NAMES)
-            middle_names.append(Forename.from_dict(cfg, mnd, hashed))
+        forenames = []  # type: List[Forename]
+        for mnd in getdictval(d, pk.FORENAMES, list):
+            check_is_dict(mnd, pk.FORENAMES)
+            forenames.append(Forename.from_dict(cfg, mnd, hashed))
         surnames = []  # type: List[Surname]
         for sur in getdictval(d, pk.SURNAMES, list):
             check_is_dict(sur, pk.SURNAMES)
@@ -382,10 +374,7 @@ class Person:
             cfg=cfg,
             local_id=getdictval(d, pk.LOCAL_ID, str),
             other_info=getdictval(d, pk.OTHER_INFO, str, mandatory=False),
-            first_name=Forename.from_dict(
-                cfg, getdictval(d, pk.FIRST_NAME, dict), hashed
-            ),
-            middle_names=middle_names,
+            forenames=forenames,
             surnames=surnames,
             dob=DateOfBirth.from_dict(
                 cfg, getdictval(d, pk.DOB, dict), hashed
@@ -433,9 +422,7 @@ class Person:
         if self.is_hashed():
             return f"Hashed person with local_id={self.local_id!r}"
         names = " ".join(
-            [str(self.first_name)]
-            + [str(m) for m in self.middle_names]
-            + [str(s) for s in self.surnames]
+            [str(f) for f in self.forenames] + [str(s) for s in self.surnames]
         )
         postcodes = " - ".join(str(x) for x in self.postcodes)
         k = self.PersonKey
@@ -523,12 +510,8 @@ class Person:
 
         d = {
             pk.LOCAL_ID: local_id,
-            pk.FIRST_NAME: self.first_name.as_dict(
-                encrypt, include_frequencies
-            ),
-            pk.MIDDLE_NAMES: [
-                m.as_dict(encrypt, include_frequencies)
-                for m in self.middle_names
+            pk.FORENAMES: [
+                f.as_dict(encrypt, include_frequencies) for f in self.forenames
             ],
             pk.SURNAMES: [
                 s.as_dict(encrypt, include_frequencies) for s in self.surnames
@@ -633,6 +616,7 @@ class Person:
     ) -> Generator[Optional[Comparison], None, None]:
         """
         Generates all relevant comparisons.
+
         Args:
             proband: another :class:`Person` object.
 
@@ -648,11 +632,12 @@ class Person:
         # disqualification if they mismatch, so order here becomes unimportant
         # for speed.
 
-        # First name
-        yield proband.first_name.comparison(self.first_name)
-
-        # Middle names
-        yield from self._comparisons_middle_names(proband)
+        # Forenames
+        # todo: raise NotImplementedError("may not be the optimal method")
+        yield from gen_best_comparisons_unordered(
+            proband_identifiers=proband.forenames,
+            candidate_identifiers=self.forenames,
+        )
 
         # Surnames
         yield from gen_best_comparisons_unordered(
@@ -675,44 +660,6 @@ class Person:
             candidate_identifiers=self.postcodes,
         )
 
-    def _comparisons_middle_names(
-        self, proband: "Person"
-    ) -> Generator[Comparison, None, None]:
-        """
-        Generates comparisons for middle names.
-        """
-        cfg = self.cfg
-        n_candidate_middle_names = len(self.middle_names)
-        n_proband_middle_names = len(proband.middle_names)
-        max_n_middle_names = max(
-            n_candidate_middle_names, n_proband_middle_names
-        )
-        min_n_middle_names = min(
-            n_candidate_middle_names, n_proband_middle_names
-        )
-
-        for i in range(max_n_middle_names):
-            if i < min_n_middle_names:
-                # -------------------------------------------------------------
-                # Name present in both. Exact and partial matches
-                # -------------------------------------------------------------
-                yield proband.middle_names[i].comparison(self.middle_names[i])
-            else:
-                # -------------------------------------------------------------
-                # Name present in one but not the other. Surplus name.
-                # -------------------------------------------------------------
-                n = i + 1  # from zero-based to one-based
-                if n > n_candidate_middle_names:
-                    # ``self`` is the candidate, from the sample.
-                    p_d_given_same_person = cfg.p_sample_middle_name_missing
-                else:
-                    # Otherwise, n > n_proband_middle_names.
-                    p_d_given_same_person = cfg.p_proband_middle_name_missing
-                yield DirectComparison(
-                    p_d_given_same_person=p_d_given_same_person,
-                    p_d_given_diff_person=cfg.p_middle_name_present(n),
-                )
-
     # -------------------------------------------------------------------------
     # Info functions
     # -------------------------------------------------------------------------
@@ -729,17 +676,11 @@ class Person:
         """
         return not self.is_plaintext()
 
-    def has_first_name(self) -> bool:
+    def n_forenames(self) -> int:
         """
-        Does this person have a first name?
+        Number of forenames
         """
-        return bool(self.first_name)
-
-    def n_middle_names(self) -> int:
-        """
-        How many names does this person have?
-        """
-        return len(self.middle_names)
+        return len(self.forenames)
 
     def has_dob(self) -> bool:
         """
@@ -766,9 +707,8 @@ class Person:
         """
         if not self.has_dob() and not debug_allow_no_dob:
             raise ValueError("Proband: missing DOB")
-        self.first_name.ensure_has_freq_info_if_id_present()
-        for m in self.middle_names:
-            m.ensure_has_freq_info_if_id_present()
+        for f in self.forenames:
+            f.ensure_has_freq_info_if_id_present()
         for s in self.surnames:
             s.ensure_has_freq_info_if_id_present()
         self.dob.ensure_has_freq_info_if_id_present()
@@ -794,9 +734,7 @@ class Person:
         """
         Yield all identifiers.
         """
-        if self.first_name:
-            yield self.first_name
-        yield from self.middle_names
+        yield from self.forenames
         yield from self.surnames
         if self.dob:
             yield self.dob
@@ -804,68 +742,92 @@ class Person:
             yield self.gender
         yield from self.postcodes
 
+    def debug_compare_verbose(
+        self, proband: "Person", verbose: bool = True
+    ) -> None:
+        """
+        Compare a person with another, and log every step of the way.
+        """
+
+        def report(msg_: str) -> None:
+            log.info(f"{msg_} -> log_odds = {log_odds}")
+
+        if verbose:
+            spacer = "  - "
+            self_id = (
+                "\n".join(
+                    spacer + repr(i) for i in self.debug_gen_identifiers()
+                )
+                + "\n"
+            )
+            proband_id = (
+                "\n".join(
+                    spacer + repr(i) for i in proband.debug_gen_identifiers()
+                )
+                + "\n"
+            )
+        else:
+            self_id = ""
+            proband_id = ""
+        log.info(
+            f"VERBOSE COMPARISON:\n"
+            f"- self    = {self}\n"
+            f"{self_id}\n"
+            f"- proband = {proband}\n"
+            f"{proband_id}"
+        )
+
+        log_odds = self.cfg.baseline_log_odds_same_person
+        report("Baseline")
+        for comp in self._gen_comparisons(proband=proband):
+            log_odds = comp.posterior_log_odds(log_odds)
+            report(str(comp))
+
     # -------------------------------------------------------------------------
     # Debugging functions to mutate this object
     # -------------------------------------------------------------------------
 
     def debug_delete_something(self) -> None:
         """
-        Randomly delete one of: first name, a middle name, or a postcode.
+        Randomly delete one of: a forename, or a postcode.
         """
-        has_first_name = self.has_first_name()
-        n_middle_names = self.n_middle_names()
+        n_forenames = self.n_forenames()
         n_postcodes = self.n_postcodes()
-        n_possibilities = int(has_first_name) + n_middle_names + n_postcodes
+        n_possibilities = n_forenames + n_postcodes
         if n_possibilities == 0:
             log.warning(f"Unable to delete info from {self}")
             return
         which = random.randint(0, n_possibilities - 1)
 
-        if has_first_name:
-            if which == 0:
-                self.first_name = Forename(self.cfg)
-                return
-            which -= 1
-
-        if which < n_middle_names:
-            del self.middle_names[which]
+        if which < n_forenames:
+            del self.forenames[which]
             return
-        which -= n_middle_names
+        which -= n_forenames
 
         del self.postcodes[which]
 
     def debug_mutate_something(self) -> None:
         """
-        Randomly mutate one of: first name, a middle name, or a postcode.
+        Randomly mutate one of: a forename, or a postcode.
         """
-        has_first_name = self.has_first_name()
-        n_middle_names = self.n_middle_names()
+        n_forenames = self.n_forenames()
         n_postcodes = self.n_postcodes()
-        n_possibilities = int(has_first_name) + n_middle_names + n_postcodes
+        n_possibilities = n_forenames + n_postcodes
         if n_possibilities == 0:
             log.warning(f"Unable to mutate info from {self}")
             return
         which = random.randrange(n_possibilities)
 
         cfg = self.cfg
-        if has_first_name:
-            if which == 0:
-                oldname = self.first_name
-                assert oldname.is_plaintext
-                self.first_name = Forename(
-                    cfg, name=mutate_name(oldname.name), gender=oldname.gender
-                )
-                return
-            which -= 1
 
-        if which < n_middle_names:
-            oldname = self.middle_names[which]
+        if which < n_forenames:
+            oldname = self.forenames[which]
             assert oldname.is_plaintext
-            self.middle_names[which] = Forename(
+            self.forenames[which] = Forename(
                 cfg, name=mutate_name(oldname.name), gender=oldname.gender
             )
             return
-        which -= n_middle_names
+        which -= n_forenames
 
         oldpostcode = self.postcodes[which]
         assert oldpostcode.is_plaintext

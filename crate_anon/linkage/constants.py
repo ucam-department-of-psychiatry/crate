@@ -138,7 +138,6 @@ class Switches:
     FORENAME_SEX_FREQ_CSV = "forename_sex_freq_csv"
     MIN_NAME_FREQUENCY = "min_name_frequency"
     NONSPECIFIC_NAME_COMPONENTS = "nonspecific_name_components"
-    P_MIDDLE_NAME_N_PRESENT = "p_middle_name_n_present"
     SURNAME_CACHE_FILENAME = "surname_cache_filename"
     SURNAME_FREQ_CSV = "surname_freq_csv"
 
@@ -155,9 +154,6 @@ class Switches:
     P_EP1_FORENAME = "p_ep1_forename"
     P_EP2NP1_FORENAME = "p_ep2np1_forename"
     P_EN_FORENAME = "p_en_forename"
-
-    P_PROBAND_MIDDLE_NAME_MISSING = "p_proband_middle_name_missing"
-    P_SAMPLE_MIDDLE_NAME_MISSING = "p_sample_middle_name_missing"
 
     P_EP1_SURNAME = "p_ep1_surname"
     P_EP2NP1_SURNAME = "p_ep2np1_surname"
@@ -244,7 +240,6 @@ class FuzzyDefaults:
     MEAN_OA_POPULATION = UK_MEAN_OA_POPULATION_2011
     NAME_MIN_FREQ = 5e-6
     P_FEMALE_GIVEN_MALE_OR_FEMALE = 0.51  # (E)
-    P_MIDDLE_NAME_N_PRESENT = (0.8, 0.1375)  # (E)
     P_NOT_MALE_OR_FEMALE = 0.004  # (E)
     P_UNKNOWN_OR_PSEUDO_POSTCODE = 0.000203  # (E)
     # - Pseudo-postcodes: e.g. ZZ99 3VZ, no fixed abode; ZZ99 3CZ, England/UK
@@ -295,9 +290,6 @@ class FuzzyDefaults:
         GENDER_FEMALE: 0.05,  # (E) *** fix
         GENDER_MALE: 0.02,  # (E) *** fix
     }
-
-    P_PROBAND_MIDDLE_NAME_MISSING = 0.05
-    P_SAMPLE_MIDDLE_NAME_MISSING = 0.05
 
     P_EP1_SURNAME = {
         GENDER_FEMALE: 0.001,  # (E) *** fix
@@ -436,10 +428,6 @@ class FuzzyDefaults:
     P_EP1_FORENAME_CSV = _mk_dictstr(P_EP1_FORENAME)
     P_EP2NP1_FORENAME_CSV = _mk_dictstr(P_EP2NP1_FORENAME)
     P_EN_FORENAME_CSV = _mk_dictstr(P_EN_FORENAME)
-
-    P_MIDDLE_NAME_N_PRESENT_STR = ",".join(
-        str(x) for x in P_MIDDLE_NAME_N_PRESENT
-    )
 
     P_EP1_SURNAME_CSV = _mk_dictstr(P_EP1_SURNAME)
     P_EP2NP1_SURNAME_CSV = _mk_dictstr(P_EP2NP1_SURNAME)

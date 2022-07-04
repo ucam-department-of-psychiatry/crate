@@ -34,7 +34,7 @@ crate_anon/linkage/matchconfig.py
 # =============================================================================
 
 import logging
-from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple, Union
+from typing import Any, Dict, NoReturn, Optional, Set, Tuple, Union
 
 from cardinal_pythonlib.hash import make_hasher
 from cardinal_pythonlib.maths_py import round_sf, normal_round_int
@@ -94,9 +94,6 @@ class MatchConfig:
         surname_cache_filename: str = FuzzyDefaults.SURNAME_CACHE_FILENAME,
         surname_csv_filename: str = FuzzyDefaults.SURNAME_FREQ_CSV,
         min_name_frequency: float = FuzzyDefaults.NAME_MIN_FREQ,
-        p_middle_name_n_present: List[float] = (
-            FuzzyDefaults.P_MIDDLE_NAME_N_PRESENT
-        ),
         accent_transliterations_csv: str = (
             FuzzyDefaults.ACCENT_TRANSLITERATIONS_SLASH_CSV
         ),
@@ -117,12 +114,6 @@ class MatchConfig:
         p_ep1_forename: str = FuzzyDefaults.P_EP1_FORENAME_CSV,
         p_ep2np1_forename: str = FuzzyDefaults.P_EP2NP1_FORENAME_CSV,
         p_en_forename: str = FuzzyDefaults.P_EN_FORENAME_CSV,
-        p_proband_middle_name_missing: float = (
-            FuzzyDefaults.P_PROBAND_MIDDLE_NAME_MISSING
-        ),
-        p_sample_middle_name_missing: float = (
-            FuzzyDefaults.P_SAMPLE_MIDDLE_NAME_MISSING
-        ),
         p_ep1_surname: str = FuzzyDefaults.P_EP1_SURNAME_CSV,
         p_ep2np1_surname: str = FuzzyDefaults.P_EP2NP1_SURNAME_CSV,
         p_en_surname: str = FuzzyDefaults.P_EN_SURNAME_CSV,
@@ -175,10 +166,6 @@ class MatchConfig:
                 frequency" pairs.
             min_name_frequency:
                 Minimum name frequency; see command-line help.
-            p_middle_name_n_present:
-                List of probabilities. The first is P(middle name 1 present).
-                The second is P(middle name 2 present | middle name 1 present),
-                and so on. The last value is re-used ad infinitum as required.
             accent_transliterations_csv:
                 Accent transliteration map. String of the form "Ä/AE,Ö/OE" --
                 comma-separated pairs, with slashed separating each pair.
@@ -216,12 +203,6 @@ class MatchConfig:
                 partial 1 match but passes a partial 2 (F2C) match. [GPD]
             p_en_forename:
                 Error probability that a forename yields no match at all. [GPD]
-            p_proband_middle_name_missing:
-                Probability that a middle name, present in the sample, is
-                missing from the proband.
-            p_sample_middle_name_missing:
-                Probability that a middle name, present in the proband, is
-                missing from the sample.
             p_ep1_surname:
                 Error probability that a surname fails a full match but passes
                 a partial 1 (metaphone) match. [GPD]
@@ -398,7 +379,7 @@ class MatchConfig:
         for nonspec in nonspecific_name_components_csv.split(","):
             self.nonspecific_name_components.add(nonspec.strip().upper())
 
-        # Name handling: forenames, middle names
+        # Name handling: forenames
 
         self.forename_csv_filename = forename_sex_csv_filename
         self.forename_freq_info = NameFrequencyInfo(
@@ -407,9 +388,6 @@ class MatchConfig:
             min_frequency=min_name_frequency,
             by_gender=True,
         )
-        for i, x in enumerate(p_middle_name_n_present):
-            check_prob(x, f"{Switches.P_MIDDLE_NAME_N_PRESENT}[{i}]")
-        self.p_middle_name_n_present = p_middle_name_n_present
 
         # Name handling: surnames
 
@@ -458,7 +436,7 @@ class MatchConfig:
             ),
         )
 
-        # Error probabilities: forenames, middle names
+        # Error probabilities: forenames
 
         self.p_ep1_forename = mk_gender_p_dict(
             p_ep1_forename, Switches.P_EP1_FORENAME
@@ -473,14 +451,6 @@ class MatchConfig:
             p_ep1_=self.p_ep1_forename,
             p_ep2np1_=self.p_ep2np1_forename,
             p_en_=self.p_en_forename,
-        )
-
-        self.p_proband_middle_name_missing = check_prob(
-            p_proband_middle_name_missing,
-            Switches.P_PROBAND_MIDDLE_NAME_MISSING,
-        )
-        self.p_sample_middle_name_missing = check_prob(
-            p_sample_middle_name_missing, Switches.P_SAMPLE_MIDDLE_NAME_MISSING
         )
 
         # Error probabilities: surnames
@@ -665,23 +635,6 @@ class MatchConfig:
             ],
             weights=[self.p_female, self.p_male],
         )
-
-    def p_middle_name_present(self, n: int) -> float:
-        """
-        Returns the probability (in the population) that someone has a middle
-        name n, given that they have middle name n - 1.
-
-        (For example, n = 1 gives the probability of having a middle name; n =
-        2 is the probability of having a second middle name, given that you
-        have a first middle name.)
-        """
-        # if CHECK_BASIC_ASSERTIONS_IN_HIGH_SPEED_FUNCTIONS:
-        #     assert n >= 1
-        if not self.p_middle_name_n_present:
-            return 0
-        if n > len(self.p_middle_name_n_present):
-            return self.p_middle_name_n_present[-1]
-        return self.p_middle_name_n_present[n - 1]
 
     def get_surname_freq_info(
         self, name: str, prestandardized: bool = False

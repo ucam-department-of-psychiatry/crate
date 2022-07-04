@@ -337,8 +337,7 @@ class FuzzyLinkageTests(unittest.TestCase):
         self.alice_bcd_rarename_2000_add = Person(
             cfg=self.cfg,
             local_id="1",
-            first_name="Alice",
-            middle_names=["Beatrice", "Celia", "Delilah"],
+            forenames=["Alice", "Beatrice", "Celia", "Delilah"],
             surnames=["Rarename"],
             dob="2000-01-01",
             postcodes=[self.p1],
@@ -346,8 +345,8 @@ class FuzzyLinkageTests(unittest.TestCase):
         self.alec_bcd_rarename_2000_add = Person(
             cfg=self.cfg,
             local_id="2",
-            first_name="Alec",  # same metaphone as Alice
-            middle_names=["Beatrice", "Celia", "Delilah"],
+            forenames=["Alec", "Beatrice", "Celia", "Delilah"],
+            # Alec: same metaphone as Alice
             surnames=["Rarename"],
             dob="2000-01-01",
             postcodes=[self.p1],
@@ -355,8 +354,7 @@ class FuzzyLinkageTests(unittest.TestCase):
         self.bob_bcd_rarename_2000_add = Person(
             cfg=self.cfg,
             local_id="3",
-            first_name="Bob",
-            middle_names=["Beatrice", "Celia", "Delilah"],
+            forenames=["Bob", "Beatrice", "Celia", "Delilah"],
             surnames=["Rarename"],
             dob="2000-01-01",
             postcodes=[self.p1],
@@ -364,8 +362,7 @@ class FuzzyLinkageTests(unittest.TestCase):
         self.alice_bc_rarename_2000_add = Person(
             cfg=self.cfg,
             local_id="4",
-            first_name="Alice",
-            middle_names=["Beatrice", "Celia"],
+            forenames=["Alice", "Beatrice", "Celia"],
             surnames=["Rarename"],
             dob="2000-01-01",
             postcodes=[self.p1],
@@ -373,8 +370,7 @@ class FuzzyLinkageTests(unittest.TestCase):
         self.alice_b_rarename_2000_add = Person(
             cfg=self.cfg,
             local_id="5",
-            first_name="Alice",
-            middle_names=["Beatrice"],
+            forenames=["Alice", "Beatrice"],
             surnames=["Rarename"],
             dob="2000-01-01",
             postcodes=[self.p1],
@@ -382,7 +378,7 @@ class FuzzyLinkageTests(unittest.TestCase):
         self.alice_jones_2000_add = Person(
             cfg=self.cfg,
             local_id="6",
-            first_name="Alice",
+            forenames=["Alice"],
             surnames=["Jones"],
             dob="2000-01-01",
             postcodes=[self.p1],
@@ -390,7 +386,7 @@ class FuzzyLinkageTests(unittest.TestCase):
         self.bob_smith_1950_psych = Person(
             cfg=self.cfg,
             local_id="7",
-            first_name="Bob",
+            forenames=["Bob"],
             surnames=["Smith"],
             dob="1950-05-30",
             postcodes=[self.p2],
@@ -398,35 +394,33 @@ class FuzzyLinkageTests(unittest.TestCase):
         self.alice_smith_1930 = Person(
             cfg=self.cfg,
             local_id="8",
-            first_name="Alice",
+            forenames=["Alice"],
             surnames=["Smith"],
             dob="1930-01-01",
         )
         self.alice_smith_2000 = Person(
             cfg=self.cfg,
             local_id="9",
-            first_name="Alice",
+            forenames=["Alice"],
             surnames=["Smith"],
             dob="2000-01-01",
         )
         self.alice_smith = Person(
             cfg=self.cfg,
             local_id="10",
-            first_name="Alice",
+            forenames=["Alice"],
             surnames=["Smith"],
         )
         self.alice_bc_smith = Person(
             cfg=self.cfg,
             local_id="11",
-            first_name="Alice",
-            middle_names=["Betty", "Caroline"],
+            forenames=["Alice", "Betty", "Caroline"],
             surnames=["Smith"],
         )
         self.alice_bde_smith = Person(
             cfg=self.cfg,
             local_id="12",
-            first_name="Alice",
-            middle_names=["Betty", "Dorothy", "Elizabeth"],
+            forenames=["Alice", "Betty", "Dorothy", "Elizabeth"],
             surnames=["Smith"],
         )
         self.all_people = [
@@ -961,14 +955,3 @@ class FuzzyLinkageTests(unittest.TestCase):
             proband_hashed = self.all_people_hashed[i]  # same order
             hashed_winner = self.people_hashed.get_unique_match(proband_hashed)
             log.info(f"... WINNER: {hashed_winner}")
-
-        log.info(
-            f"Testing middle name comparisons between...\n"
-            f"{self.alice_bc_smith}\n"
-            f"{self.alice_bde_smith}"
-        )
-        # noinspection PyProtectedMember
-        for comp in self.alice_bc_smith._comparisons_middle_names(
-            self.alice_bde_smith
-        ):
-            log.info(comp)

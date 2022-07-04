@@ -380,8 +380,7 @@ def speedtest(cfg: MatchConfig, set_breakpoint: bool = False) -> None:
     alice_bcd_unique_2000_add = Person(
         cfg=cfg,
         local_id="1",
-        first_name="Alice",
-        middle_names=["Beatrice", "Celia", "Delilah"],
+        forenames=["Alice", "Beatrice", "Celia", "Delilah"],
         surnames=["Rarename"],
         dob="2000-01-01",
         postcodes=[p1],
@@ -389,21 +388,21 @@ def speedtest(cfg: MatchConfig, set_breakpoint: bool = False) -> None:
     alice_smith_1930 = Person(
         cfg=cfg,
         local_id="8",
-        first_name="Alice",
+        forenames=["Alice"],
         surnames=["Smith"],
         dob="1930-01-01",
     )
     alice_smith_2000 = Person(
         cfg=cfg,
         local_id="9",
-        first_name="Alice",
+        forenames=["Alice"],
         surnames=["Smith"],
         dob="2000-01-01",
     )
     alice_smith = Person(
         cfg=cfg,
         local_id="10",
-        first_name="Alice",
+        forenames=["Alice"],
         surnames=["Smith"],
     )
 
@@ -1108,9 +1107,8 @@ def validate_2_fetch_cdl(
             cfg=cfg,
             local_id=str(cdl_m_number),
             other_info=other.json,
-            first_name=row[q.FIRST_NAME] or "",
-            middle_names=[],
-            surnames=list(filter(None, [row[q.SURNAME]])),
+            forenames=[row[q.FIRST_NAME] or ""],
+            surnames=[row[q.SURNAME]],
             gender=gender,
             dob=isoformat_optional_date_str(dob),
             postcodes=postcode_temporal_identifiers(postcodes),
@@ -1365,8 +1363,7 @@ def validate_2_fetch_pcmis(
             cfg=cfg,
             local_id=pcmis_patient_id,
             other_info=other.json,
-            first_name=row[q.FIRST_NAME] or "",
-            middle_names=[middle_name] if middle_name else [],
+            forenames=[row[q.FIRST_NAME] or "", middle_name],
             surnames=list(filter(None, [row[q.SURNAME]])),
             gender=gender,
             dob=isoformat_optional_date_str(dob),
@@ -1449,7 +1446,7 @@ def _get_rio_postcodes(
 
 def _get_rio_names(
     engine: Engine, rio_client_id: str
-) -> Tuple[str, List[str], str]:
+) -> Tuple[List[str], str]:
     """
     Fetches names for a given person, from RiO.
 
@@ -1460,7 +1457,7 @@ def _get_rio_names(
             RiO primary key (``ClientId``)
 
     Returns:
-        tuple: first_name, list_of_middle_names, surname
+        tuple: list_of_forenames, surname
 
     Out of a large database (>150k people), 4 have two rows here. JL notes that
     in each case examined, the earliest EffectiveDate, or smallest crate_pk, is
@@ -1577,11 +1574,10 @@ def _get_rio_names(
     assert n_rows <= 1, "Didn't expect >1 row per patient in ClientName"
     if n_rows == 0:
         log.warning("RiO patient found with no name entry")
-        return "", [], ""
+        return [], ""
     row = rows[0]
     q = QueryColnames
-    first_name = row[q.FIRST_NAME] or ""
-    middle_names = [
+    forenames = [row[q.FIRST_NAME] or ""] + [
         x
         for x in (
             row[q.MIDDLE_NAME_1],
@@ -1592,7 +1588,7 @@ def _get_rio_names(
         if x
     ]  # remove blanks
     surname = row[QueryColnames.SURNAME] or ""
-    return first_name, middle_names, surname
+    return forenames, surname
 
 
 def validate_2_fetch_rio(
@@ -1764,9 +1760,7 @@ def validate_2_fetch_rio(
         gender = row[q.GENDER]  # type: str
         first_mh_care_date = coerce_to_pendulum_date(row[q.FIRST_MH_CARE_DATE])
 
-        first_name, middle_names, surname = _get_rio_names(
-            engine, rio_client_id
-        )
+        forenames, surname = _get_rio_names(engine, rio_client_id)
         postcodes = _get_rio_postcodes(engine, rio_client_id)
 
         other = CPFTValidationExtras(
@@ -1787,9 +1781,8 @@ def validate_2_fetch_rio(
             cfg=cfg,
             local_id=rio_client_id,
             other_info=other.json,
-            first_name=first_name,
-            middle_names=middle_names,
-            surnames=list(filter(None, [surname])),
+            forenames=forenames,
+            surnames=[surname],
             gender=gender,
             dob=isoformat_optional_date_str(dob),
             postcodes=postcode_temporal_identifiers(postcodes),
@@ -2085,9 +2078,8 @@ def validate_2_fetch_systmone(
             cfg=cfg,
             local_id=str(systmone_patient_id),
             other_info=other.json,
-            first_name=row[q.FIRST_NAME] or "",
-            middle_names=[middle_name] if middle_name else [],
-            surnames=list(filter(None, [row[q.SURNAME]])),
+            forenames=[row[q.FIRST_NAME] or "", middle_name],
+            surnames=[row[q.SURNAME]],
             gender=gender,
             dob=isoformat_optional_date_str(dob),
             postcodes=postcode_temporal_identifiers(postcodes),

@@ -62,7 +62,7 @@ def main() -> None:
     p1 = Person(
         cfg=cfg,
         local_id="1",
-        first_name="Alice",
+        forenames=["Alice"],
         surnames=["Jones"],
         dob="1950-01-01",
         gender=GENDER_FEMALE,
@@ -70,7 +70,7 @@ def main() -> None:
     p2 = Person(
         cfg=cfg,
         local_id="2",
-        first_name="Alice",
+        forenames=["Alice"],
         surnames=["Smith"],
         dob="1994-07-29",
         gender=GENDER_FEMALE,
@@ -78,7 +78,7 @@ def main() -> None:
     p3 = Person(
         cfg=cfg,
         local_id="3",
-        first_name="Alice",
+        forenames=["Alice"],
         surnames=["Smith"],
         dob="1950-01-01",
         gender=GENDER_FEMALE,
@@ -86,7 +86,7 @@ def main() -> None:
     p4 = Person(
         cfg=cfg,
         local_id="4",
-        first_name="Alys",
+        forenames=["Alys"],
         surnames=["Smith"],
         dob="1950-01-01",
         gender=GENDER_FEMALE,
@@ -94,7 +94,7 @@ def main() -> None:
     p5 = Person(
         cfg=cfg,
         local_id="5",
-        first_name="Alys",
+        forenames=["Alys"],
         surnames=["Smythe"],
         dob="1950-01-01",
         gender=GENDER_FEMALE,
