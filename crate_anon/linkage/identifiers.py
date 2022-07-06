@@ -59,8 +59,9 @@ import pendulum
 from pendulum.parsing.exceptions import ParserError
 from pendulum import Date
 
-from crate_anon.linkage.constants import INFINITY, VALID_GENDERS
+from crate_anon.linkage.constants import VALID_GENDERS
 from crate_anon.linkage.comparison import (
+    AdjustLogOddsComparison,
     CertainComparison,
     Comparison,
     DirectComparison,
@@ -73,6 +74,7 @@ from crate_anon.linkage.helpers import (
     getdictval,
     is_valid_isoformat_date,
     isoformat_date_or_none,
+    ln,
     mk_blurry_dates,
     POSTCODE_REGEX,
     standardize_name,
@@ -453,7 +455,13 @@ class Identifier(ABC):
         return self and other and self.overlaps(other)
 
     @abstractmethod
-    def comparison(self, other: "Identifier") -> Optional[Comparison]:
+    def comparison(self, candidate_id: "Identifier") -> Optional[Comparison]:
+        """
+        Return a comparison odds (embodying the change in log odds) for a
+        comparison between the "self" identifier (as the proband) and another,
+        the candidate. Frequency information is expected to be on the "self"
+        (proband) side.
+        """
         pass
 
     def overlaps(self, other: "Identifier") -> bool:
@@ -534,7 +542,9 @@ class IdentifierTwoState(Identifier, ABC):
         """
         pass
 
-    def comparison(self, other: "IdentifierTwoState") -> Optional[Comparison]:
+    def comparison(
+        self, candidate_id: "IdentifierTwoState"
+    ) -> Optional[Comparison]:
         """
         Compare our identifier to another of the same type. Return None if you
         wish to draw no conclusions (e.g. there is missing information, or
@@ -547,10 +557,10 @@ class IdentifierTwoState(Identifier, ABC):
         This is a high-speed function; pre-cache any fixed information that
         requires multi-stage lookup.
         """
-        if not self.comparison_relevant(other):
+        if not self.comparison_relevant(candidate_id):
             # Infer no conclusions from absent information.
             return None
-        if self.fully_matches(other):
+        if self.fully_matches(candidate_id):
             return self.comparison_full_match
         return self.comparison_no_match
 
@@ -591,17 +601,17 @@ class IdentifierThreeState(IdentifierTwoState, ABC):
         pass
 
     def comparison(
-        self, other: "IdentifierThreeState"
+        self, candidate_id: "IdentifierThreeState"
     ) -> Optional[Comparison]:
         """
         See :meth:`IdentifierTwoState.comparison`.
         """
-        if not self.comparison_relevant(other):
+        if not self.comparison_relevant(candidate_id):
             # Infer no conclusions from absent information.
             return None
-        if self.fully_matches(other):
+        if self.fully_matches(candidate_id):
             return self.comparison_full_match
-        if self.partially_matches(other):
+        if self.partially_matches(candidate_id):
             return self.comparison_partial_match
         return self.comparison_no_match
 
@@ -642,18 +652,20 @@ class IdentifierFourState(IdentifierThreeState, ABC):
         """
         pass
 
-    def comparison(self, other: "IdentifierFourState") -> Optional[Comparison]:
+    def comparison(
+        self, candidate_id: "IdentifierFourState"
+    ) -> Optional[Comparison]:
         """
         See :meth:`IdentifierTwoState.comparison`.
         """
-        if not self.comparison_relevant(other):
+        if not self.comparison_relevant(candidate_id):
             # Infer no conclusions from absent information.
             return None
-        if self.fully_matches(other):
+        if self.fully_matches(candidate_id):
             return self.comparison_full_match
-        if self.partially_matches(other):
+        if self.partially_matches(candidate_id):
             return self.comparison_partial_match
-        if self.partially_matches_second(other):
+        if self.partially_matches_second(candidate_id):
             return self.comparison_partial_match_second
         return self.comparison_no_match
 
@@ -719,7 +731,7 @@ class TemporalIDHolder(Identifier):
     def ensure_has_freq_info_if_id_present(self) -> None:
         pass
 
-    def comparison(self, other: "Identifier") -> Optional[Comparison]:
+    def comparison(self, candidate_id: "Identifier") -> Optional[Comparison]:
         raise AssertionError(self.BAD_METHOD)
 
 
@@ -791,17 +803,17 @@ class Postcode(IdentifierThreeState):
             self.comparison_full_match = DirectComparison(
                 p_d_given_same_person=1 - p_ep,  # p_c
                 p_d_given_diff_person=p_f,
-                description="postcode_full_match",
+                d_description="postcode_full_match",
             )
             self.comparison_partial_match = DirectComparison(
                 p_d_given_same_person=p_ep,
                 p_d_given_diff_person=p_pnf,
-                description="postcode_partial_match",
+                d_description="postcode_partial_match",
             )
             self.comparison_no_match = DirectComparison(
                 p_d_given_same_person=p_en,
                 p_d_given_diff_person=1 - p_p,  # p_n
-                description="postcode_no_match",
+                d_description="postcode_no_match",
             )
         else:
             self._clear_comparisons()
@@ -946,17 +958,17 @@ class DateOfBirth(IdentifierThreeState):
         self.comparison_full_match = DirectComparison(
             p_d_given_same_person=cfg.p_c_dob,
             p_d_given_diff_person=cfg.p_f_dob,
-            description="dob_full_match",
+            d_description="dob_full_match",
         )
         self.comparison_partial_match = DirectComparison(
             p_d_given_same_person=cfg.p_ep_dob,
             p_d_given_diff_person=cfg.p_pnf_dob,
-            description="dob_partial_match",
+            d_description="dob_partial_match",
         )
         self.comparison_no_match = DirectComparison(
             p_d_given_same_person=cfg.p_en_dob,
             p_d_given_diff_person=cfg.p_n_dob,
-            description="dob_no_match",
+            d_description="dob_no_match",
         )
 
     def __eq__(self, other: Identifier) -> bool:
@@ -1085,12 +1097,12 @@ class Gender(IdentifierTwoState):
             self.comparison_full_match = DirectComparison(
                 p_d_given_same_person=1 - p_e,
                 p_d_given_diff_person=p_f,
-                description="gender_match",
+                d_description="gender_match",
             )
             self.comparison_no_match = DirectComparison(
                 p_d_given_same_person=p_e,
                 p_d_given_diff_person=1 - p_f,
-                description="gender_no_match",
+                d_description="gender_no_match",
             )
         else:
             self._clear_comparisons()
@@ -1301,22 +1313,22 @@ class BasicName(IdentifierFourState, ABC):
             self.comparison_full_match = DirectComparison(
                 p_d_given_same_person=self.p_c,
                 p_d_given_diff_person=self.pf_pop_name_freq,
-                description="name_full_match",
+                d_description="name_full_match",
             )
             self.comparison_partial_match = DirectComparison(
                 p_d_given_same_person=self.p_ep1,
                 p_d_given_diff_person=self.p_p1nf_metaphone_not_name,
-                description="name_partial_match_1_metaphone",
+                d_description="name_partial_match_1_metaphone",
             )
             self.comparison_partial_match_second = DirectComparison(
                 p_d_given_same_person=self.p_ep2np1,
                 p_d_given_diff_person=self.p_p2np1_f2c_not_metaphone_or_name,
-                description="name_partial_match_2_f2c",
+                d_description="name_partial_match_2_f2c",
             )
             self.comparison_no_match = DirectComparison(
                 p_d_given_same_person=p_en,
                 p_d_given_diff_person=p_n_pop_no_match,
-                description="name_no_match",
+                d_description="name_no_match",
             )
         else:
             self._clear_comparisons()
@@ -1689,47 +1701,47 @@ class Surname(Identifier):
         """
         return bool(self.partial_set_f2c.intersection(other.partial_set_f2c))
 
-    def comparison(self, other: "Surname") -> Optional[Comparison]:
+    def comparison(self, candidate_id: "Surname") -> Optional[Comparison]:
         """
         Specialized version for surname.
         """
-        if not self.comparison_relevant(other):
+        if not self.comparison_relevant(candidate_id):
             # Infer no conclusions from absent information.
             return None
 
-        overlap_exact = self.exact_set.intersection(other.exact_set)
+        overlap_exact = self.exact_set.intersection(candidate_id.exact_set)
         if overlap_exact:
             # Exact match. But possibly >1, e.g. "Mozart-Smith" has matched
             # "Mozart-Smith", "Mozart", and "Smith". Reasonable to pick the
             # most informative (rarest) version.
-            candidates = [
+            possibilities = [
                 f for f in self.fragments if f.name in overlap_exact
             ]  # type: List[SurnameFragment]
-            candidates.sort(key=lambda f: f.pf_pop_name_freq)
+            possibilities.sort(key=lambda f: f.pf_pop_name_freq)
             # Sorted in ascending order, so first (lowest frequency) is best.
-            return candidates[0].comparison_full_match
+            return possibilities[0].comparison_full_match
 
         overlap_partial_1 = self.partial_set_metaphone.intersection(
-            other.partial_set_metaphone
+            candidate_id.partial_set_metaphone
         )
         if overlap_partial_1:
             # Similarly:
-            candidates = [
+            possibilities = [
                 f for f in self.fragments if f.metaphone in overlap_partial_1
             ]  # type: List[SurnameFragment]
-            candidates.sort(key=lambda f: f.p_p1nf_metaphone_not_name)
-            return candidates[0].comparison_partial_match
+            possibilities.sort(key=lambda f: f.p_p1nf_metaphone_not_name)
+            return possibilities[0].comparison_partial_match
 
         overlap_partial_2 = self.partial_set_f2c.intersection(
-            other.partial_set_f2c
+            candidate_id.partial_set_f2c
         )
         if overlap_partial_2:
             # Similarly:
-            candidates = [
+            possibilities = [
                 f for f in self.fragments if f.f2c in overlap_partial_2
             ]  # type: List[SurnameFragment]
-            candidates.sort(key=lambda f: f.f2c_freq)
-            return candidates[0].comparison_partial_match_second
+            possibilities.sort(key=lambda f: f.f2c_freq)
+            return possibilities[0].comparison_partial_match_second
 
         # For "no match", we use the whole original name and its frequencies:
         return self.fragments[0].comparison_no_match
@@ -1879,15 +1891,208 @@ class PerfectID(IdentifierTwoState):
                 return True
         return False
 
-    def comparison(self, other: "PerfectID") -> Optional[Comparison]:
+    def comparison(self, candidate_id: "PerfectID") -> Optional[Comparison]:
         return (
-            self.comparison_full_match if self.fully_matches(other) else None
+            self.comparison_full_match
+            if self.fully_matches(candidate_id)
+            else None
         )
 
 
 # =============================================================================
 # Comparison of multiple potentially jumbled similar identifiers
 # =============================================================================
+
+NOTES_MULTIPLE_COMPARISONS = """
+
+What can be compared?
+---------------------
+
+Identifiers that are explicitly time-stamped cannot be compared with explicitly
+non-overlapping identifiers. (But un-time-stamped identifiers can be compared
+with anything.) And only information that is "present" is used for comparison.
+These checks are implemented by each identifier in their `comparison` method.
+
+
+What is a good match?
+---------------------
+
+Implicitly, we prefer full > partial > no match (and similarly for comparisons
+with more or fewer than 3 options). But this is implemented more explicitly by
+log likelihood ratio: we prefer higher values.
+
+
+No re-use
+---------
+
+No identifier can be used for >1 comparison simultaneously. "Surplus"
+identifiers therefore provide no evidence. For example, if candidate_identifers
+= [A, B, C] and proband_identifiers = [A, B], then C will be ignored (the
+comparisons will likely be A/A, B/B). But [A, B, C] versus [A, B, D] will
+likely lead to comparisons A/A, B/B, C/D.
+
+Suppose our proband has n identifiers, and our candidate has m. Then we can
+make c = min(n, m) comparisons.
+
+
+Unordered comparisons: picking the best involves implicit comparison
+--------------------------------------------------------------------
+
+In unordered comparisons, if we pick the best, we have implicitly made many
+more comparisons. We need to adjust for that.
+
+To illustrate, suppose the population of all names is {A, B, ..., Z}, giving a
+set of size s = 26, and that every name is equiprobable in the population with
+frequency q = 1/s = 1/26.
+
+PROBABILITY OF A POPULATION (RANDOM PERSON) MATCH FOR MULTIPLE IDENTIFIERS. If
+we have a proband with names [A] and a candidate with a single name such as [A]
+or [Z], then we will declare a match if the candidate is named [A] and P(D |
+¬H) = P(match | randomly selected other person) = 1/26. If our candidate has
+two unordered names, then we would declare a match regardless of whether the
+candidate was [A, B] or [B, A], and so would declare a match with a random
+candidate with probability 1/26 + 1/26 - 1/(26 ^ 2), or more generally 2/s -
+1/(s ^ 2) = 2q - q^2. The subtracted component is for a candidate named [A, A],
+who would otherwise be counted twice for [A, *] and [*, A]. More generally, for
+a proband with one name and a candidate with m names, the match probability is
+1 - (1 - q) ^ m. That is, the probability of no match for each is (1 - q), and
+it takes m failures to match for an overall failure to match. By the Bonferroni
+approximation or Boole's inequality [1], this is approximately (and never more
+than) m * q. So mq is a slightly conservative correction for multiple
+comparisons.
+
+For a proband with n <= m names, we can work sequentially: the first proband
+named is matched by the candidate with approximately P = m * q_1; then, having
+used up one candidate name, the second proband name is matched by the candidate
+with approximately P = (m - 1) * q_2, and so on.
+
+If n > m, we simply stop the process.
+
+No correction is required for P(D | H), since (ignoring identifier errors) the
+probability of an unordered match given H is 1.
+
+This does NOT apply to "non-match" comparisons, where we have not gone
+"fishing" for the best order.
+
+[1] https://en.wikipedia.org/wiki/Boole%27s_inequality
+
+
+Implementing via the Bayesian log-odds system
+---------------------------------------------
+
+Using this approximation makes things straightforward. The posterior log odds
+is the prior log odds plus the log likelihood ratio. The log likelihood ratio
+(LLR) for a match is ln(p_c) - ln(match probability), where p_c is the
+probability of a correct match given the hypothesis that the proband and
+candidate are the same person.
+
+So if we were using LLR = ln(p_c) - ln(q), but we actually wanted to multiply
+the probability q by some factor f to give LLR = ln(p_c) - ln(fq), then since
+ln(fq) = ln(f) + ln(q), we can simply add -ln(f) to the running total.
+
+We can therefore keep track of f = m * (m - 1) * ..., as above, and add that as
+a "dummy" comparison.
+
+
+Asymmetry
+---------
+
+The method above implies asymmetry, in that the unordered comparisons
+
+    - proband = [A]
+    - candidate = [A, B]
+
+or
+
+    - proband = [A]
+    - candidate = [B, A]
+
+would be less likely than
+
+    - proband = [A, B]
+    - candidate = [A]
+
+because the correction (which increases the probability of a population match
+by chance and therefore decreases the chance of the proband/candidate being the
+same) relates to the number of candidate identifiers available.
+
+This is probably fine and is a defence against a "cuckoo" candidate (cf.
+"keyword stuffing" on web sites for search engines). For example, in our A-Z
+situation, a candidate called [A, B, C, ..., X, Y, Z] is "trying" to be a good
+match for everyone and perhaps shouldn't get the same probability of matching
+[A] as a candidate simply named [A].
+
+Note that there are other asymmetries already, though less obvious ones; for
+example, using a very common surname and a rarer early example from the US name
+database:
+
+    - proband = Alice SMITH, same gender/DOB/postcode
+    - candidate = Alice ABADILLA, same gender/DOB/postcode
+
+      ... surname P(D|¬H) = 0.987 = P(no match | candidate not proband)
+      ... log odds 12.455
+
+    - proband = Alice ABADILLA, same gender/DOB/postcode
+    - candidate = Alice SMITH, same gender/DOB/postcode
+
+      ... surname P(D|¬H) = 0.996 = P(no match | candidate not proband)
+      ... log odds 12.447
+
+... because it's rarer for a randomly selected candidate to match ABADILLA than
+SMITH, so P(D | ¬H) for a no-match is higher for proband ABADILLA, and that
+provides slightly less evidence for a match when ABADILLA is the proband.
+
+We use this unordered comparison for postcodes and surnames. So this multiple
+comparisons correction is equivalent to saying "be a little bit more careful
+about declaring a match against people with multiple postcodes and multiple
+surnames, because they have a higher chance of appearing to match other people
+at random".
+
+
+Ordered comparisons
+-------------------
+
+Consider a proband such as [A, B, C] (n = 3) and a candidate such as [A, B] (m
+= 2), where we wish to use the information that an ordered match is superior to
+an unordered match. A simple way is as follows.
+
+- Establish the "best" set of comparisons (highest LLR) following our standard
+  rules. (In this case, that would be A/A, B/B, for c = 2.)
+
+- Establish if that best match was strictly ordered. There should only be one
+  way (for this method) that is defined as "strictly ordered", and we will
+  define this as that the indexes of the comparisons, 1 ... c, exactly match
+  the contributing indices of the proband (1 ... n) and the candidate (1 ...
+  m). That is: strict order, no gaps.
+
+- For a first draft, declare a probability p_o, the probability that if the
+  proband/candidate are the same (H is true), the identifiers are correct and
+  in same strict order, and a probability p_u that they are correct but
+  unordered (not in strict order), and a probability p_e that they are wrong,
+  such that p_o + p_u + p_e = 1.
+
+  Then if there is an ordered match,
+
+  - P(D | H) = p_o
+  - P(D | ¬H) = P(random ordered match)
+
+  and if there is an unordered match,
+
+  - P(D | H) = p_u
+  - P(D | ¬H) = P(random unordered match) - P(random unordered match)
+
+  and if no match,
+
+  - P(D | H) = p_e
+  - p(D | ¬H) = 1 - [P(random unordered match) - P(random unordered match)]
+
+- Then, to superimpose that on identifier comparisons that are themselves
+  fuzzy, we note that much of those (e.g. p_e) are already dealt with. So
+  if we restrict p_o and p_u to situations where there is a match (full or
+  partial) involving two or more identifiers, and we continue to use the
+  Bonferroni correction, it becomes straightforward.
+
+"""
 
 
 @dataclass
@@ -1896,87 +2101,145 @@ class ComparisonInfo:
     Used by :func:`gen_best_comparisons`.
     """
 
-    candidate_idx: int
     proband_idx: int
+    candidate_idx: int
     comparison: Comparison
     log_likelihood_ratio: float
     # log_likelihood_ratio duplicates comparison.log_likelihood_ratio, but
     # saves lookup cost
 
 
-def gen_best_comparisons_unordered(
+def gen_best_comparisons(
     proband_identifiers: List[Identifier],
     candidate_identifiers: List[Identifier],
-    max_n_negative: int = INFINITY,
+    ordered: bool = False,
+    p_u: Optional[float] = None,
 ) -> Generator[Comparison, None, None]:
     """
     Generates comparisons for two sequences of identifiers (one from the
     proband, one from the candidate), being indifferent to their order. The
-    method is:
+    method -- which needs to be fast -- is as described above in
+    NOTES_MULTIPLE_COMPARISONS.
 
-    - Identifiers that are explicitly time-stamped cannot be compared with
-      explicitly non-overlapping identifiers. (But un-time-stamped identifiers
-      can be compared with anything.) And only information that is "present" is
-      used for comparison. These checks are implemented by each identifier in
-      their `comparison` method.
+    Args:
 
-    - Implicitly, we prefer full > partial > no match (and similarly for
-      comparisons with more or fewer than 3 options). But this is implemented
-      more explicitly by log likelihood ratio: we prefer higher values.
-
-    - No identifier can be used for >1 comparison simultaneously. "Surplus"
-      identifiers therefore provide no evidence. For example, if
-      candidate_identifers = [A, B, C] and proband_identifiers = [A, B], then C
-      will be ignored (the comparisons will likely be A/A, B/B). But [A, B, C]
-      versus [A, B, D] will likely lead to comparisons A/A, B/B, C/D.
-
-    - Optionally, the caller can limit the number of comparisons that are
-      yielded that provide evidence against the hypothesis (that the proband
-      and candidate are the same person). For example: should [A, B, C, D]
-      versus [A, B, E, F] yield A/A, B/B (no negatives), A/A, B/B/, C/E (one
-      negative), or A/A, B/B, C/E, D/F (two or more negatives)?
-
-    - If none are achieved, but there are identifiers, yield a single no-match
-      comparison, as specified by the caller. If this is None, we don't bother
-      to yield it.
-
-    - Try to be quick.
+        proband_identifiers:
+            List of identifiers from the proband.
+        candidate_identifiers:
+            List of comparable identifiers from the candidate.
+        ordered:
+            Treat the comparison as an ordered one?
+        p_u:
+            (Applicable if ordered is True.) 1 - p_o, where p_o is the
+            probability, given that c > 1 identifiers are being compared, that
+            if the hypothesis H (proband and candidate are the same person) is
+            true, the candidate identifiers will be in exactly the right order
+            (that is, the candidate's first c identifiers match the proband's
+            first c identifiers).
     """
     # Compare all pairs.
     ci_list = []  # type: List[ComparisonInfo]
-    for c_idx, candidate_id in enumerate(candidate_identifiers):
-        for p_idx, proband_id in enumerate(proband_identifiers):
-            ci = candidate_id.comparison(proband_id)
+    for p_idx, proband_id in enumerate(proband_identifiers):
+        for c_idx, candidate_id in enumerate(candidate_identifiers):
+            ci = proband_id.comparison(candidate_id)
             if ci is None:
                 # This will happen if either is missing information, or if the
                 # identifiers explicitly do not overlap temporally.
                 continue
             ci_list.append(
                 ComparisonInfo(
-                    candidate_idx=c_idx,
                     proband_idx=p_idx,
+                    candidate_idx=c_idx,
                     comparison=ci,
                     log_likelihood_ratio=ci.log_likelihood_ratio,
                 )
             )
-    # Iterate through comparisons in descending order of log likelihood ratio:
+    if not ci_list:
+        # No comparisons. Abort before we do something silly with a correction
+        # procedure.
+        return
+
+    # Iterate through comparisons in descending order of log likelihood ratio.
     ci_list.sort(key=lambda c: c.log_likelihood_ratio, reverse=True)
     candidate_indexes_used = set()  # type: Set[int]
     proband_indexes_used = set()  # type: Set[int]
-    n_negative = 0
+    n_candidates_available = n_candidates = len(candidate_identifiers)
+    n_positive = 0
+    n_implicit_comparisons = 1
+    correct_order = True
     for ci in ci_list:
         if (
-            ci.candidate_idx in candidate_indexes_used
-            or ci.proband_idx in proband_indexes_used
+            ci.proband_idx in proband_indexes_used
+            or ci.candidate_idx in candidate_indexes_used
         ):
             # Each identifier can use used as part of only one comparison.
             continue
-        if ci.log_likelihood_ratio < 0:
-            # Optional caller constraint on the number of "negative" results.
-            if n_negative > max_n_negative:
-                # We're done; all subsequent comparisons will also be negative.
-                return
-            n_negative += 1
         candidate_indexes_used.add(ci.candidate_idx)
         proband_indexes_used.add(ci.proband_idx)
         yield ci.comparison
+        if ci.log_likelihood_ratio > 0:
+            # This was some form of match, so we apply our correction.
+            n_implicit_comparisons *= n_candidates_available
+            n_positive += 1
+            if ordered and ci.proband_idx != ci.candidate_idx:
+                # Note that the index of ci itself is irrelevant; that will
+                # vary depending on the frequency of the identifiers, e.g. John
+                # Zachariah versus Zachariah John.
+                correct_order = False
+        n_candidates_available -= 1
+
+    # Any corrections required.
+    if ordered:
+        # Ordered comparison requested.
+        # Only applicable if the number of "positive" comparisons is >1.
+        p_o = 1 - p_u
+        if n_positive > 0 and n_candidates > 1:
+            # There was a "hit", and there was a choice of candidate
+            # identifiers, so there is an order to think about. ASSUMING unique
+            # identifiers (within proband, within candidate):
+            if correct_order:
+                # - Adjust P(D | H) by p_o.
+                # - No adjustment to P(D | ¬H) required.
+                yield AdjustLogOddsComparison(
+                    log_odds_delta=ln(p_o),
+                    description=(
+                        f"order match: adjust P(D|H) by "
+                        f"P(correct order) = {p_o}"
+                    ),
+                )
+            else:
+                # - Adjust P(D | H) by p_u = 1 - p_o.
+                # - Adjust P(D | ¬H) by the number of unordered possibilities
+                #   considered (n_implicit_comparisons), minus the one (the
+                #   correctly ordered option) that by definition we are not
+                #   considering here. This uses a Bonferroni approximation, as
+                #   above.
+                n_unordered_possibilities = n_implicit_comparisons - 1
+                description = (
+                    f"order mismatch: "
+                    f"adjust P(D|H) by P(incorrect order) = {p_u}"
+                )
+                if n_unordered_possibilities > 1:
+                    description += (
+                        f", and P(D|¬H) for {n_positive} hits from "
+                        f"{n_unordered_possibilities} comparisons"
+                    )
+                yield AdjustLogOddsComparison(
+                    log_odds_delta=ln(p_u) - ln(n_unordered_possibilities),
+                    description=description,
+                )
+
+    else:
+        # Unordered comparison requested.
+        if n_implicit_comparisons > 1:
+            # - P(D | H) does not require adjustment.
+            # - Correct P(D | ¬H) for the fact that we would have considered
+            #   any order acceptable, and we made multiple comparisons to pick
+            #   the best. This uses a Bonferroni approximation, as above.
+            yield AdjustLogOddsComparison(
+                log_odds_delta=-ln(n_implicit_comparisons),
+                description=(
+                    f"unordered: adjust P(D|¬H) for {n_positive} "
+                    f"hits from {n_implicit_comparisons} comparisons"
+                ),
+            )

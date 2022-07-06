@@ -631,20 +631,6 @@ def hash_identity_file(
 # Demonstration data
 # =============================================================================
 
-_ = """
-
-import logging
-from crate_anon.linkage.fuzzy_id_match import *
-logging.basicConfig(level=logging.INFO)
-cfg = MatchConfig()  # proper frequencies
-# cfg = None  # dummy frequencies; should still work
-pp = get_demo_people(cfg)
-p1 = pp[0]
-p4 = pp[3]
-p1.debug_compare_verbose(p4)
-
-"""
-
 
 def get_demo_people(cfg: MatchConfig = None) -> List[Person]:
     """
@@ -668,8 +654,8 @@ def get_demo_people(cfg: MatchConfig = None) -> List[Person]:
     return [
         Person(
             cfg=cfg,
-            local_id="r1",
-            other_info=mkother("1"),
+            local_id="r0",
+            other_info=mkother("0"),
             forenames=["Alice", "Zara"],
             surnames=["Smith"],
             dob="1931-01-01",
@@ -678,8 +664,8 @@ def get_demo_people(cfg: MatchConfig = None) -> List[Person]:
         ),
         Person(
             cfg=cfg,
-            local_id="r2",
-            other_info=mkother("2"),
+            local_id="r1",
+            other_info=mkother("1"),
             forenames=["Bob", "Yorick"],
             surnames=["Jones"],
             dob="1932-01-01",
@@ -688,8 +674,8 @@ def get_demo_people(cfg: MatchConfig = None) -> List[Person]:
         ),
         Person(
             cfg=cfg,
-            local_id="r3",
-            other_info=mkother("3"),
+            local_id="r2",
+            other_info=mkother("2"),
             forenames=["Celia", "Xena"],
             surnames=["Wright"],
             dob="1933-01-01",
@@ -698,8 +684,8 @@ def get_demo_people(cfg: MatchConfig = None) -> List[Person]:
         ),
         Person(
             cfg=cfg,
-            local_id="r4",
-            other_info=mkother("4"),
+            local_id="r3",
+            other_info=mkother("3"),
             forenames=["David", "William", "Wallace"],
             surnames=["Cartwright"],
             dob="1934-01-01",
@@ -708,8 +694,8 @@ def get_demo_people(cfg: MatchConfig = None) -> List[Person]:
         ),
         Person(
             cfg=cfg,
-            local_id="r5",
-            other_info=mkother("5"),
+            local_id="r4",
+            other_info=mkother("4"),
             forenames=["Emily", "Violet"],
             surnames=["Fisher"],
             dob="1935-01-01",
@@ -718,8 +704,8 @@ def get_demo_people(cfg: MatchConfig = None) -> List[Person]:
         ),
         Person(
             cfg=cfg,
-            local_id="r6",
-            other_info=mkother("6"),
+            local_id="r5",
+            other_info=mkother("5"),
             forenames=["Frank", "Umberto"],
             surnames=["Williams"],
             dob="1936-01-01",
@@ -728,8 +714,8 @@ def get_demo_people(cfg: MatchConfig = None) -> List[Person]:
         ),
         Person(
             cfg=cfg,
-            local_id="r7",
-            other_info=mkother("7"),
+            local_id="r6",
+            other_info=mkother("6"),
             forenames=["Greta", "Tilly"],
             surnames=["Taylor"],
             dob="1937-01-01",
@@ -738,8 +724,8 @@ def get_demo_people(cfg: MatchConfig = None) -> List[Person]:
         ),
         Person(
             cfg=cfg,
-            local_id="r8",
-            other_info=mkother("8"),
+            local_id="r7",
+            other_info=mkother("7"),
             forenames=["Harry", "Samuel"],
             surnames=["Davies"],
             dob="1938-01-01",
@@ -748,8 +734,8 @@ def get_demo_people(cfg: MatchConfig = None) -> List[Person]:
         ),
         Person(
             cfg=cfg,
-            local_id="r9",
-            other_info=mkother("9"),
+            local_id="r8",
+            other_info=mkother("8"),
             forenames=["Iris", "Ruth"],
             surnames=["Evans", "Jones"],
             dob="1939-01-01",
@@ -758,8 +744,8 @@ def get_demo_people(cfg: MatchConfig = None) -> List[Person]:
         ),
         Person(
             cfg=cfg,
-            local_id="r10",
-            other_info=mkother("10"),
+            local_id="r9",
+            other_info=mkother("9"),
             forenames=["James", "Quentin"],
             surnames=[
                 TemporalIDHolder(
@@ -779,9 +765,29 @@ def get_demo_people(cfg: MatchConfig = None) -> List[Person]:
         ),
         Person(
             cfg=cfg,
+            local_id="r10",
+            other_info=mkother("10"),
+            forenames=["Alice"],
+            surnames=["Smith"],
+            dob="1931-01-01",
+            gender=GENDER_FEMALE,
+            postcodes=[p("CB2 0QQ")],
+        ),
+        Person(
+            cfg=cfg,
             local_id="r11",
             other_info=mkother("11"),
             forenames=["Alice"],
+            surnames=["Abadilla"],  # much rarer than Smith
+            dob="1931-01-01",
+            gender=GENDER_FEMALE,
+            postcodes=[p("CB2 0QQ")],
+        ),
+        Person(
+            cfg=cfg,
+            local_id="r12",
+            other_info=mkother("12"),
+            forenames=["Zara", "Alice"],
             surnames=["Smith"],
             dob="1931-01-01",
             gender=GENDER_FEMALE,
@@ -1158,6 +1164,14 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
         help=f"Probability that a forename has an error such that it produces "
         f"no match at all. {gdh}",
     )
+    error_p_group.add_argument(
+        f"--{Switches.P_U_FORENAMES}",
+        type=str,
+        default=FuzzyDefaults.P_U_FORENAMES_CSV,
+        help=f"Probability that a set of at least two forenames has an error "
+        f"such that they become unordered (e.g. swapped/shuffled) with "
+        f"respect to their counterpart. {gdh}",
+    )
 
     error_p_group.add_argument(
         f"--{Switches.P_EP1_SURNAME}",
@@ -1460,6 +1474,11 @@ def get_cfg_from_args(
         p_en_forename=getparam(
             Switches.P_EN_FORENAME,
             FuzzyDefaults.P_EN_FORENAME_CSV,
+            require_error,
+        ),
+        p_u_forename=getparam(
+            Switches.P_U_FORENAMES,
+            FuzzyDefaults.P_U_FORENAMES_CSV,
             require_error,
         ),
         p_ep1_surname=getparam(

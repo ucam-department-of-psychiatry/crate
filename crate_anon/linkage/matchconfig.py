@@ -113,6 +113,7 @@ class MatchConfig:
         ),
         p_ep1_forename: str = FuzzyDefaults.P_EP1_FORENAME_CSV,
         p_ep2np1_forename: str = FuzzyDefaults.P_EP2NP1_FORENAME_CSV,
+        p_u_forename: str = FuzzyDefaults.P_U_FORENAMES_CSV,
         p_en_forename: str = FuzzyDefaults.P_EN_FORENAME_CSV,
         p_ep1_surname: str = FuzzyDefaults.P_EP1_SURNAME_CSV,
         p_ep2np1_surname: str = FuzzyDefaults.P_EP2NP1_SURNAME_CSV,
@@ -312,7 +313,7 @@ class MatchConfig:
             p_en_: Dict[str, float],
         ) -> Dict[str, float]:
             """
-            Calculates p_c from the others.
+            Calculates p_c = 1 - p_ep1 - p_ep2np1 = p_en.
             """
             d = {}  # type: Dict[str, float]
             for g in VALID_GENDERS:
@@ -451,6 +452,9 @@ class MatchConfig:
             p_ep1_=self.p_ep1_forename,
             p_ep2np1_=self.p_ep2np1_forename,
             p_en_=self.p_en_forename,
+        )
+        self.p_u_forenames = mk_gender_p_dict(
+            p_u_forename, Switches.P_U_FORENAMES
         )
 
         # Error probabilities: surnames

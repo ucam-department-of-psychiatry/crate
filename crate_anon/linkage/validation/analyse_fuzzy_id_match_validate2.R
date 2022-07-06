@@ -2342,9 +2342,9 @@ main <- function()
 
 
 # TODO: handle multiple options for first name, surname?
-#   *** see Downs paper; use some of those strategies?
-#   *** forename comparison to middle name
 #   *** forenames/middle names/aliases: any sense in keeping an order?
+
+# *** check if p_u_forenames needs to be gender-specific; otherwise remove.
 
 # TODO: use empirical estimates of remaining error types; see FuzzyDefaults
 

@@ -839,8 +839,8 @@ def standardize_perfect_id_key(k: str) -> str:
     return k.strip().lower()
 
 
-def standardize_perfect_id_value(k: str) -> str:
+def standardize_perfect_id_value(k: Any) -> str:
     """
-    Values are compared case-insensitive, in upper case.
+    Values are forced to strings and compared case-insensitive, in upper case.
     """
-    return k.strip().upper()
+    return str(k).strip().upper()

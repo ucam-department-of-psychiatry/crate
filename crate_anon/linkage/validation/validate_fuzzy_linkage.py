@@ -1577,16 +1577,14 @@ def _get_rio_names(
         return [], ""
     row = rows[0]
     q = QueryColnames
-    forenames = [row[q.FIRST_NAME] or ""] + [
-        x
-        for x in (
-            row[q.MIDDLE_NAME_1],
-            row[q.MIDDLE_NAME_2],
-            row[q.MIDDLE_NAME_3],
-            row[q.MIDDLE_NAME_4],
-        )
-        if x
-    ]  # remove blanks
+    forenames = [
+        row[q.FIRST_NAME],
+        row[q.MIDDLE_NAME_1],
+        row[q.MIDDLE_NAME_2],
+        row[q.MIDDLE_NAME_3],
+        row[q.MIDDLE_NAME_4],
+    ]
+    # Removal of blanks is optional; the Person object will also do it.
     surname = row[QueryColnames.SURNAME] or ""
     return forenames, surname
 
@@ -2053,7 +2051,6 @@ def validate_2_fetch_systmone(
         nhs_number = row[q.NHS_NUMBER]
         if not is_ok_nhs_number(nhs_number):
             continue
-        middle_name = row[q.MIDDLE_NAME]
         dob = coerce_to_pendulum_date(row[q.DOB])
         gender = row[q.GENDER]
         first_mh_care_date = coerce_to_pendulum_date(row[q.FIRST_MH_CARE_DATE])
@@ -2078,7 +2075,7 @@ def validate_2_fetch_systmone(
             cfg=cfg,
             local_id=str(systmone_patient_id),
             other_info=other.json,
-            forenames=[row[q.FIRST_NAME] or "", middle_name],
+            forenames=[row[q.FIRST_NAME], row[q.MIDDLE_NAME]],
             surnames=[row[q.SURNAME]],
             gender=gender,
             dob=isoformat_optional_date_str(dob),

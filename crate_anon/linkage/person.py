@@ -50,6 +50,7 @@ from cardinal_pythonlib.reprfunc import auto_repr
 
 from crate_anon.linkage.comparison import bayes_compare, Comparison
 from crate_anon.linkage.helpers import (
+    getdictprob,
     getdictval,
     mutate_name,
     mutate_postcode,
@@ -57,7 +58,7 @@ from crate_anon.linkage.helpers import (
 from crate_anon.linkage.identifiers import (
     DateOfBirth,
     Forename,
-    gen_best_comparisons_unordered,
+    gen_best_comparisons,
     Gender,
     Identifier,
     PerfectID,
@@ -131,6 +132,9 @@ class Person:
         "the 'jq' tool to inspect these.)"
     )
 
+    # Additional Person-level keys for JSON that are not part of the CSV:
+    KEY_P_U_FORENAMES = "p_u_forenames"
+
     # -------------------------------------------------------------------------
     # Creation
     # -------------------------------------------------------------------------
@@ -141,6 +145,7 @@ class Person:
         local_id: str = "",
         other_info: str = "",
         forenames: List[Union[None, str, TemporalIDHolder, Forename]] = None,
+        p_u_forenames: Optional[float] = None,
         surnames: List[Union[None, str, TemporalIDHolder, Surname]] = None,
         dob: Union[None, str, DateOfBirth] = "",
         gender: Union[None, str, Gender] = "",
@@ -163,6 +168,9 @@ class Person:
             forenames:
                 The person's forenames (given names, first/middle names), as
                 strings or Forename objects.
+            p_u_forenames:
+                The probability (given the hypothesis H of a match) that names
+                become shuffled and unordered. See paper for details.
             surnames:
                 The person's surname(s), as strings or Surname or
                 TemporalIDHolder objects.
@@ -245,6 +253,14 @@ class Person:
                 raise ValueError(f"Bad forename: {f!r}")
             chk_plaintext(f)
             self.forenames.append(f)
+        # For an identifiable person, we can look up p_u_forenames from the
+        # config via a gender. However, for a de-identified person, it will
+        # need to be passed in (e.g. loaded from JSON).
+        self.p_u_forenames = (
+            self.cfg.p_u_forenames[self.gender.gender_str]
+            if p_u_forenames is None
+            else p_u_forenames
+        )
 
         # surnames
         surnames = surnames or []
@@ -375,6 +391,7 @@ class Person:
             local_id=getdictval(d, pk.LOCAL_ID, str),
             other_info=getdictval(d, pk.OTHER_INFO, str, mandatory=False),
             forenames=forenames,
+            p_u_forenames=getdictprob(d, cls.KEY_P_U_FORENAMES),
             surnames=surnames,
             dob=DateOfBirth.from_dict(
                 cfg, getdictval(d, pk.DOB, dict), hashed
@@ -523,6 +540,11 @@ class Person:
             ],
             pk.PERFECT_ID: self.perfect_id.as_dict(encrypt),
         }
+        if include_frequencies:
+            d[self.KEY_P_U_FORENAMES] = self.p_u_forenames
+            # There's no need to blur self.p_u_forenames; that is
+            # user-supplied. We encode it here because it may be
+            # gender-specific and thus unavailable later otherwise.
         if include_other_info:
             d[pk.OTHER_INFO] = self.other_info
         return d
@@ -591,12 +613,13 @@ class Person:
     # Main comparison function
     # -------------------------------------------------------------------------
 
-    def log_odds_same(self, proband: "Person") -> float:
+    def log_odds_same(self, candidate: "Person") -> float:
         """
-        Returns the log odds that ``self`` and ``other`` are the same person.
+        Returns the log odds that ``self`` (the proband) and ``candidate`` are
+        the same person.
 
         Args:
-            proband: another :class:`Person` object
+            candidate: another :class:`Person` object
 
         Returns:
             float: the log odds they're the same person
@@ -604,7 +627,7 @@ class Person:
         # High speed function.
         return bayes_compare(
             log_odds=self.baseline_log_odds_same_person,
-            comparisons=self._gen_comparisons(proband),
+            comparisons=self._gen_comparisons(candidate),
         )
 
     # -------------------------------------------------------------------------
@@ -612,18 +635,18 @@ class Person:
     # -------------------------------------------------------------------------
 
     def _gen_comparisons(
-        self, proband: "Person"
+        self, candidate: "Person"
     ) -> Generator[Optional[Comparison], None, None]:
         """
         Generates all relevant comparisons.
 
         Args:
-            proband: another :class:`Person` object.
+            candidate: another :class:`Person` object.
 
         **Note**
 
         In general, frequency information is associated with the proband,
-        not the candidate, so use ``proband.thing.comparison(self.thing)``.
+        not the candidate, so use ``self.thing.comparison(candidate.thing)``.
 
         """
         # A perfect match would already have been tested for. The shortlisting
@@ -633,31 +656,34 @@ class Person:
         # for speed.
 
         # Forenames
-        # todo: raise NotImplementedError("may not be the optimal method")
-        yield from gen_best_comparisons_unordered(
-            proband_identifiers=proband.forenames,
-            candidate_identifiers=self.forenames,
+        yield from gen_best_comparisons(
+            proband_identifiers=self.forenames,
+            candidate_identifiers=candidate.forenames,
+            ordered=True,
+            p_u=self.p_u_forenames,
         )
 
         # Surnames
-        yield from gen_best_comparisons_unordered(
-            proband_identifiers=proband.surnames,
-            candidate_identifiers=self.surnames,
+        yield from gen_best_comparisons(
+            proband_identifiers=self.surnames,
+            candidate_identifiers=candidate.surnames,
+            ordered=False,
         )
 
         # DOB (see above)
         # There is no special treatment of 29 Feb (since this DOB is
         # approximately 4 times less common than other birthdays, in principle
         # it does merit special treatment, but we ignore that).
-        yield proband.dob.comparison(self.dob)
+        yield self.dob.comparison(candidate.dob)
 
         # Gender
-        yield proband.gender.comparison(self.gender)
+        yield self.gender.comparison(candidate.gender)
 
         # Postcodes
-        yield from gen_best_comparisons_unordered(
-            proband_identifiers=proband.postcodes,
-            candidate_identifiers=self.postcodes,
+        yield from gen_best_comparisons(
+            proband_identifiers=self.postcodes,
+            candidate_identifiers=candidate.postcodes,
+            ordered=False,
         )
 
     # -------------------------------------------------------------------------
@@ -742,9 +768,7 @@ class Person:
             yield self.gender
         yield from self.postcodes
 
-    def debug_compare_verbose(
-        self, proband: "Person", verbose: bool = True
-    ) -> None:
+    def debug_compare(self, candidate: "Person", verbose: bool = True) -> None:
         """
         Compare a person with another, and log every step of the way.
         """
@@ -760,26 +784,26 @@ class Person:
                 )
                 + "\n"
             )
-            proband_id = (
+            candidate_id = (
                 "\n".join(
-                    spacer + repr(i) for i in proband.debug_gen_identifiers()
+                    spacer + repr(i) for i in candidate.debug_gen_identifiers()
                 )
                 + "\n"
             )
         else:
             self_id = ""
-            proband_id = ""
+            candidate_id = ""
         log.info(
             f"VERBOSE COMPARISON:\n"
-            f"- self    = {self}\n"
+            f"- candidate      = {candidate}\n"
+            f"{candidate_id}\n"
+            f"- self (proband) = {self}\n"
             f"{self_id}\n"
-            f"- proband = {proband}\n"
-            f"{proband_id}"
         )
 
         log_odds = self.cfg.baseline_log_odds_same_person
         report("Baseline")
-        for comp in self._gen_comparisons(proband=proband):
+        for comp in self._gen_comparisons(candidate=candidate):
             log_odds = comp.posterior_log_odds(log_odds)
             report(str(comp))
 

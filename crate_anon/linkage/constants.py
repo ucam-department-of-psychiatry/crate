@@ -154,6 +154,7 @@ class Switches:
     P_EP1_FORENAME = "p_ep1_forename"
     P_EP2NP1_FORENAME = "p_ep2np1_forename"
     P_EN_FORENAME = "p_en_forename"
+    P_U_FORENAMES = "p_u_forenames"
 
     P_EP1_SURNAME = "p_ep1_surname"
     P_EP2NP1_SURNAME = "p_ep2np1_surname"
@@ -287,6 +288,10 @@ class FuzzyDefaults:
         GENDER_MALE: 0.001,  # (E) *** fix
     }
     P_EN_FORENAME = {
+        GENDER_FEMALE: 0.05,  # (E) *** fix
+        GENDER_MALE: 0.02,  # (E) *** fix
+    }
+    P_U_FORENAMES = {
         GENDER_FEMALE: 0.05,  # (E) *** fix
         GENDER_MALE: 0.02,  # (E) *** fix
     }
@@ -428,6 +433,7 @@ class FuzzyDefaults:
     P_EP1_FORENAME_CSV = _mk_dictstr(P_EP1_FORENAME)
     P_EP2NP1_FORENAME_CSV = _mk_dictstr(P_EP2NP1_FORENAME)
     P_EN_FORENAME_CSV = _mk_dictstr(P_EN_FORENAME)
+    P_U_FORENAMES_CSV = _mk_dictstr(P_U_FORENAMES)
 
     P_EP1_SURNAME_CSV = _mk_dictstr(P_EP1_SURNAME)
     P_EP2NP1_SURNAME_CSV = _mk_dictstr(P_EP2NP1_SURNAME)

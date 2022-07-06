@@ -145,7 +145,7 @@ class People:
         self._known_local_ids.add(person.local_id)
 
         # Build perfect ID map and ensure no duplication.
-        for key, value in person.perfect_id.identifiers:
+        for key, value in person.perfect_id.identifiers.items():
             # e.g. key = "nhsnum", value = some NHS number as a string, or a
             # hashed equivalent.
             id_to_person = self.perfect_id_map[key]  # e.g. for NHS#
@@ -208,7 +208,7 @@ class People:
         Returns the first person who matches on a perfect (person-unique) ID,
         or ``None``.
         """
-        for key, value in proband.perfect_id.identifiers.values():
+        for key, value in proband.perfect_id.identifiers.items():
             key = self.cfg.remap_perfect_id_key(key)
             winner = self.perfect_id_map[key].get(value)
             if winner:
@@ -277,8 +277,9 @@ class People:
             best_log_odds = INFINITY
         else:
             # Fuzzy matching
+            proband_log_odds_same = proband.log_odds_same  # for speed
             for candidate in self.gen_shortlist(proband):
-                log_odds = candidate.log_odds_same(proband)
+                log_odds = proband_log_odds_same(candidate)
                 if log_odds > best_log_odds:
                     second_best_log_odds = best_log_odds
                     second_best_candidate = best_candidate

@@ -45,6 +45,7 @@ from crate_anon.linkage.constants import (
     GENDER_MALE,
     GENDER_MISSING,
     GENDER_OTHER,
+    INFINITY,
     VALID_GENDERS,
 )
 from crate_anon.linkage.identifiers import (
@@ -955,3 +956,32 @@ class FuzzyLinkageTests(unittest.TestCase):
             proband_hashed = self.all_people_hashed[i]  # same order
             hashed_winner = self.people_hashed.get_unique_match(proband_hashed)
             log.info(f"... WINNER: {hashed_winner}")
+
+    def test_exact_match(self) -> None:
+        """
+        Test the exact-match system.
+        """
+        id_type = "nhsnum"
+        id_value = 3
+        # Two people with no identifiers in common:
+        p1 = Person(
+            cfg=self.cfg, local_id="p1", perfect_id={id_type: id_value}
+        )
+        p2 = Person(
+            cfg=self.cfg, local_id="p2", perfect_id={id_type: id_value}
+        )
+        # Perfect ID comparison is a function of a People object, not Person.
+        people = People(cfg=self.cfg, people=[p1])
+
+        # Match to self:
+        result_p1 = people.get_unique_match_detailed(p1)
+        self.assertEqual(result_p1.winner, p1)
+        self.assertEqual(result_p1.best_log_odds, INFINITY)
+
+        # Match to another with the same perfect ID:
+        result_p2 = people.get_unique_match_detailed(p2)
+        self.assertEqual(result_p2.winner, p1)
+        self.assertEqual(result_p2.best_log_odds, INFINITY)
+
+        # No two people in a People object with the same ID:
+        self.assertRaises(DuplicateIDError, people.add_person, p2)

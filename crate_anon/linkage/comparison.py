@@ -72,7 +72,7 @@ class Comparison:
         Returns a brief description.
         """
         return (
-            f"{self.description} "
+            f"{self.d_description} "
             f"[P(D|H)={self.p_d_given_h}, "
             f"P(D|¬H)={self.p_d_given_not_h}]"
         )
@@ -81,7 +81,7 @@ class Comparison:
         return auto_repr(self)
 
     @property
-    def description(self) -> str:
+    def d_description(self) -> str:
         """
         A description of D, the data (e.g. "match" or "mismatch").
         """
@@ -140,7 +140,7 @@ class ImpossibleComparison(Comparison):
     """
 
     @property
-    def description(self) -> str:
+    def d_description(self) -> str:
         return "ImpossibleComparison"
 
     @property
@@ -165,7 +165,7 @@ class CertainComparison(Comparison):
     """
 
     @property
-    def description(self) -> str:
+    def d_description(self) -> str:
         return "CertainComparison"
 
     @property
@@ -195,7 +195,7 @@ class DirectComparison(Comparison):
         self,
         p_d_given_same_person: float,
         p_d_given_diff_person: float,
-        description: str = "DirectComparison",
+        d_description: str = "?",
     ) -> None:
         r"""
         Args:
@@ -209,7 +209,7 @@ class DirectComparison(Comparison):
             p_d_given_h=p_d_given_same_person,
             p_d_given_not_h=p_d_given_diff_person,
         )
-        self._description = description
+        self._description = d_description
 
     def __str__(self) -> str:
         return (
@@ -221,7 +221,7 @@ class DirectComparison(Comparison):
         )
 
     @property
-    def description(self) -> str:
+    def d_description(self) -> str:
         return self._description
 
     @property
@@ -282,7 +282,7 @@ class MatchNoMatchComparison(Comparison):
         self.p_match_given_diff_person = p_match_given_diff_person
 
     @property
-    def description(self) -> str:
+    def d_description(self) -> str:
         return "match" if self.match else "mismatch"
 
     @property
@@ -343,7 +343,7 @@ class FullPartialNoMatchComparison(Comparison):
         self.p_p = p_p
 
     @property
-    def description(self) -> str:
+    def d_description(self) -> str:
         if self.full_match:
             return "full match"
         elif self.partial_match:
@@ -377,6 +377,52 @@ class FullPartialNoMatchComparison(Comparison):
         return super().posterior_log_odds(prior_log_odds)
 
 
+class AdjustLogOddsComparison(Comparison):
+    """
+    Used to adjust log odds (via the log likelihood ratio) directly. See
+    :func:`crate_anon.linkage.identifiers.gen_best_comparisons_unordered`.
+    """
+
+    BAD_METHOD = "Bad method"
+
+    def __init__(
+        self,
+        log_odds_delta: float,
+        description: str = "?",
+    ) -> None:
+        super().__init__()
+        self._p_d_given_h = None
+        self._p_d_given_not_h = None
+        self._log_likelihood_ratio = log_odds_delta
+        self._description = description
+
+    def __str__(self) -> str:
+        return (
+            f"AdjustLogOddsComparison"
+            f"[{self._description}, "
+            f"log_odds_delta={self._log_likelihood_ratio}]"
+        )
+
+    @property
+    def d_description(self) -> str:
+        return self._description
+
+    @property
+    def p_d_given_h(self) -> float:
+        raise AssertionError(self.BAD_METHOD)
+
+    @property
+    def p_d_given_not_h(self) -> float:
+        raise AssertionError(self.BAD_METHOD)
+
+    @property
+    def log_likelihood_ratio(self) -> float:
+        return self._log_likelihood_ratio
+
+    def posterior_log_odds(self, prior_log_odds: float) -> float:
+        return prior_log_odds + self._log_likelihood_ratio
+
+
 # =============================================================================
 # The main Bayesian comparison point
 # =============================================================================
@@ -408,26 +454,3 @@ def bayes_compare(
         # We could check for +∞ too, but that (via PerfectID) is done outside
         # the Bayesian process.
     return log_odds
-
-
-# =============================================================================
-# Comparing comparisons
-# =============================================================================
-
-
-def likeliest(
-    comparisons: Iterable[Optional[Comparison]],
-) -> Optional[Comparison]:
-    """
-    Returns the comparison, among those supplied, providing the most favourable
-    support for the hypothesis (the highest log likelihood ratio).
-    """
-    sorted_comp = sorted(
-        filter(None, comparisons),
-        key=lambda c: c.log_likelihood_ratio,
-    )
-    # The option reverse=True gives highest-to-lowest sorting. But possibly
-    # fractionally slower; see https://stackoverflow.com/questions/9069298. So
-    # rather than using reverse=True and [0], we use reverse=False
-    # (lowest-to-highest sorting) and [-1].
-    return sorted_comp[-1] if sorted_comp else None
