@@ -398,8 +398,7 @@ class AdjustLogOddsComparison(Comparison):
 
     def __str__(self) -> str:
         return (
-            f"AdjustLogOddsComparison"
-            f"[{self._description}, "
+            f"AdjustLogOddsComparison[{self._description}, "
             f"log_odds_delta={self._log_likelihood_ratio}]"
         )
 

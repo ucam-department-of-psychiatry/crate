@@ -1730,6 +1730,7 @@ class Surname(Identifier):
                 f for f in self.fragments if f.metaphone in overlap_partial_1
             ]  # type: List[SurnameFragment]
             possibilities.sort(key=lambda f: f.p_p1nf_metaphone_not_name)
+            # Sorted in ascending order, so first (lowest frequency) is best.
             return possibilities[0].comparison_partial_match
 
         overlap_partial_2 = self.partial_set_f2c.intersection(
@@ -1740,7 +1741,10 @@ class Surname(Identifier):
             possibilities = [
                 f for f in self.fragments if f.f2c in overlap_partial_2
             ]  # type: List[SurnameFragment]
-            possibilities.sort(key=lambda f: f.f2c_freq)
+            possibilities.sort(
+                key=lambda f: f.p_p2np1_f2c_not_metaphone_or_name
+            )
+            # Sorted in ascending order, so first (lowest frequency) is best.
             return possibilities[0].comparison_partial_match_second
 
         # For "no match", we use the whole original name and its frequencies:

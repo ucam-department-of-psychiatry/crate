@@ -739,23 +739,32 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
         lapply(RJSONIO::fromJSON, simplify = FALSE) %>%
         lapply(
             function(e) {
-                middle_names <- e$middle_names
-                m_names <- paste(
-                    lapply(middle_names, function(p) p$hashed_name),
+                forenames <- e$forenames
+                n_forenames <- length(forenames)
+                first_name <- forenames[1]
+                second_name <- forenames[2]
+                *** working here
+
+                other_middle_names <- tail(forenames, -2)
+                other_m_names <- paste(
+                    lapply(other_middle_names, function(p) p$hashed_name),
                     collapse = sep
                 )
-                m_name_freq <- paste(
-                    lapply(middle_names, function(p) p$name_freq),
+                other_m_name_freq <- paste(
+                    lapply(other_middle_names, function(p) p$name_freq),
                     collapse = sep
                 )
-                m_metaphones <- paste(
-                    lapply(middle_names, function(p) p$hashed_metaphone),
+                other_m_metaphones <- paste(
+                    lapply(other_middle_names, function(p) p$hashed_metaphone),
                     collapse = sep
                 )
-                m_metaphone_freq <- paste(
-                    lapply(middle_names, function(p) p$metaphone_freq),
+                other_m_metaphone_freq <- paste(
+                    lapply(other_middle_names, function(p) p$metaphone_freq),
                     collapse = sep
                 )
+
+                surnames <- e$surnames
+                first_surname <- surnames[1]
 
                 postcodes <- e$postcodes
                 p_start_dates <- paste(
@@ -798,19 +807,36 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
                     local_id = e$local_id,
 
                     hashed_first_name = de_null(
-                        e$first_name$hashed_name,
+                        first_name$hashed_name,
                         NA_character_
                     ),
                     first_name_frequency = de_null(
-                        e$first_name$name_freq,
+                        first_name$name_freq,
                         NA_real_
                     ),
                     hashed_first_name_metaphone = de_null(
-                        e$first_name$hashed_metaphone,
+                        first_name$hashed_metaphone,
                         NA_character_
                     ),
                     first_name_metaphone_frequency = de_null(
-                        e$first_name$metaphone_freq,
+                        first_name$metaphone_freq,
+                        NA_real_
+                    ),
+
+                    hashed_second_name = de_null(
+                        second_name$hashed_name,
+                        NA_character_
+                    ),
+                    second_name_frequency = de_null(
+                        second_name$name_freq,
+                        NA_real_
+                    ),
+                    hashed_second_name_metaphone = de_null(
+                        second_name$hashed_metaphone,
+                        NA_character_
+                    ),
+                    second_name_metaphone_frequency = de_null(
+                        second_name$metaphone_freq,
                         NA_real_
                     ),
 
@@ -820,19 +846,19 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
                     middle_name_metaphone_frequencies = m_metaphone_freq,
 
                     hashed_surname = de_null(
-                        e$surname$hashed_name,
+                        first_surname$hashed_name,
                         NA_character_
                     ),
                     surname_frequency = de_null(
-                        e$surname$name_freq,
+                        first_surname$name_freq,
                         NA_real_
                     ),
                     hashed_surname_metaphone = de_null(
-                        e$surname$hashed_metaphone,
+                        first_surname$hashed_metaphone,
                         NA_character_
                     ),
                     surname_metaphone_frequency = de_null(
-                        e$surname$metaphone_freq,
+                        first_surname$metaphone_freq,
                         NA_real_
                     ),
 
