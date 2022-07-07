@@ -1206,9 +1206,9 @@ class BasicName(IdentifierFourState, ABC):
     KEY_FIRST_TWO_CHAR = "f2c"
 
     # Terse in the JSON, to save some space:
-    KEY_P_F_NAME_FREQ = "p_f"
-    KEY_P_P1NF_METAPHONE_NOT_NAME = "p_p1nf"
-    KEY_P_P2NP1_F2C_NOT_METAPHONE_OR_NAME = "p_p2np1"
+    KEY_P_F = "p_f"  # name frequency
+    KEY_P_P1NF = "p_p1nf"  # metaphone, not name
+    KEY_P_P2NP1 = "p_p2np1"  # F2C, not name or metaphone
 
     KEY_P_C = "p_c"
     KEY_P_EP1 = "p_ep1"
@@ -1249,9 +1249,9 @@ class BasicName(IdentifierFourState, ABC):
         self.f2c = get_first_two_char(self.name)
 
         # Population frequencies -- to be overridden
-        self.pf_pop_name_freq = None  # type: Optional[float]
-        self.p_p1nf_metaphone_not_name = None  # type: Optional[float]
-        self.p_p2np1_f2c_not_metaphone_or_name = None  # type: Optional[float]
+        self.p_f = None  # type: Optional[float]
+        self.p_p1nf = None  # type: Optional[float]
+        self.p_p2np1 = None  # type: Optional[float]
 
         # Error probabilities -- to be overridden
         self.p_c = None  # type: Optional[float]
@@ -1282,9 +1282,9 @@ class BasicName(IdentifierFourState, ABC):
         """
         Clear our population/error frequencies.
         """
-        self.pf_pop_name_freq = None
-        self.p_p1nf_metaphone_not_name = None
-        self.p_p2np1_f2c_not_metaphone_or_name = None
+        self.p_f = None
+        self.p_p1nf = None
+        self.p_p2np1 = None
 
         self.p_c = None
         self.p_ep1 = None
@@ -1300,34 +1300,29 @@ class BasicName(IdentifierFourState, ABC):
             p_en = 1 - self.p_c - self.p_ep1 - self.p_ep2np1
             assert 0 <= p_en <= 1, "Bad error probabilities for a BasicName"
 
-            p_n_pop_no_match = (
-                1
-                - self.pf_pop_name_freq
-                - self.p_p1nf_metaphone_not_name
-                - self.p_p2np1_f2c_not_metaphone_or_name
-            )
+            p_n = 1 - self.p_f - self.p_p1nf - self.p_p2np1
             assert (
-                0 <= p_n_pop_no_match <= 1
+                0 <= p_n <= 1
             ), "Bad population probabilities for a BasicName"
 
             self.comparison_full_match = DirectComparison(
                 p_d_given_same_person=self.p_c,
-                p_d_given_diff_person=self.pf_pop_name_freq,
+                p_d_given_diff_person=self.p_f,
                 d_description="name_full_match",
             )
             self.comparison_partial_match = DirectComparison(
                 p_d_given_same_person=self.p_ep1,
-                p_d_given_diff_person=self.p_p1nf_metaphone_not_name,
+                p_d_given_diff_person=self.p_p1nf,
                 d_description="name_partial_match_1_metaphone",
             )
             self.comparison_partial_match_second = DirectComparison(
                 p_d_given_same_person=self.p_ep2np1,
-                p_d_given_diff_person=self.p_p2np1_f2c_not_metaphone_or_name,
+                p_d_given_diff_person=self.p_p2np1,
                 d_description="name_partial_match_2_f2c",
             )
             self.comparison_no_match = DirectComparison(
                 p_d_given_same_person=p_en,
-                p_d_given_diff_person=p_n_pop_no_match,
+                p_d_given_diff_person=p_n,
                 d_description="name_no_match",
             )
         else:
@@ -1371,15 +1366,9 @@ class BasicName(IdentifierFourState, ABC):
         }
         self._write_dates_to_dict(d)
         if include_frequencies:
-            d[self.KEY_P_F_NAME_FREQ] = self._round(
-                self.pf_pop_name_freq, encrypt
-            )
-            d[self.KEY_P_P1NF_METAPHONE_NOT_NAME] = self._round(
-                self.p_p1nf_metaphone_not_name, encrypt
-            )
-            d[self.KEY_P_P2NP1_F2C_NOT_METAPHONE_OR_NAME] = self._round(
-                self.p_p2np1_f2c_not_metaphone_or_name, encrypt
-            )
+            d[self.KEY_P_F] = self._round(self.p_f, encrypt)
+            d[self.KEY_P_P1NF] = self._round(self.p_p1nf, encrypt)
+            d[self.KEY_P_P2NP1] = self._round(self.p_p2np1, encrypt)
             d[self.KEY_P_C] = self._round(self.p_c, encrypt)
             d[self.KEY_P_EP1] = self._round(self.p_ep1, encrypt)
             d[self.KEY_P_EP2NP1] = self._round(self.p_ep2np1, encrypt)
@@ -1400,13 +1389,9 @@ class BasicName(IdentifierFourState, ABC):
         self.metaphone = getdictval(d, self.KEY_METAPHONE, str)
         self.f2c = getdictval(d, self.KEY_FIRST_TWO_CHAR, str)
 
-        self.pf_pop_name_freq = getdictprob(d, self.KEY_P_F_NAME_FREQ)
-        self.p_p1nf_metaphone_not_name = getdictprob(
-            d, self.KEY_P_P1NF_METAPHONE_NOT_NAME
-        )
-        self.p_p2np1_f2c_not_metaphone_or_name = getdictprob(
-            d, self.KEY_P_P2NP1_F2C_NOT_METAPHONE_OR_NAME
-        )
+        self.p_f = getdictprob(d, self.KEY_P_F)
+        self.p_p1nf = getdictprob(d, self.KEY_P_P1NF)
+        self.p_p2np1 = getdictprob(d, self.KEY_P_P2NP1)
 
         self.p_c = getdictprob(d, self.KEY_P_C)
         self.p_ep1 = getdictprob(d, self.KEY_P_EP1)
@@ -1419,9 +1404,7 @@ class BasicName(IdentifierFourState, ABC):
 
     def ensure_has_freq_info_if_id_present(self) -> None:
         if self.name and (
-            self.pf_pop_name_freq is None
-            or self.p_p1nf_metaphone_not_name is None
-            or self.p_p2np1_f2c_not_metaphone_or_name is None
+            self.p_f is None or self.p_p1nf is None or self.p_p2np1 is None
         ):
             raise ValueError(
                 self.ERR_MISSING_FREQ + f" for name {self.name!r}"
@@ -1483,9 +1466,9 @@ class SurnameFragment(BasicName):
             f = cfg.get_surname_freq_info(self.name, prestandardized=True)
             g = self.gender
 
-            self.pf_pop_name_freq = f.p_name
-            self.p_p1nf_metaphone_not_name = f.p_metaphone_not_name
-            self.p_p2np1_f2c_not_metaphone_or_name = f.p_f2c_not_name_metaphone
+            self.p_f = f.p_name
+            self.p_p1nf = f.p_metaphone_not_name
+            self.p_p2np1 = f.p_f2c_not_name_metaphone
 
             self.p_c = cfg.p_c_surname[g]
             self.p_ep1 = cfg.p_ep1_surname[g]
@@ -1504,6 +1487,22 @@ class SurnameFragment(BasicName):
     @classmethod
     def from_plaintext_str(cls, cfg: MatchConfig, x: str) -> "SurnameFragment":
         raise AssertionError(cls.BAD_METHOD)
+
+    # -------------------------------------------------------------------------
+    # Sorting methods, to use the linter
+    # -------------------------------------------------------------------------
+
+    @staticmethod
+    def sort_exact_freq(x: "SurnameFragment") -> float:
+        return x.p_f
+
+    @staticmethod
+    def sort_partial_1_freq(x: "SurnameFragment") -> float:
+        return x.p_p1nf
+
+    @staticmethod
+    def sort_partial_2_freq(x: "SurnameFragment") -> float:
+        return x.p_p2np1
 
 
 # =============================================================================
@@ -1550,7 +1549,8 @@ class Surname(Identifier):
             start_date=start_date,
             end_date=end_date,
         )
-        self.raw_surname = name
+        self.raw_surname = name.strip()  # but retain case, internal spaces
+        # ... because "case" is complex for UTF8 characters.
 
         # There is some duplication here for speed and to cope with the
         # difference between identifiable and hashed versions. We want a set
@@ -1717,7 +1717,7 @@ class Surname(Identifier):
             possibilities = [
                 f for f in self.fragments if f.name in overlap_exact
             ]  # type: List[SurnameFragment]
-            possibilities.sort(key=lambda f: f.pf_pop_name_freq)
+            possibilities.sort(key=SurnameFragment.sort_exact_freq)
             # Sorted in ascending order, so first (lowest frequency) is best.
             return possibilities[0].comparison_full_match
 
@@ -1729,7 +1729,7 @@ class Surname(Identifier):
             possibilities = [
                 f for f in self.fragments if f.metaphone in overlap_partial_1
             ]  # type: List[SurnameFragment]
-            possibilities.sort(key=lambda f: f.p_p1nf_metaphone_not_name)
+            possibilities.sort(key=SurnameFragment.sort_partial_1_freq)
             # Sorted in ascending order, so first (lowest frequency) is best.
             return possibilities[0].comparison_partial_match
 
@@ -1741,9 +1741,7 @@ class Surname(Identifier):
             possibilities = [
                 f for f in self.fragments if f.f2c in overlap_partial_2
             ]  # type: List[SurnameFragment]
-            possibilities.sort(
-                key=lambda f: f.p_p2np1_f2c_not_metaphone_or_name
-            )
+            possibilities.sort(key=SurnameFragment.sort_partial_2_freq)
             # Sorted in ascending order, so first (lowest frequency) is best.
             return possibilities[0].comparison_partial_match_second
 
@@ -1785,9 +1783,9 @@ class Forename(BasicName):
             g = self.gender
             f = cfg.get_forename_freq_info(self.name, g, prestandardized=True)
 
-            self.pf_pop_name_freq = f.p_name
-            self.p_p1nf_metaphone_not_name = f.p_metaphone_not_name
-            self.p_p2np1_f2c_not_metaphone_or_name = f.p_f2c_not_name_metaphone
+            self.p_f = f.p_name
+            self.p_p1nf = f.p_metaphone_not_name
+            self.p_p2np1 = f.p_f2c_not_name_metaphone
 
             self.p_c = cfg.p_c_forename[g]
             self.p_ep1 = cfg.p_ep1_forename[g]
@@ -1829,12 +1827,16 @@ class PerfectID(IdentifierTwoState):
     """
 
     def __init__(
-        self, cfg: MatchConfig, identifiers: Dict[str, str] = None
+        self, cfg: MatchConfig, identifiers: Dict[str, Any] = None
     ) -> None:
+        """
+        The identifier values will be converted to strings, if they aren't
+        already.
+        """
         super().__init__(cfg=cfg, is_plaintext=True, temporal=False)
         self.comparison_full_match = CertainComparison()
 
-        self.identifiers = {}
+        self.identifiers = {}  # type: Dict[str, str]
         self.key_set = set()  # type: Set[str]
         if identifiers:
             self._set_identifiers(identifiers)
@@ -1880,7 +1882,7 @@ class PerfectID(IdentifierTwoState):
             # Was already hashed, or staying plaintext
             return self.identifiers
         hash_fn = self.cfg.hash_fn
-        return {k: hash_fn(v) for k, v in self.identifiers}
+        return {k: hash_fn(v) for k, v in self.identifiers.items()}
 
     def __bool__(self) -> bool:
         return bool(self.identifiers)
@@ -2088,7 +2090,7 @@ an unordered match. A simple way is as follows.
   and if no match,
 
   - P(D | H) = p_e
-  - p(D | ¬H) = 1 - [P(random unordered match) - P(random unordered match)]
+  - P(D | ¬H) = 1 - [P(random unordered match) - P(random unordered match)]
 
 - Then, to superimpose that on identifier comparisons that are themselves
   fuzzy, we note that much of those (e.g. p_e) are already dealt with. So
@@ -2109,8 +2111,7 @@ class ComparisonInfo:
     candidate_idx: int
     comparison: Comparison
     log_likelihood_ratio: float
-    # log_likelihood_ratio duplicates comparison.log_likelihood_ratio, but
-    # saves lookup cost
+    # ... duplicates comparison.log_likelihood_ratio, but saves lookup cost
 
 
 def gen_best_comparisons(
@@ -2134,12 +2135,13 @@ def gen_best_comparisons(
         ordered:
             Treat the comparison as an ordered one?
         p_u:
-            (Applicable if ordered is True.) 1 - p_o, where p_o is the
-            probability, given that c > 1 identifiers are being compared, that
-            if the hypothesis H (proband and candidate are the same person) is
-            true, the candidate identifiers will be in exactly the right order
-            (that is, the candidate's first c identifiers match the proband's
-            first c identifiers).
+            (Applicable if ordered is True.) The probability of being
+            "unordered", and the complement of p_o, where p_o is the
+            probability, given the hypothesis H (proband and candidate are the
+            same person) and that c > 1 identifiers are being compared, that
+            the candidate identifiers will be in exactly the right order (that
+            is, for all matches, the index of the candidate's identifier is the
+            same as the index of the proband's identifier).
     """
     # Compare all pairs.
     ci_list = []  # type: List[ComparisonInfo]
@@ -2195,8 +2197,8 @@ def gen_best_comparisons(
     # Any corrections required.
     if ordered:
         # Ordered comparison requested.
-        # Only applicable if the number of "positive" comparisons is >1.
-        p_o = 1 - p_u
+        # Action only required if there is an ordering to be considered.
+        p_o = 1 - p_u  # ordered, unordered
         if n_positive > 0 and n_candidates > 1:
             # There was a "hit", and there was a choice of candidate
             # identifiers, so there is an order to think about. ASSUMING unique

@@ -53,6 +53,7 @@ from crate_anon.linkage.identifiers import (
     Forename,
     Gender,
     Identifier,
+    PerfectID,
     Postcode,
     Surname,
     SurnameFragment,
@@ -832,12 +833,13 @@ class FuzzyLinkageTests(unittest.TestCase):
         """
         cfg = self.cfg
         identifiable = [
-            Postcode(cfg, postcode="CB2 0QQ"),
             DateOfBirth(cfg, dob="2000-12-31"),
-            Gender(cfg, gender=GENDER_MALE),
             Forename(cfg, name="Elizabeth", gender=GENDER_FEMALE),
-            SurnameFragment(cfg, name="Smith", gender=GENDER_MALE),
+            Gender(cfg, gender=GENDER_MALE),
+            PerfectID(cfg, identifiers={"nhsnum": 1}),
+            Postcode(cfg, postcode="CB2 0QQ"),
             Surname(cfg, name="Smith", gender=GENDER_FEMALE),
+            SurnameFragment(cfg, name="Smith", gender=GENDER_MALE),
         ]  # type: List[Identifier]
         for i in identifiable:
             self.assertTrue(i.is_plaintext)
@@ -856,6 +858,26 @@ class FuzzyLinkageTests(unittest.TestCase):
     # -------------------------------------------------------------------------
     # Person checks
     # -------------------------------------------------------------------------
+
+    def test_person_creation(self) -> None:
+        cfg = self.cfg
+        # Test the removal of blank names, etc.
+        space = " "
+        blank = ""
+        p1 = Person(
+            cfg, local_id="p1", forenames=["A", blank, space, None, "B"]
+        )
+        self.assertEqual(len(p1.forenames), 2)
+        p2 = Person(
+            cfg, local_id="p2", surnames=["A", blank, space, None, "B"]
+        )
+        self.assertEqual(len(p2.surnames), 2)
+        p3 = Person(
+            cfg,
+            local_id="p3",
+            postcodes=[GOOD_POSTCODES[0], blank, space, GOOD_POSTCODES[1]],
+        )
+        self.assertEqual(len(p3.postcodes), 2)
 
     def test_person_equality(self) -> None:
         cfg = self.cfg
