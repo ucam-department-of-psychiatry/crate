@@ -788,12 +788,13 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
         lapply(RJSONIO::fromJSON, simplify = FALSE) %>%
         lapply(
             function(e) {
+                print(e)
                 forenames <- e$forenames
                 n_forenames <- length(forenames)
                 # These are all hashed/de-identified; don't worry about the
                 # naming.
                 if (n_forenames >= 1) {
-                    f <- forenames[1]
+                    f <- forenames[[1]]
                     first_name_name <- de_null(f$name, NA_character_)
                     first_name_metaphone <- de_null(f$metaphone, NA_character_)
                     first_name_f2c <- de_null(f$f2c, NA_character_)
@@ -809,7 +810,7 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
                     first_name_p_p2np1 <- NA_real_
                 }
                 if (n_forenames >= 2) {
-                    m <- forenames[2]
+                    m <- forenames[[2]]
                     second_forename_name <- de_null(m$name, NA_character_)
                     second_forename_metaphone <- de_null(m$metaphone, NA_character_)
                     second_forename_f2c <- de_null(m$f2c, NA_character_)
@@ -859,10 +860,11 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
                     other_middle_names_p_p2np1 <- NA_character_
                 }
 
+                # Surnames have fragments. The first fragment is the full name.
                 surnames <- e$surnames
                 n_surnames <- length(surnames)
                 if (n_surnames >= 1) {
-                    s <- surnames[1]
+                    s <- surnames[[1]]$fragments[[1]]
                     surname_name <- de_null(s$name, NA_character_)
                     surname_metaphone <- de_null(s$metaphone, NA_character_)
                     surname_f2c <- de_null(s$f2c, NA_character_)
@@ -881,27 +883,27 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
                 if (n_surnames >= 2) {
                     os <- tail(n_surnames, -1)
                     other_surname_names <-  paste(
-                        lapply(os, function(p) p$name),
+                        lapply(os, function(p) p$fragments[[1]]$name),
                         collapse = sep
                     )
                     other_surname_metaphones <- paste(
-                        lapply(os, function(p) p$metaphone),
+                        lapply(os, function(p) p$fragments[[1]]$metaphone),
                         collapse = sep
                     )
                     other_surname_f2c <- paste(
-                        lapply(os, function(p) p$f2c),
+                        lapply(os, function(p) p$fragments[[1]]$f2c),
                         collapse = sep
                     )
                     other_surname_p_f <- paste(
-                        lapply(os, function(p) p$p_f),
+                        lapply(os, function(p) p$fragments[[1]]$p_f),
                         collapse = sep
                     )
                     other_surname_p_p1nf <- paste(
-                        lapply(os, function(p) p$p_p1nf),
+                        lapply(os, function(p) p$fragments[[1]]$p_p1nf),
                         collapse = sep
                     )
                     other_surname_p_p2np1 <- paste(
-                        lapply(os, function(p) p$p_p1nf),
+                        lapply(os, function(p) p$fragments[[1]]$p_p1nf),
                         collapse = sep
                     )
                 } else {
@@ -993,7 +995,8 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
                     dob_yd = e$dob$dob_yd,
                     dob_ym = e$dob$dob_ym,
 
-                    gender = de_null(e$gender$gender, NA_character_),
+                    gender_hashed = de_null(e$gender$gender, NA_character_),
+                    # NB otherwise name conflict with "true" version below
                     gender_freq = de_null(e$gender$gender_freq, NA_real_),
 
                     postcode_units = postcode_units,
@@ -2428,6 +2431,31 @@ empirical_discrepancy_rates <- function(people_data_1, people_data_2, gender = N
                 & first_name_f2c_db1 != first_name_f2c_db2
             ),
 
+            firstname_secondforename_n_present_not_identical = sum(
+                # Both first and second forenames present:
+                !is.na(first_name_name_db1) & !is.na(first_name_name_db2)
+                & !is.na(second_forename_name_db1) & !is.na(second_forename_name_db2)
+                # Neither is called e.g. Alice Alice (since we want this as
+                # the denominator for transposition):
+                & first_name_name_db1 != second_forename_name_db1
+                & first_name_name_db2 != second_forename_name_db2
+            ),
+            firstname_secondforename_n_transposed = sum(
+                # Both have a first and second forename:
+                !is.na(first_name_name_db1) & !is.na(first_name_name_db2)
+                & !is.na(second_forename_name_db1) & !is.na(second_forename_name_db2)
+                # Neither is called e.g. Alice Alice (since we want this as
+                # the denominator for transposition) -- redundant check here
+                & first_name_name_db1 != second_forename_name_db1
+                & first_name_name_db2 != second_forename_name_db2
+                # 1/1 and 2/2 matches fail:
+                & first_name_name_db1 != first_name_name_db2
+                & second_forename_name_db1 != second_forename_name_db2
+                # 1/2 and 2/1 matches pass:
+                & first_name_name_db1 == second_forename_name_db2
+                & second_forename_name_db1 == first_name_name_db2
+            ),
+
             surname_n_present = sum(
                 !is.na(surname_name_db1) & !is.na(surname_name_db2)
             ),
@@ -2487,6 +2515,9 @@ empirical_discrepancy_rates <- function(people_data_1, people_data_2, gender = N
             first_name_f_p1nf_match = first_name_n_p1nf_match / first_name_n_present,
             first_name_n_p2np1_match = first_name_n_p2np1_match / first_name_n_present,
             first_name_f_no_match = first_name_n_no_match / first_name_n_present,
+
+            first_second_forename_transposed = firstname_secondforename_n_transposed
+                / firstname_secondforename_n_present_not_identical,
 
             surname_f_full_match = surname_n_full_match / surname_n_present,
             surname_n_p1nf_match = surname_n_p1nf_match / surname_n_present,
@@ -2614,18 +2645,21 @@ main <- function()
         comparison = get(mk_comparison_var(RIO, PCMIS))
     )
 
-    write_output(
-        mean(people_systmone$first_name_frequency)
-    )  # 0.003866141
-    write_output(
-        mean(people_systmone$first_name_metaphone_frequency)
-    )  # 0.006856901
-    write_output(
-        mean(people_systmone$surname_frequency, na.rm = TRUE)
-    )  # 0.000548923
-    write_output(
-        mean(people_systmone$surname_metaphone_frequency, na.rm = TRUE)
-    )  # 0.001779113
+    if (FALSE) {
+        # superseded analyses
+        write_output(
+            mean(people_systmone$first_name_frequency)
+        )  # 0.003866141
+        write_output(
+            mean(people_systmone$first_name_metaphone_frequency)
+        )  # 0.006856901
+        write_output(
+            mean(people_systmone$surname_frequency, na.rm = TRUE)
+        )  # 0.000548923
+        write_output(
+            mean(people_systmone$surname_metaphone_frequency, na.rm = TRUE)
+        )  # 0.001779113
+    }
 
     write_output(paste("Finished:", Sys.time()))
 }
