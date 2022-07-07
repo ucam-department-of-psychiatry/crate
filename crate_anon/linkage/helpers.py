@@ -317,6 +317,9 @@ def _gen_name_versions(
     versions thereof. We assume that either nothing happens, mangling
     happens, or transliteration happens, but not some nasty combination.
     """
+    x = x.strip()
+    if not x:
+        return
     # The string:
     yield x
     # Mangled, e.g. Ü to U:
@@ -369,6 +372,9 @@ def surname_alternative_fragments(
     fragments.update(_gen_name_versions(surname, accent_transliterations))
     # Components:
     for fragment in NONWORD_REGEX.split(surname):
+        fragment = fragment.strip()  # shouldn't be necessary, but check
+        if not fragment:  # skip any blank elements
+            continue
         if fragment in nonspecific_name_components:
             continue
         fragments.update(_gen_name_versions(fragment, accent_transliterations))
