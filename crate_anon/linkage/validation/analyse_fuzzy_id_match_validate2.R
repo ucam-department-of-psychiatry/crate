@@ -788,7 +788,6 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
         lapply(RJSONIO::fromJSON, simplify = FALSE) %>%
         lapply(
             function(e) {
-                print(e)
                 forenames <- e$forenames
                 n_forenames <- length(forenames)
                 # These are all hashed/de-identified; don't worry about the
