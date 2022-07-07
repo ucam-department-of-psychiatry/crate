@@ -9,7 +9,7 @@
 For the main CPFT validation suite.
 During testing:
 
-source("C:/srv/crate/src/crate/crate_anon/linkage/analyse_fuzzy_id_match_validate2.R")
+    source("C:/srv/crate/src/crate/crate_anon/linkage/analyse_fuzzy_id_match_validate2.R")
 
 or Ctrl-Shift-S to source from RStudio.
 
@@ -64,6 +64,7 @@ debugfunc$wideScreen()
 # Governing constants
 # =============================================================================
 
+# Maximum number of rows to read from each file.
 ROW_LIMIT <- -1
 # -1 (not Inf) for no limit; positive finite for debugging This works both with
 # readLines and data.table::fread, but readLines doesn't accept Inf.
@@ -75,15 +76,17 @@ ROW_LIMIT <- -1
 # But maybe it's a little crazy to explore thresholds so high that you would
 # always reject everything.
 
+# Values for the theta parameter to explore: minimum standalone log odds for a
+# match.
 THETA_OPTIONS <- seq(0, 15, by = 1)
 # THETA_OPTIONS <- c(0, 5, 10)  # for debugging
 
-# Delta: log odds advantage over the next.
+# Values for the delta parameter to explore: log odds advantage over the next.
 # Again, 0 would be no advantage.
-
 DELTA_OPTIONS <- seq(0, 15, by = 2.5)
 # DELTA_OPTIONS <- 10  # for debugging
 
+# Default values for theta and delta.
 DEFAULT_THETA <- 5  # see crate_anon.linkage.fuzzy_id_match.FuzzyDefaults
 DEFAULT_DELTA <- 10  # ditto
 
@@ -92,20 +95,14 @@ DEFAULT_DELTA <- 10  # ditto
 # Database constants
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# Labels
+# -----------------------------------------------------------------------------
+
 CDL <- "cdl"
 PCMIS <- "pcmis"
 RIO <- "rio"
 SYSTMONE <- "systmone"
-
-ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
-# ALL_DATABASES <- CDL  # for debugging
-
-FROM_DATABASES <- ALL_DATABASES
-# FROM_DATABASES <- CDL  # for debugging
-
-TO_DATABASES <- ALL_DATABASES
-# TO_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
-# TO_DATABASES <- CDL  # for debugging
 
 DATABASE_LABEL_MAP <- c(
     cdl = "CDL",
@@ -113,6 +110,26 @@ DATABASE_LABEL_MAP <- c(
     rio = "RiO",
     systmone = "SystmOne"
 )
+
+# -----------------------------------------------------------------------------
+# Loading
+# -----------------------------------------------------------------------------
+
+ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
+# ALL_DATABASES <- CDL  # for debugging
+
+# -----------------------------------------------------------------------------
+# Comparing
+# -----------------------------------------------------------------------------
+
+# FROM_DATABASES <- ALL_DATABASES
+# FROM_DATABASES <- CDL  # for debugging
+FROM_DATABASES <- RIO  # for debugging
+
+# TO_DATABASES <- ALL_DATABASES
+# TO_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
+# TO_DATABASES <- CDL  # for debugging
+TO_DATABASES <- SYSTMONE  # for debugging
 
 
 # =============================================================================
@@ -149,7 +166,7 @@ get_comparison_cache_filename <- function(db1, db2)
 
 
 # =============================================================================
-# Variable names
+# Variable names, in the global environment
 # =============================================================================
 
 mk_people_var <- function(db)
@@ -243,6 +260,8 @@ LABEL_SIZE <- 2
 
 all_unique <- function(x)
 {
+    # Are all the values in x distinct (unique)?
+
     # return(length(x) == length(unique(x)))
     return(!any(duplicated(x)))
 }
@@ -250,6 +269,9 @@ all_unique <- function(x)
 
 part_of_duplicated_group <- function(x)
 {
+    # For every value of x, return TRUE/FALSE according to whether the is
+    # duplicated within x.
+    #
     # If you count based on duplicated(), you count the "extras"; for example,
     # for
     #       x <- c(1, 1, 1, 2, 3, 4)
@@ -258,7 +280,10 @@ part_of_duplicated_group <- function(x)
     # is 2 (the second and third items are the duplicates). But for "the number
     # of records with a duplicated NHS number" we would want 3 here. Hence this
     # function which returns a boolean vector, like duplicated(), but includes
-    # the first item.
+    # the first item. So
+    #       part_of_duplicated_group(x)
+    # returns
+    #       [1]  TRUE  TRUE  TRUE FALSE FALSE FALSE
 
     duplicates <- unique(x[duplicated(x)])
     return(x %in% duplicates)
@@ -267,12 +292,20 @@ part_of_duplicated_group <- function(x)
 
 n_with_duplicates <- function(x)
 {
+    # Return the number of values with x that are duplicated (including the
+    # first such value of each duplicated set, which is not standard R
+    # behaviour; see above).
+
     return(sum(part_of_duplicated_group(x)))
 }
 
 
 n_unique_duplicates <- function(x)
 {
+    # Returns the number of unique values that are duplicated within x.
+    # For example, if x is c(1, 1, 1, 2, 3, 4), this is 1.
+    # If x is c(1, 1, 2, 2, 3, 3, 4), this is 3 (three values are duplicated).
+
     duplicates <- unique(x[duplicated(x)])
     return(length(duplicates))
 }
@@ -280,6 +313,8 @@ n_unique_duplicates <- function(x)
 
 write_output <- function(x, append = TRUE, filename = OUTPUT_FILE, width = 1000)
 {
+    # Write an R object to a results file.
+
     # 1. Output to file
     old_width <- getOption("width")
     options(width = width)
@@ -299,6 +334,8 @@ write_output <- function(x, append = TRUE, filename = OUTPUT_FILE, width = 1000)
 
 format_sig_fig <- function(x, sf = 3)
 {
+    # Format a number to a certain number of significant figures.
+
     formatC(signif(x, digits = sf), digits = sf, format = "fg", flag = "#")
 }
 
@@ -310,7 +347,8 @@ format_sig_fig <- function(x, sf = 3)
 simplified_ethnicity <- function(ethnicity)
 {
     # We have to deal with ethnicity text from lots of different clinical
-    # record systems.
+    # record systems. This function maps many different versions to a small
+    # standardized subset, following a UK standard.
     #
     # - Categories as per:
     #   https://www.ethnicity-facts-figures.service.gov.uk/ethnicity-in-the-uk/ethnic-groups-by-age
@@ -678,6 +716,9 @@ simplified_ethnicity <- function(ethnicity)
 
 imd_centile_100_most_deprived <- function(index_of_multiple_deprivation)
 {
+    # Returns the index of multiple deprivation (IMD) centile, from 0 least
+    # deprived to 100 most deprived.
+    #
     # index_of_multiple_deprivation: the England IMD, from  1 = Tendring, North
     # East Essex, most deprived in England, through (in CPFT's area) 10 =
     # Waveney, Suffolk, through ~14000 for Kensington & Chelsea via 32785
@@ -710,20 +751,26 @@ imd_centile_100_most_deprived <- function(index_of_multiple_deprivation)
 
 load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
 {
+    # Load a (hashed) file of people, extracted from a single database. Include
+    # the special "other_info" validation information (not normally used).
+
     cat(paste0("- Loading from: ", filename, "\n"))
     # Read from JSON lines
     # https://stackoverflow.com/questions/31599299/expanding-a-json-column-in-r
     # https://stackoverflow.com/questions/55120019/how-to-read-a-json-file-line-by-line-in-r
-    de_null <- function(x, na_value) {
-        # RJSONIO::fromJSON("{'a': null}") produces NULL. rbindlist() later
-        # complains, so let's convert NULL to NA explicitly.
-        # Likewise empty strings.
+    de_null <- function(x, na_value = NA) {
+        # - RJSONIO::fromJSON("{'a': null}") produces NULL. rbindlist() later
+        #   complains, so let's convert NULL to NA explicitly.
+        # - Likewise let's convert empty strings to NA.
+        # - And likewise numeric(0), which is what you get from e.g.
+        #   tail(c(1, 2, 3), -4).
+        # - RJSONIO::fromJSON("{'a': [1, 2, 3]}")$a[4] produces NA too.
         return(
             ifelse(
                 is.null(x),
                 na_value,
                 ifelse(
-                    is.na(x) | x == "",
+                    is.na(x) | x == "" | identical(x, numeric(0)),
                     na_value,
                     x
                 )
@@ -735,6 +782,7 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
         # is.null(c(NULL, 5)) gives FALSE, not c(TRUE, FALSE)
     }
     sep <- ";"
+    empty_str <- ""
     d <- (
         readLines(filename, n = nrows) %>%
         lapply(RJSONIO::fromJSON, simplify = FALSE) %>%
@@ -742,64 +790,162 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
             function(e) {
                 forenames <- e$forenames
                 n_forenames <- length(forenames)
-                first_name <- forenames[1]
-                second_name <- forenames[2]
-                *** working here
-
-                other_middle_names <- tail(forenames, -2)
-                other_m_names <- paste(
-                    lapply(other_middle_names, function(p) p$hashed_name),
-                    collapse = sep
-                )
-                other_m_name_freq <- paste(
-                    lapply(other_middle_names, function(p) p$name_freq),
-                    collapse = sep
-                )
-                other_m_metaphones <- paste(
-                    lapply(other_middle_names, function(p) p$hashed_metaphone),
-                    collapse = sep
-                )
-                other_m_metaphone_freq <- paste(
-                    lapply(other_middle_names, function(p) p$metaphone_freq),
-                    collapse = sep
-                )
+                # These are all hashed/de-identified; don't worry about the
+                # naming.
+                if (n_forenames >= 1) {
+                    f <- forenames[1]
+                    first_name_name <- de_null(f$name, NA_character_)
+                    first_name_metaphone <- de_null(f$metaphone, NA_character_)
+                    first_name_f2c <- de_null(f$f2c, NA_character_)
+                    first_name_p_f <- de_null(f$p_f, NA_real_)
+                    first_name_p_p1nf <- de_null(f$p_p1nf, NA_real_)
+                    first_name_p_p2np1 <- de_null(f$p_p2np1, NA_real_)
+                } else {
+                    first_name_name <- NA_character_
+                    first_name_metaphone <- NA_character_
+                    first_name_f2c <- NA_character_
+                    first_name_p_f <- NA_real_
+                    first_name_p_p1nf <- NA_real_
+                    first_name_p_p2np1 <- NA_real_
+                }
+                if (n_forenames >= 2) {
+                    m <- forenames[2]
+                    second_forename_name <- de_null(m$name, NA_character_)
+                    second_forename_metaphone <- de_null(m$metaphone, NA_character_)
+                    second_forename_f2c <- de_null(m$f2c, NA_character_)
+                    second_forename_p_f <- de_null(m$p_f, NA_real_)
+                    second_forename_p_p1nf <- de_null(m$p_p1nf, NA_real_)
+                    second_forename_p_p2np1 <- de_null(m$p_p2np1, NA_real_)
+                } else {
+                    second_forename_name <- NA_character_
+                    second_forename_metaphone <- NA_character_
+                    second_forename_f2c <- NA_character_
+                    second_forename_p_f <- NA_real_
+                    second_forename_p_p1nf <- NA_real_
+                    second_forename_p_p2np1 <- NA_real_
+                }
+                if (n_forenames >= 3) {
+                    om <- tail(forenames, -2)
+                    other_middle_names_names <- paste(
+                        lapply(om, function(p) p$name),
+                        collapse = sep
+                    )
+                    other_middle_names_metaphones <- paste(
+                        lapply(om, function(p) p$metaphone),
+                        collapse = sep
+                    )
+                    other_middle_names_f2c <- paste(
+                        lapply(om, function(p) p$f2c),
+                        collapse = sep
+                    )
+                    other_middle_names_p_f <- paste(
+                        lapply(om, function(p) p$p_f),
+                        collapse = sep
+                    )
+                    other_middle_names_p_p1nf <- paste(
+                        lapply(om, function(p) p$p_p1nf),
+                        collapse = sep
+                    )
+                    other_middle_names_p_p2np1 <- paste(
+                        lapply(om, function(p) p$p_p2np1),
+                        collapse = sep
+                    )
+                } else {
+                    other_middle_names_names <- NA_character_
+                    other_middle_names_metaphones <- NA_character_
+                    other_middle_names_f2c <- NA_character_
+                    other_middle_names_p_f <- NA_character_
+                    other_middle_names_p_p1nf <- NA_character_
+                    other_middle_names_p_p2np1 <- NA_character_
+                }
 
                 surnames <- e$surnames
-                first_surname <- surnames[1]
+                n_surnames <- length(surnames)
+                if (n_surnames >= 1) {
+                    s <- surnames[1]
+                    surname_name <- de_null(s$name, NA_character_)
+                    surname_metaphone <- de_null(s$metaphone, NA_character_)
+                    surname_f2c <- de_null(s$f2c, NA_character_)
+                    surname_p_f <- de_null(s$p_f, NA_real_)
+                    surname_p_p1nf <- de_null(s$p_p1nf, NA_real_)
+                    surname_p_p2np1 <- de_null(s$p_p2np1, NA_real_)
+                } else {
+                    surname_name <- NA_character_
+                    surname_metaphone <- NA_character_
+                    surname_f2c <- NA_character_
+                    surname_p_f <- NA_real_
+                    surname_p_p1nf <- NA_real_
+                    surname_p_p2np1 <- NA_real_
+                }
+
+                if (n_surnames >= 2) {
+                    os <- tail(n_surnames, -1)
+                    other_surname_names <-  paste(
+                        lapply(os, function(p) p$name),
+                        collapse = sep
+                    )
+                    other_surname_metaphones <- paste(
+                        lapply(os, function(p) p$metaphone),
+                        collapse = sep
+                    )
+                    other_surname_f2c <- paste(
+                        lapply(os, function(p) p$f2c),
+                        collapse = sep
+                    )
+                    other_surname_p_f <- paste(
+                        lapply(os, function(p) p$p_f),
+                        collapse = sep
+                    )
+                    other_surname_p_p1nf <- paste(
+                        lapply(os, function(p) p$p_p1nf),
+                        collapse = sep
+                    )
+                    other_surname_p_p2np1 <- paste(
+                        lapply(os, function(p) p$p_p1nf),
+                        collapse = sep
+                    )
+                } else {
+                    other_surname_names <- NA_character_
+                    other_surname_metaphones <- NA_character_
+                    other_surname_f2c <- NA_character_
+                    other_surname_p_f <- NA_real_
+                    other_surname_p_p1nf <- NA_real_
+                    other_surname_p_p2np1 <- NA_real_
+                }
 
                 postcodes <- e$postcodes
-                p_start_dates <- paste(
-                    lapply(
-                        postcodes,
-                        function(p) de_null(p$start_date, "")
-                    ),
+                postcode_units <- paste(
+                    lapply(postcodes, function(p) p$postcode_unit),
                     collapse = sep
                 )
-                p_end_dates <- paste(
-                    lapply(
-                        postcodes,
-                        function(p) de_null(p$end_date, "")
-                    ),
-                    collapse = sep
-                )
-                p_units <- paste(
-                    lapply(postcodes, function(p) p$hashed_postcode_unit),
-                    collapse = sep
-                )
-                p_unit_freq <- paste(
+                postcode_unit_freq <- paste(
                     lapply(postcodes, function(p) p$unit_freq),
                     collapse = sep
                 )
-                p_sectors <- paste(
-                    lapply(postcodes, function(p) p$hashed_postcode_sector),
+                postcode_sectors <- paste(
+                    lapply(postcodes, function(p) p$postcode_sector),
                     collapse = sep
                 )
-                p_sector_freq <- paste(
+                postcode_sector_freq <- paste(
                     lapply(postcodes, function(p) p$sector_freq),
                     collapse = sep
                 )
+                postcode_start_dates <- paste(
+                    lapply(
+                        postcodes,
+                        function(p) de_null(p$start_date, empty_str)
+                    ),
+                    collapse = sep
+                )
+                postcode_end_dates <- paste(
+                    lapply(
+                        postcodes,
+                        function(p) de_null(p$end_date, empty_str)
+                    ),
+                    collapse = sep
+                )
 
-                other_info <- fromJSON(e$other_info, simplify = FALSE)
+                other_info <- RJSONIO::fromJSON(e$other_info, simplify = FALSE)
 
                 return(list(
                     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -807,118 +953,71 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
                     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     local_id = e$local_id,
 
-                    hashed_first_name = de_null(
-                        first_name$hashed_name,
-                        NA_character_
-                    ),
-                    first_name_frequency = de_null(
-                        first_name$name_freq,
-                        NA_real_
-                    ),
-                    hashed_first_name_metaphone = de_null(
-                        first_name$hashed_metaphone,
-                        NA_character_
-                    ),
-                    first_name_metaphone_frequency = de_null(
-                        first_name$metaphone_freq,
-                        NA_real_
-                    ),
+                    first_name_name = first_name_name,
+                    first_name_metaphone = first_name_metaphone,
+                    first_name_f2c = first_name_f2c,
+                    first_name_p_f = first_name_p_f,
+                    first_name_p_p1nf = first_name_p_p1nf,
+                    first_name_p_p2np1 = first_name_p_p2np1,
 
-                    hashed_second_name = de_null(
-                        second_name$hashed_name,
-                        NA_character_
-                    ),
-                    second_name_frequency = de_null(
-                        second_name$name_freq,
-                        NA_real_
-                    ),
-                    hashed_second_name_metaphone = de_null(
-                        second_name$hashed_metaphone,
-                        NA_character_
-                    ),
-                    second_name_metaphone_frequency = de_null(
-                        second_name$metaphone_freq,
-                        NA_real_
-                    ),
+                    second_forename_name = second_forename_name,
+                    second_forename_metaphone = second_forename_metaphone,
+                    second_forename_f2c = second_forename_f2c,
+                    second_forename_p_f = second_forename_p_f,
+                    second_forename_p_p1nf = second_forename_p_p1nf,
+                    second_forename_p_p2np1 = second_forename_p_p2np1,
 
-                    hashed_middle_names = m_names,
-                    middle_name_frequencies = m_name_freq,
-                    hashed_middle_name_metaphones = m_metaphones,
-                    middle_name_metaphone_frequencies = m_metaphone_freq,
+                    other_middle_names_names = other_middle_names_names,
+                    other_middle_names_metaphones = other_middle_names_metaphones,
+                    other_middle_names_f2c = other_middle_names_f2c,
+                    other_middle_names_p_f = other_middle_names_p_f,
+                    other_middle_names_p_p1nf = other_middle_names_p_p1nf,
+                    other_middle_names_p_p2np1 = other_middle_names_p_p2np1,
 
-                    hashed_surname = de_null(
-                        first_surname$hashed_name,
-                        NA_character_
-                    ),
-                    surname_frequency = de_null(
-                        first_surname$name_freq,
-                        NA_real_
-                    ),
-                    hashed_surname_metaphone = de_null(
-                        first_surname$hashed_metaphone,
-                        NA_character_
-                    ),
-                    surname_metaphone_frequency = de_null(
-                        first_surname$metaphone_freq,
-                        NA_real_
-                    ),
+                    surname_name = surname_name,
+                    surname_metaphone = surname_metaphone,
+                    surname_f2c = surname_f2c,
+                    surname_p_f = surname_p_f,
+                    surname_p_p1nf = surname_p_p1nf,
+                    surname_p_p2np1 = surname_p_p2np1,
 
-                    hashed_dob = e$dob$hashed_dob,
-                    hashed_dob_md = e$dob$hashed_dob_md,
-                    hashed_dob_yd = e$dob$hashed_dob_yd,
-                    hashed_dob_ym = e$dob$hashed_dob_ym,
+                    other_surname_names = other_surname_names,
+                    other_surname_metaphones = other_surname_metaphones,
+                    other_surname_f2c = other_surname_f2c,
+                    other_surname_p_f = other_surname_p_f,
+                    other_surname_p_p1nf = other_surname_p_p1nf,
+                    other_surname_p_p2np1 = other_surname_p_p2np1,
 
-                    hashed_gender = de_null(
-                        e$gender$hashed_gender,
-                        NA_character_
-                    ),
-                    gender_frequency = de_null(
-                        e$gender$gender_freq,
-                        NA_real_
-                    ),
+                    dob = e$dob$dob,
+                    dob_md = e$dob$dob_md,
+                    dob_yd = e$dob$dob_yd,
+                    dob_ym = e$dob$dob_ym,
 
-                    hashed_postcode_units = p_units,
-                    postcode_unit_frequencies = p_unit_freq,
-                    hashed_postcode_sectors = p_sectors,
-                    postcode_sector_frequencies = p_sector_freq,
-                    postcode_start_dates = p_start_dates,
-                    postcode_end_dates = p_end_dates,
+                    gender = de_null(e$gender$gender, NA_character_),
+                    gender_freq = de_null(e$gender$gender_freq, NA_real_),
+
+                    postcode_units = postcode_units,
+                    postcode_unit_freq = postcode_unit_freq,
+                    postcode_sectors = postcode_sectors,
+                    postcode_sector_freq = postcode_sector_freq,
+                    postcode_start_dates = postcode_start_dates,
+                    postcode_end_dates = postcode_end_dates,
 
                     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     # other_info
                     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     hashed_nhs_number = other_info$hashed_nhs_number,
 
-                    blurred_dob = de_null(
-                        other_info$blurred_dob,
-                        NA_character_
-                    ),
-                    gender = de_null(
-                        other_info$gender,
-                        NA_character_
-                    ),
-                    raw_ethnicity = de_null(
-                        other_info$ethnicity,
-                        NA_character_
-                    ),
-                    index_of_multiple_deprivation = de_null(
-                        other_info$index_of_multiple_deprivation,
-                        NA_integer_
-                    ),
+                    blurred_dob = de_null(other_info$blurred_dob, NA_character_),
+                    gender = de_null(other_info$gender, NA_character_),
+                    raw_ethnicity = de_null(other_info$ethnicity, NA_character_),
+                    index_of_multiple_deprivation = de_null(other_info$index_of_multiple_deprivation, NA_integer_),
 
-                    first_mh_care_date = de_null(
-                        other_info$first_mh_care_date,
-                        NA_character_
-                    ),
-                    age_at_first_mh_care = de_null(
-                        other_info$age_at_first_mh_care,
-                        NA_integer_
-                    ),
+                    first_mh_care_date = de_null(other_info$first_mh_care_date, NA_character_),
+                    age_at_first_mh_care = de_null(other_info$age_at_first_mh_care, NA_integer_),
                     any_icd10_dx_present = other_info$any_icd10_dx_present,
-                    chapter_f_icd10_dx_present =
-                        other_info$chapter_f_icd10_dx_present,
-                    severe_mental_illness_icd10_dx_present =
-                        other_info$severe_mental_illness_icd10_dx_present
+                    chapter_f_icd10_dx_present = other_info$chapter_f_icd10_dx_present,
+                    severe_mental_illness_icd10_dx_present = other_info$severe_mental_illness_icd10_dx_present
                 ))
             }
         ) %>%
@@ -1027,6 +1126,10 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
 
 load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
 {
+    # Loads the results of a Bayesian comparison process. Merge in "special"
+    # validation information: demographic information about the probands, and
+    # gold-standard match information (based on hashed NHS number).
+
     # No JSON here; we can use the fast fread() function.
     cat(paste0("- Loading from: ", filename, "\n"))
     comparison_result <- data.table::fread(
@@ -1122,6 +1225,9 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
 
 load_all <- function()
 {
+    # Load all per-database people files (per ALL_DATABASES), and all pairwise
+    # comparisons (per FROM_DATABASES and TO_DATABASES).
+
     for (db1 in ALL_DATABASES) {
         assign(
             mk_people_var(db1),
@@ -1159,6 +1265,10 @@ load_all <- function()
 
 get_demographics <- function(d, db_name)
 {
+    # Use information derived from our special validation "other_info" details
+    # to characterize the demographics, in aggregate, of people from a single
+    # database.
+
     results <- data.table(
         db_name = db_name,
 
@@ -1228,8 +1338,11 @@ get_demographics <- function(d, db_name)
     return(results)
 }
 
+
 get_all_demographics <- function()
 {
+    # Load demographic information about all databases (per ALL_DATABASES).
+
     combined <- NULL
     for (db in ALL_DATABASES) {
         dg <- get_demographics(get(mk_people_var(db)), db)
@@ -1245,6 +1358,9 @@ get_all_demographics <- function()
 
 compare_simple <- function(from_dbname, to_dbname, compdata)
 {
+    # Compare a pair of databases in a very simple way: how many probands were
+    # (in truth) in the sample?
+
     d <- data.table(
         # In:
         from = from_dbname,
@@ -1258,6 +1374,9 @@ compare_simple <- function(from_dbname, to_dbname, compdata)
 
 get_comparisons_simple <- function()
 {
+    # Apply compare_simple() to all databases pairwise (per FROM_DATABASES,
+    # TO_DATABASES).
+
     comp_simple <- NULL
     for (db1 in FROM_DATABASES) {
         for (db2 in TO_DATABASES) {
@@ -1277,7 +1396,11 @@ get_comparisons_simple <- function()
 
 decide_at_thresholds <- function(compdata, theta, delta)
 {
-    # Makes a copy of the data supplied and applies decision thresholds.
+    # Make a copy of the data supplied (which is a comparison of two databases
+    # with enough information to re-apply new thresholds), apply new decision
+    # thresholds (theta and delta), and calculate basic signal detection theory
+    # labels (hit, miss, false alarm, correct rejection) for every proband.
+
     d <- data.table::copy(compdata)
     d[, declare_match := (
         # Criterion A:
@@ -1308,6 +1431,11 @@ compare_at_thresholds <- function(
     from_dbname, to_dbname, theta, delta, compdata, with_obscure = FALSE
 )
 {
+    # Take comparison data from two databases (compdata, and labels from_dbname
+    # and to_dbname), re-apply new decision thresholds (theta, delta), and
+    # calculate whole-comparison SDT measures, such as true/false positive
+    # rate, etc. Optionally include some obscure ones.
+
     decided <- decide_at_thresholds(compdata, theta, delta)
 
     d <- data.table(
@@ -1371,6 +1499,11 @@ compare_at_thresholds <- function(
 
 get_comparisons_varying_threshold <- function()
 {
+    # For all database pairs (FROM_DATABASES, TO_DATABASES), and all decision
+    # thresholds of interest (THETA_OPTIONS, DELTA_OPTIONS), recalculate
+    # decisions and calculate SDT aggregate measures; return these in a big
+    # table.
+
     comp_thresholds <- NULL
     for (db1 in FROM_DATABASES) {
         for (db2 in TO_DATABASES) {
@@ -1400,6 +1533,10 @@ bias_at_threshold <- function(
     delta = DEFAULT_DELTA
 )
 {
+    # Apply new decision thresholds (theta, delta) to a comparison (compdata).
+    # Return a logistic regression model using demographic factors to predict
+    # the likelihood of linkage.
+
     # Make decisions. We only care about probands who are in the sample.
     decided <- decide_at_thresholds(
         compdata[proband_in_sample == TRUE],
@@ -1434,12 +1571,18 @@ bias_at_threshold <- function(
 
 mk_proband_label <- function(from_db_name)
 {
+    # Tweak labels to indicate that a database is serving as the proband
+    # database.
+
     paste0(recode(from_db_name, !!!DATABASE_LABEL_MAP), " [p]")
 }
 
 
 mk_sample_label <- function(to_db_name)
 {
+    # Tweak labels to indicate that a database is serving as the sample
+    # database.
+
     paste0(recode(to_db_name, !!!DATABASE_LABEL_MAP), " [s]")
 }
 
@@ -1462,6 +1605,9 @@ mk_generic_pairwise_plot <- function(
     diagonal_background_alpha = DIAGONAL_PANEL_BG_ALPHA
 )
 {
+    # Plot some form of SDT measures (comp_threshold_labelled) across
+    # parameters (theta, delta) and database pairs.
+
     CORE_VARS <- c("from", "to", "from_label", "to_label", "theta", "delta")
     required_vars <- c(CORE_VARS, depvars)
     d <- (
@@ -1574,6 +1720,9 @@ mk_generic_pairwise_plot <- function(
 
 mk_threshold_plot_sdt <- function(comp_threshold_labelled, x_is_theta, ...)
 {
+    # Make a plot for TPR and FPR, by either theta or delta, and across
+    # database pairs.
+
     # The quantities that are informative and independent of the prevalence
     # (and thus reflect qualities of the test) include TPR (sensitivity,
     # recall), TNR (specificity), FPR (false alarm rate), and FNR (miss rate).
@@ -1595,6 +1744,9 @@ mk_threshold_plot_sdt <- function(comp_threshold_labelled, x_is_theta, ...)
 
 mk_threshold_plot_mid <- function(comp_threshold_labelled, x_is_theta, ...)
 {
+    # Make a plot for MID (misidentification rate), by either theta or delta,
+    # and across database pairs.
+
     return(mk_generic_pairwise_plot(
         comp_threshold_labelled,
         depvars = "MID",
@@ -1623,7 +1775,9 @@ mk_auroc_plot_ignoring_delta <- function(
     # point_alpha = 0.1
 )
 {
-    # An AUROC plot for a fixed value of delta.
+    # Create an AUROC plot for a fixed value of delta, across databases (per
+    # FROM_DATABASES, TO_DATABASES).
+
     # The normal decision criteria are
     # (A) log_odds_match >= theta;
     # (B) log_odds_match >= second_best_log_odds + delta.
@@ -1870,6 +2024,9 @@ mk_auroc_plot_ignoring_delta <- function(
 
 mk_save_performance_plot <- function(comp_threshold, comp_simple)
 {
+    # Create a composite plot: AUROC, TPR/FPR, MID for pairwise database
+    # comparisons.
+
     comp_threshold_labelled <- (
         comp_threshold
         %>% mutate(
@@ -1918,6 +2075,9 @@ mk_save_performance_plot <- function(comp_threshold, comp_simple)
 
 people_missingness_summary <- function(people)
 {
+    # Summarize how often various variables are missing, within a single
+    # database.
+
     n <- nrow(people)
     prop_missing <- function(x) {
         sum(is.na(x)) / n
@@ -1926,11 +2086,12 @@ people_missingness_summary <- function(people)
         people
         %>% summarize(
             # Strings can be "" not NA, but frequencies are NA if missing.
-            missing_first_name = prop_missing(first_name_frequency),
-            missing_middle_names = prop_missing(middle_name_frequencies),
-            missing_surname = prop_missing(surname_frequency),
-            missing_gender = prop_missing(gender_frequency),
-            missing_postcode = prop_missing(postcode_unit_frequencies)
+            missing_first_name = prop_missing(first_name_p_f),
+            missing_second_name = prop_missing(middle_name_frequencies),
+            missing_other_middle_names = prop_missing(other_middle_names_p_f),
+            missing_surname = prop_missing(surname_p_f),
+            missing_gender = prop_missing(gender_freq),
+            missing_postcode = prop_missing(postcode_unit_freq)
         )
         %>% as.data.table()
     )
@@ -1946,6 +2107,12 @@ extract_miss_or_misidentified_info <- function(
     rowtype = c("miss", "misidentified")
 )
 {
+    # For a pair of databases, establish people who were "missed" (proband in
+    # truth present in sample but no match declared) or misidentified (match
+    # declared for wrong person). Link them (proband to sample) by
+    # gold-standard linkage (hashed NHS number), allowing comparison of
+    # identifiers for errors.
+
     rowtype <- match.arg(rowtype)
     decided <- decide_at_thresholds(comparison, theta, delta)
     if (rowtype == "miss") {
@@ -1958,17 +2125,34 @@ extract_miss_or_misidentified_info <- function(
     person_columns <- c(
         # For linkage
         "hashed_nhs_number",
+
         # For error exploration
-        "hashed_first_name", "first_name_frequency",
-        "hashed_first_name_metaphone", "first_name_metaphone_frequency",
-        "hashed_middle_names", "middle_name_frequencies",
-        "hashed_middle_name_metaphones", "middle_name_metaphone_frequencies",
-        "hashed_surname", "surname_frequency",
-        "hashed_surname_metaphone", "surname_metaphone_frequency",
+        "first_name_name", "first_name_p_f",
+        "first_name_metaphone", "first_name_p_p1nf",
+        "first_name_f2c", "first_name_p_p2np1",
+
+        "second_forename_name", "second_forename_p_f",
+        "second_forename_metaphone", "second_forename_p_p1nf",
+        "second_forename_f2c", "second_forename_p_p2np1",
+
+        "other_middle_names_names", "other_middle_names_p_f",
+        "other_middle_names_metaphones", "other_middle_names_p_p1nf",
+        "other_middle_names_f2c", "other_middle_names_p_p2np1",
+
+        "surname_name", "surname_p_f",
+        "surname_metaphone", "surname_p_p1nf",
+        "surname_f2c", "surname_p_p2np1",
+
         "hashed_dob",  # all frequencies the same
-        "hashed_gender", "gender_frequency",
-        "hashed_postcode_units", "postcode_unit_frequencies",
-        "hashed_postcode_sectors", "postcode_sector_frequencies",
+        "hashed_dob_md",
+        "hashed_dob_yd",
+        "hashed_dob_ym",
+
+        "gender", "gender_freq",
+
+        "postcode_units", "postcode_unit_freq",
+        "postcode_sectors", "postcode_sector_freq",
+
         # For bias analysis
         "blurred_dob",
         "gender",
@@ -2023,6 +2207,9 @@ extract_miss_or_misidentified_info <- function(
 
 failure_summary <- function(failure_info, colprefix)
 {
+    # Used to characterize the identifier problems AMONGST LINKAGE FAILURES
+    # (misses and misidentifications).
+
     n <- nrow(failure_info)
     prop_missing <- function(x) {
         sum(is.na(x)) / n
@@ -2038,47 +2225,82 @@ failure_summary <- function(failure_info, colprefix)
         %>% summarize(
             n = n,
 
-            proband_missing_first_name = prop_missing(first_name_frequency_proband),
-            proband_missing_middle_names = prop_missing(middle_name_frequencies_proband),
-            proband_missing_surname = prop_missing(surname_frequency_proband),
-            proband_missing_gender = prop_missing(gender_frequency_proband),
-            proband_missing_postcode = prop_missing(postcode_unit_frequencies_proband),
+            proband_missing_first_name = prop_missing(first_name_name_proband),
+            proband_missing_second_forename = prop_missing(second_forename_name_proband),
+            proband_missing_surname = prop_missing(surname_name_proband),
+            proband_missing_gender = prop_missing(gender_freq_proband),
+            proband_missing_postcode = prop_missing(postcode_unit_freq_proband),
 
-            sample_missing_first_name = prop_missing(first_name_frequency_sample),
-            sample_missing_middle_names = prop_missing(middle_name_frequencies_sample),
-            sample_missing_surname = prop_missing(surname_frequency_sample),
-            sample_missing_gender = prop_missing(gender_frequency_sample),
-            sample_missing_postcode = prop_missing(postcode_unit_frequencies_sample),
+            sample_missing_first_name = prop_missing(first_name_name_sample),
+            sample_missing_second_forename = prop_missing(second_forename_name_sample),
+            sample_missing_surname = prop_missing(surname_name_sample),
+            sample_missing_gender = prop_missing(gender_freq_sample),
+            sample_missing_postcode = prop_missing(postcode_unit_freq_sample),
 
             mismatch_first_name = prop_mismatch(
-                hashed_first_name_proband,
-                hashed_first_name_sample
+                first_name_name_proband,
+                first_name_name_sample
             ),
             mismatch_first_name_metaphone = prop_mismatch(
-                hashed_first_name_metaphone_proband,
-                hashed_first_name_metaphone_sample
+                first_name_metaphone_proband,
+                first_name_metaphone_sample
             ),
+            mismatch_first_name_f2c = prop_mismatch(
+                first_name_f2c_proband,
+                first_name_f2c_sample
+            ),
+
+            mismatch_second_forename = prop_mismatch(
+                second_forename_name_proband,
+                second_forename_name_sample
+            ),
+            mismatch_second_forename_metaphone = prop_mismatch(
+                second_forename_metaphone_proband,
+                second_forename_metaphone_sample
+            ),
+            mismatch_second_forename_f2c = prop_mismatch(
+                second_forename_f2c_proband,
+                second_forename_f2c_sample
+            ),
+
             mismatch_surname = prop_mismatch(
-                hashed_surname_proband,
-                hashed_surname_sample
+                surname_name_proband,
+                surname_name_sample
             ),
             mismatch_surname_metaphone = prop_mismatch(
-                hashed_surname_metaphone_proband,
-                hashed_surname_metaphone_sample
+                surname_metaphone_proband,
+                surname_metaphone_sample
             ),
+            mismatch_surname_f2c = prop_mismatch(
+                surname_f2c_proband,
+                surname_f2c_sample
+            ),
+
             mismatch_dob = prop_mismatch(
-                hashed_dob_proband,
-                hashed_dob_sample
+                dob_proband,
+                dob_sample
             ),
+            mismatch_dob_partial = sum(
+                mismatch(dob_md_proband, dob_md_sample)
+                & mismatch(dob_yd_proband, dob_yd_sample)
+                & mismatch(dob_ym_proband, dob_ym_sample)
+            ) / n,
+
             mismatch_gender = prop_mismatch(
-                hashed_gender_proband,
-                hashed_gender_sample
+                gender_proband,
+                gender_sample
             ),
             firstname_surname_swapped = sum(
-                mismatch(hashed_first_name_proband, hashed_first_name_sample)
+                mismatch(first_name_hashed_proband, first_name_hashed_sample)
                 & mismatch(hashed_surname_proband, hashed_surname_sample)
-                & (hashed_first_name_proband == hashed_surname_sample)
-                & (hashed_surname_proband == hashed_first_name_sample)
+                & (first_name_hashed_proband == hashed_surname_sample)
+                & (hashed_surname_proband == first_name_hashed_sample)
+            ) / n,
+            firstname_secondforename_swapped = sum(
+                mismatch(first_name_hashed_proband, first_name_hashed_sample)
+                & mismatch(hashed_second_forename_proband, hashed_second_forename_sample)
+                & (first_name_hashed_proband == hashed_second_forename_sample)
+                & (hashed_second_forename_proband == first_name_hashed_sample)
             ) / n
         )
         %>% as.data.table()
@@ -2093,6 +2315,12 @@ performance_summary_at_threshold <- function(
     delta = DEFAULT_DELTA
 )
 {
+    # Compare all databases (per FROM_DATABASES, TO_DATABASES) at the specified
+    # levels of theta and delta, and extract:
+    # - SDT measures, via compare_at_thresholds()
+    # - miss errors, via extract_miss_or_misidentified_info()
+    # - misidentification errors, via extract_miss_or_misidentified_info()
+
     perf_summ <- NULL
     for (db1 in FROM_DATABASES) {
         for (db2 in TO_DATABASES) {
@@ -2146,8 +2374,11 @@ performance_summary_at_threshold <- function(
 # Empirical discrepancy rates
 # =============================================================================
 
-empirical_discrepancy_rates <- function(people_data_1, people_data_2)
+empirical_discrepancy_rates <- function(people_data_1, people_data_2, gender = NA)
 {
+    # Characterize the rates of empirical discrepancies amongst people who we
+    # know to be the same in two databases.
+    #
     # Link on NHS numbers. Note -- this is an absolute (gold-standard) linkage,
     # and nothing to do with our Bayesian system.
     combined <- merge(
@@ -2159,89 +2390,107 @@ empirical_discrepancy_rates <- function(people_data_1, people_data_2)
         all.y = FALSE,
         suffixes = c("_db1", "_db2")
     )
+    s <- combined
+    if (!is.na(gender)) {
+        s <- s %>% filter(gender_db1 == gender, gender_db2 == gender)
+    }
     s <- (
-        combined
+        s
         %>% summarize(
             n_total = n(),
 
             first_name_n_present = sum(
-                !is.na(hashed_first_name_db1)
-                & !is.na(hashed_first_name_db2)
+                !is.na(first_name_name_db1) & !is.na(first_name_name_db2)
             ),
             first_name_n_full_match = sum(
-                !is.na(hashed_first_name_db1)
-                & !is.na(hashed_first_name_db2)
-                & hashed_first_name_db1 == hashed_first_name_db2
+                !is.na(first_name_name_db1) & !is.na(first_name_name_db2)
+                # Name match:
+                & first_name_name_db1 == first_name_name_db2
             ),
-            first_name_n_partial_match = sum(
-                !is.na(hashed_first_name_db1)
-                & !is.na(hashed_first_name_db2)
-                & hashed_first_name_db1 != hashed_first_name_db2
-                & hashed_first_name_metaphone_db1 == hashed_first_name_metaphone_db2
+            first_name_n_p1nf_match = sum(
+                !is.na(first_name_name_db1) & !is.na(first_name_name_db2)
+                # Metaphone but not name match:
+                & first_name_name_db1 != first_name_name_db2
+                & first_name_metaphone_db1 == first_name_metaphone_db2
+            ),
+            first_name_n_p2np1_match = sum(
+                !is.na(first_name_name_db1) & !is.na(first_name_name_db2)
+                # First two characters, but not name or metaphone:
+                & first_name_name_db1 != first_name_name_db2
+                & first_name_metaphone_db1 != first_name_metaphone_db2
+                & first_name_f2c_db1 == first_name_f2c_db2
             ),
             first_name_n_no_match = sum(
-                !is.na(hashed_first_name_db1)
-                & !is.na(hashed_first_name_db2)
-                & hashed_first_name_metaphone_db1 != hashed_first_name_metaphone_db2
+                !is.na(first_name_name_db1) & !is.na(first_name_name_db2)
+                # Nothing matches:
+                & first_name_name_db1 != first_name_name_db2
+                & first_name_metaphone_db1 != first_name_metaphone_db2
+                & first_name_f2c_db1 != first_name_f2c_db2
             ),
 
             surname_n_present = sum(
-                !is.na(hashed_surname_db1)
-                & !is.na(hashed_surname_db2)
+                !is.na(surname_name_db1) & !is.na(surname_name_db2)
             ),
             surname_n_full_match = sum(
-                !is.na(hashed_surname_db1)
-                & !is.na(hashed_surname_db2)
-                & hashed_surname_db1 == hashed_surname_db2
+                !is.na(surname_name_db1) & !is.na(surname_name_db2)
+                # Name match:
+                & surname_name_db1 == surname_name_db2
             ),
-            surname_n_partial_match = sum(
-                !is.na(hashed_surname_db1)
-                & !is.na(hashed_surname_db2)
-                & hashed_surname_db1 != hashed_surname_db2
-                & hashed_surname_metaphone_db1 == hashed_surname_metaphone_db2
+            surname_n_p1nf_match = sum(
+                !is.na(surname_name_db1) & !is.na(surname_name_db2)
+                # Metaphone but not name match:
+                & surname_name_db1 != surname_name_db2
+                & surname_metaphone_db1 == surname_metaphone_db2
+            ),
+            surname_n_p2np1_match = sum(
+                !is.na(surname_name_db1) & !is.na(surname_name_db2)
+                # First two characters, but not name or metaphone:
+                & surname_name_db1 != surname_name_db2
+                & surname_metaphone_db1 != surname_metaphone_db2
+                & surname_f2c_db1 == surname_f2c_db2
             ),
             surname_n_no_match = sum(
-                !is.na(hashed_surname_db1)
-                & !is.na(hashed_surname_db2)
-                & hashed_surname_metaphone_db1 != hashed_surname_metaphone_db2
+                !is.na(surname_name_db1) & !is.na(surname_name_db2)
+                # Nothing matches:
+                & surname_name_db1 != surname_name_db2
+                & surname_metaphone_db1 != surname_metaphone_db2
+                & surname_f2c_db1 != surname_f2c_db2
             ),
 
             dob_n_present = sum(
-                !is.na(hashed_dob_db1)
-                & !is.na(hashed_dob_db2)
+                !is.na(dob_db1) & !is.na(dob_db2)
             ),
             dob_n_full_match = sum(
-                !is.na(hashed_dob_db1)
-                & !is.na(hashed_dob_db2)
-                & hashed_dob_db1 == hashed_dob_db2
+                !is.na(dob_db1) & !is.na(dob_db2)
+                & dob_db1 == dob_db2
             ),
             dob_n_partial_match = sum(
-                !is.na(hashed_dob_db1)
-                & !is.na(hashed_dob_db2)
-                & hashed_dob_db1 != hashed_dob_db2
+                !is.na(dob_db1) & !is.na(dob_db2)
+                & dob_db1 != dob_db2
                 & (
-                    hashed_dob_md_db1 == hashed_dob_md_db2
-                    | hashed_dob_yd_db1 == hashed_dob_yd_db2
-                    | hashed_dob_ym_db1 == hashed_dob_ym_db2
+                    dob_md_db1 == dob_md_db2
+                    | dob_yd_db1 == dob_yd_db2
+                    | dob_ym_db1 == dob_ym_db2
                 )
             ),
             dob_n_no_match = sum(
-                !is.na(hashed_dob_db1)
-                & !is.na(hashed_dob_db2)
-                & hashed_dob_db1 != hashed_dob_db2
-                & hashed_dob_md_db1 != hashed_dob_md_db2
-                & hashed_dob_yd_db1 != hashed_dob_yd_db2
-                & hashed_dob_ym_db1 != hashed_dob_ym_db2
+                !is.na(dob_db1) & !is.na(dob_db2)
+                & dob_db1 != dob_db2
+                & dob_md_db1 != dob_md_db2
+                & dob_yd_db1 != dob_yd_db2
+                & dob_ym_db1 != dob_ym_db2
             )
         ) %>%
         mutate(
             # f for fraction
             first_name_f_full_match = first_name_n_full_match / first_name_n_present,
-            first_name_f_partial_match = first_name_n_partial_match / first_name_n_present,
+            first_name_f_p1nf_match = first_name_n_p1nf_match / first_name_n_present,
+            first_name_n_p2np1_match = first_name_n_p2np1_match / first_name_n_present,
             first_name_f_no_match = first_name_n_no_match / first_name_n_present,
 
             surname_f_full_match = surname_n_full_match / surname_n_present,
-            surname_f_partial_match = surname_n_partial_match / surname_n_present,
+            surname_n_p1nf_match = surname_n_p1nf_match / surname_n_present,
+            surname_n_p2np1_match = surname_n_p2np1_match / surname_n_present,
             surname_f_no_match = surname_n_no_match / surname_n_present,
 
             dob_f_full_match = dob_n_full_match / dob_n_present,
@@ -2256,6 +2505,12 @@ empirical_discrepancy_rates <- function(people_data_1, people_data_2)
 
 show_duplicate_nhsnum_effect <- function(probands, sample, comparison)
 {
+    # Show the effect of having a database where there are duplicate records
+    # (judged by NHS number). We expect it to be harder to match if this
+    # database serves as the sample.
+    #
+    # *** IN PROGRESS.
+
     probands[,
         is_nhsnum_duplicated :=
             part_of_duplicated_group(hashed_nhs_number)
@@ -2338,9 +2593,19 @@ main <- function()
     # Not done: demographics predicting specific sub-reasons for non-linkage.
     # (We predict overall non-linkage above.)
 
-    discrepancies <- empirical_discrepancy_rates(
+    discrepancies_all <- empirical_discrepancy_rates(
         people_data_1 = get(mk_people_var(RIO)),
         people_data_2 = get(mk_people_var(SYSTMONE))
+    )
+    discrepancies_female <- empirical_discrepancy_rates(
+        people_data_1 = get(mk_people_var(RIO)),
+        people_data_2 = get(mk_people_var(SYSTMONE)),
+        gender = SEX_F
+    )
+    discrepancies_male <- empirical_discrepancy_rates(
+        people_data_1 = get(mk_people_var(RIO)),
+        people_data_2 = get(mk_people_var(SYSTMONE)),
+        gender = SEX_M
     )
 
     duplicate_nhs_numbers_in_sample <- show_duplicate_nhsnum_effect(
@@ -2367,9 +2632,6 @@ main <- function()
 
 # main()
 
-
-# TODO: handle multiple options for first name, surname?
-#   *** forenames/middle names/aliases: any sense in keeping an order?
 
 # *** check if p_u_forenames needs to be gender-specific; otherwise remove.
 

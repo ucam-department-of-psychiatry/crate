@@ -318,7 +318,7 @@ class FuzzyDefaults:
     P_E_GENDER = 0.0033  # (E)
 
     P_EP_POSTCODE = 0.0097  # (E)
-    P_EN_POSTCODE = 0.01  # (E) *** fix
+    P_EN_POSTCODE = 0.300  # (E)
 
     # -------------------------------------------------------------------------
     # Matching process

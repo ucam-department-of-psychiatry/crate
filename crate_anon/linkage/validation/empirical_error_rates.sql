@@ -732,6 +732,8 @@ SELECT
             0
         )
     ) AS n_postcode_unit_mismatch_but_sector_match,  -- 983 = 0.009699158
+    -- inferred: postcode_unit_mismatch_and_sector_mismatch
+    --   = (31399 - 983) = 0.3001115
     SUM(
         IIF(
             rio_postcode_unit != s1_postcode_unit
