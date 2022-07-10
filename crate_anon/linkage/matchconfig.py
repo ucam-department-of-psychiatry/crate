@@ -113,7 +113,7 @@ class MatchConfig:
         ),
         p_ep1_forename: str = FuzzyDefaults.P_EP1_FORENAME_CSV,
         p_ep2np1_forename: str = FuzzyDefaults.P_EP2NP1_FORENAME_CSV,
-        p_u_forename: str = FuzzyDefaults.P_U_FORENAME_CSV,
+        p_u_forename: float = FuzzyDefaults.P_U_FORENAME,
         p_en_forename: str = FuzzyDefaults.P_EN_FORENAME_CSV,
         p_ep1_surname: str = FuzzyDefaults.P_EP1_SURNAME_CSV,
         p_ep2np1_surname: str = FuzzyDefaults.P_EP2NP1_SURNAME_CSV,
@@ -453,9 +453,7 @@ class MatchConfig:
             p_ep2np1_=self.p_ep2np1_forename,
             p_en_=self.p_en_forename,
         )
-        self.p_u_forename = mk_gender_p_dict(
-            p_u_forename, Switches.P_U_FORENAME
-        )
+        self.p_u_forename = check_prob(p_u_forename, Switches.P_U_FORENAME)
 
         # Error probabilities: surnames
 

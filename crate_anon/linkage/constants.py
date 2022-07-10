@@ -280,33 +280,31 @@ class FuzzyDefaults:
     # (E) Empirical; see validation paper.
     # (*) Using the empirical value is much less efficient computationally.
     P_EP1_FORENAME = {
-        GENDER_FEMALE: 0.001,  # (E) *** fix
-        GENDER_MALE: 0.001,  # (E) *** fix
+        GENDER_FEMALE: 0.00894,  # (E)
+        GENDER_MALE: 0.00840,  # (E)
     }
     P_EP2NP1_FORENAME = {
-        GENDER_FEMALE: 0.001,  # (E) *** fix
-        GENDER_MALE: 0.001,  # (E) *** fix
+        GENDER_FEMALE: 0.00881,  # (E)
+        GENDER_MALE: 0.00688,  # (E)
     }
     P_EN_FORENAME = {
-        GENDER_FEMALE: 0.05,  # (E) *** fix
-        GENDER_MALE: 0.02,  # (E) *** fix
-    }
-    P_U_FORENAME = {
-        GENDER_FEMALE: 0.05,  # (E) *** fix
-        GENDER_MALE: 0.02,  # (E) *** fix
+        GENDER_FEMALE: 0.00572,  # (E)
+        GENDER_MALE: 0.00625,  # (E)
     }
 
+    P_U_FORENAME = 0.00191  # (E)
+
     P_EP1_SURNAME = {
-        GENDER_FEMALE: 0.001,  # (E) *** fix
-        GENDER_MALE: 0.001,  # (E) *** fix
+        GENDER_FEMALE: 0.00551,  # (E)
+        GENDER_MALE: 0.00471,  # (E)
     }
     P_EP2NP1_SURNAME = {
-        GENDER_FEMALE: 0.001,  # (E) *** fix
-        GENDER_MALE: 0.001,  # (E) *** fix
+        GENDER_FEMALE: 0.00378,  # (E)
+        GENDER_MALE: 0.00247,  # (E)
     }
     P_EN_SURNAME = {
-        GENDER_FEMALE: 0.05,  # (E) *** fix
-        GENDER_MALE: 0.02,  # (E) *** fix
+        GENDER_FEMALE: 0.0567,  # (E)
+        GENDER_MALE: 0.0134,  # (E)
     }
 
     _P_E_DOB = 0.00492  # DOB not full match (E)
@@ -433,7 +431,6 @@ class FuzzyDefaults:
     P_EP1_FORENAME_CSV = _mk_dictstr(P_EP1_FORENAME)
     P_EP2NP1_FORENAME_CSV = _mk_dictstr(P_EP2NP1_FORENAME)
     P_EN_FORENAME_CSV = _mk_dictstr(P_EN_FORENAME)
-    P_U_FORENAME_CSV = _mk_dictstr(P_U_FORENAME)
 
     P_EP1_SURNAME_CSV = _mk_dictstr(P_EP1_SURNAME)
     P_EP2NP1_SURNAME_CSV = _mk_dictstr(P_EP2NP1_SURNAME)

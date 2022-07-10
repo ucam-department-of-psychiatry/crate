@@ -1166,11 +1166,11 @@ def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
     )
     error_p_group.add_argument(
         f"--{Switches.P_U_FORENAME}",
-        type=str,
-        default=FuzzyDefaults.P_U_FORENAME_CSV,
-        help=f"Probability that a set of at least two forenames has an error "
-        f"such that they become unordered (e.g. swapped/shuffled) with "
-        f"respect to their counterpart. {gdh}",
+        type=float,
+        default=FuzzyDefaults.P_U_FORENAME,
+        help="Probability that a set of at least two forenames has an error "
+        "such that they become unordered (e.g. swapped/shuffled) with "
+        "respect to their counterpart. See paper for full details.",
     )
 
     error_p_group.add_argument(
@@ -1478,7 +1478,7 @@ def get_cfg_from_args(
         ),
         p_u_forename=getparam(
             Switches.P_U_FORENAME,
-            FuzzyDefaults.P_U_FORENAME_CSV,
+            FuzzyDefaults.P_U_FORENAME,
             require_error,
         ),
         p_ep1_surname=getparam(

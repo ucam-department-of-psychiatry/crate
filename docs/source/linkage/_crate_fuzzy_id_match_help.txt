@@ -237,7 +237,7 @@ usage: crate_fuzzy_id_match compare_plaintext [-h] --probands PROBANDS
                                               [--p_ep1_forename P_EP1_FORENAME]
                                               [--p_ep2np1_forename P_EP2NP1_FORENAME]
                                               [--p_en_forename P_EN_FORENAME]
-                                              [--p_u_forenames P_U_FORENAMES]
+                                              [--p_u_forename P_U_FORENAME]
                                               [--p_ep1_surname P_EP1_SURNAME]
                                               [--p_ep2np1_surname P_EP2NP1_SURNAME]
                                               [--p_en_surname P_EN_SURNAME]
@@ -388,42 +388,40 @@ Error probabilities:
                         fails a full match but satisfies a partial 1
                         (metaphone) match. (Comma-separated list of 'gender:p'
                         values, where gender must include F, M and can include
-                        X, ''.) (default: F:0.001,M:0.001)
+                        X, ''.) (default: F:0.00894,M:0.0084)
   --p_ep2np1_forename P_EP2NP1_FORENAME
                         Probability that a forename has an error such that it
                         fails a full/partial 1 match but satisfies a partial 2
                         (first two character) match. (Comma-separated list of
                         'gender:p' values, where gender must include F, M and
-                        can include X, ''.) (default: F:0.001,M:0.001)
+                        can include X, ''.) (default: F:0.00881,M:0.00688)
   --p_en_forename P_EN_FORENAME
                         Probability that a forename has an error such that it
                         produces no match at all. (Comma-separated list of
                         'gender:p' values, where gender must include F, M and
-                        can include X, ''.) (default: F:0.05,M:0.02)
-  --p_u_forenames P_U_FORENAMES
+                        can include X, ''.) (default: F:0.00572,M:0.00625)
+  --p_u_forename P_U_FORENAME
                         Probability that a set of at least two forenames has
                         an error such that they become unordered (e.g.
                         swapped/shuffled) with respect to their counterpart.
-                        (Comma-separated list of 'gender:p' values, where
-                        gender must include F, M and can include X, ''.)
-                        (default: F:0.05,M:0.02)
+                        See paper for full details. (default: 0.00191)
   --p_ep1_surname P_EP1_SURNAME
                         Probability that a surname has an error such that it
                         fails a full match but satisfies a partial 1
                         (metaphone) match. (Comma-separated list of 'gender:p'
                         values, where gender must include F, M and can include
-                        X, ''.) (default: F:0.001,M:0.001)
+                        X, ''.) (default: F:0.00551,M:0.00471)
   --p_ep2np1_surname P_EP2NP1_SURNAME
                         Probability that a surname has an error such that it
                         fails a full/partial 1 match but satisfies a partial 2
                         (first two character) match. (Comma-separated list of
                         'gender:p' values, where gender must include F, M and
-                        can include X, ''.) (default: F:0.001,M:0.001)
+                        can include X, ''.) (default: F:0.00378,M:0.00247)
   --p_en_surname P_EN_SURNAME
                         Probability that a surname has an error such that it
                         produces no match at all. (Comma-separated list of
                         'gender:p' values, where gender must include F, M and
-                        can include X, ''.) (default: F:0.05,M:0.02)
+                        can include X, ''.) (default: F:0.0567,M:0.0134)
   --p_ep_dob P_EP_DOB   Probability that a DOB is wrong in some way that
                         causes a partial match (YM, MD, or YD) but not a full
                         (YMD) match. (default: 0.00459036)
@@ -443,8 +441,7 @@ Error probabilities:
                         error or a move within a sector. (default: 0.0097)
   --p_en_postcode P_EN_POSTCODE
                         Assumed probability (p_ep) that a proband/candidate
-                        postcode pair exhibits no match at all. (default:
-                        0.01)
+                        postcode pair exhibits no match at all. (default: 0.3)
 
 Frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -554,7 +551,7 @@ usage: crate_fuzzy_id_match compare_hashed_to_hashed [-h] --probands PROBANDS
                                                      [--p_ep1_forename P_EP1_FORENAME]
                                                      [--p_ep2np1_forename P_EP2NP1_FORENAME]
                                                      [--p_en_forename P_EN_FORENAME]
-                                                     [--p_u_forenames P_U_FORENAMES]
+                                                     [--p_u_forename P_U_FORENAME]
                                                      [--p_ep1_surname P_EP1_SURNAME]
                                                      [--p_ep2np1_surname P_EP2NP1_SURNAME]
                                                      [--p_en_surname P_EN_SURNAME]
@@ -679,42 +676,40 @@ Error probabilities:
                         fails a full match but satisfies a partial 1
                         (metaphone) match. (Comma-separated list of 'gender:p'
                         values, where gender must include F, M and can include
-                        X, ''.) (default: F:0.001,M:0.001)
+                        X, ''.) (default: F:0.00894,M:0.0084)
   --p_ep2np1_forename P_EP2NP1_FORENAME
                         Probability that a forename has an error such that it
                         fails a full/partial 1 match but satisfies a partial 2
                         (first two character) match. (Comma-separated list of
                         'gender:p' values, where gender must include F, M and
-                        can include X, ''.) (default: F:0.001,M:0.001)
+                        can include X, ''.) (default: F:0.00881,M:0.00688)
   --p_en_forename P_EN_FORENAME
                         Probability that a forename has an error such that it
                         produces no match at all. (Comma-separated list of
                         'gender:p' values, where gender must include F, M and
-                        can include X, ''.) (default: F:0.05,M:0.02)
-  --p_u_forenames P_U_FORENAMES
+                        can include X, ''.) (default: F:0.00572,M:0.00625)
+  --p_u_forename P_U_FORENAME
                         Probability that a set of at least two forenames has
                         an error such that they become unordered (e.g.
                         swapped/shuffled) with respect to their counterpart.
-                        (Comma-separated list of 'gender:p' values, where
-                        gender must include F, M and can include X, ''.)
-                        (default: F:0.05,M:0.02)
+                        See paper for full details. (default: 0.00191)
   --p_ep1_surname P_EP1_SURNAME
                         Probability that a surname has an error such that it
                         fails a full match but satisfies a partial 1
                         (metaphone) match. (Comma-separated list of 'gender:p'
                         values, where gender must include F, M and can include
-                        X, ''.) (default: F:0.001,M:0.001)
+                        X, ''.) (default: F:0.00551,M:0.00471)
   --p_ep2np1_surname P_EP2NP1_SURNAME
                         Probability that a surname has an error such that it
                         fails a full/partial 1 match but satisfies a partial 2
                         (first two character) match. (Comma-separated list of
                         'gender:p' values, where gender must include F, M and
-                        can include X, ''.) (default: F:0.001,M:0.001)
+                        can include X, ''.) (default: F:0.00378,M:0.00247)
   --p_en_surname P_EN_SURNAME
                         Probability that a surname has an error such that it
                         produces no match at all. (Comma-separated list of
                         'gender:p' values, where gender must include F, M and
-                        can include X, ''.) (default: F:0.05,M:0.02)
+                        can include X, ''.) (default: F:0.0567,M:0.0134)
   --p_ep_dob P_EP_DOB   Probability that a DOB is wrong in some way that
                         causes a partial match (YM, MD, or YD) but not a full
                         (YMD) match. (default: 0.00459036)
@@ -734,8 +729,7 @@ Error probabilities:
                         error or a move within a sector. (default: 0.0097)
   --p_en_postcode P_EN_POSTCODE
                         Assumed probability (p_ep) that a proband/candidate
-                        postcode pair exhibits no match at all. (default:
-                        0.01)
+                        postcode pair exhibits no match at all. (default: 0.3)
 
 Frequency information for prior probabilities:
   --population_size POPULATION_SIZE
@@ -851,7 +845,7 @@ usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] --probands
                                                         [--p_ep1_forename P_EP1_FORENAME]
                                                         [--p_ep2np1_forename P_EP2NP1_FORENAME]
                                                         [--p_en_forename P_EN_FORENAME]
-                                                        [--p_u_forenames P_U_FORENAMES]
+                                                        [--p_u_forename P_U_FORENAME]
                                                         [--p_ep1_surname P_EP1_SURNAME]
                                                         [--p_ep2np1_surname P_EP2NP1_SURNAME]
                                                         [--p_en_surname P_EN_SURNAME]
@@ -1010,42 +1004,40 @@ Error probabilities:
                         fails a full match but satisfies a partial 1
                         (metaphone) match. (Comma-separated list of 'gender:p'
                         values, where gender must include F, M and can include
-                        X, ''.) (default: F:0.001,M:0.001)
+                        X, ''.) (default: F:0.00894,M:0.0084)
   --p_ep2np1_forename P_EP2NP1_FORENAME
                         Probability that a forename has an error such that it
                         fails a full/partial 1 match but satisfies a partial 2
                         (first two character) match. (Comma-separated list of
                         'gender:p' values, where gender must include F, M and
-                        can include X, ''.) (default: F:0.001,M:0.001)
+                        can include X, ''.) (default: F:0.00881,M:0.00688)
   --p_en_forename P_EN_FORENAME
                         Probability that a forename has an error such that it
                         produces no match at all. (Comma-separated list of
                         'gender:p' values, where gender must include F, M and
-                        can include X, ''.) (default: F:0.05,M:0.02)
-  --p_u_forenames P_U_FORENAMES
+                        can include X, ''.) (default: F:0.00572,M:0.00625)
+  --p_u_forename P_U_FORENAME
                         Probability that a set of at least two forenames has
                         an error such that they become unordered (e.g.
                         swapped/shuffled) with respect to their counterpart.
-                        (Comma-separated list of 'gender:p' values, where
-                        gender must include F, M and can include X, ''.)
-                        (default: F:0.05,M:0.02)
+                        See paper for full details. (default: 0.00191)
   --p_ep1_surname P_EP1_SURNAME
                         Probability that a surname has an error such that it
                         fails a full match but satisfies a partial 1
                         (metaphone) match. (Comma-separated list of 'gender:p'
                         values, where gender must include F, M and can include
-                        X, ''.) (default: F:0.001,M:0.001)
+                        X, ''.) (default: F:0.00551,M:0.00471)
   --p_ep2np1_surname P_EP2NP1_SURNAME
                         Probability that a surname has an error such that it
                         fails a full/partial 1 match but satisfies a partial 2
                         (first two character) match. (Comma-separated list of
                         'gender:p' values, where gender must include F, M and
-                        can include X, ''.) (default: F:0.001,M:0.001)
+                        can include X, ''.) (default: F:0.00378,M:0.00247)
   --p_en_surname P_EN_SURNAME
                         Probability that a surname has an error such that it
                         produces no match at all. (Comma-separated list of
                         'gender:p' values, where gender must include F, M and
-                        can include X, ''.) (default: F:0.05,M:0.02)
+                        can include X, ''.) (default: F:0.0567,M:0.0134)
   --p_ep_dob P_EP_DOB   Probability that a DOB is wrong in some way that
                         causes a partial match (YM, MD, or YD) but not a full
                         (YMD) match. (default: 0.00459036)
@@ -1065,8 +1057,7 @@ Error probabilities:
                         error or a move within a sector. (default: 0.0097)
   --p_en_postcode P_EN_POSTCODE
                         Assumed probability (p_ep) that a proband/candidate
-                        postcode pair exhibits no match at all. (default:
-                        0.01)
+                        postcode pair exhibits no match at all. (default: 0.3)
 
 Frequency information for prior probabilities:
   --population_size POPULATION_SIZE

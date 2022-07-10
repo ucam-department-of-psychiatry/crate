@@ -50,7 +50,6 @@ from cardinal_pythonlib.reprfunc import auto_repr
 
 from crate_anon.linkage.comparison import bayes_compare, Comparison
 from crate_anon.linkage.helpers import (
-    getdictprob,
     getdictval,
     mutate_name,
     mutate_postcode,
@@ -132,9 +131,6 @@ class Person:
         "the 'jq' tool to inspect these.)"
     )
 
-    # Additional Person-level keys for JSON that are not part of the CSV:
-    KEY_P_U_FORENAME = "p_u_forename"
-
     # -------------------------------------------------------------------------
     # Creation
     # -------------------------------------------------------------------------
@@ -145,7 +141,6 @@ class Person:
         local_id: str = "",
         other_info: str = "",
         forenames: List[Union[None, str, TemporalIDHolder, Forename]] = None,
-        p_u_forename: Optional[float] = None,
         surnames: List[Union[None, str, TemporalIDHolder, Surname]] = None,
         dob: Union[None, str, DateOfBirth] = "",
         gender: Union[None, str, Gender] = "",
@@ -168,9 +163,6 @@ class Person:
             forenames:
                 The person's forenames (given names, first/middle names), as
                 strings or Forename objects.
-            p_u_forename:
-                The probability (given the hypothesis H of a match) that names
-                become shuffled and unordered. See paper for details.
             surnames:
                 The person's surname(s), as strings or Surname or
                 TemporalIDHolder objects.
@@ -255,14 +247,6 @@ class Person:
                 continue  # skip blank names not detected above
             chk_plaintext(f)
             self.forenames.append(f)
-        # For an identifiable person, we can look up p_u_forename from the
-        # config via a gender. However, for a de-identified person, it will
-        # need to be passed in (e.g. loaded from JSON).
-        self.p_u_forename = (
-            self.cfg.p_u_forename[self.gender.gender_str]
-            if p_u_forename is None
-            else p_u_forename
-        )
 
         # surnames
         surnames = surnames or []
@@ -397,7 +381,6 @@ class Person:
             local_id=getdictval(d, pk.LOCAL_ID, str),
             other_info=getdictval(d, pk.OTHER_INFO, str, mandatory=False),
             forenames=forenames,
-            p_u_forename=getdictprob(d, cls.KEY_P_U_FORENAME),
             surnames=surnames,
             dob=DateOfBirth.from_dict(
                 cfg, getdictval(d, pk.DOB, dict), hashed
@@ -546,11 +529,6 @@ class Person:
             ],
             pk.PERFECT_ID: self.perfect_id.as_dict(encrypt),
         }
-        if include_frequencies:
-            d[self.KEY_P_U_FORENAME] = self.p_u_forename
-            # There's no need to blur self.p_u_forename; that is
-            # user-supplied. We encode it here because it may be
-            # gender-specific and thus unavailable later otherwise.
         if include_other_info:
             d[pk.OTHER_INFO] = self.other_info
         return d
@@ -666,7 +644,7 @@ class Person:
             proband_identifiers=self.forenames,
             candidate_identifiers=candidate.forenames,
             ordered=True,
-            p_u=self.p_u_forename,
+            p_u=self.cfg.p_u_forename,
         )
 
         # Surnames
@@ -739,8 +717,6 @@ class Person:
         """
         if not self.has_dob() and not debug_allow_no_dob:
             raise ValueError("Proband: missing DOB")
-        if self.p_u_forename is None:
-            raise ValueError("Proband: missing p_u_forename")
         for f in self.forenames:
             f.ensure_has_freq_info_if_id_present()
         for s in self.surnames:

@@ -340,6 +340,25 @@ format_sig_fig <- function(x, sf = 3)
 }
 
 
+`%!=na%` <- function(e1, e2)
+{
+    # "Not equal, treating NA like a level."
+    #
+    # Use like this:
+    # a <- c(1, NA, 2, 2, NA)
+    # b <- c(1, 1, 1, NA, NA)
+    # a %!=na% b
+    #
+    # See
+    # https://stackoverflow.com/questions/37610056/how-to-treat-nas-like-values-when-comparing-elementwise-in-r
+
+    return(
+        (e1 != e2 | (is.na(e1) & !is.na(e2)) | (is.na(e2) & !is.na(e1)))
+        & !(is.na(e1) & is.na(e2))
+    )
+}
+
+
 # =============================================================================
 # Loading data and basic preprocessing
 # =============================================================================
@@ -2430,29 +2449,31 @@ empirical_discrepancy_rates <- function(people_data_1, people_data_2, gender = N
                 & first_name_f2c_db1 != first_name_f2c_db2
             ),
 
-            firstname_secondforename_n_present_not_identical = sum(
-                # Both first and second forenames present:
-                !is.na(first_name_name_db1) & !is.na(first_name_name_db2)
-                & !is.na(second_forename_name_db1) & !is.na(second_forename_name_db2)
-                # Neither is called e.g. Alice Alice (since we want this as
-                # the denominator for transposition):
-                & first_name_name_db1 != second_forename_name_db1
+            forenames_misordered_denominator = sum(
+                # Unidirectional check here.
+                # Think of "first" as proband and "second" as candidate.
+                #
+                # Proband has at least the first forename:
+                !is.na(first_name_name_db1)
+                # Candidate has two non-identical forenames:
+                & !is.na(first_name_name_db2) & !is.na(second_forename_name_db2)
                 & first_name_name_db2 != second_forename_name_db2
             ),
-            firstname_secondforename_n_transposed = sum(
-                # Both have a first and second forename:
-                !is.na(first_name_name_db1) & !is.na(first_name_name_db2)
-                & !is.na(second_forename_name_db1) & !is.na(second_forename_name_db2)
-                # Neither is called e.g. Alice Alice (since we want this as
-                # the denominator for transposition) -- redundant check here
-                & first_name_name_db1 != second_forename_name_db1
+            forenames_n_misordered = sum(
+                # The conditions above...
+                !is.na(first_name_name_db1)
+                & !is.na(first_name_name_db2) & !is.na(second_forename_name_db2)
                 & first_name_name_db2 != second_forename_name_db2
-                # 1/1 and 2/2 matches fail:
-                & first_name_name_db1 != first_name_name_db2
-                & second_forename_name_db1 != second_forename_name_db2
-                # 1/2 and 2/1 matches pass:
-                & first_name_name_db1 == second_forename_name_db2
-                & second_forename_name_db1 == first_name_name_db2
+                # ... and an order mismatch:
+                & (
+                    # Candidate #2 matches proband #1...
+                    second_forename_name_db2 == first_name_name_db1
+                    # or (if proband #2 exists) candidate #1 matches proband #2
+                    | (
+                        !is.na(second_forename_name_db1)
+                        & first_name_name_db2 == second_forename_name_db1
+                    )
+                )
             ),
 
             surname_n_present = sum(
@@ -2512,24 +2533,37 @@ empirical_discrepancy_rates <- function(people_data_1, people_data_2, gender = N
             # f for fraction
             first_name_f_full_match = first_name_n_full_match / first_name_n_present,
             first_name_f_p1nf_match = first_name_n_p1nf_match / first_name_n_present,
-            first_name_n_p2np1_match = first_name_n_p2np1_match / first_name_n_present,
+            first_name_f_p2np1_match = first_name_n_p2np1_match / first_name_n_present,
             first_name_f_no_match = first_name_n_no_match / first_name_n_present,
 
-            first_second_forename_transposed = firstname_secondforename_n_transposed
-                / firstname_secondforename_n_present_not_identical,
+            first_second_f_forename_misordered = forenames_n_misordered
+                / forenames_misordered_denominator,
 
             surname_f_full_match = surname_n_full_match / surname_n_present,
-            surname_n_p1nf_match = surname_n_p1nf_match / surname_n_present,
-            surname_n_p2np1_match = surname_n_p2np1_match / surname_n_present,
+            surname_f_p1nf_match = surname_n_p1nf_match / surname_n_present,
+            surname_f_p2np1_match = surname_n_p2np1_match / surname_n_present,
             surname_f_no_match = surname_n_no_match / surname_n_present,
 
             dob_f_full_match = dob_n_full_match / dob_n_present,
             dob_f_partial_match = dob_n_partial_match / dob_n_present,
-            dob_f_no_match = dob_n_no_match / dob_n_present
+            dob_f_no_match = dob_n_no_match / dob_n_present,
+
+            query_gender = gender
         )
         %>% as.data.table()
     )
+    setcolorder(s, "query_gender")
     return(s)
+}
+
+
+empirical_discrepancy_rates_by_gender <- function(people_data_1, people_data_2)
+{
+    return(rbind(
+        empirical_discrepancy_rates(people_data_1, people_data_2, NA),
+        empirical_discrepancy_rates(people_data_1, people_data_2, SEX_F),
+        empirical_discrepancy_rates(people_data_1, people_data_2, SEX_M)
+    ))
 }
 
 
@@ -2539,7 +2573,7 @@ show_duplicate_nhsnum_effect <- function(probands, sample, comparison)
     # (judged by NHS number). We expect it to be harder to match if this
     # database serves as the sample.
     #
-    # *** IN PROGRESS.
+    # IN PROGRESS.
 
     probands[,
         is_nhsnum_duplicated :=
@@ -2623,20 +2657,18 @@ main <- function()
     # Not done: demographics predicting specific sub-reasons for non-linkage.
     # (We predict overall non-linkage above.)
 
-    discrepancies_all <- empirical_discrepancy_rates(
+    discrepancies <- empirical_discrepancy_rates_by_gender(
         people_data_1 = get(mk_people_var(RIO)),
         people_data_2 = get(mk_people_var(SYSTMONE))
     )
-    discrepancies_female <- empirical_discrepancy_rates(
-        people_data_1 = get(mk_people_var(RIO)),
-        people_data_2 = get(mk_people_var(SYSTMONE)),
-        gender = SEX_F
-    )
-    discrepancies_male <- empirical_discrepancy_rates(
-        people_data_1 = get(mk_people_var(RIO)),
-        people_data_2 = get(mk_people_var(SYSTMONE)),
-        gender = SEX_M
-    )
+    # F 90/54480; M 91/41736. By gender:
+    # chisq.test(matrix(c(90, 91, 54480 - 90, 41736 - 91), nrow = 2))
+    # Not significant.
+    # Double-check: canonical jury example via my 2004 stats booklet:
+    #   chisq.test(matrix(c(153, 24, 105, 76), nrow = 2, byrow = TRUE), correct = FALSE)  # chisq = 35.93
+    #   chisq.test(matrix(c(153, 24, 105, 76), nrow = 2, byrow = FALSE), correct = FALSE)  # chisq = 35.93
+    # ... reminding us that transposing makes no difference.
+    # Across all genders: 184/96569.
 
     duplicate_nhs_numbers_in_sample <- show_duplicate_nhsnum_effect(
         probands = get(mk_people_var(RIO)),
@@ -2665,8 +2697,6 @@ main <- function()
 
 # main()
 
-
-# *** check if p_u_forenames needs to be gender-specific; otherwise remove.
 
 # TODO: use empirical estimates of remaining error types; see FuzzyDefaults
 

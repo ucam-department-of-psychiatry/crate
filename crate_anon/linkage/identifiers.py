@@ -38,7 +38,6 @@ compared between two people.
 # =============================================================================
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 import logging
 from typing import (
     Any,
@@ -2101,17 +2100,41 @@ an unordered match. A simple way is as follows.
 """
 
 
-@dataclass
 class ComparisonInfo:
     """
     Used by :func:`gen_best_comparisons`.
     """
 
-    proband_idx: int
-    candidate_idx: int
-    comparison: Comparison
-    log_likelihood_ratio: float
-    # ... duplicates comparison.log_likelihood_ratio, but saves lookup cost
+    def __init__(
+        self, proband_idx: int, candidate_idx: int, comparison: Comparison
+    ) -> None:
+        self.proband_idx = proband_idx
+        self.candidate_idx = candidate_idx
+        self.comparison = comparison
+
+        # Precalculate these for speed (see sort_asc_best_to_worst):
+        self.log_likelihood_ratio = comparison.log_likelihood_ratio
+        self._distance = (proband_idx - candidate_idx) ** 2
+
+    @staticmethod
+    def sort_asc_best_to_worst(x: "ComparisonInfo") -> Tuple[float, int]:
+        """
+        Returns a sort value suitable for ASCENDING (standard, reverse=False)
+        sorting to give a best-to-worst sort order.
+
+        - The first part of the tuple is negative log likelihood ratio, so
+          higher values are worse (because higher values of log likelihood
+          ratio are better).
+
+        - The second part of the tuple (the tie-breaker if NLLR is identical)
+          is the square of the distance between the proband and candidate
+          indexes. We prefer to use identical values (distance = squared
+          distance = 0), so higher values are worse. This tiebreaker means
+          that if we compare Alice Alice SMITH to Alice Alice SMITH on first
+          names, we will choose index pairs (1, 1) and (2, 2), not (1, 2) and
+          (2, 1).
+        """
+        return -x.log_likelihood_ratio, x._distance
 
 
 def gen_best_comparisons(
@@ -2157,7 +2180,6 @@ def gen_best_comparisons(
                     proband_idx=p_idx,
                     candidate_idx=c_idx,
                     comparison=ci,
-                    log_likelihood_ratio=ci.log_likelihood_ratio,
                 )
             )
     if not ci_list:
@@ -2165,8 +2187,9 @@ def gen_best_comparisons(
         # procedure.
         return
 
-    # Iterate through comparisons in descending order of log likelihood ratio.
-    ci_list.sort(key=lambda c: c.log_likelihood_ratio, reverse=True)
+    # Iterate through comparisons in descending order of log likelihood ratio,
+    # i.e. best to worst. See ComparisonInfo.sort_asc_best_to_worst().
+    ci_list.sort(key=ComparisonInfo.sort_asc_best_to_worst)
     candidate_indexes_used = set()  # type: Set[int]
     proband_indexes_used = set()  # type: Set[int]
     n_candidates_available = n_candidates = len(candidate_identifiers)
