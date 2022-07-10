@@ -122,14 +122,14 @@ ALL_DATABASES <- c(CDL, PCMIS, RIO, SYSTMONE)
 # Comparing
 # -----------------------------------------------------------------------------
 
-# FROM_DATABASES <- ALL_DATABASES
+FROM_DATABASES <- ALL_DATABASES
 # FROM_DATABASES <- CDL  # for debugging
-FROM_DATABASES <- RIO  # for debugging
+# FROM_DATABASES <- RIO  # for debugging
 
-# TO_DATABASES <- ALL_DATABASES
+TO_DATABASES <- ALL_DATABASES
 # TO_DATABASES <- c(CDL, PCMIS, RIO)  # for debugging
 # TO_DATABASES <- CDL  # for debugging
-TO_DATABASES <- SYSTMONE  # for debugging
+# TO_DATABASES <- SYSTMONE  # for debugging
 
 
 # =============================================================================
@@ -2696,8 +2696,3 @@ main <- function()
 }
 
 # main()
-
-
-# TODO: use empirical estimates of remaining error types; see FuzzyDefaults
-
-# TODO: re-extract and re-test linkage
