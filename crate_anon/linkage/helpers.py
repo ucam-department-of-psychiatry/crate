@@ -278,14 +278,20 @@ def safe_upper(name: str) -> str:
     return name.translate(SAFE_UPPER_PRETRANSLATE).upper()
 
 
-def remove_redundant_whitespace(name: str) -> str:
+def remove_redundant_whitespace(x: str) -> str:
     """
     Strip at edges; remove double-spaces; remove any other whitespace by a
     single space.
     """
-    return ONE_OR_MORE_SPACE_REGEX.sub(
-        " ", name.translate(SIMPLIFY_PUNCTUATION_WHITESPACE_TRANS)
-    ).strip()
+    return ONE_OR_MORE_SPACE_REGEX.sub(" ", x).strip()
+
+
+def simplify_punctuation_whitespace(x: str) -> str:
+    """
+    Simplify punctuation and whitespace, e.g. curly to straight quotes, tab to
+    space, en dash to hyphen, etc.
+    """
+    return x.translate(SIMPLIFY_PUNCTUATION_WHITESPACE_TRANS)
 
 
 def standardize_name(name: str) -> str:
@@ -364,22 +370,36 @@ def surname_alternative_fragments(
         alphabetical order.
     """
     if not surname:
+        # No name, nothing to do.
         return []
-    # Very basic standardization: upper case, sort out whitespace.
-    surname = safe_upper(remove_redundant_whitespace(surname))
+
+    # Very basic standardization first: upper case, sort out punctuation.
+    surname = safe_upper(simplify_punctuation_whitespace(surname))
+
+    # Split into word chunks:
+    chunks = list(filter(None, NONWORD_REGEX.split(surname)))
+    # Filtering is required, e.g. "hello ' world" -> ['hello', '', '', 'world']
+
+    # Now make a standardized version of the name where punctuation/spaces have
+    # been removed (as per the US name databases also):
+    surname = "".join(chunks)
+
+    # Create a set of fragments. The set will de-duplicate.
     fragments = set()  # type: Set[str]
-    # The name itself:
+
+    # The name itself, and any accent-modified versions:
     fragments.update(_gen_name_versions(surname, accent_transliterations))
-    # Components:
-    for fragment in NONWORD_REGEX.split(surname):
-        fragment = fragment.strip()  # shouldn't be necessary, but check
-        if not fragment:  # skip any blank elements
+
+    # Components, and any accent-modified versions:
+    for chunk in chunks:
+        # All should be pre-stripped and none should be blank
+        if chunk in nonspecific_name_components:
             continue
-        if fragment in nonspecific_name_components:
-            continue
-        fragments.update(_gen_name_versions(fragment, accent_transliterations))
+        fragments.update(_gen_name_versions(chunk, accent_transliterations))
     # This process may well have worked through duplicates, but the set will
-    # take care of those. Return the name first.
+    # take care of those.
+
+    # Return the (standardized) name first.
     return [surname] + sorted(fragments - {surname})
 
 

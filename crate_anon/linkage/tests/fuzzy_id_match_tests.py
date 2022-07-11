@@ -463,6 +463,8 @@ class FuzzyLinkageTests(unittest.TestCase):
             ("de Clérambault", "DECLERAMBAULT"),
             ("Mary Ellen", "MARYELLEN"),
             ('"Al Jazeera"', "ALJAZEERA"),
+            ("Müller", "MULLER"),
+            ("Straße", "STRASSE"),
         )
         for item, target in tests:
             self.assertEqual(standardize_name(item), target)
@@ -490,40 +492,43 @@ class FuzzyLinkageTests(unittest.TestCase):
         accent_transliterations = cfg.accent_transliterations
         nonspecific_name_components = cfg.nonspecific_name_components
         tests = (
-            # In the expected answer, the original name comes first; then
-            # alphabetical order. Some examples are silly.
+            # In the expected answer, the original name (standardized) comes
+            # first; then alphabetical order of all other variants. Some
+            # examples are silly.
             #
             # France/French:
             (
                 "Côte d'Ivoire",
-                ["CÔTE D'IVOIRE", "COTE", "COTE D'IVOIRE", "CÔTE", "IVOIRE"],
+                ["CÔTEDIVOIRE", "COTE", "COTEDIVOIRE", "CÔTE", "IVOIRE"],
             ),
             (
                 "de Clérambault",
                 [
-                    "DE CLÉRAMBAULT",
+                    "DECLÉRAMBAULT",
                     "CLERAMBAULT",
                     "CLÉRAMBAULT",
-                    "DE CLERAMBAULT",
+                    "DECLERAMBAULT",
                 ],
             ),
             (
                 "de la Billière",
-                ["DE LA BILLIÈRE", "BILLIERE", "BILLIÈRE", "DE LA BILLIERE"],
+                ["DELABILLIÈRE", "BILLIERE", "BILLIÈRE", "DELABILLIERE"],
             ),
             ("Façade", ["FAÇADE", "FACADE"]),
-            ("Giscard d'Estaing", ["GISCARD D'ESTAING", "ESTAING", "GISCARD"]),
-            ("L'Estrange", ["L'ESTRANGE", "ESTRANGE"]),
-            ("L’Estrange", ["L'ESTRANGE", "ESTRANGE"]),
+            ("Giscard d'Estaing", ["GISCARDDESTAING", "ESTAING", "GISCARD"]),
+            ("L'Estrange", ["LESTRANGE", "ESTRANGE"]),
+            ("L’Estrange", ["LESTRANGE", "ESTRANGE"]),
             # Germany (and in Beethoven's case, ancestrally Belgium):
             ("Beethoven", ["BEETHOVEN"]),
+            ("Mozart Smith", ["MOZARTSMITH", "MOZART", "SMITH"]),
+            ("Mozart-Smith", ["MOZARTSMITH", "MOZART", "SMITH"]),
             ("Müller", ["MÜLLER", "MUELLER", "MULLER"]),
             ("Straße", ["STRAẞE", "STRASSE"]),
-            ("van  Beethoven", ["VAN BEETHOVEN", "BEETHOVEN"]),
+            ("van  Beethoven", ["VANBEETHOVEN", "BEETHOVEN"]),
             # Italy:
             ("Calabrò", ["CALABRÒ", "CALABRO"]),
-            ("De Marinis", ["DE MARINIS", "MARINIS"]),
-            ("di Bisanzio", ["DI BISANZIO", "BISANZIO"]),
+            ("De Marinis", ["DEMARINIS", "MARINIS"]),
+            ("di Bisanzio", ["DIBISANZIO", "BISANZIO"]),
             # Sweden:
             ("Nyström", ["NYSTRÖM", "NYSTROEM", "NYSTROM"]),
             # Hmm. NYSTROEM is a German-style transliteration. Still, OK-ish.
@@ -1016,17 +1021,18 @@ class FuzzyLinkageTests(unittest.TestCase):
 
     def test_shortlist(self) -> None:
         """
-        Our shortlisting process
-        Returns:
-
+        Our shortlisting process typically permits people with completely
+        matching or partially matching DOBs, but not those with mismatched DOBs
+        (for efficiency). Test that.
         """
+        # Some test people:
         cfg1 = self.cfg
-        self.assertEqual(cfg1.complete_dob_mismatch_allowed, False)
-        self.assertEqual(cfg1.partial_dob_mismatch_allowed, True)
         proband = Person(cfg1, local_id="p1", dob="1950-01-01")
-        full_or_partial_dob_match = [
+        full_dob_match = [
             # Full DOB match:
             Person(cfg1, local_id="p2", dob="1950-01-01"),
+        ]
+        partial_dob_match = [
             # Two components of DOB match:
             Person(cfg1, local_id="p3", dob="2000-01-01"),
             Person(cfg1, local_id="p4", dob="1950-12-01"),
@@ -1040,14 +1046,20 @@ class FuzzyLinkageTests(unittest.TestCase):
             # No component of DOB matches:
             Person(cfg1, local_id="p9", dob="2000-12-12"),
         ]
-        all_people = [proband] + full_or_partial_dob_match + dob_mismatch
+        all_people = (
+            [proband] + full_dob_match + partial_dob_match + dob_mismatch
+        )
 
-        # A setup where we don't shortlist mismatch DOB:
+        # A setup where we don't shortlist mismatched DOBs:
+        self.assertEqual(cfg1.complete_dob_mismatch_allowed, False)
+        self.assertEqual(cfg1.partial_dob_mismatch_allowed, True)
         people1 = People(cfg1, people=all_people)
         shortlist1 = list(people1.gen_shortlist(proband))
         self.assertTrue(proband in shortlist1)
-        for match_p in full_or_partial_dob_match:
-            self.assertTrue(match_p in shortlist1)
+        for full_p in full_dob_match:
+            self.assertTrue(full_p in shortlist1)
+        for partial_p in partial_dob_match:
+            self.assertTrue(partial_p in shortlist1)
         for mismatch_p in dob_mismatch:
             self.assertFalse(mismatch_p in shortlist1)
 
@@ -1059,3 +1071,17 @@ class FuzzyLinkageTests(unittest.TestCase):
         shortlist2 = list(people2.gen_shortlist(proband))
         for p in all_people:
             self.assertTrue(p in shortlist2)
+
+        # And one where only exact DOB matches are allows:
+        cfg3 = MatchConfig(p_ep_dob=0, p_en_dob=0)
+        self.assertEqual(cfg3.complete_dob_mismatch_allowed, False)
+        self.assertEqual(cfg3.partial_dob_mismatch_allowed, False)
+        people3 = People(cfg3, people=all_people)
+        shortlist3 = list(people3.gen_shortlist(proband))
+        self.assertTrue(proband in shortlist3)
+        for full_p in full_dob_match:
+            self.assertTrue(full_p in shortlist3)
+        for partial_p in partial_dob_match:
+            self.assertFalse(partial_p in shortlist3)
+        for mismatch_p in dob_mismatch:
+            self.assertFalse(mismatch_p in shortlist3)
