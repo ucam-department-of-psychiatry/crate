@@ -66,6 +66,7 @@ from crate_anon.linkage.helpers import (
     POSTCODE_REGEX,
     remove_redundant_whitespace,
     safe_upper,
+    simplify_punctuation_whitespace,
     standardize_name,
     standardize_postcode,
     surname_alternative_fragments,
@@ -479,13 +480,17 @@ class FuzzyLinkageTests(unittest.TestCase):
             self.assertEqual(safe_upper(a), b)
 
     def test_remove_redundant_whitespace(self) -> None:
-        tests = (
-            (" van \t \r \n Beethoven ", "van Beethoven"),
-            ("‘John said “hello”.’", "'John said \"hello\".'"),
-            ("a–b—c−d-e", "a-b-c-d-e"),
-        )
+        tests = ((" van \t \r \n Beethoven ", "van Beethoven"),)
         for a, b in tests:
             self.assertEqual(remove_redundant_whitespace(a), b)
+
+    def test_simplify_punctuation_whitespace(self) -> None:
+        tests = (
+            ("\n ‘John said “hello”.’", "  'John said \"hello\".'"),
+            ("\t a–b—c−d-e ", "  a-b-c-d-e "),
+        )
+        for a, b in tests:
+            self.assertEqual(simplify_punctuation_whitespace(a), b)
 
     def test_surname_fragments(self) -> None:
         cfg = self.cfg
