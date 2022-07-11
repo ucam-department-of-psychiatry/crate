@@ -41,6 +41,7 @@ from cardinal_pythonlib.probability import probability_from_log_odds
 from pendulum import Date
 
 from crate_anon.linkage.constants import (
+    FuzzyDefaults,
     GENDER_FEMALE,
     GENDER_MALE,
     GENDER_MISSING,
@@ -1007,3 +1008,54 @@ class FuzzyLinkageTests(unittest.TestCase):
 
         # No two people in a People object with the same ID:
         self.assertRaises(DuplicateIDError, people.add_person, p2)
+
+    # -------------------------------------------------------------------------
+    # People checks
+    # -------------------------------------------------------------------------
+    # See also test_person_equality() above.
+
+    def test_shortlist(self) -> None:
+        """
+        Our shortlisting process
+        Returns:
+
+        """
+        cfg1 = self.cfg
+        self.assertEqual(cfg1.complete_dob_mismatch_allowed, False)
+        self.assertEqual(cfg1.partial_dob_mismatch_allowed, True)
+        proband = Person(cfg1, local_id="p1", dob="1950-01-01")
+        full_or_partial_dob_match = [
+            # Full DOB match:
+            Person(cfg1, local_id="p2", dob="1950-01-01"),
+            # Two components of DOB match:
+            Person(cfg1, local_id="p3", dob="2000-01-01"),
+            Person(cfg1, local_id="p4", dob="1950-12-01"),
+            Person(cfg1, local_id="p5", dob="1950-01-12"),
+        ]
+        dob_mismatch = [
+            # One component of DOB matches:
+            Person(cfg1, local_id="p6", dob="1950-12-12"),
+            Person(cfg1, local_id="p7", dob="2000-01-12"),
+            Person(cfg1, local_id="p8", dob="2000-12-01"),
+            # No component of DOB matches:
+            Person(cfg1, local_id="p9", dob="2000-12-12"),
+        ]
+        all_people = [proband] + full_or_partial_dob_match + dob_mismatch
+
+        # A setup where we don't shortlist mismatch DOB:
+        people1 = People(cfg1, people=all_people)
+        shortlist1 = list(people1.gen_shortlist(proband))
+        self.assertTrue(proband in shortlist1)
+        for match_p in full_or_partial_dob_match:
+            self.assertTrue(match_p in shortlist1)
+        for mismatch_p in dob_mismatch:
+            self.assertFalse(mismatch_p in shortlist1)
+
+        # And one where we do:
+        cfg2 = MatchConfig(p_en_dob=FuzzyDefaults.P_EN_DOB_TRUE)
+        self.assertEqual(cfg2.complete_dob_mismatch_allowed, True)
+        self.assertEqual(cfg2.partial_dob_mismatch_allowed, True)
+        people2 = People(cfg2, people=all_people)
+        shortlist2 = list(people2.gen_shortlist(proband))
+        for p in all_people:
+            self.assertTrue(p in shortlist2)
