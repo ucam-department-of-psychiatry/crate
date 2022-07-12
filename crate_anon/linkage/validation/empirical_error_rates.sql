@@ -156,7 +156,8 @@ WHERE
 
 
 -- ============================================================================
--- Where DOBs don't match, how far out are they? Also, transposition errors.
+-- Where DOBs don't match (for the same person), how far out are they? Also,
+-- transposition errors.
 -- ============================================================================
 
 SELECT
@@ -271,6 +272,84 @@ WHERE
     LEFT(sp.NHSNumber, 3) != '999'
     -- The precondition for all is a DOB mismatch:
     AND CAST(sp.DOB AS DATE) != CAST(rc.DateOfBirth AS DATE)
+
+
+-- ============================================================================
+-- How often do different people share a DOB? To check our assumptions.
+-- ============================================================================
+-- As below, link SystmOne to itself using NHS numbers starting 44, to reduce
+-- numbers to something manageable.
+
+SELECT
+    COUNT(*) AS n_pairs,  -- 377971922
+    SUM(
+        IIF(
+            s1.DOB = s2.DOB,
+            1,
+            0
+        )
+    ) AS n_dob_match,  -- 34118; fraction 9.026596e-05
+    SUM(
+        IIF(
+            (
+                (
+                    -- year/month match
+                    YEAR(s1.DOB) = YEAR(s2.DOB)
+                    AND MONTH(s1.DOB) = MONTH(s2.DOB)
+                    AND DAY(s1.DOB) != DAY(s2.DOB)
+                )
+                OR (
+                    -- year/day match
+                    YEAR(s1.DOB) = YEAR(s2.DOB)
+                    AND MONTH(s1.DOB) != MONTH(s2.DOB)
+                    AND DAY(s1.DOB) = DAY(s2.DOB)
+                )
+                OR (
+                    -- month/day match
+                    YEAR(s1.DOB) != YEAR(s2.DOB)
+                    AND MONTH(s1.DOB) = MONTH(s2.DOB)
+                    AND DAY(s1.DOB) = DAY(s2.DOB)
+                )
+            ),
+            1,
+            0
+        )
+    ) AS n_dob_partial_not_full_match  -- 2383832; fraction 0.006306902
+FROM
+    SystmOne.dbo.S1_Patient AS s1
+INNER JOIN
+    SystmOne.dbo.S1_Patient AS s2
+    ON TRY_CAST(s1.NHSNumber AS BIGINT) != TRY_CAST(s2.NHSNumber AS BIGINT)
+    -- NHS number MISMATCH.
+    -- Neither NHS number has spaces in (empirically).
+WHERE
+    TRY_CAST(s1.NHSNumber AS BIGINT) IS NOT NULL
+    AND TRY_CAST(s2.NHSNumber AS BIGINT) IS NOT NULL
+    AND s1.DOB IS NOT NULL
+    AND s2.DOB IS NOT NULL
+    -- Restrict:
+    AND LEFT(s1.NHSNumber, 2) = '44'
+    AND LEFT(s2.NHSNumber, 2) = '44'
+
+-- Note that 9.026596e-05 implies a birth range of
+-- b = 1 / (f * 365.25) = 30.33
+
+-- If you allow self-linkage, you get n_dob_match = 53560, out of 377991364,
+-- or a fraction of 0.0001416964; this is 1.57-fold higher than if you exclude
+-- self-matches.
+
+-- And to check that NHS numbers "44" aren't particularly restricted in age:
+
+SELECT
+    MIN(YEAR(s1.DOB)) AS dob_min_year,  -- 1906
+    MAX(YEAR(s1.DOB)) AS dob_max_year  -- 1996
+FROM
+    SystmOne.dbo.S1_Patient s1
+WHERE
+    TRY_CAST(s1.NHSNumber AS BIGINT) IS NOT NULL
+    AND s1.DOB IS NOT NULL
+    -- Restrict:
+    AND LEFT(s1.NHSNumber, 2) = '44'
 
 
 -- ============================================================================
@@ -411,13 +490,13 @@ SELECT
                     WHEN 'F' THEN 'F'
                     WHEN 'M' THEN 'M'
                     WHEN 'I' THEN 'X'
-                    ELSE NULL  -- unknown/NULL values become NULL
+                    -- unknown/NULL values become NULL
                 END !=
                 CASE rc.Gender
                     WHEN 'F' THEN 'F'
                     WHEN 'M' THEN 'M'
                     WHEN 'X' THEN 'X'
-                    ELSE NULL  -- unknown/NULL values become NULL
+                    -- unknown/NULL values become NULL
                 END
                 -- If either is unknown and therefore NULL, the NULL = NULL
                 -- test will give false (0), so these will not be counted.
@@ -432,12 +511,11 @@ SELECT
                 CASE sp.Gender
                     WHEN 'F' THEN 'F'
                     WHEN 'M' THEN 'M'
-                    ELSE NULL
+                    -- ELSE NULL -- this is the default
                 END !=
                 CASE rc.Gender
                     WHEN 'F' THEN 'F'
                     WHEN 'M' THEN 'M'
-                    ELSE NULL
                 END
             ),
             1,
@@ -548,6 +626,7 @@ ORDER BY
 -- ============================================================================
 -- Surname and forename "first two char" in NON-matching people
 -- ============================================================================
+-- SUPERSEDED by calculations on US name databases.
 -- Let's not do RiO * SystmOne = 200k * 600k = 1.2e11.
 -- Let's link SystmOne to itself (simpler table) using NHS numbers starting 44,
 -- for about 19k^2 = 3.6e8.
@@ -578,8 +657,8 @@ WHERE TRY_CAST(sp.NHSNumber AS BIGINT) IS NOT NULL
 GROUP BY LEFT(sp.NHSNumber, 2)
 -- SystmOne: 19,442 starting 44.
 
--- NOTE: comparisons are case-insensitive:
-SELECT IIF('aa' = 'AA', 1, 0)  -- 1
+-- NOTE: comparisons are case-insensitive, at least on our server:
+-- SELECT IIF('aa' = 'AA', 1, 0)  -- 1
 
 
 SELECT
@@ -649,6 +728,7 @@ WHERE
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 -- ... and by gender (as below):
 -- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- SUPERSEDED by calculations on US name databases.
 
 SELECT DISTINCT Gender FROM SystmOne.dbo.S1_Patient
 -- F = female

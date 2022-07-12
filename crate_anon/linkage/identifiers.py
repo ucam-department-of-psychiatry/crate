@@ -742,12 +742,16 @@ class TemporalIDHolder(Identifier):
 class Postcode(IdentifierThreeState):
     """
     Represents a UK postcode.
+
+    Note that we store nationwide frequencies. Final adjustment by k_postcode
+    is only done at the last moment, allowing k_postcode to vary without having
+    to change a hashed frequency file.
     """
 
     KEY_POSTCODE_UNIT = "postcode_unit"
     KEY_POSTCODE_SECTOR = "postcode_sector"
-    KEY_UNIT_FREQ = "unit_freq"
-    KEY_SECTOR_FREQ = "sector_freq"
+    KEY_UNIT_FREQ = "unit_freq"  # national fraction, f_f_postcode
+    KEY_SECTOR_FREQ = "sector_freq"  # national fraction, f_p_postcode
 
     def __init__(
         self,
@@ -781,6 +785,7 @@ class Postcode(IdentifierThreeState):
             self.unit_freq, self.sector_freq = cfg.postcode_unit_sector_freq(
                 self.postcode_unit, prestandardized=True
             )
+            # ... national fractions, f_f_postcode and f_p_postcode
         else:
             self.postcode_unit = ""
             self.postcode_sector = ""
@@ -793,12 +798,16 @@ class Postcode(IdentifierThreeState):
 
     def _set_comparisons(self) -> None:
         if self.postcode_unit:
-            p_ep = self.cfg.p_ep_postcode
-            p_en = self.cfg.p_en_postcode
-            p_f = self.unit_freq
-            p_p = self.sector_freq
+            cfg = self.cfg
+            p_ep = cfg.p_ep_postcode
+            p_en = cfg.p_en_postcode
+            k = cfg.k_postcode
+            p_f = k * self.unit_freq  # unit_freq = f_f, national fraction
+            p_p = k * self.sector_freq  # sector_freq = f_p, national fraction
+            validateprob(p_f, "Postcode p_f = k * f_f[unit_freq]")
+            validateprob(p_p, "Postcode p_p = k * f_p[sector_freq]")
             p_pnf = p_p - p_f
-            validateprob(p_pnf, "Postcode p_pnf = sector_freq - unit_freq")
+            validateprob(p_pnf, "Postcode p_pnf = p_p[sector] - p_f[unit]")
             self.comparison_full_match = DirectComparison(
                 p_d_given_same_person=1 - p_ep,  # p_c
                 p_d_given_diff_person=p_f,
@@ -1221,6 +1230,7 @@ class BasicName(IdentifierFourState, ABC):
         temporal: bool = False,
         start_date: Union[str, Date] = None,
         end_date: Union[str, Date] = None,
+        description: str = "name",
     ) -> None:
         """
         Plaintext creation of a name.
@@ -1230,6 +1240,8 @@ class BasicName(IdentifierFourState, ABC):
                 The config object.
             name:
                 (PLAINTEXT.) The name.
+            description:
+                Used internally for verbose comparisons.
         """
         if not isinstance(name, str):
             raise ValueError(f"Bad name: {name!r}")
@@ -1241,6 +1253,7 @@ class BasicName(IdentifierFourState, ABC):
             start_date=start_date,
             end_date=end_date,
         )
+        self.description = description
 
         # Standardization necessary for freq. lookup and metaphone.
         self.name = standardize_name(name)
@@ -1304,25 +1317,26 @@ class BasicName(IdentifierFourState, ABC):
                 0 <= p_n <= 1
             ), "Bad population probabilities for a BasicName"
 
+            desc = self.description
             self.comparison_full_match = DirectComparison(
                 p_d_given_same_person=self.p_c,
                 p_d_given_diff_person=self.p_f,
-                d_description="name_full_match",
+                d_description=f"{desc}_full_match",
             )
             self.comparison_partial_match = DirectComparison(
                 p_d_given_same_person=self.p_ep1,
                 p_d_given_diff_person=self.p_p1nf,
-                d_description="name_partial_match_1_metaphone",
+                d_description=f"{desc}_partial_match_1_metaphone",
             )
             self.comparison_partial_match_second = DirectComparison(
                 p_d_given_same_person=self.p_ep2np1,
                 p_d_given_diff_person=self.p_p2np1,
-                d_description="name_partial_match_2_f2c",
+                d_description=f"{desc}_partial_match_2_f2c",
             )
             self.comparison_no_match = DirectComparison(
                 p_d_given_same_person=p_en,
                 p_d_given_diff_person=p_n,
-                d_description="name_no_match",
+                d_description=f"{desc}_no_match",
             )
         else:
             self._clear_comparisons()
@@ -1444,7 +1458,7 @@ class SurnameFragment(BasicName):
         name: str = "",
         gender: str = "",
     ) -> None:
-        super().__init__(cfg, name=name, gender=gender)
+        super().__init__(cfg, name=name, gender=gender, description="surname")
         # ... will call _reset_frequencies_identifiable()
 
     @classmethod
@@ -1773,6 +1787,7 @@ class Forename(BasicName):
             temporal=True,
             start_date=start_date,
             end_date=end_date,
+            description="forename",
         )
         # ... will call _reset_frequencies_identifiable()
 

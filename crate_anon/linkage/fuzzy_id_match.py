@@ -77,6 +77,7 @@ from crate_anon.linkage.constants import (
     GENDER_MISSING,
     GENDER_OTHER,
     Switches,
+    UK_POPULATION_2017,
 )
 from crate_anon.linkage.matchconfig import MatchConfig, mk_dummy_match_config
 from crate_anon.linkage.matchresult import MatchResult
@@ -1128,6 +1129,21 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         "England/UK not otherwise specified) or to have a postcode not known "
         "to the postcode geography database.",
     )
+    priors_group.add_argument(
+        f"--{Switches.K_POSTCODE}",
+        type=float,
+        default=None,
+        help=f"Probability multiple: "
+        f"p_f_postcode[P(postcode unit match | ¬H)] = "
+        f"{Switches.K_POSTCODE} * f_f_postcode[national unit fraction], and "
+        f"p_p_postcode[P(postcode sector match | ¬H) = "
+        f"{Switches.K_POSTCODE} * f_p_postcode[national sector fraction]. "
+        f"The default, None, autocalculates "
+        f"{Switches.K_POSTCODE} = n_UK / {Switches.POPULATION_SIZE} where "
+        f"n_uk = {UK_POPULATION_2017}; this is approximately correct if your "
+        f"population is a geographically restricted section of the UK, but if "
+        f"it is geographically representative of the UK, specify 1.",
+    )
 
 
 def add_error_probabilities(parser: argparse.ArgumentParser) -> None:
@@ -1454,6 +1470,11 @@ def get_cfg_from_args(
         mean_oa_population=getparam(
             Switches.MEAN_OA_POPULATION,
             FuzzyDefaults.MEAN_OA_POPULATION,
+            require_main_config,
+        ),
+        k_postcode=getparam(
+            Switches.K_POSTCODE,
+            FuzzyDefaults.K_POSTCODE,
             require_main_config,
         ),
         p_unknown_or_pseudo_postcode=getparam(

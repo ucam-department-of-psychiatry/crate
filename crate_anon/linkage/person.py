@@ -639,19 +639,19 @@ class Person:
         # disqualification if they mismatch, so order here becomes unimportant
         # for speed.
 
+        # Surnames
+        yield from gen_best_comparisons(
+            proband_identifiers=self.surnames,
+            candidate_identifiers=candidate.surnames,
+            ordered=False,
+        )
+
         # Forenames
         yield from gen_best_comparisons(
             proband_identifiers=self.forenames,
             candidate_identifiers=candidate.forenames,
             ordered=True,
             p_u=self.cfg.p_u_forename,
-        )
-
-        # Surnames
-        yield from gen_best_comparisons(
-            proband_identifiers=self.surnames,
-            candidate_identifiers=candidate.surnames,
-            ordered=False,
         )
 
         # DOB (see above)

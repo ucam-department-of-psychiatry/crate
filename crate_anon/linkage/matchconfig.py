@@ -51,6 +51,7 @@ from crate_anon.linkage.constants import (
     GENDER_OTHER,
     MONTHS_PER_YEAR,
     Switches,
+    UK_POPULATION_2017,
     VALID_GENDERS,
 )
 from crate_anon.linkage.frequencies import (
@@ -108,6 +109,7 @@ class MatchConfig:
         postcode_cache_filename: str = FuzzyDefaults.POSTCODE_CACHE_FILENAME,
         postcode_csv_filename: str = FuzzyDefaults.POSTCODES_CSV,
         mean_oa_population: float = FuzzyDefaults.MEAN_OA_POPULATION,
+        k_postcode: Optional[float] = FuzzyDefaults.K_POSTCODE,
         p_unknown_or_pseudo_postcode: float = (
             FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE
         ),
@@ -191,6 +193,13 @@ class MatchConfig:
                 :class:`PostcodeFrequencyInfo`.
             mean_oa_population:
                 The mean population of a UK Census Output Area.
+            k_postcode:
+                Multiple applied to postcode unit/sector frequencies, such that
+                p_f_postcode = k_postcode * f_f_postcode and p_p_postcode =
+                k_postcode * f_p_postcode. If None, defaults to
+                UK_POPULATION_2017 / population_size, appropriate if the
+                population under consideration is geographically constrained
+                (rather than sampled from across the UK).
             p_unknown_or_pseudo_postcode:
                 Probability that a random person will have a pseudo-postcode,
                 e.g. ZZ99 3VZ (no fixed above) or a postcode not known to our
@@ -488,6 +497,11 @@ class MatchConfig:
 
         self.p_ep_postcode = check_prob(p_ep_postcode, Switches.P_EP_POSTCODE)
         self.p_en_postcode = check_prob(p_en_postcode, Switches.P_EN_POSTCODE)
+        self.k_postcode = (
+            UK_POPULATION_2017 / self.population_size
+            if k_postcode is None
+            else k_postcode
+        )
 
         # Matching rules
 
@@ -537,6 +551,13 @@ class MatchConfig:
             + p_share_dob_yd_not_ymd
             + p_share_dob_ym_not_ymd
         )
+        # To find p_pnf_dob in terms of b, using Octave:
+        #   pkg load symbolic
+        #   syms b
+        #   simplify(1/365.25 + 1/(30.4375 * b) + 1/(12 * b) - 3/(365.25 * b))
+        # gives
+        #   (16 * b + 631) / (5844 * b)
+
         self.p_n_dob = 1 - self.p_f_dob - self.p_pnf_dob
         assert 0 <= self.p_f_dob <= 1
         assert 0 <= p_share_dob_md_not_ymd <= 1

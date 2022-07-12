@@ -73,6 +73,7 @@ THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 UK_MEAN_OA_POPULATION_2011 = 309
 # ... https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography  # noqa
 UK_POPULATION_2017 = 66040000  # 2017 figure, 66.04m
+CAMBS_PBORO_POPULATION_2018 = 852523
 
 GENDER_MALE = "M"
 GENDER_FEMALE = "F"
@@ -167,6 +168,7 @@ class Switches:
 
     P_EP_POSTCODE = "p_ep_postcode"
     P_EN_POSTCODE = "p_en_postcode"
+    K_POSTCODE = "k_postcode"
 
     MIN_LOG_ODDS_FOR_MATCH = "min_log_odds_for_match"
     EXCEEDS_NEXT_BEST_LOG_ODDS = "exceeds_next_best_log_odds"
@@ -237,12 +239,20 @@ class FuzzyDefaults:
     # -------------------------------------------------------------------------
     # See command-line help.
     # (E) Empirical; see validation paper.
-    BIRTH_YEAR_PSEUDO_RANGE = 90
-    MEAN_OA_POPULATION = UK_MEAN_OA_POPULATION_2011
+    # (N) From national data.
+
+    POPULATION_SIZE = CAMBS_PBORO_POPULATION_2018  # (N)
+
     NAME_MIN_FREQ = 5e-6
-    P_FEMALE_GIVEN_MALE_OR_FEMALE = 0.51  # (E)
-    P_NOT_MALE_OR_FEMALE = 0.004  # (E)
-    P_UNKNOWN_OR_PSEUDO_POSTCODE = 0.000203  # (E)
+
+    BIRTH_YEAR_PSEUDO_RANGE = 30  # (E) UK-wide ~90, perhaps; 30 empirically.
+
+    P_FEMALE_GIVEN_MALE_OR_FEMALE = 0.51  # (N)
+    P_NOT_MALE_OR_FEMALE = 0.004  # (N)
+
+    K_POSTCODE = None  # default is to autocalculate from population; see paper
+    MEAN_OA_POPULATION = UK_MEAN_OA_POPULATION_2011  # (N)
+    P_UNKNOWN_OR_PSEUDO_POSTCODE = 0.000203  # (N)
     # - Pseudo-postcodes: e.g. ZZ99 3VZ, no fixed abode; ZZ99 3CZ, England/UK
     #   not otherwise specified [4].
     # - These postcodes are not in the ONS Postcode Directory.
@@ -272,7 +282,6 @@ class FuzzyDefaults:
     # [2] https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/families/bulletins/familiesandhouseholds/2020  # noqa
     # [3] https://pubmed.ncbi.nlm.nih.gov/35477868/
     # [4] http://www.datadictionary.wales.nhs.uk/index.html#!WordDocuments/postcode.htm  # noqa
-    POPULATION_SIZE = UK_POPULATION_2017
 
     # -------------------------------------------------------------------------
     # Error rates
@@ -332,8 +341,8 @@ class FuzzyDefaults:
 
     NONSPECIFIC_NAME_COMPONENTS = set(
         # Includes nobiliary particles:
-        # https://en.wikipedia.org/wiki/Nobiliary_particle. Typically "of", "of
-        # the". See also
+        # https://en.wikipedia.org/wiki/Nobiliary_particle. Typically these
+        # mean "of", "of the", or "the". See also
         # https://en.wikipedia.org/wiki/List_of_family_name_affixes;
         # https://en.wikipedia.org/wiki/Suffix_(name).
         x.upper()
@@ -400,7 +409,7 @@ class FuzzyDefaults:
             "Jr",
             "Snr",
             "Sr",
-            # USA: numbering
+            # USA: numbering (not just the USA in theory; e.g. Richard III).
             "I",
             "II",
             "III",
