@@ -884,3 +884,62 @@ FROM (
         AND sa.PostCode_NoSpaces IS NOT NULL
         AND LEN(sa.PostCode_NoSpaces) >= 5
 ) AS subquery
+
+
+-- ============================================================================
+-- Pseudopostcode frequency
+-- ============================================================================
+
+-- Count over postcodes, not people:
+SELECT
+    COUNT(*) AS n_postcodes,  -- 612056
+    SUM(IIF(LEFT(sa.PostCode_NoSpaces, 4) = 'ZZ99', 1, 0)) AS n_zz99,  -- 2336 = 0.003816644
+    SUM(IIF(LEFT(sa.PostCode_NoSpaces, 5) = 'ZZ993', 1, 0)) AS n_zz993,  -- 2250 = 0.003676134
+    SUM(IIF(sa.PostCode_NoSpaces = 'ZZ993VZ', 1, 0)) AS n_z993vz_no_fixed_abode  -- 1232 = 0.002012888
+FROM
+    SystmOne.dbo.S1_Patient AS sp
+INNER JOIN
+    SystmOne.dbo.S1_PatientAddress AS sa
+    ON sa.IDPatient = sp.IDPatient
+WHERE
+    -- People with NHS numbers (for consistency)
+    sp.NHSNumber IS NOT NULL
+    -- Exclude test NHS numbers, which start 999:
+    AND LEFT(sp.NHSNumber, 3) != '999'
+    -- Valid postcode:
+    AND sa.PostCode_NoSpaces IS NOT NULL
+    AND LEN(sa.PostCode_NoSpaces) >= 5
+
+
+-- Count over people (same answer! Only one postcode per person.)
+SELECT
+    COUNT(*) AS n_people,  -- 612056
+    MIN(n_postcodes_for_person) AS min_n_postcodes_for_person,  -- 1
+    AVG(n_postcodes_for_person) AS mean_n_postcodes_for_person,  -- 1
+    MAX(n_postcodes_for_person) AS max_n_postcodes_for_person,  -- 1
+    SUM(IIF(n_zz99_for_person > 0, 1, 0)) AS n_with_zz99,  -- 2336 = 0.003816644
+    SUM(IIF(n_zz993_for_person > 0, 1, 0)) AS n_with_zz993,  -- 2250 = 0.003676134
+    SUM(IIF(n_z993vz_no_fixed_abode_for_person > 0, 1, 0)) AS n_with_zz993vz_no_fixed_abode  -- 1232 = 0.002012888
+FROM (
+    SELECT
+        sp.NHSNumber,
+        COUNT(*) AS n_postcodes_for_person,
+        SUM(IIF(LEFT(sa.PostCode_NoSpaces, 4) = 'ZZ99', 1, 0)) AS n_zz99_for_person,
+        SUM(IIF(LEFT(sa.PostCode_NoSpaces, 5) = 'ZZ993', 1, 0)) AS n_zz993_for_person,
+        SUM(IIF(sa.PostCode_NoSpaces = 'ZZ993VZ', 1, 0)) AS n_z993vz_no_fixed_abode_for_person
+    FROM
+        SystmOne.dbo.S1_Patient AS sp
+    RIGHT JOIN  -- all people, even those with no postcodes
+        SystmOne.dbo.S1_PatientAddress AS sa
+        ON sa.IDPatient = sp.IDPatient
+    WHERE
+        -- People with NHS numbers (for consistency)
+        sp.NHSNumber IS NOT NULL
+        -- Exclude test NHS numbers, which start 999:
+        AND LEFT(sp.NHSNumber, 3) != '999'
+        -- Valid postcode:
+        AND sa.PostCode_NoSpaces IS NOT NULL
+        AND LEN(sa.PostCode_NoSpaces) >= 5
+    GROUP BY
+        sp.NHSNumber
+) AS subquery

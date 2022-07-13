@@ -35,7 +35,7 @@ Unit tests.
 
 import logging
 import unittest
-from typing import List, Tuple, Type
+from typing import List, Optional, Tuple, Type
 
 from cardinal_pythonlib.probability import probability_from_log_odds
 from pendulum import Date
@@ -600,9 +600,28 @@ class FuzzyLinkageTests(unittest.TestCase):
 
     def test_fuzzy_linkage_frequencies_name(self) -> None:
         cfg = self.cfg
-        for surname in ["Smith", "Jones", "Blair", "Cardinal", "XYZ"]:
+        for surname in [
+            "Smith",
+            "Jones",
+            "Blair",
+            "Cardinal",
+            "XYZ",
+            "W",  # no metaphone
+        ]:
             f = cfg.get_surname_freq_info(surname)
             log.info(f"Surname frequency for {surname}: {f}")
+
+            self.assertTrue(isinstance(f.name, str))
+            self.assertTrue(isinstance(f.gender, str))
+            self.assertTrue(isinstance(f.p_name, float))
+
+            self.assertTrue(isinstance(f.metaphone, str))
+            self.assertTrue(isinstance(f.p_metaphone, float))
+            self.assertTrue(isinstance(f.p_metaphone_not_name, float))
+
+            self.assertTrue(isinstance(f.f2c, str))
+            self.assertTrue(isinstance(f.p_f2c, float))
+            self.assertTrue(isinstance(f.p_f2c_not_name_metaphone, float))
 
         for forename, gender in [
             ("James", GENDER_MALE),
@@ -615,11 +634,23 @@ class FuzzyLinkageTests(unittest.TestCase):
             ("Rowan", GENDER_MALE),
             ("Rowan", ""),
             ("XYZ", ""),
+            ("W", ""),  # no metaphone
         ]:
             f = cfg.get_forename_freq_info(forename, gender)
             log.info(
                 f"Forename frequency for {forename}, gender {gender}: {f}"
             )
+            self.assertTrue(isinstance(f.name, str))
+            self.assertTrue(isinstance(f.gender, str))
+            self.assertTrue(isinstance(f.p_name, float))
+
+            self.assertTrue(isinstance(f.metaphone, str))
+            self.assertTrue(isinstance(f.p_metaphone, float))
+            self.assertTrue(isinstance(f.p_metaphone_not_name, float))
+
+            self.assertTrue(isinstance(f.f2c, str))
+            self.assertTrue(isinstance(f.p_f2c, float))
+            self.assertTrue(isinstance(f.p_f2c_not_name_metaphone, float))
 
     def test_fuzzy_linkage_frequencies_postcode(self) -> None:
         cfg = self.cfg
@@ -641,20 +672,26 @@ class FuzzyLinkageTests(unittest.TestCase):
 
     def test_identifier_dob(self) -> None:
         cfg = self.cfg
+
         for b in BAD_DATE_STRINGS:
             with self.assertRaises(ValueError):
                 _ = DateOfBirth(cfg, b)
+
+        full_match_log_lr = None  # type: Optional[float]
         for g in GOOD_DATE_STRINGS:
             d = DateOfBirth(cfg, g)
             self.assertEqual(d.dob_str, g)
             self.assertEqual(str(d), g)
             self.assertTrue(d.fully_matches(d))
-            self.assertGreater(d.comparison(d).posterior_log_odds(0), 0)
+            full_match_log_lr = d.comparison(d).posterior_log_odds(0)
+            self.assertGreater(full_match_log_lr, 0)
+
         partial_matches = (
-            ("2000-01-01", "2007-01-01"),
-            ("2000-01-01", "2000-07-01"),
-            ("2000-01-01", "2000-01-07"),
+            ("2000-01-01", "2007-01-01"),  # year mismatch only
+            ("2000-01-01", "2000-07-01"),  # month mismatch only
+            ("2000-01-01", "2000-01-07"),  # day mismatch only
         )
+        partial_match_log_lr = None  # type: Optional[float]
         for d1_str, d2_str in partial_matches:
             d1 = DateOfBirth(cfg, d1_str)
             d2 = DateOfBirth(cfg, d2_str)
@@ -662,11 +699,13 @@ class FuzzyLinkageTests(unittest.TestCase):
             self.assertFalse(d2.fully_matches(d1))
             self.assertTrue(d1.partially_matches(d2))
             self.assertTrue(d2.partially_matches(d1))
-            self.assertGreater(d1.comparison(d2).posterior_log_odds(0), 0)
+            partial_match_log_lr = d1.comparison(d2).posterior_log_odds(0)
+            self.assertLess(partial_match_log_lr, full_match_log_lr)
+
         not_partial_matches = (
-            ("2000-01-01", "2007-07-01"),
-            ("2000-01-01", "2000-07-07"),
-            ("2000-01-01", "2007-01-07"),
+            ("2000-01-01", "2007-07-01"),  # only day the same
+            ("2000-01-01", "2000-07-07"),  # only year the same
+            ("2000-01-01", "2007-01-07"),  # only month the same
         )
         for d1_str, d2_str in not_partial_matches:
             d1 = DateOfBirth(cfg, d1_str)
@@ -675,48 +714,106 @@ class FuzzyLinkageTests(unittest.TestCase):
             self.assertFalse(d2.fully_matches(d1))
             self.assertFalse(d1.partially_matches(d2))
             self.assertFalse(d2.partially_matches(d1))
-            self.assertLess(d1.comparison(d2).posterior_log_odds(0), 0)
+            mismatch_log_lr = d1.comparison(d2).posterior_log_odds(0)
+            self.assertLess(mismatch_log_lr, 0)
+            self.assertLess(mismatch_log_lr, partial_match_log_lr)
 
     def test_identifier_postcode(self) -> None:
         cfg = self.cfg
+        configs = [
+            cfg,
+            # Check extremes of k_postcode:
+            MatchConfig(k_postcode=1),
+            MatchConfig(k_postcode=1000),
+            # Check extremes of p_unknown_or_pseudo_postcode, k_pseudopostcode:
+            MatchConfig(
+                p_unknown_or_pseudo_postcode=0.00001, k_pseudopostcode=1.2
+            ),
+            MatchConfig(p_unknown_or_pseudo_postcode=0.01, k_pseudopostcode=3),
+            # Very high combinations, e.g.
+            # p_unknown_or_pseudo_postcode=0.00001, k_pseudopostcode=1.001, may
+            # cause an error here. Very high combinations, e.g.
+            # p_unknown_or_pseudo_postcode=0.1, k_pseudopostcode=3, may also
+            # cause an error.
+        ]
+        # Any invalid settings are detected by the Postcode identifier class
+        # checking that its comparisons are in a sensible order. All
+        # identifiers do this, in fact.
+
         for b in BAD_POSTCODES:
             with self.assertRaises(ValueError):
                 _ = Postcode(cfg, b)
         early = Date(2020, 1, 1)
         late = Date(2021, 12, 31)
-        for g in GOOD_POSTCODES:
+        for g in GOOD_POSTCODES:  # includes pseudopostcodes
             with self.assertRaises(ValueError):
                 _ = Postcode(cfg, g, start_date=late, end_date=early)
             p = Postcode(cfg, g)
             self.assertEqual(p.postcode_unit, standardize_postcode(g))
             self.assertTrue(p.fully_matches(p))
-            self.assertGreater(p.comparison(p).posterior_log_odds(0), 0)
+
         empty = Postcode(cfg, "")
         self.assertEqual(str(empty), "")
-        partial_matches = (
-            ("CB99 9XY", "CB99 9AB"),
-            ("CB9 9XY", "CB9 9ZZ"),
+
+        probe_partial_mismatch = (
+            # Each tuple: (1) a postcode; (2) same sector, different unit; (3)
+            # different sector.
+            ("CB99 9XY", "CB99 9AB", "CB99 7AB"),  # nonsense
+            ("CB2 0QQ", "CB2 0SL", "SW1A 2AA"),  # CUH 1, CUH 2, 10 Downing St
+            ("ZZ99 3VZ", "ZZ99 3WZ", "ZZ99 1WZ"),  # pseudo: NFA, sea, Orkney
         )
-        for p1_str, p2_str in partial_matches:
-            p1 = Postcode(cfg, p1_str)
-            p2 = Postcode(cfg, p2_str)
-            self.assertFalse(p1.fully_matches(p2))
-            self.assertFalse(p2.fully_matches(p1))
-            self.assertTrue(p1.partially_matches(p2))
-            self.assertTrue(p2.partially_matches(p1))
-            self.assertGreater(p1.comparison(p2).posterior_log_odds(0), 0)
-        not_partial_matches = (
-            ("CB99 9XY", "CB99 7AB"),
-            ("CB9 9XY", "CB9 7ZZ"),
-        )
-        for p1_str, p2_str in not_partial_matches:
-            p1 = Postcode(cfg, p1_str)
-            p2 = Postcode(cfg, p2_str)
-            self.assertFalse(p1.fully_matches(p2))
-            self.assertFalse(p2.fully_matches(p1))
-            self.assertFalse(p1.partially_matches(p2))
-            self.assertFalse(p2.partially_matches(p1))
-            self.assertLess(p1.comparison(p2).posterior_log_odds(0), 0)
+        for probe_str, partial_str, mismatch_str in probe_partial_mismatch:
+            for c in configs:
+                p1 = Postcode(c, probe_str)
+                p2 = Postcode(c, partial_str)
+                p3 = Postcode(c, mismatch_str)
+
+                # Everything matches itself.
+                self.assertTrue(p1.fully_matches(p1))
+                self.assertTrue(p2.fully_matches(p2))
+                self.assertTrue(p3.fully_matches(p3))
+
+                # Nothing matches another.
+                self.assertFalse(p1.fully_matches(p2))
+                self.assertFalse(p1.fully_matches(p3))
+                self.assertFalse(p2.fully_matches(p3))
+
+                # The partial match partially matches.
+                self.assertTrue(p1.partially_matches(p2))
+
+                # The nonmatch doesn't partially match.
+                self.assertFalse(p1.partially_matches(p3))
+
+                full_comp = p1.comparison(p1)
+                full_log_lr = full_comp.posterior_log_odds(0)
+                partial_comp = p1.comparison(p2)
+                partial_log_lr = partial_comp.posterior_log_odds(0)
+                nonmatch_comp = p1.comparison(p3)
+                nonmatch_log_lr = nonmatch_comp.posterior_log_odds(0)
+
+                self.assertGreater(
+                    full_log_lr,
+                    0,
+                    f"comparing {probe_str!r} to itself, giving {full_comp!r}",
+                )
+                self.assertLess(
+                    partial_log_lr,
+                    full_log_lr,
+                    f"comparing {probe_str!r} to {partial_str!r} "
+                    f"(partial match); \ncfg = {cfg};\n"
+                    f"p1 = {p1!r};\n"
+                    f"giving {partial_comp!r}, versus the exact comparison "
+                    f"{full_comp!r}",
+                )
+                self.assertLess(
+                    nonmatch_log_lr,
+                    partial_log_lr,
+                    f"comparing {probe_str!r} to {mismatch_str!r} "
+                    f"(nonmatch); \ncfg = {cfg};"
+                    f"\np1 = {p1!r};\n"
+                    f"giving {nonmatch_comp!r}, versus the previous partial "
+                    f"comparison {partial_comp!r}",
+                )
 
     def test_identifier_gender(self) -> None:
         cfg = self.cfg

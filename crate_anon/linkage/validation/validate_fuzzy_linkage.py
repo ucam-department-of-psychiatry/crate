@@ -77,6 +77,8 @@ from crate_anon.linkage.identifiers import TemporalIDHolder
 from crate_anon.linkage.matchconfig import MatchConfig
 from crate_anon.linkage.helpers import (
     age_years,
+    is_nfa_postcode,
+    is_pseudopostcode,
     is_valid_isoformat_blurred_date,
     is_valid_isoformat_date,
     isoformat_optional_date_str,
@@ -746,14 +748,21 @@ class PostcodeInfo:
 
     def __post_init__(self) -> None:
         nonetype = type(None)
-        if not isinstance(self.postcode, str) or not POSTCODE_REGEX.match(
-            self.postcode
-        ):
+
+        if not isinstance(self.postcode, str):
             raise ValueError(f"Bad postcode: {self.postcode!r}")
+        self.postcode = standardize_postcode(self.postcode)
+        if not POSTCODE_REGEX.match(self.postcode):
+            raise ValueError(f"Bad postcode: {self.postcode!r}")
+
+        self.start_date = coerce_to_pendulum_date(self.start_date)
         if not isinstance(self.start_date, (datetime.date, nonetype)):
             raise ValueError(f"Bad start_date: {self.start_date!r}")
+
+        self.end_date = coerce_to_pendulum_date(self.end_date)
         if not isinstance(self.end_date, (datetime.date, nonetype)):
             raise ValueError(f"Bad end_date: {self.end_date!r}")
+
         if not isinstance(self.index_of_multiple_deprivation, (int, nonetype)):
             raise ValueError(
                 f"Bad index_of_multiple_deprivation: "
@@ -812,6 +821,10 @@ class CPFTValidationExtras:
     chapter_f_icd10_dx_present: int  # binary
     severe_mental_illness_icd10_dx_present: int  # binary
 
+    has_pseudopostcode: bool = False
+    has_nfa_pseudopostcode: bool = False
+    has_non_nfa_pseudopostcode: bool = False
+
     def __post_init__(self) -> None:
         binary = (0, 1)
         nonetype = type(None)
@@ -859,6 +872,20 @@ class CPFTValidationExtras:
                 f"Bad severe_mental_illness_icd10_dx_present: "
                 f"{self.severe_mental_illness_icd10_dx_present!r}"
             )
+
+    def set_pseudo_postcode_info(
+        self, postcodes: Iterable[PostcodeInfo]
+    ) -> None:
+        """
+        Updates our pseudopostcode flags, without storing the postcode(s).
+        """
+        for pi in postcodes:
+            if is_pseudopostcode(pi.postcode):
+                self.has_pseudopostcode = True
+                if is_nfa_postcode(pi.postcode):
+                    self.has_nfa_pseudopostcode = True
+                else:
+                    self.has_non_nfa_pseudopostcode = True
 
     @property
     def json(self) -> str:
@@ -1080,7 +1107,7 @@ def validate_2_fetch_cdl(
         if postcode_str and POSTCODE_REGEX.match(postcode_str):
             postcodes.append(
                 PostcodeInfo(
-                    postcode=standardize_postcode(postcode_str),
+                    postcode=postcode_str,
                     start_date=None,
                     end_date=None,
                     index_of_multiple_deprivation=row[
@@ -1103,6 +1130,7 @@ def validate_2_fetch_cdl(
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
+        other.set_pseudo_postcode_info(postcodes)
         p = Person(
             cfg=cfg,
             local_id=str(cdl_m_number),
@@ -1338,7 +1366,7 @@ def validate_2_fetch_pcmis(
             if postcode_value and POSTCODE_REGEX.match(postcode_value):
                 postcodes.append(
                     PostcodeInfo(
-                        postcode=standardize_postcode(postcode_value),
+                        postcode=postcode_value,
                         start_date=None,
                         end_date=None,
                         index_of_multiple_deprivation=row[imd_key],
@@ -1359,6 +1387,7 @@ def validate_2_fetch_pcmis(
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
+        other.set_pseudo_postcode_info(postcodes)
         p = Person(
             cfg=cfg,
             local_id=pcmis_patient_id,
@@ -1433,9 +1462,9 @@ def _get_rio_postcodes(
     q = QueryColnames
     postcodes = [
         PostcodeInfo(
-            postcode=standardize_postcode(row[q.POSTCODE]),
-            start_date=coerce_to_pendulum_date(row[q.START_DATE]),
-            end_date=coerce_to_pendulum_date(row[q.END_DATE]),
+            postcode=row[q.POSTCODE],
+            start_date=row[q.START_DATE],
+            end_date=row[q.END_DATE],
             index_of_multiple_deprivation=row[q.INDEX_OF_MULTIPLE_DEPRIVATION],
         )
         for row in rows
@@ -1775,6 +1804,7 @@ def validate_2_fetch_rio(
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
+        other.set_pseudo_postcode_info(postcodes)
         p = Person(
             cfg=cfg,
             local_id=rio_client_id,
@@ -1847,9 +1877,9 @@ def _get_systmone_postcodes(
     q = QueryColnames
     postcodes = [
         PostcodeInfo(
-            postcode=standardize_postcode(row[q.POSTCODE]),
-            start_date=coerce_to_pendulum_date(row[q.START_DATE]),
-            end_date=coerce_to_pendulum_date(row[q.END_DATE]),
+            postcode=row[q.POSTCODE],
+            start_date=row[q.START_DATE],
+            end_date=row[q.END_DATE],
             index_of_multiple_deprivation=row[q.INDEX_OF_MULTIPLE_DEPRIVATION],
         )
         for row in rows
@@ -2071,6 +2101,7 @@ def validate_2_fetch_systmone(
             chapter_f_icd10_dx_present=row[q.CHAPTER_F_ICD10_DX_PRESENT],
             severe_mental_illness_icd10_dx_present=row[q.SMI_ICD10_DX_PRESENT],
         )
+        other.set_pseudo_postcode_info(postcodes)
         p = Person(
             cfg=cfg,
             local_id=str(systmone_patient_id),

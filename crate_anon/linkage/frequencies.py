@@ -41,18 +41,18 @@ from collections import Counter, defaultdict
 import csv
 import json
 import logging
-from typing import Any, Dict, List, Sequence, Set, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from cardinal_pythonlib.reprfunc import auto_repr
 import jsonlines
 
 from crate_anon.common.logfunc import warn_once
-from crate_anon.linkage.constants import FuzzyDefaults
+from crate_anon.linkage.constants import UK_POPULATION_2017
 from crate_anon.linkage.helpers import (
     get_first_two_char,
     get_metaphone,
     get_postcode_sector,
-    is_pseudo_postcode,
+    is_pseudopostcode,
     mkdir_for_filename,
     open_even_if_zipped,
     standardize_name,
@@ -222,6 +222,16 @@ class NameFrequencyInfo:
     """
     Holds frequencies of a class of names (e.g. first names or surnames), and
     also of their fuzzy (metaphone) versions.
+
+    We keep these frequency representations entirely here (source) and with
+    the probands (storage); the config doesn't get involved except to define
+    min_frequency at creation. We need to scan across all names for an estimate
+    of the empty ("") metaphone, which does arise in our standard data. There
+    is a process for obtaining default frequency information for any names not
+    encountered in our name definitions, of course, but that is then stored
+    with the (hashed) name representations and nothing needs to be recalculated
+    at comparison time. (Compare postcodes, where further geographical
+    adjustments may be required, depending on the comparison population.)
     """
 
     def __init__(
@@ -549,6 +559,20 @@ class NameFrequencyInfo:
         key = f2c, gender
         return self.f2c_freq.get(key, self._min_frequency)
 
+    def get_names_for_metaphone(self, metaphone: str) -> List[str]:
+        """
+        Return (for debugging purposes) a list of all names matching the
+        specified metaphone.
+        """
+        metaphone = metaphone.upper()
+        return sorted(
+            set(
+                info.name
+                for info in self.infolist
+                if info.metaphone == metaphone
+            )
+        )
+
 
 # =============================================================================
 # PostcodeFrequencyInfo
@@ -559,20 +583,22 @@ class PostcodeFrequencyInfo:
     """
     Holds frequencies of UK postcodes, and also their hashed versions.
     Handles pseudo-postcodes somewhat separately.
+
+    Frequencies are national estimates for known real postcodes. Any local
+    correction or correction for unknown postcodes is done separately.
+
+    We return explicit "don't know" values for unknown postcodes (including
+    pseudopostcodes) since those values may be handled differently, in a way
+    that is set at comparison time.
     """
 
     KEY_POSTCODE_UNIT_FREQ = "postcode_unit_freq"
     KEY_POSTCODE_SECTOR_FREQ = "postcode_sector_freq"
-    KEY_TOTAL_POPULATION = "total_population"
 
     def __init__(
         self,
         csv_filename: str,
         cache_filename: str,
-        mean_oa_population: float = FuzzyDefaults.MEAN_OA_POPULATION,
-        p_unknown_or_pseudo_postcode: float = (
-            FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE
-        ),
         report_every: int = 10000,
     ) -> None:
         """
@@ -588,27 +614,14 @@ class PostcodeFrequencyInfo:
             cache_filename:
                 Filename to hold pickle format cached data, because the CSV
                 read process is slow (it's a 1.4 Gb CSV).
-            mean_oa_population:
-                Mean population of each census Output Area.
-            p_unknown_or_pseudo_postcode:
-                Probability that a random person will have a pseudo-postcode,
-                e.g. ZZ99 3VZ (no fixed above) or a postcode not known to our
-                database.
             report_every:
                 How often to report progress during loading.
         """
-        assert mean_oa_population > 0
-        assert 0 <= p_unknown_or_pseudo_postcode <= 1
-
         self._csv_filename = csv_filename
         self._cache_filename = cache_filename
-        self._mean_oa_population = mean_oa_population
-        self._p_unknown_or_pseudo_postcode = p_unknown_or_pseudo_postcode
 
-        self._p_known_postcode = 1 - p_unknown_or_pseudo_postcode
         self._postcode_unit_freq = {}  # type: Dict[str, float]
         self._postcode_sector_freq = {}  # type: Dict[str, float]
-        self._total_population = 0
 
         if not csv_filename or not cache_filename:
             log.debug("Using dummy PostcodeFrequencyInfo")
@@ -622,7 +635,6 @@ class PostcodeFrequencyInfo:
         except FileNotFoundError:
             self._load_from_csv(
                 csv_filename,
-                mean_oa_population=mean_oa_population,
                 report_every=report_every,
             )
             self._save_to_cache(cache_filename)
@@ -640,7 +652,6 @@ class PostcodeFrequencyInfo:
         # May raise KeyError:
         self._postcode_unit_freq = d[self.KEY_POSTCODE_UNIT_FREQ]
         self._postcode_sector_freq = d[self.KEY_POSTCODE_SECTOR_FREQ]
-        self._total_population = d[self.KEY_TOTAL_POPULATION]
 
         if not isinstance(self._postcode_unit_freq, dict):
             raise ValueError(
@@ -651,11 +662,6 @@ class PostcodeFrequencyInfo:
             raise ValueError(
                 f"Bad cache: {self.KEY_POSTCODE_SECTOR_FREQ} is of wrong type "
                 f"{type(self._postcode_sector_freq)}"
-            )
-        if not isinstance(self._total_population, int):
-            raise ValueError(
-                f"Bad cache: {self.KEY_TOTAL_POPULATION} is of wrong type "
-                f"{type(self._total_population)}"
             )
 
         log.debug(f"... finished reading from: {cache_filename}")
@@ -669,15 +675,12 @@ class PostcodeFrequencyInfo:
         d = {
             self.KEY_POSTCODE_UNIT_FREQ: self._postcode_unit_freq,
             self.KEY_POSTCODE_SECTOR_FREQ: self._postcode_sector_freq,
-            self.KEY_TOTAL_POPULATION: self._total_population,
         }
         with open(cache_filename, mode="w") as file:
             json.dump(d, file)
         log.debug(f"... finished writing to cache: {cache_filename}")
 
-    def _load_from_csv(
-        self, csv_filename: str, mean_oa_population: float, report_every: int
-    ) -> None:
+    def _load_from_csv(self, csv_filename: str, report_every: int) -> None:
         """
         Read from the original data.
         """
@@ -710,30 +713,26 @@ class PostcodeFrequencyInfo:
                 else:
                     sector_to_oas[sector] = {oa}
 
-        # Calculate
+        # Calculate. The absolute value of the population size of an OA is
+        # irrelevant as it cancels out.
         log.info("Calculating population frequencies for postcodes...")
         unit_freq = self._postcode_unit_freq
         sector_freq = self._postcode_sector_freq
-        n_oas = len(oa_unit_counter)
-        log.info(f"Number of Output Areas: {n_oas}")
-        self._total_population = n_oas * mean_oa_population
-        log.info(f"Calculated total population: {self._total_population}")
+        total_n_oas = len(oa_unit_counter)
+        log.info(f"Number of Output Areas: {total_n_oas}")
         for unit, oa in unit_to_oa.items():
             n_units_in_this_oa = oa_unit_counter[oa]
-            unit_population = mean_oa_population / n_units_in_this_oa
-            unit_freq[unit] = unit_population / self._total_population
+            unit_n_oas = 1 / n_units_in_this_oa
+            unit_freq[unit] = unit_n_oas / total_n_oas
         for sector, oas in sector_to_oas.items():
-            n_oas_in_this_sector = len(oas)
-            sector_population = mean_oa_population * n_oas_in_this_sector
-            sector_freq[sector] = (
-                sector_population / self._total_population
-            )  # noqa
+            sector_n_oas = len(oas)
+            sector_freq[sector] = sector_n_oas / total_n_oas
 
         log.debug(f"... finished reading from: {csv_filename}")
 
     def postcode_unit_sector_frequency(
         self, postcode_unit: str, prestandardized: bool = False
-    ) -> Tuple[float, float]:
+    ) -> Tuple[Optional[float], Optional[float]]:
         """
         Returns the frequency of a postcode unit and its associated sector.
         Performs an important check that the sector frequency is as least as
@@ -753,64 +752,76 @@ class PostcodeFrequencyInfo:
         )
         sector = get_postcode_sector(unit)
         try:
-            unit_freq = self._postcode_unit_freq[unit] * self._p_known_postcode
-            sector_freq = (
-                self._postcode_sector_freq[sector] * self._p_known_postcode
+            unit_freq = self._postcode_unit_freq[unit]
+            sector_freq = self._postcode_sector_freq[sector]
+            assert unit_freq <= sector_freq, (
+                f"Postcodes: unit_freq = {unit_freq}, "
+                f"sector_freq = {sector_freq}, but should have "
+                f"unit_freq <= sector_freq, "
+                f"for unit = {unit}, sector = {sector}"
             )
         except KeyError:
-            if not is_pseudo_postcode(unit):
+            if not is_pseudopostcode(unit, prestandardized=True):
                 warn_once(
                     f"Unknown postcode: {unit}", log, level=logging.DEBUG
                 )
-            unit_freq = self._p_unknown_or_pseudo_postcode
-            sector_freq = self._p_unknown_or_pseudo_postcode
-        assert unit_freq <= sector_freq, (
-            f"Postcodes: unit_freq = {unit_freq}, "
-            f"sector_freq = {sector_freq}, but should have "
-            f"unit_freq <= sector_freq, for unit = {unit}, sector = {sector}"
-        )
+            unit_freq = None
+            sector_freq = None
         return unit_freq, sector_freq
 
-    def debug_is_valid_postcode(self, postcode_unit: str) -> bool:
+    def debug_is_valid_postcode(
+        self, postcode_unit: str, prestandardized: bool = False
+    ) -> bool:
         """
         Is this a valid postcode?
         """
-        return postcode_unit in self._postcode_unit_freq or is_pseudo_postcode(
-            postcode_unit
+        if not prestandardized:
+            postcode_unit = standardize_postcode(postcode_unit)
+        return postcode_unit in self._postcode_unit_freq or is_pseudopostcode(
+            postcode_unit, prestandardized=True
         )
 
     def debug_postcode_unit_population(
-        self, postcode_unit: str, prestandardized: bool = False
-    ) -> float:
+        self,
+        postcode_unit: str,
+        prestandardized: bool = False,
+        total_population: int = UK_POPULATION_2017,
+    ) -> Optional[float]:
         """
         Returns the calculated population of a postcode unit.
 
         Args:
             postcode_unit: the postcode unit to check
             prestandardized: was the postcode pre-standardized in format?
+            total_population: national population
         """
         unit_freq, _ = self.postcode_unit_sector_frequency(
             postcode_unit, prestandardized
         )
-        return unit_freq * self._total_population
+        if unit_freq is None:
+            return None
+        return unit_freq * total_population
 
     def debug_postcode_sector_population(
-        self, postcode_sector: str, prestandardized: bool = False
-    ) -> float:
+        self,
+        postcode_sector: str,
+        prestandardized: bool = False,
+        total_population: int = UK_POPULATION_2017,
+    ) -> Optional[float]:
         """
         Returns the calculated population of a postcode sector.
 
         Args:
             postcode_sector: the postcode sector to check
-            prestandardized: was the postcode pre-standardized in format?
+            prestandardized: was the sector pre-standardized in format?
+            total_population: national population
         """
         sector = (
             postcode_sector
             if prestandardized
             else standardize_postcode(postcode_sector)
         )
-        return (
-            self._postcode_sector_freq[sector]
-            * self._p_known_postcode
-            * self._total_population
-        )
+        sector_freq = self._postcode_sector_freq.get(sector)
+        if sector_freq is None:
+            return None
+        return sector_freq * total_population

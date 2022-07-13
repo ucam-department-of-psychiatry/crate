@@ -164,14 +164,20 @@ class Commands:
     COMPARE_HASHED_TO_PLAINTEXT = "compare_hashed_to_plaintext"
 
     PRINT_DEMO_SAMPLE = "print_demo_sample"
+
     SHOW_METAPHONE = "show_metaphone"
+    SHOW_NAMES_FOR_METAPHONE = "show_names_for_metaphone"
+
     SHOW_FORENAME_FREQ = "show_forename_freq"
     SHOW_FORENAME_METAPHONE_FREQ = "show_forename_metaphone_freq"
     SHOW_FORENAME_F2C_FREQ = "show_forename_f2c_freq"
+
     SHOW_SURNAME_FREQ = "show_surname_freq"
     SHOW_SURNAME_METAPHONE_FREQ = "show_surname_metaphone_freq"
     SHOW_SURNAME_F2C_FREQ = "show_surname_f2c_freq"
+
     SHOW_DOB_FREQ = "show_dob_freq"
+
     SHOW_POSTCODE_FREQ = "show_postcode_freq"
 
 
@@ -1113,28 +1119,11 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         f"file is also acceptable. {affects_postcode_cache}",
     )
     priors_group.add_argument(
-        f"--{Switches.MEAN_OA_POPULATION}",
-        type=float,
-        default=FuzzyDefaults.MEAN_OA_POPULATION,
-        help="Mean population of a UK Census Output Area, from which we "
-        "estimate the population of postcode-based units. "
-        f"{affects_postcode_cache}",
-    )
-    priors_group.add_argument(
-        f"--{Switches.P_UNKNOWN_OR_PSEUDO_POSTCODE}",
-        type=float,
-        default=FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE,
-        help="Proportion of the (UK) population expected to be assigned a "
-        "'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed abode; ZZ99 3CZ, "
-        "England/UK not otherwise specified) or to have a postcode not known "
-        "to the postcode geography database.",
-    )
-    priors_group.add_argument(
         f"--{Switches.K_POSTCODE}",
         type=float,
         default=None,
         help=f"Probability multiple: "
-        f"p_f_postcode[P(postcode unit match | ¬H)] = "
+        f"P[P(postcode unit match | ¬H)] = "
         f"{Switches.K_POSTCODE} * f_f_postcode[national unit fraction], and "
         f"p_p_postcode[P(postcode sector match | ¬H) = "
         f"{Switches.K_POSTCODE} * f_p_postcode[national sector fraction]. "
@@ -1143,6 +1132,25 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         f"n_uk = {UK_POPULATION_2017}; this is approximately correct if your "
         f"population is a geographically restricted section of the UK, but if "
         f"it is geographically representative of the UK, specify 1.",
+    )
+    priors_group.add_argument(
+        f"--{Switches.P_UNKNOWN_OR_PSEUDO_POSTCODE}",
+        type=float,
+        default=FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE,
+        help="Expected population probability of each 'pseudo-postcode' "
+        "postcode unit (e.g. ZZ99 3VZ = no fixed above; ZZ99 3CZ, "
+        "England/UK not otherwise specified) or to have a postcode not known "
+        "to the postcode geography database.",
+    )
+    priors_group.add_argument(
+        f"--{Switches.K_PSEUDOPOSTCODE}",
+        type=float,
+        default=FuzzyDefaults.K_PSEUDOPOSTCODE,
+        help=f"Probability multiple: "
+        f"P(pseudopostcode sector or unknown postcode sector match | ¬H) = "
+        f"{Switches.K_PSEUDOPOSTCODE} * "
+        f"{Switches.P_UNKNOWN_OR_PSEUDO_POSTCODE}. "
+        f"Must strictly be >=1 and we enforce >1; see paper.",
     )
 
 
@@ -1467,11 +1475,6 @@ def get_cfg_from_args(
             FuzzyDefaults.POSTCODE_CACHE_FILENAME,
             require_main_config,
         ),
-        mean_oa_population=getparam(
-            Switches.MEAN_OA_POPULATION,
-            FuzzyDefaults.MEAN_OA_POPULATION,
-            require_main_config,
-        ),
         k_postcode=getparam(
             Switches.K_POSTCODE,
             FuzzyDefaults.K_POSTCODE,
@@ -1480,6 +1483,11 @@ def get_cfg_from_args(
         p_unknown_or_pseudo_postcode=getparam(
             Switches.P_UNKNOWN_OR_PSEUDO_POSTCODE,
             FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE,
+            require_main_config,
+        ),
+        k_pseudopostcode=getparam(
+            Switches.K_PSEUDOPOSTCODE,
+            FuzzyDefaults.K_PSEUDOPOSTCODE,
             require_main_config,
         ),
         p_ep1_forename=getparam(
@@ -1744,6 +1752,16 @@ normally for testing.""",
     )
     add_basic_options(show_metaphone_parser)
 
+    show_names_for_metaphone_parser = subparsers.add_parser(
+        Commands.SHOW_NAMES_FOR_METAPHONE,
+        help="Show names (forenames and surnames) for a given metaphone",
+    )
+    show_names_for_metaphone_parser.add_argument(
+        "words", nargs="+", help="Words to check"
+    )
+    add_config_options(show_names_for_metaphone_parser)
+    add_basic_options(show_names_for_metaphone_parser)
+
     show_forename_freq_parser = subparsers.add_parser(
         Commands.SHOW_FORENAME_FREQ,
         help="Show frequencies of forenames",
@@ -1938,6 +1956,24 @@ normally for testing.""",
     elif args.command == Commands.SHOW_METAPHONE:
         for word in args.words:
             log.info(f"Metaphone for {word!r}: {get_metaphone(word)}")
+
+    elif args.command == Commands.SHOW_NAMES_FOR_METAPHONE:
+        cfg = get_cfg_from_args(
+            args,
+            require_hasher=False,
+            require_main_config=True,
+            require_error=False,
+            require_matching=False,
+        )
+        for word in args.words:
+            log.info(
+                f"Forenames for metaphone {word!r}: "
+                f"{cfg.forename_freq_info.get_names_for_metaphone(word)}"
+            )
+            log.info(
+                f"Surnames for metaphone {word!r}: "
+                f"{cfg.surname_freq_info.get_names_for_metaphone(word)}"
+            )
 
     elif args.command == Commands.SHOW_FORENAME_FREQ:
         cfg = get_cfg_from_args(

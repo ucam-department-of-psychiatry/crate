@@ -70,7 +70,7 @@ DAYS_PER_MONTH = DAYS_PER_YEAR / MONTHS_PER_YEAR  # on average
 
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 
-UK_MEAN_OA_POPULATION_2011 = 309
+UK_MEAN_OA_POPULATION_2011 = 309  # not used any more! Left here for interest.
 # ... https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography  # noqa
 UK_POPULATION_2017 = 66040000  # 2017 figure, 66.04m
 CAMBS_PBORO_POPULATION_2018 = 852523
@@ -149,7 +149,6 @@ class Switches:
 
     POSTCODE_CACHE_FILENAME = "postcode_cache_filename"
     POSTCODE_CSV_FILENAME = "postcode_csv_filename"
-    MEAN_OA_POPULATION = "mean_oa_population"
     P_UNKNOWN_OR_PSEUDO_POSTCODE = "p_unknown_or_pseudo_postcode"
 
     P_EP1_FORENAME = "p_ep1_forename"
@@ -169,6 +168,7 @@ class Switches:
     P_EP_POSTCODE = "p_ep_postcode"
     P_EN_POSTCODE = "p_en_postcode"
     K_POSTCODE = "k_postcode"
+    K_PSEUDOPOSTCODE = "k_pseudopostcode"
 
     MIN_LOG_ODDS_FOR_MATCH = "min_log_odds_for_match"
     EXCEEDS_NEXT_BEST_LOG_ODDS = "exceeds_next_best_log_odds"
@@ -251,37 +251,79 @@ class FuzzyDefaults:
     P_NOT_MALE_OR_FEMALE = 0.004  # (N)
 
     K_POSTCODE = None  # default is to autocalculate from population; see paper
-    MEAN_OA_POPULATION = UK_MEAN_OA_POPULATION_2011  # (N)
-    P_UNKNOWN_OR_PSEUDO_POSTCODE = 0.000203  # (N)
-    # - Pseudo-postcodes: e.g. ZZ99 3VZ, no fixed abode; ZZ99 3CZ, England/UK
-    #   not otherwise specified [4].
-    # - These postcodes are not in the ONS Postcode Directory.
-    # - In Apr-Jun 2019, 11.4% of households in England who were {homeless or
-    #   threatened with homelessness} had no fixed abode [1, Table 2].
-    # - That table totals 68,180 households, so that probably matches the
-    #   68,170 households in England used as the summary figure on p1 [1].
-    # - In 2020, there were ~27.8 million households in the UK [2].
-    # - The mean household size in the UK is 2.4 [2]. (Although the proportion
-    #   who are homeless is likely biased towards single individuals?)
-    #   Yes, "Nearly two-thirds of these were single households (households
-    #   without children)."
-    # - 0.843 of the UK population live in England
-    # - So, the fraction of homelessness can be estimated as
+
+    # noinspection HttpUrlsUsage
     _ = """
+
+    P_UNKNOWN_OR_PSEUDO_POSTCODE
+    ----------------------------
+
+    - Pseudo-postcodes: e.g. ZZ99 3VZ, no fixed abode; ZZ99 3CZ, England/UK
+      not otherwise specified [4].
+    - These postcodes are not in the ONS Postcode Directory.
+    - In Apr-Jun 2019, 11.4% of households in England who were {homeless or
+      threatened with homelessness} had no fixed abode [1, Table 2].
+    - That table totals 68,180 households, so that probably matches the
+      68,170 households in England used as the summary figure on p1 [1].
+    - In 2020, there were ~27.8 million households in the UK [2].
+    - The mean household size in the UK is 2.4 [2]. (Although the proportion
+      who are homeless is likely biased towards single individuals?)
+      Yes, "Nearly two-thirds of these were single households (households
+      without children)."
+    - 0.843 of the UK population live in England
+    - So, the fraction of homelessness can be estimated as
+
         avg_people_per_household = 2.4
         n_people_per_homeless_household = (2 / 3) * 1 + (1 / 3) * avg_people_per_household
         n_people_homeless_england = (11.4 / 100) * 68180 * n_people_per_homeless_household 
         n_people_uk = 27.8e6 * 2.4  # 66.7 million, so that's about right
         n_people_england = 0.843 * n_people_uk
         p_homeless = n_people_homeless_england / n_people_england
+
+            = 0.0002026794
+    We'll round: 0.000203
+    (So that's about 13.5k people with postcode ZZ99 3VZ, estimated.)
+
+    [1] https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/852953/Statutory_Homelessness_Statistical_Release_Apr-Jun_2019.pdf  # noqa
+    [2] https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/families/bulletins/familiesandhouseholds/2020  # noqa
+    [3] https://pubmed.ncbi.nlm.nih.gov/35477868/
+    [4] http://www.datadictionary.wales.nhs.uk/index.html#!WordDocuments/postcode.htm  # noqa
+
+    However, our empirical rate is 0.00201 for ZZ99 3VZ (SystmOne; see
+    empirical_rates.sql).
+
+    K_PSEUDOPOSTCODE
+    ----------------
+
+    Distinct postcodes in sector ZZ993, from
+    https://files.digital.nhs.uk/assets/ods/current/Look%20Ups.zip:
+
+    ZZ99 3AZ    Eire / Irish Republic / Southern Ireland
+    ZZ99 3BZ    Isle of Man
+    ZZ99 3CZ	England / Great Britain / United Kingdom (not otherwise stated)
+    ZZ99 3EZ    Guernsey / Herm / Jethou Island / Lihou
+    ZZ99 3FZ	Jersey
+    ZZ99 3GZ	Wales
+    ZZ99 3HZ    Channel Islands (not otherwise stated) / Alderney / Brechou / Sark, Little and Great
+    ZZ99 3VZ	No fixed abode
+    ZZ99 3WZ	At sea / In the air / Inadequately described/specified / Information refused / Not collected / Not known / Not stated/specified
+
+    So there are 9 postcode units in the ZZ993 sector. Our estimate above is
+    for homelessness, which is likely overrepresented, but these are also big
+    groupings of visitors. No particularly strong evidence to deviate from 9
+    at present (acknowledging this is a fairly fuzzy estimate anyway). The most
+    important thing is that k_pseudopostcode > 1. It would be invalid for it
+    to be <1 and if it is exactly 1, then p_pnf_postcode = 0 (because the
+    sector probability will exactly match the unit probability) and any
+    inadvertent sector-not-unit match will give a log likelihood of +∞ and a
+    certain match.
+    
+    However, empirically in SystmOne, ZZ993 / ZZ993VZ = 1.83 (see paper).
+
     """  # noqa
-    #              = 0.0002026794
-    #   We'll round: 0.000203
-    #   (So that's about 13.5k people with postcode ZZ99 3VZ, estimated.)
-    # [1] https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/852953/Statutory_Homelessness_Statistical_Release_Apr-Jun_2019.pdf  # noqa
-    # [2] https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/families/bulletins/familiesandhouseholds/2020  # noqa
-    # [3] https://pubmed.ncbi.nlm.nih.gov/35477868/
-    # [4] http://www.datadictionary.wales.nhs.uk/index.html#!WordDocuments/postcode.htm  # noqa
+
+    P_UNKNOWN_OR_PSEUDO_POSTCODE = 0.00201  # (E)
+    K_PSEUDOPOSTCODE = 1.83  # (E)
 
     # -------------------------------------------------------------------------
     # Error rates

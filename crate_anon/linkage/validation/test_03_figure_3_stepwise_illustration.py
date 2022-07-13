@@ -42,7 +42,7 @@ from crate_anon.linkage.person import Person
 log = logging.getLogger(__name__)
 
 
-def main(verbose: bool = False, postcodes: bool = False) -> None:
+def main(verbose: bool = False, postcodes: bool = True) -> None:
     """
     Command-line entry point.
     """
@@ -96,7 +96,7 @@ def main(verbose: bool = False, postcodes: bool = False) -> None:
         forenames=["Elisabeth"],
         dob="1960-01-01",
         gender=GENDER_FEMALE,
-        postcodes=maybe_postcode("ZZ99 3VZ"),  # no match
+        postcodes=maybe_postcode("ZZ99 3VZ"),  # no match, pseudopostcode
     )
 
     test_people = [other1, other2, proband, other3, other4]

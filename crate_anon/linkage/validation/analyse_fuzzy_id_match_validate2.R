@@ -1038,7 +1038,11 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
                     age_at_first_mh_care = de_null(other_info$age_at_first_mh_care, NA_integer_),
                     any_icd10_dx_present = other_info$any_icd10_dx_present,
                     chapter_f_icd10_dx_present = other_info$chapter_f_icd10_dx_present,
-                    severe_mental_illness_icd10_dx_present = other_info$severe_mental_illness_icd10_dx_present
+                    severe_mental_illness_icd10_dx_present = other_info$severe_mental_illness_icd10_dx_present,
+
+                    has_pseudopostcode = other_info$has_pseudopostcode,
+                    has_nfa_pseudopostcode = other_info$has_nfa_pseudopostcode,
+                    has_non_nfa_pseudopostcode = other_info$has_non_nfa_pseudopostcode,
                 ))
             }
         ) %>%
@@ -1206,6 +1210,9 @@ load_comparison <- function(filename, probands, sample, nrows = ROW_LIMIT)
             # "severe_mental_illness_icd10_dx_present",
             # "diagnostic_group",
             "dx_group_simple",
+            "has_pseudopostcode",
+            "has_nfa_pseudopostcode",
+            "has_non_nfa_pseudopostcode",
 
             # Reported match
             "log_odds_match",
@@ -1572,7 +1579,8 @@ bias_at_threshold <- function(
                 + ethnicity
                 + deprivation_centile_100_most_deprived
                 # + age_at_first_mh_care
-                + dx_group_simple,
+                + dx_group_simple
+                + has_pseudopostcode,
         family = binomial(link = "logit"),
         data = decided
     )

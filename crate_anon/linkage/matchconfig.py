@@ -90,10 +90,10 @@ class MatchConfig:
         rounding_sf: Optional[int] = FuzzyDefaults.ROUNDING_SF,
         local_id_hash_key: str = None,
         population_size: int = FuzzyDefaults.POPULATION_SIZE,
-        forename_cache_filename: str = FuzzyDefaults.FORENAME_CACHE_FILENAME,
         forename_sex_csv_filename: str = FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
-        surname_cache_filename: str = FuzzyDefaults.SURNAME_CACHE_FILENAME,
+        forename_cache_filename: str = FuzzyDefaults.FORENAME_CACHE_FILENAME,
         surname_csv_filename: str = FuzzyDefaults.SURNAME_FREQ_CSV,
+        surname_cache_filename: str = FuzzyDefaults.SURNAME_CACHE_FILENAME,
         min_name_frequency: float = FuzzyDefaults.NAME_MIN_FREQ,
         accent_transliterations_csv: str = (
             FuzzyDefaults.ACCENT_TRANSLITERATIONS_SLASH_CSV
@@ -106,13 +106,13 @@ class MatchConfig:
         p_female_given_male_or_female: float = (
             FuzzyDefaults.P_FEMALE_GIVEN_MALE_OR_FEMALE
         ),
-        postcode_cache_filename: str = FuzzyDefaults.POSTCODE_CACHE_FILENAME,
         postcode_csv_filename: str = FuzzyDefaults.POSTCODES_CSV,
-        mean_oa_population: float = FuzzyDefaults.MEAN_OA_POPULATION,
+        postcode_cache_filename: str = FuzzyDefaults.POSTCODE_CACHE_FILENAME,
         k_postcode: Optional[float] = FuzzyDefaults.K_POSTCODE,
         p_unknown_or_pseudo_postcode: float = (
             FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE
         ),
+        k_pseudopostcode: float = FuzzyDefaults.K_PSEUDOPOSTCODE,
         p_ep1_forename: str = FuzzyDefaults.P_EP1_FORENAME_CSV,
         p_ep2np1_forename: str = FuzzyDefaults.P_EP2NP1_FORENAME_CSV,
         p_u_forename: float = FuzzyDefaults.P_U_FORENAME,
@@ -157,16 +157,16 @@ class MatchConfig:
                 The size of the entire population (not our sample). See
                 docstrings above.
 
-            forename_cache_filename:
-                File in which to cache forename information for faster loading.
             forename_sex_csv_filename:
                 Forename frequencies. CSV file, with no header, of "name,
                 frequency" pairs.
-            surname_cache_filename:
+            forename_cache_filename:
                 File in which to cache forename information for faster loading.
             surname_csv_filename:
                 Surname frequencies. CSV file, with no header, of "name,
                 frequency" pairs.
+            surname_cache_filename:
+                File in which to cache forename information for faster loading.
             min_name_frequency:
                 Minimum name frequency; see command-line help.
             accent_transliterations_csv:
@@ -186,13 +186,11 @@ class MatchConfig:
                 Probability that a person in the population is female, given
                 that they are either male or female.
 
-            postcode_cache_filename:
-                File in which to cache postcode information for faster loading.
             postcode_csv_filename:
                 Postcode mapping. CSV (or ZIP) file. Special format; see
                 :class:`PostcodeFrequencyInfo`.
-            mean_oa_population:
-                The mean population of a UK Census Output Area.
+            postcode_cache_filename:
+                File in which to cache postcode information for faster loading.
             k_postcode:
                 Multiple applied to postcode unit/sector frequencies, such that
                 p_f_postcode = k_postcode * f_f_postcode and p_p_postcode =
@@ -203,7 +201,13 @@ class MatchConfig:
             p_unknown_or_pseudo_postcode:
                 Probability that a random person will have a pseudo-postcode,
                 e.g. ZZ99 3VZ (no fixed above) or a postcode not known to our
-                database.
+                database. Specifically, P(each pseudopostcode or unknown
+                postcode unit | ¬H).
+            k_pseudopostcode:
+                Probability multiple: P(pseudopostcode sector or unknown
+                postcode sector match | ¬H) = k_pseudopostcode *
+                p_unknown_or_pseudo_postcode. Must strictly be >=1 and we
+                enforce >1; see paper.
 
             p_ep1_forename:
                 Error probability that a forename fails a full match but passes
@@ -271,12 +275,18 @@ class MatchConfig:
             """
             raise ValueError(f"Bad {name_}: {x_!r}")
 
-        def check_prob(p_: float, name_: str) -> float:
+        def check_prob(
+            p_: float, name_: str, not_certain: bool = False
+        ) -> float:
             """
             Ensure that something is a probability, and return it.
             """
-            if not 0 <= p_ <= 1:
-                raise_bad(p_, name_)
+            if not_certain:
+                if not 0 < p_ < 1:
+                    raise_bad(p_, name_ + " [must be in range (0, 1)]")
+            else:
+                if not 0 <= p_ <= 1:
+                    raise_bad(p_, name_)
             return p_
 
         def mk_gender_p_dict(csv_: str, name_: str) -> Dict[str, float]:
@@ -392,6 +402,7 @@ class MatchConfig:
         # Name handling: forenames
 
         self.forename_csv_filename = forename_sex_csv_filename
+        self.forename_cache_filename = forename_cache_filename
         self.forename_freq_info = NameFrequencyInfo(
             csv_filename=forename_sex_csv_filename,
             cache_filename=forename_cache_filename,
@@ -402,6 +413,7 @@ class MatchConfig:
         # Name handling: surnames
 
         self.surname_csv_filename = surname_csv_filename
+        self.surname_cache_filename = surname_cache_filename
         self.surname_freq_info = NameFrequencyInfo(
             csv_filename=surname_csv_filename,
             cache_filename=surname_cache_filename,
@@ -434,17 +446,31 @@ class MatchConfig:
 
         # Population frequencies: postcode
 
-        if not (mean_oa_population > 0):
-            raise_bad(mean_oa_population, Switches.MEAN_OA_POPULATION)
         self.postcode_freq = PostcodeFrequencyInfo(
             csv_filename=postcode_csv_filename,
             cache_filename=postcode_cache_filename,
-            mean_oa_population=mean_oa_population,
-            p_unknown_or_pseudo_postcode=check_prob(
-                p_unknown_or_pseudo_postcode,
-                Switches.P_UNKNOWN_OR_PSEUDO_POSTCODE,
-            ),
         )
+        self.p_unknown_or_pseudo_postcode_unit = check_prob(
+            p_unknown_or_pseudo_postcode,
+            Switches.P_UNKNOWN_OR_PSEUDO_POSTCODE,
+            not_certain=True,
+        )
+        if k_pseudopostcode <= 1:
+            raise ValueError(f"Bad {Switches.K_PSEUDOPOSTCODE}: must be >1")
+        self.k_pseudopostcode = k_pseudopostcode
+        self.p_unknown_or_pseudo_postcode_sector = check_prob(
+            k_pseudopostcode * p_unknown_or_pseudo_postcode,
+            f"P(unknown postcode or pseudopostcode sector | ¬H) = "
+            f"{Switches.K_PSEUDOPOSTCODE} * "
+            f"{Switches.P_UNKNOWN_OR_PSEUDO_POSTCODE}",
+            not_certain=True,
+        )
+        self.k_postcode = (
+            UK_POPULATION_2017 / self.population_size
+            if k_postcode is None
+            else k_postcode
+        )
+        self.p_known_postcode = 1 - self.p_unknown_or_pseudo_postcode_sector
 
         # Error probabilities: forenames
 
@@ -497,11 +523,6 @@ class MatchConfig:
 
         self.p_ep_postcode = check_prob(p_ep_postcode, Switches.P_EP_POSTCODE)
         self.p_en_postcode = check_prob(p_en_postcode, Switches.P_EN_POSTCODE)
-        self.k_postcode = (
-            UK_POPULATION_2017 / self.population_size
-            if k_postcode is None
-            else k_postcode
-        )
 
         # Matching rules
 
@@ -629,6 +650,8 @@ class MatchConfig:
 
     def __str__(self) -> str:
         return auto_repr(self)
+
+    # not __repr__(), or it clutters up all the other objects
 
     # -------------------------------------------------------------------------
     # Identifier frequency information

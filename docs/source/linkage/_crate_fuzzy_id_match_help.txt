@@ -1,5 +1,5 @@
 usage: crate_fuzzy_id_match [-h] [--version] [--allhelp]
-                            {hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,print_demo_sample,show_metaphone,show_forename_freq,show_forename_metaphone_freq,show_forename_f2c_freq,show_surname_freq,show_surname_metaphone_freq,show_surname_f2c_freq,show_dob_freq,show_postcode_freq}
+                            {hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,print_demo_sample,show_metaphone,show_names_for_metaphone,show_forename_freq,show_forename_metaphone_freq,show_forename_f2c_freq,show_surname_freq,show_surname_metaphone_freq,show_surname_f2c_freq,show_dob_freq,show_postcode_freq}
                             ...
 
 Identity matching via hashed fuzzy identifiers
@@ -12,7 +12,7 @@ optional arguments:
 commands:
   Valid commands are as follows.
 
-  {hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,print_demo_sample,show_metaphone,show_forename_freq,show_forename_metaphone_freq,show_forename_f2c_freq,show_surname_freq,show_surname_metaphone_freq,show_surname_f2c_freq,show_dob_freq,show_postcode_freq}
+  {hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,print_demo_sample,show_metaphone,show_names_for_metaphone,show_forename_freq,show_forename_metaphone_freq,show_forename_f2c_freq,show_surname_freq,show_surname_metaphone_freq,show_surname_f2c_freq,show_dob_freq,show_postcode_freq}
                         Specify one command.
     hash                STEP 1 OF DE-IDENTIFIED LINKAGE. Hash an identifiable
                         CSV file into an encrypted one.
@@ -30,6 +30,9 @@ commands:
                         sample (plaintext). Hashes the sample on the fly.
     print_demo_sample   Print a demo sample .CSV file.
     show_metaphone      Show metaphones of words
+    show_names_for_metaphone
+                        Show names (forenames and surnames) for a given
+                        metaphone
     show_forename_freq  Show frequencies of forenames
     show_forename_metaphone_freq
                         Show frequencies of forename metaphones
@@ -66,8 +69,9 @@ usage: crate_fuzzy_id_match hash [-h] --input INPUT --output OUTPUT
                                  [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
                                  [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
                                  [--postcode_csv_filename POSTCODE_CSV_FILENAME]
-                                 [--mean_oa_population MEAN_OA_POPULATION]
+                                 [--k_postcode K_POSTCODE]
                                  [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                 [--k_pseudopostcode K_PSEUDOPOSTCODE]
                                  [--verbose]
 
 Takes an identifiable list of people (with name, DOB, and postcode information)
@@ -135,7 +139,7 @@ Frequency information for prior probabilities:
                         Size of the whole population, from which we calculate
                         the baseline log odds that two people, randomly
                         selected (and replaced) from the population are the
-                        same person. (default: 66040000)
+                        same person. (default: 852523)
   --forename_cache_filename FORENAME_CACHE_FILENAME
                         File in which to store cached forename info (to speed
                         loading). (default:
@@ -185,7 +189,7 @@ Frequency information for prior probabilities:
                         Birth year pseudo-range. The sole purpose is to
                         calculate the probability of two random people sharing
                         a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b. (default: 90)
+                        Feb. This option is b. (default: 30)
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'. (default: 0.004)
@@ -204,18 +208,28 @@ Frequency information for prior probabilities:
                         delete your postcode cache.] (default: /home/rudolf/Do
                         cuments/code/crate/crate_anon/linkage/data/ONSPD_MAY_2
                         022_UK.zip)
-  --mean_oa_population MEAN_OA_POPULATION
-                        Mean population of a UK Census Output Area, from which
-                        we estimate the population of postcode-based units.
-                        [Information saved in the postcode cache. If you
-                        change this, delete your postcode cache.] (default:
-                        309)
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+                        (default: None)
   --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
-                        Proportion of the (UK) population expected to be
-                        assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
-                        abode; ZZ99 3CZ, England/UK not otherwise specified)
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
-                        geography database. (default: 0.000203)
+                        geography database. (default: 0.00201)
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper. (default: 1.83)
 
 display options:
   --verbose             Be verbose. (default: False)
@@ -259,8 +273,9 @@ usage: crate_fuzzy_id_match compare_plaintext [-h] --probands PROBANDS
                                               [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
                                               [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
                                               [--postcode_csv_filename POSTCODE_CSV_FILENAME]
-                                              [--mean_oa_population MEAN_OA_POPULATION]
+                                              [--k_postcode K_POSTCODE]
                                               [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                              [--k_pseudopostcode K_PSEUDOPOSTCODE]
                                               [--verbose]
 
 Comparison rules:
@@ -448,7 +463,7 @@ Frequency information for prior probabilities:
                         Size of the whole population, from which we calculate
                         the baseline log odds that two people, randomly
                         selected (and replaced) from the population are the
-                        same person. (default: 66040000)
+                        same person. (default: 852523)
   --forename_cache_filename FORENAME_CACHE_FILENAME
                         File in which to store cached forename info (to speed
                         loading). (default:
@@ -498,7 +513,7 @@ Frequency information for prior probabilities:
                         Birth year pseudo-range. The sole purpose is to
                         calculate the probability of two random people sharing
                         a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b. (default: 90)
+                        Feb. This option is b. (default: 30)
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'. (default: 0.004)
@@ -517,18 +532,28 @@ Frequency information for prior probabilities:
                         delete your postcode cache.] (default: /home/rudolf/Do
                         cuments/code/crate/crate_anon/linkage/data/ONSPD_MAY_2
                         022_UK.zip)
-  --mean_oa_population MEAN_OA_POPULATION
-                        Mean population of a UK Census Output Area, from which
-                        we estimate the population of postcode-based units.
-                        [Information saved in the postcode cache. If you
-                        change this, delete your postcode cache.] (default:
-                        309)
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+                        (default: None)
   --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
-                        Proportion of the (UK) population expected to be
-                        assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
-                        abode; ZZ99 3CZ, England/UK not otherwise specified)
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
-                        geography database. (default: 0.000203)
+                        geography database. (default: 0.00201)
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper. (default: 1.83)
 
 display options:
   --verbose             Be verbose. (default: False)
@@ -573,8 +598,9 @@ usage: crate_fuzzy_id_match compare_hashed_to_hashed [-h] --probands PROBANDS
                                                      [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
                                                      [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
                                                      [--postcode_csv_filename POSTCODE_CSV_FILENAME]
-                                                     [--mean_oa_population MEAN_OA_POPULATION]
+                                                     [--k_postcode K_POSTCODE]
                                                      [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                                     [--k_pseudopostcode K_PSEUDOPOSTCODE]
                                                      [--verbose]
 
 Comparison rules:
@@ -736,7 +762,7 @@ Frequency information for prior probabilities:
                         Size of the whole population, from which we calculate
                         the baseline log odds that two people, randomly
                         selected (and replaced) from the population are the
-                        same person. (default: 66040000)
+                        same person. (default: 852523)
   --forename_cache_filename FORENAME_CACHE_FILENAME
                         File in which to store cached forename info (to speed
                         loading). (default:
@@ -786,7 +812,7 @@ Frequency information for prior probabilities:
                         Birth year pseudo-range. The sole purpose is to
                         calculate the probability of two random people sharing
                         a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b. (default: 90)
+                        Feb. This option is b. (default: 30)
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'. (default: 0.004)
@@ -805,18 +831,28 @@ Frequency information for prior probabilities:
                         delete your postcode cache.] (default: /home/rudolf/Do
                         cuments/code/crate/crate_anon/linkage/data/ONSPD_MAY_2
                         022_UK.zip)
-  --mean_oa_population MEAN_OA_POPULATION
-                        Mean population of a UK Census Output Area, from which
-                        we estimate the population of postcode-based units.
-                        [Information saved in the postcode cache. If you
-                        change this, delete your postcode cache.] (default:
-                        309)
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+                        (default: None)
   --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
-                        Proportion of the (UK) population expected to be
-                        assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
-                        abode; ZZ99 3CZ, England/UK not otherwise specified)
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
-                        geography database. (default: 0.000203)
+                        geography database. (default: 0.00201)
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper. (default: 1.83)
 
 display options:
   --verbose             Be verbose. (default: False)
@@ -867,8 +903,9 @@ usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] --probands
                                                         [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
                                                         [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
                                                         [--postcode_csv_filename POSTCODE_CSV_FILENAME]
-                                                        [--mean_oa_population MEAN_OA_POPULATION]
+                                                        [--k_postcode K_POSTCODE]
                                                         [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                                        [--k_pseudopostcode K_PSEUDOPOSTCODE]
                                                         [--verbose]
 
 Comparison rules:
@@ -1064,7 +1101,7 @@ Frequency information for prior probabilities:
                         Size of the whole population, from which we calculate
                         the baseline log odds that two people, randomly
                         selected (and replaced) from the population are the
-                        same person. (default: 66040000)
+                        same person. (default: 852523)
   --forename_cache_filename FORENAME_CACHE_FILENAME
                         File in which to store cached forename info (to speed
                         loading). (default:
@@ -1114,7 +1151,7 @@ Frequency information for prior probabilities:
                         Birth year pseudo-range. The sole purpose is to
                         calculate the probability of two random people sharing
                         a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b. (default: 90)
+                        Feb. This option is b. (default: 30)
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'. (default: 0.004)
@@ -1133,18 +1170,28 @@ Frequency information for prior probabilities:
                         delete your postcode cache.] (default: /home/rudolf/Do
                         cuments/code/crate/crate_anon/linkage/data/ONSPD_MAY_2
                         022_UK.zip)
-  --mean_oa_population MEAN_OA_POPULATION
-                        Mean population of a UK Census Output Area, from which
-                        we estimate the population of postcode-based units.
-                        [Information saved in the postcode cache. If you
-                        change this, delete your postcode cache.] (default:
-                        309)
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+                        (default: None)
   --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
-                        Proportion of the (UK) population expected to be
-                        assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
-                        abode; ZZ99 3CZ, England/UK not otherwise specified)
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
-                        geography database. (default: 0.000203)
+                        geography database. (default: 0.00201)
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper. (default: 1.83)
 
 display options:
   --verbose             Be verbose. (default: False)
@@ -1175,6 +1222,121 @@ display options:
   --verbose   Be verbose.
 
 ===============================================================================
+Help for command 'show_names_for_metaphone'
+===============================================================================
+usage: crate_fuzzy_id_match show_names_for_metaphone [-h]
+                                                     [--population_size POPULATION_SIZE]
+                                                     [--forename_cache_filename FORENAME_CACHE_FILENAME]
+                                                     [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                                     [--surname_cache_filename SURNAME_CACHE_FILENAME]
+                                                     [--surname_freq_csv SURNAME_FREQ_CSV]
+                                                     [--min_name_frequency MIN_NAME_FREQUENCY]
+                                                     [--accent_transliterations ACCENT_TRANSLITERATIONS]
+                                                     [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
+                                                     [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
+                                                     [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
+                                                     [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
+                                                     [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
+                                                     [--postcode_csv_filename POSTCODE_CSV_FILENAME]
+                                                     [--k_postcode K_POSTCODE]
+                                                     [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                                     [--k_pseudopostcode K_PSEUDOPOSTCODE]
+                                                     [--verbose]
+                                                     words [words ...]
+
+positional arguments:
+  words                 Words to check
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Frequency information for prior probabilities:
+  --population_size POPULATION_SIZE
+                        Size of the whole population, from which we calculate
+                        the baseline log odds that two people, randomly
+                        selected (and replaced) from the population are the
+                        same person.
+  --forename_cache_filename FORENAME_CACHE_FILENAME
+                        File in which to store cached forename info (to speed
+                        loading).
+  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
+                        CSV file of "name, sex, frequency" pairs for
+                        forenames. You can generate one via
+                        crate_fetch_wordlists. If you later alter this, delete
+                        your forename cache so it can be rebuilt.
+  --surname_cache_filename SURNAME_CACHE_FILENAME
+                        File in which to store cached surname info (to speed
+                        loading).
+  --surname_freq_csv SURNAME_FREQ_CSV
+                        CSV file of "name, frequency" pairs for forenames. You
+                        can generate one via crate_fetch_wordlists. If you
+                        later alter this, delete your surname cache so it can
+                        be rebuilt.
+  --min_name_frequency MIN_NAME_FREQUENCY
+                        Minimum base frequency for names. If a frequency is
+                        less than this, use this minimum. Allowing extremely
+                        low frequencies may increase the chances of a spurious
+                        match. Note also that typical name frequency tables
+                        don't give very-low-frequency information. For
+                        example, for US census forename/surname information,
+                        below 0.001 percent they report 0.000 percent; so a
+                        reasonable minimum is 0.0005 percent or 0.000005 or
+                        5e-6.
+  --accent_transliterations ACCENT_TRANSLITERATIONS
+                        CSV list of 'accented/plain' pairs, representing how
+                        accented characters may be transliterated (if they are
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
+                        (anything supplied will be converted to upper case).
+  --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
+                        CSV list of name components that should not be used as
+                        alternatives in their own right, such as nobiliary
+                        particles.
+  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
+                        Birth year pseudo-range. The sole purpose is to
+                        calculate the probability of two random people sharing
+                        a DOB, which is taken as 1/(365.25 * b), even for 29
+                        Feb. This option is b.
+  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
+                        Probability that a person in the population has gender
+                        'X'.
+  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
+                        Probability that a person in the population is female,
+                        given that they are either male or female.
+  --postcode_cache_filename POSTCODE_CACHE_FILENAME
+                        File in which to store cached postcodes (to speed
+                        loading).
+  --postcode_csv_filename POSTCODE_CSV_FILENAME
+                        CSV file of postcode geography from UK Census/ONS
+                        data. A ZIP file is also acceptable. [Information
+                        saved in the postcode cache. If you change this,
+                        delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
+                        or to have a postcode not known to the postcode
+                        geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
+
+display options:
+  --verbose             Be verbose.
+
+===============================================================================
 Help for command 'show_forename_freq'
 ===============================================================================
 usage: crate_fuzzy_id_match show_forename_freq [-h]
@@ -1191,8 +1353,9 @@ usage: crate_fuzzy_id_match show_forename_freq [-h]
                                                [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
                                                [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
                                                [--postcode_csv_filename POSTCODE_CSV_FILENAME]
-                                               [--mean_oa_population MEAN_OA_POPULATION]
+                                               [--k_postcode K_POSTCODE]
                                                [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                               [--k_pseudopostcode K_PSEUDOPOSTCODE]
                                                [--verbose]
                                                forenames [forenames ...]
 
@@ -1263,17 +1426,27 @@ Frequency information for prior probabilities:
                         data. A ZIP file is also acceptable. [Information
                         saved in the postcode cache. If you change this,
                         delete your postcode cache.]
-  --mean_oa_population MEAN_OA_POPULATION
-                        Mean population of a UK Census Output Area, from which
-                        we estimate the population of postcode-based units.
-                        [Information saved in the postcode cache. If you
-                        change this, delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
   --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
-                        Proportion of the (UK) population expected to be
-                        assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
-                        abode; ZZ99 3CZ, England/UK not otherwise specified)
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
                         geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
 
 display options:
   --verbose             Be verbose.
@@ -1295,8 +1468,9 @@ usage: crate_fuzzy_id_match show_forename_metaphone_freq [-h]
                                                          [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
                                                          [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
                                                          [--postcode_csv_filename POSTCODE_CSV_FILENAME]
-                                                         [--mean_oa_population MEAN_OA_POPULATION]
+                                                         [--k_postcode K_POSTCODE]
                                                          [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                                         [--k_pseudopostcode K_PSEUDOPOSTCODE]
                                                          [--verbose]
                                                          metaphones
                                                          [metaphones ...]
@@ -1368,17 +1542,27 @@ Frequency information for prior probabilities:
                         data. A ZIP file is also acceptable. [Information
                         saved in the postcode cache. If you change this,
                         delete your postcode cache.]
-  --mean_oa_population MEAN_OA_POPULATION
-                        Mean population of a UK Census Output Area, from which
-                        we estimate the population of postcode-based units.
-                        [Information saved in the postcode cache. If you
-                        change this, delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
   --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
-                        Proportion of the (UK) population expected to be
-                        assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
-                        abode; ZZ99 3CZ, England/UK not otherwise specified)
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
                         geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
 
 display options:
   --verbose             Be verbose.
@@ -1400,8 +1584,9 @@ usage: crate_fuzzy_id_match show_forename_f2c_freq [-h]
                                                    [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
                                                    [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
                                                    [--postcode_csv_filename POSTCODE_CSV_FILENAME]
-                                                   [--mean_oa_population MEAN_OA_POPULATION]
+                                                   [--k_postcode K_POSTCODE]
                                                    [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                                   [--k_pseudopostcode K_PSEUDOPOSTCODE]
                                                    [--verbose]
                                                    f2c [f2c ...]
 
@@ -1472,17 +1657,27 @@ Frequency information for prior probabilities:
                         data. A ZIP file is also acceptable. [Information
                         saved in the postcode cache. If you change this,
                         delete your postcode cache.]
-  --mean_oa_population MEAN_OA_POPULATION
-                        Mean population of a UK Census Output Area, from which
-                        we estimate the population of postcode-based units.
-                        [Information saved in the postcode cache. If you
-                        change this, delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
   --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
-                        Proportion of the (UK) population expected to be
-                        assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
-                        abode; ZZ99 3CZ, England/UK not otherwise specified)
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
                         geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
 
 display options:
   --verbose             Be verbose.
@@ -1504,8 +1699,9 @@ usage: crate_fuzzy_id_match show_surname_freq [-h]
                                               [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
                                               [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
                                               [--postcode_csv_filename POSTCODE_CSV_FILENAME]
-                                              [--mean_oa_population MEAN_OA_POPULATION]
+                                              [--k_postcode K_POSTCODE]
                                               [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                              [--k_pseudopostcode K_PSEUDOPOSTCODE]
                                               [--verbose]
                                               surnames [surnames ...]
 
@@ -1576,17 +1772,27 @@ Frequency information for prior probabilities:
                         data. A ZIP file is also acceptable. [Information
                         saved in the postcode cache. If you change this,
                         delete your postcode cache.]
-  --mean_oa_population MEAN_OA_POPULATION
-                        Mean population of a UK Census Output Area, from which
-                        we estimate the population of postcode-based units.
-                        [Information saved in the postcode cache. If you
-                        change this, delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
   --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
-                        Proportion of the (UK) population expected to be
-                        assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
-                        abode; ZZ99 3CZ, England/UK not otherwise specified)
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
                         geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
 
 display options:
   --verbose             Be verbose.
@@ -1608,8 +1814,9 @@ usage: crate_fuzzy_id_match show_surname_metaphone_freq [-h]
                                                         [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
                                                         [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
                                                         [--postcode_csv_filename POSTCODE_CSV_FILENAME]
-                                                        [--mean_oa_population MEAN_OA_POPULATION]
+                                                        [--k_postcode K_POSTCODE]
                                                         [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                                        [--k_pseudopostcode K_PSEUDOPOSTCODE]
                                                         [--verbose]
                                                         metaphones
                                                         [metaphones ...]
@@ -1681,17 +1888,27 @@ Frequency information for prior probabilities:
                         data. A ZIP file is also acceptable. [Information
                         saved in the postcode cache. If you change this,
                         delete your postcode cache.]
-  --mean_oa_population MEAN_OA_POPULATION
-                        Mean population of a UK Census Output Area, from which
-                        we estimate the population of postcode-based units.
-                        [Information saved in the postcode cache. If you
-                        change this, delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
   --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
-                        Proportion of the (UK) population expected to be
-                        assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
-                        abode; ZZ99 3CZ, England/UK not otherwise specified)
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
                         geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
 
 display options:
   --verbose             Be verbose.
@@ -1713,8 +1930,9 @@ usage: crate_fuzzy_id_match show_surname_f2c_freq [-h]
                                                   [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
                                                   [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
                                                   [--postcode_csv_filename POSTCODE_CSV_FILENAME]
-                                                  [--mean_oa_population MEAN_OA_POPULATION]
+                                                  [--k_postcode K_POSTCODE]
                                                   [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                                  [--k_pseudopostcode K_PSEUDOPOSTCODE]
                                                   [--verbose]
                                                   f2c [f2c ...]
 
@@ -1785,17 +2003,27 @@ Frequency information for prior probabilities:
                         data. A ZIP file is also acceptable. [Information
                         saved in the postcode cache. If you change this,
                         delete your postcode cache.]
-  --mean_oa_population MEAN_OA_POPULATION
-                        Mean population of a UK Census Output Area, from which
-                        we estimate the population of postcode-based units.
-                        [Information saved in the postcode cache. If you
-                        change this, delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
   --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
-                        Proportion of the (UK) population expected to be
-                        assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
-                        abode; ZZ99 3CZ, England/UK not otherwise specified)
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
                         geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
 
 display options:
   --verbose             Be verbose.
@@ -1817,8 +2045,9 @@ usage: crate_fuzzy_id_match show_dob_freq [-h]
                                           [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
                                           [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
                                           [--postcode_csv_filename POSTCODE_CSV_FILENAME]
-                                          [--mean_oa_population MEAN_OA_POPULATION]
+                                          [--k_postcode K_POSTCODE]
                                           [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                          [--k_pseudopostcode K_PSEUDOPOSTCODE]
                                           [--verbose]
 
 optional arguments:
@@ -1885,17 +2114,27 @@ Frequency information for prior probabilities:
                         data. A ZIP file is also acceptable. [Information
                         saved in the postcode cache. If you change this,
                         delete your postcode cache.]
-  --mean_oa_population MEAN_OA_POPULATION
-                        Mean population of a UK Census Output Area, from which
-                        we estimate the population of postcode-based units.
-                        [Information saved in the postcode cache. If you
-                        change this, delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
   --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
-                        Proportion of the (UK) population expected to be
-                        assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
-                        abode; ZZ99 3CZ, England/UK not otherwise specified)
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
                         geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
 
 display options:
   --verbose             Be verbose.
@@ -1917,8 +2156,9 @@ usage: crate_fuzzy_id_match show_postcode_freq [-h]
                                                [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
                                                [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
                                                [--postcode_csv_filename POSTCODE_CSV_FILENAME]
-                                               [--mean_oa_population MEAN_OA_POPULATION]
+                                               [--k_postcode K_POSTCODE]
                                                [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                               [--k_pseudopostcode K_PSEUDOPOSTCODE]
                                                [--verbose]
                                                postcodes [postcodes ...]
 
@@ -1989,17 +2229,27 @@ Frequency information for prior probabilities:
                         data. A ZIP file is also acceptable. [Information
                         saved in the postcode cache. If you change this,
                         delete your postcode cache.]
-  --mean_oa_population MEAN_OA_POPULATION
-                        Mean population of a UK Census Output Area, from which
-                        we estimate the population of postcode-based units.
-                        [Information saved in the postcode cache. If you
-                        change this, delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
   --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
-                        Proportion of the (UK) population expected to be
-                        assigned a 'pseudo-postcode' (e.g. ZZ99 3VZ, no fixed
-                        abode; ZZ99 3CZ, England/UK not otherwise specified)
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
                         or to have a postcode not known to the postcode
                         geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
 
 display options:
   --verbose             Be verbose.

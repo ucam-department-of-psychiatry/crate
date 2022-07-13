@@ -504,23 +504,29 @@ PSEUDO_POSTCODES = set(standardize_postcode(p) for p in (
 ))
 PSEUDO_POSTCODE_SECTORS = set(get_postcode_sector(p) for p in PSEUDO_POSTCODES)
 """  # noqa
+
 PSEUDO_POSTCODE_START = "ZZ99"
+PSEUDOPOSTCODE_NFA = "ZZ993VZ"  # no fixed abode
 
 
-# def is_pseudo_postcode_sector(postcode_sector: str) -> bool:
-#     """
-#     Is this a pseudo-postcode sector?
-#     Assumes upper case.
-#     """
-#     return postcode_sector.startswith(PSEUDO_POSTCODE_START)
-
-
-def is_pseudo_postcode(postcode_unit: str) -> bool:
+def is_pseudopostcode(
+    postcode_unit: str, prestandardized: bool = False
+) -> bool:
     """
-    Is this a pseudo-postcode?
-    Assumes upper case.
+    Is this a pseudopostcode?
     """
+    if not prestandardized:
+        postcode_unit = standardize_postcode(postcode_unit)
     return postcode_unit.startswith(PSEUDO_POSTCODE_START)
+
+
+def is_nfa_postcode(postcode_unit: str, prestandardized: bool = False) -> bool:
+    """
+    Is this the pseudopostcode meaning "no fixed abode"?
+    """
+    if not prestandardized:
+        postcode_unit = standardize_postcode(postcode_unit)
+    return postcode_unit == PSEUDOPOSTCODE_NFA
 
 
 # =============================================================================
@@ -694,12 +700,26 @@ def getdictval(
     return v
 
 
-def validateprob(p: float, description: str) -> None:
+def validate_prob(p: float, description: str) -> None:
     """
-    Checks a probability or raises :exc:`ValueError`.
+    Checks a probability is in the range [0, 1] or raises :exc:`ValueError`.
     """
     if not 0 <= p <= 1:
-        raise ValueError(f"Bad probability for {description}: {p}")
+        raise ValueError(
+            f"Bad probability for {description}: {p} "
+            f"-- must be in range [0, 1]"
+        )
+
+
+def validate_uncertain_prob(p: float, description: str) -> None:
+    """
+    Checks a probability is in the range (0, 1) or raises :exc:`ValueError`.
+    """
+    if not 0 < p < 1:
+        raise ValueError(
+            f"Bad probability for {description}: {p} "
+            f"-- must be in range (0, 1)"
+        )
 
 
 def getdictprob(
@@ -715,7 +735,7 @@ def getdictprob(
     v = getdictval(d, key, float, mandatory=mandatory, default=default)
     if v is None:
         return None
-    validateprob(v, key)
+    validate_prob(v, key)
     return v
 
 

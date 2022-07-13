@@ -58,7 +58,7 @@ import pendulum
 from pendulum.parsing.exceptions import ParserError
 from pendulum import Date
 
-from crate_anon.linkage.constants import VALID_GENDERS
+from crate_anon.linkage.constants import Switches, VALID_GENDERS
 from crate_anon.linkage.comparison import (
     AdjustLogOddsComparison,
     CertainComparison,
@@ -81,7 +81,7 @@ from crate_anon.linkage.helpers import (
     standardize_perfect_id_value,
     standardize_postcode,
     surname_alternative_fragments,
-    validateprob,
+    validate_uncertain_prob,
 )
 from crate_anon.linkage.matchconfig import MatchConfig
 
@@ -563,6 +563,30 @@ class IdentifierTwoState(Identifier, ABC):
             return self.comparison_full_match
         return self.comparison_no_match
 
+    def warn_if_any_match_llr_lower_than_mismatch_llr(
+        self, match_comparisons: List[DirectComparison]
+    ) -> None:
+        """
+        Partial/full comparisons are not guaranteed to be ordered as you might
+        expect; an example is in the validation paper (and in
+        other_examples_for_paper.py). However, all partial/full matches are
+        expected to yield better evidence for H than a complete mismatch. This
+        function warns the user if that's the case.
+
+        Args:
+            match_comparisons:
+                Comparisons for "match" conditions, partial and full.
+        """
+        no_match_llr = self.comparison_no_match.log_likelihood_ratio
+        if any(
+            c.log_likelihood_ratio < no_match_llr for c in match_comparisons
+        ):
+            log.warning(
+                f"{self.__class__.__name__}: a match-type comparison's log "
+                f"likelihood ratio is less than the no-match comparison's. "
+                f"Object:\n\n{self!r}"
+            )
+
 
 # =============================================================================
 # IdentifierThreeState
@@ -745,7 +769,8 @@ class Postcode(IdentifierThreeState):
 
     Note that we store nationwide frequencies. Final adjustment by k_postcode
     is only done at the last moment, allowing k_postcode to vary without having
-    to change a hashed frequency file.
+    to change a hashed frequency file. Similarly for the probability of a
+    postcode being unknown. So stored frequencies may be None.
     """
 
     KEY_POSTCODE_UNIT = "postcode_unit"
@@ -799,15 +824,87 @@ class Postcode(IdentifierThreeState):
     def _set_comparisons(self) -> None:
         if self.postcode_unit:
             cfg = self.cfg
+
+            # -----------------------------------------------------------------
+            # Population probabilities.
+            # -----------------------------------------------------------------
+            # Here we apply any comparison-time adjustments, e.g. for the
+            # probability of an unknown postcode or pseudopostcode, or the
+            # potential that our comparison population is a geographic subset
+            # of the UK.
+
+            # Unit probability, p_f
+            f_f = self.unit_freq  # national fraction (full), or None
+            unit_unknown = f_f is None
+            if unit_unknown:
+                # Unknown postcode unit. This has been specified directly.
+                p_f = cfg.p_unknown_or_pseudo_postcode_unit
+            else:
+                # Known postcode
+                p_f = cfg.k_postcode * f_f * cfg.p_known_postcode
+
+            # Total sector probability, p_p
+            f_p = self.sector_freq  # national fraction (partial), or None
+            sector_unknown = f_p is None
+            if sector_unknown:
+                # Unknown sector. This has been specified directly.
+                p_p = cfg.p_unknown_or_pseudo_postcode_sector
+                # A sanity check:
+                assert unit_unknown, (
+                    "Should be impossible that the postcode unit is known but "
+                    "the sector is not."
+                )
+            else:
+                # Known sector
+                p_p = cfg.k_postcode * f_p * cfg.p_known_postcode
+                # It is possible, though, that the postcode is unknown but the
+                # sector is known (e.g. a typo in the postcode).
+                if unit_unknown and p_p < p_f:
+                    log.warning(
+                        f"Unknown postcode unit in known sector and "
+                        f"user-specified unknown unit probability "
+                        f"p_f = {Switches.P_UNKNOWN_OR_PSEUDO_POSTCODE} "
+                        f"exceeds the calculated probability of the known "
+                        f"sector, p_p = k_postcode[{cfg.k_postcode}]"
+                        f" * f_p[{f_p}]"
+                        f" * p_known_postcode[{cfg.p_known_postcode}]"
+                        f" = {p_p}. Adjusting the sector probability up to "
+                        f"the unknown sector probability, "
+                        f"p_p = {cfg.p_unknown_or_pseudo_postcode_sector}, "
+                        f"but this may be a configuration error."
+                    )
+                    p_p = cfg.p_unknown_or_pseudo_postcode_sector
+
+            validate_uncertain_prob(
+                p_f,
+                "Postcode p_f = k_postcode * f_f * p_known_postcode",
+            )
+            validate_uncertain_prob(
+                p_p, "Postcode p_p = k_postcode * f_p * p_known_postcode"
+            )
+            # ... it's not reasonable that a postcode unit or sector is
+            # impossible or certain.
+
+            # Sector-not-unit probability, p_pnf
+            p_pnf = p_p - p_f
+            validate_uncertain_prob(
+                p_pnf, "Postcode p_pnf = p_p[sector] - p_f[unit]"
+            )
+            # ... It is not completely unreasonable for this to be 0, e.g. for
+            # pseudopostcodes that occupy all of their sector. But it's
+            # dangerous, because if a partial-not-full match then does occur,
+            # that will give P(D | ¬H) = 0 and log LR = +∞. We now enforce
+            # k_pseudopostcode > 1 and thus p_pnf > 0.
+
+            # -----------------------------------------------------------------
+            # Error probabilities
+            # -----------------------------------------------------------------
             p_ep = cfg.p_ep_postcode
             p_en = cfg.p_en_postcode
-            k = cfg.k_postcode
-            p_f = k * self.unit_freq  # unit_freq = f_f, national fraction
-            p_p = k * self.sector_freq  # sector_freq = f_p, national fraction
-            validateprob(p_f, "Postcode p_f = k * f_f[unit_freq]")
-            validateprob(p_p, "Postcode p_p = k * f_p[sector_freq]")
-            p_pnf = p_p - p_f
-            validateprob(p_pnf, "Postcode p_pnf = p_p[sector] - p_f[unit]")
+
+            # -----------------------------------------------------------------
+            # Comparisons
+            # -----------------------------------------------------------------
             self.comparison_full_match = DirectComparison(
                 p_d_given_same_person=1 - p_ep,  # p_c
                 p_d_given_diff_person=p_f,
@@ -816,12 +913,15 @@ class Postcode(IdentifierThreeState):
             self.comparison_partial_match = DirectComparison(
                 p_d_given_same_person=p_ep,
                 p_d_given_diff_person=p_pnf,
-                d_description="postcode_partial_match",
+                d_description="postcode_partial_not_full_match",
             )
             self.comparison_no_match = DirectComparison(
                 p_d_given_same_person=p_en,
                 p_d_given_diff_person=1 - p_p,  # p_n
                 d_description="postcode_no_match",
+            )
+            self.warn_if_any_match_llr_lower_than_mismatch_llr(
+                [self.comparison_full_match, self.comparison_partial_match]
             )
         else:
             self._clear_comparisons()
@@ -889,8 +989,8 @@ class Postcode(IdentifierThreeState):
         p.is_plaintext = not hashed
         p.postcode_unit = getdictval(d, cls.KEY_POSTCODE_UNIT, str)
         p.postcode_sector = getdictval(d, cls.KEY_POSTCODE_SECTOR, str)
-        p.unit_freq = getdictprob(d, cls.KEY_UNIT_FREQ)
-        p.sector_freq = getdictprob(d, cls.KEY_SECTOR_FREQ)
+        p.unit_freq = getdictprob(d, cls.KEY_UNIT_FREQ)  # permits None
+        p.sector_freq = getdictprob(d, cls.KEY_SECTOR_FREQ)  # permits None
         p._set_comparisons()
         return p
 
@@ -898,12 +998,10 @@ class Postcode(IdentifierThreeState):
         return bool(self.postcode_unit)
 
     def ensure_has_freq_info_if_id_present(self) -> None:
-        if self.postcode_unit and (
-            self.unit_freq is None or self.sector_freq is None
-        ):
-            raise ValueError(
-                self.ERR_MISSING_FREQ + f" for postcode {self.postcode_unit!r}"
-            )
+        pass
+        # It's fine for frequency information to be missing; that means the
+        # postcode is unknown or a pseudopostcode. We cope in
+        # _set_comparisons().
 
     def fully_matches(self, other: "Postcode") -> bool:
         return self.postcode_unit == other.postcode_unit
@@ -971,12 +1069,15 @@ class DateOfBirth(IdentifierThreeState):
         self.comparison_partial_match = DirectComparison(
             p_d_given_same_person=cfg.p_ep_dob,
             p_d_given_diff_person=cfg.p_pnf_dob,
-            d_description="dob_partial_match",
+            d_description="dob_partial_not_full_match",
         )
         self.comparison_no_match = DirectComparison(
             p_d_given_same_person=cfg.p_en_dob,
             p_d_given_diff_person=cfg.p_n_dob,
             d_description="dob_no_match",
+        )
+        self.warn_if_any_match_llr_lower_than_mismatch_llr(
+            [self.comparison_full_match, self.comparison_partial_match]
         )
 
     def __eq__(self, other: Identifier) -> bool:
@@ -1111,6 +1212,9 @@ class Gender(IdentifierTwoState):
                 p_d_given_same_person=p_e,
                 p_d_given_diff_person=1 - p_f,
                 d_description="gender_no_match",
+            )
+            self.warn_if_any_match_llr_lower_than_mismatch_llr(
+                [self.comparison_full_match]
             )
         else:
             self._clear_comparisons()
@@ -1326,17 +1430,24 @@ class BasicName(IdentifierFourState, ABC):
             self.comparison_partial_match = DirectComparison(
                 p_d_given_same_person=self.p_ep1,
                 p_d_given_diff_person=self.p_p1nf,
-                d_description=f"{desc}_partial_match_1_metaphone",
+                d_description=f"{desc}_partial_match_1_metaphone_not_full",
             )
             self.comparison_partial_match_second = DirectComparison(
                 p_d_given_same_person=self.p_ep2np1,
                 p_d_given_diff_person=self.p_p2np1,
-                d_description=f"{desc}_partial_match_2_f2c",
+                d_description=f"{desc}_partial_match_2_f2c_not_name_metaphone",
             )
             self.comparison_no_match = DirectComparison(
                 p_d_given_same_person=p_en,
                 p_d_given_diff_person=p_n,
                 d_description=f"{desc}_no_match",
+            )
+            self.warn_if_any_match_llr_lower_than_mismatch_llr(
+                [
+                    self.comparison_full_match,
+                    self.comparison_partial_match,
+                    self.comparison_partial_match_second,
+                ]
             )
         else:
             self._clear_comparisons()

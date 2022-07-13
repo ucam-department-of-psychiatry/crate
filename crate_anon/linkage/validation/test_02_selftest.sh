@@ -30,6 +30,8 @@ COMPARISON_H2H=${WORKDIR}/crate_fuzzy_output_h2h.csv
 "${FUZZY}" show_surname_freq SMITH JONES SHAKESPEARE TELL
 "${FUZZY}" show_surname_metaphone_freq SM0 JNS XKSP TL
 
+"${FUZZY}" show_names_for_metaphone JMS SM0
+
 "${FUZZY}" show_dob_freq  # no arguments
 
 # -----------------------------------------------------------------------------
