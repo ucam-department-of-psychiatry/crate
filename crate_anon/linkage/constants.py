@@ -63,6 +63,7 @@ def _mk_dictstr(x: Dict[str, float]) -> str:
 
 INFINITY = math.inf
 MINUS_INFINITY = -math.inf
+NONE_TYPE = type(None)
 
 DAYS_PER_YEAR = 365.25  # approximately!
 MONTHS_PER_YEAR = 12
@@ -118,16 +119,18 @@ class Switches:
     names of MatchConfig parameters, used for error messages.
     """
 
-    ALLOW_DEFAULT_HASH_KEY = "allow_default_hash_key"
-    EXTRA_VALIDATION_OUTPUT = "extra_validation_output"
-    INCLUDE_OTHER_INFO = "include_other_info"
     INPUT = "input"
     OUTPUT = "output"
+    INCLUDE_OTHER_INFO = "include_other_info"
+
+    EXTRA_VALIDATION_OUTPUT = "extra_validation_output"
+    CHECK_COMPARISON_ORDER = "check_comparison_order"
+    REPORT_EVERY = "report_every"
     MIN_PROBANDS_FOR_PARALLEL = "min_probands_for_parallel"
     N_WORKERS = "n_workers"
-    REPORT_EVERY = "report_every"
 
     KEY = "key"
+    ALLOW_DEFAULT_HASH_KEY = "allow_default_hash_key"
     HASH_METHOD = "hash_method"
     ROUNDING_SF = "rounding_sf"
     LOCAL_ID_HASH_KEY = "local_id_hash_key"
@@ -226,8 +229,11 @@ class FuzzyDefaults:
     # 0.010129999999999998 would be the same at 3sf.
 
     # -------------------------------------------------------------------------
-    # Performance
+    # Run-time options
     # -------------------------------------------------------------------------
+
+    CHECK_COMPARISON_ORDER = False
+
     MIN_PROBANDS_FOR_PARALLEL = 1000
     # ... a machine that takes ~30s to set up a basic parallel run (and 107.9s
     # for a 10k-to-10k comparison) processes single results at about 37/s... so

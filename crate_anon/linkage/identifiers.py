@@ -58,7 +58,7 @@ import pendulum
 from pendulum.parsing.exceptions import ParserError
 from pendulum import Date
 
-from crate_anon.linkage.constants import Switches, VALID_GENDERS
+from crate_anon.linkage.constants import NONE_TYPE, Switches, VALID_GENDERS
 from crate_anon.linkage.comparison import (
     AdjustLogOddsComparison,
     CertainComparison,
@@ -155,7 +155,7 @@ class Identifier(ABC):
             end_date:
                 The end date (last valid date), or ``None``.
         """
-        assert isinstance(cfg, (MatchConfig, type(None)))
+        assert isinstance(cfg, (MatchConfig, NONE_TYPE))
         self.cfg = cfg
         self.is_plaintext = is_plaintext
         self.temporal = temporal
@@ -268,11 +268,11 @@ class Identifier(ABC):
         Set date information. Should only be called for temporal identifiers.
         """
         start_date = coerce_to_pendulum_date(start_date)
-        if not isinstance(start_date, (Date, type(None))):
+        if not isinstance(start_date, (Date, NONE_TYPE)):
             raise ValueError(f"Bad start_date: {start_date!r}")
 
         end_date = coerce_to_pendulum_date(end_date)
-        if not isinstance(end_date, (Date, type(None))):
+        if not isinstance(end_date, (Date, NONE_TYPE)):
             raise ValueError(f"Bad end_date: {end_date!r}")
 
         if start_date and end_date:
@@ -563,27 +563,40 @@ class IdentifierTwoState(Identifier, ABC):
             return self.comparison_full_match
         return self.comparison_no_match
 
-    def warn_if_any_match_llr_lower_than_mismatch_llr(
-        self, match_comparisons: List[DirectComparison]
+    def warn_if_llr_order_unexpected(
+        self, full: DirectComparison, partials: List[DirectComparison] = None
     ) -> None:
         """
         Partial/full comparisons are not guaranteed to be ordered as you might
         expect; an example is in the validation paper (and in
-        other_examples_for_paper.py). However, all partial/full matches are
-        expected to yield better evidence for H than a complete mismatch. This
-        function warns the user if that's the case.
+        other_examples_for_paper.py). Nor are all partial/full matches
+        guaranteed to yield better evidence for H than a complete mismatch.
+        However, that's what you might expect. This function warns the user if
+        that's not the case.
 
         Args:
-            match_comparisons:
-                Comparisons for "match" conditions, partial and full.
+            full:
+                Comparisons for the "full match" condition.
+            partials:
+                Comparisons for "partial match" conditions.
         """
+        if not self.cfg.check_comparison_order:
+            return
+        partials = partials or []
         no_match_llr = self.comparison_no_match.log_likelihood_ratio
         if any(
-            c.log_likelihood_ratio < no_match_llr for c in match_comparisons
+            c.log_likelihood_ratio < no_match_llr for c in [full] + partials
         ):
             log.warning(
-                f"{self.__class__.__name__}: a match-type comparison's log "
+                f"{self.__class__.__name__}: a match comparison's log "
                 f"likelihood ratio is less than the no-match comparison's. "
+                f"Object:\n\n{self!r}"
+            )
+        full_match_llr = full.log_likelihood_ratio
+        if any(p.log_likelihood_ratio > full_match_llr for p in partials):
+            log.warning(
+                f"{self.__class__.__name__}: a partial match comparison's "
+                f"log likelihood ratio exceeds the full-match comparison's. "
                 f"Object:\n\n{self!r}"
             )
 
@@ -920,8 +933,9 @@ class Postcode(IdentifierThreeState):
                 p_d_given_diff_person=1 - p_p,  # p_n
                 d_description="postcode_no_match",
             )
-            self.warn_if_any_match_llr_lower_than_mismatch_llr(
-                [self.comparison_full_match, self.comparison_partial_match]
+            self.warn_if_llr_order_unexpected(
+                full=self.comparison_full_match,
+                partials=[self.comparison_partial_match],
             )
         else:
             self._clear_comparisons()
@@ -1076,8 +1090,9 @@ class DateOfBirth(IdentifierThreeState):
             p_d_given_diff_person=cfg.p_n_dob,
             d_description="dob_no_match",
         )
-        self.warn_if_any_match_llr_lower_than_mismatch_llr(
-            [self.comparison_full_match, self.comparison_partial_match]
+        self.warn_if_llr_order_unexpected(
+            full=self.comparison_full_match,
+            partials=[self.comparison_partial_match],
         )
 
     def __eq__(self, other: Identifier) -> bool:
@@ -1213,9 +1228,7 @@ class Gender(IdentifierTwoState):
                 p_d_given_diff_person=1 - p_f,
                 d_description="gender_no_match",
             )
-            self.warn_if_any_match_llr_lower_than_mismatch_llr(
-                [self.comparison_full_match]
-            )
+            self.warn_if_llr_order_unexpected(full=self.comparison_full_match)
         else:
             self._clear_comparisons()
 
@@ -1406,6 +1419,24 @@ class BasicName(IdentifierFourState, ABC):
         self.p_ep1 = None
         self.p_ep2np1 = None
 
+    @property
+    def p_en(self) -> float:
+        """
+        For internal use. Only call if frequencies are set up.
+        """
+        p_en = 1 - self.p_c - self.p_ep1 - self.p_ep2np1
+        assert 0 <= p_en <= 1, "Bad error probabilities for a BasicName"
+        return p_en
+
+    @property
+    def p_n(self) -> float:
+        """
+        For internal use. Only call if frequencies are set up.
+        """
+        p_n = 1 - self.p_f - self.p_p1nf - self.p_p2np1
+        assert 0 <= p_n <= 1, "Bad population probabilities for a BasicName"
+        return p_n
+
     def _set_comparisons(self) -> None:
         """
         If we have identifier information, use error information from `self`
@@ -1413,14 +1444,6 @@ class BasicName(IdentifierFourState, ABC):
         comparisons. Otherwise, call :meth:`_clear_comparisons`.
         """
         if self.name:
-            p_en = 1 - self.p_c - self.p_ep1 - self.p_ep2np1
-            assert 0 <= p_en <= 1, "Bad error probabilities for a BasicName"
-
-            p_n = 1 - self.p_f - self.p_p1nf - self.p_p2np1
-            assert (
-                0 <= p_n <= 1
-            ), "Bad population probabilities for a BasicName"
-
             desc = self.description
             self.comparison_full_match = DirectComparison(
                 p_d_given_same_person=self.p_c,
@@ -1438,16 +1461,16 @@ class BasicName(IdentifierFourState, ABC):
                 d_description=f"{desc}_partial_match_2_f2c_not_name_metaphone",
             )
             self.comparison_no_match = DirectComparison(
-                p_d_given_same_person=p_en,
-                p_d_given_diff_person=p_n,
+                p_d_given_same_person=self.p_en,
+                p_d_given_diff_person=self.p_n,
                 d_description=f"{desc}_no_match",
             )
-            self.warn_if_any_match_llr_lower_than_mismatch_llr(
-                [
-                    self.comparison_full_match,
+            self.warn_if_llr_order_unexpected(
+                full=self.comparison_full_match,
+                partials=[
                     self.comparison_partial_match,
                     self.comparison_partial_match_second,
-                ]
+                ],
             )
         else:
             self._clear_comparisons()

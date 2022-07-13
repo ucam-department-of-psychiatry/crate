@@ -75,6 +75,7 @@ from crate_anon.linkage.constants import (
     FuzzyDefaults,
     MANGLE_PRETRANSLATE,
     MINUS_INFINITY,
+    NONE_TYPE,
     SAFE_UPPER_PRETRANSLATE,
     SIMPLIFY_PUNCTUATION_WHITESPACE_TRANS,
 )
@@ -692,7 +693,7 @@ def getdictval(
             return default
     if mandatory and (v is None or v == ""):
         raise ValueError(f"Missing or blank value: {key}")
-    if not isinstance(v, (type_, type(None))):
+    if not isinstance(v, (type_, NONE_TYPE)):
         raise ValueError(
             f"Value for {key} should be of type {type_} but was of "
             f"type {type(v)}"

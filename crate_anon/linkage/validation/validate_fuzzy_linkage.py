@@ -73,6 +73,7 @@ from crate_anon.common.constants import (
     EXIT_FAILURE,
     EXIT_SUCCESS,
 )
+from crate_anon.linkage.constants import NONE_TYPE
 from crate_anon.linkage.identifiers import TemporalIDHolder
 from crate_anon.linkage.matchconfig import MatchConfig
 from crate_anon.linkage.helpers import (
@@ -747,8 +748,6 @@ class PostcodeInfo:
     index_of_multiple_deprivation: Optional[int]
 
     def __post_init__(self) -> None:
-        nonetype = type(None)
-
         if not isinstance(self.postcode, str):
             raise ValueError(f"Bad postcode: {self.postcode!r}")
         self.postcode = standardize_postcode(self.postcode)
@@ -756,14 +755,16 @@ class PostcodeInfo:
             raise ValueError(f"Bad postcode: {self.postcode!r}")
 
         self.start_date = coerce_to_pendulum_date(self.start_date)
-        if not isinstance(self.start_date, (datetime.date, nonetype)):
+        if not isinstance(self.start_date, (datetime.date, NONE_TYPE)):
             raise ValueError(f"Bad start_date: {self.start_date!r}")
 
         self.end_date = coerce_to_pendulum_date(self.end_date)
-        if not isinstance(self.end_date, (datetime.date, nonetype)):
+        if not isinstance(self.end_date, (datetime.date, NONE_TYPE)):
             raise ValueError(f"Bad end_date: {self.end_date!r}")
 
-        if not isinstance(self.index_of_multiple_deprivation, (int, nonetype)):
+        if not isinstance(
+            self.index_of_multiple_deprivation, (int, NONE_TYPE)
+        ):
             raise ValueError(
                 f"Bad index_of_multiple_deprivation: "
                 f"{self.index_of_multiple_deprivation!r}"
@@ -827,7 +828,6 @@ class CPFTValidationExtras:
 
     def __post_init__(self) -> None:
         binary = (0, 1)
-        nonetype = type(None)
 
         if not isinstance(self.hashed_nhs_number, str):
             raise ValueError(
@@ -838,9 +838,11 @@ class CPFTValidationExtras:
             raise ValueError(f"Bad blurred_dob: {self.blurred_dob!r}")
         if not isinstance(self.gender, str):
             raise ValueError(f"Bad gender: {self.gender!r}")
-        if not isinstance(self.ethnicity, (str, nonetype)):
+        if not isinstance(self.ethnicity, (str, NONE_TYPE)):
             raise ValueError(f"Bad ethnicity: {self.ethnicity!r}")
-        if not isinstance(self.index_of_multiple_deprivation, (int, nonetype)):
+        if not isinstance(
+            self.index_of_multiple_deprivation, (int, NONE_TYPE)
+        ):
             raise ValueError(
                 f"Bad index_of_multiple_deprivation: "
                 f"{self.index_of_multiple_deprivation!r}"
@@ -854,7 +856,7 @@ class CPFTValidationExtras:
             raise ValueError(
                 f"Bad first_mh_care_date: {self.first_mh_care_date!r}"
             )
-        if not isinstance(self.age_at_first_mh_care, (int, nonetype)):
+        if not isinstance(self.age_at_first_mh_care, (int, NONE_TYPE)):
             raise ValueError(
                 f"Bad age_at_first_mh_care: {self.age_at_first_mh_care!r}"
             )

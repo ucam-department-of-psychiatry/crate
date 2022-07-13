@@ -33,8 +33,8 @@ import logging
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
-from crate_anon.linkage.comparison import DirectComparison
-from crate_anon.linkage.identifiers import Forename
+from crate_anon.linkage.constants import GENDER_MALE
+from crate_anon.linkage.identifiers import Forename, SurnameFragment
 from crate_anon.linkage.matchconfig import MatchConfig
 
 log = logging.getLogger(__name__)
@@ -44,27 +44,20 @@ def main() -> None:
     main_only_quicksetup_rootlogger(level=logging.INFO)
 
     cfg = MatchConfig()  # use defaults
-    james = Forename(cfg, name="JAMES")
-    log.info(repr(james))
 
-    p_f = 0.0295
-    p_p1nf = 0.000133
-
-    p_ep1 = 0.0084
-    p_c = 0.978
-
-    comparison_full_match = DirectComparison(
-        p_d_given_same_person=p_c,
-        p_d_given_diff_person=p_f,
-        d_description="full_match",
+    j = Forename(cfg, name="JAMES", gender=GENDER_MALE)
+    log.info(repr(j))
+    log.info(
+        f"Compare full (p_c = {j.p_c} / p_f = {j.p_f}) "
+        f"and partial1 (p_ep1 = {j.p_ep1} / p_p1nf = {j.p_p1nf}))"
     )
-    comparison_partial_match = DirectComparison(
-        p_d_given_same_person=p_ep1,
-        p_d_given_diff_person=p_p1nf,
-        d_description="partial_match_1_metaphone_not_full",
+
+    a = SurnameFragment(cfg, name="ALLEN")
+    log.info(repr(a))
+    log.info(
+        f"Compare partial2 (p_ep2np1 = {a.p_ep2np1} / p_p2np1 = {a.p_p2np1}) "
+        f"and nonmatch (p_en = {a.p_en} / p_n = {a.p_n})"
     )
-    log.info(repr(comparison_full_match))
-    log.info(repr(comparison_partial_match))
 
 
 if __name__ == "__main__":

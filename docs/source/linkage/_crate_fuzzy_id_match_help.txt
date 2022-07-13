@@ -245,9 +245,10 @@ usage: crate_fuzzy_id_match compare_plaintext [-h] --probands PROBANDS
                                               [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
                                               [--perfect_id_translation PERFECT_ID_TRANSLATION]
                                               [--extra_validation_output]
-                                              [--n_workers N_WORKERS]
-                                              [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                              [--check_comparison_order]
                                               [--report_every REPORT_EVERY]
+                                              [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                              [--n_workers N_WORKERS]
                                               [--p_ep1_forename P_EP1_FORENAME]
                                               [--p_ep2np1_forename P_EP2NP1_FORENAME]
                                               [--p_en_forename P_EN_FORENAME]
@@ -387,15 +388,20 @@ Control options:
   --extra_validation_output
                         Add extra output for validation purposes. (default:
                         False)
+  --check_comparison_order
+                        Check every comparison for log-likelihood ratio
+                        sequence 'no match ≤ partial(s) ≤ full' and warn if
+                        this is not observed. Note, however, that deviations
+                        from this are not unexpected. (default: False)
+  --report_every REPORT_EVERY
+                        Report progress every n probands. (default: 100)
+  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
+                        Minimum number of probands for which we will bother to
+                        use parallel processing. (default: 1000)
   --n_workers N_WORKERS
                         Number of processes to use in parallel. Defaults to 1
                         (Windows) or the number of CPUs on your system (other
                         operating systems). (default: 8)
-  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
-                        Minimum number of probands for which we will bother to
-                        use parallel processing. (default: 1000)
-  --report_every REPORT_EVERY
-                        Report progress every n probands. (default: 100)
 
 Error probabilities:
   --p_ep1_forename P_EP1_FORENAME
@@ -570,9 +576,10 @@ usage: crate_fuzzy_id_match compare_hashed_to_hashed [-h] --probands PROBANDS
                                                      [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
                                                      [--perfect_id_translation PERFECT_ID_TRANSLATION]
                                                      [--extra_validation_output]
-                                                     [--n_workers N_WORKERS]
-                                                     [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                                     [--check_comparison_order]
                                                      [--report_every REPORT_EVERY]
+                                                     [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                                     [--n_workers N_WORKERS]
                                                      [--p_ep1_forename P_EP1_FORENAME]
                                                      [--p_ep2np1_forename P_EP2NP1_FORENAME]
                                                      [--p_en_forename P_EN_FORENAME]
@@ -686,15 +693,20 @@ Control options:
   --extra_validation_output
                         Add extra output for validation purposes. (default:
                         False)
+  --check_comparison_order
+                        Check every comparison for log-likelihood ratio
+                        sequence 'no match ≤ partial(s) ≤ full' and warn if
+                        this is not observed. Note, however, that deviations
+                        from this are not unexpected. (default: False)
+  --report_every REPORT_EVERY
+                        Report progress every n probands. (default: 100)
+  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
+                        Minimum number of probands for which we will bother to
+                        use parallel processing. (default: 1000)
   --n_workers N_WORKERS
                         Number of processes to use in parallel. Defaults to 1
                         (Windows) or the number of CPUs on your system (other
                         operating systems). (default: 8)
-  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
-                        Minimum number of probands for which we will bother to
-                        use parallel processing. (default: 1000)
-  --report_every REPORT_EVERY
-                        Report progress every n probands. (default: 100)
 
 Error probabilities:
   --p_ep1_forename P_EP1_FORENAME
@@ -875,9 +887,10 @@ usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] --probands
                                                         [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
                                                         [--perfect_id_translation PERFECT_ID_TRANSLATION]
                                                         [--extra_validation_output]
-                                                        [--n_workers N_WORKERS]
-                                                        [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                                        [--check_comparison_order]
                                                         [--report_every REPORT_EVERY]
+                                                        [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                                        [--n_workers N_WORKERS]
                                                         [--p_ep1_forename P_EP1_FORENAME]
                                                         [--p_ep2np1_forename P_EP2NP1_FORENAME]
                                                         [--p_en_forename P_EN_FORENAME]
@@ -1025,15 +1038,20 @@ Control options:
   --extra_validation_output
                         Add extra output for validation purposes. (default:
                         False)
+  --check_comparison_order
+                        Check every comparison for log-likelihood ratio
+                        sequence 'no match ≤ partial(s) ≤ full' and warn if
+                        this is not observed. Note, however, that deviations
+                        from this are not unexpected. (default: False)
+  --report_every REPORT_EVERY
+                        Report progress every n probands. (default: 100)
+  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
+                        Minimum number of probands for which we will bother to
+                        use parallel processing. (default: 1000)
   --n_workers N_WORKERS
                         Number of processes to use in parallel. Defaults to 1
                         (Windows) or the number of CPUs on your system (other
                         operating systems). (default: 8)
-  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
-                        Minimum number of probands for which we will bother to
-                        use parallel processing. (default: 1000)
-  --report_every REPORT_EVERY
-                        Report progress every n probands. (default: 100)
 
 Error probabilities:
   --p_ep1_forename P_EP1_FORENAME

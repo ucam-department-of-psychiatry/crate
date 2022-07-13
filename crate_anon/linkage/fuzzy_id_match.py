@@ -1300,11 +1300,17 @@ def add_matching_rules(parser: argparse.ArgumentParser) -> None:
         help="Add extra output for validation purposes.",
     )
     control_group.add_argument(
-        f"--{Switches.N_WORKERS}",
+        f"--{Switches.CHECK_COMPARISON_ORDER}",
+        action="store_true",
+        help="Check every comparison for log-likelihood ratio sequence "
+        "'no match ≤ partial(s) ≤ full' and warn if this is not observed. "
+        "Note, however, that deviations from this are not unexpected.",
+    )
+    control_group.add_argument(
+        f"--{Switches.REPORT_EVERY}",
         type=int,
-        default=FuzzyDefaults.N_PROCESSES,
-        help="Number of processes to use in parallel. Defaults to 1 (Windows) "
-        "or the number of CPUs on your system (other operating systems).",
+        default=FuzzyDefaults.REPORT_EVERY,
+        help="Report progress every n probands.",
     )
     control_group.add_argument(
         f"--{Switches.MIN_PROBANDS_FOR_PARALLEL}",
@@ -1314,10 +1320,11 @@ def add_matching_rules(parser: argparse.ArgumentParser) -> None:
         "parallel processing.",
     )
     control_group.add_argument(
-        f"--{Switches.REPORT_EVERY}",
+        f"--{Switches.N_WORKERS}",
         type=int,
-        default=FuzzyDefaults.REPORT_EVERY,
-        help="Report progress every n probands.",
+        default=FuzzyDefaults.N_PROCESSES,
+        help="Number of processes to use in parallel. Defaults to 1 (Windows) "
+        "or the number of CPUs on your system (other operating systems).",
     )
 
 
@@ -1566,6 +1573,11 @@ def get_cfg_from_args(
         extra_validation_output=getparam(
             Switches.EXTRA_VALIDATION_OUTPUT,
             default=False,
+            required=require_comparison,
+        ),
+        check_comparison_order=getparam(
+            Switches.CHECK_COMPARISON_ORDER,
+            default=FuzzyDefaults.CHECK_COMPARISON_ORDER,
             required=require_comparison,
         ),
         report_every=getparam(

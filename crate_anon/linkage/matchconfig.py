@@ -133,6 +133,7 @@ class MatchConfig:
             Dict[str, str], str
         ] = FuzzyDefaults.PERFECT_ID_TRANSLATION,
         extra_validation_output: bool = False,
+        check_comparison_order: bool = FuzzyDefaults.CHECK_COMPARISON_ORDER,
         report_every: int = FuzzyDefaults.REPORT_EVERY,
         min_probands_for_parallel: int = (
             FuzzyDefaults.MIN_PROBANDS_FOR_PARALLEL
@@ -250,6 +251,9 @@ class MatchConfig:
 
             extra_validation_output:
                 Add extra columns to the output for validation purposes?
+            check_comparison_order:
+                Check that comparisons follow the general rule "no match ≤
+                partial(s) ≤ full" and warn if not.
             report_every:
                 Report progress every n probands.
             min_probands_for_parallel:
@@ -592,6 +596,7 @@ class MatchConfig:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         self.extra_validation_output = extra_validation_output
+        self.check_comparison_order = check_comparison_order
         self.report_every = report_every
         self.min_probands_for_parallel = min_probands_for_parallel
         self.n_workers = n_workers
