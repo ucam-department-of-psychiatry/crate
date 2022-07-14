@@ -779,10 +779,10 @@ class Person:
             candidate_id = ""
         log.info(
             f"VERBOSE COMPARISON:\n"
-            f"- candidate      = {candidate}\n"
-            f"{candidate_id}\n"
             f"- self (proband) = {self}\n"
             f"{self_id}\n"
+            f"- candidate      = {candidate}\n"
+            f"{candidate_id}\n"
         )
 
         log_odds = self.cfg.baseline_log_odds_same_person

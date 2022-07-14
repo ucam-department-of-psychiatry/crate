@@ -42,7 +42,7 @@ from crate_anon.linkage.person import Person
 log = logging.getLogger(__name__)
 
 
-def main(verbose: bool = False, postcodes: bool = True) -> None:
+def main(verbose: bool = True, postcodes: bool = False) -> None:
     """
     Command-line entry point.
     """
@@ -62,6 +62,7 @@ def main(verbose: bool = False, postcodes: bool = True) -> None:
         gender=GENDER_FEMALE,
         postcodes=maybe_postcode("CB2 0QQ"),
     )
+
     other1 = Person(
         cfg,
         local_id="other1",
@@ -80,10 +81,11 @@ def main(verbose: bool = False, postcodes: bool = True) -> None:
         gender=GENDER_FEMALE,
         postcodes=maybe_postcode("CB2 1TP"),  # no match
     )
+    # proband goes here in figure
     other3 = Person(
         cfg,
         local_id="other3",
-        surnames=["SMALL"],
+        surnames=["SMYTH"],
         forenames=["Elisabeth"],
         dob="1950-01-01",
         gender=GENDER_FEMALE,
@@ -92,7 +94,7 @@ def main(verbose: bool = False, postcodes: bool = True) -> None:
     other4 = Person(
         cfg,
         local_id="other4",
-        surnames=["SMYTHE"],
+        surnames=["SMYTH"],
         forenames=["Elisabeth"],
         dob="1960-01-01",
         gender=GENDER_FEMALE,

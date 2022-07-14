@@ -742,20 +742,19 @@ imd_centile_100_most_deprived <- function(index_of_multiple_deprivation)
     # East Essex, most deprived in England, through (in CPFT's area) 10 =
     # Waveney, Suffolk, through ~14000 for Kensington & Chelsea via 32785
     # somewhere in South Cambridgeshire to 32844 in Wokingham, Berkshire, the
-    # least deprived in England.
-    # Waveney's deprivation is confirmed at
+    # least deprived in England. Waveney's deprivation is confirmed at
     # https://www.eastsuffolk.gov.uk/assets/Your-Council/WDC-Council-Meetings/2016/November/WDC-Overview-and-Scrutiny-Committee-01-11-16/Item-5a-Appendix-A-Hidden-Needs-for-East-Suffolk-Oct-update.pdf
-    # Here, we do not correct for population (unlike e.g.
-    # Jones et al. 2022, https://pubmed.ncbi.nlm.nih.gov/35477868/), and we
-    # simply use the IMD order (so it's the centile for IMD number, not the
-    # centile for population). But like Jones 2022, we use a "deprivation"
-    # centile, i.e. 0 least deprived, 100 most deprived.
-    # See als:
+    # Here, we do not correct for population (unlike e.g. Jones et al. 2022,
+    # https://pubmed.ncbi.nlm.nih.gov/35477868/), and we simply use the IMD
+    # order (so it's the centile for IMD number, not the centile for
+    # population). But like Jones 2022, we use a "deprivation" centile, i.e. 0
+    # least deprived, 100 most deprived. See also:
     # - https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/853811/IoD2019_FAQ_v4.pdf
 
     MOST_DEPRIVED_IMD <- 1
     LEAST_DEPRIVED_IMD <- 32844
     # Confirmed: SELECT MIN(imd), MAX(imd) FROM onspd.dbo.postcode
+
     return(
         100
         - 100 * (index_of_multiple_deprivation - MOST_DEPRIVED_IMD)
@@ -1042,7 +1041,7 @@ load_people <- function(filename, nrows = ROW_LIMIT, strip_irrelevant = TRUE)
 
                     has_pseudopostcode = other_info$has_pseudopostcode,
                     has_nfa_pseudopostcode = other_info$has_nfa_pseudopostcode,
-                    has_non_nfa_pseudopostcode = other_info$has_non_nfa_pseudopostcode,
+                    has_non_nfa_pseudopostcode = other_info$has_non_nfa_pseudopostcode
                 ))
             }
         ) %>%
