@@ -38,6 +38,7 @@ RStudio IDE problems:
 # =============================================================================
 
 library(car)  # for car::Anova
+library(colorspace)
 library(data.table)
 library(ggplot2)
 library(gridExtra)
@@ -47,7 +48,7 @@ library(lubridate)
 library(patchwork)
 library(pROC)
 library(RJSONIO)
-# library(scales)  # for muted() colours
+library(scales)  # for muted() colours or rescale()
 library(tidyverse)
 
 RLIB_STEM <- "https://egret.psychol.cam.ac.uk/rlib/"
@@ -227,21 +228,163 @@ SEX_OTHER_UNKNOWN <- "other_unknown"
 # Cosmetic constants
 # =============================================================================
 
+scale_colour_sequential_highlighted <- function(
+    palette_fn,
+    highlight_values = c(0.5),
+    highlight_colours = c("yellow"),
+    scale_from = c(0, 1),
+    bandwidth = (scale_from[2] - scale_from[1]) * 0.01,
+    granularity = 100,  # for method == "discrete"
+    ...
+) {
+    # Returns a scale_colour_gradientn() with a palette that ranges from
+    # ``low`` to ``high`` but produces entirely different colours as defined by
+    # ``highlight_values_to_colours`` (with narrow bands around them as defined
+    # by ``bandwidth``).
+    #
+    # Args:
+    #   palette_fn:
+    #       A function that can be called as palette_fn(n) to generate a vector
+    #       of n colours, the base colours for our scale.
+    #   highlight_values:
+    #       Numeric values at which to modify the colours.
+    #   highlight_colours:
+    #       Corresponding colours; must be the same length as
+    #       ``highlight_values``.
+    #   bandwidth:
+    #       The "band" around each value (i.e. +/- bandwidth/2) to colour,
+    #       typically a narrow value.
+    #   method:
+    #       - "discrete": Make a discrete series of colours, albeit with fine
+    #         granularity.
+    #       - "continuous": truly continuous scale (NOT WORKING; SEE NOTES).
+    #   scale_from:
+    #       Internally, ggplot uses scales from 0-1. You can specify
+    #       ``values_to_colours`` and ``bandwidth`` on the scale of values
+    #       being plotted, but you should then specify ``scale_from =
+    #       c(min_value, max_value)`` to scale appropriately.
+    #   granularity:
+    #       Number of colours from low to high (because I can't get a truly
+    #       continuous method to work.
+
+    n_values <- length(highlight_values)
+    stopifnot(n_values > 0)
+    stopifnot(n_values == length(highlight_colours))
+
+    lower_bounds <- highlight_values - bandwidth / 2
+    upper_bounds <- highlight_values + bandwidth / 2
+
+    colours <- palette_fn(granularity)
+    corresponding_values <- seq(
+        scale_from[1], scale_from[2], length.out = granularity
+    )
+    for (i in 1:n_values) {
+        colours[
+            lower_bounds[i] <= corresponding_values
+            & corresponding_values <= upper_bounds[i]
+        ] <- highlight_colours[i]
+    }
+    return(
+        scale_colour_gradientn(colours = colours, ...)
+    )
+
+    # Notes:
+    # - for scale_colour_manual(), the "palette" parameter is not meant to
+    #   be used and the docs are in error. You get the error "cannot coerce
+    #   type 'closure' to vector of type 'character'". See
+    #   https://github.com/tidyverse/ggplot2/issues/3182. Unclear if that
+    #   also affects scale_colour_gradient(), but maybe. I've certainly
+    #   failed to get it working.
+    # - Related:
+    #   https://stackoverflow.com/questions/50118741/ggplot2-colorbar-with-discontinuous-jump-for-skewed-data/50129388
+    # - https://stackoverflow.com/questions/66736932/create-single-ggplot-gradient-color-scheme-with-a-discontinuous-function
+}
+if (FALSE) {
+    # Test:
+    original_palette_fn <- scale_colour_gradient(
+        low = "blue", high = "red"
+    )$palette
+    print(
+        ggplot(
+            data.frame(
+                x = seq(1, 10, by = 0.1),
+                y = seq(1, 10, by = 0.1)
+            ),
+            aes(x = x, y = y, colour = y)
+        )
+        + geom_point()
+        + scale_colour_sequential_highlighted(
+            palette_fn = colorRampPalette(c("blue", "red")),
+            highlight_values = c(4, 6),
+            highlight_colours = c("yellow", "green"),
+            bandwidth = 0.5,
+            scale_from = c(1, 10)
+        )
+    )
+}
+
+
 DEFAULT_VLINE_COLOUR <- "#AAAAAA"
 DEFAULT_COLOUR_SCALE_GGPLOT_REVERSED <- scale_colour_gradient(
     low = "#56B1F7",  # ggplot default high
     high = "#132B43"  # ggplot default low: see scale_colour_gradient
 )
-COLOUR_SCALE_THETA <- scale_colour_gradient(
-    # https://ggplot2-book.org/scale-colour.html
-    # Show with munsell::hue_slice("5P") and pick a vertical slice.
-    low = munsell::mnsl("5P 7/12"),
-    high = munsell::mnsl("5P 2/12")
+
+# - https://ggplot2-book.org/scale-colour.html
+# - https://cran.r-project.org/web/packages/munsell/munsell.pdf
+# - https://en.wikipedia.org/wiki/Munsell_color_system  <-- This!
+# - https://colorusage.arc.nasa.gov/discrim.php
+# - https://colorspace.r-forge.r-project.org/
+# - https://www.nceas.ucsb.edu/sites/default/files/2020-04/colorPaletteCheatsheet.pdf
+#
+# MUNSELL: Show with munsell::hue_slice("5P"). This illustrates a
+# two-dimensional slice at the hue "5P" = the centre of P(urple). All the
+# colours shown have the same hue. The horizontal direction of what you'll see
+# is chroma (increasing to the right) and the vertical direction is "value"
+# (from 0 black to 1 white, upwards). Then pick a vertical sub-slice, e.g. "5P
+# x/12"; all colours in that vertical slice have the same chroma. Pick two
+# values and create a gradient between them. The notation is "hue
+# value/chroma". Show all with hue_slice().
+#
+# COLORSPACE:
+#       library(colorspace); hcl_palettes(n = 16, plot=TRUE)
+# ... consider: Batlow; Lajolla; Plasma; Viridis
+#
+# R BASE COLOURS:
+#       colors()
+#       col2rgb("green")  # 0, 255, 0
+#       col2hcl("green")  # "#00FF00"
+
+# GRADIENT_FN: should be callable as fn(n_colours).
+#
+GRADIENT_FN <- colorRampPalette(c("blue", "red"))
+# GRADIENT_FN <- colorRampPalette(c(munsell::mnsl("5G 9/6"), munsell::mnsl("5G 4/6"))
+# GRADIENT_FN <- colorRampPalette(c(munsell::mnsl("5P 7/12"), munsell::mnsl("5P 2/12"))
+# GRADIENT_FN <- function(n) colorspace::sequential_hcl(n, palette = "Batlow")
+
+# HIGHLIGHT <- "darkorange"  # FF8C00
+# HIGHLIGHT <- "blue"  # 0000FF
+# HIGHLIGHT <- "darkgreen"  # 006400
+HIGHLIGHT <- "#00BB00"  # a green
+
+COLOUR_SCALE_THETA <- scale_colour_sequential_highlighted(
+    palette_fn = GRADIENT_FN,
+    highlight_values = DEFAULT_THETA,
+    highlight_colours = HIGHLIGHT,
+    scale_from = range(THETA_OPTIONS),
+    bandwidth = 1
 )
-COLOUR_SCALE_DELTA <- scale_colour_gradient(
-    low = munsell::mnsl("5R 7/8"),
-    high = munsell::mnsl("5R 2/8")
+COLOUR_SCALE_DELTA <- scale_colour_sequential_highlighted(
+    palette_fn = GRADIENT_FN,
+    highlight_values = DEFAULT_DELTA,
+    highlight_colours = HIGHLIGHT,
+    scale_from = range(DELTA_OPTIONS),
+    bandwidth = 1
 )
+# Check: COLOUR_SCALE_DELTA$map(rescale(DELTA_OPTIONS)). Should
+# provide colours for all values. IF THAT FAILS, ggplot2 is too old -- v3.3.6
+# works, v3.3.2 doesn't. It's a difference in scale_colour_manual(). Try:
+# update.packages("ggplot2"), or use RStudio to update all.
 
 LINEBREAK_1 <- paste(c(rep("=", 79), "\n"), collapse="")
 LINEBREAK_2 <- paste(c(rep("-", 79), "\n"), collapse="")
@@ -311,8 +454,9 @@ n_unique_duplicates <- function(x)
 }
 
 
-write_output <- function(x, append = TRUE, filename = OUTPUT_FILE, width = 1000)
-{
+write_output <- function(
+    x, append = TRUE, filename = OUTPUT_FILE, width = 1000
+) {
     # Write an R object to a results file.
 
     # 1. Output to file
@@ -1275,7 +1419,8 @@ load_all <- function()
                     get_comparison_cache_filename(db1, db2),
                     load_comparison,
                     get_comparison_filename(db1, db2),
-                    # ... don't use filename =; clashes with load_rds_or_run_function
+                    # ... don't use filename =; clashes with
+                    # load_rds_or_run_function
                     probands = get(mk_people_var(db1)),
                     sample = get(mk_people_var(db2))
                 ),
@@ -1492,20 +1637,24 @@ compare_at_thresholds <- function(
     d[, TNR := n_tn / n_n]  # specificity, selectivity, true neg. rate
     d[, PPV := n_tp / (n_tp + n_fp)]
     d[, NPV := n_tn / (n_tn + n_fn)]
-    d[, FNR := n_fn / n_p]  # miss rate, false neg. rate
-    d[, FPR := n_fp / n_n]  # false pos. rate
+    d[, FNR := n_fn / n_p]  # miss rate, false neg. rate = 1 - TPR
+    d[, FPR := n_fp / n_n]  # false pos. rate = 1 - TNR
     d[, FDR := n_fp / (n_fp + n_tp)]  # false discovery rate
     d[, FOR := n_fn / (n_fn + n_tn)]  # false omission rate
     d[, Prevalence := n_p / n]  # = n_p / (n_p + n_n)
     d[, Accuracy := (n_tp + n_tn) / n]  # proportion of decisions correct
-    d[, F1 := 2 * n_tp / (2 * n_tp + n_fp + n_fn)]
+    d[, F1 :=
+        2 * n_tp / (2 * n_tp + n_fp + n_fn)
+    ]  # F1 score: harmonic mean of precision and recall
     if (with_obscure) {
-        d[, LR_pos := TPR / FPR]
-        d[, LR_neg := FNR / TNR]
+        d[, LR_pos := TPR / FPR]  # positive likelihood ratio
+        d[, LR_neg := FNR / TNR]  # negative likelihood ratio
         d[, PT :=
              sqrt(FPR) / (sqrt(TPR) + sqrt(FPR))
-        ]
-        d[, TS_CSI := n_tp / (n_tp + n_fn + n_fp)]
+        ]  # prevalence threshold
+        d[, TS_CSI :=
+            n_tp / (n_tp + n_fn + n_fp)
+        ]  # threat score, or critical success index
         d[, Balanced_accuracy :=
             (TPR + TNR) / 2
         ]
@@ -1514,6 +1663,19 @@ compare_at_thresholds <- function(
 
     # And for our second phase:
     d[, MID := n_misidentified / n_identified]  # misidentification rate
+
+    # Thoughts: a natural metric is "distance from the top left of the ROC
+    # plot". The x distance is FPR, and the y distance is 1 - TPR. So, by
+    # Pythagoras's theorem, the distance is sqrt(FPR^2 + (1 - TPR)^2). That
+    # doesn't seem to be one that's above, so:
+    # d[, distance_roc_corner := sqrt(FPR^2 + (1 - TPR)^2)]
+    d[, distance_to_corner := sqrt(FPR^2 + (1 - TPR)^2)]
+    # Aha. It's called "distance to corner":
+    # https://ncss-wpengine.netdna-ssl.com/wp-content/themes/ncss/pdf/Procedures/NCSS/One_ROC_Curve_and_Cutoff_Analysis.pdf
+    # ... they use the form sqrt((1 - sensitivity)^2 + (1 - specificity)^2),
+    # where 1 - sensitivity[TPR] = FNR (y distance), and 1 - specificity[TNR] =
+    # FPR (x distance). So that's the distance from the top left too, and 0 is
+    # good.
 
     # Checks
     stopifnot(d$n_p == sum(decided$proband_in_sample))
@@ -1631,8 +1793,7 @@ mk_generic_pairwise_plot <- function(
     overlap_label_size = LABEL_SIZE,
     diagonal_colour = DIAGONAL_PANEL_BG_COLOUR,
     diagonal_background_alpha = DIAGONAL_PANEL_BG_ALPHA
-)
-{
+) {
     # Plot some form of SDT measures (comp_threshold_labelled) across
     # parameters (theta, delta) and database pairs.
 
@@ -1659,7 +1820,7 @@ mk_generic_pairwise_plot <- function(
         # d[, x_factor := as.factor(theta)]
         d[, x_grouper := paste0(quantity, "_", delta)]
         vline_xintercept <- DEFAULT_THETA
-        colour_scale <- COLOUR_SCALE_THETA
+        colour_scale <- COLOUR_SCALE_DELTA
 
     } else {
         # x is delta
@@ -1668,7 +1829,7 @@ mk_generic_pairwise_plot <- function(
         # d[, x_factor := as.factor(delta)]
         d[, x_grouper := paste0(quantity, "_", theta)]
         vline_xintercept <- DEFAULT_DELTA
-        colour_scale <- COLOUR_SCALE_DELTA
+        colour_scale <- COLOUR_SCALE_THETA
     }
     y_label <- paste(depvars, collapse = ", ")
 
@@ -1712,6 +1873,7 @@ mk_generic_pairwise_plot <- function(
                 colour = colourvar,
                 shape = "quantity"
             )
+            # colour = "black"
         )
         + facet_grid(from_label ~ to_label)
         + theme_bw()
@@ -1801,8 +1963,7 @@ mk_auroc_plot_ignoring_delta <- function(
     default_theta_shape = 4  # 4 cross, 19 filled circle
     # point_shape = 1,  # hollow circle
     # point_alpha = 0.1
-)
-{
+) {
     # Create an AUROC plot for a fixed value of delta, across databases (per
     # FROM_DATABASES, TO_DATABASES).
 
@@ -2035,7 +2196,7 @@ mk_auroc_plot_ignoring_delta <- function(
             size = auroc_label_size
         )
         + theme_bw()
-        + xlab("FPR (1 − specificity)")
+        + xlab("FPR (1 - specificity)")
         + scale_x_continuous(
             labels = function(x) {
                 miscmath$format_dp_unless_integer(x, dp = 2)
@@ -2115,7 +2276,7 @@ people_missingness_summary <- function(people)
         %>% summarize(
             # Strings can be "" not NA, but frequencies are NA if missing.
             missing_first_name = prop_missing(first_name_p_f),
-            missing_second_name = prop_missing(middle_name_frequencies),
+            missing_second_name = prop_missing(second_forename_p_f),
             missing_other_middle_names = prop_missing(other_middle_names_p_f),
             missing_surname = prop_missing(surname_p_f),
             missing_gender = prop_missing(gender_freq),
@@ -2133,8 +2294,7 @@ extract_miss_or_misidentified_info <- function(
     allow.cartesian = TRUE,
     remove_sample_duplicates = TRUE,
     rowtype = c("miss", "misidentified")
-)
-{
+) {
     # For a pair of databases, establish people who were "missed" (proband in
     # truth present in sample but no match declared) or misidentified (match
     # declared for wrong person). Link them (proband to sample) by
@@ -2171,12 +2331,12 @@ extract_miss_or_misidentified_info <- function(
         "surname_metaphone", "surname_p_p1nf",
         "surname_f2c", "surname_p_p2np1",
 
-        "hashed_dob",  # all frequencies the same
-        "hashed_dob_md",
-        "hashed_dob_yd",
-        "hashed_dob_ym",
+        "dob",  # all frequencies the same
+        "dob_md",
+        "dob_yd",
+        "dob_ym",
 
-        "gender", "gender_freq",
+        "gender_hashed", "gender_freq",
 
         "postcode_units", "postcode_unit_freq",
         "postcode_sectors", "postcode_sector_freq",
@@ -2206,14 +2366,17 @@ extract_miss_or_misidentified_info <- function(
         miss_sample_candidates[, is_duplicate := duplicated(hashed_nhs_number)]
         n_duplicates <- sum(miss_sample_candidates$is_duplicate)
         if (n_duplicates > 0) {
-            warning(paste0(
+            cat(paste0(
                 "Removing ",
                 n_duplicates,
                 " duplicates (by hashed_nhs_number) from ",
                 "miss_sample_candidates for database ",
-                sample_db_name
+                sample_db_name,
+                "\n"
             ))
-            miss_sample_candidates <- miss_sample_candidates[is_duplicate == FALSE]
+            miss_sample_candidates <- miss_sample_candidates[
+                is_duplicate == FALSE
+            ]
         }
     }
     failure_info <- merge(  # fi = failure_info
@@ -2222,7 +2385,9 @@ extract_miss_or_misidentified_info <- function(
         by.x = "hashed_nhs_number",
         by.y = "hashed_nhs_number",
         all.x = TRUE,  # all missed probands
-        all.y = FALSE,  # not all candidates, just those that (in truth) match the missed probands
+        all.y = FALSE,
+        # ... not all candidates, just those that (in truth) match the missed
+        # probands
         suffixes = c("_proband", "_sample"),
         allow.cartesian = allow.cartesian
         # ... see: ?'[.data.table'
@@ -2319,16 +2484,16 @@ failure_summary <- function(failure_info, colprefix)
                 gender_sample
             ),
             firstname_surname_swapped = sum(
-                mismatch(first_name_hashed_proband, first_name_hashed_sample)
-                & mismatch(hashed_surname_proband, hashed_surname_sample)
-                & (first_name_hashed_proband == hashed_surname_sample)
-                & (hashed_surname_proband == first_name_hashed_sample)
+                mismatch(first_name_name_proband, first_name_name_sample)
+                & mismatch(surname_name_proband, surname_name_sample)
+                & (first_name_name_proband == surname_name_sample)
+                & (surname_name_proband == first_name_name_sample)
             ) / n,
             firstname_secondforename_swapped = sum(
-                mismatch(first_name_hashed_proband, first_name_hashed_sample)
-                & mismatch(hashed_second_forename_proband, hashed_second_forename_sample)
-                & (first_name_hashed_proband == hashed_second_forename_sample)
-                & (hashed_second_forename_proband == first_name_hashed_sample)
+                mismatch(first_name_name_proband, first_name_name_sample)
+                & mismatch(second_forename_name_proband, second_forename_name_sample)
+                & (first_name_name_proband == second_forename_name_sample)
+                & (second_forename_name_proband == first_name_name_sample)
             ) / n
         )
         %>% as.data.table()
@@ -2341,8 +2506,7 @@ failure_summary <- function(failure_info, colprefix)
 performance_summary_at_threshold <- function(
     theta = DEFAULT_THETA,
     delta = DEFAULT_DELTA
-)
-{
+) {
     # Compare all databases (per FROM_DATABASES, TO_DATABASES) at the specified
     # levels of theta and delta, and extract:
     # - SDT measures, via compare_at_thresholds()
@@ -2566,6 +2730,9 @@ empirical_discrepancy_rates <- function(people_data_1, people_data_2, gender = N
 
 empirical_discrepancy_rates_by_gender <- function(people_data_1, people_data_2)
 {
+    # Characterize the rates of empirical discrepancies amongst people who we
+    # know to be the same in two databases, by gender and across all genders.
+
     return(rbind(
         empirical_discrepancy_rates(people_data_1, people_data_2, NA),
         empirical_discrepancy_rates(people_data_1, people_data_2, SEX_F),
@@ -2590,6 +2757,7 @@ show_duplicate_nhsnum_effect <- function(probands, sample, comparison)
         is_nhsnum_duplicated :=
             part_of_duplicated_group(hashed_nhs_number)
     ]
+    return(NULL)
 }
 
 
@@ -2599,7 +2767,15 @@ show_duplicate_nhsnum_effect <- function(probands, sample, comparison)
 
 main <- function()
 {
+    # -------------------------------------------------------------------------
+    # Load people and comparisons.
+    # -------------------------------------------------------------------------
+
     load_all()
+
+    # -------------------------------------------------------------------------
+    # Basic missingness analysis; demographics
+    # -------------------------------------------------------------------------
 
     write_output(paste("Starting:", Sys.time()), append = FALSE)
 
@@ -2614,32 +2790,60 @@ main <- function()
     write_output(dg)
     write_output(t(dg))
 
-    # Working:
+    # -------------------------------------------------------------------------
+    # Algorithm performance
+    # -------------------------------------------------------------------------
+
+    # Number of (truly) overlapping people in each pairwise comparison:
     comp_simple <- get_comparisons_simple()
+
+    # Performance metrics at all combinations of theta/delta tested:
     comp_threshold <- get_comparisons_varying_threshold()
+
+    performance_means_by_theta_delta <- (
+        comp_threshold %>%
+        group_by(theta, delta) %>%
+        summarize(
+            mean_TPR = mean(TPR),
+            mean_FPR = mean(FPR, na.rm = TRUE),
+            mean_accuracy = mean(Accuracy),
+            mean_F1 = mean(F1),
+            mean_MID = mean(MID),
+            mean_distance_to_corner = mean(distance_to_corner, na.rm = TRUE),
+            .groups = "drop"
+        ) %>%
+        as.data.table()
+    )
+    # To have the top row be the best, sort negatively for good quantities and
+    # positively for bad quantities:
+    setorder(performance_means_by_theta_delta, mean_distance_to_corner); print(performance_means_by_theta_delta)
+    setorder(performance_means_by_theta_delta, -mean_F1); print(performance_means_by_theta_delta)
+    setorder(performance_means_by_theta_delta, -mean_TPR); print(performance_means_by_theta_delta)
+    setorder(performance_means_by_theta_delta, -mean_accuracy); print(performance_means_by_theta_delta)
+    # ... for these, theta = delta = 0 is best
+    setorder(performance_means_by_theta_delta, mean_MID); print(performance_means_by_theta_delta)
+    setorder(performance_means_by_theta_delta, mean_FPR); print(performance_means_by_theta_delta)
+    # ... for this, theta = delta = 15 is best.
 
     # Performance figure
     mk_save_performance_plot(comp_threshold, comp_simple)
 
+    # Performance metrics at default theta/delta values:
     comp_at_defaults <- comp_threshold[
         theta == DEFAULT_THETA & delta == DEFAULT_DELTA
     ]
     write_output(comp_at_defaults)
 
-    # Factors associated with non-linkage
-    m <- bias_at_threshold(compare_rio_to_systmone)  # at default thresholds
-    write_output(summary(m))
-    # Estimate = 0 is no effect, >0 more likely to be linked, <0 less likely.
-    # Estimates are of log odds.
-    write_output(car::Anova(m, type = "III", test.statistic = "F"))
-
-    # Reasons for non-linkage, etc.
+    # Reasons for non-linkage, etc., for every pairwise database comparison,
+    # at default values of theta/delta:
     pst <- performance_summary_at_threshold()
     write_output(pst)
 
+    # Key metrics for every pairwise database comparison at default values of
+    # theta/delta:
     pst_simplified <- (
         pst
-        %>% select(from, to, TPR, FPR, TNR, MID)
+        %>% select(from, to, TPR, FPR, TNR, MID, F1)
         %>% as.data.table()
     )
     write_output(pst_simplified)
@@ -2661,27 +2865,56 @@ main <- function()
     )
     write_output(pst_table)
 
+    # -------------------------------------------------------------------------
+    # Factors associated with non-linkage (in RiO -> SystmOne comparison)
+    # -------------------------------------------------------------------------
+    # ... at default values of theta/delta.
+
+    m <- bias_at_threshold(compare_rio_to_systmone)  # at default thresholds
+    write_output(summary(m))
+    # Estimate = 0 is no effect, >0 more likely to be linked, <0 less likely.
+    # Estimates are of log odds.
+    write_output(car::Anova(m, type = "III", test.statistic = "F"))
+
     # Not done: demographics predicting specific sub-reasons for non-linkage.
     # (We predict overall non-linkage above.)
 
+    # -------------------------------------------------------------------------
+    # Rates of identifier discrepancy for known-same people.
+    # -------------------------------------------------------------------------
+    # See also empirical_rates.sql, which does similar things direct from the
+    # source databases.
+
+    # Empirical analysis of identifier discrepancies between a single pair of
+    # databases, among people known to be the same (by NHS number).
     discrepancies <- empirical_discrepancy_rates_by_gender(
         people_data_1 = get(mk_people_var(RIO)),
         people_data_2 = get(mk_people_var(SYSTMONE))
     )
-    # F 90/54480; M 91/41736. By gender:
-    # chisq.test(matrix(c(90, 91, 54480 - 90, 41736 - 91), nrow = 2))
+    # print(t(discrepancies))
+    # For forename mis-ordering (first/second forenames swapped):
+    #   F 90/54480; M 91/41736. (Across all genders: 184/96569.)
+    # Analysis by gender:
+    #   chisq.test(matrix(c(90, 91, 54480 - 90, 41736 - 91), nrow = 2))
     # Not significant.
-    # Double-check: canonical jury example via my 2004 stats booklet:
+    # Double-check with the canonical jury example via my 2004 stats booklet:
     #   chisq.test(matrix(c(153, 24, 105, 76), nrow = 2, byrow = TRUE), correct = FALSE)  # chisq = 35.93
     #   chisq.test(matrix(c(153, 24, 105, 76), nrow = 2, byrow = FALSE), correct = FALSE)  # chisq = 35.93
     # ... reminding us that transposing makes no difference.
-    # Across all genders: 184/96569.
+
+    # -------------------------------------------------------------------------
+    # Effects of duplication in PCMIS
+    # -------------------------------------------------------------------------
 
     duplicate_nhs_numbers_in_sample <- show_duplicate_nhsnum_effect(
         probands = get(mk_people_var(RIO)),
         sample = get(mk_people_var(PCMIS)),
         comparison = get(mk_comparison_var(RIO, PCMIS))
-    )
+    )  # INCOMPLETE. IGNORE.
+
+    # -------------------------------------------------------------------------
+    # Superseded analyses.
+    # -------------------------------------------------------------------------
 
     if (FALSE) {
         # superseded analyses
@@ -2698,6 +2931,10 @@ main <- function()
             mean(people_systmone$surname_metaphone_frequency, na.rm = TRUE)
         )  # 0.001779113
     }
+
+    # -------------------------------------------------------------------------
+    # Done.
+    # -------------------------------------------------------------------------
 
     write_output(paste("Finished:", Sys.time()))
 }
