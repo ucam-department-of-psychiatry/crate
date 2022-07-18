@@ -33,6 +33,7 @@ RStudio IDE problems:
 
 '
 
+
 # =============================================================================
 # Libraries
 # =============================================================================
@@ -65,6 +66,10 @@ debugfunc$wideScreen()
 # Governing constants
 # =============================================================================
 
+TWO_STAGE_SDT_METHOD <- TRUE  # See paper as to why I think this is right.
+WEIGHT_MISIDENTIFICATION <- 20
+# ... weighting for determining optimal settings; versus FNR.
+
 # Maximum number of rows to read from each file.
 ROW_LIMIT <- -1
 # -1 (not Inf) for no limit; positive finite for debugging This works both with
@@ -84,12 +89,12 @@ THETA_OPTIONS <- seq(0, 15, by = 1)
 
 # Values for the delta parameter to explore: log odds advantage over the next.
 # Again, 0 would be no advantage.
-DELTA_OPTIONS <- seq(0, 15, by = 2.5)
+DELTA_OPTIONS <- seq(0, 15, by = 1)
 # DELTA_OPTIONS <- 10  # for debugging
 
 # Default values for theta and delta.
 DEFAULT_THETA <- 5  # see crate_anon.linkage.fuzzy_id_match.FuzzyDefaults
-DEFAULT_DELTA <- 10  # ditto
+DEFAULT_DELTA <- 0  # ditto
 
 
 # =============================================================================
@@ -140,6 +145,7 @@ TO_DATABASES <- ALL_DATABASES
 DATA_DIR <- "C:/srv/crate/crate_fuzzy_linkage_validation"
 OUTPUT_DIR <- DATA_DIR
 OUTPUT_FILE <- file.path(OUTPUT_DIR, "main_results.txt")
+PST_OUTPUT_FILE <- file.path(OUTPUT_DIR, "performance_summary_at_threshold.csv")
 
 
 get_data_filename <- function(db)
@@ -365,7 +371,9 @@ GRADIENT_FN <- colorRampPalette(c("blue", "red"))
 # HIGHLIGHT <- "darkorange"  # FF8C00
 # HIGHLIGHT <- "blue"  # 0000FF
 # HIGHLIGHT <- "darkgreen"  # 006400
-HIGHLIGHT <- "#00BB00"  # a green
+# HIGHLIGHT <- "#00BB00"  # a green
+# HIGHLIGHT <- "#646400"  # very dark yellow
+HIGHLIGHT <- "black"
 
 COLOUR_SCALE_THETA <- scale_colour_sequential_highlighted(
     palette_fn = GRADIENT_FN,
@@ -1581,21 +1589,136 @@ decide_at_thresholds <- function(compdata, theta, delta)
         & log_odds_match >= second_best_log_odds + delta
     )]
 
-    # Extreme caution here, because we have two aspects: detecting that someone
-    # is in the sample, and finding the correct person. The SDT methods need
-    # everything to add up, so we deal with these separately. (We do *not* say
-    # that a "hit" is declaring a match and the best candidate being correct.)
-    # So, the first phase:
-    d[, hit := declare_match & proband_in_sample]
-    d[, false_alarm := declare_match & !proband_in_sample]
-    d[, correct_rejection := !declare_match & !proband_in_sample]
-    d[, miss := !declare_match & proband_in_sample]
+    if (TWO_STAGE_SDT_METHOD) {
+        # RNC METHOD.
+        # Extreme caution here, because we have two aspects: detecting that
+        # someone is in the sample, and finding the correct person. The SDT
+        # methods need everything to add up, so we deal with these separately.
+        # (We do *not* say that a "hit" is declaring a match and the best
+        # candidate being correct.) So, the first phase:
+        d[, hit := declare_match & proband_in_sample]  # TP
+        d[, false_alarm := declare_match & !proband_in_sample]  # FP
+        d[, correct_rejection := !declare_match & !proband_in_sample]  # TN
+        d[, miss := !declare_match & proband_in_sample]  # FN
+        # PREDICTION:
+        # - test positive (TP + FP) = declare match (linked)
+        # - test negative (TN + FN) = declare no match (not linked)
+        # STATE OF THE WORLD:
+        # - positive = TP + FN = proband in sample
+        # - negative = TN + FP = proband not in sample
 
-    # And the second:
-    d[, correctly_identified := declare_match & best_candidate_correct]
-    d[, misidentified := declare_match & !best_candidate_correct]
+        # And the second:
+        d[, correctly_identified := declare_match & best_candidate_correct]
+        d[, misidentified := declare_match & !best_candidate_correct]
+
+    } else {
+        # ALTERNATIVE METHOD. Following Lyons (2009) PMID 19149883, in turn
+        # following Karmel & Gibson (2007) PMID 17892601 (p2, penultimate
+        # paragraph):
+        # - true positive (hit) = true link
+        # - true negative (correct rejection) = no link
+        # - false positive (false alarm) = false link
+        # - false negative (miss) = missed link
+
+        d[, hit := declare_match & best_candidate_correct]  # TP
+        d[, false_alarm := declare_match & !best_candidate_correct]  # FP
+        d[, correct_rejection := !declare_match & !proband_in_sample]  # TN
+        d[, miss := !declare_match & proband_in_sample]  # FN
+        # PREDICTION:
+        # - test positive (TP + FP) = declare match (linked)
+        # - test negative (TN + FN) = declare no match (not linked)
+        # STATE OF THE WORLD:
+        # - positive (P) = TP + FN =
+        #           (proband in sample and matched correctly)
+        #           + (proband in sample and no match declared)
+        # - negative (N) = TN + FP =
+        #           (proband not in sample and no match declared)
+        #           + (proband in sample and matched incorrectly)
+        #           + (proband not in sample and matched incorrectly)
+        #         = (proband not in sample)
+        #           + (proband in sample and matched incorrectly)
+        # That's the problem -- they are definable but the definitions of P/N
+        # are not independent of the test. See paper, and demo_re_two_systems()
+        # below.
+
+        # These are redundant. Make that clear:
+        d[, correctly_identified := NA_integer_]
+        d[, misidentified := NA_integer_]
+    }
 
     return(d)
+}
+
+
+demo_re_two_systems <- function()
+{
+    # My claim that in K&G 2007, variations in the test affect the measured
+    # prevalence:
+
+    prevalence <- function(tp, fp, tn, fn) {
+        p <- tp + fn
+        n <- tn + fp
+        return(p / (p + n))
+    }
+
+    # -------------------------------------------------------------------------
+    # Situation A, system 1.
+    # -------------------------------------------------------------------------
+    # Working down the rows of Table 7:
+
+    a1_tn <- 1
+    a1_fp <- 2
+    a1_fn <- 3
+    a1_fp <- a_fp + 4
+    a1_tp <- 5
+
+    print(prevalence(tp = a1_tp, fp = a1_fp, tn = a1_tn, fn = a1_fn))
+    # 0.727
+
+    # -------------------------------------------------------------------------
+    # Situation B, system 1.
+    # -------------------------------------------------------------------------
+    # As before, but now the test correctly identifies those 4, so they change
+    # from being FP to TP.
+
+    b1_tn <- 1
+    b1_fp <- 2
+    b1_fn <- 3
+    b1_tp <- 4 + 5
+
+    print(prevalence(tp = b1_tp, fp = b1_fp, tn = b1_tn, fn = b1_fn))
+    # 0.8
+    # The apparent prevalence has changed as the result of the test getting
+    # better.
+
+    # -------------------------------------------------------------------------
+    # Situation A, system 2.
+    # -------------------------------------------------------------------------
+
+    a2_tn <- 1
+    a2_fp <- 2
+    a2_fn <- 3
+    a2_tp <- 4
+    a2_tp <- a2_tp + 5
+
+    print(prevalence(tp = a2_tp, fp = a2_fp, tn = a2_tn, fn = a2_fn))
+    # 0.8
+
+    # -------------------------------------------------------------------------
+    # Situation B, system 1.
+    # -------------------------------------------------------------------------
+    # As before, but now the test correctly identifies those 4, so they change
+    # from being one kind of TP to another kind of TP.
+
+    b2_tn <- 1
+    b2_fp <- 2
+    b2_fn <- 3
+    b2_tp <- 4 + 5
+
+    print(prevalence(tp = b2_tp, fp = b2_fp, tn = b2_tn, fn = b2_fn))
+    # 0.8
+    # No change.
+
 }
 
 
@@ -1631,8 +1754,8 @@ compare_at_thresholds <- function(
     # Standard derived SDT measures
     # https://en.wikipedia.org/wiki/Receiver_operating_characteristic
     # Capitals to look pretty in graphs automatically.
-    d[, n_p := n_tp + n_fn]  # positive: proband in sample
-    d[, n_n := n_tn + n_fp]  # negative: proband not in sample
+    d[, n_p := n_tp + n_fn]  # positive (in reality)
+    d[, n_n := n_tn + n_fp]  # negative (in reality)
     d[, TPR := n_tp / n_p]  # sensitivity, recall, hit rate, true pos. rate
     d[, TNR := n_tn / n_n]  # specificity, selectivity, true neg. rate
     d[, PPV := n_tp / (n_tp + n_fp)]
@@ -1661,7 +1784,7 @@ compare_at_thresholds <- function(
         # ... etc.
     }
 
-    # And for our second phase:
+    # And for our second phase, if applicable:
     d[, MID := n_misidentified / n_identified]  # misidentification rate
 
     # Thoughts: a natural metric is "distance from the top left of the ROC
@@ -1678,8 +1801,10 @@ compare_at_thresholds <- function(
     # good.
 
     # Checks
-    stopifnot(d$n_p == sum(decided$proband_in_sample))
-    stopifnot(d$n_n == sum(!decided$proband_in_sample))
+    if (TWO_STAGE_SDT_METHOD) {
+        stopifnot(d$n_p == sum(decided$proband_in_sample))
+        stopifnot(d$n_n == sum(!decided$proband_in_sample))
+    }
     stopifnot(all(d$n_tp + d$n_fp + d$n_tn + d$n_fn == d$n))
 
     return(d)
@@ -1724,7 +1849,7 @@ bias_at_threshold <- function(
 {
     # Apply new decision thresholds (theta, delta) to a comparison (compdata).
     # Return a logistic regression model using demographic factors to predict
-    # the likelihood of linkage.
+    # the likelihood of correct linkage.
 
     # Make decisions. We only care about probands who are in the sample.
     decided <- decide_at_thresholds(
@@ -1734,7 +1859,7 @@ bias_at_threshold <- function(
     )
     decided[, birth_year := year(blurred_dob)]
     m <- glm(
-        declare_match ~
+        correctly_identified ~
             birth_year
                 + sex_simple
                 + ethnicity
@@ -1786,10 +1911,10 @@ mk_generic_pairwise_plot <- function(
     vline_colour = DEFAULT_VLINE_COLOUR,
     with_overlap_label = FALSE,
     comp_simple_labelled = NULL,
-    overlap_label_y = 0.25,
+    overlap_label_y = 0.6,  # 0.25,
     overlap_label_vjust = 0,  # vbottom
-    overlap_label_x = max(THETA_OPTIONS),
-    overlap_label_hjust = 1,  # 0 = left-justify, 1 = right-justify
+    overlap_label_x = DEFAULT_THETA + 1,  # max(THETA_OPTIONS),
+    overlap_label_hjust = 0,  # 0 = left-justify, 1 = right-justify
     overlap_label_size = LABEL_SIZE,
     diagonal_colour = DIAGONAL_PANEL_BG_COLOUR,
     diagonal_background_alpha = DIAGONAL_PANEL_BG_ALPHA
@@ -1908,7 +2033,7 @@ mk_generic_pairwise_plot <- function(
 }
 
 
-mk_threshold_plot_sdt <- function(comp_threshold_labelled, x_is_theta, ...)
+mk_threshold_plot_tpr_fpr <- function(comp_threshold_labelled, ...)
 {
     # Make a plot for TPR and FPR, by either theta or delta, and across
     # database pairs.
@@ -1924,15 +2049,44 @@ mk_threshold_plot_sdt <- function(comp_threshold_labelled, x_is_theta, ...)
     return(mk_generic_pairwise_plot(
         comp_threshold_labelled,
         depvars = c("TPR", "FPR"),
-        linetypes = c("solid", "dotted", "dotted"),
+        linetypes = c("solid", "dotted"),
         shapes = c(24, 25),  # up triangle, down triangle
-        x_is_theta = x_is_theta,
         ...
     ))
 }
 
 
-mk_threshold_plot_mid <- function(comp_threshold_labelled, x_is_theta, ...)
+mk_threshold_plot_tpr <- function(comp_threshold_labelled, ...)
+{
+    # Make a plot for TPR and FPR, by either theta or delta, and across
+    # database pairs.
+
+    return(mk_generic_pairwise_plot(
+        comp_threshold_labelled,
+        depvars = "TPR",
+        linetypes = "solid",
+        shapes = 24,  # up triangle
+        ...
+    ))
+}
+
+
+mk_threshold_plot_fpr <- function(comp_threshold_labelled, ...)
+{
+    # Make a plot for FNR (false negative rate), by either theta or delta,
+    # and across database pairs.
+
+    return(mk_generic_pairwise_plot(
+        comp_threshold_labelled,
+        depvars = "FPR",
+        linetypes = "solid",
+        shapes = 25,  # down triangle
+        ...
+    ))
+}
+
+
+mk_threshold_plot_mid <- function(comp_threshold_labelled, ...)
 {
     # Make a plot for MID (misidentification rate), by either theta or delta,
     # and across database pairs.
@@ -1942,7 +2096,6 @@ mk_threshold_plot_mid <- function(comp_threshold_labelled, x_is_theta, ...)
         depvars = "MID",
         linetypes = "solid",
         shapes = 4,  # X
-        x_is_theta = x_is_theta,
         ...
     ))
 }
@@ -2233,21 +2386,55 @@ mk_save_performance_plot <- function(comp_threshold, comp_simple)
         )
         %>% as.data.table()
     )
-    tpr_fpr_theta <- mk_threshold_plot_sdt(
-        comp_threshold_labelled,
-        x_is_theta = TRUE,
-        with_overlap_label = TRUE,
-        comp_simple_labelled = comp_simple_labelled
-    )
-    tpr_fpr_delta <- mk_threshold_plot_sdt(comp_threshold_labelled, x_is_theta = FALSE)
-    mid_theta <- mk_threshold_plot_mid(comp_threshold_labelled, x_is_theta = TRUE)
-    mid_delta <- mk_threshold_plot_mid(comp_threshold_labelled, x_is_theta = FALSE)
-    auroc_plots <- mk_auroc_plot_ignoring_delta()
-    composite <- (
-        (auroc_plots | plot_spacer()) /
-        (tpr_fpr_theta | tpr_fpr_delta) /
-        (mid_theta | mid_delta)
-    ) + plot_annotation(tag_levels = "A")
+
+    if (TWO_STAGE_SDT_METHOD) {
+        # The two things of real interest are the TPR (sensitivity) and the
+        # misidentification rate.
+
+        # tpr_fpr_theta <- mk_threshold_plot_tpr_fpr(
+        #     comp_threshold_labelled,
+        #     x_is_theta = TRUE,
+        #     with_overlap_label = TRUE,
+        #     comp_simple_labelled = comp_simple_labelled
+        # )
+        # tpr_fpr_delta <- mk_threshold_plot_tpr_fpr(comp_threshold_labelled, x_is_theta = FALSE)
+        tpr_theta <- mk_threshold_plot_tpr(
+            comp_threshold_labelled,
+            x_is_theta = TRUE,
+            with_overlap_label = TRUE,
+            comp_simple_labelled = comp_simple_labelled
+        )
+        tpr_delta <- mk_threshold_plot_tpr(comp_threshold_labelled, x_is_theta = FALSE)
+        # fpr_theta <- mk_threshold_plot_fpr(comp_threshold_labelled, x_is_theta = TRUE)
+        # fpr_delta <- mk_threshold_plot_fpr(comp_threshold_labelled, x_is_theta = FALSE)
+        mid_theta <- mk_threshold_plot_mid(comp_threshold_labelled, x_is_theta = TRUE)
+        mid_delta <- mk_threshold_plot_mid(comp_threshold_labelled, x_is_theta = FALSE)
+        auroc_plots <- mk_auroc_plot_ignoring_delta()
+        composite <- (
+            (auroc_plots | plot_spacer()) /
+            # (tpr_fpr_theta | tpr_fpr_delta) /
+            (tpr_theta | tpr_delta) /
+            # (fpr_theta | fpr_delta) /
+            (mid_theta | mid_delta)
+        ) + plot_annotation(tag_levels = "A")
+    } else {
+        tpr_theta <- mk_threshold_plot_tpr(
+            comp_threshold_labelled,
+            x_is_theta = TRUE,
+            with_overlap_label = TRUE,
+            comp_simple_labelled = comp_simple_labelled
+        )
+        tpr_delta <- mk_threshold_plot_tpr(comp_threshold_labelled, x_is_theta = FALSE)
+        fpr_theta <- mk_threshold_plot_fpr(comp_threshold_labelled, x_is_theta = TRUE)
+        fpr_delta <- mk_threshold_plot_fpr(comp_threshold_labelled, x_is_theta = FALSE)
+        auroc_plots <- mk_auroc_plot_ignoring_delta()
+        composite <- (
+            (auroc_plots | plot_spacer()) /
+            (tpr_theta | tpr_delta) /
+            (fpr_theta | fpr_delta)
+        ) + plot_annotation(tag_levels = "A")
+    }
+
     ggsave(
         file.path(OUTPUT_DIR, "fig_pairwise_thresholds.pdf"),
         composite,
@@ -2762,6 +2949,85 @@ show_duplicate_nhsnum_effect <- function(probands, sample, comparison)
 
 
 # =============================================================================
+# Consider defaults
+# =============================================================================
+
+show_performance_means_by_theta_delta <- function(
+    comp_threshold,
+    weight_misidentification = WEIGHT_MISIDENTIFICATION,
+    include_self_links = FALSE
+) {
+    performance_means_by_theta_delta <- (
+        comp_threshold
+    )
+    if (!include_self_links) {
+        # Self-linkages have lower misidentification rates, so it's better to
+        # exclude these (as per the defaults).
+        performance_means_by_theta_delta <- (
+            performance_means_by_theta_delta %>%
+            filter(from != to)
+        )
+    }
+    performance_means_by_theta_delta <- (
+        performance_means_by_theta_delta %>%
+        mutate(WPM = FNR + weight_misidentification * MID) %>%
+        # ... Weighted performance metric. Just for this study.
+        group_by(theta, delta) %>%
+        summarize(
+            mean_TPR = mean(TPR),
+            mean_FNR = mean(FNR),  # = 1 - TPR
+            mean_FPR = mean(FPR, na.rm = TRUE),
+            mean_accuracy = mean(Accuracy),
+            mean_F1 = mean(F1),
+            mean_MID = mean(MID),
+            mean_WPM = mean(WPM),
+            mean_distance_to_corner = mean(distance_to_corner, na.rm = TRUE),
+            .groups = "drop"
+        ) %>%
+        as.data.table()
+    )
+    # To have the top row be the best, sort negatively for good quantities and
+    # positively for bad quantities:
+    write_output("By distance to corner:\n")
+    setorder(performance_means_by_theta_delta, mean_distance_to_corner);
+    write_output(performance_means_by_theta_delta)
+    # ... for this, with TWO_STAGE_SDT_METHOD, theta = delta = 0 is best
+
+    write_output("\nBy F1 score:\n")
+    setorder(performance_means_by_theta_delta, -mean_F1);
+    write_output(performance_means_by_theta_delta)
+
+    write_output("\nBy TPR:\n")
+    setorder(performance_means_by_theta_delta, -mean_TPR);
+    write_output(performance_means_by_theta_delta)
+
+    write_output("\nBy accuracy:\n")
+    setorder(performance_means_by_theta_delta, -mean_accuracy);
+    write_output(performance_means_by_theta_delta)
+
+    # ... for these, theta = delta = 0 is best
+    if (TWO_STAGE_SDT_METHOD) {
+        write_output("\nBy MID:\n")
+        setorder(performance_means_by_theta_delta, mean_MID);
+        write_output(performance_means_by_theta_delta)
+    }
+
+    write_output("\nBy FPR:\n")
+    setorder(performance_means_by_theta_delta, mean_FPR);
+    write_output(performance_means_by_theta_delta)
+    # ... for these, theta = delta = 15 is best.
+
+    write_output(paste0(
+        "\nBy WPM with weight_misidentification = ",
+         weight_misidentification,
+         ":\n"
+     ))
+    setorder(performance_means_by_theta_delta, mean_WPM);
+    write_output(performance_means_by_theta_delta)
+}
+
+
+# =============================================================================
 # Main
 # =============================================================================
 
@@ -2800,30 +3066,8 @@ main <- function()
     # Performance metrics at all combinations of theta/delta tested:
     comp_threshold <- get_comparisons_varying_threshold()
 
-    performance_means_by_theta_delta <- (
-        comp_threshold %>%
-        group_by(theta, delta) %>%
-        summarize(
-            mean_TPR = mean(TPR),
-            mean_FPR = mean(FPR, na.rm = TRUE),
-            mean_accuracy = mean(Accuracy),
-            mean_F1 = mean(F1),
-            mean_MID = mean(MID),
-            mean_distance_to_corner = mean(distance_to_corner, na.rm = TRUE),
-            .groups = "drop"
-        ) %>%
-        as.data.table()
-    )
-    # To have the top row be the best, sort negatively for good quantities and
-    # positively for bad quantities:
-    setorder(performance_means_by_theta_delta, mean_distance_to_corner); print(performance_means_by_theta_delta)
-    setorder(performance_means_by_theta_delta, -mean_F1); print(performance_means_by_theta_delta)
-    setorder(performance_means_by_theta_delta, -mean_TPR); print(performance_means_by_theta_delta)
-    setorder(performance_means_by_theta_delta, -mean_accuracy); print(performance_means_by_theta_delta)
-    # ... for these, theta = delta = 0 is best
-    setorder(performance_means_by_theta_delta, mean_MID); print(performance_means_by_theta_delta)
-    setorder(performance_means_by_theta_delta, mean_FPR); print(performance_means_by_theta_delta)
-    # ... for this, theta = delta = 15 is best.
+    # Show performance metrics by theta/delta
+    show_performance_means_by_theta_delta(comp_threshold)
 
     # Performance figure
     mk_save_performance_plot(comp_threshold, comp_simple)
@@ -2843,7 +3087,7 @@ main <- function()
     # theta/delta:
     pst_simplified <- (
         pst
-        %>% select(from, to, TPR, FPR, TNR, MID, F1)
+        %>% select(from, to, TPR, FPR, TNR, F1, MID)
         %>% as.data.table()
     )
     write_output(pst_simplified)
@@ -2851,9 +3095,9 @@ main <- function()
         pst_simplified
         %>% mutate(
             text = paste0(
-                "TPR: ", format_sig_fig(TPR), "; ",
-                "FPR: ", format_sig_fig(FPR), "; ",
-                "MID: ", format_sig_fig(MID)
+                "TPR: ", format_sig_fig(TPR),
+                # "; FPR: ", format_sig_fig(FPR),
+                "; MID: ", format_sig_fig(MID)
             )
         )
         %>% select(from, to, text)
@@ -2864,6 +3108,7 @@ main <- function()
         )
     )
     write_output(pst_table)
+    write.table(pst_table, PST_OUTPUT_FILE, row.names = FALSE)
 
     # -------------------------------------------------------------------------
     # Factors associated with non-linkage (in RiO -> SystmOne comparison)
@@ -2875,6 +3120,7 @@ main <- function()
     # Estimate = 0 is no effect, >0 more likely to be linked, <0 less likely.
     # Estimates are of log odds.
     write_output(car::Anova(m, type = "III", test.statistic = "F"))
+    write_output(length(m$residuals))  # number of subjects participating
 
     # Not done: demographics predicting specific sub-reasons for non-linkage.
     # (We predict overall non-linkage above.)
@@ -2891,7 +3137,7 @@ main <- function()
         people_data_1 = get(mk_people_var(RIO)),
         people_data_2 = get(mk_people_var(SYSTMONE))
     )
-    # print(t(discrepancies))
+    write_output(t(discrepancies))
     # For forename mis-ordering (first/second forenames swapped):
     #   F 90/54480; M 91/41736. (Across all genders: 184/96569.)
     # Analysis by gender:
@@ -2906,11 +3152,11 @@ main <- function()
     # Effects of duplication in PCMIS
     # -------------------------------------------------------------------------
 
-    duplicate_nhs_numbers_in_sample <- show_duplicate_nhsnum_effect(
-        probands = get(mk_people_var(RIO)),
-        sample = get(mk_people_var(PCMIS)),
-        comparison = get(mk_comparison_var(RIO, PCMIS))
-    )  # INCOMPLETE. IGNORE.
+    # duplicate_nhs_numbers_in_sample <- show_duplicate_nhsnum_effect(
+    #     probands = get(mk_people_var(RIO)),
+    #     sample = get(mk_people_var(PCMIS)),
+    #     comparison = get(mk_comparison_var(RIO, PCMIS))
+    # )  # INCOMPLETE. IGNORE.
 
     # -------------------------------------------------------------------------
     # Superseded analyses.
