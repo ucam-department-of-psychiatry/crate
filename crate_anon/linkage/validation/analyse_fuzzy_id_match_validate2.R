@@ -147,7 +147,12 @@ TO_DATABASES <- ALL_DATABASES
 DATA_DIR <- "C:/srv/crate/crate_fuzzy_linkage_validation"
 OUTPUT_DIR <- DATA_DIR
 OUTPUT_FILE <- file.path(OUTPUT_DIR, "main_results.txt")
-PST_OUTPUT_FILE <- file.path(OUTPUT_DIR, "performance_summary_at_threshold.csv")
+PST_OUTPUT_FILE_DEFAULTS <- file.path(
+    OUTPUT_DIR, "performance_summary_at_default_threshold.csv"
+)
+PST_OUTPUT_FILE_ZERO <- file.path(
+    OUTPUT_DIR, "performance_summary_at_zero_threshold.csv"
+)
 
 
 get_data_filename <- function(db)
@@ -2764,6 +2769,80 @@ performance_summary_at_threshold <- function(
 }
 
 
+write_simplified_performance_summary_at_threshold <- function(
+    theta = DEFAULT_THETA,
+    delta = DEFAULT_DELTA,
+    write_pst = TRUE
+) {
+    # Reasons for non-linkage, etc., for every pairwise database comparison,
+    # at default values of theta/delta:
+    write_output(paste0(
+        "PERFORMANCE SUMMARIES: theta = ", theta, ", delta = ", delta
+    ))
+    pst <- performance_summary_at_threshold(theta = theta, delta = delta)
+    if (write_pst) {
+        write_output(pst)
+    }
+
+    # Key metrics for every pairwise database comparison at default values of
+    # theta/delta:
+    pst_simplified <- (
+        pst
+        %>% select(from, to, TPR, FPR, TNR, F1, MID)
+        %>% as.data.table()
+    )
+    write_output(pst_simplified)
+
+    pst_means_non_self <- (
+        pst_simplified
+        %>% filter(from != to)
+        %>% summarize(
+            mean_TPR = mean(TPR),
+            min_TPR = min(TPR),
+            max_TPR = max(TPR),
+
+            mean_FPR = mean(FPR),
+            min_FPR = min(FPR),
+            max_FPR = max(FPR),
+
+            mean_TNR = mean(TNR),
+            min_TNR = min(TNR),
+            max_TNR = max(TNR),
+
+            mean_F1 = mean(F1),
+            min_F1 = min(F1),
+            max_F1 = max(F1),
+
+            mean_MID = mean(MID),
+            min_MID = min(MID),
+            max_MID = max(MID)
+        )
+        %>% as.data.table()
+    )
+    write_output(pst_means_non_self)
+
+    pst_table <- (
+        pst_simplified
+        %>% mutate(
+            text = paste0(
+                "TPR: ", format_sig_fig(TPR),
+                # "; FPR: ", format_sig_fig(FPR),
+                "; MID: ", format_sig_fig(MID)
+            )
+        )
+        %>% select(from, to, text)
+        %>% pivot_wider(
+            names_from = to,
+            names_prefix = "to_",
+            values_from = text
+        )
+    )
+    write_output(pst_table)
+
+    return(pst_table)
+}
+
+
 # =============================================================================
 # Empirical discrepancy rates
 # =============================================================================
@@ -3093,37 +3172,14 @@ main <- function()
     ]
     write_output(comp_at_defaults)
 
-    # Reasons for non-linkage, etc., for every pairwise database comparison,
-    # at default values of theta/delta:
-    pst <- performance_summary_at_threshold()
-    write_output(pst)
+    # Simplified performance summary
+    pst_table_defaults <- write_simplified_performance_summary_at_threshold()
+    write.table(pst_table_defaults, PST_OUTPUT_FILE_DEFAULTS, row.names = FALSE)
 
-    # Key metrics for every pairwise database comparison at default values of
-    # theta/delta:
-    pst_simplified <- (
-        pst
-        %>% select(from, to, TPR, FPR, TNR, F1, MID)
-        %>% as.data.table()
+    pst_table_zero <- write_simplified_performance_summary_at_threshold(
+        theta = 0, delta = 0
     )
-    write_output(pst_simplified)
-    pst_table <- (
-        pst_simplified
-        %>% mutate(
-            text = paste0(
-                "TPR: ", format_sig_fig(TPR),
-                # "; FPR: ", format_sig_fig(FPR),
-                "; MID: ", format_sig_fig(MID)
-            )
-        )
-        %>% select(from, to, text)
-        %>% pivot_wider(
-            names_from = to,
-            names_prefix = "to_",
-            values_from = text
-        )
-    )
-    write_output(pst_table)
-    write.table(pst_table, PST_OUTPUT_FILE, row.names = FALSE)
+    write.table(pst_table_zero, PST_OUTPUT_FILE_ZERO, row.names = FALSE)
 
     # -------------------------------------------------------------------------
     # Factors associated with non-linkage (in RiO -> SystmOne comparison)
