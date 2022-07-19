@@ -96,6 +96,8 @@ DELTA_OPTIONS <- seq(0, 15, by = 1)
 DEFAULT_THETA <- 5  # see crate_anon.linkage.fuzzy_id_match.FuzzyDefaults
 DEFAULT_DELTA <- 0  # ditto
 
+HASH_LENGTH <- 32  # length of an individual hashed identifier
+
 
 # =============================================================================
 # Database constants
@@ -380,14 +382,14 @@ COLOUR_SCALE_THETA <- scale_colour_sequential_highlighted(
     highlight_values = DEFAULT_THETA,
     highlight_colours = HIGHLIGHT,
     scale_from = range(THETA_OPTIONS),
-    bandwidth = 1
+    bandwidth = 1  # +/- 0.5, so no overlap with the next; see THETA_OPTIONS
 )
 COLOUR_SCALE_DELTA <- scale_colour_sequential_highlighted(
     palette_fn = GRADIENT_FN,
     highlight_values = DEFAULT_DELTA,
     highlight_colours = HIGHLIGHT,
     scale_from = range(DELTA_OPTIONS),
-    bandwidth = 1
+    bandwidth = 1  # +/- 0.5, so no overlap with the next; see DELTA_OPTIONS
 )
 # Check: COLOUR_SCALE_DELTA$map(rescale(DELTA_OPTIONS)). Should
 # provide colours for all values. IF THAT FAILS, ggplot2 is too old -- v3.3.6
@@ -1443,11 +1445,19 @@ load_all <- function()
 # Demographics
 # =============================================================================
 
-get_demographics <- function(d, db_name)
+get_demographics <- function(d, db_name, hash_length = HASH_LENGTH)
 {
     # Use information derived from our special validation "other_info" details
     # to characterize the demographics, in aggregate, of people from a single
-    # database.
+    # database. Also some details from the de-identified info, e.g. number of
+    # postcodes per person.
+
+    d <- data.table::copy(d)
+    d[,
+        n_postcodes := str_length(str_replace_all(postcode_units, ";", ""))
+                       / HASH_LENGTH
+    ]
+    d[, birth_year := year(blurred_dob)]
 
     results <- data.table(
         db_name = db_name,
@@ -1457,10 +1467,10 @@ get_demographics <- function(d, db_name)
         n_records_duplicated_nhs_number = n_with_duplicates(d$hashed_nhs_number),
         n_distinct_duplicated_nhs_numbers = n_unique_duplicates(d$hashed_nhs_number),
 
-        dob_year_min = min(year(d$blurred_dob), na.rm = TRUE),
-        dob_year_max = max(year(d$blurred_dob), na.rm = TRUE),
-        dob_year_mean = mean(year(d$blurred_dob), na.rm = TRUE),
-        dob_year_sd = sd(year(d$blurred_dob), na.rm = TRUE),
+        dob_year_min = min(d$birth_year, na.rm = TRUE),
+        dob_year_max = max(d$birth_year, na.rm = TRUE),
+        dob_year_mean = mean(d$birth_year, na.rm = TRUE),
+        dob_year_sd = sd(d$birth_year, na.rm = TRUE),
 
         sex_n_female = sum(d$gender == SEX_F, na.rm = TRUE),
         sex_n_male = sum(d$gender == SEX_M, na.rm = TRUE),
@@ -1478,6 +1488,11 @@ get_demographics <- function(d, db_name)
         dx_n_f_not_smi = sum(d$diagnostic_group == DX_GROUP_F_NOT_SMI, na.rm = TRUE),
         dx_n_outside_f = sum(d$diagnostic_group == DX_GROUP_OUTSIDE_F, na.rm = TRUE),
         dx_n_none = sum(d$diagnostic_group == DX_GROUP_NONE, na.rm = TRUE),
+
+        n_postcodes_mean = mean(d$n_postcodes),
+        n_postcodes_min = min(d$n_postcodes),
+        n_postcodes_max = max(d$n_postcodes),
+        cor_birth_year_n_postcodes = cor(d$birth_year, d$n_postcodes),
 
         deprivation_centile_min = min(d$deprivation_centile_100_most_deprived, na.rm = TRUE),
         deprivation_centile_max = max(d$deprivation_centile_100_most_deprived, na.rm = TRUE),
@@ -2554,7 +2569,7 @@ extract_miss_or_misidentified_info <- function(
         n_duplicates <- sum(miss_sample_candidates$is_duplicate)
         if (n_duplicates > 0) {
             cat(paste0(
-                "Removing ",
+                "extract_miss_or_misidentified_info: Removing ",
                 n_duplicates,
                 " duplicates (by hashed_nhs_number) from ",
                 "miss_sample_candidates for database ",

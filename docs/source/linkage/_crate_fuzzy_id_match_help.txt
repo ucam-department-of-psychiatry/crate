@@ -376,7 +376,7 @@ Matching rules:
                         Minimum log (ln) odds by which a best match must
                         exceed the next-best match to be considered a unique
                         match. Referred to as delta (δ) in the validation
-                        paper. (default: 10)
+                        paper. (default: 0)
   --perfect_id_translation PERFECT_ID_TRANSLATION
                         Optional dictionary of the form {'nhsnum':'nhsnumber',
                         'ni_num':'national_insurance'}, mapping the names of
@@ -681,7 +681,7 @@ Matching rules:
                         Minimum log (ln) odds by which a best match must
                         exceed the next-best match to be considered a unique
                         match. Referred to as delta (δ) in the validation
-                        paper. (default: 10)
+                        paper. (default: 0)
   --perfect_id_translation PERFECT_ID_TRANSLATION
                         Optional dictionary of the form {'nhsnum':'nhsnumber',
                         'ni_num':'national_insurance'}, mapping the names of
@@ -1026,7 +1026,7 @@ Matching rules:
                         Minimum log (ln) odds by which a best match must
                         exceed the next-best match to be considered a unique
                         match. Referred to as delta (δ) in the validation
-                        paper. (default: 10)
+                        paper. (default: 0)
   --perfect_id_translation PERFECT_ID_TRANSLATION
                         Optional dictionary of the form {'nhsnum':'nhsnumber',
                         'ni_num':'national_insurance'}, mapping the names of

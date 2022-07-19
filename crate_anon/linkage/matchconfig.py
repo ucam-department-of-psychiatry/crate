@@ -576,13 +576,6 @@ class MatchConfig:
             + p_share_dob_yd_not_ymd
             + p_share_dob_ym_not_ymd
         )
-        # To find p_pnf_dob in terms of b, using Octave:
-        #   pkg load symbolic
-        #   syms b
-        #   simplify(1/365.25 + 1/(30.4375 * b) + 1/(12 * b) - 3/(365.25 * b))
-        # gives
-        #   (16 * b + 631) / (5844 * b)
-
         self.p_n_dob = 1 - self.p_f_dob - self.p_pnf_dob
         assert 0 <= self.p_f_dob <= 1
         assert 0 <= p_share_dob_md_not_ymd <= 1
@@ -618,16 +611,57 @@ class MatchConfig:
                 f"efficient computationally (by an estimated factor of about "
                 f"{potential_speedup_factor})."
             )
-            # ... for a 90-year range, this is a factor of about 252.
-            # For a single year, it's about 9; if I'm born on 1 Jan, allowing
-            # single-component errors mean we need to consider 1 Jan, but also
-            # all of Jan, and all other firsts of the month -- total 42 out of
-            # 365 days, or 1/8.69 of the year.
-            # For a multi-year range, the speedup increases: if I'm born on 1
-            # Jan 1950 and we are considering 1900-1999, we'd need to consider
-            # 1950-01-01 (1), ????-01-01 (100), 1950-01-?? (31), 1950-??-01
-            # (12), minus the overlaps (3), giving 141 possibilities but out
-            # of about 36500, i.e. considering only 1/259 of the candidates.
+        _ = """
+        Speedup: for a 90-year range (b = 90), this is a factor of about 252.
+
+        For a single year, it's about 9; if I'm born on 1 Jan, allowing
+        single-component errors mean we need to consider 1 Jan, but also all of
+        Jan, and all other firsts of the month -- total 42 out of 365 days, or
+        1/8.69 of the year.
+
+        For a multi-year range, the speedup increases: if I'm born on 1 Jan
+        1950 and we are considering 1900-1999, we'd need to consider 1950-01-01
+        (1), ????-01-01 (100), 1950-01-?? (31), 1950-??-01 (12), minus the
+        overlaps (3), giving 141 possibilities but out of about 36500, i.e.
+        considering only 1/259 of the candidates.
+
+        To find probabilities in terms of b, using Octave:
+
+            pkg load symbolic
+            syms b p_f_dob p_pnf_dob p_n_dob speedup_no_mismatch speedup_no_partial second_stage_speedup
+            DAYS_PER_YEAR = 365.25
+            DAYS_PER_MONTH = 30.4375
+            MONTHS_PER_YEAR = 12
+
+            p_f_dob = 1 / (DAYS_PER_YEAR * b)
+                # = 4 / (1461⋅b)
+
+            p_pnf_dob = (
+                1 / DAYS_PER_YEAR
+                + 1 / (DAYS_PER_MONTH * b)
+                + 1 / (MONTHS_PER_YEAR * b)
+                - 3 / (DAYS_PER_YEAR * b)
+            )
+            simplify(p_pnf_dob)
+                # = (16⋅b + 631) / (5844⋅b)
+
+            p_n_dob = 1 - p_f_dob - p_pnf_dob
+            simplify(p_n_dob)
+
+            p_full_or_partial_match = 1 - p_n_dob
+            speedup_no_mismatch = 1 / p_full_or_partial_match
+            simplify(speedup_no_mismatch)
+                # = 5844⋅b / (16⋅b + 647)
+
+            speedup_no_partial = 1 / p_f_dob
+            simplify(speedup_no_partial)
+                # = 1461⋅b / 4
+
+            second_stage_speedup = speedup_no_partial / speedup_no_mismatch
+            simplify(second_stage_speedup)
+                # = b + 647 / 16
+
+        """  # noqa
 
         if verbose:
             log.debug(f"... MatchConfig built. Settings: {self}")

@@ -31,6 +31,7 @@ It can operate using either identifiable information or in de-identified
 fashion.
 
 **In development.**
+**More detail will follow then the validation paper is published.**
 
 .. todo:: fuzzy_id_match: expand on method
 
