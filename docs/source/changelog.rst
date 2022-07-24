@@ -1574,6 +1574,10 @@ Changes
   - The NLP cloud client checks that all requested processors are available
     remotely, and fails overtly, rather than silently ignoring those.
 
+- Bayesian linkage, identifiable and de-identified.
+
+- **Minimum Python version is now 3.8.** (Required by numpy v1.22.)
+
 
 To do
 -----

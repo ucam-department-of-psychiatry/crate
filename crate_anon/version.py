@@ -39,7 +39,7 @@ import sys
 CRATE_VERSION = "0.19.4"
 CRATE_VERSION_DATE = "2022-05-24"
 
-MINIMUM_PYTHON_VERSION = (3, 7)
+MINIMUM_PYTHON_VERSION = (3, 8)
 # Only other place that has this: install_virtualenv.py (which can't import
 # CRATE packages).
 
