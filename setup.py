@@ -88,7 +88,7 @@ INSTALL_REQUIRES = [
     "drf-spectacular==0.22.0",  # Open API Schema and documentation
     "drf-spectacular-sidecar==2022.3.21",  # Static files for drf-spectacular
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
-    "flower==1.0.0",  # debug Celery; web server; only runs explicitly
+    "flower==1.1.0",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
     "gunicorn==20.0.4",  # UNIX only, though will install under Windows
     "jsonlines==3.0.0",  # JSON Lines format
@@ -132,7 +132,7 @@ INSTALL_REQUIRES = [
     "tornado==6.1",  # web framework
     "transaction==3.0.0",  # generic transaction management
     "urllib3==1.26.5",  # used by requests
-    "waitress==2.1.1",  # pure-Python WSGI server
+    "waitress==2.1.2",  # pure-Python WSGI server
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
     # For development only:
     "black==22.3.0",  # auto code formatter
