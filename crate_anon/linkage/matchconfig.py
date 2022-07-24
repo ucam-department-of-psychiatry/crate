@@ -92,8 +92,10 @@ class MatchConfig:
         population_size: int = FuzzyDefaults.POPULATION_SIZE,
         forename_sex_csv_filename: str = FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
         forename_cache_filename: str = FuzzyDefaults.FORENAME_CACHE_FILENAME,
+        forename_freq_info: Optional[NameFrequencyInfo] = None,
         surname_csv_filename: str = FuzzyDefaults.SURNAME_FREQ_CSV,
         surname_cache_filename: str = FuzzyDefaults.SURNAME_CACHE_FILENAME,
+        surname_freq_info: Optional[NameFrequencyInfo] = None,
         min_name_frequency: float = FuzzyDefaults.NAME_MIN_FREQ,
         accent_transliterations_csv: str = (
             FuzzyDefaults.ACCENT_TRANSLITERATIONS_SLASH_CSV
@@ -108,6 +110,7 @@ class MatchConfig:
         ),
         postcode_csv_filename: str = FuzzyDefaults.POSTCODES_CSV,
         postcode_cache_filename: str = FuzzyDefaults.POSTCODE_CACHE_FILENAME,
+        postcode_freq_info: Optional[PostcodeFrequencyInfo] = None,
         k_postcode: Optional[float] = FuzzyDefaults.K_POSTCODE,
         p_unknown_or_pseudo_postcode: float = (
             FuzzyDefaults.P_UNKNOWN_OR_PSEUDO_POSTCODE
@@ -163,11 +166,17 @@ class MatchConfig:
                 frequency" pairs.
             forename_cache_filename:
                 File in which to cache forename information for faster loading.
+            forename_freq_info:
+                Debugging option: overrides forename_sex_csv_filename by
+                providing a NameFrequencyInfo object directly.
             surname_csv_filename:
                 Surname frequencies. CSV file, with no header, of "name,
                 frequency" pairs.
             surname_cache_filename:
                 File in which to cache forename information for faster loading.
+            surname_freq_info:
+                Debugging option: overrides surname_csv_filename by
+                providing a NameFrequencyInfo object directly.
             min_name_frequency:
                 Minimum name frequency; see command-line help.
             accent_transliterations_csv:
@@ -192,6 +201,9 @@ class MatchConfig:
                 :class:`PostcodeFrequencyInfo`.
             postcode_cache_filename:
                 File in which to cache postcode information for faster loading.
+            postcode_freq_info:
+                Debugging option: overrides postcode_csv_filename by
+                providing a PostcodeFrequencyInfo object directly.
             k_postcode:
                 Multiple applied to postcode unit/sector frequencies, such that
                 p_f_postcode = k_postcode * f_f_postcode and p_p_postcode =
@@ -201,7 +213,7 @@ class MatchConfig:
                 (rather than sampled from across the UK).
             p_unknown_or_pseudo_postcode:
                 Probability that a random person will have a pseudo-postcode,
-                e.g. ZZ99 3VZ (no fixed above) or a postcode not known to our
+                e.g. ZZ99 3VZ (no fixed abode) or a postcode not known to our
                 database. Specifically, P(each pseudopostcode or unknown
                 postcode unit | ¬H).
             k_pseudopostcode:
@@ -405,25 +417,25 @@ class MatchConfig:
 
         # Name handling: forenames
 
-        self.forename_csv_filename = forename_sex_csv_filename
-        self.forename_cache_filename = forename_cache_filename
-        self.forename_freq_info = NameFrequencyInfo(
+        self.forename_freq_info = forename_freq_info or NameFrequencyInfo(
             csv_filename=forename_sex_csv_filename,
             cache_filename=forename_cache_filename,
             min_frequency=min_name_frequency,
             by_gender=True,
         )
+        if not isinstance(self.forename_freq_info, NameFrequencyInfo):
+            raise ValueError("Bad forename_freq_info")
 
         # Name handling: surnames
 
-        self.surname_csv_filename = surname_csv_filename
-        self.surname_cache_filename = surname_cache_filename
-        self.surname_freq_info = NameFrequencyInfo(
+        self.surname_freq_info = surname_freq_info or NameFrequencyInfo(
             csv_filename=surname_csv_filename,
             cache_filename=surname_cache_filename,
             min_frequency=min_name_frequency,
             by_gender=False,
         )
+        if not isinstance(self.surname_freq_info, NameFrequencyInfo):
+            raise ValueError("Bad surname_freq_info")
 
         # Population frequencies: DOB
 
@@ -450,10 +462,12 @@ class MatchConfig:
 
         # Population frequencies: postcode
 
-        self.postcode_freq = PostcodeFrequencyInfo(
+        self.postcode_freq_info = postcode_freq_info or PostcodeFrequencyInfo(
             csv_filename=postcode_csv_filename,
             cache_filename=postcode_cache_filename,
         )
+        if not isinstance(self.postcode_freq_info, PostcodeFrequencyInfo):
+            raise ValueError("Bad postcode_freq_info")
         self.p_unknown_or_pseudo_postcode_unit = check_prob(
             p_unknown_or_pseudo_postcode,
             Switches.P_UNKNOWN_OR_PSEUDO_POSTCODE,
@@ -749,7 +763,7 @@ class MatchConfig:
         """
         Is this a valid postcode?
         """
-        return self.postcode_freq.debug_is_valid_postcode(postcode_unit)
+        return self.postcode_freq_info.debug_is_valid_postcode(postcode_unit)
 
     def postcode_unit_sector_freq(
         self, postcode_unit: str, prestandardized: bool = False
@@ -762,7 +776,7 @@ class MatchConfig:
         The underlying function ensures that the sector frequency is as least
         as big as the unit frequency.
         """
-        return self.postcode_freq.postcode_unit_sector_frequency(
+        return self.postcode_freq_info.postcode_unit_sector_frequency(
             postcode_unit, prestandardized=prestandardized
         )
 
@@ -776,7 +790,7 @@ class MatchConfig:
             postcode_unit: the postcode unit to check
             prestandardized: was the postcode pre-standardized in format?
         """
-        return self.postcode_freq.debug_postcode_unit_population(
+        return self.postcode_freq_info.debug_postcode_unit_population(
             postcode_unit, prestandardized=prestandardized
         )
 
@@ -790,7 +804,7 @@ class MatchConfig:
             postcode_sector: the postcode sector to check
             prestandardized: was the postcode pre-standardized in format?
         """
-        return self.postcode_freq.debug_postcode_sector_population(
+        return self.postcode_freq_info.debug_postcode_sector_population(
             postcode_sector, prestandardized=prestandardized
         )
 

@@ -745,6 +745,8 @@ class AnonRegexTests2(TestCase):
             # Some of our institutional postcodes:
             "CB2 0QQ",
         ]
+        # See also
+        # https://club.ministryoftesting.com/t/fun-postcodes-to-use-when-testing/10772  # noqa
         invalid_postcodes = [
             "ABCDEFG",
         ]

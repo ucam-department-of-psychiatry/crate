@@ -49,6 +49,11 @@ from crate_anon.linkage.constants import (
     INFINITY,
     VALID_GENDERS,
 )
+from crate_anon.linkage.frequencies import (
+    BasicNameFreqInfo,
+    NameFrequencyInfo,
+    PostcodeFrequencyInfo,
+)
 from crate_anon.linkage.identifiers import (
     DateOfBirth,
     Forename,
@@ -100,6 +105,174 @@ GOOD_POSTCODES = [
     " zz993vz ",
 ]  # good once standardized, anyway
 BAD_GENDERS = ["Y", "male", "female", "?"]
+
+
+# =============================================================================
+# Rapid creation of a dummy config (without loading actual name/postcode info)
+# =============================================================================
+
+
+def mk_test_config(**kwargs) -> MatchConfig:
+    """
+    Create a dummy config, using dummy name/postcode info.
+    """
+    predefined_forenames = [
+        BasicNameFreqInfo(
+            name="ALICE",
+            p_name=0.0032597245570899847,
+            metaphone="ALK",
+            p_metaphone=0.005664202032042135,
+            p_metaphone_not_name=0.00240447747495215,
+            f2c="AL",
+            p_f2c=0.027635117202534115,
+            p_f2c_not_name_metaphone=0.022541989771499515,
+            synthetic=False,
+        ),
+        BasicNameFreqInfo(
+            name="BEATRICE",
+            gender="F",
+            p_name=0.0011134697472956023,
+            metaphone="PTRK",
+            p_metaphone=0.010795171997297154,
+            p_metaphone_not_name=0.009681702250001551,
+            f2c="BE",
+            p_f2c=0.020540629656206778,
+            p_f2c_not_name_metaphone=0.01938862260342886,
+            synthetic=False,
+        ),
+        BasicNameFreqInfo(
+            name="BETTY",
+            gender="F",
+            p_name=0.005856056682186572,
+            metaphone="PT",
+            p_metaphone=0.007567968531021441,
+            p_metaphone_not_name=0.0017119118488348687,
+            f2c="BE",
+            p_f2c=0.020540629656206778,
+            p_f2c_not_name_metaphone=0.014031211254451567,
+            synthetic=False,
+        ),
+        BasicNameFreqInfo(
+            name="BOB",
+            gender="M",
+            p_name=0.0005341749908504777,
+            metaphone="PP",
+            p_metaphone=0.002569054271327976,
+            p_metaphone_not_name=0.0020348792804774983,
+            f2c="BO",
+            p_f2c=0.0035610312205931094,
+            p_f2c_not_name_metaphone=0.0010918026974037107,
+            synthetic=False,
+        ),
+        BasicNameFreqInfo(
+            name="CAROLINE",
+            gender="F",
+            p_name=0.001289812197195456,
+            metaphone="KRLN",
+            p_metaphone=0.005979308865585442,
+            p_metaphone_not_name=0.004689496668389986,
+            f2c="CA",
+            p_f2c=0.033910941860871194,
+            p_f2c_not_name_metaphone=0.02860674130257904,
+            synthetic=False,
+        ),
+        BasicNameFreqInfo(
+            name="CELIA",
+            gender="F",
+            p_name=0.0003141885536034312,
+            metaphone="KL",
+            p_metaphone=0.016359410337593906,
+            p_metaphone_not_name=0.016045221783990475,
+            f2c="CE",
+            p_f2c=0.0030682294813082723,
+            p_f2c_not_name_metaphone=0.0026663592268114434,
+            synthetic=False,
+        ),
+        BasicNameFreqInfo(
+            name="DELILAH",
+            gender="F",
+            p_name=0.00019936172952521078,
+            metaphone="TLL",
+            p_metaphone=0.000491534931894549,
+            p_metaphone_not_name=0.00029217320236933826,
+            f2c="DE",
+            p_f2c=0.02472305974107954,
+            p_f2c_not_name_metaphone=0.024435022377723725,
+            synthetic=False,
+        ),
+        BasicNameFreqInfo(
+            name="DOROTHY",
+            gender="F",
+            p_name=0.006484867451993301,
+            metaphone="TR0",
+            p_metaphone=0.007164437365410392,
+            p_metaphone_not_name=0.0006795699134170908,
+            f2c="DO",
+            p_f2c=0.020044376270378746,
+            p_f2c_not_name_metaphone=0.01298493890496824,
+            synthetic=False,
+        ),
+        BasicNameFreqInfo(
+            name="ELIZABETH",
+            gender="F",
+            p_name=0.009497275400440382,
+            metaphone="ALSP",
+            p_metaphone=0.010079561736620864,
+            p_metaphone_not_name=0.0005822863361804823,
+            f2c="EL",
+            p_f2c=0.02543961854560152,
+            p_f2c_not_name_metaphone=0.015404362973960957,
+            synthetic=False,
+        ),
+    ]  # type: List[BasicNameFreqInfo]
+    forename_freq_info = NameFrequencyInfo(
+        csv_filename="", cache_filename="", by_gender=True
+    )
+    for f in predefined_forenames:
+        forename_freq_info.name_gender_idx[f.name, f.gender] = f
+
+    predefined_surnames = [
+        BasicNameFreqInfo(
+            name="JONES",
+            gender="",
+            p_name=0.00621,
+            metaphone="JNS",
+            p_metaphone=0.0068899999999999986,
+            p_metaphone_not_name=0.0006799999999999983,
+            f2c="JO",
+            p_f2c=0.019480000000000268,
+            p_f2c_not_name_metaphone=0.012984999999999938,
+            synthetic=False,
+        ),
+        BasicNameFreqInfo(
+            name="SMITH",
+            gender="",
+            p_name=0.01006,
+            metaphone="SM0",
+            p_metaphone=0.010129999999999998,
+            p_metaphone_not_name=6.999999999999888e-05,
+            f2c="SM",
+            p_f2c=0.012514999999999967,
+            p_f2c_not_name_metaphone=0.0023849999999999896,
+            synthetic=False,
+        ),
+    ]  # type: List[BasicNameFreqInfo]
+    surname_freq_info = NameFrequencyInfo(
+        csv_filename="", cache_filename="", by_gender=False
+    )
+    for s in predefined_surnames:
+        surname_freq_info.name_gender_idx[s.name, s.gender] = s
+
+    postcode_freq_info = PostcodeFrequencyInfo(
+        csv_filename="", cache_filename=""
+    )
+
+    return MatchConfig(
+        forename_freq_info=forename_freq_info,
+        surname_freq_info=surname_freq_info,
+        postcode_freq_info=postcode_freq_info,
+        **kwargs,
+    )
 
 
 # =============================================================================
@@ -325,7 +498,7 @@ class FuzzyLinkageTests(unittest.TestCase):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.cfg = MatchConfig(rounding_sf=None)
+        self.cfg = mk_test_config(rounding_sf=None)
         self.p1 = Postcode(
             cfg=self.cfg,
             postcode="CB2 0QQ",  # Addenbrooke's Hospital
@@ -723,13 +896,15 @@ class FuzzyLinkageTests(unittest.TestCase):
         configs = [
             cfg,
             # Check extremes of k_postcode:
-            MatchConfig(k_postcode=1),
-            MatchConfig(k_postcode=1000),
+            mk_test_config(k_postcode=1),
+            mk_test_config(k_postcode=1000),
             # Check extremes of p_unknown_or_pseudo_postcode, k_pseudopostcode:
-            MatchConfig(
+            mk_test_config(
                 p_unknown_or_pseudo_postcode=0.00001, k_pseudopostcode=1.2
             ),
-            MatchConfig(p_unknown_or_pseudo_postcode=0.01, k_pseudopostcode=3),
+            mk_test_config(
+                p_unknown_or_pseudo_postcode=0.01, k_pseudopostcode=3
+            ),
             # Very high combinations, e.g.
             # p_unknown_or_pseudo_postcode=0.00001, k_pseudopostcode=1.001, may
             # cause an error here. Very high combinations, e.g.
@@ -1166,7 +1341,7 @@ class FuzzyLinkageTests(unittest.TestCase):
             self.assertFalse(mismatch_p in shortlist1)
 
         # And one where we do:
-        cfg2 = MatchConfig(p_en_dob=FuzzyDefaults.P_EN_DOB_TRUE)
+        cfg2 = mk_test_config(p_en_dob=FuzzyDefaults.P_EN_DOB_TRUE)
         self.assertEqual(cfg2.complete_dob_mismatch_allowed, True)
         self.assertEqual(cfg2.partial_dob_mismatch_allowed, True)
         people2 = People(cfg2, people=all_people)
@@ -1175,7 +1350,7 @@ class FuzzyLinkageTests(unittest.TestCase):
             self.assertTrue(p in shortlist2)
 
         # And one where only exact DOB matches are allows:
-        cfg3 = MatchConfig(p_ep_dob=0, p_en_dob=0)
+        cfg3 = mk_test_config(p_ep_dob=0, p_en_dob=0)
         self.assertEqual(cfg3.complete_dob_mismatch_allowed, False)
         self.assertEqual(cfg3.partial_dob_mismatch_allowed, False)
         people3 = People(cfg3, people=all_people)

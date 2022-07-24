@@ -300,6 +300,8 @@ class NameFrequencyInfo:
         """
         Saves to a JSONL cache.
         """
+        if not cache_filename:
+            return
         log.info(f"Writing to cache: {cache_filename}")
         mkdir_for_filename(cache_filename)
         with jsonlines.open(cache_filename, mode="w") as writer:
@@ -670,6 +672,8 @@ class PostcodeFrequencyInfo:
         """
         Saves to a JSON cache.
         """
+        if not cache_filename:
+            return
         log.info(f"Writing to cache: {cache_filename}")
         mkdir_for_filename(cache_filename)
         d = {
