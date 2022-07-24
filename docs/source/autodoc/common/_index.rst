@@ -37,6 +37,7 @@ crate_anon/common
     file_io.py.rst
     formatting.py.rst
     inputfunc.py.rst
+    logfunc.py.rst
     memsize.py.rst
     parallel.py.rst
     profiling.py.rst

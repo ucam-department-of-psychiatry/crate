@@ -49,7 +49,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 
-class DatabaseHolder(object):
+class DatabaseHolder:
     """
     Object to represent a connection to a database.
     """

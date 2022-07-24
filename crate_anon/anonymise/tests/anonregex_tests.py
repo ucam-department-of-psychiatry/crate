@@ -53,6 +53,7 @@ from crate_anon.anonymise.anonregex import (
     get_regex_string_from_elements,
     get_string_regex_elements,
     get_uk_postcode_regex_elements,
+    get_uk_postcode_regex_string,
 )
 from crate_anon.common.stringfunc import (
     get_digit_string_from_vaguely_numeric_string,
@@ -728,6 +729,34 @@ class AnonRegexTests2(TestCase):
                 f"12 {code}34",
             ],
         )
+
+    def test_uk_postcodes(self) -> None:
+        """
+        Ensure we detect postcodes properly.
+        """
+        valid_postcodes = [
+            # from https://www.mrs.org.uk/pdf/postcodeformat.pdf
+            "M1 1AA",
+            "M60 1NW",
+            "CR2 6XH",
+            "DN55 1PT",
+            "W1A 1HQ",
+            "EC1A 1BB",
+            # Some of our institutional postcodes:
+            "CB2 0QQ",
+        ]
+        # See also
+        # https://club.ministryoftesting.com/t/fun-postcodes-to-use-when-testing/10772  # noqa
+        invalid_postcodes = [
+            "ABCDEFG",
+        ]
+        postcode_regex = regex.compile(
+            get_uk_postcode_regex_string(at_word_boundaries_only=False)
+        )
+        for v in valid_postcodes:
+            self.assertTrue(postcode_regex.match(v))
+        for i in invalid_postcodes:
+            self.assertFalse(postcode_regex.match(i))
 
 
 if __name__ == "__main__":

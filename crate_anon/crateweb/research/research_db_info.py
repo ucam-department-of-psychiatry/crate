@@ -94,7 +94,7 @@ SUPPORTED_DIALECTS = [
 ]
 
 
-class PatientFieldPythonTypes(object):
+class PatientFieldPythonTypes:
     """
     Represents Python types for each type of patient ID field.
     """
@@ -111,7 +111,7 @@ class PatientFieldPythonTypes(object):
 # =============================================================================
 
 
-class ColumnInfo(object):
+class ColumnInfo:
     """
     Represents information about a database column, reflected from the
     database.
@@ -189,7 +189,7 @@ class ColumnInfo(object):
         return str(self.column_id)
 
 
-class SingleResearchDatabase(object):
+class SingleResearchDatabase:
     """
     Represents, and adds information to, a single entry from the
     ``RESEARCH_DB_INFO`` list: that is, a research database. (It's a list
@@ -929,7 +929,7 @@ ORDER BY
 
 
 @register_for_json(method=METHOD_NO_ARGS)
-class ResearchDatabaseInfo(object):
+class ResearchDatabaseInfo:
     """
     Fetches schema information from the research databases. There can be
     several, and this class represents the whole collection.

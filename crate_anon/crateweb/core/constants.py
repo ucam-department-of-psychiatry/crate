@@ -39,7 +39,7 @@ MAX_HASH_LENGTH = 128
 SCRUBBER_PNG_FILENAME = "scrubber.png"
 
 
-class SettingsKeys(object):
+class SettingsKeys:
     """
     Keys for the Django ``settings.py`` file -- particularly those that are
     optional, for which we use :func:`getattr`.

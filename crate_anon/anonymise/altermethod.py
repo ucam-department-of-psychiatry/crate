@@ -70,7 +70,7 @@ HTML_TAG_RE = regex.compile("<[^>]*>")
 # =============================================================================
 
 
-class AlterMethod(object):
+class AlterMethod:
     """
     Implements a SINGLE transformation of source data on its way to the
     destination database.

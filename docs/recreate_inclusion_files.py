@@ -215,10 +215,6 @@ def main():
         join(DevPath.DOCS_PREPROC_DIR, "_crate_fetch_wordlists_help.txt"),
     )
     run_cmd(
-        ["crate_fuzzy_id_match", "--allhelp"],
-        join(DevPath.DOCS_PREPROC_DIR, "_crate_fuzzy_id_match_help.txt"),
-    )
-    run_cmd(
         ["crate_postcodes", "--help"],
         join(DevPath.DOCS_PREPROC_DIR, "_crate_postcodes_help.txt"),
     )
@@ -242,9 +238,10 @@ def main():
         ["crate_bulk_hash", "--help"],
         join(DevPath.DOCS_LINKAGE_DIR, "_crate_bulk_hash_help.txt"),
     )
-    # NOT YET, BUT WHEN IT'S RELEASED:
-    # run_cmd(["crate_fuzzy_id_match", "--help"],
-    #         join(LINKAGE_DIR, "_crate_fuzzy_id_match.txt"))
+    run_cmd(
+        ["crate_fuzzy_id_match", "--allhelp"],
+        join(DevPath.DOCS_LINKAGE_DIR, "_crate_fuzzy_id_match_help.txt"),
+    )
 
     # -------------------------------------------------------------------------
     # Anonymisation

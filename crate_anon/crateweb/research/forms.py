@@ -189,7 +189,7 @@ class RidLookupForm(forms.Form):
 DEFAULT_MIN_TEXT_FIELD_LENGTH = 100
 
 
-class FieldPickerInfo(object):
+class FieldPickerInfo:
     """
     Describes a database field for when the user is asked to choose one via a
     web form.

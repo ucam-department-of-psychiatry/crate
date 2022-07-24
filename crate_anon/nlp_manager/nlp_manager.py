@@ -165,7 +165,7 @@ TIMING_PROGREC_CREATE = "create_progrec"
 # =============================================================================
 
 
-class DbInfo(object):
+class DbInfo:
     """
     Simple object carrying information about a database.
     Used by :func:`delete_where_no_source`.

@@ -34,7 +34,7 @@ CHERRYPY_EXTRA_ARGS_ENV_VAR = "CRATE_CHERRYPY_ARGS"
 CRATEWEB_CELERY_APP_NAME = "crate_anon.crateweb.consent"
 
 
-class ResearchDbInfoKeys(object):
+class ResearchDbInfoKeys:
     """
     Keys for each dictionary within ``settings.RESEARCH_DB_INFO``, representing
     a description of a research database that CRATE will provide a view on.
@@ -70,7 +70,7 @@ class ResearchDbInfoKeys(object):
 SOURCE_DB_NAME_MAX_LENGTH = 20
 
 
-class ClinicalDatabaseType(object):
+class ClinicalDatabaseType:
     """
     Possible source clinical database types that CRATE knows about, and can
     look up patient details for the consent-to-contact system.
@@ -109,7 +109,7 @@ class ClinicalDatabaseType(object):
 DOWNLOAD_PRIVATESTORAGE_URL_STEM = "download_privatestorage"
 
 
-class UrlNames(object):
+class UrlNames:
     r"""
     Strings used as Django names for CRATE views; see
     :mod:`crate_anon.crateweb.config.urls`.
@@ -259,13 +259,13 @@ class UrlNames(object):
     TEST_PATIENT_LOOKUP = "test_patient_lookup"
 
 
-class AdminSiteNames(object):
+class AdminSiteNames:
     DEVADMIN = "devadmin"
     MGRADMIN = "mgradmin"
     RESADMIN = "resadmin"
 
 
-class UrlKeys(object):
+class UrlKeys:
     """
     Keys used in GET parameters as part of a query string:
     ```...path?a=1&b=2``, etc.

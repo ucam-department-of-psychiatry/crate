@@ -52,7 +52,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 
-class ReadCode(object):
+class ReadCode:
     r"""
     Represents information about the way a quantity is represented as a Read
     code.
@@ -130,7 +130,7 @@ class ReadCode(object):
 # =============================================================================
 
 
-class ReadCodes(object):
+class ReadCodes:
     """
     Some known Read codes.
 

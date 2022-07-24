@@ -119,7 +119,7 @@ class DockerPath:
 
     VENV_DIR = os.path.join(ROOT_DIR, "venv")
     CRATE_INSTALL_DIR = os.path.join(
-        VENV_DIR, "lib", "python3.7", "site-packages"
+        VENV_DIR, "lib", "python3.8", "site-packages"
     )
 
 

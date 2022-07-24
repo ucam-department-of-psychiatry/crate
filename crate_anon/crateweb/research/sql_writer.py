@@ -251,7 +251,7 @@ def get_join_info(
     return joins
 
 
-class SelectElement(object):
+class SelectElement:
     """
     Class to represent a result column in an SQL ``SELECT`` statement.
     """

@@ -545,7 +545,7 @@ def get_mmsys_configfile_text(
 # =============================================================================
 
 
-class UmlsBioyodieConversionConfig(object):
+class UmlsBioyodieConversionConfig:
     """
     Simple config object to pass stuff around.
     """

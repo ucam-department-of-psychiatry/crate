@@ -93,7 +93,7 @@ DEFAULT_LIMIT = 100
 # =============================================================================
 
 
-class FieldInfo(object):
+class FieldInfo:
     """
     Fetches useful subsets from the data dictionary (DD), for tables that have
     a primary key, a patient ID, and some text field of interest.

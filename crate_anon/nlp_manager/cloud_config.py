@@ -57,7 +57,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 
-class CloudConfig(object):
+class CloudConfig:
     """
     Common config object for cloud NLP.
     """

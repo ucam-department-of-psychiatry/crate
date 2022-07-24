@@ -109,7 +109,7 @@ def check_password(pw: str, hashed_pw: str) -> bool:
     return bcrypt.checkpw(pw.encode("utf8"), expected_hash)
 
 
-class Credentials(object):
+class Credentials:
     """
     Represents username/password credentials sent by the user to us.
     """

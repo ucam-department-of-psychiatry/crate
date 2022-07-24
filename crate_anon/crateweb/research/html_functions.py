@@ -221,7 +221,7 @@ def overflow_div(
 # =============================================================================
 
 
-class HtmlElementCounter(object):
+class HtmlElementCounter:
     """
     Class to maintain element counters, for use with pages having lots of
     collapsible divs (or other HTML elements requiring individual numbering).

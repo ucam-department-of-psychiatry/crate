@@ -1548,6 +1548,11 @@ Changes
   - Support for blurring of dates with new config option
     :ref:`replace_all_dates_with <replace_all_dates_with>`.
 
+  - Fix bug in the opt-out recording table if the opt-out PID/MPID values were
+    in a column of integer type. This caused errors under SQL Server like
+    "Cannot insert explicit value for identity column in table 'opt_out_pid'
+    when IDENTITY_INSERT is set to OFF. (544)".
+
 - NLP:
 
   - Improve docstrings and documentation display for NLP processors, also
@@ -1568,6 +1573,10 @@ Changes
 
   - The NLP cloud client checks that all requested processors are available
     remotely, and fails overtly, rather than silently ignoring those.
+
+- Bayesian linkage, identifiable and de-identified.
+
+- **Minimum Python version is now 3.8.** (Required by numpy v1.22.)
 
 
 To do

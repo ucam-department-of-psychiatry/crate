@@ -611,7 +611,7 @@ class Decision(models.Model):
 # =============================================================================
 
 
-class ClinicianInfoHolder(object):
+class ClinicianInfoHolder:
     """
     Represents information about a clinician (relating to a patient, whose
     details are not held here). Also embodies information about which sort of
@@ -1352,7 +1352,7 @@ class PatientLookup(PatientLookupBase):
 # =============================================================================
 
 
-class TeamInfo(object):
+class TeamInfo:
     """
     Represents information about all clinical teams, fetched from a clinical
     source database.
@@ -3915,7 +3915,7 @@ class EmailTransmission(models.Model):
 # =============================================================================
 
 
-class DummyObjectCollection(object):
+class DummyObjectCollection:
     """
     A collection of dummy objects within the consent-to-contact system, for
     testing templates.

@@ -56,13 +56,13 @@ tools. Here's a logical sequence.
 Python
 ~~~~~~
 
-Install Python 3.7 or higher. If it's not already installed:
+Install Python 3.8 or higher. If it's not already installed:
 
 **Linux**
 
 .. code-block:: bash
 
-    sudo apt-get install python3.7-dev
+    sudo apt-get install python3.8-dev
 
 **Windows**
 

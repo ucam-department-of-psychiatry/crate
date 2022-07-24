@@ -1241,7 +1241,7 @@ class QueryAudit(models.Model):
 # Lookup class for secret RID-to-PID conversion
 # =============================================================================
 
-# class PidLookupRouter(object):
+# class PidLookupRouter:
 #     # https://docs.djangoproject.com/en/1.8/topics/db/multi-db/
 #     # https://newcircle.com/s/post/1242/django_multiple_database_support
 #     # noinspection PyMethodMayBeStatic,PyUnusedLocal
@@ -1417,7 +1417,7 @@ def get_pid(
 # =============================================================================
 
 
-class TableQueryArgs(object):
+class TableQueryArgs:
     """
     Represents SQL for a specific table, with arguments for the SQL. Used by
     :class:`PatientMultiQuery`.
@@ -1437,7 +1437,7 @@ class TableQueryArgs(object):
 
 
 @register_for_json(method=METHOD_STRIP_UNDERSCORE)
-class PatientMultiQuery(object):
+class PatientMultiQuery:
     """
     Represents a set of queries across many tables relating to one or several
     patients (but the same patients across all the tables).

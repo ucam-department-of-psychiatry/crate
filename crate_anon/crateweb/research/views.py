@@ -1168,7 +1168,7 @@ def query_count_current(request: HttpRequest) -> HttpResponse:
     return render_resultcount(request, query)
 
 
-class NlpSourceResult(object):
+class NlpSourceResult:
     """
     Serves as the return value for :func:`get_source_results`.
     """

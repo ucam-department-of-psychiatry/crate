@@ -55,6 +55,7 @@ By Rudolf Cardinal <rudolf@pobox.com>.
     autodoc/_index.rst
     autodoc_extra/_command_line_index.rst
 
+    licences/licences.rst
     changelog.rst
     to_do.rst
     glossary.rst

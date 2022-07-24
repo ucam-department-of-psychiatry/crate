@@ -37,7 +37,7 @@ from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 # =============================================================================
 
 
-class NlprpKeys(object):
+class NlprpKeys:
     """
     JSON dictionary keys used by the NLPRP.
     """
@@ -81,7 +81,7 @@ class NlprpKeys(object):
     VERSION = "version"  # bidirectional
 
 
-class NlprpValues(object):
+class NlprpValues:
     """
     JSON dictionary values used by the NLPRP.
     """
@@ -93,7 +93,7 @@ class NlprpValues(object):
     UNKNOWN = "unknown"  # for schema_type
 
 
-class NlprpCommands(object):
+class NlprpCommands:
     """
     NLPRP commands.
     """
@@ -110,7 +110,7 @@ ALL_NLPRP_COMMANDS = [
 ]
 
 
-class SqlDialects(object):
+class SqlDialects:
     """
     SQL dialects supported by the NLPRP.
     """

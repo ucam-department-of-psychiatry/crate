@@ -200,7 +200,7 @@ class IndexCreationInfo:
 
 @register_for_json(method=METHOD_STRIP_UNDERSCORE)
 @functools.total_ordering
-class SchemaId(object):
+class SchemaId:
     """
     Represents a database schema. This is a bit complex:
 
@@ -331,7 +331,7 @@ class SchemaId(object):
 
 @register_for_json(method=METHOD_STRIP_UNDERSCORE)
 @functools.total_ordering
-class TableId(object):
+class TableId:
     """
     Represents a database table.
     """
@@ -452,7 +452,7 @@ class TableId(object):
 
 @register_for_json(method=METHOD_STRIP_UNDERSCORE)
 @functools.total_ordering
-class ColumnId(object):
+class ColumnId:
     """
     Represents a database column.
     """
@@ -770,7 +770,7 @@ def parser_add_result_column(
     return parsed
 
 
-class JoinInfo(object):
+class JoinInfo:
     """
     Object to represent a SQL join condition in a simple way.
     """
@@ -1404,7 +1404,7 @@ def drop_view(engine: Engine, viewname: str, quiet: bool = False) -> None:
 # =============================================================================
 
 
-class ViewMaker(object):
+class ViewMaker:
     """
     View-building assistance class.
     """
@@ -1628,7 +1628,7 @@ class ViewMaker(object):
 # =============================================================================
 
 
-class TransactionSizeLimiter(object):
+class TransactionSizeLimiter:
     """
     Class to allow us to limit the size of database transactions.
     """
@@ -1918,7 +1918,7 @@ def sql_fragment_cast_to_int(
 
 @register_for_json(method=METHOD_PROVIDES_INIT_KWARGS)
 @functools.total_ordering
-class WhereCondition(object):
+class WhereCondition:
     """
     Ancillary class for building SQL WHERE expressions from our web forms.
 

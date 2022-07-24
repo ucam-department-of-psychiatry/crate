@@ -30,6 +30,22 @@ crate_anon/linkage
 
     __init__.py.rst
     bulk_hash.py.rst
+    comparison.py.rst
+    constants.py.rst
+    frequencies.py.rst
     fuzzy_id_match.py.rst
-    test_hash_speed.py.rst
+    helpers.py.rst
+    identifiers.py.rst
+    matchconfig.py.rst
+    matchresult.py.rst
+    people.py.rst
+    person.py.rst
+    person_io.py.rst
     tests/fuzzy_id_match_tests.py.rst
+    validation/entropy_names.py.rst
+    validation/other_examples_for_paper.py.rst
+    validation/test_01_make_inputs.py.rst
+    validation/test_03_figure_3_stepwise_illustration.py.rst
+    validation/test_04_verbose_comparison.py.rst
+    validation/test_hash_speed.py.rst
+    validation/validate_fuzzy_linkage.py.rst

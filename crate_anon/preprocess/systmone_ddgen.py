@@ -425,7 +425,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 import logging
 import re
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from cardinal_pythonlib.dicts import reversedict
 from cardinal_pythonlib.enumlike import CaseInsensitiveEnumMeta
@@ -438,6 +438,7 @@ from crate_anon.anonymise.constants import (
     ScrubSrc,
     SrcFlag,
 )
+from crate_anon.common.logfunc import warn_once
 from crate_anon.common.sql import SQLTYPE_DATE
 from crate_anon.anonymise.dd import DataDictionary, DataDictionaryRow
 from crate_anon.preprocess.constants import CRATE_COL_PK
@@ -1532,12 +1533,16 @@ _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1 = tuple(
         S1Table.ACTIVITY_EVENT,
         S1Table.CARE_PLAN_REVIEW,
         S1Table.DISCHARGE_DELAY,
-        S1Table.FREETEXT,  # see instead TABLES_REQUIRING_CRATE_PK_REGEX above
+        S1Table.FREETEXT,  # see also TABLES_REQUIRING_CRATE_PK_REGEX above
         S1Table.BED_CLOSURE,
         S1Table.MENTAL_HEALTH_ACT_APPEAL,
         S1Table.MENTAL_HEALTH_ACT_AWOL,
         S1Table.TASK,
     )
+) + tuple(
+    # Also, if we insert a CRATE PK, then the "RowIdentifier" can't be the PK.
+    (t_regex, S1GenericCol.ROW_ID)
+    for t_regex in TABLES_REQUIRING_CRATE_PK_REGEX
 )
 _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = tuple(
     # Similarly. These tables have things that look like PKs, but gave rise to
@@ -1576,23 +1581,6 @@ OPT_OUT_TABLENAME_COLNAME_PAIRS = {
     SystmOneContext.CPFT_DW: _OPT_OUT_TABLENAME_COLNAME_PAIRS_S1
     + _OPT_OUT_TABLENAME_COLNAME_PAIRS_CPFT,
 }
-
-
-# =============================================================================
-# Output
-# =============================================================================
-
-_warned = set()  # type: Set[str]
-
-
-def warn_once(msg: str) -> None:
-    """
-    Warns the user once only.
-    """
-    global _warned
-    if msg not in _warned:
-        log.warning(msg)
-        _warned.add(msg)
 
 
 # =============================================================================
@@ -1693,12 +1681,12 @@ def core_tablename(
         if is_in_re(tablename, INCLUDE_TABLES_REGEX[from_context]):
             return tablename
         else:
-            warn_once(f"Unrecognized table name style: {tablename}")
+            warn_once(f"Unrecognized table name style: {tablename}", log)
             if allow_unprefixed:
                 return tablename
             else:
                 return ""
-    rest = tablename[len(prefix) :]
+    rest = tablename[len(prefix) :]  # noqa: E203
     if not rest:
         raise ValueError(f"Table name {tablename!r} only contains its prefix")
     xlate = CONTEXT_TO_CORE_TABLE_TRANSLATIONS[from_context]

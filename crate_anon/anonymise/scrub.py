@@ -29,6 +29,7 @@ crate_anon/anonymise/scrub.py
 
 """
 
+from abc import ABC, abstractmethod
 from collections import OrderedDict
 import datetime
 import logging
@@ -99,7 +100,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 
-class ScrubberBase(object):
+class ScrubberBase(ABC):
     """
     Scrubber base class.
     """
@@ -113,6 +114,7 @@ class ScrubberBase(object):
         """
         self.hasher = hasher
 
+    @abstractmethod
     def scrub(self, text: str) -> str:
         """
         Returns a scrubbed version of the text.
@@ -123,15 +125,16 @@ class ScrubberBase(object):
         Returns:
             the de-identified text
         """
-        raise NotImplementedError()
+        raise NotImplementedError("Implement in derived class")
 
+    @abstractmethod
     def get_hash(self) -> str:
         """
         Returns a hash of our scrubber -- so we can store it, and later see if
         it's changed. In an incremental update, if the scrubber has changed, we
         should re-anonymise all data for this patient.
         """
-        raise NotImplementedError()
+        raise NotImplementedError("Implement in derived class")
 
 
 # =============================================================================

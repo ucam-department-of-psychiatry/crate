@@ -473,7 +473,7 @@ class ExtendedConfigParser(configparser.ConfigParser):
 # =============================================================================
 
 
-class ConfigSection(object):
+class ConfigSection:
     """
     Represents a section within a config file.
     """

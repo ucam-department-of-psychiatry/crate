@@ -1,0 +1,2274 @@
+usage: crate_fuzzy_id_match [-h] [--version] [--allhelp]
+                            {hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,print_demo_sample,show_metaphone,show_names_for_metaphone,show_forename_freq,show_forename_metaphone_freq,show_forename_f2c_freq,show_surname_freq,show_surname_metaphone_freq,show_surname_f2c_freq,show_dob_freq,show_postcode_freq}
+                            ...
+
+Identity matching via hashed fuzzy identifiers
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  --allhelp             Show help for all commands and exit.
+
+commands:
+  Valid commands are as follows.
+
+  {hash,compare_plaintext,compare_hashed_to_hashed,compare_hashed_to_plaintext,print_demo_sample,show_metaphone,show_names_for_metaphone,show_forename_freq,show_forename_metaphone_freq,show_forename_f2c_freq,show_surname_freq,show_surname_metaphone_freq,show_surname_f2c_freq,show_dob_freq,show_postcode_freq}
+                        Specify one command.
+    hash                STEP 1 OF DE-IDENTIFIED LINKAGE. Hash an identifiable
+                        CSV file into an encrypted one.
+    compare_plaintext   IDENTIFIABLE LINKAGE COMMAND. Compare a list of
+                        probands against a sample (both in plaintext).
+    compare_hashed_to_hashed
+                        STEP 2 OF DE-IDENTIFIED LINKAGE (for when you have de-
+                        identified both sides in advance). Compare a list of
+                        probands against a sample (both hashed).
+    compare_hashed_to_plaintext
+                        STEP 2 OF DE-IDENTIFIED LINKAGE (for when you have
+                        received de-identified data and you want to link to
+                        your identifiable data, producing a de-identified
+                        result). Compare a list of probands (hashed) against a
+                        sample (plaintext). Hashes the sample on the fly.
+    print_demo_sample   Print a demo sample .CSV file.
+    show_metaphone      Show metaphones of words
+    show_names_for_metaphone
+                        Show names (forenames and surnames) for a given
+                        metaphone
+    show_forename_freq  Show frequencies of forenames
+    show_forename_metaphone_freq
+                        Show frequencies of forename metaphones
+    show_forename_f2c_freq
+                        Show frequencies of forename first two characters
+    show_surname_freq   Show frequencies of surnames
+    show_surname_metaphone_freq
+                        Show frequencies of surname metaphones
+    show_surname_f2c_freq
+                        Show frequencies of surname first two characters
+    show_dob_freq       Show the frequency of any DOB
+    show_postcode_freq  Show the frequency of any postcode
+
+===============================================================================
+Help for command 'hash'
+===============================================================================
+usage: crate_fuzzy_id_match hash [-h] --input INPUT --output OUTPUT
+                                 [--without_frequencies]
+                                 [--include_other_info] [--key KEY]
+                                 [--allow_default_hash_key]
+                                 [--hash_method {HMAC_MD5,HMAC_SHA256,HMAC_SHA512}]
+                                 [--rounding_sf ROUNDING_SF]
+                                 [--local_id_hash_key LOCAL_ID_HASH_KEY]
+                                 [--population_size POPULATION_SIZE]
+                                 [--forename_cache_filename FORENAME_CACHE_FILENAME]
+                                 [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                 [--surname_cache_filename SURNAME_CACHE_FILENAME]
+                                 [--surname_freq_csv SURNAME_FREQ_CSV]
+                                 [--min_name_frequency MIN_NAME_FREQUENCY]
+                                 [--accent_transliterations ACCENT_TRANSLITERATIONS]
+                                 [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
+                                 [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
+                                 [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
+                                 [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
+                                 [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
+                                 [--postcode_csv_filename POSTCODE_CSV_FILENAME]
+                                 [--k_postcode K_POSTCODE]
+                                 [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                 [--k_pseudopostcode K_PSEUDOPOSTCODE]
+                                 [--verbose]
+
+Takes an identifiable list of people (with name, DOB, and postcode information)
+and creates a hashed, de-identified equivalent. Order is preserved.
+
+The local ID (presumed not to be a direct identifier) is preserved exactly,
+unless you explicitly elect to hash it.
+
+Optionally, the "other" information (you can choose, e.g. attaching a direct
+identifier) is preserved, but you have to ask for that explicitly; that is
+normally for testing.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --input INPUT         Filename for input (plaintext) data. (1) CSV format
+                        with header row. Columns: ['local_id', 'forenames',
+                        'surnames', 'dob', 'gender', 'postcodes',
+                        'perfect_id', 'other_info']. (2) Semicolon-separated
+                        values are allowed within ['forenames', 'surnames',
+                        'postcodes']. (3) The fields ['forenames', 'surnames',
+                        'postcodes'] are in TemporalIdentifier format.
+                        Temporal identifier format: either just IDENTIFIER, or
+                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
+                        MM-DD format or one of ['none', 'null', '?'] (case-
+                        insensitive). (4) perfect_id, if specified, contains
+                        one or more perfect person identifiers as key:value
+                        pairs, e.g. 'nhs:12345;ni:AB6789XY'. The keys will be
+                        forced to lower case; values will be forced to upper
+                        case. (5) 'other_info' is an arbitrary string for you
+                        to use (e.g. for validation). (default: None)
+  --output OUTPUT       Output file for hashed version. File created by CRATE
+                        in JSON Lines (.jsonl) format. (You could use the 'jq'
+                        tool to inspect these.) (default: None)
+  --without_frequencies
+                        Do not include frequency information. This makes the
+                        result suitable for use as a sample file, but not a
+                        proband file. (default: False)
+  --include_other_info  Include the (potentially identifying) 'other_info'
+                        data? Usually False; may be set to True for
+                        validation. (default: False)
+
+Hasher (secrecy) options:
+  --key KEY             Key (passphrase) for hasher. (default: fuzzy_id_match_
+                        default_hash_key_DO_NOT_USE_FOR_LIVE_DATA)
+  --allow_default_hash_key
+                        Allow the default hash key to be used beyond tests.
+                        INADVISABLE! (default: False)
+  --hash_method {HMAC_MD5,HMAC_SHA256,HMAC_SHA512}
+                        Hash method. (default: HMAC_SHA256)
+  --rounding_sf ROUNDING_SF
+                        Number of significant figures to use when rounding
+                        frequencies in hashed version. Use 'None' to disable
+                        rounding. (default: 5)
+  --local_id_hash_key LOCAL_ID_HASH_KEY
+                        Only applicable to the 'hash' command. Hash the
+                        local_id values, using this key (passphrase). There
+                        are good reasons to use a key different to that
+                        specified for --key. If you leave this blank, or
+                        specify an empty string, then local ID values will be
+                        left unmodified (e.g. if you have pre-hashed them).
+                        (default: None)
+
+Frequency information for prior probabilities:
+  --population_size POPULATION_SIZE
+                        Size of the whole population, from which we calculate
+                        the baseline log odds that two people, randomly
+                        selected (and replaced) from the population are the
+                        same person. (default: 852523)
+  --forename_cache_filename FORENAME_CACHE_FILENAME
+                        File in which to store cached forename info (to speed
+                        loading). (default:
+                        /path/to/crate/user/data/fuzzy_forename_cache.jsonl)
+  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
+                        CSV file of "name, sex, frequency" pairs for
+                        forenames. You can generate one via
+                        crate_fetch_wordlists. If you later alter this, delete
+                        your forename cache so it can be rebuilt. (default: /h
+                        ome/rudolf/Documents/code/crate/crate_anon/linkage/dat
+                        a/us_forename_sex_freq.zip)
+  --surname_cache_filename SURNAME_CACHE_FILENAME
+                        File in which to store cached surname info (to speed
+                        loading). (default:
+                        /path/to/crate/user/data/fuzzy_surname_cache.jsonl)
+  --surname_freq_csv SURNAME_FREQ_CSV
+                        CSV file of "name, frequency" pairs for forenames. You
+                        can generate one via crate_fetch_wordlists. If you
+                        later alter this, delete your surname cache so it can
+                        be rebuilt. (default: /home/rudolf/Documents/code/crat
+                        e/crate_anon/linkage/data/us_surname_freq.zip)
+  --min_name_frequency MIN_NAME_FREQUENCY
+                        Minimum base frequency for names. If a frequency is
+                        less than this, use this minimum. Allowing extremely
+                        low frequencies may increase the chances of a spurious
+                        match. Note also that typical name frequency tables
+                        don't give very-low-frequency information. For
+                        example, for US census forename/surname information,
+                        below 0.001 percent they report 0.000 percent; so a
+                        reasonable minimum is 0.0005 percent or 0.000005 or
+                        5e-6. (default: 5e-06)
+  --accent_transliterations ACCENT_TRANSLITERATIONS
+                        CSV list of 'accented/plain' pairs, representing how
+                        accented characters may be transliterated (if they are
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
+                        (anything supplied will be converted to upper case).
+                        (default: Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
+  --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
+                        CSV list of name components that should not be used as
+                        alternatives in their own right, such as nobiliary
+                        particles. (default: AF,AL,AUF,AV,AW,D,DA,DAI,DAL,DALL
+                        A,DAS,DE,DEI,DEL,DELL,DELLA,DER,DES,DI,DO,DOS,DU,EL,I,
+                        II,III,IV,IX,JNR,JR,L,LA,LE,NA,OF,PHRA,SNR,SR,SRI,THOE
+                        ,TOT,V,VAN,VI,VII,VIII,VON,X,ZU)
+  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
+                        Birth year pseudo-range. The sole purpose is to
+                        calculate the probability of two random people sharing
+                        a DOB, which is taken as 1/(365.25 * b), even for 29
+                        Feb. This option is b. (default: 30)
+  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
+                        Probability that a person in the population has gender
+                        'X'. (default: 0.004)
+  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
+                        Probability that a person in the population is female,
+                        given that they are either male or female. (default:
+                        0.51)
+  --postcode_cache_filename POSTCODE_CACHE_FILENAME
+                        File in which to store cached postcodes (to speed
+                        loading). (default:
+                        /path/to/crate/user/data/fuzzy_postcode_cache.json)
+  --postcode_csv_filename POSTCODE_CSV_FILENAME
+                        CSV file of postcode geography from UK Census/ONS
+                        data. A ZIP file is also acceptable. [Information
+                        saved in the postcode cache. If you change this,
+                        delete your postcode cache.] (default: /home/rudolf/Do
+                        cuments/code/crate/crate_anon/linkage/data/ONSPD_MAY_2
+                        022_UK.zip)
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+                        (default: None)
+  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
+                        or to have a postcode not known to the postcode
+                        geography database. (default: 0.00201)
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper. (default: 1.83)
+
+display options:
+  --verbose             Be verbose. (default: False)
+
+===============================================================================
+Help for command 'compare_plaintext'
+===============================================================================
+usage: crate_fuzzy_id_match compare_plaintext [-h] --probands PROBANDS
+                                              --sample SAMPLE
+                                              [--sample_cache SAMPLE_CACHE]
+                                              --output OUTPUT [--profile]
+                                              [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
+                                              [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
+                                              [--perfect_id_translation PERFECT_ID_TRANSLATION]
+                                              [--extra_validation_output]
+                                              [--check_comparison_order]
+                                              [--report_every REPORT_EVERY]
+                                              [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                              [--n_workers N_WORKERS]
+                                              [--p_ep1_forename P_EP1_FORENAME]
+                                              [--p_ep2np1_forename P_EP2NP1_FORENAME]
+                                              [--p_en_forename P_EN_FORENAME]
+                                              [--p_u_forename P_U_FORENAME]
+                                              [--p_ep1_surname P_EP1_SURNAME]
+                                              [--p_ep2np1_surname P_EP2NP1_SURNAME]
+                                              [--p_en_surname P_EN_SURNAME]
+                                              [--p_ep_dob P_EP_DOB]
+                                              [--p_en_dob P_EN_DOB]
+                                              [--p_e_gender P_E_GENDER]
+                                              [--p_ep_postcode P_EP_POSTCODE]
+                                              [--p_en_postcode P_EN_POSTCODE]
+                                              [--population_size POPULATION_SIZE]
+                                              [--forename_cache_filename FORENAME_CACHE_FILENAME]
+                                              [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                              [--surname_cache_filename SURNAME_CACHE_FILENAME]
+                                              [--surname_freq_csv SURNAME_FREQ_CSV]
+                                              [--min_name_frequency MIN_NAME_FREQUENCY]
+                                              [--accent_transliterations ACCENT_TRANSLITERATIONS]
+                                              [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
+                                              [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
+                                              [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
+                                              [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
+                                              [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
+                                              [--postcode_csv_filename POSTCODE_CSV_FILENAME]
+                                              [--k_postcode K_POSTCODE]
+                                              [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                              [--k_pseudopostcode K_PSEUDOPOSTCODE]
+                                              [--verbose]
+
+Comparison rules:
+
+- People MUST match on DOB and surname (or surname metaphone), or hashed
+  equivalents, to be considered a plausible match.
+
+- Only plausible matches proceed to the Bayesian comparison.
+
+The output file is a CSV (comma-separated value) file with a header and
+these columns:
+
+    proband_local_id:
+        Local ID (identifiable or de-identified as the user chose) of the
+        proband. Taken from the input.
+    matched:
+        Boolean as binary (0/1). Was a matching person (a "winner") found in
+        the sample, who is to be considered a match to the proband? To give a
+        match requires (a) that the log odds for the winner reaches a
+        threshold, and (b) that the log odds for the winner exceeds the log
+        odds for the runner-up by a certain amount (because a mismatch may be
+        worse than a failed match).
+    log_odds_match:
+        Log (ln) odds that the best candidate in the sample is a match to the
+        proband.
+    p_match:
+        Probability that the best candidate in the sample is a match.
+        Equivalent to log_odds_match.
+    sample_match_local_id:
+        Local ID of the "winner" in the sample (the candidate who was matched
+        to the proband), or blank if there was no winner.
+    second_best_log_odds:
+        Log odds of the runner-up (the candidate from the sample who is the
+        second-closest match) being the same person as the proband.
+
+If '--extra_validation_output' is used, the following columns are
+added:
+
+    best_candidate_local_id:
+        Local ID of the closest-matching person (candidate) in the sample, EVEN
+        IF THEY DID NOT WIN. (This will be the same as the winner if there was
+        a match.) String; blank for no match.
+
+Proband order is retained in the output (even using parallel processing).
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Comparison options:
+  --probands PROBANDS   Input filename for probands data. (1) CSV format with
+                        header row. Columns: ['local_id', 'forenames',
+                        'surnames', 'dob', 'gender', 'postcodes',
+                        'perfect_id', 'other_info']. (2) Semicolon-separated
+                        values are allowed within ['forenames', 'surnames',
+                        'postcodes']. (3) The fields ['forenames', 'surnames',
+                        'postcodes'] are in TemporalIdentifier format.
+                        Temporal identifier format: either just IDENTIFIER, or
+                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
+                        MM-DD format or one of ['none', 'null', '?'] (case-
+                        insensitive). (4) perfect_id, if specified, contains
+                        one or more perfect person identifiers as key:value
+                        pairs, e.g. 'nhs:12345;ni:AB6789XY'. The keys will be
+                        forced to lower case; values will be forced to upper
+                        case. (5) 'other_info' is an arbitrary string for you
+                        to use (e.g. for validation). (default: None)
+  --sample SAMPLE       Input filename for sample data. (1) CSV format with
+                        header row. Columns: ['local_id', 'forenames',
+                        'surnames', 'dob', 'gender', 'postcodes',
+                        'perfect_id', 'other_info']. (2) Semicolon-separated
+                        values are allowed within ['forenames', 'surnames',
+                        'postcodes']. (3) The fields ['forenames', 'surnames',
+                        'postcodes'] are in TemporalIdentifier format.
+                        Temporal identifier format: either just IDENTIFIER, or
+                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
+                        MM-DD format or one of ['none', 'null', '?'] (case-
+                        insensitive). (4) perfect_id, if specified, contains
+                        one or more perfect person identifiers as key:value
+                        pairs, e.g. 'nhs:12345;ni:AB6789XY'. The keys will be
+                        forced to lower case; values will be forced to upper
+                        case. (5) 'other_info' is an arbitrary string for you
+                        to use (e.g. for validation). (default: None)
+  --sample_cache SAMPLE_CACHE
+                        JSONL file in which to store cached sample info (to
+                        speed loading) (default: None)
+  --output OUTPUT       Output CSV file for proband/sample comparison.
+                        (default: None)
+  --profile             Profile the code (for development only). (default:
+                        False)
+
+Matching rules:
+  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
+                        Minimum natural log (ln) odds of two people being the
+                        same, before a match will be considered. Referred to
+                        as theta (θ) in the validation paper. (Default is
+                        equivalent to p = 0.9933071490757152.) (default: 5)
+  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
+                        Minimum log (ln) odds by which a best match must
+                        exceed the next-best match to be considered a unique
+                        match. Referred to as delta (δ) in the validation
+                        paper. (default: 0)
+  --perfect_id_translation PERFECT_ID_TRANSLATION
+                        Optional dictionary of the form {'nhsnum':'nhsnumber',
+                        'ni_num':'national_insurance'}, mapping the names of
+                        perfect (person-unique) identifiers as found in the
+                        proband data to their equivalents in the sample.
+                        (default: None)
+
+Control options:
+  --extra_validation_output
+                        Add extra output for validation purposes. (default:
+                        False)
+  --check_comparison_order
+                        Check every comparison for log-likelihood ratio
+                        sequence 'no match ≤ partial(s) ≤ full' and warn if
+                        this is not observed. Note, however, that deviations
+                        from this are not unexpected. (default: False)
+  --report_every REPORT_EVERY
+                        Report progress every n probands. (default: 100)
+  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
+                        Minimum number of probands for which we will bother to
+                        use parallel processing. (default: 1000)
+  --n_workers N_WORKERS
+                        Number of processes to use in parallel. Defaults to 1
+                        (Windows) or the number of CPUs on your system (other
+                        operating systems). (default: 8)
+
+Error probabilities:
+  --p_ep1_forename P_EP1_FORENAME
+                        Probability that a forename has an error such that it
+                        fails a full match but satisfies a partial 1
+                        (metaphone) match. (Comma-separated list of 'gender:p'
+                        values, where gender must include F, M and can include
+                        X, ''.) (default: F:0.00894,M:0.0084)
+  --p_ep2np1_forename P_EP2NP1_FORENAME
+                        Probability that a forename has an error such that it
+                        fails a full/partial 1 match but satisfies a partial 2
+                        (first two character) match. (Comma-separated list of
+                        'gender:p' values, where gender must include F, M and
+                        can include X, ''.) (default: F:0.00881,M:0.00688)
+  --p_en_forename P_EN_FORENAME
+                        Probability that a forename has an error such that it
+                        produces no match at all. (Comma-separated list of
+                        'gender:p' values, where gender must include F, M and
+                        can include X, ''.) (default: F:0.00572,M:0.00625)
+  --p_u_forename P_U_FORENAME
+                        Probability that a set of at least two forenames has
+                        an error such that they become unordered (e.g.
+                        swapped/shuffled) with respect to their counterpart.
+                        See paper for full details. (default: 0.00191)
+  --p_ep1_surname P_EP1_SURNAME
+                        Probability that a surname has an error such that it
+                        fails a full match but satisfies a partial 1
+                        (metaphone) match. (Comma-separated list of 'gender:p'
+                        values, where gender must include F, M and can include
+                        X, ''.) (default: F:0.00551,M:0.00471)
+  --p_ep2np1_surname P_EP2NP1_SURNAME
+                        Probability that a surname has an error such that it
+                        fails a full/partial 1 match but satisfies a partial 2
+                        (first two character) match. (Comma-separated list of
+                        'gender:p' values, where gender must include F, M and
+                        can include X, ''.) (default: F:0.00378,M:0.00247)
+  --p_en_surname P_EN_SURNAME
+                        Probability that a surname has an error such that it
+                        produces no match at all. (Comma-separated list of
+                        'gender:p' values, where gender must include F, M and
+                        can include X, ''.) (default: F:0.0567,M:0.0134)
+  --p_ep_dob P_EP_DOB   Probability that a DOB is wrong in some way that
+                        causes a partial match (YM, MD, or YD) but not a full
+                        (YMD) match. (default: 0.00459036)
+  --p_en_dob P_EN_DOB   Probability that a DOB error leads to no match
+                        (neither full, nor partial as defined above).
+                        Empirically, this is about 0.00033. However, we
+                        suggest setting it to 0, as anything higher will run
+                        much slower. (default: 0)
+  --p_e_gender P_E_GENDER
+                        Assumed probability (p_e) that a gender is wrong,
+                        leading to a proband/candidate mismatch. (default:
+                        0.0033)
+  --p_ep_postcode P_EP_POSTCODE
+                        Assumed probability (p_ep) that a proband/candidate
+                        postcode pair fails a full (postcode unit) match but
+                        satisfies a partial (postcode sector) match, through
+                        error or a move within a sector. (default: 0.0097)
+  --p_en_postcode P_EN_POSTCODE
+                        Assumed probability (p_ep) that a proband/candidate
+                        postcode pair exhibits no match at all. (default: 0.3)
+
+Frequency information for prior probabilities:
+  --population_size POPULATION_SIZE
+                        Size of the whole population, from which we calculate
+                        the baseline log odds that two people, randomly
+                        selected (and replaced) from the population are the
+                        same person. (default: 852523)
+  --forename_cache_filename FORENAME_CACHE_FILENAME
+                        File in which to store cached forename info (to speed
+                        loading). (default:
+                        /path/to/crate/user/data/fuzzy_forename_cache.jsonl)
+  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
+                        CSV file of "name, sex, frequency" pairs for
+                        forenames. You can generate one via
+                        crate_fetch_wordlists. If you later alter this, delete
+                        your forename cache so it can be rebuilt. (default: /h
+                        ome/rudolf/Documents/code/crate/crate_anon/linkage/dat
+                        a/us_forename_sex_freq.zip)
+  --surname_cache_filename SURNAME_CACHE_FILENAME
+                        File in which to store cached surname info (to speed
+                        loading). (default:
+                        /path/to/crate/user/data/fuzzy_surname_cache.jsonl)
+  --surname_freq_csv SURNAME_FREQ_CSV
+                        CSV file of "name, frequency" pairs for forenames. You
+                        can generate one via crate_fetch_wordlists. If you
+                        later alter this, delete your surname cache so it can
+                        be rebuilt. (default: /home/rudolf/Documents/code/crat
+                        e/crate_anon/linkage/data/us_surname_freq.zip)
+  --min_name_frequency MIN_NAME_FREQUENCY
+                        Minimum base frequency for names. If a frequency is
+                        less than this, use this minimum. Allowing extremely
+                        low frequencies may increase the chances of a spurious
+                        match. Note also that typical name frequency tables
+                        don't give very-low-frequency information. For
+                        example, for US census forename/surname information,
+                        below 0.001 percent they report 0.000 percent; so a
+                        reasonable minimum is 0.0005 percent or 0.000005 or
+                        5e-6. (default: 5e-06)
+  --accent_transliterations ACCENT_TRANSLITERATIONS
+                        CSV list of 'accented/plain' pairs, representing how
+                        accented characters may be transliterated (if they are
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
+                        (anything supplied will be converted to upper case).
+                        (default: Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
+  --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
+                        CSV list of name components that should not be used as
+                        alternatives in their own right, such as nobiliary
+                        particles. (default: AF,AL,AUF,AV,AW,D,DA,DAI,DAL,DALL
+                        A,DAS,DE,DEI,DEL,DELL,DELLA,DER,DES,DI,DO,DOS,DU,EL,I,
+                        II,III,IV,IX,JNR,JR,L,LA,LE,NA,OF,PHRA,SNR,SR,SRI,THOE
+                        ,TOT,V,VAN,VI,VII,VIII,VON,X,ZU)
+  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
+                        Birth year pseudo-range. The sole purpose is to
+                        calculate the probability of two random people sharing
+                        a DOB, which is taken as 1/(365.25 * b), even for 29
+                        Feb. This option is b. (default: 30)
+  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
+                        Probability that a person in the population has gender
+                        'X'. (default: 0.004)
+  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
+                        Probability that a person in the population is female,
+                        given that they are either male or female. (default:
+                        0.51)
+  --postcode_cache_filename POSTCODE_CACHE_FILENAME
+                        File in which to store cached postcodes (to speed
+                        loading). (default:
+                        /path/to/crate/user/data/fuzzy_postcode_cache.json)
+  --postcode_csv_filename POSTCODE_CSV_FILENAME
+                        CSV file of postcode geography from UK Census/ONS
+                        data. A ZIP file is also acceptable. [Information
+                        saved in the postcode cache. If you change this,
+                        delete your postcode cache.] (default: /home/rudolf/Do
+                        cuments/code/crate/crate_anon/linkage/data/ONSPD_MAY_2
+                        022_UK.zip)
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+                        (default: None)
+  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
+                        or to have a postcode not known to the postcode
+                        geography database. (default: 0.00201)
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper. (default: 1.83)
+
+display options:
+  --verbose             Be verbose. (default: False)
+
+===============================================================================
+Help for command 'compare_hashed_to_hashed'
+===============================================================================
+usage: crate_fuzzy_id_match compare_hashed_to_hashed [-h] --probands PROBANDS
+                                                     --sample SAMPLE
+                                                     [--sample_cache SAMPLE_CACHE]
+                                                     --output OUTPUT
+                                                     [--profile]
+                                                     [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
+                                                     [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
+                                                     [--perfect_id_translation PERFECT_ID_TRANSLATION]
+                                                     [--extra_validation_output]
+                                                     [--check_comparison_order]
+                                                     [--report_every REPORT_EVERY]
+                                                     [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                                     [--n_workers N_WORKERS]
+                                                     [--p_ep1_forename P_EP1_FORENAME]
+                                                     [--p_ep2np1_forename P_EP2NP1_FORENAME]
+                                                     [--p_en_forename P_EN_FORENAME]
+                                                     [--p_u_forename P_U_FORENAME]
+                                                     [--p_ep1_surname P_EP1_SURNAME]
+                                                     [--p_ep2np1_surname P_EP2NP1_SURNAME]
+                                                     [--p_en_surname P_EN_SURNAME]
+                                                     [--p_ep_dob P_EP_DOB]
+                                                     [--p_en_dob P_EN_DOB]
+                                                     [--p_e_gender P_E_GENDER]
+                                                     [--p_ep_postcode P_EP_POSTCODE]
+                                                     [--p_en_postcode P_EN_POSTCODE]
+                                                     [--population_size POPULATION_SIZE]
+                                                     [--forename_cache_filename FORENAME_CACHE_FILENAME]
+                                                     [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                                     [--surname_cache_filename SURNAME_CACHE_FILENAME]
+                                                     [--surname_freq_csv SURNAME_FREQ_CSV]
+                                                     [--min_name_frequency MIN_NAME_FREQUENCY]
+                                                     [--accent_transliterations ACCENT_TRANSLITERATIONS]
+                                                     [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
+                                                     [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
+                                                     [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
+                                                     [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
+                                                     [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
+                                                     [--postcode_csv_filename POSTCODE_CSV_FILENAME]
+                                                     [--k_postcode K_POSTCODE]
+                                                     [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                                     [--k_pseudopostcode K_PSEUDOPOSTCODE]
+                                                     [--verbose]
+
+Comparison rules:
+
+- People MUST match on DOB and surname (or surname metaphone), or hashed
+  equivalents, to be considered a plausible match.
+
+- Only plausible matches proceed to the Bayesian comparison.
+
+The output file is a CSV (comma-separated value) file with a header and
+these columns:
+
+    proband_local_id:
+        Local ID (identifiable or de-identified as the user chose) of the
+        proband. Taken from the input.
+    matched:
+        Boolean as binary (0/1). Was a matching person (a "winner") found in
+        the sample, who is to be considered a match to the proband? To give a
+        match requires (a) that the log odds for the winner reaches a
+        threshold, and (b) that the log odds for the winner exceeds the log
+        odds for the runner-up by a certain amount (because a mismatch may be
+        worse than a failed match).
+    log_odds_match:
+        Log (ln) odds that the best candidate in the sample is a match to the
+        proband.
+    p_match:
+        Probability that the best candidate in the sample is a match.
+        Equivalent to log_odds_match.
+    sample_match_local_id:
+        Local ID of the "winner" in the sample (the candidate who was matched
+        to the proband), or blank if there was no winner.
+    second_best_log_odds:
+        Log odds of the runner-up (the candidate from the sample who is the
+        second-closest match) being the same person as the proband.
+
+If '--extra_validation_output' is used, the following columns are
+added:
+
+    best_candidate_local_id:
+        Local ID of the closest-matching person (candidate) in the sample, EVEN
+        IF THEY DID NOT WIN. (This will be the same as the winner if there was
+        a match.) String; blank for no match.
+
+Proband order is retained in the output (even using parallel processing).
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Comparison options:
+  --probands PROBANDS   Input filename for probands data. File created by
+                        CRATE in JSON Lines (.jsonl) format. (You could use
+                        the 'jq' tool to inspect these.) (default: None)
+  --sample SAMPLE       Input filename for sample data. File created by CRATE
+                        in JSON Lines (.jsonl) format. (You could use the 'jq'
+                        tool to inspect these.) (default: None)
+  --sample_cache SAMPLE_CACHE
+                        JSONL file in which to store cached sample info (to
+                        speed loading) (default: None)
+  --output OUTPUT       Output CSV file for proband/sample comparison.
+                        (default: None)
+  --profile             Profile the code (for development only). (default:
+                        False)
+
+Matching rules:
+  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
+                        Minimum natural log (ln) odds of two people being the
+                        same, before a match will be considered. Referred to
+                        as theta (θ) in the validation paper. (Default is
+                        equivalent to p = 0.9933071490757152.) (default: 5)
+  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
+                        Minimum log (ln) odds by which a best match must
+                        exceed the next-best match to be considered a unique
+                        match. Referred to as delta (δ) in the validation
+                        paper. (default: 0)
+  --perfect_id_translation PERFECT_ID_TRANSLATION
+                        Optional dictionary of the form {'nhsnum':'nhsnumber',
+                        'ni_num':'national_insurance'}, mapping the names of
+                        perfect (person-unique) identifiers as found in the
+                        proband data to their equivalents in the sample.
+                        (default: None)
+
+Control options:
+  --extra_validation_output
+                        Add extra output for validation purposes. (default:
+                        False)
+  --check_comparison_order
+                        Check every comparison for log-likelihood ratio
+                        sequence 'no match ≤ partial(s) ≤ full' and warn if
+                        this is not observed. Note, however, that deviations
+                        from this are not unexpected. (default: False)
+  --report_every REPORT_EVERY
+                        Report progress every n probands. (default: 100)
+  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
+                        Minimum number of probands for which we will bother to
+                        use parallel processing. (default: 1000)
+  --n_workers N_WORKERS
+                        Number of processes to use in parallel. Defaults to 1
+                        (Windows) or the number of CPUs on your system (other
+                        operating systems). (default: 8)
+
+Error probabilities:
+  --p_ep1_forename P_EP1_FORENAME
+                        Probability that a forename has an error such that it
+                        fails a full match but satisfies a partial 1
+                        (metaphone) match. (Comma-separated list of 'gender:p'
+                        values, where gender must include F, M and can include
+                        X, ''.) (default: F:0.00894,M:0.0084)
+  --p_ep2np1_forename P_EP2NP1_FORENAME
+                        Probability that a forename has an error such that it
+                        fails a full/partial 1 match but satisfies a partial 2
+                        (first two character) match. (Comma-separated list of
+                        'gender:p' values, where gender must include F, M and
+                        can include X, ''.) (default: F:0.00881,M:0.00688)
+  --p_en_forename P_EN_FORENAME
+                        Probability that a forename has an error such that it
+                        produces no match at all. (Comma-separated list of
+                        'gender:p' values, where gender must include F, M and
+                        can include X, ''.) (default: F:0.00572,M:0.00625)
+  --p_u_forename P_U_FORENAME
+                        Probability that a set of at least two forenames has
+                        an error such that they become unordered (e.g.
+                        swapped/shuffled) with respect to their counterpart.
+                        See paper for full details. (default: 0.00191)
+  --p_ep1_surname P_EP1_SURNAME
+                        Probability that a surname has an error such that it
+                        fails a full match but satisfies a partial 1
+                        (metaphone) match. (Comma-separated list of 'gender:p'
+                        values, where gender must include F, M and can include
+                        X, ''.) (default: F:0.00551,M:0.00471)
+  --p_ep2np1_surname P_EP2NP1_SURNAME
+                        Probability that a surname has an error such that it
+                        fails a full/partial 1 match but satisfies a partial 2
+                        (first two character) match. (Comma-separated list of
+                        'gender:p' values, where gender must include F, M and
+                        can include X, ''.) (default: F:0.00378,M:0.00247)
+  --p_en_surname P_EN_SURNAME
+                        Probability that a surname has an error such that it
+                        produces no match at all. (Comma-separated list of
+                        'gender:p' values, where gender must include F, M and
+                        can include X, ''.) (default: F:0.0567,M:0.0134)
+  --p_ep_dob P_EP_DOB   Probability that a DOB is wrong in some way that
+                        causes a partial match (YM, MD, or YD) but not a full
+                        (YMD) match. (default: 0.00459036)
+  --p_en_dob P_EN_DOB   Probability that a DOB error leads to no match
+                        (neither full, nor partial as defined above).
+                        Empirically, this is about 0.00033. However, we
+                        suggest setting it to 0, as anything higher will run
+                        much slower. (default: 0)
+  --p_e_gender P_E_GENDER
+                        Assumed probability (p_e) that a gender is wrong,
+                        leading to a proband/candidate mismatch. (default:
+                        0.0033)
+  --p_ep_postcode P_EP_POSTCODE
+                        Assumed probability (p_ep) that a proband/candidate
+                        postcode pair fails a full (postcode unit) match but
+                        satisfies a partial (postcode sector) match, through
+                        error or a move within a sector. (default: 0.0097)
+  --p_en_postcode P_EN_POSTCODE
+                        Assumed probability (p_ep) that a proband/candidate
+                        postcode pair exhibits no match at all. (default: 0.3)
+
+Frequency information for prior probabilities:
+  --population_size POPULATION_SIZE
+                        Size of the whole population, from which we calculate
+                        the baseline log odds that two people, randomly
+                        selected (and replaced) from the population are the
+                        same person. (default: 852523)
+  --forename_cache_filename FORENAME_CACHE_FILENAME
+                        File in which to store cached forename info (to speed
+                        loading). (default:
+                        /path/to/crate/user/data/fuzzy_forename_cache.jsonl)
+  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
+                        CSV file of "name, sex, frequency" pairs for
+                        forenames. You can generate one via
+                        crate_fetch_wordlists. If you later alter this, delete
+                        your forename cache so it can be rebuilt. (default: /h
+                        ome/rudolf/Documents/code/crate/crate_anon/linkage/dat
+                        a/us_forename_sex_freq.zip)
+  --surname_cache_filename SURNAME_CACHE_FILENAME
+                        File in which to store cached surname info (to speed
+                        loading). (default:
+                        /path/to/crate/user/data/fuzzy_surname_cache.jsonl)
+  --surname_freq_csv SURNAME_FREQ_CSV
+                        CSV file of "name, frequency" pairs for forenames. You
+                        can generate one via crate_fetch_wordlists. If you
+                        later alter this, delete your surname cache so it can
+                        be rebuilt. (default: /home/rudolf/Documents/code/crat
+                        e/crate_anon/linkage/data/us_surname_freq.zip)
+  --min_name_frequency MIN_NAME_FREQUENCY
+                        Minimum base frequency for names. If a frequency is
+                        less than this, use this minimum. Allowing extremely
+                        low frequencies may increase the chances of a spurious
+                        match. Note also that typical name frequency tables
+                        don't give very-low-frequency information. For
+                        example, for US census forename/surname information,
+                        below 0.001 percent they report 0.000 percent; so a
+                        reasonable minimum is 0.0005 percent or 0.000005 or
+                        5e-6. (default: 5e-06)
+  --accent_transliterations ACCENT_TRANSLITERATIONS
+                        CSV list of 'accented/plain' pairs, representing how
+                        accented characters may be transliterated (if they are
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
+                        (anything supplied will be converted to upper case).
+                        (default: Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
+  --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
+                        CSV list of name components that should not be used as
+                        alternatives in their own right, such as nobiliary
+                        particles. (default: AF,AL,AUF,AV,AW,D,DA,DAI,DAL,DALL
+                        A,DAS,DE,DEI,DEL,DELL,DELLA,DER,DES,DI,DO,DOS,DU,EL,I,
+                        II,III,IV,IX,JNR,JR,L,LA,LE,NA,OF,PHRA,SNR,SR,SRI,THOE
+                        ,TOT,V,VAN,VI,VII,VIII,VON,X,ZU)
+  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
+                        Birth year pseudo-range. The sole purpose is to
+                        calculate the probability of two random people sharing
+                        a DOB, which is taken as 1/(365.25 * b), even for 29
+                        Feb. This option is b. (default: 30)
+  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
+                        Probability that a person in the population has gender
+                        'X'. (default: 0.004)
+  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
+                        Probability that a person in the population is female,
+                        given that they are either male or female. (default:
+                        0.51)
+  --postcode_cache_filename POSTCODE_CACHE_FILENAME
+                        File in which to store cached postcodes (to speed
+                        loading). (default:
+                        /path/to/crate/user/data/fuzzy_postcode_cache.json)
+  --postcode_csv_filename POSTCODE_CSV_FILENAME
+                        CSV file of postcode geography from UK Census/ONS
+                        data. A ZIP file is also acceptable. [Information
+                        saved in the postcode cache. If you change this,
+                        delete your postcode cache.] (default: /home/rudolf/Do
+                        cuments/code/crate/crate_anon/linkage/data/ONSPD_MAY_2
+                        022_UK.zip)
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+                        (default: None)
+  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
+                        or to have a postcode not known to the postcode
+                        geography database. (default: 0.00201)
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper. (default: 1.83)
+
+display options:
+  --verbose             Be verbose. (default: False)
+
+===============================================================================
+Help for command 'compare_hashed_to_plaintext'
+===============================================================================
+usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] --probands
+                                                        PROBANDS --sample
+                                                        SAMPLE
+                                                        [--sample_cache SAMPLE_CACHE]
+                                                        --output OUTPUT
+                                                        [--profile]
+                                                        [--key KEY]
+                                                        [--allow_default_hash_key]
+                                                        [--hash_method {HMAC_MD5,HMAC_SHA256,HMAC_SHA512}]
+                                                        [--rounding_sf ROUNDING_SF]
+                                                        [--local_id_hash_key LOCAL_ID_HASH_KEY]
+                                                        [--min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH]
+                                                        [--exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS]
+                                                        [--perfect_id_translation PERFECT_ID_TRANSLATION]
+                                                        [--extra_validation_output]
+                                                        [--check_comparison_order]
+                                                        [--report_every REPORT_EVERY]
+                                                        [--min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL]
+                                                        [--n_workers N_WORKERS]
+                                                        [--p_ep1_forename P_EP1_FORENAME]
+                                                        [--p_ep2np1_forename P_EP2NP1_FORENAME]
+                                                        [--p_en_forename P_EN_FORENAME]
+                                                        [--p_u_forename P_U_FORENAME]
+                                                        [--p_ep1_surname P_EP1_SURNAME]
+                                                        [--p_ep2np1_surname P_EP2NP1_SURNAME]
+                                                        [--p_en_surname P_EN_SURNAME]
+                                                        [--p_ep_dob P_EP_DOB]
+                                                        [--p_en_dob P_EN_DOB]
+                                                        [--p_e_gender P_E_GENDER]
+                                                        [--p_ep_postcode P_EP_POSTCODE]
+                                                        [--p_en_postcode P_EN_POSTCODE]
+                                                        [--population_size POPULATION_SIZE]
+                                                        [--forename_cache_filename FORENAME_CACHE_FILENAME]
+                                                        [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                                        [--surname_cache_filename SURNAME_CACHE_FILENAME]
+                                                        [--surname_freq_csv SURNAME_FREQ_CSV]
+                                                        [--min_name_frequency MIN_NAME_FREQUENCY]
+                                                        [--accent_transliterations ACCENT_TRANSLITERATIONS]
+                                                        [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
+                                                        [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
+                                                        [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
+                                                        [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
+                                                        [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
+                                                        [--postcode_csv_filename POSTCODE_CSV_FILENAME]
+                                                        [--k_postcode K_POSTCODE]
+                                                        [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                                        [--k_pseudopostcode K_PSEUDOPOSTCODE]
+                                                        [--verbose]
+
+Comparison rules:
+
+- People MUST match on DOB and surname (or surname metaphone), or hashed
+  equivalents, to be considered a plausible match.
+
+- Only plausible matches proceed to the Bayesian comparison.
+
+The output file is a CSV (comma-separated value) file with a header and
+these columns:
+
+    proband_local_id:
+        Local ID (identifiable or de-identified as the user chose) of the
+        proband. Taken from the input.
+    matched:
+        Boolean as binary (0/1). Was a matching person (a "winner") found in
+        the sample, who is to be considered a match to the proband? To give a
+        match requires (a) that the log odds for the winner reaches a
+        threshold, and (b) that the log odds for the winner exceeds the log
+        odds for the runner-up by a certain amount (because a mismatch may be
+        worse than a failed match).
+    log_odds_match:
+        Log (ln) odds that the best candidate in the sample is a match to the
+        proband.
+    p_match:
+        Probability that the best candidate in the sample is a match.
+        Equivalent to log_odds_match.
+    sample_match_local_id:
+        Local ID of the "winner" in the sample (the candidate who was matched
+        to the proband), or blank if there was no winner.
+    second_best_log_odds:
+        Log odds of the runner-up (the candidate from the sample who is the
+        second-closest match) being the same person as the proband.
+
+If '--extra_validation_output' is used, the following columns are
+added:
+
+    best_candidate_local_id:
+        Local ID of the closest-matching person (candidate) in the sample, EVEN
+        IF THEY DID NOT WIN. (This will be the same as the winner if there was
+        a match.) String; blank for no match.
+
+Proband order is retained in the output (even using parallel processing).
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Comparison options:
+  --probands PROBANDS   Input filename for probands data. File created by
+                        CRATE in JSON Lines (.jsonl) format. (You could use
+                        the 'jq' tool to inspect these.) (default: None)
+  --sample SAMPLE       Input filename for sample data. (1) CSV format with
+                        header row. Columns: ['local_id', 'forenames',
+                        'surnames', 'dob', 'gender', 'postcodes',
+                        'perfect_id', 'other_info']. (2) Semicolon-separated
+                        values are allowed within ['forenames', 'surnames',
+                        'postcodes']. (3) The fields ['forenames', 'surnames',
+                        'postcodes'] are in TemporalIdentifier format.
+                        Temporal identifier format: either just IDENTIFIER, or
+                        IDENTIFIER/STARTDATE/ENDDATE, where dates are in YYYY-
+                        MM-DD format or one of ['none', 'null', '?'] (case-
+                        insensitive). (4) perfect_id, if specified, contains
+                        one or more perfect person identifiers as key:value
+                        pairs, e.g. 'nhs:12345;ni:AB6789XY'. The keys will be
+                        forced to lower case; values will be forced to upper
+                        case. (5) 'other_info' is an arbitrary string for you
+                        to use (e.g. for validation). (default: None)
+  --sample_cache SAMPLE_CACHE
+                        JSONL file in which to store cached sample info (to
+                        speed loading) (default: None)
+  --output OUTPUT       Output CSV file for proband/sample comparison.
+                        (default: None)
+  --profile             Profile the code (for development only). (default:
+                        False)
+
+Hasher (secrecy) options:
+  --key KEY             Key (passphrase) for hasher. (default: fuzzy_id_match_
+                        default_hash_key_DO_NOT_USE_FOR_LIVE_DATA)
+  --allow_default_hash_key
+                        Allow the default hash key to be used beyond tests.
+                        INADVISABLE! (default: False)
+  --hash_method {HMAC_MD5,HMAC_SHA256,HMAC_SHA512}
+                        Hash method. (default: HMAC_SHA256)
+  --rounding_sf ROUNDING_SF
+                        Number of significant figures to use when rounding
+                        frequencies in hashed version. Use 'None' to disable
+                        rounding. (default: 5)
+  --local_id_hash_key LOCAL_ID_HASH_KEY
+                        Only applicable to the 'hash' command. Hash the
+                        local_id values, using this key (passphrase). There
+                        are good reasons to use a key different to that
+                        specified for --key. If you leave this blank, or
+                        specify an empty string, then local ID values will be
+                        left unmodified (e.g. if you have pre-hashed them).
+                        (default: None)
+
+Matching rules:
+  --min_log_odds_for_match MIN_LOG_ODDS_FOR_MATCH
+                        Minimum natural log (ln) odds of two people being the
+                        same, before a match will be considered. Referred to
+                        as theta (θ) in the validation paper. (Default is
+                        equivalent to p = 0.9933071490757152.) (default: 5)
+  --exceeds_next_best_log_odds EXCEEDS_NEXT_BEST_LOG_ODDS
+                        Minimum log (ln) odds by which a best match must
+                        exceed the next-best match to be considered a unique
+                        match. Referred to as delta (δ) in the validation
+                        paper. (default: 0)
+  --perfect_id_translation PERFECT_ID_TRANSLATION
+                        Optional dictionary of the form {'nhsnum':'nhsnumber',
+                        'ni_num':'national_insurance'}, mapping the names of
+                        perfect (person-unique) identifiers as found in the
+                        proband data to their equivalents in the sample.
+                        (default: None)
+
+Control options:
+  --extra_validation_output
+                        Add extra output for validation purposes. (default:
+                        False)
+  --check_comparison_order
+                        Check every comparison for log-likelihood ratio
+                        sequence 'no match ≤ partial(s) ≤ full' and warn if
+                        this is not observed. Note, however, that deviations
+                        from this are not unexpected. (default: False)
+  --report_every REPORT_EVERY
+                        Report progress every n probands. (default: 100)
+  --min_probands_for_parallel MIN_PROBANDS_FOR_PARALLEL
+                        Minimum number of probands for which we will bother to
+                        use parallel processing. (default: 1000)
+  --n_workers N_WORKERS
+                        Number of processes to use in parallel. Defaults to 1
+                        (Windows) or the number of CPUs on your system (other
+                        operating systems). (default: 8)
+
+Error probabilities:
+  --p_ep1_forename P_EP1_FORENAME
+                        Probability that a forename has an error such that it
+                        fails a full match but satisfies a partial 1
+                        (metaphone) match. (Comma-separated list of 'gender:p'
+                        values, where gender must include F, M and can include
+                        X, ''.) (default: F:0.00894,M:0.0084)
+  --p_ep2np1_forename P_EP2NP1_FORENAME
+                        Probability that a forename has an error such that it
+                        fails a full/partial 1 match but satisfies a partial 2
+                        (first two character) match. (Comma-separated list of
+                        'gender:p' values, where gender must include F, M and
+                        can include X, ''.) (default: F:0.00881,M:0.00688)
+  --p_en_forename P_EN_FORENAME
+                        Probability that a forename has an error such that it
+                        produces no match at all. (Comma-separated list of
+                        'gender:p' values, where gender must include F, M and
+                        can include X, ''.) (default: F:0.00572,M:0.00625)
+  --p_u_forename P_U_FORENAME
+                        Probability that a set of at least two forenames has
+                        an error such that they become unordered (e.g.
+                        swapped/shuffled) with respect to their counterpart.
+                        See paper for full details. (default: 0.00191)
+  --p_ep1_surname P_EP1_SURNAME
+                        Probability that a surname has an error such that it
+                        fails a full match but satisfies a partial 1
+                        (metaphone) match. (Comma-separated list of 'gender:p'
+                        values, where gender must include F, M and can include
+                        X, ''.) (default: F:0.00551,M:0.00471)
+  --p_ep2np1_surname P_EP2NP1_SURNAME
+                        Probability that a surname has an error such that it
+                        fails a full/partial 1 match but satisfies a partial 2
+                        (first two character) match. (Comma-separated list of
+                        'gender:p' values, where gender must include F, M and
+                        can include X, ''.) (default: F:0.00378,M:0.00247)
+  --p_en_surname P_EN_SURNAME
+                        Probability that a surname has an error such that it
+                        produces no match at all. (Comma-separated list of
+                        'gender:p' values, where gender must include F, M and
+                        can include X, ''.) (default: F:0.0567,M:0.0134)
+  --p_ep_dob P_EP_DOB   Probability that a DOB is wrong in some way that
+                        causes a partial match (YM, MD, or YD) but not a full
+                        (YMD) match. (default: 0.00459036)
+  --p_en_dob P_EN_DOB   Probability that a DOB error leads to no match
+                        (neither full, nor partial as defined above).
+                        Empirically, this is about 0.00033. However, we
+                        suggest setting it to 0, as anything higher will run
+                        much slower. (default: 0)
+  --p_e_gender P_E_GENDER
+                        Assumed probability (p_e) that a gender is wrong,
+                        leading to a proband/candidate mismatch. (default:
+                        0.0033)
+  --p_ep_postcode P_EP_POSTCODE
+                        Assumed probability (p_ep) that a proband/candidate
+                        postcode pair fails a full (postcode unit) match but
+                        satisfies a partial (postcode sector) match, through
+                        error or a move within a sector. (default: 0.0097)
+  --p_en_postcode P_EN_POSTCODE
+                        Assumed probability (p_ep) that a proband/candidate
+                        postcode pair exhibits no match at all. (default: 0.3)
+
+Frequency information for prior probabilities:
+  --population_size POPULATION_SIZE
+                        Size of the whole population, from which we calculate
+                        the baseline log odds that two people, randomly
+                        selected (and replaced) from the population are the
+                        same person. (default: 852523)
+  --forename_cache_filename FORENAME_CACHE_FILENAME
+                        File in which to store cached forename info (to speed
+                        loading). (default:
+                        /path/to/crate/user/data/fuzzy_forename_cache.jsonl)
+  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
+                        CSV file of "name, sex, frequency" pairs for
+                        forenames. You can generate one via
+                        crate_fetch_wordlists. If you later alter this, delete
+                        your forename cache so it can be rebuilt. (default: /h
+                        ome/rudolf/Documents/code/crate/crate_anon/linkage/dat
+                        a/us_forename_sex_freq.zip)
+  --surname_cache_filename SURNAME_CACHE_FILENAME
+                        File in which to store cached surname info (to speed
+                        loading). (default:
+                        /path/to/crate/user/data/fuzzy_surname_cache.jsonl)
+  --surname_freq_csv SURNAME_FREQ_CSV
+                        CSV file of "name, frequency" pairs for forenames. You
+                        can generate one via crate_fetch_wordlists. If you
+                        later alter this, delete your surname cache so it can
+                        be rebuilt. (default: /home/rudolf/Documents/code/crat
+                        e/crate_anon/linkage/data/us_surname_freq.zip)
+  --min_name_frequency MIN_NAME_FREQUENCY
+                        Minimum base frequency for names. If a frequency is
+                        less than this, use this minimum. Allowing extremely
+                        low frequencies may increase the chances of a spurious
+                        match. Note also that typical name frequency tables
+                        don't give very-low-frequency information. For
+                        example, for US census forename/surname information,
+                        below 0.001 percent they report 0.000 percent; so a
+                        reasonable minimum is 0.0005 percent or 0.000005 or
+                        5e-6. (default: 5e-06)
+  --accent_transliterations ACCENT_TRANSLITERATIONS
+                        CSV list of 'accented/plain' pairs, representing how
+                        accented characters may be transliterated (if they are
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
+                        (anything supplied will be converted to upper case).
+                        (default: Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
+  --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
+                        CSV list of name components that should not be used as
+                        alternatives in their own right, such as nobiliary
+                        particles. (default: AF,AL,AUF,AV,AW,D,DA,DAI,DAL,DALL
+                        A,DAS,DE,DEI,DEL,DELL,DELLA,DER,DES,DI,DO,DOS,DU,EL,I,
+                        II,III,IV,IX,JNR,JR,L,LA,LE,NA,OF,PHRA,SNR,SR,SRI,THOE
+                        ,TOT,V,VAN,VI,VII,VIII,VON,X,ZU)
+  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
+                        Birth year pseudo-range. The sole purpose is to
+                        calculate the probability of two random people sharing
+                        a DOB, which is taken as 1/(365.25 * b), even for 29
+                        Feb. This option is b. (default: 30)
+  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
+                        Probability that a person in the population has gender
+                        'X'. (default: 0.004)
+  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
+                        Probability that a person in the population is female,
+                        given that they are either male or female. (default:
+                        0.51)
+  --postcode_cache_filename POSTCODE_CACHE_FILENAME
+                        File in which to store cached postcodes (to speed
+                        loading). (default:
+                        /path/to/crate/user/data/fuzzy_postcode_cache.json)
+  --postcode_csv_filename POSTCODE_CSV_FILENAME
+                        CSV file of postcode geography from UK Census/ONS
+                        data. A ZIP file is also acceptable. [Information
+                        saved in the postcode cache. If you change this,
+                        delete your postcode cache.] (default: /home/rudolf/Do
+                        cuments/code/crate/crate_anon/linkage/data/ONSPD_MAY_2
+                        022_UK.zip)
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+                        (default: None)
+  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
+                        or to have a postcode not known to the postcode
+                        geography database. (default: 0.00201)
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper. (default: 1.83)
+
+display options:
+  --verbose             Be verbose. (default: False)
+
+===============================================================================
+Help for command 'print_demo_sample'
+===============================================================================
+usage: crate_fuzzy_id_match print_demo_sample [-h] [--verbose]
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+display options:
+  --verbose   Be verbose.
+
+===============================================================================
+Help for command 'show_metaphone'
+===============================================================================
+usage: crate_fuzzy_id_match show_metaphone [-h] [--verbose] words [words ...]
+
+positional arguments:
+  words       Words to check
+
+optional arguments:
+  -h, --help  show this help message and exit
+
+display options:
+  --verbose   Be verbose.
+
+===============================================================================
+Help for command 'show_names_for_metaphone'
+===============================================================================
+usage: crate_fuzzy_id_match show_names_for_metaphone [-h]
+                                                     [--population_size POPULATION_SIZE]
+                                                     [--forename_cache_filename FORENAME_CACHE_FILENAME]
+                                                     [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                                     [--surname_cache_filename SURNAME_CACHE_FILENAME]
+                                                     [--surname_freq_csv SURNAME_FREQ_CSV]
+                                                     [--min_name_frequency MIN_NAME_FREQUENCY]
+                                                     [--accent_transliterations ACCENT_TRANSLITERATIONS]
+                                                     [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
+                                                     [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
+                                                     [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
+                                                     [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
+                                                     [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
+                                                     [--postcode_csv_filename POSTCODE_CSV_FILENAME]
+                                                     [--k_postcode K_POSTCODE]
+                                                     [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                                     [--k_pseudopostcode K_PSEUDOPOSTCODE]
+                                                     [--verbose]
+                                                     words [words ...]
+
+positional arguments:
+  words                 Words to check
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Frequency information for prior probabilities:
+  --population_size POPULATION_SIZE
+                        Size of the whole population, from which we calculate
+                        the baseline log odds that two people, randomly
+                        selected (and replaced) from the population are the
+                        same person.
+  --forename_cache_filename FORENAME_CACHE_FILENAME
+                        File in which to store cached forename info (to speed
+                        loading).
+  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
+                        CSV file of "name, sex, frequency" pairs for
+                        forenames. You can generate one via
+                        crate_fetch_wordlists. If you later alter this, delete
+                        your forename cache so it can be rebuilt.
+  --surname_cache_filename SURNAME_CACHE_FILENAME
+                        File in which to store cached surname info (to speed
+                        loading).
+  --surname_freq_csv SURNAME_FREQ_CSV
+                        CSV file of "name, frequency" pairs for forenames. You
+                        can generate one via crate_fetch_wordlists. If you
+                        later alter this, delete your surname cache so it can
+                        be rebuilt.
+  --min_name_frequency MIN_NAME_FREQUENCY
+                        Minimum base frequency for names. If a frequency is
+                        less than this, use this minimum. Allowing extremely
+                        low frequencies may increase the chances of a spurious
+                        match. Note also that typical name frequency tables
+                        don't give very-low-frequency information. For
+                        example, for US census forename/surname information,
+                        below 0.001 percent they report 0.000 percent; so a
+                        reasonable minimum is 0.0005 percent or 0.000005 or
+                        5e-6.
+  --accent_transliterations ACCENT_TRANSLITERATIONS
+                        CSV list of 'accented/plain' pairs, representing how
+                        accented characters may be transliterated (if they are
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
+                        (anything supplied will be converted to upper case).
+  --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
+                        CSV list of name components that should not be used as
+                        alternatives in their own right, such as nobiliary
+                        particles.
+  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
+                        Birth year pseudo-range. The sole purpose is to
+                        calculate the probability of two random people sharing
+                        a DOB, which is taken as 1/(365.25 * b), even for 29
+                        Feb. This option is b.
+  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
+                        Probability that a person in the population has gender
+                        'X'.
+  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
+                        Probability that a person in the population is female,
+                        given that they are either male or female.
+  --postcode_cache_filename POSTCODE_CACHE_FILENAME
+                        File in which to store cached postcodes (to speed
+                        loading).
+  --postcode_csv_filename POSTCODE_CSV_FILENAME
+                        CSV file of postcode geography from UK Census/ONS
+                        data. A ZIP file is also acceptable. [Information
+                        saved in the postcode cache. If you change this,
+                        delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
+                        or to have a postcode not known to the postcode
+                        geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
+
+display options:
+  --verbose             Be verbose.
+
+===============================================================================
+Help for command 'show_forename_freq'
+===============================================================================
+usage: crate_fuzzy_id_match show_forename_freq [-h]
+                                               [--population_size POPULATION_SIZE]
+                                               [--forename_cache_filename FORENAME_CACHE_FILENAME]
+                                               [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                               [--surname_cache_filename SURNAME_CACHE_FILENAME]
+                                               [--surname_freq_csv SURNAME_FREQ_CSV]
+                                               [--min_name_frequency MIN_NAME_FREQUENCY]
+                                               [--accent_transliterations ACCENT_TRANSLITERATIONS]
+                                               [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
+                                               [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
+                                               [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
+                                               [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
+                                               [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
+                                               [--postcode_csv_filename POSTCODE_CSV_FILENAME]
+                                               [--k_postcode K_POSTCODE]
+                                               [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                               [--k_pseudopostcode K_PSEUDOPOSTCODE]
+                                               [--verbose]
+                                               forenames [forenames ...]
+
+positional arguments:
+  forenames             Forenames to check
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Frequency information for prior probabilities:
+  --population_size POPULATION_SIZE
+                        Size of the whole population, from which we calculate
+                        the baseline log odds that two people, randomly
+                        selected (and replaced) from the population are the
+                        same person.
+  --forename_cache_filename FORENAME_CACHE_FILENAME
+                        File in which to store cached forename info (to speed
+                        loading).
+  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
+                        CSV file of "name, sex, frequency" pairs for
+                        forenames. You can generate one via
+                        crate_fetch_wordlists. If you later alter this, delete
+                        your forename cache so it can be rebuilt.
+  --surname_cache_filename SURNAME_CACHE_FILENAME
+                        File in which to store cached surname info (to speed
+                        loading).
+  --surname_freq_csv SURNAME_FREQ_CSV
+                        CSV file of "name, frequency" pairs for forenames. You
+                        can generate one via crate_fetch_wordlists. If you
+                        later alter this, delete your surname cache so it can
+                        be rebuilt.
+  --min_name_frequency MIN_NAME_FREQUENCY
+                        Minimum base frequency for names. If a frequency is
+                        less than this, use this minimum. Allowing extremely
+                        low frequencies may increase the chances of a spurious
+                        match. Note also that typical name frequency tables
+                        don't give very-low-frequency information. For
+                        example, for US census forename/surname information,
+                        below 0.001 percent they report 0.000 percent; so a
+                        reasonable minimum is 0.0005 percent or 0.000005 or
+                        5e-6.
+  --accent_transliterations ACCENT_TRANSLITERATIONS
+                        CSV list of 'accented/plain' pairs, representing how
+                        accented characters may be transliterated (if they are
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
+                        (anything supplied will be converted to upper case).
+  --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
+                        CSV list of name components that should not be used as
+                        alternatives in their own right, such as nobiliary
+                        particles.
+  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
+                        Birth year pseudo-range. The sole purpose is to
+                        calculate the probability of two random people sharing
+                        a DOB, which is taken as 1/(365.25 * b), even for 29
+                        Feb. This option is b.
+  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
+                        Probability that a person in the population has gender
+                        'X'.
+  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
+                        Probability that a person in the population is female,
+                        given that they are either male or female.
+  --postcode_cache_filename POSTCODE_CACHE_FILENAME
+                        File in which to store cached postcodes (to speed
+                        loading).
+  --postcode_csv_filename POSTCODE_CSV_FILENAME
+                        CSV file of postcode geography from UK Census/ONS
+                        data. A ZIP file is also acceptable. [Information
+                        saved in the postcode cache. If you change this,
+                        delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
+                        or to have a postcode not known to the postcode
+                        geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
+
+display options:
+  --verbose             Be verbose.
+
+===============================================================================
+Help for command 'show_forename_metaphone_freq'
+===============================================================================
+usage: crate_fuzzy_id_match show_forename_metaphone_freq [-h]
+                                                         [--population_size POPULATION_SIZE]
+                                                         [--forename_cache_filename FORENAME_CACHE_FILENAME]
+                                                         [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                                         [--surname_cache_filename SURNAME_CACHE_FILENAME]
+                                                         [--surname_freq_csv SURNAME_FREQ_CSV]
+                                                         [--min_name_frequency MIN_NAME_FREQUENCY]
+                                                         [--accent_transliterations ACCENT_TRANSLITERATIONS]
+                                                         [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
+                                                         [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
+                                                         [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
+                                                         [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
+                                                         [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
+                                                         [--postcode_csv_filename POSTCODE_CSV_FILENAME]
+                                                         [--k_postcode K_POSTCODE]
+                                                         [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                                         [--k_pseudopostcode K_PSEUDOPOSTCODE]
+                                                         [--verbose]
+                                                         metaphones
+                                                         [metaphones ...]
+
+positional arguments:
+  metaphones            Metaphones to check
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Frequency information for prior probabilities:
+  --population_size POPULATION_SIZE
+                        Size of the whole population, from which we calculate
+                        the baseline log odds that two people, randomly
+                        selected (and replaced) from the population are the
+                        same person.
+  --forename_cache_filename FORENAME_CACHE_FILENAME
+                        File in which to store cached forename info (to speed
+                        loading).
+  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
+                        CSV file of "name, sex, frequency" pairs for
+                        forenames. You can generate one via
+                        crate_fetch_wordlists. If you later alter this, delete
+                        your forename cache so it can be rebuilt.
+  --surname_cache_filename SURNAME_CACHE_FILENAME
+                        File in which to store cached surname info (to speed
+                        loading).
+  --surname_freq_csv SURNAME_FREQ_CSV
+                        CSV file of "name, frequency" pairs for forenames. You
+                        can generate one via crate_fetch_wordlists. If you
+                        later alter this, delete your surname cache so it can
+                        be rebuilt.
+  --min_name_frequency MIN_NAME_FREQUENCY
+                        Minimum base frequency for names. If a frequency is
+                        less than this, use this minimum. Allowing extremely
+                        low frequencies may increase the chances of a spurious
+                        match. Note also that typical name frequency tables
+                        don't give very-low-frequency information. For
+                        example, for US census forename/surname information,
+                        below 0.001 percent they report 0.000 percent; so a
+                        reasonable minimum is 0.0005 percent or 0.000005 or
+                        5e-6.
+  --accent_transliterations ACCENT_TRANSLITERATIONS
+                        CSV list of 'accented/plain' pairs, representing how
+                        accented characters may be transliterated (if they are
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
+                        (anything supplied will be converted to upper case).
+  --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
+                        CSV list of name components that should not be used as
+                        alternatives in their own right, such as nobiliary
+                        particles.
+  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
+                        Birth year pseudo-range. The sole purpose is to
+                        calculate the probability of two random people sharing
+                        a DOB, which is taken as 1/(365.25 * b), even for 29
+                        Feb. This option is b.
+  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
+                        Probability that a person in the population has gender
+                        'X'.
+  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
+                        Probability that a person in the population is female,
+                        given that they are either male or female.
+  --postcode_cache_filename POSTCODE_CACHE_FILENAME
+                        File in which to store cached postcodes (to speed
+                        loading).
+  --postcode_csv_filename POSTCODE_CSV_FILENAME
+                        CSV file of postcode geography from UK Census/ONS
+                        data. A ZIP file is also acceptable. [Information
+                        saved in the postcode cache. If you change this,
+                        delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
+                        or to have a postcode not known to the postcode
+                        geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
+
+display options:
+  --verbose             Be verbose.
+
+===============================================================================
+Help for command 'show_forename_f2c_freq'
+===============================================================================
+usage: crate_fuzzy_id_match show_forename_f2c_freq [-h]
+                                                   [--population_size POPULATION_SIZE]
+                                                   [--forename_cache_filename FORENAME_CACHE_FILENAME]
+                                                   [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                                   [--surname_cache_filename SURNAME_CACHE_FILENAME]
+                                                   [--surname_freq_csv SURNAME_FREQ_CSV]
+                                                   [--min_name_frequency MIN_NAME_FREQUENCY]
+                                                   [--accent_transliterations ACCENT_TRANSLITERATIONS]
+                                                   [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
+                                                   [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
+                                                   [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
+                                                   [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
+                                                   [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
+                                                   [--postcode_csv_filename POSTCODE_CSV_FILENAME]
+                                                   [--k_postcode K_POSTCODE]
+                                                   [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                                   [--k_pseudopostcode K_PSEUDOPOSTCODE]
+                                                   [--verbose]
+                                                   f2c [f2c ...]
+
+positional arguments:
+  f2c                   First-two-character groups to check
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Frequency information for prior probabilities:
+  --population_size POPULATION_SIZE
+                        Size of the whole population, from which we calculate
+                        the baseline log odds that two people, randomly
+                        selected (and replaced) from the population are the
+                        same person.
+  --forename_cache_filename FORENAME_CACHE_FILENAME
+                        File in which to store cached forename info (to speed
+                        loading).
+  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
+                        CSV file of "name, sex, frequency" pairs for
+                        forenames. You can generate one via
+                        crate_fetch_wordlists. If you later alter this, delete
+                        your forename cache so it can be rebuilt.
+  --surname_cache_filename SURNAME_CACHE_FILENAME
+                        File in which to store cached surname info (to speed
+                        loading).
+  --surname_freq_csv SURNAME_FREQ_CSV
+                        CSV file of "name, frequency" pairs for forenames. You
+                        can generate one via crate_fetch_wordlists. If you
+                        later alter this, delete your surname cache so it can
+                        be rebuilt.
+  --min_name_frequency MIN_NAME_FREQUENCY
+                        Minimum base frequency for names. If a frequency is
+                        less than this, use this minimum. Allowing extremely
+                        low frequencies may increase the chances of a spurious
+                        match. Note also that typical name frequency tables
+                        don't give very-low-frequency information. For
+                        example, for US census forename/surname information,
+                        below 0.001 percent they report 0.000 percent; so a
+                        reasonable minimum is 0.0005 percent or 0.000005 or
+                        5e-6.
+  --accent_transliterations ACCENT_TRANSLITERATIONS
+                        CSV list of 'accented/plain' pairs, representing how
+                        accented characters may be transliterated (if they are
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
+                        (anything supplied will be converted to upper case).
+  --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
+                        CSV list of name components that should not be used as
+                        alternatives in their own right, such as nobiliary
+                        particles.
+  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
+                        Birth year pseudo-range. The sole purpose is to
+                        calculate the probability of two random people sharing
+                        a DOB, which is taken as 1/(365.25 * b), even for 29
+                        Feb. This option is b.
+  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
+                        Probability that a person in the population has gender
+                        'X'.
+  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
+                        Probability that a person in the population is female,
+                        given that they are either male or female.
+  --postcode_cache_filename POSTCODE_CACHE_FILENAME
+                        File in which to store cached postcodes (to speed
+                        loading).
+  --postcode_csv_filename POSTCODE_CSV_FILENAME
+                        CSV file of postcode geography from UK Census/ONS
+                        data. A ZIP file is also acceptable. [Information
+                        saved in the postcode cache. If you change this,
+                        delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
+                        or to have a postcode not known to the postcode
+                        geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
+
+display options:
+  --verbose             Be verbose.
+
+===============================================================================
+Help for command 'show_surname_freq'
+===============================================================================
+usage: crate_fuzzy_id_match show_surname_freq [-h]
+                                              [--population_size POPULATION_SIZE]
+                                              [--forename_cache_filename FORENAME_CACHE_FILENAME]
+                                              [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                              [--surname_cache_filename SURNAME_CACHE_FILENAME]
+                                              [--surname_freq_csv SURNAME_FREQ_CSV]
+                                              [--min_name_frequency MIN_NAME_FREQUENCY]
+                                              [--accent_transliterations ACCENT_TRANSLITERATIONS]
+                                              [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
+                                              [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
+                                              [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
+                                              [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
+                                              [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
+                                              [--postcode_csv_filename POSTCODE_CSV_FILENAME]
+                                              [--k_postcode K_POSTCODE]
+                                              [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                              [--k_pseudopostcode K_PSEUDOPOSTCODE]
+                                              [--verbose]
+                                              surnames [surnames ...]
+
+positional arguments:
+  surnames              surnames to check
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Frequency information for prior probabilities:
+  --population_size POPULATION_SIZE
+                        Size of the whole population, from which we calculate
+                        the baseline log odds that two people, randomly
+                        selected (and replaced) from the population are the
+                        same person.
+  --forename_cache_filename FORENAME_CACHE_FILENAME
+                        File in which to store cached forename info (to speed
+                        loading).
+  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
+                        CSV file of "name, sex, frequency" pairs for
+                        forenames. You can generate one via
+                        crate_fetch_wordlists. If you later alter this, delete
+                        your forename cache so it can be rebuilt.
+  --surname_cache_filename SURNAME_CACHE_FILENAME
+                        File in which to store cached surname info (to speed
+                        loading).
+  --surname_freq_csv SURNAME_FREQ_CSV
+                        CSV file of "name, frequency" pairs for forenames. You
+                        can generate one via crate_fetch_wordlists. If you
+                        later alter this, delete your surname cache so it can
+                        be rebuilt.
+  --min_name_frequency MIN_NAME_FREQUENCY
+                        Minimum base frequency for names. If a frequency is
+                        less than this, use this minimum. Allowing extremely
+                        low frequencies may increase the chances of a spurious
+                        match. Note also that typical name frequency tables
+                        don't give very-low-frequency information. For
+                        example, for US census forename/surname information,
+                        below 0.001 percent they report 0.000 percent; so a
+                        reasonable minimum is 0.0005 percent or 0.000005 or
+                        5e-6.
+  --accent_transliterations ACCENT_TRANSLITERATIONS
+                        CSV list of 'accented/plain' pairs, representing how
+                        accented characters may be transliterated (if they are
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
+                        (anything supplied will be converted to upper case).
+  --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
+                        CSV list of name components that should not be used as
+                        alternatives in their own right, such as nobiliary
+                        particles.
+  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
+                        Birth year pseudo-range. The sole purpose is to
+                        calculate the probability of two random people sharing
+                        a DOB, which is taken as 1/(365.25 * b), even for 29
+                        Feb. This option is b.
+  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
+                        Probability that a person in the population has gender
+                        'X'.
+  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
+                        Probability that a person in the population is female,
+                        given that they are either male or female.
+  --postcode_cache_filename POSTCODE_CACHE_FILENAME
+                        File in which to store cached postcodes (to speed
+                        loading).
+  --postcode_csv_filename POSTCODE_CSV_FILENAME
+                        CSV file of postcode geography from UK Census/ONS
+                        data. A ZIP file is also acceptable. [Information
+                        saved in the postcode cache. If you change this,
+                        delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
+                        or to have a postcode not known to the postcode
+                        geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
+
+display options:
+  --verbose             Be verbose.
+
+===============================================================================
+Help for command 'show_surname_metaphone_freq'
+===============================================================================
+usage: crate_fuzzy_id_match show_surname_metaphone_freq [-h]
+                                                        [--population_size POPULATION_SIZE]
+                                                        [--forename_cache_filename FORENAME_CACHE_FILENAME]
+                                                        [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                                        [--surname_cache_filename SURNAME_CACHE_FILENAME]
+                                                        [--surname_freq_csv SURNAME_FREQ_CSV]
+                                                        [--min_name_frequency MIN_NAME_FREQUENCY]
+                                                        [--accent_transliterations ACCENT_TRANSLITERATIONS]
+                                                        [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
+                                                        [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
+                                                        [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
+                                                        [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
+                                                        [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
+                                                        [--postcode_csv_filename POSTCODE_CSV_FILENAME]
+                                                        [--k_postcode K_POSTCODE]
+                                                        [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                                        [--k_pseudopostcode K_PSEUDOPOSTCODE]
+                                                        [--verbose]
+                                                        metaphones
+                                                        [metaphones ...]
+
+positional arguments:
+  metaphones            surnames to check
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Frequency information for prior probabilities:
+  --population_size POPULATION_SIZE
+                        Size of the whole population, from which we calculate
+                        the baseline log odds that two people, randomly
+                        selected (and replaced) from the population are the
+                        same person.
+  --forename_cache_filename FORENAME_CACHE_FILENAME
+                        File in which to store cached forename info (to speed
+                        loading).
+  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
+                        CSV file of "name, sex, frequency" pairs for
+                        forenames. You can generate one via
+                        crate_fetch_wordlists. If you later alter this, delete
+                        your forename cache so it can be rebuilt.
+  --surname_cache_filename SURNAME_CACHE_FILENAME
+                        File in which to store cached surname info (to speed
+                        loading).
+  --surname_freq_csv SURNAME_FREQ_CSV
+                        CSV file of "name, frequency" pairs for forenames. You
+                        can generate one via crate_fetch_wordlists. If you
+                        later alter this, delete your surname cache so it can
+                        be rebuilt.
+  --min_name_frequency MIN_NAME_FREQUENCY
+                        Minimum base frequency for names. If a frequency is
+                        less than this, use this minimum. Allowing extremely
+                        low frequencies may increase the chances of a spurious
+                        match. Note also that typical name frequency tables
+                        don't give very-low-frequency information. For
+                        example, for US census forename/surname information,
+                        below 0.001 percent they report 0.000 percent; so a
+                        reasonable minimum is 0.0005 percent or 0.000005 or
+                        5e-6.
+  --accent_transliterations ACCENT_TRANSLITERATIONS
+                        CSV list of 'accented/plain' pairs, representing how
+                        accented characters may be transliterated (if they are
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
+                        (anything supplied will be converted to upper case).
+  --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
+                        CSV list of name components that should not be used as
+                        alternatives in their own right, such as nobiliary
+                        particles.
+  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
+                        Birth year pseudo-range. The sole purpose is to
+                        calculate the probability of two random people sharing
+                        a DOB, which is taken as 1/(365.25 * b), even for 29
+                        Feb. This option is b.
+  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
+                        Probability that a person in the population has gender
+                        'X'.
+  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
+                        Probability that a person in the population is female,
+                        given that they are either male or female.
+  --postcode_cache_filename POSTCODE_CACHE_FILENAME
+                        File in which to store cached postcodes (to speed
+                        loading).
+  --postcode_csv_filename POSTCODE_CSV_FILENAME
+                        CSV file of postcode geography from UK Census/ONS
+                        data. A ZIP file is also acceptable. [Information
+                        saved in the postcode cache. If you change this,
+                        delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
+                        or to have a postcode not known to the postcode
+                        geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
+
+display options:
+  --verbose             Be verbose.
+
+===============================================================================
+Help for command 'show_surname_f2c_freq'
+===============================================================================
+usage: crate_fuzzy_id_match show_surname_f2c_freq [-h]
+                                                  [--population_size POPULATION_SIZE]
+                                                  [--forename_cache_filename FORENAME_CACHE_FILENAME]
+                                                  [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                                  [--surname_cache_filename SURNAME_CACHE_FILENAME]
+                                                  [--surname_freq_csv SURNAME_FREQ_CSV]
+                                                  [--min_name_frequency MIN_NAME_FREQUENCY]
+                                                  [--accent_transliterations ACCENT_TRANSLITERATIONS]
+                                                  [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
+                                                  [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
+                                                  [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
+                                                  [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
+                                                  [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
+                                                  [--postcode_csv_filename POSTCODE_CSV_FILENAME]
+                                                  [--k_postcode K_POSTCODE]
+                                                  [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                                  [--k_pseudopostcode K_PSEUDOPOSTCODE]
+                                                  [--verbose]
+                                                  f2c [f2c ...]
+
+positional arguments:
+  f2c                   First-two-character groups to check
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Frequency information for prior probabilities:
+  --population_size POPULATION_SIZE
+                        Size of the whole population, from which we calculate
+                        the baseline log odds that two people, randomly
+                        selected (and replaced) from the population are the
+                        same person.
+  --forename_cache_filename FORENAME_CACHE_FILENAME
+                        File in which to store cached forename info (to speed
+                        loading).
+  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
+                        CSV file of "name, sex, frequency" pairs for
+                        forenames. You can generate one via
+                        crate_fetch_wordlists. If you later alter this, delete
+                        your forename cache so it can be rebuilt.
+  --surname_cache_filename SURNAME_CACHE_FILENAME
+                        File in which to store cached surname info (to speed
+                        loading).
+  --surname_freq_csv SURNAME_FREQ_CSV
+                        CSV file of "name, frequency" pairs for forenames. You
+                        can generate one via crate_fetch_wordlists. If you
+                        later alter this, delete your surname cache so it can
+                        be rebuilt.
+  --min_name_frequency MIN_NAME_FREQUENCY
+                        Minimum base frequency for names. If a frequency is
+                        less than this, use this minimum. Allowing extremely
+                        low frequencies may increase the chances of a spurious
+                        match. Note also that typical name frequency tables
+                        don't give very-low-frequency information. For
+                        example, for US census forename/surname information,
+                        below 0.001 percent they report 0.000 percent; so a
+                        reasonable minimum is 0.0005 percent or 0.000005 or
+                        5e-6.
+  --accent_transliterations ACCENT_TRANSLITERATIONS
+                        CSV list of 'accented/plain' pairs, representing how
+                        accented characters may be transliterated (if they are
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
+                        (anything supplied will be converted to upper case).
+  --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
+                        CSV list of name components that should not be used as
+                        alternatives in their own right, such as nobiliary
+                        particles.
+  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
+                        Birth year pseudo-range. The sole purpose is to
+                        calculate the probability of two random people sharing
+                        a DOB, which is taken as 1/(365.25 * b), even for 29
+                        Feb. This option is b.
+  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
+                        Probability that a person in the population has gender
+                        'X'.
+  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
+                        Probability that a person in the population is female,
+                        given that they are either male or female.
+  --postcode_cache_filename POSTCODE_CACHE_FILENAME
+                        File in which to store cached postcodes (to speed
+                        loading).
+  --postcode_csv_filename POSTCODE_CSV_FILENAME
+                        CSV file of postcode geography from UK Census/ONS
+                        data. A ZIP file is also acceptable. [Information
+                        saved in the postcode cache. If you change this,
+                        delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
+                        or to have a postcode not known to the postcode
+                        geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
+
+display options:
+  --verbose             Be verbose.
+
+===============================================================================
+Help for command 'show_dob_freq'
+===============================================================================
+usage: crate_fuzzy_id_match show_dob_freq [-h]
+                                          [--population_size POPULATION_SIZE]
+                                          [--forename_cache_filename FORENAME_CACHE_FILENAME]
+                                          [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                          [--surname_cache_filename SURNAME_CACHE_FILENAME]
+                                          [--surname_freq_csv SURNAME_FREQ_CSV]
+                                          [--min_name_frequency MIN_NAME_FREQUENCY]
+                                          [--accent_transliterations ACCENT_TRANSLITERATIONS]
+                                          [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
+                                          [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
+                                          [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
+                                          [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
+                                          [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
+                                          [--postcode_csv_filename POSTCODE_CSV_FILENAME]
+                                          [--k_postcode K_POSTCODE]
+                                          [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                          [--k_pseudopostcode K_PSEUDOPOSTCODE]
+                                          [--verbose]
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Frequency information for prior probabilities:
+  --population_size POPULATION_SIZE
+                        Size of the whole population, from which we calculate
+                        the baseline log odds that two people, randomly
+                        selected (and replaced) from the population are the
+                        same person.
+  --forename_cache_filename FORENAME_CACHE_FILENAME
+                        File in which to store cached forename info (to speed
+                        loading).
+  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
+                        CSV file of "name, sex, frequency" pairs for
+                        forenames. You can generate one via
+                        crate_fetch_wordlists. If you later alter this, delete
+                        your forename cache so it can be rebuilt.
+  --surname_cache_filename SURNAME_CACHE_FILENAME
+                        File in which to store cached surname info (to speed
+                        loading).
+  --surname_freq_csv SURNAME_FREQ_CSV
+                        CSV file of "name, frequency" pairs for forenames. You
+                        can generate one via crate_fetch_wordlists. If you
+                        later alter this, delete your surname cache so it can
+                        be rebuilt.
+  --min_name_frequency MIN_NAME_FREQUENCY
+                        Minimum base frequency for names. If a frequency is
+                        less than this, use this minimum. Allowing extremely
+                        low frequencies may increase the chances of a spurious
+                        match. Note also that typical name frequency tables
+                        don't give very-low-frequency information. For
+                        example, for US census forename/surname information,
+                        below 0.001 percent they report 0.000 percent; so a
+                        reasonable minimum is 0.0005 percent or 0.000005 or
+                        5e-6.
+  --accent_transliterations ACCENT_TRANSLITERATIONS
+                        CSV list of 'accented/plain' pairs, representing how
+                        accented characters may be transliterated (if they are
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
+                        (anything supplied will be converted to upper case).
+  --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
+                        CSV list of name components that should not be used as
+                        alternatives in their own right, such as nobiliary
+                        particles.
+  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
+                        Birth year pseudo-range. The sole purpose is to
+                        calculate the probability of two random people sharing
+                        a DOB, which is taken as 1/(365.25 * b), even for 29
+                        Feb. This option is b.
+  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
+                        Probability that a person in the population has gender
+                        'X'.
+  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
+                        Probability that a person in the population is female,
+                        given that they are either male or female.
+  --postcode_cache_filename POSTCODE_CACHE_FILENAME
+                        File in which to store cached postcodes (to speed
+                        loading).
+  --postcode_csv_filename POSTCODE_CSV_FILENAME
+                        CSV file of postcode geography from UK Census/ONS
+                        data. A ZIP file is also acceptable. [Information
+                        saved in the postcode cache. If you change this,
+                        delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
+                        or to have a postcode not known to the postcode
+                        geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
+
+display options:
+  --verbose             Be verbose.
+
+===============================================================================
+Help for command 'show_postcode_freq'
+===============================================================================
+usage: crate_fuzzy_id_match show_postcode_freq [-h]
+                                               [--population_size POPULATION_SIZE]
+                                               [--forename_cache_filename FORENAME_CACHE_FILENAME]
+                                               [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                               [--surname_cache_filename SURNAME_CACHE_FILENAME]
+                                               [--surname_freq_csv SURNAME_FREQ_CSV]
+                                               [--min_name_frequency MIN_NAME_FREQUENCY]
+                                               [--accent_transliterations ACCENT_TRANSLITERATIONS]
+                                               [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
+                                               [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
+                                               [--p_not_male_or_female P_NOT_MALE_OR_FEMALE]
+                                               [--p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE]
+                                               [--postcode_cache_filename POSTCODE_CACHE_FILENAME]
+                                               [--postcode_csv_filename POSTCODE_CSV_FILENAME]
+                                               [--k_postcode K_POSTCODE]
+                                               [--p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE]
+                                               [--k_pseudopostcode K_PSEUDOPOSTCODE]
+                                               [--verbose]
+                                               postcodes [postcodes ...]
+
+positional arguments:
+  postcodes             postcodes to check
+
+optional arguments:
+  -h, --help            show this help message and exit
+
+Frequency information for prior probabilities:
+  --population_size POPULATION_SIZE
+                        Size of the whole population, from which we calculate
+                        the baseline log odds that two people, randomly
+                        selected (and replaced) from the population are the
+                        same person.
+  --forename_cache_filename FORENAME_CACHE_FILENAME
+                        File in which to store cached forename info (to speed
+                        loading).
+  --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
+                        CSV file of "name, sex, frequency" pairs for
+                        forenames. You can generate one via
+                        crate_fetch_wordlists. If you later alter this, delete
+                        your forename cache so it can be rebuilt.
+  --surname_cache_filename SURNAME_CACHE_FILENAME
+                        File in which to store cached surname info (to speed
+                        loading).
+  --surname_freq_csv SURNAME_FREQ_CSV
+                        CSV file of "name, frequency" pairs for forenames. You
+                        can generate one via crate_fetch_wordlists. If you
+                        later alter this, delete your surname cache so it can
+                        be rebuilt.
+  --min_name_frequency MIN_NAME_FREQUENCY
+                        Minimum base frequency for names. If a frequency is
+                        less than this, use this minimum. Allowing extremely
+                        low frequencies may increase the chances of a spurious
+                        match. Note also that typical name frequency tables
+                        don't give very-low-frequency information. For
+                        example, for US census forename/surname information,
+                        below 0.001 percent they report 0.000 percent; so a
+                        reasonable minimum is 0.0005 percent or 0.000005 or
+                        5e-6.
+  --accent_transliterations ACCENT_TRANSLITERATIONS
+                        CSV list of 'accented/plain' pairs, representing how
+                        accented characters may be transliterated (if they are
+                        not reproduced accurately and not simply mangled into
+                        ASCII like É→E). Only upper-case versions are required
+                        (anything supplied will be converted to upper case).
+  --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
+                        CSV list of name components that should not be used as
+                        alternatives in their own right, such as nobiliary
+                        particles.
+  --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
+                        Birth year pseudo-range. The sole purpose is to
+                        calculate the probability of two random people sharing
+                        a DOB, which is taken as 1/(365.25 * b), even for 29
+                        Feb. This option is b.
+  --p_not_male_or_female P_NOT_MALE_OR_FEMALE
+                        Probability that a person in the population has gender
+                        'X'.
+  --p_female_given_male_or_female P_FEMALE_GIVEN_MALE_OR_FEMALE
+                        Probability that a person in the population is female,
+                        given that they are either male or female.
+  --postcode_cache_filename POSTCODE_CACHE_FILENAME
+                        File in which to store cached postcodes (to speed
+                        loading).
+  --postcode_csv_filename POSTCODE_CSV_FILENAME
+                        CSV file of postcode geography from UK Census/ONS
+                        data. A ZIP file is also acceptable. [Information
+                        saved in the postcode cache. If you change this,
+                        delete your postcode cache.]
+  --k_postcode K_POSTCODE
+                        Probability multiple: P[P(postcode unit match | ¬H)] =
+                        k_postcode * f_f_postcode[national unit fraction], and
+                        p_p_postcode[P(postcode sector match | ¬H) =
+                        k_postcode * f_p_postcode[national sector fraction].
+                        The default, None, autocalculates k_postcode = n_UK /
+                        population_size where n_uk = 66040000; this is
+                        approximately correct if your population is a
+                        geographically restricted section of the UK, but if it
+                        is geographically representative of the UK, specify 1.
+  --p_unknown_or_pseudo_postcode P_UNKNOWN_OR_PSEUDO_POSTCODE
+                        Expected population probability of each 'pseudo-
+                        postcode' postcode unit (e.g. ZZ99 3VZ = no fixed
+                        above; ZZ99 3CZ, England/UK not otherwise specified)
+                        or to have a postcode not known to the postcode
+                        geography database.
+  --k_pseudopostcode K_PSEUDOPOSTCODE
+                        Probability multiple: P(pseudopostcode sector or
+                        unknown postcode sector match | ¬H) = k_pseudopostcode
+                        * p_unknown_or_pseudo_postcode. Must strictly be >=1
+                        and we enforce >1; see paper.
+
+display options:
+  --verbose             Be verbose.
+

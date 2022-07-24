@@ -160,7 +160,7 @@ class RequestTooLong(Exception):
 # =============================================================================
 
 
-class CloudRequest(object):
+class CloudRequest:
     """
     Class to send requests to the cloud processors and process the results.
     """

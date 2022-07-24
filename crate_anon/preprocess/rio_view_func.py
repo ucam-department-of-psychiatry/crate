@@ -48,7 +48,7 @@ from crate_anon.preprocess.rio_constants import (
 # =============================================================================
 
 
-class RioViewConfigOptions(object):
+class RioViewConfigOptions:
     """
     Simple class to store some command-line options for RiO view creation
     """

@@ -92,7 +92,7 @@ def gen_all_values_for_patient(
 # =============================================================================
 
 
-class Patient(object):
+class Patient:
     """
     Class representing a patient with patient-specific information, such as
     PIDs, RIDs, and scrubbers.

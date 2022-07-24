@@ -479,7 +479,7 @@ MEDEX_MAX_NECESSITY_LENGTH = 50  # guess
 # =============================================================================
 
 
-class PseudoTempDir(object):
+class PseudoTempDir:
     """
     This class exists so that a TemporaryDirectory and a manually specified
     directory can be addressed via the same (very simple!) interface.

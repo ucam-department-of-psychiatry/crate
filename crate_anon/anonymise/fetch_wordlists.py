@@ -173,7 +173,7 @@ def fetch_english_words(
 # =============================================================================
 
 
-class NameInfo(object):
+class NameInfo:
     """
     Information about a human name.
     """

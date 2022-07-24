@@ -127,7 +127,7 @@ def warn_if_identifier_long(
 # =============================================================================
 
 
-class DataDictionaryRow(object):
+class DataDictionaryRow:
     """
     Class representing a single row of a data dictionary (a DDR).
     """

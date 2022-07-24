@@ -266,3 +266,12 @@ def first_n_characters_required(x: str, n: int) -> str:
     for c in reversed(rest):
         rest_regex = optional_noncapture_group(c + rest_regex)
     return start + rest_regex
+
+
+def anchor(x: str, start: bool = True, end: bool = True) -> str:
+    """
+    Anchor a regex at the start and/or end.
+    """
+    s = "^" if start else ""
+    e = "$" if end else ""
+    return s + x + e

@@ -65,7 +65,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 
-class OutputUserConfig(object):
+class OutputUserConfig:
     """
     Class defining configuration for the output of a given GATE app.
 

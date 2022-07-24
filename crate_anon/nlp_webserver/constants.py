@@ -40,7 +40,7 @@ SERVER_NAME = "test_server"
 SERVER_VERSION = "0.1"
 
 
-class NlpServerConfigKeys(object):
+class NlpServerConfigKeys:
     SQLALCHEMY_PREFIX = "sqlalchemy."  # not itself a key
 
     BACKEND_URL = "backend_url"

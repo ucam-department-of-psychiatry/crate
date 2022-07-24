@@ -47,8 +47,5 @@ Licence
 
 - Licensed under the GNU GPL v3+: see LICENSE file.
 
-- Some third-party libraries have slightly different licences:
-
-  - aspects of ``CamAnonGatePipeline.java`` are based on demonstration GATE
-    code, copyright (C); University of Sheffield, and licensed under the GNU
-    LGPL; see https://gate.ac.uk/.
+- Some third-party libraries have slightly different licences;
+  see the documentation.

@@ -70,14 +70,14 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==1.1.18",  # RNC libraries
+    "cardinal_pythonlib==1.1.21",  # RNC libraries
     "cairosvg==2.5.1",  # work with SVG files
     "celery==5.2.3",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==3.2.12",  # for main CRATE research database web server
+    "django==3.2.13",  # for main CRATE research database web server
     "django-debug-toolbar==3.0a2",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
@@ -88,14 +88,17 @@ INSTALL_REQUIRES = [
     "drf-spectacular==0.22.0",  # Open API Schema and documentation
     "drf-spectacular-sidecar==2022.3.21",  # Static files for drf-spectacular
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
-    "flower==1.0.0",  # debug Celery; web server; only runs explicitly
+    "flower==1.1.0",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
     "gunicorn==20.0.4",  # UNIX only, though will install under Windows
+    "jsonlines==3.0.0",  # JSON Lines format
     "kombu==5.2.3",  # AMQP library for Celery; requires VC++ under Windows
     "mako==1.1.3",  # templates with Python in
     "MarkupSafe==2.0.1",  # for HTML escaping
     # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa: E501
+    "numba==0.55.2",  # just-in-time compilation of functions
+    "numpy==1.22.4",  # numerical work
     "openpyxl==3.0.7",  # read Excel
     "pendulum==2.1.2",  # dates/times
     "Pillow==9.0.1",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
@@ -106,7 +109,7 @@ INSTALL_REQUIRES = [
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.8.1",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
-    "PyPDF2==1.26.0",  # [pin exact version from cardinal_pythonlib]
+    "PyPDF2==1.27.5",  # [pin exact version from cardinal_pythonlib]
     "pytz==2021.3",  # timezones
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
@@ -129,7 +132,7 @@ INSTALL_REQUIRES = [
     "tornado==6.1",  # web framework
     "transaction==3.0.0",  # generic transaction management
     "urllib3==1.26.5",  # used by requests
-    "waitress==2.1.1",  # pure-Python WSGI server
+    "waitress==2.1.2",  # pure-Python WSGI server
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
     # For development only:
     "black==22.3.0",  # auto code formatter
@@ -191,7 +194,7 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         # Indicate who your project is intended for
         "Intended Audience :: Science/Research",
         # Pick your license as you wish (should match "license" above)
@@ -199,7 +202,6 @@ setup(
         "Natural Language :: English",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",

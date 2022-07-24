@@ -86,7 +86,7 @@ SqlTypeDbIdentifier = String(MAX_SQL_FIELD_LEN)
 # =============================================================================
 
 
-class NlpConfigPrefixes(object):
+class NlpConfigPrefixes:
     """
     Section name prefixes for the NLP config file.
     """
@@ -100,7 +100,7 @@ class NlpConfigPrefixes(object):
     CLOUD = "cloud"
 
 
-class NlpDefConfigKeys(object):
+class NlpDefConfigKeys:
     """
     Config file keys for NLP definitions.
     """
@@ -118,7 +118,7 @@ class NlpDefConfigKeys(object):
     CLOUD_REQUEST_DATA_DIR = "cloud_request_data_dir"
 
 
-class NlpDefValues(object):
+class NlpDefValues:
     """
     Config file values for NLP definitions
     """
@@ -129,7 +129,7 @@ class NlpDefValues(object):
     FORMAT_GATE = "GATE"
 
 
-class InputFieldConfigKeys(object):
+class InputFieldConfigKeys:
     """
     Config file keys for input database fields (columns).
     """
@@ -144,7 +144,7 @@ class InputFieldConfigKeys(object):
     DEBUG_ROW_LIMIT = "debug_row_limit"
 
 
-class ProcessorConfigKeys(object):
+class ProcessorConfigKeys:
     """
     Config file keys for NLP processors.
     """
@@ -163,7 +163,7 @@ class ProcessorConfigKeys(object):
     PROCESSOR_FORMAT = "processor_format"
 
 
-class NlpOutputConfigKeys(object):
+class NlpOutputConfigKeys:
     """
     Config file keys for output tables from GATE or Cloud NLP processors.
     """
@@ -175,7 +175,7 @@ class NlpOutputConfigKeys(object):
     INDEXDEFS = "indexdefs"
 
 
-class DatabaseConfigKeys(object):
+class DatabaseConfigKeys:
     """
     Config file keys for database definitions.
     """
@@ -184,7 +184,7 @@ class DatabaseConfigKeys(object):
     ECHO = "echo"
 
 
-class CloudNlpConfigKeys(object):
+class CloudNlpConfigKeys:
     """
     Config file keys for cloud NLP.
     """
@@ -204,7 +204,7 @@ class CloudNlpConfigKeys(object):
     TEST_LENGTH_FUNCTION_SPEED = "test_length_function_speed"
 
 
-class GateApiKeys(object):
+class GateApiKeys:
     """
     Dictionary keys for the direct API to GATE.
 
@@ -238,7 +238,7 @@ class GateApiKeys(object):
     TEXT = "text"
 
 
-class GateResultKeys(object):
+class GateResultKeys:
     """
     Dictionary keys to represent GATE results in our NLPRP server.
     """
@@ -250,7 +250,7 @@ class GateResultKeys(object):
     FEATURES = "features"
 
 
-class GateFieldNames(object):
+class GateFieldNames:
     """
     Field (column) names for results from GATE.
     These match KEY_* strings in ``CrateGatePipeline.java``.

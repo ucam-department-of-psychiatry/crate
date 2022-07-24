@@ -147,7 +147,7 @@ hack_in_mssql_xml_type()  # support XML type under SQL Server
 # =============================================================================
 
 
-class DatabaseSafeConfig(object):
+class DatabaseSafeConfig:
     """
     Class representing non-sensitive configuration information about a
     source database.
@@ -514,7 +514,7 @@ def get_sqlatype(sqlatype: str) -> TypeEngine:
 # =============================================================================
 
 
-class Config(object):
+class Config:
     """
     Class representing the main CRATE anonymiser configuration.
     """
