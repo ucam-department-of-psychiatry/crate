@@ -2054,6 +2054,100 @@ class PerfectID(IdentifierTwoState):
 
 
 # =============================================================================
+# DummyLetterIdentifier
+# =============================================================================
+
+
+class DummyLetterIdentifier(IdentifierTwoState):
+    """
+    Represents identifiers {A, B, ... Z}, each with probability 1/26, allowing
+    exact matching only. For testing multiple comparison algorithms.
+    """
+
+    Q = 1 / 26  # true
+    P_ERROR = 0.01  # arbitrary
+    KEY_VALUE = "value"
+
+    def __init__(self, value: str, cfg: Optional[MatchConfig] = None) -> None:
+        """
+        Plaintext creation of a dummy identifier.
+
+        Args:
+            cfg:
+                The config object.
+            value:
+                (PLAINTEXT.) The value.
+        """
+        super().__init__(cfg=cfg, is_plaintext=True, temporal=False)
+        assert (
+            isinstance(value, str)
+            and len(value) == 1
+            and ord("A") <= ord(value) <= ord("Z")
+        )
+        self.value = value
+        self._set_comparisons()
+
+    def _set_comparisons(self) -> None:
+        p_e = self.P_ERROR
+        p_f = self.Q
+        self.comparison_full_match = DirectComparison(
+            p_d_given_same_person=1 - p_e,
+            p_d_given_diff_person=p_f,
+            d_description=f"dummy_match:{self.value}",
+        )
+        self.comparison_no_match = DirectComparison(
+            p_d_given_same_person=p_e,
+            p_d_given_diff_person=1 - p_f,
+            d_description=f"dummy_mismatch:{self.value}",
+        )
+
+    def __eq__(self, other: "Identifier") -> bool:
+        return super().__eq__(other) and self._eq_check(other, ["value"])
+
+    def plaintext_str_core(self) -> str:
+        return self.value
+
+    @classmethod
+    def from_plaintext_str(
+        cls, cfg: MatchConfig, x: str
+    ) -> "DummyLetterIdentifier":
+        return DummyLetterIdentifier(cfg=cfg, value=x)
+
+    def as_dict(
+        self, encrypt: bool = True, include_frequencies: bool = True
+    ) -> Dict[str, Any]:
+        """
+        For JSON.
+        """
+        if self.is_plaintext and encrypt:
+            value = self.cfg.hash_fn(self.value)
+        else:
+            # Was already hashed, or staying plaintext
+            value = self.value
+        d = {self.KEY_VALUE: value}
+        return d
+
+    @classmethod
+    def from_dict(
+        cls, cfg: MatchConfig, d: Dict[str, Any], hashed: bool
+    ) -> "DummyLetterIdentifier":
+        i = DummyLetterIdentifier(cfg=cfg, value="A")  # dummy, overwritten
+        i.is_plaintext = not hashed
+        i.value = getdictval(d, cls.KEY_VALUE, str)
+        i._set_comparisons()
+        return i
+
+    def __bool__(self) -> bool:
+        return bool(self.value)
+
+    def ensure_has_freq_info_if_id_present(self) -> None:
+        pass
+
+    def fully_matches(self, other: "DummyLetterIdentifier") -> bool:
+        return self.value == other.value
+
+
+# =============================================================================
 # Comparison of multiple potentially jumbled similar identifiers
 # =============================================================================
 
@@ -2344,6 +2438,9 @@ def gen_best_comparisons(
     n_candidates_available = n_candidates = len(candidate_identifiers)
     n_positive = 0
     n_implicit_comparisons = 1
+    # ... at least one (because ci_list is not empty). This is a multiplicative
+    # value; we will multiply it by the number of available candidates used for
+    # each comparison.
     correct_order = True
     for ci in ci_list:
         if (
@@ -2352,8 +2449,6 @@ def gen_best_comparisons(
         ):
             # Each identifier can use used as part of only one comparison.
             continue
-        candidate_indexes_used.add(ci.candidate_idx)
-        proband_indexes_used.add(ci.proband_idx)
         yield ci.comparison
         if ci.log_likelihood_ratio > 0:
             # This was some form of match, so we apply our correction.
@@ -2364,13 +2459,19 @@ def gen_best_comparisons(
                 # vary depending on the frequency of the identifiers, e.g. John
                 # Zachariah versus Zachariah John.
                 correct_order = False
+        # Whether or not it was a positive match, it was a comparison; we have
+        # "used up" the identifiers being compared, and have one fewer
+        # candidate available.
+        candidate_indexes_used.add(ci.candidate_idx)
+        proband_indexes_used.add(ci.proband_idx)
         n_candidates_available -= 1
 
     # Any corrections required.
     if ordered:
         # Ordered comparison requested.
-        # Action only required if there is an ordering to be considered.
-        p_o = 1 - p_u  # ordered, unordered
+        # - To follow this, look at the simpler "unordered" alternative first.
+        # - Action only required if there is an ordering to be considered.
+        p_o = 1 - p_u  # p_o ordered, p_u unordered
         if n_positive > 0 and n_candidates > 1:
             # There was a "hit", and there was a choice of candidate
             # identifiers, so there is an order to think about. ASSUMING unique
@@ -2409,11 +2510,18 @@ def gen_best_comparisons(
 
     else:
         # Unordered comparison requested.
+        # - No adjustment is required to P(D | H). See paper.
+        # - If n_implicit_comparisons is 1, that isn't multiple comparisons,
+        #   so no further adjustment is required. We could still use this
+        #   process, which would add -ln(1) = 0, but it would do nothing and be
+        #   a waste of time.
+        # - But if n_implicit_comparisons > 1, then we adjust P(D | ¬H),
+        #   using the Bonferroni correction. See paper for working.
         if n_implicit_comparisons > 1:
-            # - P(D | H) does not require adjustment.
             # - Correct P(D | ¬H) for the fact that we would have considered
             #   any order acceptable, and we made multiple comparisons to pick
             #   the best. This uses a Bonferroni approximation, as above.
+            #   We add a negative log odds value. See paper for detail.
             yield AdjustLogOddsComparison(
                 log_odds_delta=-ln(n_implicit_comparisons),
                 description=(

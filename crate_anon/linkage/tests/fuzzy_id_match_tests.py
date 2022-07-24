@@ -56,7 +56,9 @@ from crate_anon.linkage.frequencies import (
 )
 from crate_anon.linkage.identifiers import (
     DateOfBirth,
+    DummyLetterIdentifier,
     Forename,
+    gen_best_comparisons,
     Gender,
     Identifier,
     PerfectID,
@@ -68,6 +70,7 @@ from crate_anon.linkage.identifiers import (
 from crate_anon.linkage.helpers import (
     get_postcode_sector,
     is_valid_isoformat_date,
+    ln,
     POSTCODE_REGEX,
     remove_redundant_whitespace,
     safe_upper,
@@ -1362,3 +1365,141 @@ class FuzzyLinkageTests(unittest.TestCase):
             self.assertFalse(partial_p in shortlist3)
         for mismatch_p in dob_mismatch:
             self.assertFalse(mismatch_p in shortlist3)
+
+    # -------------------------------------------------------------------------
+    # Multiple comparison correction checks
+    # -------------------------------------------------------------------------
+
+    def test_multiple_comparisons(self) -> None:
+        p_u = 0.1  # arbitrary
+        p_o = 1 - p_u
+        delta = 1e-10  # floating-point tolerance
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+        c = DummyLetterIdentifier("C")
+        d = DummyLetterIdentifier("D")
+
+        def compare_unordered(
+            proband_identifiers: List[Identifier],
+            candidate_identifiers: List[Identifier],
+        ):
+            return list(
+                gen_best_comparisons(
+                    proband_identifiers=proband_identifiers,
+                    candidate_identifiers=candidate_identifiers,
+                    ordered=False,
+                )
+            )
+
+        def compare_ordered(
+            proband_identifiers: List[Identifier],
+            candidate_identifiers: List[Identifier],
+        ):
+            return list(
+                gen_best_comparisons(
+                    proband_identifiers=proband_identifiers,
+                    candidate_identifiers=candidate_identifiers,
+                    ordered=True,
+                    p_u=p_u,
+                )
+            )
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # UNORDERED, one/one identifier
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        result = compare_unordered([a], [a])
+        self.assertEqual(len(result), 1)  # ... one match, no correction
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Unordered, two/two identifiers
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        result = compare_unordered([a, b], [a, b])
+        self.assertEqual(len(result), 3)  # ... two matches and a correction
+        corr = result[-1]
+        # Correction should be for 2 hits from 2 comparisons, and a Bonferroni
+        # correction:
+        self.assertAlmostEqual(corr.log_likelihood_ratio, -ln(2), delta=delta)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Unordered, three/three identifiers
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        result = compare_unordered([a, b, c], [a, b, c])
+        self.assertEqual(len(result), 4)  # ... three matches and a correction
+        corr = result[-1]
+        # Correction should be for 3 hits from 6 comparisons:
+        self.assertAlmostEqual(corr.log_likelihood_ratio, -ln(6), delta=delta)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Unordered, one/three identifiers
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        result = compare_unordered([a], [a, b, c])
+        self.assertEqual(len(result), 2)  # ... one match and a correction
+        corr = result[-1]
+        # Correction should be for 1 hit from 3 comparisons:
+        self.assertAlmostEqual(corr.log_likelihood_ratio, -ln(3), delta=delta)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ORDERED, one/one identifier
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        result = compare_ordered([a], [a])
+        self.assertEqual(len(result), 1)  # ... one match, no correction
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Ordered, two/two identifiers, correct order
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        result = compare_ordered([a, b], [a, b])
+        self.assertEqual(len(result), 3)  # ... two matches and a correction
+        corr = result[-1]
+        # - P(D|H) correction: +ln(p_o).
+        # - P(D|¬H) correction: nothing, i.e. -ln(1) = 0.
+        self.assertAlmostEqual(corr.log_likelihood_ratio, ln(p_o), delta=delta)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Ordered, two/two identifiers, wrong order
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        result = compare_ordered([a, b], [b, a])
+        self.assertEqual(len(result), 3)  # ... two matches and a correction
+        corr = result[-1]
+        # - P(D|H) correction: +ln(p_u).
+        # - P(D|¬H) correction: Bonferroni for 2 options but minus one for the
+        #   ordered option, so nothing.
+        self.assertAlmostEqual(corr.log_likelihood_ratio, ln(p_u), delta=delta)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Ordered, three/three identifiers, correct order
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        result = compare_ordered([a, b, c], [a, b, c])
+        self.assertEqual(len(result), 4)  # ... three matches and a correction
+        corr = result[-1]
+        # - P(D|H) correction: +ln(p_o).
+        # - P(D|¬H) correction: nothing (correct order).
+        self.assertAlmostEqual(corr.log_likelihood_ratio, ln(p_o), delta=delta)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Ordered, three/three identifiers, wrong order
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        result = compare_ordered([a, b, c], [b, c, a])
+        self.assertEqual(len(result), 4)  # ... three matches and a correction
+        corr = result[-1]
+        # - P(D|H) correction: +ln(p_u).
+        # - P(D|¬H) correction: Bonferroni for 6 options minus the one for the
+        #   correct order.
+        self.assertAlmostEqual(
+            corr.log_likelihood_ratio, ln(p_u) - ln(5), delta=delta
+        )
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Ordered, three/three identifiers, two match, wrong order
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        result = compare_ordered([a, b, c], [b, c, d])
+        self.assertEqual(len(result), 4)
+        # ... three matches (but one will be bad) and a correction
+        corr = result[-1]
+        # - P(D|H) correction: +ln(p_u).
+        # - P(D|¬H) correction: Bonferroni for 6 options minus the one for the
+        #   correct order.
+        self.assertAlmostEqual(
+            corr.log_likelihood_ratio, ln(p_u) - ln(5), delta=delta
+        )
+
+        # import pdb; pdb.set_trace()
