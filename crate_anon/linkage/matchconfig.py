@@ -93,10 +93,11 @@ class MatchConfig:
         forename_sex_csv_filename: str = FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
         forename_cache_filename: str = FuzzyDefaults.FORENAME_CACHE_FILENAME,
         forename_freq_info: Optional[NameFrequencyInfo] = None,
+        forename_min_frequency: float = FuzzyDefaults.FORENAME_MIN_FREQ,
         surname_csv_filename: str = FuzzyDefaults.SURNAME_FREQ_CSV,
         surname_cache_filename: str = FuzzyDefaults.SURNAME_CACHE_FILENAME,
         surname_freq_info: Optional[NameFrequencyInfo] = None,
-        min_name_frequency: float = FuzzyDefaults.NAME_MIN_FREQ,
+        surname_min_frequency: float = FuzzyDefaults.SURNAME_MIN_FREQ,
         accent_transliterations_csv: str = (
             FuzzyDefaults.ACCENT_TRANSLITERATIONS_SLASH_CSV
         ),
@@ -169,6 +170,9 @@ class MatchConfig:
             forename_freq_info:
                 Debugging option: overrides forename_sex_csv_filename by
                 providing a NameFrequencyInfo object directly.
+            forename_min_frequency:
+                Minimum frequency for forenames.
+
             surname_csv_filename:
                 Surname frequencies. CSV file, with no header, of "name,
                 frequency" pairs.
@@ -177,8 +181,8 @@ class MatchConfig:
             surname_freq_info:
                 Debugging option: overrides surname_csv_filename by
                 providing a NameFrequencyInfo object directly.
-            min_name_frequency:
-                Minimum name frequency; see command-line help.
+            surname_min_frequency:
+                Minimum frequency for surnames.
             accent_transliterations_csv:
                 Accent transliteration map. String of the form "Ä/AE,Ö/OE" --
                 comma-separated pairs, with slashed separating each pair.
@@ -390,9 +394,6 @@ class MatchConfig:
 
         # Name handling: generic
 
-        self.min_name_frequency = check_prob(
-            min_name_frequency, Switches.MIN_NAME_FREQUENCY
-        )
         accent_dict = {}  # type: Dict[str, str]
         for accent_pair in accent_transliterations_csv.split(","):
             accent_components = accent_pair.split("/")
@@ -420,7 +421,9 @@ class MatchConfig:
         self.forename_freq_info = forename_freq_info or NameFrequencyInfo(
             csv_filename=forename_sex_csv_filename,
             cache_filename=forename_cache_filename,
-            min_frequency=min_name_frequency,
+            min_frequency=check_prob(
+                forename_min_frequency, Switches.FORENAME_MIN_FREQUENCY
+            ),
             by_gender=True,
         )
         if not isinstance(self.forename_freq_info, NameFrequencyInfo):
@@ -431,7 +434,9 @@ class MatchConfig:
         self.surname_freq_info = surname_freq_info or NameFrequencyInfo(
             csv_filename=surname_csv_filename,
             cache_filename=surname_cache_filename,
-            min_frequency=min_name_frequency,
+            min_frequency=check_prob(
+                surname_min_frequency, Switches.SURNAME_MIN_FREQUENCY
+            ),
             by_gender=False,
         )
         if not isinstance(self.surname_freq_info, NameFrequencyInfo):

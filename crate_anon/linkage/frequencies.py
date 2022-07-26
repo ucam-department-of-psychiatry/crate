@@ -239,7 +239,7 @@ class NameFrequencyInfo:
         csv_filename: str,
         cache_filename: str,
         by_gender: bool = False,
-        min_frequency: float = 5e-6,
+        min_frequency: float = 0,
     ) -> None:
         """
         Initializes the object from a CSV file.
@@ -251,9 +251,9 @@ class NameFrequencyInfo:
             cache_filename:
                 File in which to cache information, for faster loading.
             by_gender:
-                read, split, and key by gender as well as name
+                Is the source data split by gender?
             min_frequency:
-                minimum frequency to allow; see command-line help.
+                Minimum frequency to allow; see command-line help.
         """
         self._csv_filename = csv_filename
         self._cache_filename = cache_filename

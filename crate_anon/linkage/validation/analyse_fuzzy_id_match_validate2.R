@@ -153,6 +153,12 @@ PST_OUTPUT_FILE_DEFAULTS <- file.path(
 PST_OUTPUT_FILE_ZERO <- file.path(
     OUTPUT_DIR, "performance_summary_at_zero_threshold.csv"
 )
+PST_OUTPUT_FILE_NEG_INF <- file.path(
+    OUTPUT_DIR, "performance_summary_at_negative_infinity_threshold.csv"
+)
+PST_OUTPUT_FILE_THETA_DELTA_15 <- file.path(
+    OUTPUT_DIR, "performance_summary_at_theta_delta_15.csv"
+)
 
 
 get_data_filename <- function(db)
@@ -3161,7 +3167,7 @@ main <- function()
     comp_threshold <- get_comparisons_varying_threshold()
 
     # Show performance metrics by theta/delta
-    show_performance_means_by_theta_delta(comp_threshold)
+    write_output(show_performance_means_by_theta_delta(comp_threshold))
 
     # Performance figure
     mk_save_performance_plot(comp_threshold, comp_simple)
@@ -3180,6 +3186,24 @@ main <- function()
         theta = 0, delta = 0
     )
     write.table(pst_table_zero, PST_OUTPUT_FILE_ZERO, row.names = FALSE)
+
+    pst_table_neg_inf <- write_simplified_performance_summary_at_threshold(
+        theta = -Inf, delta = 0
+    )
+    write.table(pst_table_neg_inf, PST_OUTPUT_FILE_NEG_INF, row.names = FALSE)
+    # The misidentification rates are very high, as expected, because every
+    # proband (and in particular, everyone who is NOT in the sample database)
+    # is paired with some candidate. This is perhaps not particularly
+    # interesting.
+
+    pst_table_theta_delta_15 <- write_simplified_performance_summary_at_threshold(
+        theta = 15, delta = 15
+    )
+    write.table(
+        pst_table_theta_delta_15,
+        PST_OUTPUT_FILE_THETA_DELTA_15,
+        row.names = FALSE
+    )
 
     # -------------------------------------------------------------------------
     # Factors associated with non-linkage (in RiO -> SystmOne comparison)

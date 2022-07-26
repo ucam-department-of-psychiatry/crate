@@ -980,6 +980,16 @@ def add_hasher_options(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _mk_affects_cache_msg(cachetype: str) -> str:
+    """
+    A simple alert message.
+    """
+    return (
+        f"[Information saved in the {cachetype} cache. "
+        f"If you change this, delete your {cachetype} cache.]"
+    )
+
+
 def add_config_options(parser: argparse.ArgumentParser) -> None:
     """
     Adds a subparser for MatchConfig options (excepting hasher, above).
@@ -1006,6 +1016,7 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
     # Name frequencies
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    affects_forename_cache = _mk_affects_cache_msg("forename")
     priors_group.add_argument(
         f"--{Switches.FORENAME_CACHE_FILENAME}",
         type=str,
@@ -1016,10 +1027,21 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         f"--{Switches.FORENAME_SEX_FREQ_CSV}",
         type=str,
         default=FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
-        help=f'CSV file of "name, sex, frequency" pairs for forenames. '
-        f"You can generate one via {CRATE_FETCH_WORDLISTS}. If you later "
-        f"alter this, delete your forename cache so it can be rebuilt.",
+        help='CSV file of "name, sex, frequency" pairs for forenames. '
+        f"You can generate one via {CRATE_FETCH_WORDLISTS}. "
+        f"{affects_forename_cache}",
     )
+    priors_group.add_argument(
+        f"--{Switches.FORENAME_MIN_FREQUENCY}",
+        type=float,
+        default=FuzzyDefaults.FORENAME_MIN_FREQ,
+        help="Minimum frequency for forenames. If a frequency is unknown or "
+        "less than this, the software uses this minimum. The standard US "
+        "forename data has a floor 2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to "
+        f"2sf. {affects_forename_cache}",
+    )
+
+    affects_surname_cache = _mk_affects_cache_msg("surname")
     priors_group.add_argument(
         f"--{Switches.SURNAME_CACHE_FILENAME}",
         type=str,
@@ -1030,38 +1052,36 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         f"--{Switches.SURNAME_FREQ_CSV}",
         type=str,
         default=FuzzyDefaults.SURNAME_FREQ_CSV,
-        help=f'CSV file of "name, frequency" pairs for forenames. '
-        f"You can generate one via {CRATE_FETCH_WORDLISTS}. If you later "
-        f"alter this, delete your surname cache so it can be rebuilt.",
+        help='CSV file of "name, frequency" pairs for surnames. '
+        f"You can generate one via {CRATE_FETCH_WORDLISTS}. "
+        f"{affects_surname_cache}",
     )
     priors_group.add_argument(
-        f"--{Switches.MIN_NAME_FREQUENCY}",
+        f"--{Switches.SURNAME_MIN_FREQUENCY}",
         type=float,
-        default=FuzzyDefaults.NAME_MIN_FREQ,
-        help="Minimum base frequency for names. If a frequency is less than "
-        "this, use this minimum. Allowing extremely low frequencies may "
-        "increase the chances of a spurious match. Note also that "
-        "typical name frequency tables don't give very-low-frequency "
-        "information. For example, for US census forename/surname "
-        "information, below 0.001 percent they report 0.000 percent; so "
-        "a reasonable minimum is 0.0005 percent or 0.000005 or 5e-6.",
+        default=FuzzyDefaults.SURNAME_MIN_FREQ,
+        help="Minimum frequency for surnames. If a frequency is unknown or "
+        "less than this, the software uses this minimum. In the standard US "
+        "surname data, values below 3e-7 are reported as 0, so 1.5e-7 is "
+        f"the midpoint of the low-frequency range. {affects_surname_cache}",
     )
     priors_group.add_argument(
         f"--{Switches.ACCENT_TRANSLITERATIONS}",
         type=str,
         default=FuzzyDefaults.ACCENT_TRANSLITERATIONS_SLASH_CSV,
-        help="CSV list of 'accented/plain' pairs, representing how accented "
-        "characters may be transliterated (if they are not reproduced "
-        "accurately and not simply mangled into ASCII like É→E). Only "
-        "upper-case versions are required (anything supplied will be "
-        "converted to upper case).",
+        help="(For surnames.) CSV list of 'accented/plain' pairs, "
+        "representing how accented characters may be transliterated (if they "
+        "are not reproduced accurately and not simply mangled into ASCII like "
+        "É→E). Only upper-case versions are required (anything supplied will "
+        "be converted to upper case).",
     )
     priors_group.add_argument(
         f"--{Switches.NONSPECIFIC_NAME_COMPONENTS}",
         type=str,
         default=FuzzyDefaults.NONSPECIFIC_NAME_COMPONENTS_CSV,
-        help="CSV list of name components that should not be used as "
-        "alternatives in their own right, such as nobiliary particles.",
+        help="(For surnames.) CSV list of name components that should not be "
+        "used as alternatives in their own right, such as nobiliary "
+        "particles.",
     )
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1072,9 +1092,10 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         f"--{Switches.BIRTH_YEAR_PSEUDO_RANGE}",
         type=float,
         default=FuzzyDefaults.BIRTH_YEAR_PSEUDO_RANGE,
-        help=f"Birth year pseudo-range. The sole purpose is to calculate the "
+        help=f"Birth year pseudo-range. The purpose is to calculate the "
         f"probability of two random people sharing a DOB, which is taken "
-        f"as 1/({DAYS_PER_YEAR} * b), even for 29 Feb. This option is b.",
+        f"as 1/({DAYS_PER_YEAR} * b), even for 29 Feb, or a partial DOB "
+        f"equivalently. This option is b.",
     )
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1100,10 +1121,7 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
     # Postcodes
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    affects_postcode_cache = (
-        "[Information saved in the postcode cache. If you change this, delete "
-        "your postcode cache.]"
-    )
+    affects_postcode_cache = _mk_affects_cache_msg("postcode")
     # noinspection PyUnresolvedReferences
     priors_group.add_argument(
         f"--{Switches.POSTCODE_CACHE_FILENAME}",
@@ -1432,6 +1450,11 @@ def get_cfg_from_args(
             FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
             require_main_config,
         ),
+        forename_min_frequency=getparam(
+            Switches.FORENAME_MIN_FREQUENCY,
+            FuzzyDefaults.FORENAME_MIN_FREQ,
+            require_main_config,
+        ),
         surname_cache_filename=getparam(
             Switches.SURNAME_CACHE_FILENAME,
             FuzzyDefaults.SURNAME_CACHE_FILENAME,
@@ -1442,9 +1465,9 @@ def get_cfg_from_args(
             FuzzyDefaults.SURNAME_FREQ_CSV,
             require_main_config,
         ),
-        min_name_frequency=getparam(
-            Switches.MIN_NAME_FREQUENCY,
-            FuzzyDefaults.NAME_MIN_FREQ,
+        surname_min_frequency=getparam(
+            Switches.SURNAME_MIN_FREQUENCY,
+            FuzzyDefaults.SURNAME_MIN_FREQ,
             require_main_config,
         ),
         accent_transliterations_csv=getparam(

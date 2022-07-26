@@ -140,10 +140,11 @@ class Switches:
     ACCENT_TRANSLITERATIONS = "accent_transliterations"
     FORENAME_CACHE_FILENAME = "forename_cache_filename"
     FORENAME_SEX_FREQ_CSV = "forename_sex_freq_csv"
-    MIN_NAME_FREQUENCY = "min_name_frequency"
+    FORENAME_MIN_FREQUENCY = "forename_min_frequency"
     NONSPECIFIC_NAME_COMPONENTS = "nonspecific_name_components"
     SURNAME_CACHE_FILENAME = "surname_cache_filename"
     SURNAME_FREQ_CSV = "surname_freq_csv"
+    SURNAME_MIN_FREQUENCY = "surname_min_frequency"
 
     BIRTH_YEAR_PSEUDO_RANGE = "birth_year_pseudo_range"
 
@@ -249,7 +250,11 @@ class FuzzyDefaults:
 
     POPULATION_SIZE = CAMBS_PBORO_POPULATION_2018  # (N)
 
-    NAME_MIN_FREQ = 5e-6
+    FORENAME_MIN_FREQ = 2.9e-8
+    # US forename data: floor at 2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
+    SURNAME_MIN_FREQ = 1.5e-7
+    # US surname data: values below 3e-7 are reported as 0, so 1.5e-7 is the
+    # midpoint of the low-frequency range.
 
     BIRTH_YEAR_PSEUDO_RANGE = 30  # (E) UK-wide ~90, perhaps; 30 empirically.
 
