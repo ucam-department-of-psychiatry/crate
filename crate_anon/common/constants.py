@@ -125,6 +125,85 @@ class EnvVar:
 
 
 # =============================================================================
+# CRATE top-level commands
+# =============================================================================
+
+
+class CrateCommand:
+    """
+    Top-level commands within CRATE, recorded here to ensure consistency.
+    However, see also crate/installer/installer.py, which duplicates some
+    (because the full Python environment is not then available).
+    """
+
+    # Preprocessing
+    FETCH_WORDLISTS = "crate_fetch_wordlists"
+    POSTCODES = "crate_postcodes"
+    PREPROCESS_PCMIS = "crate_preprocess_pcmis"
+    PREPROCESS_RIO = "crate_preprocess_rio"
+    PREPROCESS_SYSTMONE = "crate_preprocess_systmone"
+
+    # Linkage
+    BULK_HASH = "crate_bulk_hash"
+    FUZZY_ID_MATCH = "crate_fuzzy_id_match"
+
+    # Anonymisation
+    ANON_CHECK_TEXT_EXTRACTOR = "crate_anon_check_text_extractor"
+    ANON_DEMO_CONFIG = "crate_anon_demo_config"
+    ANON_DRAFT_DD = "crate_anon_draft_dd"
+    ANON_SHOW_COUNTS = "crate_anon_show_counts"
+    ANON_SUMMARIZE_DD = "crate_anon_summarize_dd"
+    ANONYMISE = "crate_anonymise"
+    ANONYMISE_MULTIPROCESS = "crate_anonymise_multiprocess"
+    MAKE_DEMO_DATABASE = "crate_make_demo_database"
+    TEST_ANONYMISATION = "crate_test_anonymisation"
+    TEST_EXTRACT_TEXT = "crate_test_extract_text"
+
+    # NLP
+    NLP = "crate_nlp"
+    NLP_BUILD_GATE_JAVA_INTERFACE = "crate_nlp_build_gate_java_interface"
+    NLP_BUILD_MEDEX_ITSELF = "crate_nlp_build_medex_itself"
+    NLP_BUILD_MEDEX_JAVA_INTERFACE = "crate_nlp_build_medex_java_interface"
+    NLP_MULTIPROCESS = "crate_nlp_multiprocess"
+    NLP_PREPARE_YMLS_FOR_BIOYODIE = "crate_nlp_prepare_ymls_for_bioyodie"
+    RUN_CRATE_NLP_DEMO = "crate_run_crate_nlp_demo"
+    RUN_GATE_ANNIE_DEMO = "crate_run_gate_annie_demo"
+    RUN_GATE_KCL_KCONNECT_DEMO = "crate_run_gate_kcl_kconnect_demo"
+    RUN_GATE_KCL_LEWY_DEMO = "crate_run_gate_kcl_lewy_demo"
+    RUN_GATE_KCL_PHARMACOTHERAPY_DEMO = (
+        "crate_run_gate_kcl_pharmacotherapy_demo"
+    )
+    SHOW_CRATE_GATE_PIPELINE_OPTIONS = "crate_show_crate_gate_pipeline_options"
+    SHOW_CRATE_MEDEX_PIPELINE_OPTIONS = (
+        "crate_show_crate_medex_pipeline_options"
+    )
+
+    # Web site
+    CELERY_STATUS = "crate_celery_status"
+    DJANGO_MANAGE = "crate_django_manage"
+    EMAIL_RDBM = "crate_email_rdbm"
+    GENERATE_NEW_DJANGO_SECRET_KEY = "crate_generate_new_django_secret_key"
+    LAUNCH_CELERY = "crate_launch_celery"
+    LAUNCH_FLOWER = "crate_launch_flower"
+    PRINT_DEMO_CRATEWEB_CONFIG = "crate_print_demo_crateweb_config"
+    WINDOWS_SERVICE = "crate_windows_service"
+    LAUNCH_CHERRYPY_SERVER = "crate_launch_cherrypy_server"
+    LAUNCH_DJANGO_SERVER = "crate_launch_django_server"
+
+    # NLP web server
+    NLP_WEBSERVER_GENERATE_ENCRYPTION_KEY = (
+        "crate_nlp_webserver_generate_encryption_key"  # noqa: E501
+    )
+    NLP_WEBSERVER_INITIALIZE_DB = "crate_nlp_webserver_initialize_db"
+    NLP_WEBSERVER_LAUNCH_CELERY = "crate_nlp_webserver_launch_celery"
+    NLP_WEBSERVER_LAUNCH_FLOWER = "crate_nlp_webserver_launch_flower"
+    NLP_WEBSERVER_LAUNCH_GUNICORN = "crate_nlp_webserver_launch_gunicorn"
+    NLP_WEBSERVER_MANAGE_USERS = "crate_nlp_webserver_manage_users"
+    NLP_WEBSERVER_PRINT_DEMO = "crate_nlp_webserver_print_demo"
+    NLP_WEBSERVER_PSERVE = "crate_nlp_webserver_pserve"
+
+
+# =============================================================================
 # HelpUrl
 # =============================================================================
 

@@ -60,7 +60,11 @@ from cardinal_pythonlib.maths_py import round_sf
 from cardinal_pythonlib.probability import probability_from_log_odds
 from cardinal_pythonlib.profile import do_cprofile
 
-from crate_anon.common.constants import EXIT_FAILURE, EXIT_SUCCESS
+from crate_anon.common.constants import (
+    CrateCommand,
+    EXIT_FAILURE,
+    EXIT_SUCCESS,
+)
 from crate_anon.linkage.helpers import (
     get_metaphone,
     get_postcode_sector,
@@ -149,8 +153,6 @@ covers SSDEEP, TLSH, sdhash, and others.
 # =============================================================================
 # Constants
 # =============================================================================
-
-CRATE_FETCH_WORDLISTS = "crate_fetch_wordlists"
 
 
 class Commands:
@@ -1028,7 +1030,7 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         type=str,
         default=FuzzyDefaults.FORENAME_SEX_FREQ_CSV,
         help='CSV file of "name, sex, frequency" pairs for forenames. '
-        f"You can generate one via {CRATE_FETCH_WORDLISTS}. "
+        f"You can generate one via {CrateCommand.FETCH_WORDLISTS}. "
         f"{affects_forename_cache}",
     )
     priors_group.add_argument(
@@ -1053,7 +1055,7 @@ def add_config_options(parser: argparse.ArgumentParser) -> None:
         type=str,
         default=FuzzyDefaults.SURNAME_FREQ_CSV,
         help='CSV file of "name, frequency" pairs for surnames. '
-        f"You can generate one via {CRATE_FETCH_WORDLISTS}. "
+        f"You can generate one via {CrateCommand.FETCH_WORDLISTS}. "
         f"{affects_surname_cache}",
     )
     priors_group.add_argument(

@@ -473,6 +473,10 @@ def fetch_us_forenames(
         show_rejects:
             report rejected words to the Python debug log
     """
+    # -------------------------------------------------------------------------
+    # Ignoring sex
+    # -------------------------------------------------------------------------
+    # 1. Read
     pipeline = gen_name_info_via_min_length(
         gen_sufficiently_frequent_names(
             gen_us_forename_info(
@@ -492,6 +496,7 @@ def fetch_us_forenames(
         ),
         min_name_length=min_name_length,
     )
+    # 2. Build
     names = SortedSet()
     freq = {}  # type: Dict[str, float]
     for nameinfo in pipeline:
@@ -499,7 +504,10 @@ def fetch_us_forenames(
         if name not in names:
             names.add(name)
             freq[name] = nameinfo.freq_p
+    # 3. Write
+    # (a) without frequency
     write_words_to_file(filename, names)
+    # (b) with frequency
     if freq_csv_filename:
         log.info(f"Writing to: {freq_csv_filename}")
         with open(freq_csv_filename, "wt") as f:
@@ -508,7 +516,11 @@ def fetch_us_forenames(
                 csvwriter.writerow([name, freq[name]])
         log.info(f"... finished writing to: {freq_csv_filename}")
 
+    # -------------------------------------------------------------------------
+    # By sex
+    # -------------------------------------------------------------------------
     if freq_sex_csv_filename:
+        # 1. Read
         pipeline_by_sex = (
             # As above, but by sex
             gen_name_info_via_min_length(
@@ -530,6 +542,7 @@ def fetch_us_forenames(
                 min_name_length=min_name_length,
             )
         )
+        # 2. Build
         name_sex_pairs = SortedSet()
         sexfreq = {}  # type: Dict[Tuple[str, str], float]
         for nameinfo in pipeline_by_sex:  # type: UsForenameInfo
@@ -539,6 +552,7 @@ def fetch_us_forenames(
             if name_sex not in name_sex_pairs:
                 name_sex_pairs.add(name_sex)
                 sexfreq[name_sex] = nameinfo.freq_p
+        # 3. Write
         log.info(f"Writing to: {freq_sex_csv_filename}")
         with open(freq_sex_csv_filename, "wt") as f:
             csvwriter = csv.writer(f)

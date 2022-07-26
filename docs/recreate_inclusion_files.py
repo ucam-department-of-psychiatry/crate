@@ -44,7 +44,7 @@ from typing import List
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
-from crate_anon.common.constants import CratePath, EnvVar
+from crate_anon.common.constants import CrateCommand, CratePath, EnvVar
 from crate_anon.version import CRATE_VERSION
 from create_all_autodocs import DevPath, RST_COPYRIGHT_COMMENT
 
@@ -210,24 +210,25 @@ def main():
     # -------------------------------------------------------------------------
     # Preprocessing
     # -------------------------------------------------------------------------
+    helpflag = "--help"
     run_cmd(
-        ["crate_fetch_wordlists", "--help"],
+        [CrateCommand.FETCH_WORDLISTS, helpflag],
         join(DevPath.DOCS_PREPROC_DIR, "_crate_fetch_wordlists_help.txt"),
     )
     run_cmd(
-        ["crate_postcodes", "--help"],
+        [CrateCommand.POSTCODES, helpflag],
         join(DevPath.DOCS_PREPROC_DIR, "_crate_postcodes_help.txt"),
     )
     run_cmd(
-        ["crate_preprocess_pcmis", "--help"],
+        [CrateCommand.PREPROCESS_PCMIS, helpflag],
         join(DevPath.DOCS_PREPROC_DIR, "_crate_preprocess_pcmis_help.txt"),
     )
     run_cmd(
-        ["crate_preprocess_rio", "--help"],
+        [CrateCommand.PREPROCESS_RIO, helpflag],
         join(DevPath.DOCS_PREPROC_DIR, "_crate_preprocess_rio_help.txt"),
     )
     run_cmd(
-        ["crate_preprocess_systmone", "--help"],
+        [CrateCommand.PREPROCESS_SYSTMONE, helpflag],
         join(DevPath.DOCS_PREPROC_DIR, "_crate_preprocess_systmone_help.txt"),
     )
 
@@ -235,11 +236,11 @@ def main():
     # Linkage
     # -------------------------------------------------------------------------
     run_cmd(
-        ["crate_bulk_hash", "--help"],
+        [CrateCommand.BULK_HASH, helpflag],
         join(DevPath.DOCS_LINKAGE_DIR, "_crate_bulk_hash_help.txt"),
     )
     run_cmd(
-        ["crate_fuzzy_id_match", "--allhelp"],
+        [CrateCommand.FUZZY_ID_MATCH, "--allhelp"],
         join(DevPath.DOCS_LINKAGE_DIR, "_crate_fuzzy_id_match_help.txt"),
     )
 
@@ -247,47 +248,47 @@ def main():
     # Anonymisation
     # -------------------------------------------------------------------------
     run_cmd(
-        ["crate_anon_check_text_extractor", "--help"],
+        [CrateCommand.ANON_CHECK_TEXT_EXTRACTOR, helpflag],
         join(DevPath.DOCS_ANON_DIR, "_crate_anon_check_text_extractor.txt"),
     )
     run_cmd(
-        ["crate_anon_demo_config", "--help"],
+        [CrateCommand.ANON_DEMO_CONFIG, helpflag],
         join(DevPath.DOCS_ANON_DIR, "_crate_anon_demo_config_help.txt"),
     )
     run_cmd(
-        ["crate_anon_demo_config"],
+        [CrateCommand.ANON_DEMO_CONFIG],
         join(DevPath.DOCS_ANON_DIR, "_specimen_anonymiser_config.ini"),
     )
     run_cmd(
-        ["crate_anon_draft_dd", "--help"],
+        [CrateCommand.ANON_DRAFT_DD, helpflag],
         join(DevPath.DOCS_ANON_DIR, "_crate_anon_draft_dd.txt"),
     )
     run_cmd(
-        ["crate_anon_show_counts", "--help"],
+        [CrateCommand.ANON_SHOW_COUNTS, helpflag],
         join(DevPath.DOCS_ANON_DIR, "_crate_anon_show_counts_help.txt"),
     )
     run_cmd(
-        ["crate_anon_summarize_dd", "--help"],
+        [CrateCommand.ANON_SUMMARIZE_DD, helpflag],
         join(DevPath.DOCS_ANON_DIR, "_crate_anon_summarize_dd_help.txt"),
     )
     run_cmd(
-        ["crate_anonymise", "--help"],
+        [CrateCommand.ANONYMISE, helpflag],
         join(DevPath.DOCS_ANON_DIR, "_crate_anonymise_help.txt"),
     )
     run_cmd(
-        ["crate_anonymise_multiprocess", "--help"],
+        [CrateCommand.ANONYMISE_MULTIPROCESS, helpflag],
         join(DevPath.DOCS_ANON_DIR, "_crate_anonymise_multiprocess_help.txt"),
     )
     run_cmd(
-        ["crate_make_demo_database", "--help"],
+        [CrateCommand.MAKE_DEMO_DATABASE, helpflag],
         join(DevPath.DOCS_ANCILLARY_DIR, "_crate_make_demo_database_help.txt"),
     )
     run_cmd(
-        ["crate_test_anonymisation", "--help"],
+        [CrateCommand.TEST_ANONYMISATION, helpflag],
         join(DevPath.DOCS_ANCILLARY_DIR, "_crate_test_anonymisation_help.txt"),
     )
     run_cmd(
-        ["crate_test_extract_text", "--help"],
+        [CrateCommand.TEST_EXTRACT_TEXT, helpflag],
         join(DevPath.DOCS_ANCILLARY_DIR, "_crate_test_extract_text_help.txt"),
     )
 
@@ -297,7 +298,7 @@ def main():
     # Anonymisation API
     # -------------------------------------------------------------------------
     api_schema_file = join(DevPath.DOCS_ANON_DIR, "_crate_api_schema.yaml")
-    run_cmd(["crate_django_manage", "spectacular"], api_schema_file)
+    run_cmd([CrateCommand.DJANGO_MANAGE, "spectacular"], api_schema_file)
 
     # Ideally we would use https://github.com/sphinx-contrib/openapi but it
     # hasn't been maintained since 2020 and doesn't work with our schema.
@@ -389,20 +390,20 @@ SOLUTION:
     # NLP
     # -------------------------------------------------------------------------
     run_cmd(
-        ["crate_nlp", "--democonfig"],
+        [CrateCommand.NLP, "--democonfig"],
         join(DevPath.DOCS_NLP_DIR, "_specimen_nlp_config_file.ini"),
     )
     run_cmd(
-        ["crate_nlp", "--describeprocessors"],
+        [CrateCommand.NLP, "--describeprocessors"],
         join(DevPath.DOCS_NLP_DIR, "_crate_nlp_describeprocessors.txt"),
     )
     run_cmd(
-        ["crate_nlp", "--help"],
+        [CrateCommand.NLP, helpflag],
         join(DevPath.DOCS_NLP_DIR, "_crate_nlp_help.txt"),
     )
 
     run_cmd(
-        ["crate_nlp_build_gate_java_interface", "--help"],
+        [CrateCommand.NLP_BUILD_GATE_JAVA_INTERFACE, helpflag],
         join(
             DevPath.DOCS_NLP_DIR,
             "_crate_nlp_build_gate_java_interface_help.txt",
@@ -413,13 +414,13 @@ SOLUTION:
         # download and build Medex automatically, so we just skip this
         # step.
         run_cmd(
-            ["crate_nlp_build_medex_itself", "--help"],
+            [CrateCommand.NLP_BUILD_MEDEX_ITSELF, helpflag],
             join(
                 DevPath.DOCS_NLP_DIR, "_crate_nlp_build_medex_itself_help.txt"
             ),
         )
         run_cmd(
-            ["crate_nlp_build_medex_java_interface", "--help"],
+            [CrateCommand.NLP_BUILD_MEDEX_JAVA_INTERFACE, helpflag],
             join(
                 DevPath.DOCS_NLP_DIR,
                 "_crate_nlp_build_medex_java_interface_help.txt",
@@ -427,15 +428,15 @@ SOLUTION:
         )
 
     run_cmd(
-        ["crate_nlp_multiprocess", "--help"],
+        [CrateCommand.NLP_MULTIPROCESS, helpflag],
         join(DevPath.DOCS_NLP_DIR, "_crate_nlp_multiprocess_help.txt"),
     )
     run_cmd(
-        ["crate_nlp_prepare_ymls_for_bioyodie", "--help"],
+        [CrateCommand.NLP_PREPARE_YMLS_FOR_BIOYODIE, helpflag],
         join(DevPath.DOCS_NLP_DIR, "_crate_nlp_prepare_ymls_for_bioyodie.txt"),
     )
     run_cmd(
-        ["crate_run_crate_nlp_demo", "--help"],
+        [CrateCommand.RUN_CRATE_NLP_DEMO, helpflag],
         join(DevPath.DOCS_NLP_DIR, "_crate_run_crate_nlp_demo.txt"),
     )
     # No help: crate_run_gate_annie_demo
@@ -443,12 +444,12 @@ SOLUTION:
     # No help: crate_run_gate_kcl_lewy_demo
     # No help: crate_run_gate_kcl_pharmacotherapy_demo
     run_cmd(
-        ["crate_show_crate_gate_pipeline_options"],
+        [CrateCommand.SHOW_CRATE_GATE_PIPELINE_OPTIONS],
         join(DevPath.DOCS_NLP_DIR, "_CrateGatePipeline_help.txt"),
     )
     if not args.skip_medex:
         run_cmd(
-            ["crate_show_crate_medex_pipeline_options"],
+            [CrateCommand.SHOW_CRATE_MEDEX_PIPELINE_OPTIONS],
             join(DevPath.DOCS_NLP_DIR, "_CrateMedexPipeline_help.txt"),
         )
     shutil.copy(
@@ -460,147 +461,143 @@ SOLUTION:
     # Research web site
     # -------------------------------------------------------------------------
     run_cmd(
-        ["crate_django_manage", "--help"],
+        [CrateCommand.DJANGO_MANAGE, helpflag],
         join(DevPath.DOCS_WEB_DIR, "_crate_django_manage_help.txt"),
     )
 
+    djangohelpcmd = [CrateCommand.DJANGO_MANAGE, "help"]
     run_cmd(
-        ["crate_django_manage", "help", "changepassword"],
+        djangohelpcmd + ["changepassword"],
         join(
             DevPath.DOCS_WEB_DIR,
             "_crate_django_manage_changepassword_help.txt",
         ),
     )
     run_cmd(
-        ["crate_django_manage", "help", "collectstatic"],
+        djangohelpcmd + ["collectstatic"],
         join(
             DevPath.DOCS_WEB_DIR, "_crate_django_manage_collectstatic_help.txt"
         ),
     )
     run_cmd(
-        ["crate_django_manage", "help", "createsuperuser"],
+        djangohelpcmd + ["createsuperuser"],
         join(
             DevPath.DOCS_WEB_DIR,
             "_crate_django_manage_createsuperuser_help.txt",
         ),
     )
     run_cmd(
-        ["crate_django_manage", "help", "email_rdbm"],
+        djangohelpcmd + ["email_rdbm"],
         join(DevPath.DOCS_WEB_DIR, "_crate_django_manage_email_rdbm_help.txt"),
     )
     run_cmd(
-        ["crate_django_manage", "help", "fetch_optouts"],
+        djangohelpcmd + ["fetch_optouts"],
         join(
             DevPath.DOCS_WEB_DIR, "_crate_django_manage_fetch_optouts_help.txt"
         ),
     )
     run_cmd(
-        ["crate_django_manage", "help", "lookup_consent"],
+        djangohelpcmd + ["lookup_consent"],
         join(
             DevPath.DOCS_WEB_DIR,
             "_crate_django_manage_lookup_consent_help.txt",
         ),
     )
     run_cmd(
-        ["crate_django_manage", "help", "lookup_patient"],
+        djangohelpcmd + ["lookup_patient"],
         join(
             DevPath.DOCS_WEB_DIR,
             "_crate_django_manage_lookup_patient_help.txt",
         ),
     )
     run_cmd(
-        ["crate_django_manage", "help", "populate"],
+        djangohelpcmd + ["populate"],
         join(DevPath.DOCS_WEB_DIR, "_crate_django_manage_populate_help.txt"),
     )
     run_cmd(
-        ["crate_django_manage", "help", "resubmit_unprocessed_tasks"],
+        djangohelpcmd + ["resubmit_unprocessed_tasks"],
         join(
             DevPath.DOCS_WEB_DIR,
             "_crate_django_manage_resubmit_unprocessed_tasks_help.txt",
         ),
     )
     run_cmd(
-        ["crate_django_manage", "help", "runcpserver"],
+        djangohelpcmd + ["runcpserver"],
         join(
             DevPath.DOCS_WEB_DIR, "_crate_django_manage_runcpserver_help.txt"
         ),
     )
     run_cmd(
-        ["crate_django_manage", "help", "runserver"],
+        djangohelpcmd + ["runserver"],
         join(DevPath.DOCS_WEB_DIR, "_crate_django_manage_runserver_help.txt"),
     )
     run_cmd(
-        ["crate_django_manage", "help", "test_email"],
+        djangohelpcmd + ["test_email"],
         join(DevPath.DOCS_WEB_DIR, "_crate_django_manage_test_email_help.txt"),
     )
 
     run_cmd(
-        ["crate_launch_celery", "--help"],
+        [CrateCommand.LAUNCH_CELERY, helpflag],
         join(DevPath.DOCS_WEB_DIR, "_crate_launch_celery_help.txt"),
     )
     run_cmd(
-        ["crate_launch_django_server", "--help"],
+        [CrateCommand.LAUNCH_DJANGO_SERVER, helpflag],
         join(DevPath.DOCS_WEB_DIR, "_crate_launch_django_server_help.txt"),
     )
     run_cmd(
-        ["crate_print_demo_crateweb_config"],
+        [CrateCommand.PRINT_DEMO_CRATEWEB_CONFIG],
         join(DevPath.DOCS_WEB_DIR, "_specimen_web_config.py"),
     )
 
     log.warning("Skipping crate_windows_service_help.txt (requires Windows)")
 
     # skip: crate_launch_cherrypy_server
-    # skip: crate_launch_django_server
 
     # -------------------------------------------------------------------------
     # NLPRP/NLP web server
     # -------------------------------------------------------------------------
     # No help: crate_nlp_webserver_generate_encryption_key
     run_cmd(
-        ["crate_nlp_webserver_initialize_db", "--help"],
+        [CrateCommand.NLP_WEBSERVER_INITIALIZE_DB, helpflag],
         join(
             DevPath.DOCS_NLP_DIR, "_crate_nlp_webserver_initialize_db_help.txt"
         ),
     )
     run_cmd(
-        ["crate_nlp_webserver_launch_celery", "--help"],
+        [CrateCommand.NLP_WEBSERVER_LAUNCH_CELERY, helpflag],
         join(
             DevPath.DOCS_NLP_DIR, "_crate_nlp_webserver_launch_celery_help.txt"
         ),
     )
     # No help: crate_nlp_webserver_launch_flower
     run_cmd(
-        ["crate_nlp_webserver_launch_gunicorn", "--help"],
+        [CrateCommand.NLP_WEBSERVER_LAUNCH_GUNICORN, helpflag],
         join(
             DevPath.DOCS_NLP_DIR,
             "_crate_nlp_webserver_launch_gunicorn_help.txt",
         ),
     )
     run_cmd(
-        ["crate_nlp_webserver_manage_users", "--help"],
+        [CrateCommand.NLP_WEBSERVER_MANAGE_USERS, helpflag],
         join(DevPath.DOCS_NLP_DIR, "_crate_nlp_webserver_manage_users.txt"),
     )
 
     run_cmd(
-        ["crate_nlp_webserver_print_demo", "--help"],
+        [CrateCommand.NLP_WEBSERVER_PRINT_DEMO, helpflag],
         join(DevPath.DOCS_NLP_DIR, "_crate_nlp_webserver_print_demo_help.txt"),
     )
     run_cmd(
-        ["crate_nlp_webserver_print_demo", "--config"],
+        [CrateCommand.NLP_WEBSERVER_PRINT_DEMO, "--config"],
         join(DevPath.DOCS_NLP_DIR, "_nlp_webserver_demo_config.ini"),
     )
     run_cmd(
-        ["crate_nlp_webserver_print_demo", "--processors"],
+        [CrateCommand.NLP_WEBSERVER_PRINT_DEMO, "--processors"],
         join(DevPath.DOCS_NLP_DIR, "_nlp_webserver_demo_processors.py"),
         executable=True,
     )
 
     run_cmd(
-        ["crate_nlp_webserver_pserve", "--help"],
-        join(DevPath.DOCS_NLP_DIR, "_crate_nlp_webserver_pserve_help.txt"),
-    )
-    run_cmd(
-        ["crate_nlp_webserver_pserve", "--help"],
+        [CrateCommand.NLP_WEBSERVER_PSERVE, helpflag],
         join(DevPath.DOCS_NLP_DIR, "_crate_nlp_webserver_pserve_help.txt"),
     )
 

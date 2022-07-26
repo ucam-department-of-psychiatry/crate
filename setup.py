@@ -45,6 +45,7 @@ from codecs import open
 import os
 import platform
 
+from crate_anon.common.constants import CrateCommand
 from crate_anon.version import CRATE_VERSION, require_minimum_python_version
 
 require_minimum_python_version()
@@ -222,64 +223,64 @@ setup(
             # Documentation
             "crate_help=crate_anon.tools.launch_docs:main",
             # Preprocessing
-            "crate_fetch_wordlists=crate_anon.anonymise.fetch_wordlists:main",
-            "crate_postcodes=crate_anon.preprocess.postcodes:main",
-            "crate_preprocess_pcmis=crate_anon.preprocess.preprocess_pcmis:main",  # noqa: E501
-            "crate_preprocess_rio=crate_anon.preprocess.preprocess_rio:main",
-            "crate_preprocess_systmone=crate_anon.preprocess.preprocess_systmone:main",  # noqa: E501
+            f"{CrateCommand.FETCH_WORDLISTS}=crate_anon.anonymise.fetch_wordlists:main",  # noqa: E501
+            f"{CrateCommand.POSTCODES}=crate_anon.preprocess.postcodes:main",
+            f"{CrateCommand.PREPROCESS_PCMIS}=crate_anon.preprocess.preprocess_pcmis:main",  # noqa: E501
+            f"{CrateCommand.PREPROCESS_RIO}=crate_anon.preprocess.preprocess_rio:main",  # noqa: E501
+            f"{CrateCommand.PREPROCESS_SYSTMONE}=crate_anon.preprocess.preprocess_systmone:main",  # noqa: E501
             # Linkage
-            "crate_bulk_hash=crate_anon.linkage.bulk_hash:main",
-            "crate_fuzzy_id_match=crate_anon.linkage.fuzzy_id_match:main",
+            f"{CrateCommand.BULK_HASH}=crate_anon.linkage.bulk_hash:main",
+            f"{CrateCommand.FUZZY_ID_MATCH}=crate_anon.linkage.fuzzy_id_match:main",  # noqa: E501
             # Anonymisation
-            "crate_anon_check_text_extractor=crate_anon.anonymise.check_text_extractor:main",  # noqa: E501
-            "crate_anon_demo_config=crate_anon.anonymise.demo_config:main",
-            "crate_anon_draft_dd=crate_anon.anonymise.draft_dd:main",
-            "crate_anon_show_counts=crate_anon.anonymise.show_counts:main",
-            "crate_anon_summarize_dd=crate_anon.anonymise.summarize_dd:main",
-            "crate_anonymise=crate_anon.anonymise.anonymise_cli:main",
-            "crate_anonymise_multiprocess=crate_anon.anonymise.launch_multiprocess_anonymiser:main",  # noqa: E501
-            "crate_make_demo_database=crate_anon.anonymise.make_demo_database:main",  # noqa: E501
-            "crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main",  # noqa: E501
-            "crate_test_extract_text=crate_anon.anonymise.test_extract_text:main",  # noqa: E501
+            f"{CrateCommand.ANON_CHECK_TEXT_EXTRACTOR}=crate_anon.anonymise.check_text_extractor:main",  # noqa: E501
+            f"{CrateCommand.ANON_DEMO_CONFIG}=crate_anon.anonymise.demo_config:main",  # noqa: E501
+            f"{CrateCommand.ANON_DRAFT_DD}=crate_anon.anonymise.draft_dd:main",
+            f"{CrateCommand.ANON_SHOW_COUNTS}=crate_anon.anonymise.show_counts:main",  # noqa: E501
+            f"{CrateCommand.ANON_SUMMARIZE_DD}=crate_anon.anonymise.summarize_dd:main",  # noqa: E501
+            f"{CrateCommand.ANONYMISE}=crate_anon.anonymise.anonymise_cli:main",  # noqa: E501
+            f"{CrateCommand.ANONYMISE_MULTIPROCESS}=crate_anon.anonymise.launch_multiprocess_anonymiser:main",  # noqa: E501
+            f"{CrateCommand.MAKE_DEMO_DATABASE}=crate_anon.anonymise.make_demo_database:main",  # noqa: E501
+            f"{CrateCommand.TEST_ANONYMISATION}=crate_anon.anonymise.test_anonymisation:main",  # noqa: E501
+            f"{CrateCommand.TEST_EXTRACT_TEXT}=crate_anon.anonymise.test_extract_text:main",  # noqa: E501
             # NLP
-            "crate_nlp=crate_anon.nlp_manager.nlp_manager:main",
-            "crate_nlp_build_gate_java_interface=crate_anon.nlp_manager.build_gate_java_interface:main",  # noqa: E501
-            "crate_nlp_build_medex_itself=crate_anon.nlp_manager.build_medex_itself:main",  # noqa: E501
-            "crate_nlp_build_medex_java_interface=crate_anon.nlp_manager.build_medex_java_interface:main",  # noqa: E501
-            "crate_nlp_multiprocess=crate_anon.nlp_manager.launch_multiprocess_nlp:main",  # noqa: E501
-            "crate_nlp_prepare_ymls_for_bioyodie=crate_anon.nlp_manager.prepare_umls_for_bioyodie:main",  # noqa: E501
-            "crate_run_crate_nlp_demo=crate_anon.nlp_manager.run_crate_nlp_demo:main",  # noqa: E501
-            "crate_run_gate_annie_demo=crate_anon.nlp_manager.run_gate_annie_demo:main",  # noqa: E501
-            "crate_run_gate_kcl_kconnect_demo=crate_anon.nlp_manager.run_gate_kcl_kconnect_demo:main",  # noqa: E501
-            "crate_run_gate_kcl_lewy_demo=crate_anon.nlp_manager.run_gate_kcl_lewy_demo:main",  # noqa: E501
-            "crate_run_gate_kcl_pharmacotherapy_demo=crate_anon.nlp_manager.run_gate_kcl_pharmacotherapy_demo:main",  # noqa: E501
-            "crate_show_crate_gate_pipeline_options=crate_anon.nlp_manager.show_crate_gate_pipeline_options:main",  # noqa: E501
-            "crate_show_crate_medex_pipeline_options=crate_anon.nlp_manager.show_crate_medex_pipeline_options:main",  # noqa: E501
+            f"{CrateCommand.NLP}=crate_anon.nlp_manager.nlp_manager:main",
+            f"{CrateCommand.NLP_BUILD_GATE_JAVA_INTERFACE}=crate_anon.nlp_manager.build_gate_java_interface:main",  # noqa: E501
+            f"{CrateCommand.NLP_BUILD_MEDEX_ITSELF}=crate_anon.nlp_manager.build_medex_itself:main",  # noqa: E501
+            f"{CrateCommand.NLP_BUILD_MEDEX_JAVA_INTERFACE}=crate_anon.nlp_manager.build_medex_java_interface:main",  # noqa: E501
+            f"{CrateCommand.NLP_MULTIPROCESS}=crate_anon.nlp_manager.launch_multiprocess_nlp:main",  # noqa: E501
+            f"{CrateCommand.NLP_PREPARE_YMLS_FOR_BIOYODIE}=crate_anon.nlp_manager.prepare_umls_for_bioyodie:main",  # noqa: E501
+            f"{CrateCommand.RUN_CRATE_NLP_DEMO}=crate_anon.nlp_manager.run_crate_nlp_demo:main",  # noqa: E501
+            f"{CrateCommand.RUN_GATE_ANNIE_DEMO}=crate_anon.nlp_manager.run_gate_annie_demo:main",  # noqa: E501
+            f"{CrateCommand.RUN_GATE_KCL_KCONNECT_DEMO}=crate_anon.nlp_manager.run_gate_kcl_kconnect_demo:main",  # noqa: E501
+            f"{CrateCommand.RUN_GATE_KCL_LEWY_DEMO}=crate_anon.nlp_manager.run_gate_kcl_lewy_demo:main",  # noqa: E501
+            f"{CrateCommand.RUN_GATE_KCL_PHARMACOTHERAPY_DEMO}=crate_anon.nlp_manager.run_gate_kcl_pharmacotherapy_demo:main",  # noqa: E501
+            f"{CrateCommand.SHOW_CRATE_GATE_PIPELINE_OPTIONS}=crate_anon.nlp_manager.show_crate_gate_pipeline_options:main",  # noqa: E501
+            f"{CrateCommand.SHOW_CRATE_MEDEX_PIPELINE_OPTIONS}=crate_anon.nlp_manager.show_crate_medex_pipeline_options:main",  # noqa: E501
             # Web site
-            "crate_celery_status=crate_anon.tools.celery_status:main",
-            "crate_django_manage=crate_anon.crateweb.manage:main",  # will cope with argv  # noqa: E501
-            "crate_email_rdbm=crate_anon.tools.email_rdbm:main",
-            "crate_generate_new_django_secret_key=cardinal_pythonlib.django.tools.generate_new_django_secret_key:main",  # noqa: E501
-            "crate_launch_celery=crate_anon.tools.launch_celery:main",
-            "crate_launch_flower=crate_anon.tools.launch_flower:main",
-            "crate_print_demo_crateweb_config=crate_anon.tools.print_crateweb_demo_config:main",  # noqa: E501
-            "crate_windows_service=crate_anon.tools.winservice:main",
+            f"{CrateCommand.CELERY_STATUS}=crate_anon.tools.celery_status:main",  # noqa: E501
+            f"{CrateCommand.DJANGO_MANAGE}=crate_anon.crateweb.manage:main",  # will cope with argv  # noqa: E501
+            f"{CrateCommand.EMAIL_RDBM}=crate_anon.tools.email_rdbm:main",
+            f"{CrateCommand.GENERATE_NEW_DJANGO_SECRET_KEY}=cardinal_pythonlib.django.tools.generate_new_django_secret_key:main",  # noqa: E501
+            f"{CrateCommand.LAUNCH_CELERY}=crate_anon.tools.launch_celery:main",  # noqa: E501
+            f"{CrateCommand.LAUNCH_FLOWER}=crate_anon.tools.launch_flower:main",  # noqa: E501
+            f"{CrateCommand.PRINT_DEMO_CRATEWEB_CONFIG}=crate_anon.tools.print_crateweb_demo_config:main",  # noqa: E501
+            f"{CrateCommand.WINDOWS_SERVICE}=crate_anon.tools.winservice:main",
             # Indirect shortcuts to "crate_django_manage" commands:
-            "crate_launch_cherrypy_server=crate_anon.tools.launch_cherrypy_server:main",  # noqa: E501
+            f"{CrateCommand.LAUNCH_CHERRYPY_SERVER}=crate_anon.tools.launch_cherrypy_server:main",  # noqa: E501
             # ... a separate script with ":main" rather than
             # "crate_anon.crateweb.manage:runcpserver" so that we can launch
             # the "runcpserver" function from our Windows service, and have it
             # deal with the CherryPy special environment variable
-            "crate_launch_django_server=crate_anon.crateweb.manage:runserver",
+            f"{CrateCommand.LAUNCH_DJANGO_SERVER}=crate_anon.crateweb.manage:runserver",  # noqa: E501
             # NLP web server
-            "crate_nlp_webserver_generate_encryption_key=crate_anon.nlp_webserver.security:generate_encryption_key",  # noqa: E501
-            "crate_nlp_webserver_initialize_db=crate_anon.nlp_webserver.initialize_db:main",  # noqa: E501
-            "crate_nlp_webserver_launch_celery=crate_anon.tools.launch_nlp_webserver_celery:main",  # noqa: E501
-            "crate_nlp_webserver_launch_flower=crate_anon.tools.launch_nlp_webserver_flower:main",  # noqa: E501
-            "crate_nlp_webserver_launch_gunicorn=crate_anon.tools.launch_nlp_webserver_gunicorn:main",  # noqa: E501
-            "crate_nlp_webserver_manage_users=crate_anon.nlp_webserver.manage_users:main",  # noqa: E501
-            "crate_nlp_webserver_print_demo=crate_anon.nlp_webserver.print_demos:main",  # noqa: E501
-            "crate_nlp_webserver_pserve=pyramid.scripts.pserve:main",  # noqa: E501
+            f"{CrateCommand.NLP_WEBSERVER_GENERATE_ENCRYPTION_KEY}=crate_anon.nlp_webserver.security:generate_encryption_key",  # noqa: E501
+            f"{CrateCommand.NLP_WEBSERVER_INITIALIZE_DB}=crate_anon.nlp_webserver.initialize_db:main",  # noqa: E501
+            f"{CrateCommand.NLP_WEBSERVER_LAUNCH_CELERY}=crate_anon.tools.launch_nlp_webserver_celery:main",  # noqa: E501
+            f"{CrateCommand.NLP_WEBSERVER_LAUNCH_FLOWER}=crate_anon.tools.launch_nlp_webserver_flower:main",  # noqa: E501
+            f"{CrateCommand.NLP_WEBSERVER_LAUNCH_GUNICORN}=crate_anon.tools.launch_nlp_webserver_gunicorn:main",  # noqa: E501
+            f"{CrateCommand.NLP_WEBSERVER_MANAGE_USERS}=crate_anon.nlp_webserver.manage_users:main",  # noqa: E501
+            f"{CrateCommand.NLP_WEBSERVER_PRINT_DEMO}=crate_anon.nlp_webserver.print_demos:main",  # noqa: E501
+            f"{CrateCommand.NLP_WEBSERVER_PSERVE}=pyramid.scripts.pserve:main",  # noqa: E501
         ],
         # Entry point for nlp webserver
         "paste.app_factory": [
