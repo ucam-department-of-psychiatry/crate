@@ -59,9 +59,10 @@ usage: crate_fuzzy_id_match hash [-h] --input INPUT --output OUTPUT
                                  [--population_size POPULATION_SIZE]
                                  [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                  [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                 [--forename_min_frequency FORENAME_MIN_FREQUENCY]
                                  [--surname_cache_filename SURNAME_CACHE_FILENAME]
                                  [--surname_freq_csv SURNAME_FREQ_CSV]
-                                 [--min_name_frequency MIN_NAME_FREQUENCY]
+                                 [--surname_min_frequency SURNAME_MIN_FREQUENCY]
                                  [--accent_transliterations ACCENT_TRANSLITERATIONS]
                                  [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
                                  [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
@@ -147,49 +148,59 @@ Frequency information for prior probabilities:
   --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
                         CSV file of "name, sex, frequency" pairs for
                         forenames. You can generate one via
-                        crate_fetch_wordlists. If you later alter this, delete
-                        your forename cache so it can be rebuilt. (default: /h
-                        ome/rudolf/Documents/code/crate/crate_anon/linkage/dat
-                        a/us_forename_sex_freq.zip)
+                        crate_fetch_wordlists. [Information saved in the
+                        forename cache. If you change this, delete your
+                        forename cache.] (default: /home/rudolf/Documents/code
+                        /crate/crate_anon/linkage/data/us_forename_sex_freq.zi
+                        p)
+  --forename_min_frequency FORENAME_MIN_FREQUENCY
+                        Minimum frequency for forenames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. The standard US forename data has a floor
+                        2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
+                        [Information saved in the forename cache. If you
+                        change this, delete your forename cache.] (default:
+                        2.9e-08)
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading). (default:
                         /path/to/crate/user/data/fuzzy_surname_cache.jsonl)
   --surname_freq_csv SURNAME_FREQ_CSV
-                        CSV file of "name, frequency" pairs for forenames. You
-                        can generate one via crate_fetch_wordlists. If you
-                        later alter this, delete your surname cache so it can
-                        be rebuilt. (default: /home/rudolf/Documents/code/crat
-                        e/crate_anon/linkage/data/us_surname_freq.zip)
-  --min_name_frequency MIN_NAME_FREQUENCY
-                        Minimum base frequency for names. If a frequency is
-                        less than this, use this minimum. Allowing extremely
-                        low frequencies may increase the chances of a spurious
-                        match. Note also that typical name frequency tables
-                        don't give very-low-frequency information. For
-                        example, for US census forename/surname information,
-                        below 0.001 percent they report 0.000 percent; so a
-                        reasonable minimum is 0.0005 percent or 0.000005 or
-                        5e-6. (default: 5e-06)
+                        CSV file of "name, frequency" pairs for surnames. You
+                        can generate one via crate_fetch_wordlists.
+                        [Information saved in the surname cache. If you change
+                        this, delete your surname cache.] (default: /home/rudo
+                        lf/Documents/code/crate/crate_anon/linkage/data/us_sur
+                        name_freq.zip)
+  --surname_min_frequency SURNAME_MIN_FREQUENCY
+                        Minimum frequency for surnames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. In the standard US surname data, values below
+                        3e-7 are reported as 0, so 1.5e-7 is the midpoint of
+                        the low-frequency range. [Information saved in the
+                        surname cache. If you change this, delete your surname
+                        cache.] (default: 1.5e-07)
   --accent_transliterations ACCENT_TRANSLITERATIONS
-                        CSV list of 'accented/plain' pairs, representing how
-                        accented characters may be transliterated (if they are
-                        not reproduced accurately and not simply mangled into
-                        ASCII like É→E). Only upper-case versions are required
-                        (anything supplied will be converted to upper case).
-                        (default: Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
+                        (For surnames.) CSV list of 'accented/plain' pairs,
+                        representing how accented characters may be
+                        transliterated (if they are not reproduced accurately
+                        and not simply mangled into ASCII like É→E). Only
+                        upper-case versions are required (anything supplied
+                        will be converted to upper case). (default:
+                        Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
-                        CSV list of name components that should not be used as
-                        alternatives in their own right, such as nobiliary
-                        particles. (default: AF,AL,AUF,AV,AW,D,DA,DAI,DAL,DALL
-                        A,DAS,DE,DEI,DEL,DELL,DELLA,DER,DES,DI,DO,DOS,DU,EL,I,
-                        II,III,IV,IX,JNR,JR,L,LA,LE,NA,OF,PHRA,SNR,SR,SRI,THOE
-                        ,TOT,V,VAN,VI,VII,VIII,VON,X,ZU)
+                        (For surnames.) CSV list of name components that
+                        should not be used as alternatives in their own right,
+                        such as nobiliary particles. (default: AF,AL,AUF,AV,AW
+                        ,D,DA,DAI,DAL,DALLA,DAS,DE,DEI,DEL,DELL,DELLA,DER,DES,
+                        DI,DO,DOS,DU,EL,I,II,III,IV,IX,JNR,JR,L,LA,LE,NA,OF,PH
+                        RA,SNR,SR,SRI,THOE,TOT,V,VAN,VI,VII,VIII,VON,X,ZU)
   --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
-                        Birth year pseudo-range. The sole purpose is to
-                        calculate the probability of two random people sharing
-                        a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b. (default: 30)
+                        Birth year pseudo-range. The purpose is to calculate
+                        the probability of two random people sharing a DOB,
+                        which is taken as 1/(365.25 * b), even for 29 Feb, or
+                        a partial DOB equivalently. This option is b.
+                        (default: 30)
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'. (default: 0.004)
@@ -264,9 +275,10 @@ usage: crate_fuzzy_id_match compare_plaintext [-h] --probands PROBANDS
                                               [--population_size POPULATION_SIZE]
                                               [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                               [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                              [--forename_min_frequency FORENAME_MIN_FREQUENCY]
                                               [--surname_cache_filename SURNAME_CACHE_FILENAME]
                                               [--surname_freq_csv SURNAME_FREQ_CSV]
-                                              [--min_name_frequency MIN_NAME_FREQUENCY]
+                                              [--surname_min_frequency SURNAME_MIN_FREQUENCY]
                                               [--accent_transliterations ACCENT_TRANSLITERATIONS]
                                               [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
                                               [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
@@ -477,49 +489,59 @@ Frequency information for prior probabilities:
   --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
                         CSV file of "name, sex, frequency" pairs for
                         forenames. You can generate one via
-                        crate_fetch_wordlists. If you later alter this, delete
-                        your forename cache so it can be rebuilt. (default: /h
-                        ome/rudolf/Documents/code/crate/crate_anon/linkage/dat
-                        a/us_forename_sex_freq.zip)
+                        crate_fetch_wordlists. [Information saved in the
+                        forename cache. If you change this, delete your
+                        forename cache.] (default: /home/rudolf/Documents/code
+                        /crate/crate_anon/linkage/data/us_forename_sex_freq.zi
+                        p)
+  --forename_min_frequency FORENAME_MIN_FREQUENCY
+                        Minimum frequency for forenames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. The standard US forename data has a floor
+                        2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
+                        [Information saved in the forename cache. If you
+                        change this, delete your forename cache.] (default:
+                        2.9e-08)
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading). (default:
                         /path/to/crate/user/data/fuzzy_surname_cache.jsonl)
   --surname_freq_csv SURNAME_FREQ_CSV
-                        CSV file of "name, frequency" pairs for forenames. You
-                        can generate one via crate_fetch_wordlists. If you
-                        later alter this, delete your surname cache so it can
-                        be rebuilt. (default: /home/rudolf/Documents/code/crat
-                        e/crate_anon/linkage/data/us_surname_freq.zip)
-  --min_name_frequency MIN_NAME_FREQUENCY
-                        Minimum base frequency for names. If a frequency is
-                        less than this, use this minimum. Allowing extremely
-                        low frequencies may increase the chances of a spurious
-                        match. Note also that typical name frequency tables
-                        don't give very-low-frequency information. For
-                        example, for US census forename/surname information,
-                        below 0.001 percent they report 0.000 percent; so a
-                        reasonable minimum is 0.0005 percent or 0.000005 or
-                        5e-6. (default: 5e-06)
+                        CSV file of "name, frequency" pairs for surnames. You
+                        can generate one via crate_fetch_wordlists.
+                        [Information saved in the surname cache. If you change
+                        this, delete your surname cache.] (default: /home/rudo
+                        lf/Documents/code/crate/crate_anon/linkage/data/us_sur
+                        name_freq.zip)
+  --surname_min_frequency SURNAME_MIN_FREQUENCY
+                        Minimum frequency for surnames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. In the standard US surname data, values below
+                        3e-7 are reported as 0, so 1.5e-7 is the midpoint of
+                        the low-frequency range. [Information saved in the
+                        surname cache. If you change this, delete your surname
+                        cache.] (default: 1.5e-07)
   --accent_transliterations ACCENT_TRANSLITERATIONS
-                        CSV list of 'accented/plain' pairs, representing how
-                        accented characters may be transliterated (if they are
-                        not reproduced accurately and not simply mangled into
-                        ASCII like É→E). Only upper-case versions are required
-                        (anything supplied will be converted to upper case).
-                        (default: Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
+                        (For surnames.) CSV list of 'accented/plain' pairs,
+                        representing how accented characters may be
+                        transliterated (if they are not reproduced accurately
+                        and not simply mangled into ASCII like É→E). Only
+                        upper-case versions are required (anything supplied
+                        will be converted to upper case). (default:
+                        Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
-                        CSV list of name components that should not be used as
-                        alternatives in their own right, such as nobiliary
-                        particles. (default: AF,AL,AUF,AV,AW,D,DA,DAI,DAL,DALL
-                        A,DAS,DE,DEI,DEL,DELL,DELLA,DER,DES,DI,DO,DOS,DU,EL,I,
-                        II,III,IV,IX,JNR,JR,L,LA,LE,NA,OF,PHRA,SNR,SR,SRI,THOE
-                        ,TOT,V,VAN,VI,VII,VIII,VON,X,ZU)
+                        (For surnames.) CSV list of name components that
+                        should not be used as alternatives in their own right,
+                        such as nobiliary particles. (default: AF,AL,AUF,AV,AW
+                        ,D,DA,DAI,DAL,DALLA,DAS,DE,DEI,DEL,DELL,DELLA,DER,DES,
+                        DI,DO,DOS,DU,EL,I,II,III,IV,IX,JNR,JR,L,LA,LE,NA,OF,PH
+                        RA,SNR,SR,SRI,THOE,TOT,V,VAN,VI,VII,VIII,VON,X,ZU)
   --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
-                        Birth year pseudo-range. The sole purpose is to
-                        calculate the probability of two random people sharing
-                        a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b. (default: 30)
+                        Birth year pseudo-range. The purpose is to calculate
+                        the probability of two random people sharing a DOB,
+                        which is taken as 1/(365.25 * b), even for 29 Feb, or
+                        a partial DOB equivalently. This option is b.
+                        (default: 30)
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'. (default: 0.004)
@@ -595,9 +617,10 @@ usage: crate_fuzzy_id_match compare_hashed_to_hashed [-h] --probands PROBANDS
                                                      [--population_size POPULATION_SIZE]
                                                      [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                      [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                                     [--forename_min_frequency FORENAME_MIN_FREQUENCY]
                                                      [--surname_cache_filename SURNAME_CACHE_FILENAME]
                                                      [--surname_freq_csv SURNAME_FREQ_CSV]
-                                                     [--min_name_frequency MIN_NAME_FREQUENCY]
+                                                     [--surname_min_frequency SURNAME_MIN_FREQUENCY]
                                                      [--accent_transliterations ACCENT_TRANSLITERATIONS]
                                                      [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
                                                      [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
@@ -782,49 +805,59 @@ Frequency information for prior probabilities:
   --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
                         CSV file of "name, sex, frequency" pairs for
                         forenames. You can generate one via
-                        crate_fetch_wordlists. If you later alter this, delete
-                        your forename cache so it can be rebuilt. (default: /h
-                        ome/rudolf/Documents/code/crate/crate_anon/linkage/dat
-                        a/us_forename_sex_freq.zip)
+                        crate_fetch_wordlists. [Information saved in the
+                        forename cache. If you change this, delete your
+                        forename cache.] (default: /home/rudolf/Documents/code
+                        /crate/crate_anon/linkage/data/us_forename_sex_freq.zi
+                        p)
+  --forename_min_frequency FORENAME_MIN_FREQUENCY
+                        Minimum frequency for forenames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. The standard US forename data has a floor
+                        2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
+                        [Information saved in the forename cache. If you
+                        change this, delete your forename cache.] (default:
+                        2.9e-08)
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading). (default:
                         /path/to/crate/user/data/fuzzy_surname_cache.jsonl)
   --surname_freq_csv SURNAME_FREQ_CSV
-                        CSV file of "name, frequency" pairs for forenames. You
-                        can generate one via crate_fetch_wordlists. If you
-                        later alter this, delete your surname cache so it can
-                        be rebuilt. (default: /home/rudolf/Documents/code/crat
-                        e/crate_anon/linkage/data/us_surname_freq.zip)
-  --min_name_frequency MIN_NAME_FREQUENCY
-                        Minimum base frequency for names. If a frequency is
-                        less than this, use this minimum. Allowing extremely
-                        low frequencies may increase the chances of a spurious
-                        match. Note also that typical name frequency tables
-                        don't give very-low-frequency information. For
-                        example, for US census forename/surname information,
-                        below 0.001 percent they report 0.000 percent; so a
-                        reasonable minimum is 0.0005 percent or 0.000005 or
-                        5e-6. (default: 5e-06)
+                        CSV file of "name, frequency" pairs for surnames. You
+                        can generate one via crate_fetch_wordlists.
+                        [Information saved in the surname cache. If you change
+                        this, delete your surname cache.] (default: /home/rudo
+                        lf/Documents/code/crate/crate_anon/linkage/data/us_sur
+                        name_freq.zip)
+  --surname_min_frequency SURNAME_MIN_FREQUENCY
+                        Minimum frequency for surnames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. In the standard US surname data, values below
+                        3e-7 are reported as 0, so 1.5e-7 is the midpoint of
+                        the low-frequency range. [Information saved in the
+                        surname cache. If you change this, delete your surname
+                        cache.] (default: 1.5e-07)
   --accent_transliterations ACCENT_TRANSLITERATIONS
-                        CSV list of 'accented/plain' pairs, representing how
-                        accented characters may be transliterated (if they are
-                        not reproduced accurately and not simply mangled into
-                        ASCII like É→E). Only upper-case versions are required
-                        (anything supplied will be converted to upper case).
-                        (default: Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
+                        (For surnames.) CSV list of 'accented/plain' pairs,
+                        representing how accented characters may be
+                        transliterated (if they are not reproduced accurately
+                        and not simply mangled into ASCII like É→E). Only
+                        upper-case versions are required (anything supplied
+                        will be converted to upper case). (default:
+                        Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
-                        CSV list of name components that should not be used as
-                        alternatives in their own right, such as nobiliary
-                        particles. (default: AF,AL,AUF,AV,AW,D,DA,DAI,DAL,DALL
-                        A,DAS,DE,DEI,DEL,DELL,DELLA,DER,DES,DI,DO,DOS,DU,EL,I,
-                        II,III,IV,IX,JNR,JR,L,LA,LE,NA,OF,PHRA,SNR,SR,SRI,THOE
-                        ,TOT,V,VAN,VI,VII,VIII,VON,X,ZU)
+                        (For surnames.) CSV list of name components that
+                        should not be used as alternatives in their own right,
+                        such as nobiliary particles. (default: AF,AL,AUF,AV,AW
+                        ,D,DA,DAI,DAL,DALLA,DAS,DE,DEI,DEL,DELL,DELLA,DER,DES,
+                        DI,DO,DOS,DU,EL,I,II,III,IV,IX,JNR,JR,L,LA,LE,NA,OF,PH
+                        RA,SNR,SR,SRI,THOE,TOT,V,VAN,VI,VII,VIII,VON,X,ZU)
   --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
-                        Birth year pseudo-range. The sole purpose is to
-                        calculate the probability of two random people sharing
-                        a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b. (default: 30)
+                        Birth year pseudo-range. The purpose is to calculate
+                        the probability of two random people sharing a DOB,
+                        which is taken as 1/(365.25 * b), even for 29 Feb, or
+                        a partial DOB equivalently. This option is b.
+                        (default: 30)
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'. (default: 0.004)
@@ -906,9 +939,10 @@ usage: crate_fuzzy_id_match compare_hashed_to_plaintext [-h] --probands
                                                         [--population_size POPULATION_SIZE]
                                                         [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                         [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                                        [--forename_min_frequency FORENAME_MIN_FREQUENCY]
                                                         [--surname_cache_filename SURNAME_CACHE_FILENAME]
                                                         [--surname_freq_csv SURNAME_FREQ_CSV]
-                                                        [--min_name_frequency MIN_NAME_FREQUENCY]
+                                                        [--surname_min_frequency SURNAME_MIN_FREQUENCY]
                                                         [--accent_transliterations ACCENT_TRANSLITERATIONS]
                                                         [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
                                                         [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
@@ -1127,49 +1161,59 @@ Frequency information for prior probabilities:
   --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
                         CSV file of "name, sex, frequency" pairs for
                         forenames. You can generate one via
-                        crate_fetch_wordlists. If you later alter this, delete
-                        your forename cache so it can be rebuilt. (default: /h
-                        ome/rudolf/Documents/code/crate/crate_anon/linkage/dat
-                        a/us_forename_sex_freq.zip)
+                        crate_fetch_wordlists. [Information saved in the
+                        forename cache. If you change this, delete your
+                        forename cache.] (default: /home/rudolf/Documents/code
+                        /crate/crate_anon/linkage/data/us_forename_sex_freq.zi
+                        p)
+  --forename_min_frequency FORENAME_MIN_FREQUENCY
+                        Minimum frequency for forenames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. The standard US forename data has a floor
+                        2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
+                        [Information saved in the forename cache. If you
+                        change this, delete your forename cache.] (default:
+                        2.9e-08)
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading). (default:
                         /path/to/crate/user/data/fuzzy_surname_cache.jsonl)
   --surname_freq_csv SURNAME_FREQ_CSV
-                        CSV file of "name, frequency" pairs for forenames. You
-                        can generate one via crate_fetch_wordlists. If you
-                        later alter this, delete your surname cache so it can
-                        be rebuilt. (default: /home/rudolf/Documents/code/crat
-                        e/crate_anon/linkage/data/us_surname_freq.zip)
-  --min_name_frequency MIN_NAME_FREQUENCY
-                        Minimum base frequency for names. If a frequency is
-                        less than this, use this minimum. Allowing extremely
-                        low frequencies may increase the chances of a spurious
-                        match. Note also that typical name frequency tables
-                        don't give very-low-frequency information. For
-                        example, for US census forename/surname information,
-                        below 0.001 percent they report 0.000 percent; so a
-                        reasonable minimum is 0.0005 percent or 0.000005 or
-                        5e-6. (default: 5e-06)
+                        CSV file of "name, frequency" pairs for surnames. You
+                        can generate one via crate_fetch_wordlists.
+                        [Information saved in the surname cache. If you change
+                        this, delete your surname cache.] (default: /home/rudo
+                        lf/Documents/code/crate/crate_anon/linkage/data/us_sur
+                        name_freq.zip)
+  --surname_min_frequency SURNAME_MIN_FREQUENCY
+                        Minimum frequency for surnames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. In the standard US surname data, values below
+                        3e-7 are reported as 0, so 1.5e-7 is the midpoint of
+                        the low-frequency range. [Information saved in the
+                        surname cache. If you change this, delete your surname
+                        cache.] (default: 1.5e-07)
   --accent_transliterations ACCENT_TRANSLITERATIONS
-                        CSV list of 'accented/plain' pairs, representing how
-                        accented characters may be transliterated (if they are
-                        not reproduced accurately and not simply mangled into
-                        ASCII like É→E). Only upper-case versions are required
-                        (anything supplied will be converted to upper case).
-                        (default: Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
+                        (For surnames.) CSV list of 'accented/plain' pairs,
+                        representing how accented characters may be
+                        transliterated (if they are not reproduced accurately
+                        and not simply mangled into ASCII like É→E). Only
+                        upper-case versions are required (anything supplied
+                        will be converted to upper case). (default:
+                        Ä/AE,Ö/OE,Ü/UE,ẞ/SS)
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
-                        CSV list of name components that should not be used as
-                        alternatives in their own right, such as nobiliary
-                        particles. (default: AF,AL,AUF,AV,AW,D,DA,DAI,DAL,DALL
-                        A,DAS,DE,DEI,DEL,DELL,DELLA,DER,DES,DI,DO,DOS,DU,EL,I,
-                        II,III,IV,IX,JNR,JR,L,LA,LE,NA,OF,PHRA,SNR,SR,SRI,THOE
-                        ,TOT,V,VAN,VI,VII,VIII,VON,X,ZU)
+                        (For surnames.) CSV list of name components that
+                        should not be used as alternatives in their own right,
+                        such as nobiliary particles. (default: AF,AL,AUF,AV,AW
+                        ,D,DA,DAI,DAL,DALLA,DAS,DE,DEI,DEL,DELL,DELLA,DER,DES,
+                        DI,DO,DOS,DU,EL,I,II,III,IV,IX,JNR,JR,L,LA,LE,NA,OF,PH
+                        RA,SNR,SR,SRI,THOE,TOT,V,VAN,VI,VII,VIII,VON,X,ZU)
   --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
-                        Birth year pseudo-range. The sole purpose is to
-                        calculate the probability of two random people sharing
-                        a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b. (default: 30)
+                        Birth year pseudo-range. The purpose is to calculate
+                        the probability of two random people sharing a DOB,
+                        which is taken as 1/(365.25 * b), even for 29 Feb, or
+                        a partial DOB equivalently. This option is b.
+                        (default: 30)
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'. (default: 0.004)
@@ -1246,9 +1290,10 @@ usage: crate_fuzzy_id_match show_names_for_metaphone [-h]
                                                      [--population_size POPULATION_SIZE]
                                                      [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                      [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                                     [--forename_min_frequency FORENAME_MIN_FREQUENCY]
                                                      [--surname_cache_filename SURNAME_CACHE_FILENAME]
                                                      [--surname_freq_csv SURNAME_FREQ_CSV]
-                                                     [--min_name_frequency MIN_NAME_FREQUENCY]
+                                                     [--surname_min_frequency SURNAME_MIN_FREQUENCY]
                                                      [--accent_transliterations ACCENT_TRANSLITERATIONS]
                                                      [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
                                                      [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
@@ -1280,41 +1325,48 @@ Frequency information for prior probabilities:
   --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
                         CSV file of "name, sex, frequency" pairs for
                         forenames. You can generate one via
-                        crate_fetch_wordlists. If you later alter this, delete
-                        your forename cache so it can be rebuilt.
+                        crate_fetch_wordlists. [Information saved in the
+                        forename cache. If you change this, delete your
+                        forename cache.]
+  --forename_min_frequency FORENAME_MIN_FREQUENCY
+                        Minimum frequency for forenames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. The standard US forename data has a floor
+                        2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
+                        [Information saved in the forename cache. If you
+                        change this, delete your forename cache.]
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading).
   --surname_freq_csv SURNAME_FREQ_CSV
-                        CSV file of "name, frequency" pairs for forenames. You
-                        can generate one via crate_fetch_wordlists. If you
-                        later alter this, delete your surname cache so it can
-                        be rebuilt.
-  --min_name_frequency MIN_NAME_FREQUENCY
-                        Minimum base frequency for names. If a frequency is
-                        less than this, use this minimum. Allowing extremely
-                        low frequencies may increase the chances of a spurious
-                        match. Note also that typical name frequency tables
-                        don't give very-low-frequency information. For
-                        example, for US census forename/surname information,
-                        below 0.001 percent they report 0.000 percent; so a
-                        reasonable minimum is 0.0005 percent or 0.000005 or
-                        5e-6.
+                        CSV file of "name, frequency" pairs for surnames. You
+                        can generate one via crate_fetch_wordlists.
+                        [Information saved in the surname cache. If you change
+                        this, delete your surname cache.]
+  --surname_min_frequency SURNAME_MIN_FREQUENCY
+                        Minimum frequency for surnames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. In the standard US surname data, values below
+                        3e-7 are reported as 0, so 1.5e-7 is the midpoint of
+                        the low-frequency range. [Information saved in the
+                        surname cache. If you change this, delete your surname
+                        cache.]
   --accent_transliterations ACCENT_TRANSLITERATIONS
-                        CSV list of 'accented/plain' pairs, representing how
-                        accented characters may be transliterated (if they are
-                        not reproduced accurately and not simply mangled into
-                        ASCII like É→E). Only upper-case versions are required
-                        (anything supplied will be converted to upper case).
+                        (For surnames.) CSV list of 'accented/plain' pairs,
+                        representing how accented characters may be
+                        transliterated (if they are not reproduced accurately
+                        and not simply mangled into ASCII like É→E). Only
+                        upper-case versions are required (anything supplied
+                        will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
-                        CSV list of name components that should not be used as
-                        alternatives in their own right, such as nobiliary
-                        particles.
+                        (For surnames.) CSV list of name components that
+                        should not be used as alternatives in their own right,
+                        such as nobiliary particles.
   --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
-                        Birth year pseudo-range. The sole purpose is to
-                        calculate the probability of two random people sharing
-                        a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b.
+                        Birth year pseudo-range. The purpose is to calculate
+                        the probability of two random people sharing a DOB,
+                        which is taken as 1/(365.25 * b), even for 29 Feb, or
+                        a partial DOB equivalently. This option is b.
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'.
@@ -1361,9 +1413,10 @@ usage: crate_fuzzy_id_match show_forename_freq [-h]
                                                [--population_size POPULATION_SIZE]
                                                [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                               [--forename_min_frequency FORENAME_MIN_FREQUENCY]
                                                [--surname_cache_filename SURNAME_CACHE_FILENAME]
                                                [--surname_freq_csv SURNAME_FREQ_CSV]
-                                               [--min_name_frequency MIN_NAME_FREQUENCY]
+                                               [--surname_min_frequency SURNAME_MIN_FREQUENCY]
                                                [--accent_transliterations ACCENT_TRANSLITERATIONS]
                                                [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
                                                [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
@@ -1395,41 +1448,48 @@ Frequency information for prior probabilities:
   --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
                         CSV file of "name, sex, frequency" pairs for
                         forenames. You can generate one via
-                        crate_fetch_wordlists. If you later alter this, delete
-                        your forename cache so it can be rebuilt.
+                        crate_fetch_wordlists. [Information saved in the
+                        forename cache. If you change this, delete your
+                        forename cache.]
+  --forename_min_frequency FORENAME_MIN_FREQUENCY
+                        Minimum frequency for forenames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. The standard US forename data has a floor
+                        2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
+                        [Information saved in the forename cache. If you
+                        change this, delete your forename cache.]
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading).
   --surname_freq_csv SURNAME_FREQ_CSV
-                        CSV file of "name, frequency" pairs for forenames. You
-                        can generate one via crate_fetch_wordlists. If you
-                        later alter this, delete your surname cache so it can
-                        be rebuilt.
-  --min_name_frequency MIN_NAME_FREQUENCY
-                        Minimum base frequency for names. If a frequency is
-                        less than this, use this minimum. Allowing extremely
-                        low frequencies may increase the chances of a spurious
-                        match. Note also that typical name frequency tables
-                        don't give very-low-frequency information. For
-                        example, for US census forename/surname information,
-                        below 0.001 percent they report 0.000 percent; so a
-                        reasonable minimum is 0.0005 percent or 0.000005 or
-                        5e-6.
+                        CSV file of "name, frequency" pairs for surnames. You
+                        can generate one via crate_fetch_wordlists.
+                        [Information saved in the surname cache. If you change
+                        this, delete your surname cache.]
+  --surname_min_frequency SURNAME_MIN_FREQUENCY
+                        Minimum frequency for surnames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. In the standard US surname data, values below
+                        3e-7 are reported as 0, so 1.5e-7 is the midpoint of
+                        the low-frequency range. [Information saved in the
+                        surname cache. If you change this, delete your surname
+                        cache.]
   --accent_transliterations ACCENT_TRANSLITERATIONS
-                        CSV list of 'accented/plain' pairs, representing how
-                        accented characters may be transliterated (if they are
-                        not reproduced accurately and not simply mangled into
-                        ASCII like É→E). Only upper-case versions are required
-                        (anything supplied will be converted to upper case).
+                        (For surnames.) CSV list of 'accented/plain' pairs,
+                        representing how accented characters may be
+                        transliterated (if they are not reproduced accurately
+                        and not simply mangled into ASCII like É→E). Only
+                        upper-case versions are required (anything supplied
+                        will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
-                        CSV list of name components that should not be used as
-                        alternatives in their own right, such as nobiliary
-                        particles.
+                        (For surnames.) CSV list of name components that
+                        should not be used as alternatives in their own right,
+                        such as nobiliary particles.
   --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
-                        Birth year pseudo-range. The sole purpose is to
-                        calculate the probability of two random people sharing
-                        a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b.
+                        Birth year pseudo-range. The purpose is to calculate
+                        the probability of two random people sharing a DOB,
+                        which is taken as 1/(365.25 * b), even for 29 Feb, or
+                        a partial DOB equivalently. This option is b.
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'.
@@ -1476,9 +1536,10 @@ usage: crate_fuzzy_id_match show_forename_metaphone_freq [-h]
                                                          [--population_size POPULATION_SIZE]
                                                          [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                          [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                                         [--forename_min_frequency FORENAME_MIN_FREQUENCY]
                                                          [--surname_cache_filename SURNAME_CACHE_FILENAME]
                                                          [--surname_freq_csv SURNAME_FREQ_CSV]
-                                                         [--min_name_frequency MIN_NAME_FREQUENCY]
+                                                         [--surname_min_frequency SURNAME_MIN_FREQUENCY]
                                                          [--accent_transliterations ACCENT_TRANSLITERATIONS]
                                                          [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
                                                          [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
@@ -1511,41 +1572,48 @@ Frequency information for prior probabilities:
   --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
                         CSV file of "name, sex, frequency" pairs for
                         forenames. You can generate one via
-                        crate_fetch_wordlists. If you later alter this, delete
-                        your forename cache so it can be rebuilt.
+                        crate_fetch_wordlists. [Information saved in the
+                        forename cache. If you change this, delete your
+                        forename cache.]
+  --forename_min_frequency FORENAME_MIN_FREQUENCY
+                        Minimum frequency for forenames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. The standard US forename data has a floor
+                        2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
+                        [Information saved in the forename cache. If you
+                        change this, delete your forename cache.]
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading).
   --surname_freq_csv SURNAME_FREQ_CSV
-                        CSV file of "name, frequency" pairs for forenames. You
-                        can generate one via crate_fetch_wordlists. If you
-                        later alter this, delete your surname cache so it can
-                        be rebuilt.
-  --min_name_frequency MIN_NAME_FREQUENCY
-                        Minimum base frequency for names. If a frequency is
-                        less than this, use this minimum. Allowing extremely
-                        low frequencies may increase the chances of a spurious
-                        match. Note also that typical name frequency tables
-                        don't give very-low-frequency information. For
-                        example, for US census forename/surname information,
-                        below 0.001 percent they report 0.000 percent; so a
-                        reasonable minimum is 0.0005 percent or 0.000005 or
-                        5e-6.
+                        CSV file of "name, frequency" pairs for surnames. You
+                        can generate one via crate_fetch_wordlists.
+                        [Information saved in the surname cache. If you change
+                        this, delete your surname cache.]
+  --surname_min_frequency SURNAME_MIN_FREQUENCY
+                        Minimum frequency for surnames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. In the standard US surname data, values below
+                        3e-7 are reported as 0, so 1.5e-7 is the midpoint of
+                        the low-frequency range. [Information saved in the
+                        surname cache. If you change this, delete your surname
+                        cache.]
   --accent_transliterations ACCENT_TRANSLITERATIONS
-                        CSV list of 'accented/plain' pairs, representing how
-                        accented characters may be transliterated (if they are
-                        not reproduced accurately and not simply mangled into
-                        ASCII like É→E). Only upper-case versions are required
-                        (anything supplied will be converted to upper case).
+                        (For surnames.) CSV list of 'accented/plain' pairs,
+                        representing how accented characters may be
+                        transliterated (if they are not reproduced accurately
+                        and not simply mangled into ASCII like É→E). Only
+                        upper-case versions are required (anything supplied
+                        will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
-                        CSV list of name components that should not be used as
-                        alternatives in their own right, such as nobiliary
-                        particles.
+                        (For surnames.) CSV list of name components that
+                        should not be used as alternatives in their own right,
+                        such as nobiliary particles.
   --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
-                        Birth year pseudo-range. The sole purpose is to
-                        calculate the probability of two random people sharing
-                        a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b.
+                        Birth year pseudo-range. The purpose is to calculate
+                        the probability of two random people sharing a DOB,
+                        which is taken as 1/(365.25 * b), even for 29 Feb, or
+                        a partial DOB equivalently. This option is b.
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'.
@@ -1592,9 +1660,10 @@ usage: crate_fuzzy_id_match show_forename_f2c_freq [-h]
                                                    [--population_size POPULATION_SIZE]
                                                    [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                    [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                                   [--forename_min_frequency FORENAME_MIN_FREQUENCY]
                                                    [--surname_cache_filename SURNAME_CACHE_FILENAME]
                                                    [--surname_freq_csv SURNAME_FREQ_CSV]
-                                                   [--min_name_frequency MIN_NAME_FREQUENCY]
+                                                   [--surname_min_frequency SURNAME_MIN_FREQUENCY]
                                                    [--accent_transliterations ACCENT_TRANSLITERATIONS]
                                                    [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
                                                    [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
@@ -1626,41 +1695,48 @@ Frequency information for prior probabilities:
   --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
                         CSV file of "name, sex, frequency" pairs for
                         forenames. You can generate one via
-                        crate_fetch_wordlists. If you later alter this, delete
-                        your forename cache so it can be rebuilt.
+                        crate_fetch_wordlists. [Information saved in the
+                        forename cache. If you change this, delete your
+                        forename cache.]
+  --forename_min_frequency FORENAME_MIN_FREQUENCY
+                        Minimum frequency for forenames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. The standard US forename data has a floor
+                        2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
+                        [Information saved in the forename cache. If you
+                        change this, delete your forename cache.]
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading).
   --surname_freq_csv SURNAME_FREQ_CSV
-                        CSV file of "name, frequency" pairs for forenames. You
-                        can generate one via crate_fetch_wordlists. If you
-                        later alter this, delete your surname cache so it can
-                        be rebuilt.
-  --min_name_frequency MIN_NAME_FREQUENCY
-                        Minimum base frequency for names. If a frequency is
-                        less than this, use this minimum. Allowing extremely
-                        low frequencies may increase the chances of a spurious
-                        match. Note also that typical name frequency tables
-                        don't give very-low-frequency information. For
-                        example, for US census forename/surname information,
-                        below 0.001 percent they report 0.000 percent; so a
-                        reasonable minimum is 0.0005 percent or 0.000005 or
-                        5e-6.
+                        CSV file of "name, frequency" pairs for surnames. You
+                        can generate one via crate_fetch_wordlists.
+                        [Information saved in the surname cache. If you change
+                        this, delete your surname cache.]
+  --surname_min_frequency SURNAME_MIN_FREQUENCY
+                        Minimum frequency for surnames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. In the standard US surname data, values below
+                        3e-7 are reported as 0, so 1.5e-7 is the midpoint of
+                        the low-frequency range. [Information saved in the
+                        surname cache. If you change this, delete your surname
+                        cache.]
   --accent_transliterations ACCENT_TRANSLITERATIONS
-                        CSV list of 'accented/plain' pairs, representing how
-                        accented characters may be transliterated (if they are
-                        not reproduced accurately and not simply mangled into
-                        ASCII like É→E). Only upper-case versions are required
-                        (anything supplied will be converted to upper case).
+                        (For surnames.) CSV list of 'accented/plain' pairs,
+                        representing how accented characters may be
+                        transliterated (if they are not reproduced accurately
+                        and not simply mangled into ASCII like É→E). Only
+                        upper-case versions are required (anything supplied
+                        will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
-                        CSV list of name components that should not be used as
-                        alternatives in their own right, such as nobiliary
-                        particles.
+                        (For surnames.) CSV list of name components that
+                        should not be used as alternatives in their own right,
+                        such as nobiliary particles.
   --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
-                        Birth year pseudo-range. The sole purpose is to
-                        calculate the probability of two random people sharing
-                        a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b.
+                        Birth year pseudo-range. The purpose is to calculate
+                        the probability of two random people sharing a DOB,
+                        which is taken as 1/(365.25 * b), even for 29 Feb, or
+                        a partial DOB equivalently. This option is b.
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'.
@@ -1707,9 +1783,10 @@ usage: crate_fuzzy_id_match show_surname_freq [-h]
                                               [--population_size POPULATION_SIZE]
                                               [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                               [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                              [--forename_min_frequency FORENAME_MIN_FREQUENCY]
                                               [--surname_cache_filename SURNAME_CACHE_FILENAME]
                                               [--surname_freq_csv SURNAME_FREQ_CSV]
-                                              [--min_name_frequency MIN_NAME_FREQUENCY]
+                                              [--surname_min_frequency SURNAME_MIN_FREQUENCY]
                                               [--accent_transliterations ACCENT_TRANSLITERATIONS]
                                               [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
                                               [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
@@ -1741,41 +1818,48 @@ Frequency information for prior probabilities:
   --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
                         CSV file of "name, sex, frequency" pairs for
                         forenames. You can generate one via
-                        crate_fetch_wordlists. If you later alter this, delete
-                        your forename cache so it can be rebuilt.
+                        crate_fetch_wordlists. [Information saved in the
+                        forename cache. If you change this, delete your
+                        forename cache.]
+  --forename_min_frequency FORENAME_MIN_FREQUENCY
+                        Minimum frequency for forenames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. The standard US forename data has a floor
+                        2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
+                        [Information saved in the forename cache. If you
+                        change this, delete your forename cache.]
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading).
   --surname_freq_csv SURNAME_FREQ_CSV
-                        CSV file of "name, frequency" pairs for forenames. You
-                        can generate one via crate_fetch_wordlists. If you
-                        later alter this, delete your surname cache so it can
-                        be rebuilt.
-  --min_name_frequency MIN_NAME_FREQUENCY
-                        Minimum base frequency for names. If a frequency is
-                        less than this, use this minimum. Allowing extremely
-                        low frequencies may increase the chances of a spurious
-                        match. Note also that typical name frequency tables
-                        don't give very-low-frequency information. For
-                        example, for US census forename/surname information,
-                        below 0.001 percent they report 0.000 percent; so a
-                        reasonable minimum is 0.0005 percent or 0.000005 or
-                        5e-6.
+                        CSV file of "name, frequency" pairs for surnames. You
+                        can generate one via crate_fetch_wordlists.
+                        [Information saved in the surname cache. If you change
+                        this, delete your surname cache.]
+  --surname_min_frequency SURNAME_MIN_FREQUENCY
+                        Minimum frequency for surnames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. In the standard US surname data, values below
+                        3e-7 are reported as 0, so 1.5e-7 is the midpoint of
+                        the low-frequency range. [Information saved in the
+                        surname cache. If you change this, delete your surname
+                        cache.]
   --accent_transliterations ACCENT_TRANSLITERATIONS
-                        CSV list of 'accented/plain' pairs, representing how
-                        accented characters may be transliterated (if they are
-                        not reproduced accurately and not simply mangled into
-                        ASCII like É→E). Only upper-case versions are required
-                        (anything supplied will be converted to upper case).
+                        (For surnames.) CSV list of 'accented/plain' pairs,
+                        representing how accented characters may be
+                        transliterated (if they are not reproduced accurately
+                        and not simply mangled into ASCII like É→E). Only
+                        upper-case versions are required (anything supplied
+                        will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
-                        CSV list of name components that should not be used as
-                        alternatives in their own right, such as nobiliary
-                        particles.
+                        (For surnames.) CSV list of name components that
+                        should not be used as alternatives in their own right,
+                        such as nobiliary particles.
   --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
-                        Birth year pseudo-range. The sole purpose is to
-                        calculate the probability of two random people sharing
-                        a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b.
+                        Birth year pseudo-range. The purpose is to calculate
+                        the probability of two random people sharing a DOB,
+                        which is taken as 1/(365.25 * b), even for 29 Feb, or
+                        a partial DOB equivalently. This option is b.
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'.
@@ -1822,9 +1906,10 @@ usage: crate_fuzzy_id_match show_surname_metaphone_freq [-h]
                                                         [--population_size POPULATION_SIZE]
                                                         [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                         [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                                        [--forename_min_frequency FORENAME_MIN_FREQUENCY]
                                                         [--surname_cache_filename SURNAME_CACHE_FILENAME]
                                                         [--surname_freq_csv SURNAME_FREQ_CSV]
-                                                        [--min_name_frequency MIN_NAME_FREQUENCY]
+                                                        [--surname_min_frequency SURNAME_MIN_FREQUENCY]
                                                         [--accent_transliterations ACCENT_TRANSLITERATIONS]
                                                         [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
                                                         [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
@@ -1857,41 +1942,48 @@ Frequency information for prior probabilities:
   --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
                         CSV file of "name, sex, frequency" pairs for
                         forenames. You can generate one via
-                        crate_fetch_wordlists. If you later alter this, delete
-                        your forename cache so it can be rebuilt.
+                        crate_fetch_wordlists. [Information saved in the
+                        forename cache. If you change this, delete your
+                        forename cache.]
+  --forename_min_frequency FORENAME_MIN_FREQUENCY
+                        Minimum frequency for forenames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. The standard US forename data has a floor
+                        2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
+                        [Information saved in the forename cache. If you
+                        change this, delete your forename cache.]
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading).
   --surname_freq_csv SURNAME_FREQ_CSV
-                        CSV file of "name, frequency" pairs for forenames. You
-                        can generate one via crate_fetch_wordlists. If you
-                        later alter this, delete your surname cache so it can
-                        be rebuilt.
-  --min_name_frequency MIN_NAME_FREQUENCY
-                        Minimum base frequency for names. If a frequency is
-                        less than this, use this minimum. Allowing extremely
-                        low frequencies may increase the chances of a spurious
-                        match. Note also that typical name frequency tables
-                        don't give very-low-frequency information. For
-                        example, for US census forename/surname information,
-                        below 0.001 percent they report 0.000 percent; so a
-                        reasonable minimum is 0.0005 percent or 0.000005 or
-                        5e-6.
+                        CSV file of "name, frequency" pairs for surnames. You
+                        can generate one via crate_fetch_wordlists.
+                        [Information saved in the surname cache. If you change
+                        this, delete your surname cache.]
+  --surname_min_frequency SURNAME_MIN_FREQUENCY
+                        Minimum frequency for surnames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. In the standard US surname data, values below
+                        3e-7 are reported as 0, so 1.5e-7 is the midpoint of
+                        the low-frequency range. [Information saved in the
+                        surname cache. If you change this, delete your surname
+                        cache.]
   --accent_transliterations ACCENT_TRANSLITERATIONS
-                        CSV list of 'accented/plain' pairs, representing how
-                        accented characters may be transliterated (if they are
-                        not reproduced accurately and not simply mangled into
-                        ASCII like É→E). Only upper-case versions are required
-                        (anything supplied will be converted to upper case).
+                        (For surnames.) CSV list of 'accented/plain' pairs,
+                        representing how accented characters may be
+                        transliterated (if they are not reproduced accurately
+                        and not simply mangled into ASCII like É→E). Only
+                        upper-case versions are required (anything supplied
+                        will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
-                        CSV list of name components that should not be used as
-                        alternatives in their own right, such as nobiliary
-                        particles.
+                        (For surnames.) CSV list of name components that
+                        should not be used as alternatives in their own right,
+                        such as nobiliary particles.
   --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
-                        Birth year pseudo-range. The sole purpose is to
-                        calculate the probability of two random people sharing
-                        a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b.
+                        Birth year pseudo-range. The purpose is to calculate
+                        the probability of two random people sharing a DOB,
+                        which is taken as 1/(365.25 * b), even for 29 Feb, or
+                        a partial DOB equivalently. This option is b.
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'.
@@ -1938,9 +2030,10 @@ usage: crate_fuzzy_id_match show_surname_f2c_freq [-h]
                                                   [--population_size POPULATION_SIZE]
                                                   [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                   [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                                  [--forename_min_frequency FORENAME_MIN_FREQUENCY]
                                                   [--surname_cache_filename SURNAME_CACHE_FILENAME]
                                                   [--surname_freq_csv SURNAME_FREQ_CSV]
-                                                  [--min_name_frequency MIN_NAME_FREQUENCY]
+                                                  [--surname_min_frequency SURNAME_MIN_FREQUENCY]
                                                   [--accent_transliterations ACCENT_TRANSLITERATIONS]
                                                   [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
                                                   [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
@@ -1972,41 +2065,48 @@ Frequency information for prior probabilities:
   --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
                         CSV file of "name, sex, frequency" pairs for
                         forenames. You can generate one via
-                        crate_fetch_wordlists. If you later alter this, delete
-                        your forename cache so it can be rebuilt.
+                        crate_fetch_wordlists. [Information saved in the
+                        forename cache. If you change this, delete your
+                        forename cache.]
+  --forename_min_frequency FORENAME_MIN_FREQUENCY
+                        Minimum frequency for forenames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. The standard US forename data has a floor
+                        2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
+                        [Information saved in the forename cache. If you
+                        change this, delete your forename cache.]
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading).
   --surname_freq_csv SURNAME_FREQ_CSV
-                        CSV file of "name, frequency" pairs for forenames. You
-                        can generate one via crate_fetch_wordlists. If you
-                        later alter this, delete your surname cache so it can
-                        be rebuilt.
-  --min_name_frequency MIN_NAME_FREQUENCY
-                        Minimum base frequency for names. If a frequency is
-                        less than this, use this minimum. Allowing extremely
-                        low frequencies may increase the chances of a spurious
-                        match. Note also that typical name frequency tables
-                        don't give very-low-frequency information. For
-                        example, for US census forename/surname information,
-                        below 0.001 percent they report 0.000 percent; so a
-                        reasonable minimum is 0.0005 percent or 0.000005 or
-                        5e-6.
+                        CSV file of "name, frequency" pairs for surnames. You
+                        can generate one via crate_fetch_wordlists.
+                        [Information saved in the surname cache. If you change
+                        this, delete your surname cache.]
+  --surname_min_frequency SURNAME_MIN_FREQUENCY
+                        Minimum frequency for surnames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. In the standard US surname data, values below
+                        3e-7 are reported as 0, so 1.5e-7 is the midpoint of
+                        the low-frequency range. [Information saved in the
+                        surname cache. If you change this, delete your surname
+                        cache.]
   --accent_transliterations ACCENT_TRANSLITERATIONS
-                        CSV list of 'accented/plain' pairs, representing how
-                        accented characters may be transliterated (if they are
-                        not reproduced accurately and not simply mangled into
-                        ASCII like É→E). Only upper-case versions are required
-                        (anything supplied will be converted to upper case).
+                        (For surnames.) CSV list of 'accented/plain' pairs,
+                        representing how accented characters may be
+                        transliterated (if they are not reproduced accurately
+                        and not simply mangled into ASCII like É→E). Only
+                        upper-case versions are required (anything supplied
+                        will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
-                        CSV list of name components that should not be used as
-                        alternatives in their own right, such as nobiliary
-                        particles.
+                        (For surnames.) CSV list of name components that
+                        should not be used as alternatives in their own right,
+                        such as nobiliary particles.
   --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
-                        Birth year pseudo-range. The sole purpose is to
-                        calculate the probability of two random people sharing
-                        a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b.
+                        Birth year pseudo-range. The purpose is to calculate
+                        the probability of two random people sharing a DOB,
+                        which is taken as 1/(365.25 * b), even for 29 Feb, or
+                        a partial DOB equivalently. This option is b.
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'.
@@ -2053,9 +2153,10 @@ usage: crate_fuzzy_id_match show_dob_freq [-h]
                                           [--population_size POPULATION_SIZE]
                                           [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                           [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                          [--forename_min_frequency FORENAME_MIN_FREQUENCY]
                                           [--surname_cache_filename SURNAME_CACHE_FILENAME]
                                           [--surname_freq_csv SURNAME_FREQ_CSV]
-                                          [--min_name_frequency MIN_NAME_FREQUENCY]
+                                          [--surname_min_frequency SURNAME_MIN_FREQUENCY]
                                           [--accent_transliterations ACCENT_TRANSLITERATIONS]
                                           [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
                                           [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
@@ -2083,41 +2184,48 @@ Frequency information for prior probabilities:
   --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
                         CSV file of "name, sex, frequency" pairs for
                         forenames. You can generate one via
-                        crate_fetch_wordlists. If you later alter this, delete
-                        your forename cache so it can be rebuilt.
+                        crate_fetch_wordlists. [Information saved in the
+                        forename cache. If you change this, delete your
+                        forename cache.]
+  --forename_min_frequency FORENAME_MIN_FREQUENCY
+                        Minimum frequency for forenames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. The standard US forename data has a floor
+                        2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
+                        [Information saved in the forename cache. If you
+                        change this, delete your forename cache.]
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading).
   --surname_freq_csv SURNAME_FREQ_CSV
-                        CSV file of "name, frequency" pairs for forenames. You
-                        can generate one via crate_fetch_wordlists. If you
-                        later alter this, delete your surname cache so it can
-                        be rebuilt.
-  --min_name_frequency MIN_NAME_FREQUENCY
-                        Minimum base frequency for names. If a frequency is
-                        less than this, use this minimum. Allowing extremely
-                        low frequencies may increase the chances of a spurious
-                        match. Note also that typical name frequency tables
-                        don't give very-low-frequency information. For
-                        example, for US census forename/surname information,
-                        below 0.001 percent they report 0.000 percent; so a
-                        reasonable minimum is 0.0005 percent or 0.000005 or
-                        5e-6.
+                        CSV file of "name, frequency" pairs for surnames. You
+                        can generate one via crate_fetch_wordlists.
+                        [Information saved in the surname cache. If you change
+                        this, delete your surname cache.]
+  --surname_min_frequency SURNAME_MIN_FREQUENCY
+                        Minimum frequency for surnames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. In the standard US surname data, values below
+                        3e-7 are reported as 0, so 1.5e-7 is the midpoint of
+                        the low-frequency range. [Information saved in the
+                        surname cache. If you change this, delete your surname
+                        cache.]
   --accent_transliterations ACCENT_TRANSLITERATIONS
-                        CSV list of 'accented/plain' pairs, representing how
-                        accented characters may be transliterated (if they are
-                        not reproduced accurately and not simply mangled into
-                        ASCII like É→E). Only upper-case versions are required
-                        (anything supplied will be converted to upper case).
+                        (For surnames.) CSV list of 'accented/plain' pairs,
+                        representing how accented characters may be
+                        transliterated (if they are not reproduced accurately
+                        and not simply mangled into ASCII like É→E). Only
+                        upper-case versions are required (anything supplied
+                        will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
-                        CSV list of name components that should not be used as
-                        alternatives in their own right, such as nobiliary
-                        particles.
+                        (For surnames.) CSV list of name components that
+                        should not be used as alternatives in their own right,
+                        such as nobiliary particles.
   --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
-                        Birth year pseudo-range. The sole purpose is to
-                        calculate the probability of two random people sharing
-                        a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b.
+                        Birth year pseudo-range. The purpose is to calculate
+                        the probability of two random people sharing a DOB,
+                        which is taken as 1/(365.25 * b), even for 29 Feb, or
+                        a partial DOB equivalently. This option is b.
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'.
@@ -2164,9 +2272,10 @@ usage: crate_fuzzy_id_match show_postcode_freq [-h]
                                                [--population_size POPULATION_SIZE]
                                                [--forename_cache_filename FORENAME_CACHE_FILENAME]
                                                [--forename_sex_freq_csv FORENAME_SEX_FREQ_CSV]
+                                               [--forename_min_frequency FORENAME_MIN_FREQUENCY]
                                                [--surname_cache_filename SURNAME_CACHE_FILENAME]
                                                [--surname_freq_csv SURNAME_FREQ_CSV]
-                                               [--min_name_frequency MIN_NAME_FREQUENCY]
+                                               [--surname_min_frequency SURNAME_MIN_FREQUENCY]
                                                [--accent_transliterations ACCENT_TRANSLITERATIONS]
                                                [--nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS]
                                                [--birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE]
@@ -2198,41 +2307,48 @@ Frequency information for prior probabilities:
   --forename_sex_freq_csv FORENAME_SEX_FREQ_CSV
                         CSV file of "name, sex, frequency" pairs for
                         forenames. You can generate one via
-                        crate_fetch_wordlists. If you later alter this, delete
-                        your forename cache so it can be rebuilt.
+                        crate_fetch_wordlists. [Information saved in the
+                        forename cache. If you change this, delete your
+                        forename cache.]
+  --forename_min_frequency FORENAME_MIN_FREQUENCY
+                        Minimum frequency for forenames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. The standard US forename data has a floor
+                        2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
+                        [Information saved in the forename cache. If you
+                        change this, delete your forename cache.]
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading).
   --surname_freq_csv SURNAME_FREQ_CSV
-                        CSV file of "name, frequency" pairs for forenames. You
-                        can generate one via crate_fetch_wordlists. If you
-                        later alter this, delete your surname cache so it can
-                        be rebuilt.
-  --min_name_frequency MIN_NAME_FREQUENCY
-                        Minimum base frequency for names. If a frequency is
-                        less than this, use this minimum. Allowing extremely
-                        low frequencies may increase the chances of a spurious
-                        match. Note also that typical name frequency tables
-                        don't give very-low-frequency information. For
-                        example, for US census forename/surname information,
-                        below 0.001 percent they report 0.000 percent; so a
-                        reasonable minimum is 0.0005 percent or 0.000005 or
-                        5e-6.
+                        CSV file of "name, frequency" pairs for surnames. You
+                        can generate one via crate_fetch_wordlists.
+                        [Information saved in the surname cache. If you change
+                        this, delete your surname cache.]
+  --surname_min_frequency SURNAME_MIN_FREQUENCY
+                        Minimum frequency for surnames. If a frequency is
+                        unknown or less than this, the software uses this
+                        minimum. In the standard US surname data, values below
+                        3e-7 are reported as 0, so 1.5e-7 is the midpoint of
+                        the low-frequency range. [Information saved in the
+                        surname cache. If you change this, delete your surname
+                        cache.]
   --accent_transliterations ACCENT_TRANSLITERATIONS
-                        CSV list of 'accented/plain' pairs, representing how
-                        accented characters may be transliterated (if they are
-                        not reproduced accurately and not simply mangled into
-                        ASCII like É→E). Only upper-case versions are required
-                        (anything supplied will be converted to upper case).
+                        (For surnames.) CSV list of 'accented/plain' pairs,
+                        representing how accented characters may be
+                        transliterated (if they are not reproduced accurately
+                        and not simply mangled into ASCII like É→E). Only
+                        upper-case versions are required (anything supplied
+                        will be converted to upper case).
   --nonspecific_name_components NONSPECIFIC_NAME_COMPONENTS
-                        CSV list of name components that should not be used as
-                        alternatives in their own right, such as nobiliary
-                        particles.
+                        (For surnames.) CSV list of name components that
+                        should not be used as alternatives in their own right,
+                        such as nobiliary particles.
   --birth_year_pseudo_range BIRTH_YEAR_PSEUDO_RANGE
-                        Birth year pseudo-range. The sole purpose is to
-                        calculate the probability of two random people sharing
-                        a DOB, which is taken as 1/(365.25 * b), even for 29
-                        Feb. This option is b.
+                        Birth year pseudo-range. The purpose is to calculate
+                        the probability of two random people sharing a DOB,
+                        which is taken as 1/(365.25 * b), even for 29 Feb, or
+                        a partial DOB equivalently. This option is b.
   --p_not_male_or_female P_NOT_MALE_OR_FEMALE
                         Probability that a person in the population has gender
                         'X'.
