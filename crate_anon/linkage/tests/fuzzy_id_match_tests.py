@@ -122,6 +122,7 @@ def mk_test_config(**kwargs) -> MatchConfig:
     predefined_forenames = [
         BasicNameFreqInfo(
             name="ALICE",
+            gender=GENDER_FEMALE,
             p_name=0.0032597245570899847,
             metaphone="ALK",
             p_metaphone=0.005664202032042135,
@@ -133,7 +134,7 @@ def mk_test_config(**kwargs) -> MatchConfig:
         ),
         BasicNameFreqInfo(
             name="BEATRICE",
-            gender="F",
+            gender=GENDER_FEMALE,
             p_name=0.0011134697472956023,
             metaphone="PTRK",
             p_metaphone=0.010795171997297154,
@@ -145,7 +146,7 @@ def mk_test_config(**kwargs) -> MatchConfig:
         ),
         BasicNameFreqInfo(
             name="BETTY",
-            gender="F",
+            gender=GENDER_FEMALE,
             p_name=0.005856056682186572,
             metaphone="PT",
             p_metaphone=0.007567968531021441,
@@ -157,7 +158,7 @@ def mk_test_config(**kwargs) -> MatchConfig:
         ),
         BasicNameFreqInfo(
             name="BOB",
-            gender="M",
+            gender=GENDER_MALE,
             p_name=0.0005341749908504777,
             metaphone="PP",
             p_metaphone=0.002569054271327976,
@@ -169,7 +170,7 @@ def mk_test_config(**kwargs) -> MatchConfig:
         ),
         BasicNameFreqInfo(
             name="CAROLINE",
-            gender="F",
+            gender=GENDER_FEMALE,
             p_name=0.001289812197195456,
             metaphone="KRLN",
             p_metaphone=0.005979308865585442,
@@ -181,7 +182,7 @@ def mk_test_config(**kwargs) -> MatchConfig:
         ),
         BasicNameFreqInfo(
             name="CELIA",
-            gender="F",
+            gender=GENDER_FEMALE,
             p_name=0.0003141885536034312,
             metaphone="KL",
             p_metaphone=0.016359410337593906,
@@ -193,7 +194,7 @@ def mk_test_config(**kwargs) -> MatchConfig:
         ),
         BasicNameFreqInfo(
             name="DELILAH",
-            gender="F",
+            gender=GENDER_FEMALE,
             p_name=0.00019936172952521078,
             metaphone="TLL",
             p_metaphone=0.000491534931894549,
@@ -205,7 +206,7 @@ def mk_test_config(**kwargs) -> MatchConfig:
         ),
         BasicNameFreqInfo(
             name="DOROTHY",
-            gender="F",
+            gender=GENDER_FEMALE,
             p_name=0.006484867451993301,
             metaphone="TR0",
             p_metaphone=0.007164437365410392,
@@ -217,7 +218,7 @@ def mk_test_config(**kwargs) -> MatchConfig:
         ),
         BasicNameFreqInfo(
             name="ELIZABETH",
-            gender="F",
+            gender=GENDER_FEMALE,
             p_name=0.009497275400440382,
             metaphone="ALSP",
             p_metaphone=0.010079561736620864,
@@ -229,7 +230,10 @@ def mk_test_config(**kwargs) -> MatchConfig:
         ),
     ]  # type: List[BasicNameFreqInfo]
     forename_freq_info = NameFrequencyInfo(
-        csv_filename="", cache_filename="", by_gender=True
+        csv_filename="",
+        cache_filename="",
+        by_gender=True,
+        min_frequency=FuzzyDefaults.FORENAME_MIN_FREQ,
     )
     for f in predefined_forenames:
         forename_freq_info.name_gender_idx[f.name, f.gender] = f
@@ -261,7 +265,10 @@ def mk_test_config(**kwargs) -> MatchConfig:
         ),
     ]  # type: List[BasicNameFreqInfo]
     surname_freq_info = NameFrequencyInfo(
-        csv_filename="", cache_filename="", by_gender=False
+        csv_filename="",
+        cache_filename="",
+        by_gender=False,
+        min_frequency=FuzzyDefaults.SURNAME_MIN_FREQ,
     )
     for s in predefined_surnames:
         surname_freq_info.name_gender_idx[s.name, s.gender] = s
@@ -351,7 +358,7 @@ class TestCondition:
             tuple: (matches, log_odds)
         """
         log_odds = self.log_odds_same_plaintext()
-        return self.cfg.person_matches(log_odds), log_odds
+        return self.cfg.exceeds_primary_threshold(log_odds), log_odds
 
     def matches_hashed(self) -> Tuple[bool, float]:
         """
@@ -361,7 +368,7 @@ class TestCondition:
             bool: is there a match?
         """
         log_odds = self.log_odds_same_hashed()
-        return self.cfg.person_matches(log_odds), log_odds
+        return self.cfg.exceeds_primary_threshold(log_odds), log_odds
 
     def check_comparison_as_expected(self) -> None:
         """
@@ -382,6 +389,9 @@ class TestCondition:
                 log.info(f"... should not and does not match: {p_plain_str}")
         else:
             log_odds = log_odds_plaintext
+            report = self.person_a.debug_comparison_report(
+                self.person_b, verbose=False
+            )
             raise AssertionError(
                 f"Match failure: "
                 f"matches_raw = {matches_raw}, "
@@ -390,7 +400,8 @@ class TestCondition:
                 f"min_log_odds_for_match = {self.cfg.min_log_odds_for_match}, "
                 f"P(match) = {probability_from_log_odds(log_odds)}, "
                 f"person_a = {self.person_a}, "
-                f"person_b = {self.person_b}"
+                f"person_b = {self.person_b}, "
+                f"report = {report}"
             )
 
         log.info(
@@ -408,6 +419,9 @@ class TestCondition:
                 log.info(f"... should not and does not match: {p_hashed_str}")
         else:
             log_odds = log_odds_hashed
+            report = self.hashed_a.debug_comparison_report(
+                self.hashed_b, verbose=False
+            )
             raise AssertionError(
                 f"Match failure: "
                 f"matches_hashed = {matches_hashed}, "
@@ -419,7 +433,8 @@ class TestCondition:
                 f"person_a = {self.person_a}, "
                 f"person_b = {self.person_b}, "
                 f"hashed_a = {self.hashed_a}, "
-                f"hashed_b = {self.hashed_b}"
+                f"hashed_b = {self.hashed_b}, "
+                f"report = {report}"
             )
 
         log.info(

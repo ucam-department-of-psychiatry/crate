@@ -426,7 +426,7 @@ class Person:
 
     def __str__(self) -> str:
         if self.is_hashed():
-            return f"Hashed person with local_id={self.local_id!r}"
+            return f"Person<HASHED, local_id={self.local_id!r}>"
         names = " ".join(
             [str(f) for f in self.forenames] + [str(s) for s in self.surnames]
         )
@@ -443,7 +443,7 @@ class Person:
                 f"{k.OTHER_INFO}={self.other_info!r}",
             ]
         )
-        return f"Person with {details}"
+        return f"Person<{details}>"
 
     # -------------------------------------------------------------------------
     # Representation: CSV
@@ -752,13 +752,17 @@ class Person:
             yield self.gender
         yield from self.postcodes
 
-    def debug_compare(self, candidate: "Person", verbose: bool = True) -> None:
+    def debug_comparison_report(
+        self, candidate: "Person", verbose: bool = True
+    ) -> str:
         """
-        Compare a person with another, and log every step of the way.
+        Compare a person with another, log every step of the way, and return
+        the result as a string.
         """
+        lines = []  # type: List[str]
 
         def report(msg_: str) -> None:
-            log.info(f"{msg_} -> log_odds = {log_odds}")
+            lines.append(f"{msg_} -> log_odds = {log_odds}")
 
         if verbose:
             spacer = "  - "
@@ -777,19 +781,31 @@ class Person:
         else:
             self_id = ""
             candidate_id = ""
-        log.info(
-            f"VERBOSE COMPARISON:\n"
-            f"- self (proband) = {self}\n"
-            f"{self_id}\n"
-            f"- candidate      = {candidate}\n"
-            f"{candidate_id}\n"
-        )
+        lines.append("VERBOSE COMPARISON:")
+        lines.append(f"- self (proband) = {self}")
+        lines.append(self_id)
+        lines.append(f"- candidate      = {candidate}")
+        lines.append(candidate_id)
+        lines.append(f"- self dict      = {self.as_dict(hashed=False)}")
+        lines.append(self_id)
+        lines.append(f"- candidate dict = {candidate.as_dict(hashed=False)}")
+        lines.append(candidate_id)
 
         log_odds = self.cfg.baseline_log_odds_same_person
         report("Baseline")
         for comp in self._gen_comparisons(candidate=candidate):
+            if not comp:
+                continue
             log_odds = comp.posterior_log_odds(log_odds)
             report(str(comp))
+
+        return "\n".join(filter(None, lines))
+
+    def debug_compare(self, candidate: "Person", verbose: bool = True) -> None:
+        """
+        Compare a person with another, and log every step of the way.
+        """
+        log.info(self.debug_comparison_report(candidate, verbose=verbose))
 
     # -------------------------------------------------------------------------
     # Debugging functions to mutate this object

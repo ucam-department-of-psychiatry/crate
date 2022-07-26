@@ -817,10 +817,11 @@ class MatchConfig:
     # Comparisons
     # -------------------------------------------------------------------------
 
-    def person_matches(self, log_odds_match: float) -> bool:
+    def exceeds_primary_threshold(self, log_odds_match: float) -> bool:
         """
-        Decides as to whether two :class:`Person` objects are a sufficient
-        match, based on our threshold.
+        Decides as to whether the log odds, representing P(H | D) from a
+        comparison of two :class:`Person` objects, are sufficient for a match,
+        based on our threshold.
 
         Args:
             log_odds_match: log odds that they're the same person

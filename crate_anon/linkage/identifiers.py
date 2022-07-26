@@ -360,36 +360,6 @@ class Identifier(ABC):
 
         return contents, start_date, end_date
 
-    @classmethod
-    def _getval(cls, d: Dict[str, Any], key: str, type_: Type) -> Any:
-        """
-        Returns a value from a dictionary or raises an exception.
-        The key must be in the dictionary, and the value must be non-blank.
-        The value must be of type `type_`.
-        """
-        try:
-            v = d[key]
-        except KeyError:
-            raise ValueError(f"Missing key: {key}")
-        if v is None or v == "":
-            raise ValueError(f"Missing or blank value: {key}")
-        if not isinstance(v, type_):
-            raise ValueError(
-                f"Value for {key} should be of type {type_} but was of "
-                f"type {type(v)}"
-            )
-        return v
-
-    @classmethod
-    def _getprob(cls, d: Dict[str, Any], key: str) -> Any:
-        """
-        As for :meth:`_getval` but returns a probability and checks that it
-        is in range.
-        """
-        v = getdictval(d, key, float)
-        if not 0 <= v <= 1:
-            raise ValueError(f"Bad probability for {key}: {v}")
-
     def _round(self, x: Optional[float], encrypt: bool) -> Optional[float]:
         """
         Implements config-defined rounding for frequency representations of

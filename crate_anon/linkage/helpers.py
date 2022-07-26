@@ -695,8 +695,8 @@ def getdictval(
         raise ValueError(f"Missing or blank value: {key}")
     if not isinstance(v, (type_, NONE_TYPE)):
         raise ValueError(
-            f"Value for {key} should be of type {type_} but was of "
-            f"type {type(v)}"
+            f"Value for {key!r} should be of type {type_} "
+            f"but was of type {type(v)}; was {v!r}"
         )
     return v
 
