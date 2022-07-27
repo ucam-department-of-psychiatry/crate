@@ -160,7 +160,7 @@ Frequency information for prior probabilities:
                         2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
                         [Information saved in the forename cache. If you
                         change this, delete your forename cache.] (default:
-                        2.9e-08)
+                        5e-06)
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading). (default:
@@ -179,7 +179,7 @@ Frequency information for prior probabilities:
                         3e-7 are reported as 0, so 1.5e-7 is the midpoint of
                         the low-frequency range. [Information saved in the
                         surname cache. If you change this, delete your surname
-                        cache.] (default: 1.5e-07)
+                        cache.] (default: 5e-06)
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         (For surnames.) CSV list of 'accented/plain' pairs,
                         representing how accented characters may be
@@ -501,7 +501,7 @@ Frequency information for prior probabilities:
                         2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
                         [Information saved in the forename cache. If you
                         change this, delete your forename cache.] (default:
-                        2.9e-08)
+                        5e-06)
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading). (default:
@@ -520,7 +520,7 @@ Frequency information for prior probabilities:
                         3e-7 are reported as 0, so 1.5e-7 is the midpoint of
                         the low-frequency range. [Information saved in the
                         surname cache. If you change this, delete your surname
-                        cache.] (default: 1.5e-07)
+                        cache.] (default: 5e-06)
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         (For surnames.) CSV list of 'accented/plain' pairs,
                         representing how accented characters may be
@@ -817,7 +817,7 @@ Frequency information for prior probabilities:
                         2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
                         [Information saved in the forename cache. If you
                         change this, delete your forename cache.] (default:
-                        2.9e-08)
+                        5e-06)
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading). (default:
@@ -836,7 +836,7 @@ Frequency information for prior probabilities:
                         3e-7 are reported as 0, so 1.5e-7 is the midpoint of
                         the low-frequency range. [Information saved in the
                         surname cache. If you change this, delete your surname
-                        cache.] (default: 1.5e-07)
+                        cache.] (default: 5e-06)
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         (For surnames.) CSV list of 'accented/plain' pairs,
                         representing how accented characters may be
@@ -1173,7 +1173,7 @@ Frequency information for prior probabilities:
                         2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
                         [Information saved in the forename cache. If you
                         change this, delete your forename cache.] (default:
-                        2.9e-08)
+                        5e-06)
   --surname_cache_filename SURNAME_CACHE_FILENAME
                         File in which to store cached surname info (to speed
                         loading). (default:
@@ -1192,7 +1192,7 @@ Frequency information for prior probabilities:
                         3e-7 are reported as 0, so 1.5e-7 is the midpoint of
                         the low-frequency range. [Information saved in the
                         surname cache. If you change this, delete your surname
-                        cache.] (default: 1.5e-07)
+                        cache.] (default: 5e-06)
   --accent_transliterations ACCENT_TRANSLITERATIONS
                         (For surnames.) CSV list of 'accented/plain' pairs,
                         representing how accented characters may be

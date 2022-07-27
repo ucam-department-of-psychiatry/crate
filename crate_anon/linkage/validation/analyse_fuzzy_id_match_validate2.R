@@ -3187,10 +3187,11 @@ main <- function()
     )
     write.table(pst_table_zero, PST_OUTPUT_FILE_ZERO, row.names = FALSE)
 
-    pst_table_neg_inf <- write_simplified_performance_summary_at_threshold(
-        theta = -Inf, delta = 0
-    )
-    write.table(pst_table_neg_inf, PST_OUTPUT_FILE_NEG_INF, row.names = FALSE)
+    # pst_table_neg_inf <- write_simplified_performance_summary_at_threshold(
+    #     theta = -Inf, delta = 0
+    # )
+    # write.table(pst_table_neg_inf, PST_OUTPUT_FILE_NEG_INF, row.names = FALSE)
+    #
     # The misidentification rates are very high, as expected, because every
     # proband (and in particular, everyone who is NOT in the sample database)
     # is paired with some candidate. This is perhaps not particularly

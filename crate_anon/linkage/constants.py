@@ -250,11 +250,21 @@ class FuzzyDefaults:
 
     POPULATION_SIZE = CAMBS_PBORO_POPULATION_2018  # (N)
 
-    FORENAME_MIN_FREQ = 2.9e-8
-    # US forename data: floor at 2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to 2sf.
-    SURNAME_MIN_FREQ = 1.5e-7
-    # US surname data: values below 3e-7 are reported as 0, so 1.5e-7 is the
-    # midpoint of the low-frequency range.
+    FORENAME_MIN_FREQ = 5e-6
+    SURNAME_MIN_FREQ = 5e-6
+    # Tried with (a) forename minimum frequency 2.9e-8, on the basis of US
+    # forename data giving a floor at 2.875e-8 (M), 2.930e-8 (F), so 2.9e-8 to
+    # 2sf; and (b) surname minimum frequency at 1.5e-7, since in the US surname
+    # data, values below 3e-7 are reported as 0, so 1.5e-7 is the midpoint of
+    # the low-frequency range. This doesn't (materially) affect the best
+    # performance: accuracy etc. are still optimized at theta = delta = 0, MID
+    # is still optimized at theta = delta = 15, and the WPM is optimized at
+    # theta = 6, delta = 0 (rather than theta = 5, delta = 0). However, these
+    # very low values just inflate MID overall and are not very plausible; much
+    # below 1/n_p is not very plausible, and likely over-emphasizes matches on
+    # unusual/unknown names. So: 5e-6 as originally planned (since the previous
+    # US surname data had a floor at 1e-5, and since we will pilot with n_p
+    # ~1e6).
 
     BIRTH_YEAR_PSEUDO_RANGE = 30  # (E) UK-wide ~90, perhaps; 30 empirically.
 
