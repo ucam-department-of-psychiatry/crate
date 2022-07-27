@@ -3034,7 +3034,7 @@ show_duplicate_nhsnum_effect <- function(probands, sample, comparison)
     # (judged by NHS number). We expect it to be harder to match if this
     # database serves as the sample.
     #
-    # IN PROGRESS.
+    # IN PROGRESS -> ABANDONED.
 
     probands[,
         is_nhsnum_duplicated :=
@@ -3049,7 +3049,7 @@ show_duplicate_nhsnum_effect <- function(probands, sample, comparison)
 
 
 # =============================================================================
-# Consider defaults
+# Consider the best threshold defaults for the software
 # =============================================================================
 
 show_performance_means_by_theta_delta <- function(
@@ -3124,6 +3124,209 @@ show_performance_means_by_theta_delta <- function(
      ))
     setorder(performance_means_by_theta_delta, mean_WPM);
     write_output(performance_means_by_theta_delta)
+}
+
+
+# =============================================================================
+# Reasons for linkage failure
+# =============================================================================
+
+why_linkage_failure <- function(
+    proband_db_name = RIO,
+    sample_db_name = SYSTMONE,
+    theta = DEFAULT_THETA,
+    delta = DEFAULT_DELTA
+) {
+    # 1. Fetch information on probands who are:
+    #    (a) present in the sample, but were either
+    #    (b) not linked = miss, or
+    #    (c) misidentified.
+    #    Link them to "themselves" (the candidate that should have been
+    #    identified but wasn't.)
+    probands <- get(mk_people_var(proband_db_name))
+    sample <- get(mk_people_var(sample_db_name))
+    comparison <- get(mk_comparison_var(proband_db_name, sample_db_name))
+    miss_and_mismatch <- rbind(
+        extract_miss_or_misidentified_info(
+            probands,
+            sample,
+            comparison,
+            sample_db_name = sample_db_name,
+            theta = theta,
+            delta = delta,
+            rowtype = "miss"
+        ),
+        extract_miss_or_misidentified_info(
+            probands,
+            sample,
+            comparison,
+            sample_db_name = sample_db_name,
+            theta = theta,
+            delta = delta,
+            rowtype = "misidentified"
+        )
+    )
+    # 2. Look at ways in which the linkage went wrong
+    any_overlap_in_semicolon_list <- function(a, b) {
+        a_items <- str_split(a, ";")[[1]]
+        b_items <- str_split(b, ";")[[1]]
+        overlaps <- length(intersect(a_items, b_items)) >= 1
+        return(overlaps)
+    }
+    any_overlap_in_semicolon_list_v <- Vectorize(any_overlap_in_semicolon_list)
+    miss_and_mismatch <- (
+        miss_and_mismatch
+        %>% mutate(
+            # pnf = partial not full, etc.
+            dob_present = (
+                !is.na(dob_proband)
+                & dob_proband != ""
+                & !is.na(dob_sample)
+                & dob_sample != ""
+            ),
+            dob_full = dob_present & dob_proband == dob_sample,
+            dob_pnf = (
+                dob_present
+                & (
+                    dob_md_proband == dob_md_sample
+                    | dob_yd_proband == dob_yd_sample
+                    | dob_ym_proband == dob_ym_sample
+                )
+                & dob_proband != dob_sample
+            ),
+            dob_mismatch = dob_present & !dob_full & !dob_pnf,
+            dob_missing = !dob_present,
+
+            gender_present = (
+                !is.na(gender_hashed_proband)
+                & gender_hashed_proband != ""
+                & !is.na(gender_hashed_sample)
+                & gender_hashed_sample != ""
+            ),
+            gender_full = (
+                gender_present
+                & gender_hashed_proband == gender_hashed_sample
+            ),
+            gender_mismatch = gender_present & !gender_full,
+            gender_missing = !gender_present,
+
+            first_name_present = (
+                !is.na(first_name_name_proband)
+                & first_name_name_proband != ""
+                & !is.na(first_name_name_sample)
+                & first_name_name_sample != ""
+            ),
+            first_name_full = (
+                first_name_present
+                & first_name_name_proband == first_name_name_sample
+            ),
+            first_name_p1nf = (
+                first_name_present
+                & first_name_metaphone_proband == first_name_metaphone_sample
+                & first_name_name_proband != first_name_name_sample
+            ),
+            first_name_p2np1 = (
+                first_name_present
+                & first_name_f2c_proband == first_name_f2c_sample
+                & first_name_metaphone_proband != first_name_metaphone_sample
+                & first_name_name_proband != first_name_name_sample
+            ),
+            first_name_mismatch = (
+                first_name_present
+                & !first_name_full
+                & !first_name_p1nf
+                & !first_name_p2np1
+            ),
+            first_name_missing = !first_name_present,
+
+            surname_present = (
+                !is.na(surname_name_proband)
+                & surname_name_proband != ""
+                & !is.na(surname_name_sample)
+                & surname_name_sample != ""
+            ),
+            surname_full = (
+                surname_present
+                & surname_name_proband == surname_name_sample
+            ),
+            surname_p1nf = (
+                surname_present
+                & surname_metaphone_proband == surname_metaphone_sample
+                & surname_name_proband != surname_name_sample
+            ),
+            surname_p2np1 = (
+                surname_present
+                & surname_f2c_proband == surname_f2c_sample
+                & surname_metaphone_proband != surname_metaphone_sample
+                & surname_name_proband != surname_name_sample
+            ),
+            surname_mismatch = (
+                surname_present
+                & !surname_full
+                & !surname_p1nf
+                & !surname_p2np1
+            ),
+            surname_missing = !surname_present,
+
+            postcode_present = (
+                !is.na(postcode_units_proband)
+                & postcode_units_proband != ""
+                & !is.na(postcode_units_sample)
+                & postcode_units_sample != ""
+            ),
+            postcode_full = postcode_present & any_overlap_in_semicolon_list_v(
+                postcode_units_proband, postcode_units_sample
+            ),
+            postcode_p1nf = (
+                postcode_present
+                & !postcode_full
+                & any_overlap_in_semicolon_list_v(
+                    postcode_sectors_proband, postcode_sectors_sample
+                )
+            ),
+            postcode_mismatch = (
+                postcode_present & !postcode_full & !postcode_p1nf
+            ),
+            postcode_missing = !postcode_present
+        )
+        %>% as.data.table()
+    )
+    # 3. Summarize
+    s <- (
+        miss_and_mismatch
+        %>% summarize(
+            n = n(),
+            prop_dob_full = sum(dob_full) / n,
+            prop_dob_pnf = sum(dob_pnf) / n,
+            prop_dob_mismatch = sum(dob_mismatch) / n,
+            prop_dob_missing = sum(dob_missing) / n,
+
+            prop_gender_full = sum(gender_full) / n,
+            prop_gender_mismatch = sum(gender_mismatch) / n,
+            prop_gender_missing = sum(gender_missing) / n,
+
+            prop_first_name_full = sum(first_name_full) / n,
+            prop_first_name_p1nf = sum(first_name_p1nf) / n,
+            prop_first_name_p2np1 = sum(first_name_p2np1) / n,
+            prop_first_name_mismatch = sum(first_name_mismatch) / n,
+            prop_first_name_missing = sum(first_name_missing) / n,
+
+            prop_surname_full = sum(surname_full) / n,
+            prop_surname_p1nf = sum(surname_p1nf) / n,
+            prop_surname_p2np1 = sum(surname_p2np1) / n,
+            prop_surname_mismatch = sum(surname_mismatch) / n,
+            prop_surname_missing = sum(surname_missing) / n,
+
+            prop_postcode_present = sum(postcode_present) / n,
+            prop_postcode_full = sum(postcode_full) / n,
+            prop_postcode_p1nf = sum(postcode_p1nf) / n,
+            prop_postcode_mismatch = sum(postcode_mismatch) / n,
+            prop_postcode_missing = sum(postcode_missing) / n,
+
+            .groups = "drop"
+        )
+    )
+    return(s)
 }
 
 
@@ -3220,6 +3423,9 @@ main <- function()
 
     # Not done: demographics predicting specific sub-reasons for non-linkage.
     # (We predict overall non-linkage above.)
+
+    why_linkage_failure_miss_or_misidentified <- why_linkage_failure()
+    write_output(why_linkage_failure_miss_or_misidentified)
 
     # -------------------------------------------------------------------------
     # Rates of identifier discrepancy for known-same people.
