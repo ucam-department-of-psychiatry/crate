@@ -4,6 +4,8 @@
 # Rebuild Sphinx docs from scratch and check generated files match those checked
 # in
 
+set -eux -o pipefail
+
 sudo apt-get install texlive-latex-extra dvipng
 python -m venv "${HOME}/venv"
 source "${HOME}/venv/bin/activate"
