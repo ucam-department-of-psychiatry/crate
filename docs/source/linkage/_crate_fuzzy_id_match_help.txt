@@ -150,9 +150,8 @@ Frequency information for prior probabilities:
                         forenames. You can generate one via
                         crate_fetch_wordlists. [Information saved in the
                         forename cache. If you change this, delete your
-                        forename cache.] (default: /home/rudolf/Documents/code
-                        /crate/crate_anon/linkage/data/us_forename_sex_freq.zi
-                        p)
+                        forename cache.] (default:
+                        /path/to/linkage/data/us_forename_sex_freq.zip)
   --forename_min_frequency FORENAME_MIN_FREQUENCY
                         Minimum frequency for forenames. If a frequency is
                         unknown or less than this, the software uses this
@@ -169,9 +168,8 @@ Frequency information for prior probabilities:
                         CSV file of "name, frequency" pairs for surnames. You
                         can generate one via crate_fetch_wordlists.
                         [Information saved in the surname cache. If you change
-                        this, delete your surname cache.] (default: /home/rudo
-                        lf/Documents/code/crate/crate_anon/linkage/data/us_sur
-                        name_freq.zip)
+                        this, delete your surname cache.] (default:
+                        /path/to/linkage/data/us_surname_freq.zip)
   --surname_min_frequency SURNAME_MIN_FREQUENCY
                         Minimum frequency for surnames. If a frequency is
                         unknown or less than this, the software uses this
@@ -216,9 +214,8 @@ Frequency information for prior probabilities:
                         CSV file of postcode geography from UK Census/ONS
                         data. A ZIP file is also acceptable. [Information
                         saved in the postcode cache. If you change this,
-                        delete your postcode cache.] (default: /home/rudolf/Do
-                        cuments/code/crate/crate_anon/linkage/data/ONSPD_MAY_2
-                        022_UK.zip)
+                        delete your postcode cache.] (default:
+                        /path/to/linkage/data/ONSPD_MAY_2022_UK.zip)
   --k_postcode K_POSTCODE
                         Probability multiple: P[P(postcode unit match | ¬H)] =
                         k_postcode * f_f_postcode[national unit fraction], and
@@ -491,9 +488,8 @@ Frequency information for prior probabilities:
                         forenames. You can generate one via
                         crate_fetch_wordlists. [Information saved in the
                         forename cache. If you change this, delete your
-                        forename cache.] (default: /home/rudolf/Documents/code
-                        /crate/crate_anon/linkage/data/us_forename_sex_freq.zi
-                        p)
+                        forename cache.] (default:
+                        /path/to/linkage/data/us_forename_sex_freq.zip)
   --forename_min_frequency FORENAME_MIN_FREQUENCY
                         Minimum frequency for forenames. If a frequency is
                         unknown or less than this, the software uses this
@@ -510,9 +506,8 @@ Frequency information for prior probabilities:
                         CSV file of "name, frequency" pairs for surnames. You
                         can generate one via crate_fetch_wordlists.
                         [Information saved in the surname cache. If you change
-                        this, delete your surname cache.] (default: /home/rudo
-                        lf/Documents/code/crate/crate_anon/linkage/data/us_sur
-                        name_freq.zip)
+                        this, delete your surname cache.] (default:
+                        /path/to/linkage/data/us_surname_freq.zip)
   --surname_min_frequency SURNAME_MIN_FREQUENCY
                         Minimum frequency for surnames. If a frequency is
                         unknown or less than this, the software uses this
@@ -557,9 +552,8 @@ Frequency information for prior probabilities:
                         CSV file of postcode geography from UK Census/ONS
                         data. A ZIP file is also acceptable. [Information
                         saved in the postcode cache. If you change this,
-                        delete your postcode cache.] (default: /home/rudolf/Do
-                        cuments/code/crate/crate_anon/linkage/data/ONSPD_MAY_2
-                        022_UK.zip)
+                        delete your postcode cache.] (default:
+                        /path/to/linkage/data/ONSPD_MAY_2022_UK.zip)
   --k_postcode K_POSTCODE
                         Probability multiple: P[P(postcode unit match | ¬H)] =
                         k_postcode * f_f_postcode[national unit fraction], and
@@ -807,9 +801,8 @@ Frequency information for prior probabilities:
                         forenames. You can generate one via
                         crate_fetch_wordlists. [Information saved in the
                         forename cache. If you change this, delete your
-                        forename cache.] (default: /home/rudolf/Documents/code
-                        /crate/crate_anon/linkage/data/us_forename_sex_freq.zi
-                        p)
+                        forename cache.] (default:
+                        /path/to/linkage/data/us_forename_sex_freq.zip)
   --forename_min_frequency FORENAME_MIN_FREQUENCY
                         Minimum frequency for forenames. If a frequency is
                         unknown or less than this, the software uses this
@@ -826,9 +819,8 @@ Frequency information for prior probabilities:
                         CSV file of "name, frequency" pairs for surnames. You
                         can generate one via crate_fetch_wordlists.
                         [Information saved in the surname cache. If you change
-                        this, delete your surname cache.] (default: /home/rudo
-                        lf/Documents/code/crate/crate_anon/linkage/data/us_sur
-                        name_freq.zip)
+                        this, delete your surname cache.] (default:
+                        /path/to/linkage/data/us_surname_freq.zip)
   --surname_min_frequency SURNAME_MIN_FREQUENCY
                         Minimum frequency for surnames. If a frequency is
                         unknown or less than this, the software uses this
@@ -873,9 +865,8 @@ Frequency information for prior probabilities:
                         CSV file of postcode geography from UK Census/ONS
                         data. A ZIP file is also acceptable. [Information
                         saved in the postcode cache. If you change this,
-                        delete your postcode cache.] (default: /home/rudolf/Do
-                        cuments/code/crate/crate_anon/linkage/data/ONSPD_MAY_2
-                        022_UK.zip)
+                        delete your postcode cache.] (default:
+                        /path/to/linkage/data/ONSPD_MAY_2022_UK.zip)
   --k_postcode K_POSTCODE
                         Probability multiple: P[P(postcode unit match | ¬H)] =
                         k_postcode * f_f_postcode[national unit fraction], and
@@ -1163,9 +1154,8 @@ Frequency information for prior probabilities:
                         forenames. You can generate one via
                         crate_fetch_wordlists. [Information saved in the
                         forename cache. If you change this, delete your
-                        forename cache.] (default: /home/rudolf/Documents/code
-                        /crate/crate_anon/linkage/data/us_forename_sex_freq.zi
-                        p)
+                        forename cache.] (default:
+                        /path/to/linkage/data/us_forename_sex_freq.zip)
   --forename_min_frequency FORENAME_MIN_FREQUENCY
                         Minimum frequency for forenames. If a frequency is
                         unknown or less than this, the software uses this
@@ -1182,9 +1172,8 @@ Frequency information for prior probabilities:
                         CSV file of "name, frequency" pairs for surnames. You
                         can generate one via crate_fetch_wordlists.
                         [Information saved in the surname cache. If you change
-                        this, delete your surname cache.] (default: /home/rudo
-                        lf/Documents/code/crate/crate_anon/linkage/data/us_sur
-                        name_freq.zip)
+                        this, delete your surname cache.] (default:
+                        /path/to/linkage/data/us_surname_freq.zip)
   --surname_min_frequency SURNAME_MIN_FREQUENCY
                         Minimum frequency for surnames. If a frequency is
                         unknown or less than this, the software uses this
@@ -1229,9 +1218,8 @@ Frequency information for prior probabilities:
                         CSV file of postcode geography from UK Census/ONS
                         data. A ZIP file is also acceptable. [Information
                         saved in the postcode cache. If you change this,
-                        delete your postcode cache.] (default: /home/rudolf/Do
-                        cuments/code/crate/crate_anon/linkage/data/ONSPD_MAY_2
-                        022_UK.zip)
+                        delete your postcode cache.] (default:
+                        /path/to/linkage/data/ONSPD_MAY_2022_UK.zip)
   --k_postcode K_POSTCODE
                         Probability multiple: P[P(postcode unit match | ¬H)] =
                         k_postcode * f_f_postcode[national unit fraction], and
