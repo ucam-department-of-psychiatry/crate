@@ -680,7 +680,7 @@ def getdictval(
     The key must be in the dictionary, and the value must be non-blank.
     - The value must be of type `type_`, or ``None`` if
     - If ``mandatory`` is True, the key must be present (and if a string,
-      the value must be non-blank).
+    the value must be non-blank).
     - Otherwise, if absent, ``default`` is returned.
     The default is non-mandatory and returning None.
     """
