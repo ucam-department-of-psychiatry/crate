@@ -676,13 +676,12 @@ def getdictval(
     default: Any = None,
 ) -> Any:
     """
-    Returns a value from a dictionary or raises an exception.
-    The key must be in the dictionary, and the value must be non-blank.
-    - The value must be of type `type_`, or ``None`` if
-    - If ``mandatory`` is True, the key must be present (and if a string,
-    the value must be non-blank).
-    - Otherwise, if absent, ``default`` is returned.
-    The default is non-mandatory and returning None.
+    Returns a value from a dictionary, or raises ValueError.
+
+    - If ``mandatory`` is True, the key must be present, and the value must not
+      be ``None`` or a blank string.
+    - If ``mandatory`` is False and the key is absent, ``default`` is returned.
+    - The value must be of type `type_` (or ``None`` if permitted).
     """
     try:
         v = d[key]
