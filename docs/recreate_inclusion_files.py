@@ -115,38 +115,27 @@ def run_cmd(
 # =============================================================================
 
 
-def get_bash_completion_commands(
-    prefix: str, encoding: str = DEFAULT_ENCODING
-) -> List[str]:
+def get_scripts_with_prefix(prefix: str) -> List[str]:
     """
-    Get available commands starting with the prefix.
-    Roughly equivalent to typing the prefix, then pressing Tab in Bash.
-    See
-
-    - https://unix.stackexchange.com/questions/151118/understand-compgen-builtin-command
-    - https://stackoverflow.com/questions/5460923/run-bash-built-in-commands-in-python
+    Get available scripts starting with the prefix.
 
     Args:
         prefix:
-            Command prefix.
-        encoding:
-            Encoding to use.
+            Script prefix.
 
     Returns:
-        A sorted list of possible commands.
-    """  # noqa
-    subcommand = " ".join(
-        ["compgen", "-c", prefix]  # bash built-in  # list possible commands
-    )
-    output = subprocess.check_output(
+        A sorted list of possible scripts.
+    """
+
+    import pkg_resources
+
+    return sorted(
         [
-            "bash",  # fire up bash
-            "-c",  # and run the next (single string!) argument as a command:
-            subcommand,
+            ep.name
+            for ep in pkg_resources.iter_entry_points("console_scripts")
+            if ep.name.startswith(prefix)
         ]
-    ).decode(encoding)
-    possibilities = sorted(filter(None, output.split("\n")))
-    return possibilities
+    )
 
 
 def make_command_line_index_help(filename: str) -> None:
@@ -158,7 +147,7 @@ def make_command_line_index_help(filename: str) -> None:
     each command.
     """
     # Get all possible CRATE-related commands:
-    commands = get_bash_completion_commands("crate_")
+    commands = get_scripts_with_prefix("crate_")
     commands_text = ""
     for c in commands:
         commands_text += f"""

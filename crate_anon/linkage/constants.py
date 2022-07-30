@@ -191,7 +191,10 @@ class FuzzyDefaults:
 
     # Public data that we provide a local copy of
     _THIS_DIR = os.path.abspath(os.path.dirname(__file__))
-    _DATA_DIR = os.path.join(_THIS_DIR, "data")
+    if EnvVar.GENERATING_CRATE_DOCS in os.environ:
+        _DATA_DIR = "/path/to/linkage/data/"
+    else:
+        _DATA_DIR = os.path.join(_THIS_DIR, "data")
     FORENAME_SEX_FREQ_CSV = os.path.join(_DATA_DIR, "us_forename_sex_freq.zip")
     SURNAME_FREQ_CSV = os.path.join(_DATA_DIR, "us_surname_freq.zip")
     POSTCODES_CSV = os.path.join(_DATA_DIR, "ONSPD_MAY_2022_UK.zip")
@@ -296,7 +299,7 @@ class FuzzyDefaults:
 
         avg_people_per_household = 2.4
         n_people_per_homeless_household = (2 / 3) * 1 + (1 / 3) * avg_people_per_household
-        n_people_homeless_england = (11.4 / 100) * 68180 * n_people_per_homeless_household 
+        n_people_homeless_england = (11.4 / 100) * 68180 * n_people_per_homeless_household
         n_people_uk = 27.8e6 * 2.4  # 66.7 million, so that's about right
         n_people_england = 0.843 * n_people_uk
         p_homeless = n_people_homeless_england / n_people_england
@@ -338,7 +341,7 @@ class FuzzyDefaults:
     sector probability will exactly match the unit probability) and any
     inadvertent sector-not-unit match will give a log likelihood of +∞ and a
     certain match.
-    
+
     However, empirically in SystmOne, ZZ993 / ZZ993VZ = 1.83 (see paper).
 
     """  # noqa
