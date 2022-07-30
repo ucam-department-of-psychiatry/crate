@@ -1421,21 +1421,22 @@ class MultipleComparisonTests(unittest.TestCase):
     # Multiple comparison correction checks
     # -------------------------------------------------------------------------
 
-    def test_multiple_comparisons(self) -> None:
-        a = DummyLetterIdentifier("A")
-        b = DummyLetterIdentifier("B")
-        c = DummyLetterIdentifier("C")
-        d = DummyLetterIdentifier("D")
-
+    def test_unordered_one_one(self) -> None:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # UNORDERED, one/one identifier
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+
         result = self.compare_unordered([a], [a])
         self.assertEqual(len(result), 1)  # ... one match, no correction
 
+    def test_unordered_two_two(self) -> None:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Unordered, two/two identifiers
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+
         result = self.compare_unordered([a, b], [a, b])
         self.assertEqual(len(result), 3)  # ... two matches and a correction
         corr = result[-1]
@@ -1445,9 +1446,14 @@ class MultipleComparisonTests(unittest.TestCase):
             corr.log_likelihood_ratio, -ln(2), delta=self.DELTA
         )
 
+    def test_unordered_three_three(self) -> None:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Unordered, three/three identifiers
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+        c = DummyLetterIdentifier("C")
+
         result = self.compare_unordered([a, b, c], [a, b, c])
         self.assertEqual(len(result), 4)  # ... three matches and a correction
         corr = result[-1]
@@ -1456,9 +1462,14 @@ class MultipleComparisonTests(unittest.TestCase):
             corr.log_likelihood_ratio, -ln(6), delta=self.DELTA
         )
 
+    def test_unordered_one_three(self) -> None:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Unordered, one/three identifiers
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+        c = DummyLetterIdentifier("C")
+
         result = self.compare_unordered([a], [a, b, c])
         self.assertEqual(len(result), 2)  # ... one match and a correction
         corr = result[-1]
@@ -1467,15 +1478,22 @@ class MultipleComparisonTests(unittest.TestCase):
             corr.log_likelihood_ratio, -ln(3), delta=self.DELTA
         )
 
+    def test_ordered_one_one(self) -> None:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ORDERED, one/one identifier
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+
         result = self.compare_ordered([a], [a])
         self.assertEqual(len(result), 1)  # ... one match, no correction
 
+    def test_ordered_two_two_correct_order(self) -> None:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Ordered, two/two identifiers, correct order
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+
         result = self.compare_ordered([a, b], [a, b])
         self.assertEqual(len(result), 3)  # ... two matches and a correction
         corr = result[-1]
@@ -1485,9 +1503,13 @@ class MultipleComparisonTests(unittest.TestCase):
             corr.log_likelihood_ratio, ln(self.P_O), delta=self.DELTA
         )
 
+    def test_ordered_two_two_wrong_order(self) -> None:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Ordered, two/two identifiers, wrong order
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+
         result = self.compare_ordered([a, b], [b, a])
         self.assertEqual(len(result), 3)  # ... two matches and a correction
         corr = result[-1]
@@ -1498,9 +1520,14 @@ class MultipleComparisonTests(unittest.TestCase):
             corr.log_likelihood_ratio, ln(self.P_U), delta=self.DELTA
         )
 
+    def test_ordered_three_three_correct_order(self) -> None:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Ordered, three/three identifiers, correct order
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+        c = DummyLetterIdentifier("C")
+
         result = self.compare_ordered([a, b, c], [a, b, c])
         self.assertEqual(len(result), 4)  # ... three matches and a correction
         corr = result[-1]
@@ -1510,9 +1537,14 @@ class MultipleComparisonTests(unittest.TestCase):
             corr.log_likelihood_ratio, ln(self.P_O), delta=self.DELTA
         )
 
+    def test_ordered_three_three_wrong_order(self) -> None:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Ordered, three/three identifiers, wrong order
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+        c = DummyLetterIdentifier("C")
+
         result = self.compare_ordered([a, b, c], [b, c, a])
         self.assertEqual(len(result), 4)  # ... three matches and a correction
         corr = result[-1]
@@ -1523,9 +1555,15 @@ class MultipleComparisonTests(unittest.TestCase):
             corr.log_likelihood_ratio, ln(self.P_U) - ln(5), delta=self.DELTA
         )
 
+    def test_ordered_three_three_two_match_wrong_order(self) -> None:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Ordered, three/three identifiers, two match, wrong order
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+        c = DummyLetterIdentifier("C")
+        d = DummyLetterIdentifier("D")
+
         result = self.compare_ordered([a, b, c], [b, c, d])
         self.assertEqual(len(result), 4)
         # ... three matches (but one will be bad) and a correction
@@ -1536,5 +1574,3 @@ class MultipleComparisonTests(unittest.TestCase):
         self.assertAlmostEqual(
             corr.log_likelihood_ratio, ln(self.P_U) - ln(5), delta=self.DELTA
         )
-
-        # import pdb; pdb.set_trace()
