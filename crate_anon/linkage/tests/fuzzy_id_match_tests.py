@@ -40,7 +40,10 @@ from typing import List, Optional, Tuple, Type
 from cardinal_pythonlib.probability import probability_from_log_odds
 from pendulum import Date
 
-from crate_anon.linkage.comparison import DirectComparison
+from crate_anon.linkage.comparison import (
+    AdjustLogOddsComparison,
+    DirectComparison,
+)
 
 from crate_anon.linkage.constants import (
     FuzzyDefaults,
@@ -1442,11 +1445,12 @@ class UnorderedMultipleComparisonTests(MultipleComparisonTestBase):
         comparison2 = result[1]
         self.assertIsInstance(comparison2, DirectComparison)
         self.assertEqual(comparison2.d_description, "dummy_match:B")
-        corr = result[-1]
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
         # Correction should be for 2 hits from 2 comparisons, and a Bonferroni
         # correction:
         self.assertAlmostEqual(
-            corr.log_likelihood_ratio, -ln(2), delta=self.DELTA
+            correction.log_likelihood_ratio, -ln(2), delta=self.DELTA
         )
 
     def test_same_three_ids_returns_three_matches_and_a_correction(
@@ -1472,10 +1476,11 @@ class UnorderedMultipleComparisonTests(MultipleComparisonTestBase):
         self.assertIsInstance(comparison3, DirectComparison)
         self.assertEqual(comparison3.d_description, "dummy_match:C")
 
-        corr = result[-1]
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
         # Correction should be for 3 hits from 6 comparisons:
         self.assertAlmostEqual(
-            corr.log_likelihood_ratio, -ln(6), delta=self.DELTA
+            correction.log_likelihood_ratio, -ln(6), delta=self.DELTA
         )
 
     def test_one_out_of_three_ids_returns_three_matches_and_a_correction(
@@ -1495,10 +1500,11 @@ class UnorderedMultipleComparisonTests(MultipleComparisonTestBase):
         self.assertIsInstance(comparison, DirectComparison)
         self.assertEqual(comparison.d_description, "dummy_match:A")
 
-        corr = result[-1]
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
         # Correction should be for 1 hit from 3 comparisons:
         self.assertAlmostEqual(
-            corr.log_likelihood_ratio, -ln(3), delta=self.DELTA
+            correction.log_likelihood_ratio, -ln(3), delta=self.DELTA
         )
 
 
@@ -1551,11 +1557,12 @@ class OrderedMultipleComparisonTests(MultipleComparisonTestBase):
         self.assertIsInstance(comparison2, DirectComparison)
         self.assertEqual(comparison2.d_description, "dummy_match:B")
 
-        corr = result[-1]
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
         # - P(D|H) correction: +ln(p_o).
         # - P(D|¬H) correction: nothing, i.e. -ln(1) = 0.
         self.assertAlmostEqual(
-            corr.log_likelihood_ratio, ln(self.P_O), delta=self.DELTA
+            correction.log_likelihood_ratio, ln(self.P_O), delta=self.DELTA
         )
 
     def test_same_two_ids_diff_order_returns_two_matches_and_a_correction(
@@ -1577,12 +1584,13 @@ class OrderedMultipleComparisonTests(MultipleComparisonTestBase):
         self.assertIsInstance(comparison2, DirectComparison)
         self.assertEqual(comparison2.d_description, "dummy_match:B")
 
-        corr = result[-1]
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
         # - P(D|H) correction: +ln(p_u).
         # - P(D|¬H) correction: Bonferroni for 2 options but minus one for the
         #   ordered option, so nothing.
         self.assertAlmostEqual(
-            corr.log_likelihood_ratio, ln(self.P_U), delta=self.DELTA
+            correction.log_likelihood_ratio, ln(self.P_U), delta=self.DELTA
         )
 
     def test_same_three_ids_same_order_returns_three_matches_and_a_correction(
@@ -1608,11 +1616,12 @@ class OrderedMultipleComparisonTests(MultipleComparisonTestBase):
         self.assertIsInstance(comparison3, DirectComparison)
         self.assertEqual(comparison3.d_description, "dummy_match:C")
 
-        corr = result[-1]
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
         # - P(D|H) correction: +ln(p_o).
         # - P(D|¬H) correction: nothing (correct order).
         self.assertAlmostEqual(
-            corr.log_likelihood_ratio, ln(self.P_O), delta=self.DELTA
+            correction.log_likelihood_ratio, ln(self.P_O), delta=self.DELTA
         )
 
     def test_same_three_ids_diff_order_returns_three_matches_and_a_correction(
@@ -1638,12 +1647,15 @@ class OrderedMultipleComparisonTests(MultipleComparisonTestBase):
         self.assertIsInstance(comparison3, DirectComparison)
         self.assertEqual(comparison3.d_description, "dummy_match:A")
 
-        corr = result[-1]
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
         # - P(D|H) correction: +ln(p_u).
         # - P(D|¬H) correction: Bonferroni for 6 options minus the one for the
         #   correct order.
         self.assertAlmostEqual(
-            corr.log_likelihood_ratio, ln(self.P_U) - ln(5), delta=self.DELTA
+            correction.log_likelihood_ratio,
+            ln(self.P_U) - ln(5),
+            delta=self.DELTA,
         )
 
     def test_two_of_three_matching_ids_returns_three_matches_and_a_correction(
@@ -1702,10 +1714,13 @@ class OrderedMultipleComparisonTests(MultipleComparisonTestBase):
         self.assertIsInstance(comparison3, DirectComparison)
         self.assertEqual(comparison3.d_description, "dummy_mismatch:A")
 
-        corr = result[-1]
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
         # - P(D|H) correction: +ln(p_u).
         # - P(D|¬H) correction: Bonferroni for 6 options minus the one for the
         #   correct order.
         self.assertAlmostEqual(
-            corr.log_likelihood_ratio, ln(self.P_U) - ln(5), delta=self.DELTA
+            correction.log_likelihood_ratio,
+            ln(self.P_U) - ln(5),
+            delta=self.DELTA,
         )
