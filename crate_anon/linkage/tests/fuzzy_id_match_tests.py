@@ -804,17 +804,17 @@ class FuzzyLinkageTests(unittest.TestCase):
             f = cfg.get_surname_freq_info(surname)
             log.info(f"Surname frequency for {surname}: {f}")
 
-            self.assertTrue(isinstance(f.name, str))
-            self.assertTrue(isinstance(f.gender, str))
-            self.assertTrue(isinstance(f.p_name, float))
+            self.assertIsInstance(f.name, str)
+            self.assertIsInstance(f.gender, str)
+            self.assertIsInstance(f.p_name, float)
 
-            self.assertTrue(isinstance(f.metaphone, str))
-            self.assertTrue(isinstance(f.p_metaphone, float))
-            self.assertTrue(isinstance(f.p_metaphone_not_name, float))
+            self.assertIsInstance(f.metaphone, str)
+            self.assertIsInstance(f.p_metaphone, float)
+            self.assertIsInstance(f.p_metaphone_not_name, float)
 
-            self.assertTrue(isinstance(f.f2c, str))
-            self.assertTrue(isinstance(f.p_f2c, float))
-            self.assertTrue(isinstance(f.p_f2c_not_name_metaphone, float))
+            self.assertIsInstance(f.f2c, str)
+            self.assertIsInstance(f.p_f2c, float)
+            self.assertIsInstance(f.p_f2c_not_name_metaphone, float)
 
         for forename, gender in [
             ("James", GENDER_MALE),
@@ -833,17 +833,17 @@ class FuzzyLinkageTests(unittest.TestCase):
             log.info(
                 f"Forename frequency for {forename}, gender {gender}: {f}"
             )
-            self.assertTrue(isinstance(f.name, str))
-            self.assertTrue(isinstance(f.gender, str))
-            self.assertTrue(isinstance(f.p_name, float))
+            self.assertIsInstance(f.name, str)
+            self.assertIsInstance(f.gender, str)
+            self.assertIsInstance(f.p_name, float)
 
-            self.assertTrue(isinstance(f.metaphone, str))
-            self.assertTrue(isinstance(f.p_metaphone, float))
-            self.assertTrue(isinstance(f.p_metaphone_not_name, float))
+            self.assertIsInstance(f.metaphone, str)
+            self.assertIsInstance(f.p_metaphone, float)
+            self.assertIsInstance(f.p_metaphone_not_name, float)
 
-            self.assertTrue(isinstance(f.f2c, str))
-            self.assertTrue(isinstance(f.p_f2c, float))
-            self.assertTrue(isinstance(f.p_f2c_not_name_metaphone, float))
+            self.assertIsInstance(f.f2c, str)
+            self.assertIsInstance(f.p_f2c, float)
+            self.assertIsInstance(f.p_f2c_not_name_metaphone, float)
 
     def test_fuzzy_linkage_frequencies_postcode(self) -> None:
         cfg = self.cfg
