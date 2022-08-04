@@ -62,6 +62,7 @@ from crate_anon.linkage.frequencies import (
 from crate_anon.linkage.identifiers import (
     DateOfBirth,
     DummyLetterIdentifier,
+    DummyLetterTemporalIdentifier,
     Forename,
     gen_best_comparisons,
     Gender,
@@ -1506,6 +1507,26 @@ class UnorderedMultipleComparisonTests(MultipleComparisonTestBase):
         self.assertAlmostEqual(
             correction.log_likelihood_ratio, -ln(3), delta=self.DELTA
         )
+
+    def test_with_incomparable_identifiers(self) -> None:
+        """
+        Use identifiers that aren't allowed to be compared, e.g. names with
+        non-overlapping timestamps. This will give a comparison that is
+        ``None``, and make the code coverage checks happy.
+
+        .. code-block:: bash
+
+            pip install pytest-cov
+            pytest --cov --cov-report html
+        """
+        a_early = DummyLetterTemporalIdentifier(
+            value="A", start_date="1900-01-01", end_date="1900-12-31"
+        )
+        a_late = DummyLetterTemporalIdentifier(
+            value="A", start_date="2000-01-01", end_date="2000-12-31"
+        )
+        result = self.compare([a_early], [a_late])
+        self.assertEqual(len(result), 0)  # no comparisons
 
 
 class OrderedMultipleComparisonTests(MultipleComparisonTestBase):

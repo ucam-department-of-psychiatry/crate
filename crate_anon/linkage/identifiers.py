@@ -2028,27 +2028,35 @@ class PerfectID(IdentifierTwoState):
 # =============================================================================
 
 
-class DummyLetterIdentifier(IdentifierTwoState):
+class DummyLetterTemporalIdentifier(IdentifierTwoState):
     """
     Represents identifiers {A, B, ... Z}, each with probability 1/26, allowing
-    exact matching only. For testing multiple comparison algorithms.
+    exact matching only. For testing multiple comparison algorithms. Allows a
+    temporal component.
     """
 
     Q = 1 / 26  # true
     P_ERROR = 0.01  # arbitrary
     KEY_VALUE = "value"
 
-    def __init__(self, value: str, cfg: Optional[MatchConfig] = None) -> None:
+    def __init__(
+        self,
+        value: str,
+        cfg: Optional[MatchConfig] = None,
+        temporal: bool = False,
+        start_date: Union[str, Date] = None,
+        end_date: Union[str, Date] = None,
+    ) -> None:
         """
         Plaintext creation of a dummy identifier.
-
-        Args:
-            cfg:
-                The config object.
-            value:
-                (PLAINTEXT.) The value.
         """
-        super().__init__(cfg=cfg, is_plaintext=True, temporal=False)
+        super().__init__(
+            cfg=cfg,
+            is_plaintext=True,
+            temporal=temporal,
+            start_date=start_date,
+            end_date=end_date,
+        )
         assert (
             isinstance(value, str)
             and len(value) == 1
@@ -2080,8 +2088,15 @@ class DummyLetterIdentifier(IdentifierTwoState):
     @classmethod
     def from_plaintext_str(
         cls, cfg: MatchConfig, x: str
-    ) -> "DummyLetterIdentifier":
-        return DummyLetterIdentifier(cfg=cfg, value=x)
+    ) -> "DummyLetterTemporalIdentifier":
+        value, start_date, end_date = cls._get_temporal_triplet(x)
+        return DummyLetterTemporalIdentifier(
+            cfg=cfg,
+            value=x,
+            start_date=start_date,
+            end_date=end_date,
+            temporal=True,
+        )
 
     def as_dict(
         self, encrypt: bool = True, include_frequencies: bool = True
@@ -2095,13 +2110,15 @@ class DummyLetterIdentifier(IdentifierTwoState):
             # Was already hashed, or staying plaintext
             value = self.value
         d = {self.KEY_VALUE: value}
+        self._write_dates_to_dict(d)
         return d
 
     @classmethod
     def from_dict(
         cls, cfg: MatchConfig, d: Dict[str, Any], hashed: bool
-    ) -> "DummyLetterIdentifier":
-        i = DummyLetterIdentifier(cfg=cfg, value="A")  # dummy, overwritten
+    ) -> "DummyLetterTemporalIdentifier":
+        i = DummyLetterTemporalIdentifier(cfg=cfg, value="A")
+        # ... value is a dummy, overwritten
         i.is_plaintext = not hashed
         i.value = getdictval(d, cls.KEY_VALUE, str)
         i._set_comparisons()
@@ -2115,6 +2132,41 @@ class DummyLetterIdentifier(IdentifierTwoState):
 
     def fully_matches(self, other: "DummyLetterIdentifier") -> bool:
         return self.value == other.value
+
+
+# =============================================================================
+# DummyLetterIdentifier
+# =============================================================================
+
+
+class DummyLetterIdentifier(DummyLetterTemporalIdentifier):
+    """
+    Represents identifiers {A, B, ... Z}, each with probability 1/26, allowing
+    exact matching only. For testing multiple comparison algorithms. No
+    temporal component.
+    """
+
+    def __init__(self, value: str, cfg: Optional[MatchConfig] = None) -> None:
+        """
+        Plaintext creation of a dummy identifier.
+        """
+        super().__init__(cfg=cfg, value=value, temporal=False)
+
+    @classmethod
+    def from_plaintext_str(
+        cls, cfg: MatchConfig, x: str
+    ) -> "DummyLetterIdentifier":
+        return DummyLetterIdentifier(cfg=cfg, value=x)
+
+    @classmethod
+    def from_dict(
+        cls, cfg: MatchConfig, d: Dict[str, Any], hashed: bool
+    ) -> "DummyLetterIdentifier":
+        i = DummyLetterIdentifier(cfg=cfg, value="A")  # dummy, overwritten
+        i.is_plaintext = not hashed
+        i.value = getdictval(d, cls.KEY_VALUE, str)
+        i._set_comparisons()
+        return i
 
 
 # =============================================================================
