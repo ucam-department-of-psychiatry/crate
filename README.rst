@@ -1,7 +1,16 @@
+..  README.rst
+    GitHub README.
+    This is visible at https://github.com/ucam-department-of-psychiatry/crate
+
 
 Clinical Records Anonymisation and Text Extraction (CRATE)
 ==========================================================
 
+.. Build status:
+.. image:: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/python-checks.yml/badge.svg
+    :target: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/python-checks.yml/
+
+.. Code style:
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
 
