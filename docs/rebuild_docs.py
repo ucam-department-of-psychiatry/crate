@@ -50,16 +50,9 @@ DEST_DIRS = []  # type: List[str]
 
 
 if __name__ == "__main__":
-    main_only_quicksetup_rootlogger()
-    # Remove anything old
-    for destdir in [BUILD_HTML_DIR] + DEST_DIRS:
-        print(f"Deleting directory {destdir!r}")
-        shutil.rmtree(destdir, ignore_errors=True)
-
-    # Build docs
-    print("Making HTML version of documentation")
-    os.chdir(THIS_DIR)
-
+    # -------------------------------------------------------------------------
+    # Arguments
+    # -------------------------------------------------------------------------
     # When running from the GitHub action, it isn't possible to
     # download and build Medex automatically, so we just skip this
     # step.
@@ -77,6 +70,26 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    # -------------------------------------------------------------------------
+    # Logging
+    # -------------------------------------------------------------------------
+    main_only_quicksetup_rootlogger(level=logging.INFO)
+
+    # -------------------------------------------------------------------------
+    # Remove anything old
+    # -------------------------------------------------------------------------
+    for destdir in [BUILD_HTML_DIR] + DEST_DIRS:
+        print(f"Deleting directory {destdir!r}")
+        shutil.rmtree(destdir, ignore_errors=True)
+
+    # Build docs
+    print("Making HTML version of documentation")
+    os.chdir(THIS_DIR)
+
+    # -------------------------------------------------------------------------
+    # Recreate inclusion files
+    # -------------------------------------------------------------------------
+
     recreate_args = [
         "python",
         os.path.join(THIS_DIR, "recreate_inclusion_files.py"),
@@ -85,6 +98,10 @@ if __name__ == "__main__":
     if args.skip_medex:
         recreate_args.append("--skip_medex")
     subprocess.check_call(recreate_args)
+
+    # -------------------------------------------------------------------------
+    # Make HTML docs
+    # -------------------------------------------------------------------------
 
     cmdargs = ["make", "html"]
     if args.warnings_as_errors:
@@ -104,7 +121,10 @@ if __name__ == "__main__":
 
         raise e
 
+    # -------------------------------------------------------------------------
     # Copy
+    # -------------------------------------------------------------------------
+
     for destdir in DEST_DIRS:
         print(f"Copying {BUILD_HTML_DIR!r} -> {destdir!r}")
         shutil.copytree(BUILD_HTML_DIR, destdir)

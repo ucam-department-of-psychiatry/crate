@@ -29,7 +29,7 @@ Installing CRATE
 URLs for CRATE source code
 --------------------------
 
-- https://github.com/RudolfCardinal/crate (for source)
+- https://github.com/ucam-department-of-psychiatry/crate (for source)
 - https://pypi.io/project/crate-anon/ (for ``pip install crate-anon``)
 
 

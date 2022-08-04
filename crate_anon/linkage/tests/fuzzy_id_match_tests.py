@@ -40,6 +40,11 @@ from typing import List, Optional, Tuple, Type
 from cardinal_pythonlib.probability import probability_from_log_odds
 from pendulum import Date
 
+from crate_anon.linkage.comparison import (
+    AdjustLogOddsComparison,
+    Comparison,
+    DirectComparison,
+)
 from crate_anon.linkage.constants import (
     FuzzyDefaults,
     GENDER_FEMALE,
@@ -57,6 +62,7 @@ from crate_anon.linkage.frequencies import (
 from crate_anon.linkage.identifiers import (
     DateOfBirth,
     DummyLetterIdentifier,
+    DummyLetterTemporalIdentifier,
     Forename,
     gen_best_comparisons,
     Gender,
@@ -802,17 +808,17 @@ class FuzzyLinkageTests(unittest.TestCase):
             f = cfg.get_surname_freq_info(surname)
             log.info(f"Surname frequency for {surname}: {f}")
 
-            self.assertTrue(isinstance(f.name, str))
-            self.assertTrue(isinstance(f.gender, str))
-            self.assertTrue(isinstance(f.p_name, float))
+            self.assertIsInstance(f.name, str)
+            self.assertIsInstance(f.gender, str)
+            self.assertIsInstance(f.p_name, float)
 
-            self.assertTrue(isinstance(f.metaphone, str))
-            self.assertTrue(isinstance(f.p_metaphone, float))
-            self.assertTrue(isinstance(f.p_metaphone_not_name, float))
+            self.assertIsInstance(f.metaphone, str)
+            self.assertIsInstance(f.p_metaphone, float)
+            self.assertIsInstance(f.p_metaphone_not_name, float)
 
-            self.assertTrue(isinstance(f.f2c, str))
-            self.assertTrue(isinstance(f.p_f2c, float))
-            self.assertTrue(isinstance(f.p_f2c_not_name_metaphone, float))
+            self.assertIsInstance(f.f2c, str)
+            self.assertIsInstance(f.p_f2c, float)
+            self.assertIsInstance(f.p_f2c_not_name_metaphone, float)
 
         for forename, gender in [
             ("James", GENDER_MALE),
@@ -831,17 +837,17 @@ class FuzzyLinkageTests(unittest.TestCase):
             log.info(
                 f"Forename frequency for {forename}, gender {gender}: {f}"
             )
-            self.assertTrue(isinstance(f.name, str))
-            self.assertTrue(isinstance(f.gender, str))
-            self.assertTrue(isinstance(f.p_name, float))
+            self.assertIsInstance(f.name, str)
+            self.assertIsInstance(f.gender, str)
+            self.assertIsInstance(f.p_name, float)
 
-            self.assertTrue(isinstance(f.metaphone, str))
-            self.assertTrue(isinstance(f.p_metaphone, float))
-            self.assertTrue(isinstance(f.p_metaphone_not_name, float))
+            self.assertIsInstance(f.metaphone, str)
+            self.assertIsInstance(f.p_metaphone, float)
+            self.assertIsInstance(f.p_metaphone_not_name, float)
 
-            self.assertTrue(isinstance(f.f2c, str))
-            self.assertTrue(isinstance(f.p_f2c, float))
-            self.assertTrue(isinstance(f.p_f2c_not_name_metaphone, float))
+            self.assertIsInstance(f.f2c, str)
+            self.assertIsInstance(f.p_f2c, float)
+            self.assertIsInstance(f.p_f2c_not_name_metaphone, float)
 
     def test_fuzzy_linkage_frequencies_postcode(self) -> None:
         cfg = self.cfg
@@ -1381,140 +1387,433 @@ class FuzzyLinkageTests(unittest.TestCase):
         for mismatch_p in dob_mismatch:
             self.assertFalse(mismatch_p in shortlist3)
 
-    # -------------------------------------------------------------------------
-    # Multiple comparison correction checks
-    # -------------------------------------------------------------------------
 
-    def test_multiple_comparisons(self) -> None:
-        p_u = 0.1  # arbitrary
-        p_o = 1 - p_u
-        delta = 1e-10  # floating-point tolerance
+# -------------------------------------------------------------------------
+# Multiple comparison correction checks
+# -------------------------------------------------------------------------
+
+
+class MultipleComparisonTestBase(unittest.TestCase):
+    P_U = 0.1  # arbitrary
+    P_O = 1 - P_U
+    DELTA = 1e-10  # floating-point tolerance
+
+
+class UnorderedMultipleComparisonTests(MultipleComparisonTestBase):
+    @staticmethod
+    def compare(
+        proband_identifiers: List[Identifier],
+        candidate_identifiers: List[Identifier],
+    ) -> List[Comparison]:
+        return list(
+            gen_best_comparisons(
+                proband_identifiers=proband_identifiers,
+                candidate_identifiers=candidate_identifiers,
+                ordered=False,
+            )
+        )
+
+    def test_same_single_id_returns_one_match_and_no_correction(
+        self,
+    ) -> None:
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # UNORDERED, one/one identifier
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+
+        result = self.compare([a], [a])
+        self.assertEqual(len(result), 1)  # ... one match, no correction
+
+        comparison = result[0]
+        self.assertIsInstance(comparison, DirectComparison)
+        self.assertEqual(comparison.d_description, "dummy_match:A")
+
+    def test_same_two_ids_returns_two_matches_and_a_correction(
+        self,
+    ) -> None:
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Unordered, two/two identifiers
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+
+        result = self.compare([a, b], [a, b])
+        self.assertEqual(len(result), 3)  # ... two matches and a correction
+
+        comparison1 = result[0]
+        self.assertIsInstance(comparison1, DirectComparison)
+        self.assertEqual(comparison1.d_description, "dummy_match:A")
+        comparison2 = result[1]
+        self.assertIsInstance(comparison2, DirectComparison)
+        self.assertEqual(comparison2.d_description, "dummy_match:B")
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
+        # Correction should be for 2 hits from 2 comparisons, and a Bonferroni
+        # correction:
+        self.assertAlmostEqual(
+            correction.log_likelihood_ratio, -ln(2), delta=self.DELTA
+        )
+
+    def test_same_three_ids_returns_three_matches_and_a_correction(
+        self,
+    ) -> None:
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Unordered, three/three identifiers
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+        c = DummyLetterIdentifier("C")
+
+        result = self.compare([a, b, c], [a, b, c])
+        self.assertEqual(len(result), 4)  # ... three matches and a correction
+
+        comparison1 = result[0]
+        self.assertIsInstance(comparison1, DirectComparison)
+        self.assertEqual(comparison1.d_description, "dummy_match:A")
+        comparison2 = result[1]
+        self.assertIsInstance(comparison2, DirectComparison)
+        self.assertEqual(comparison2.d_description, "dummy_match:B")
+        comparison3 = result[2]
+        self.assertIsInstance(comparison3, DirectComparison)
+        self.assertEqual(comparison3.d_description, "dummy_match:C")
+
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
+        # Correction should be for 3 hits from 6 comparisons:
+        self.assertAlmostEqual(
+            correction.log_likelihood_ratio, -ln(6), delta=self.DELTA
+        )
+
+    def test_one_out_of_three_ids_returns_three_matches_and_a_correction(
+        self,
+    ) -> None:
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Unordered, one/three identifiers
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+        c = DummyLetterIdentifier("C")
+
+        result = self.compare([a], [a, b, c])
+        self.assertEqual(len(result), 2)  # ... one match and a correction
+
+        comparison = result[0]
+        self.assertIsInstance(comparison, DirectComparison)
+        self.assertEqual(comparison.d_description, "dummy_match:A")
+
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
+        # Correction should be for 1 hit from 3 comparisons:
+        self.assertAlmostEqual(
+            correction.log_likelihood_ratio, -ln(3), delta=self.DELTA
+        )
+
+    def test_with_incomparable_identifiers(self) -> None:
+        """
+        Use identifiers that aren't allowed to be compared, e.g. names with
+        non-overlapping timestamps. This will give a comparison that is
+        ``None``, and make the code coverage checks happy.
+
+        .. code-block:: bash
+
+            pip install pytest-cov
+            pytest --cov --cov-report html
+        """
+        a_early = DummyLetterTemporalIdentifier(
+            value="A", start_date="1900-01-01", end_date="1900-12-31"
+        )
+        a_late = DummyLetterTemporalIdentifier(
+            value="A", start_date="2000-01-01", end_date="2000-12-31"
+        )
+        result = self.compare([a_early], [a_late])
+        self.assertEqual(len(result), 0)  # no comparisons
+
+
+class OrderedMultipleComparisonTests(MultipleComparisonTestBase):
+    def compare(
+        self,
+        proband_identifiers: List[Identifier],
+        candidate_identifiers: List[Identifier],
+    ) -> List[Comparison]:
+        return list(
+            gen_best_comparisons(
+                proband_identifiers=proband_identifiers,
+                candidate_identifiers=candidate_identifiers,
+                ordered=True,
+                p_u=self.P_U,
+            )
+        )
+
+    def test_same_single_identifier_returns_one_match_and_no_correction(
+        self,
+    ) -> None:
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ORDERED, one/one identifier
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+
+        result = self.compare([a], [a])
+        self.assertEqual(len(result), 1)  # ... one match, no correction
+
+        comparison = result[0]
+        self.assertIsInstance(comparison, DirectComparison)
+        self.assertEqual(comparison.d_description, "dummy_match:A")
+
+    def test_same_two_ids_same_order_returns_two_matches_and_a_correction(
+        self,
+    ) -> None:
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Ordered, two/two identifiers, correct order
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+
+        result = self.compare([a, b], [a, b])
+        self.assertEqual(len(result), 3)  # ... two matches and a correction
+
+        comparison1 = result[0]
+        self.assertIsInstance(comparison1, DirectComparison)
+        self.assertEqual(comparison1.d_description, "dummy_match:A")
+        comparison2 = result[1]
+        self.assertIsInstance(comparison2, DirectComparison)
+        self.assertEqual(comparison2.d_description, "dummy_match:B")
+
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
+        # - P(D|H) correction: +ln(p_o).
+        # - P(D|¬H) correction: nothing, i.e. -ln(1) = 0.
+        self.assertAlmostEqual(
+            correction.log_likelihood_ratio, ln(self.P_O), delta=self.DELTA
+        )
+
+    def test_same_two_ids_diff_order_returns_two_matches_and_a_correction(
+        self,
+    ) -> None:
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Ordered, two/two identifiers, wrong order
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+
+        result = self.compare([a, b], [b, a])
+        self.assertEqual(len(result), 3)  # ... two matches and a correction
+
+        comparison1 = result[0]
+        self.assertIsInstance(comparison1, DirectComparison)
+        self.assertEqual(comparison1.d_description, "dummy_match:A")
+        comparison2 = result[1]
+        self.assertIsInstance(comparison2, DirectComparison)
+        self.assertEqual(comparison2.d_description, "dummy_match:B")
+
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
+        # - P(D|H) correction: +ln(p_u).
+        # - P(D|¬H) correction: Bonferroni for 2 options but minus one for the
+        #   ordered option, so nothing.
+        self.assertAlmostEqual(
+            correction.log_likelihood_ratio, ln(self.P_U), delta=self.DELTA
+        )
+
+    def test_same_three_ids_same_order_returns_three_matches_and_a_correction(
+        self,
+    ) -> None:
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Ordered, three/three identifiers, correct order
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+        c = DummyLetterIdentifier("C")
+
+        result = self.compare([a, b, c], [a, b, c])
+        self.assertEqual(len(result), 4)  # ... three matches and a correction
+
+        comparison1 = result[0]
+        self.assertIsInstance(comparison1, DirectComparison)
+        self.assertEqual(comparison1.d_description, "dummy_match:A")
+        comparison2 = result[1]
+        self.assertIsInstance(comparison2, DirectComparison)
+        self.assertEqual(comparison2.d_description, "dummy_match:B")
+        comparison3 = result[2]
+        self.assertIsInstance(comparison3, DirectComparison)
+        self.assertEqual(comparison3.d_description, "dummy_match:C")
+
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
+        # - P(D|H) correction: +ln(p_o).
+        # - P(D|¬H) correction: nothing (correct order).
+        self.assertAlmostEqual(
+            correction.log_likelihood_ratio, ln(self.P_O), delta=self.DELTA
+        )
+
+    def test_same_three_ids_diff_order_returns_three_matches_and_a_correction(
+        self,
+    ) -> None:
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Ordered, three/three identifiers, wrong order
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+        c = DummyLetterIdentifier("C")
+
+        result = self.compare([a, b, c], [b, c, a])
+        self.assertEqual(len(result), 4)  # ... three matches and a correction
+
+        comparison1 = result[0]
+        self.assertIsInstance(comparison1, DirectComparison)
+        self.assertEqual(comparison1.d_description, "dummy_match:B")
+        comparison2 = result[1]
+        self.assertIsInstance(comparison2, DirectComparison)
+        self.assertEqual(comparison2.d_description, "dummy_match:C")
+        comparison3 = result[2]
+        self.assertIsInstance(comparison3, DirectComparison)
+        self.assertEqual(comparison3.d_description, "dummy_match:A")
+
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
+        # - P(D|H) correction: +ln(p_u).
+        # - P(D|¬H) correction: Bonferroni for 6 options minus the one for the
+        #   correct order.
+        self.assertAlmostEqual(
+            correction.log_likelihood_ratio,
+            ln(self.P_U) - ln(5),
+            delta=self.DELTA,
+        )
+
+    def test_two_of_three_matching_ids_returns_three_matches_and_a_correction(
+        self,
+    ) -> None:
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Ordered, three/three identifiers, two match, wrong order
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         a = DummyLetterIdentifier("A")
         b = DummyLetterIdentifier("B")
         c = DummyLetterIdentifier("C")
         d = DummyLetterIdentifier("D")
 
-        def compare_unordered(
-            proband_identifiers: List[Identifier],
-            candidate_identifiers: List[Identifier],
-        ):
-            return list(
-                gen_best_comparisons(
-                    proband_identifiers=proband_identifiers,
-                    candidate_identifiers=candidate_identifiers,
-                    ordered=False,
-                )
-            )
+        """
+        Comparing proband [a, b, c] to candidate [b, c, d]:
 
-        def compare_ordered(
-            proband_identifiers: List[Identifier],
-            candidate_identifiers: List[Identifier],
-        ):
-            return list(
-                gen_best_comparisons(
-                    proband_identifiers=proband_identifiers,
-                    candidate_identifiers=candidate_identifiers,
-                    ordered=True,
-                    p_u=p_u,
-                )
-            )
+        p = proband index
+        c = candidate index
+        d = distance
+        LLR = log likelihood ratio
 
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # UNORDERED, one/one identifier
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        result = compare_unordered([a], [a])
-        self.assertEqual(len(result), 1)  # ... one match, no correction
+                           p c d  LLR
+        a - b  mismatch A  0 0 0  -4.5
+        a - c  mismatch A  0 1 1  -4.5
+        a - d  mismatch A  0 2 4  -4.5
+        b - b  match B     1 0 1  3.2
+        b - c  mismatch B  1 1 0  -4.5
+        b - d  mismatch B  1 2 1  -4.5
+        c - b  mismatch C  2 0 4  -4.5
+        c - c  match C     2 1 1  3.2
+        c - d  mismatch C  2 2 0  -4.5
 
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Unordered, two/two identifiers
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        result = compare_unordered([a, b], [a, b])
-        self.assertEqual(len(result), 3)  # ... two matches and a correction
-        corr = result[-1]
-        # Correction should be for 2 hits from 2 comparisons, and a Bonferroni
-        # correction:
-        self.assertAlmostEqual(corr.log_likelihood_ratio, -ln(2), delta=delta)
+        then we sort them by -LLR and distance:
 
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Unordered, three/three identifiers
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        result = compare_unordered([a, b, c], [a, b, c])
-        self.assertEqual(len(result), 4)  # ... three matches and a correction
-        corr = result[-1]
-        # Correction should be for 3 hits from 6 comparisons:
-        self.assertAlmostEqual(corr.log_likelihood_ratio, -ln(6), delta=delta)
+                                        returned?
+        b - b  match B     1 0 1  3.2   Yes
+        c - c  match C     2 1 1  3.2   Yes
+        a - b  mismatch A  0 0 0  -4.5  No (c=0 used)
+        b - c  mismatch B  1 1 0  -4.5  No (p=1 or c=1 used)
+        c - d  mismatch C  2 2 0  -4.5  No (p=2 used)
+        a - c  mismatch A  0 1 1  -4.5  No (c=1 used)
+        b - d  mismatch B  1 2 1  -4.5  No (p=1 used)
+        a - d  mismatch A  0 2 4  -4.5  Yes
+        c - b  mismatch C  2 0 4  -4.5  No (p=2 or c=0 used)
 
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Unordered, one/three identifiers
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        result = compare_unordered([a], [a, b, c])
-        self.assertEqual(len(result), 2)  # ... one match and a correction
-        corr = result[-1]
-        # Correction should be for 1 hit from 3 comparisons:
-        self.assertAlmostEqual(corr.log_likelihood_ratio, -ln(3), delta=delta)
+        """
 
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # ORDERED, one/one identifier
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        result = compare_ordered([a], [a])
-        self.assertEqual(len(result), 1)  # ... one match, no correction
-
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Ordered, two/two identifiers, correct order
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        result = compare_ordered([a, b], [a, b])
-        self.assertEqual(len(result), 3)  # ... two matches and a correction
-        corr = result[-1]
-        # - P(D|H) correction: +ln(p_o).
-        # - P(D|¬H) correction: nothing, i.e. -ln(1) = 0.
-        self.assertAlmostEqual(corr.log_likelihood_ratio, ln(p_o), delta=delta)
-
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Ordered, two/two identifiers, wrong order
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        result = compare_ordered([a, b], [b, a])
-        self.assertEqual(len(result), 3)  # ... two matches and a correction
-        corr = result[-1]
-        # - P(D|H) correction: +ln(p_u).
-        # - P(D|¬H) correction: Bonferroni for 2 options but minus one for the
-        #   ordered option, so nothing.
-        self.assertAlmostEqual(corr.log_likelihood_ratio, ln(p_u), delta=delta)
-
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Ordered, three/three identifiers, correct order
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        result = compare_ordered([a, b, c], [a, b, c])
-        self.assertEqual(len(result), 4)  # ... three matches and a correction
-        corr = result[-1]
-        # - P(D|H) correction: +ln(p_o).
-        # - P(D|¬H) correction: nothing (correct order).
-        self.assertAlmostEqual(corr.log_likelihood_ratio, ln(p_o), delta=delta)
-
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Ordered, three/three identifiers, wrong order
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        result = compare_ordered([a, b, c], [b, c, a])
-        self.assertEqual(len(result), 4)  # ... three matches and a correction
-        corr = result[-1]
-        # - P(D|H) correction: +ln(p_u).
-        # - P(D|¬H) correction: Bonferroni for 6 options minus the one for the
-        #   correct order.
-        self.assertAlmostEqual(
-            corr.log_likelihood_ratio, ln(p_u) - ln(5), delta=delta
-        )
-
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Ordered, three/three identifiers, two match, wrong order
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        result = compare_ordered([a, b, c], [b, c, d])
-        self.assertEqual(len(result), 4)
+        result = self.compare([a, b, c], [b, c, d])
         # ... three matches (but one will be bad) and a correction
-        corr = result[-1]
+        self.assertEqual(len(result), 4)
+
+        comparison1 = result[0]
+        self.assertIsInstance(comparison1, DirectComparison)
+        self.assertEqual(comparison1.d_description, "dummy_match:B")
+        comparison2 = result[1]
+        self.assertIsInstance(comparison2, DirectComparison)
+        self.assertEqual(comparison2.d_description, "dummy_match:C")
+        comparison3 = result[2]
+        self.assertIsInstance(comparison3, DirectComparison)
+        self.assertEqual(comparison3.d_description, "dummy_mismatch:A")
+
+        correction = result[-1]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
         # - P(D|H) correction: +ln(p_u).
         # - P(D|¬H) correction: Bonferroni for 6 options minus the one for the
         #   correct order.
         self.assertAlmostEqual(
-            corr.log_likelihood_ratio, ln(p_u) - ln(5), delta=delta
+            correction.log_likelihood_ratio,
+            ln(self.P_U) - ln(5),
+            delta=self.DELTA,
         )
 
-        # import pdb; pdb.set_trace()
+    def test_order_correct_with_duplicate_names_1(self) -> None:
+        """
+        Compare "A A" to "A A" in ordered fashion.
+
+        Think of this as proband A_P1, A_P2 and candidate A_C1, A_C2.
+
+        Should give a "correctly ordered" match, A_P1:A_C1 and A_C2:A_C2, with
+        correction for P_O.
+
+        Should not treat it as an incorrectly ordered match, A_P1:A_C2 and
+        A_P2:A_C1, and apply a different correction for P_U etc.
+
+        This might work without the "distance" sort in ComparisonInfo (it does,
+        in fact), but that is a safety. See below for a test that does depend
+        on that distance metric.
+        """
+        a = DummyLetterIdentifier("A")
+
+        result = self.compare([a, a], [a, a])
+        self.assertEqual(len(result), 3)
+        comparison1 = result[0]
+        self.assertIsInstance(comparison1, DirectComparison)
+        self.assertEqual(comparison1.d_description, "dummy_match:A")
+        comparison2 = result[1]
+        self.assertIsInstance(comparison2, DirectComparison)
+        self.assertEqual(comparison2.d_description, "dummy_match:A")
+        correction = result[2]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
+        self.assertAlmostEqual(
+            correction.log_likelihood_ratio,
+            ln(self.P_O),
+            delta=self.DELTA,
+        )
+
+    def test_order_correct_with_duplicate_names_2(self) -> None:
+        """
+        Compare "A B" to "B B" in ordered fashion.
+
+        We want this to give A_P1:B_P1 (mismatch) and B_P2:B_C2 (ordered
+        match).
+
+        It should not give A_P1:B_P2 (mismatch) and B_P2:B_C1 (unordered
+        match).
+
+        This does not work without the "distance" part of the sort in
+        ComparisonInfo.
+        """
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+
+        result = self.compare([a, b], [b, b])
+        self.assertEqual(len(result), 3)
+        # Matches come first (better LLR):
+        comparison1 = result[0]
+        self.assertIsInstance(comparison1, DirectComparison)
+        self.assertEqual(comparison1.d_description, "dummy_match:B")
+        # Then mismatches:
+        comparison2 = result[1]
+        self.assertIsInstance(comparison2, DirectComparison)
+        self.assertEqual(comparison2.d_description, "dummy_mismatch:A")
+        # Then corrections:
+        correction = result[2]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
+        self.assertAlmostEqual(
+            correction.log_likelihood_ratio,
+            ln(self.P_O),
+            delta=self.DELTA,
+        )
