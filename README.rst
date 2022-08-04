@@ -7,8 +7,21 @@ Clinical Records Anonymisation and Text Extraction (CRATE)
 ==========================================================
 
 .. Build status:
+
+.. image:: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/docker.yml/badge.svg
+    :target: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/docker.yml/
+
+.. image:: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/docs.yml/badge.svg
+    :target: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/docs.yml/
+
+.. image:: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/installer.yml/badge.svg
+    :target: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/installer.yml/
+
 .. image:: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/python-checks.yml/badge.svg
     :target: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/python-checks.yml/
+
+.. image:: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/release.yml/badge.svg
+    :target: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/release.yml/
 
 .. Code style:
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
