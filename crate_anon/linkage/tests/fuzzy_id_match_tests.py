@@ -42,9 +42,9 @@ from pendulum import Date
 
 from crate_anon.linkage.comparison import (
     AdjustLogOddsComparison,
+    Comparison,
     DirectComparison,
 )
-
 from crate_anon.linkage.constants import (
     FuzzyDefaults,
     GENDER_FEMALE,
@@ -1399,11 +1399,11 @@ class MultipleComparisonTestBase(unittest.TestCase):
 
 
 class UnorderedMultipleComparisonTests(MultipleComparisonTestBase):
+    @staticmethod
     def compare(
-        self,
         proband_identifiers: List[Identifier],
         candidate_identifiers: List[Identifier],
-    ):
+    ) -> List[Comparison]:
         return list(
             gen_best_comparisons(
                 proband_identifiers=proband_identifiers,
@@ -1513,7 +1513,7 @@ class OrderedMultipleComparisonTests(MultipleComparisonTestBase):
         self,
         proband_identifiers: List[Identifier],
         candidate_identifiers: List[Identifier],
-    ):
+    ) -> List[Comparison]:
         return list(
             gen_best_comparisons(
                 proband_identifiers=proband_identifiers,
@@ -1670,6 +1670,8 @@ class OrderedMultipleComparisonTests(MultipleComparisonTestBase):
         d = DummyLetterIdentifier("D")
 
         """
+        Comparing proband [a, b, c] to candidate [b, c, d]:
+
         p = proband index
         c = candidate index
         d = distance
@@ -1688,6 +1690,7 @@ class OrderedMultipleComparisonTests(MultipleComparisonTestBase):
 
         then we sort them by -LLR and distance:
 
+                                        returned?
         b - b  match B     1 0 1  3.2   Yes
         c - c  match C     2 1 1  3.2   Yes
         a - b  mismatch A  0 0 0  -4.5  No (c=0 used)
