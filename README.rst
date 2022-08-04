@@ -9,7 +9,11 @@ Clinical Records Anonymisation and Text Extraction (CRATE)
 Purpose
 -------
 
+Create and use de-identified databases for research.
+
 - Anonymises relational databases.
+
+- Extracts and de-identifies text from associated binary files.
 
 - Performs some specific preprocessing tasks; e.g.
 
@@ -18,12 +22,16 @@ Purpose
     some databases (e.g. TPP SystmOne);
   - fetches some word lists, e.g. forenames/surnames/eponyms.
 
+- Provides tools to link databases, including via Bayesian personal identity
+  matching, in identifiable or de-identified fashion.
+
 - Provides a natural language processing (NLP) pipeline.
 
 - Web app for
 
-  - querying the anonymised database
-  - managing a consent-to-contact process
+  - querying the anonymised database;
+  - providing a de-identification API;
+  - managing a consent-to-contact process.
 
 
 Documentation
@@ -36,7 +44,7 @@ Sources
 -------
 
 - Python package: https://pypi.org/project/crate-anon/
-- Source code: https://github.com/RudolfCardinal/crate
+- Source code: https://github.com/ucam-department-of-psychiatry/crate
 
 
 Licence

@@ -19,6 +19,8 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 
+.. _linkage:
+
 Linkage tools
 =============
 

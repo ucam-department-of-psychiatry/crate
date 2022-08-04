@@ -150,7 +150,7 @@ To start the installer on all platforms:
 
     .. code-block:: bash
 
-        curl --location https://github.com/RudolfCardinal/crate/releases/latest/download/installer.sh --fail --output crate_docker_installer.sh && chmod u+x crate_docker_installer.sh && ./crate_docker_installer.sh
+        curl --location https://github.com/ucam-department-of-psychiatry/crate/releases/latest/download/installer.sh --fail --output crate_docker_installer.sh && chmod u+x crate_docker_installer.sh && ./crate_docker_installer.sh
 
 
 .. _docker_environment_variables:

@@ -81,7 +81,7 @@ CRATE_INSTALLER_PYTHON=${CRATE_INSTALLER_PYTHON:-python3}
 # -----------------------------------------------------------------------------
 
 if [ ${PRODUCTION} -eq 1 ]; then
-    CRATE_GITHUB_REPOSITORY=https://github.com/RudolfCardinal/crate
+    CRATE_GITHUB_REPOSITORY=https://github.com/ucam-department-of-psychiatry/crate
     CRATE_TAR_FILE=crate.tar.gz
 
     # This doesn't work with GitHub generated assets for some reason so we rely

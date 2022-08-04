@@ -1531,12 +1531,12 @@ Changes
   - Document defaults for ``anonymise_numbers_at_word_boundaries_only`` and
     ``anonymise_numbers_at_numeric_boundaries_only`` arguments to
     :class:`crate_anon.anonymise.scrub.PersonalizedScrubber`, fixing
-    https://github.com/RudolfCardinal/crate/issues/67. Add
+    https://github.com/ucam-department-of-psychiatry/crate/issues/67. Add
     ``anonymise_codes_at_numeric_boundaries_only`` option for coherence.
 
   - Document behaviour of ``anonymise_strings_at_word_boundaries_only`` for
     FlashText-based wordlist scrubbing (controlled by ``denylist_use_regex``),
-    fixing https://github.com/RudolfCardinal/crate/issues/68.
+    fixing https://github.com/ucam-department-of-psychiatry/crate/issues/68.
 
   - Default for :ref:`min_string_length_for_errors
     <min_string_length_for_errors>` changed from 1 to 3.

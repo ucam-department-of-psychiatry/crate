@@ -35,7 +35,7 @@ research database. CRATE separates these stages.
 Terminology
 -----------
 
-I will refer to ‘anonymisation’ in this document, but sometimes as a shorthand
+We will refer to ‘anonymisation’ in this document, but sometimes as a shorthand
 for ‘pseudonymisation’, in which IDs are removed and replaced by a generated
 pseudonym.
 
@@ -143,6 +143,17 @@ first time.
 
 This tool uses a configuration file that you create and edit. Use ``crate_nlp
 --democonfig`` to generate a demonstration file.
+
+
+Linkage
+-------
+
+You might have more than one database and want to link them, so information
+about the same person in two databases can be analysed together. CRATE provides
+tools to do this whether two databases share a person-unique identifier (like a
+UK NHS number) or without. Linkage without a shared person-unique identifier is
+performed via a Bayesian personal identity matching process. This can be done
+in an entirely de-identified manner. See :ref:`linkage <linkage>`.
 
 
 Web front end

@@ -606,5 +606,5 @@ SOLUTION:
 
 
 if __name__ == "__main__":
-    main_only_quicksetup_rootlogger()
+    main_only_quicksetup_rootlogger(level=logging.INFO)
     main()
