@@ -1727,3 +1727,72 @@ class OrderedMultipleComparisonTests(MultipleComparisonTestBase):
             ln(self.P_U) - ln(5),
             delta=self.DELTA,
         )
+
+    def test_order_correct_with_duplicate_names_1(self) -> None:
+        """
+        Compare "A A" to "A A" in ordered fashion.
+
+        Think of this as proband A_P1, A_P2 and candidate A_C1, A_C2.
+
+        Should give a "correctly ordered" match, A_P1:A_C1 and A_C2:A_C2, with
+        correction for P_O.
+
+        Should not treat it as an incorrectly ordered match, A_P1:A_C2 and
+        A_P2:A_C1, and apply a different correction for P_U etc.
+
+        This might work without the "distance" sort in ComparisonInfo (it does,
+        in fact), but that is a safety. See below for a test that does depend
+        on that distance metric.
+        """
+        a = DummyLetterIdentifier("A")
+
+        result = self.compare([a, a], [a, a])
+        self.assertEqual(len(result), 3)
+        comparison1 = result[0]
+        self.assertIsInstance(comparison1, DirectComparison)
+        self.assertEqual(comparison1.d_description, "dummy_match:A")
+        comparison2 = result[1]
+        self.assertIsInstance(comparison2, DirectComparison)
+        self.assertEqual(comparison2.d_description, "dummy_match:A")
+        correction = result[2]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
+        self.assertAlmostEqual(
+            correction.log_likelihood_ratio,
+            ln(self.P_O),
+            delta=self.DELTA,
+        )
+
+    def test_order_correct_with_duplicate_names_2(self) -> None:
+        """
+        Compare "A B" to "B B" in ordered fashion.
+
+        We want this to give A_P1:B_P1 (mismatch) and B_P2:B_C2 (ordered
+        match).
+
+        It should not give A_P1:B_P2 (mismatch) and B_P2:B_C1 (unordered
+        match).
+
+        This does not work without the "distance" part of the sort in
+        ComparisonInfo.
+        """
+        a = DummyLetterIdentifier("A")
+        b = DummyLetterIdentifier("B")
+
+        result = self.compare([a, b], [b, b])
+        self.assertEqual(len(result), 3)
+        # Matches come first (better LLR):
+        comparison1 = result[0]
+        self.assertIsInstance(comparison1, DirectComparison)
+        self.assertEqual(comparison1.d_description, "dummy_match:B")
+        # Then mismatches:
+        comparison2 = result[1]
+        self.assertIsInstance(comparison2, DirectComparison)
+        self.assertEqual(comparison2.d_description, "dummy_mismatch:A")
+        # Then corrections:
+        correction = result[2]
+        self.assertIsInstance(correction, AdjustLogOddsComparison)
+        self.assertAlmostEqual(
+            correction.log_likelihood_ratio,
+            ln(self.P_O),
+            delta=self.DELTA,
+        )
