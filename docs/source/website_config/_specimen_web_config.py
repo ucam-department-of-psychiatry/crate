@@ -15,7 +15,6 @@ from typing import List, TYPE_CHECKING
 # Include the following if you want to use it in CELERYBEAT_SCHEDULE
 # from celery.schedules import crontab
 
-from crate_anon.crateweb.anonymise_api.constants import ApiSettingsKeys
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
 
 if TYPE_CHECKING:
@@ -460,12 +459,14 @@ PDF_LETTER_FOOTER_HTML = ""
 # =============================================================================
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
 
-CHARITY_URL = "https://www.cpft.nhs.uk/research"
-CHARITY_URL_SHORT = "www.cpft.nhs.uk/research"
-LEAFLET_URL_CPFTRD_CLINRES_SHORT = "www.cpft.nhs.uk/research-database"
+CHARITY_URL = "http://www.cpft.nhs.uk/research.htm"
+CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
+LEAFLET_URL_CPFTRD_CLINRES_SHORT = (
+    "www.cpft.nhs.uk/research.htm > CPFT Research Database"
+)
 
 ANONYMISE_API = {
-    ApiSettingsKeys.HASH_KEY: "aaaa CHANGE THIS! aaaa",
-    ApiSettingsKeys.ALLOWLIST_FILENAMES: {},
-    ApiSettingsKeys.DENYLIST_FILENAMES: {},
+    "HASH_KEY": "aaaa CHANGE THIS! aaaa",
+    "ALLOWLIST_FILENAMES": {},
+    "DENYLIST_FILENAMES": {},
 }

@@ -55,6 +55,7 @@ from crate_anon.anonymise.anonregex import (
     get_string_regex_elements,
     get_uk_postcode_regex_elements,
     get_uk_postcode_regex_string,
+    REGEX_COMPILE_FLAGS,
 )
 from crate_anon.common.stringfunc import (
     get_digit_string_from_vaguely_numeric_string,
@@ -797,7 +798,7 @@ class AnonRegexTests2(TestCase):
             "abc.def@mail",
             "abc.def@mail..com",
         ]
-        email_regex = regex.compile(EMAIL_REGEX_STR)
+        email_regex = regex.compile(EMAIL_REGEX_STR, flags=REGEX_COMPILE_FLAGS)
         for v in valid_email:
             self.assertTrue(
                 email_regex.match(v),

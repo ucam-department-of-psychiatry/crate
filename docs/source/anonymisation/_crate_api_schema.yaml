@@ -312,6 +312,10 @@ components:
           default: false
           description: Scrub all dates. Currently assumes the default locale for month
             names and ordinal suffixes.
+        scrub_all_email_addresses:
+          type: boolean
+          default: false
+          description: Scrub all e-mail addresses.
         alternatives:
           type: array
           items:
