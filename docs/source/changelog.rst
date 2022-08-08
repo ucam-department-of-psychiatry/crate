@@ -1548,6 +1548,9 @@ Changes
   - Support for blurring of dates with new config option
     :ref:`replace_all_dates_with <replace_all_dates_with>`.
 
+  - Support for removing all e-mail addresses, with new config option
+    :ref:`scrub_all_email_addresses <scrub_all_email_addresses>`.
+
   - Fix bug in the opt-out recording table if the opt-out PID/MPID values were
     in a column of integer type. This caused errors under SQL Server like
     "Cannot insert explicit value for identity column in table 'opt_out_pid'

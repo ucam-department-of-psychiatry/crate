@@ -75,6 +75,13 @@ ORDINAL_SUFFIXES_ENGLISH = ("st", "nd", "rd", "th")  # 1st, 2nd, 3rd, 4th...
 MONTHS_ENGLISH = tuple(calendar.month_name[_] for _ in range(1, 12 + 1))
 # https://docs.python.org/3/library/calendar.html
 
+EMAIL_REGEX_STR = (
+    # http://emailregex.com/
+    # The simple Python example doesn't cope with "r&d@somewhere.nhs.uk".
+    # The "full" version is:
+    r"""(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])"""  # noqa: E501
+)
+
 
 # =============================================================================
 # String manipulation

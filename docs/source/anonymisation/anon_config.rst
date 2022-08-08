@@ -710,6 +710,16 @@ See also:
   * anonymise_dates_at_word_boundaries_only_.
 
 
+.. _scrub_all_email_addresses:
+
+scrub_all_email_addresses
+=========================
+
+*Boolean.* Default: false.
+
+Nonspecific scrubbing of all e-mail addresses?
+
+
 .. _nonspecific_scrubber_first:
 
 nonspecific_scrubber_first

@@ -43,6 +43,7 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 import regex
 
 from crate_anon.anonymise.anonregex import (
+    EMAIL_REGEX_STR,
     get_anon_fragments_from_string,
     get_code_regex_elements,
     get_date_regex_elements,
@@ -595,8 +596,10 @@ class AnonRegexTests2(TestCase):
                     "2021-12-31",
                     "31/12/2021",
                     "31/12/21",
+                    "31.12.21",
                     "12/31/2021",  # American
                     "12/31/21",  # American
+                    "12.31.21",  # American
                     # Partly textual:
                     "31 Dec 2021",
                     "31 December 2021",
@@ -612,6 +615,7 @@ class AnonRegexTests2(TestCase):
                     "1980-05-06",
                     "6/5/1980",
                     "6/5/80",
+                    "6.5.80",
                     "06/05/1980",
                     "5/6/80",  # American
                     # Partly textual:
@@ -757,6 +761,55 @@ class AnonRegexTests2(TestCase):
             self.assertTrue(postcode_regex.match(v))
         for i in invalid_postcodes:
             self.assertFalse(postcode_regex.match(i))
+
+    def test_email_addresses(self) -> None:
+        """
+        Ensure we detect e-mail addresses properly.
+        This won't be completely perfect. See https://emailregex.com/.
+
+        Specimen values:
+
+        - https://help.xmatters.com/ondemand/trial/valid_email_format.htm
+        """
+        valid_email = [
+            "person@place.com",
+            "r&d@somewhere.nhs.uk",
+            "abc-d@mail.com",
+            "abc.def@mail.com",
+            "abc@mail.com",
+            "abc_def@mail.com",
+            "abc.def@mail.cc",
+            "abc.def@mail-archive.com",
+            "abc.def@mail.org",
+            "abc.def@mail.com",
+            "abc-@mail.com",  # xmatters.com thinks wrong but is OK
+            "abc#def@mail.com",  # xmatters.com thinks wrong but is OK
+            "abc.def@mail.c",  # xmatters.com thinks wrong but ?is OK
+        ]
+        invalid_email = [
+            "person",
+            "person@",
+            "@place.com",
+            "person@place",
+            "abc..def@mail.com",
+            ".abc@mail.com",
+            "abc.def@mail#archive.com",
+            "abc.def@mail",
+            "abc.def@mail..com",
+        ]
+        email_regex = regex.compile(EMAIL_REGEX_STR)
+        for v in valid_email:
+            self.assertTrue(
+                email_regex.match(v),
+                f"Should be a valid e-mail address but was not recognized: "
+                f"{v!r}",
+            )
+        for i in invalid_email:
+            self.assertFalse(
+                email_regex.match(i),
+                f"Should not be a valid e-mail address but was accepted: "
+                f"{i!r}",
+            )
 
 
 if __name__ == "__main__":

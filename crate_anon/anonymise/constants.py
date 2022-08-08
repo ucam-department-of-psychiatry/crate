@@ -235,12 +235,12 @@ class AnonymiseConfigKeys:
     HASH_METHOD = "hash_method"
     MASTER_PATIENT_ID_ENCRYPTION_PHRASE = "master_patient_id_encryption_phrase"
     PER_TABLE_PATIENT_ID_ENCRYPTION_PHRASE = (
-        "per_table_patient_id_encryption_phrase"  # noqa
+        "per_table_patient_id_encryption_phrase"
     )
 
     # Text extraction
     EXTRACT_TEXT_EXTENSIONS_CASE_SENSITIVE = (
-        "extract_text_extensions_case_sensitive"  # noqa
+        "extract_text_extensions_case_sensitive"
     )
     EXTRACT_TEXT_EXTENSIONS_PERMITTED = "extract_text_extensions_permitted"
     EXTRACT_TEXT_EXTENSIONS_PROHIBITED = "extract_text_extensions_prohibited"
@@ -251,22 +251,22 @@ class AnonymiseConfigKeys:
     ALLOWLIST_FILENAMES = "allowlist_filenames"
     ALLOW_NO_PATIENT_INFO = "allow_no_patient_info"
     ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY = (
-        "anonymise_codes_at_word_boundaries_only"  # noqa
+        "anonymise_codes_at_word_boundaries_only"
     )
     ANONYMISE_CODES_AT_NUMERIC_BOUNDARIES_ONLY = (
-        "anonymise_codes_at_numeric_boundaries_only"  # noqa
+        "anonymise_codes_at_numeric_boundaries_only"
     )
     ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY = (
-        "anonymise_dates_at_word_boundaries_only"  # noqa
+        "anonymise_dates_at_word_boundaries_only"
     )
     ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY = (
-        "anonymise_numbers_at_numeric_boundaries_only"  # noqa
+        "anonymise_numbers_at_numeric_boundaries_only"
     )
     ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY = (
-        "anonymise_numbers_at_word_boundaries_only"  # noqa
+        "anonymise_numbers_at_word_boundaries_only"
     )
     ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY = (
-        "anonymise_strings_at_word_boundaries_only"  # noqa
+        "anonymise_strings_at_word_boundaries_only"
     )
     DENYLIST_FILENAMES = "denylist_filenames"
     DENYLIST_FILES_AS_PHRASES = "denylist_files_as_phrases"
@@ -282,6 +282,7 @@ class AnonymiseConfigKeys:
     REPLACE_PATIENT_INFO_WITH = "replace_patient_info_with"
     REPLACE_THIRD_PARTY_INFO_WITH = "replace_third_party_info_with"
     SCRUB_ALL_DATES = "scrub_all_dates"
+    SCRUB_ALL_EMAIL_ADDRESSES = "scrub_all_email_addresses"
     SCRUB_ALL_NUMBERS_OF_N_DIGITS = "scrub_all_numbers_of_n_digits"
     SCRUB_ALL_UK_POSTCODES = "scrub_all_uk_postcodes"
     SCRUB_STRING_SUFFIXES = "scrub_string_suffixes"
@@ -347,6 +348,7 @@ class AnonymiseConfigDefaults:
     REPLACE_PATIENT_INFO_WITH = "[__PPP__]"
     REPLACE_THIRD_PARTY_INFO_WITH = "[__TTT__]"
     SCRUB_ALL_DATES = False
+    SCRUB_ALL_EMAIL_ADDRESSES = False
     SCRUB_ALL_UK_POSTCODES = False
     STRING_MAX_REGEX_ERRORS = 0
     THIRDPARTY_XREF_MAX_DEPTH = 1
@@ -374,7 +376,7 @@ class AnonymiseDatabaseSafeConfigKeys:
     """
 
     DDGEN_ADD_PER_TABLE_PIDS_TO_SCRUBBER = (
-        "ddgen_add_per_table_pids_to_scrubber"  # noqa
+        "ddgen_add_per_table_pids_to_scrubber"
     )
     DDGEN_ADDITION_ONLY = "ddgen_addition_only"
     DDGEN_ADDITION_ONLY_TABLES = "ddgen_addition_only_tables"
@@ -384,7 +386,7 @@ class AnonymiseDatabaseSafeConfigKeys:
     DDGEN_CONSTANT_CONTENT = "ddgen_constant_content"
     DDGEN_CONSTANT_CONTENT_TABLES = "ddgen_constant_content_tables"
     DDGEN_CONVERT_ODD_CHARS_TO_UNDERSCORE = (
-        "ddgen_convert_odd_chars_to_underscore"  # noqa
+        "ddgen_convert_odd_chars_to_underscore"
     )
     DDGEN_DELETION_POSSIBLE_TABLES = "ddgen_deletion_possible_tables"
     DDGEN_EXTRA_HASH_FIELDS = "ddgen_extra_hash_fields"
@@ -407,7 +409,7 @@ class AnonymiseDatabaseSafeConfigKeys:
     DDGEN_RENAME_TABLES_REMOVE_SUFFIXES = "ddgen_rename_tables_remove_suffixes"
     DDGEN_REQUIRED_SCRUBSRC_FIELDS = "ddgen_required_scrubsrc_fields"
     DDGEN_SAFE_FIELDS_EXEMPT_FROM_SCRUBBING = (
-        "ddgen_safe_fields_exempt_from_scrubbing"  # noqa
+        "ddgen_safe_fields_exempt_from_scrubbing"
     )
     DDGEN_SCRUBMETHOD_CODE_FIELDS = "ddgen_scrubmethod_code_fields"
     DDGEN_SCRUBMETHOD_DATE_FIELDS = "ddgen_scrubmethod_date_fields"
@@ -416,17 +418,17 @@ class AnonymiseDatabaseSafeConfigKeys:
     DDGEN_SCRUBSRC_PATIENT_FIELDS = "ddgen_scrubsrc_patient_fields"
     DDGEN_SCRUBSRC_THIRDPARTY_FIELDS = "ddgen_scrubsrc_thirdparty_fields"
     DDGEN_SCRUBSRC_THIRDPARTY_XREF_PID_FIELDS = (
-        "ddgen_scrubsrc_thirdparty_xref_pid_fields"  # noqa
+        "ddgen_scrubsrc_thirdparty_xref_pid_fields"
     )
     DDGEN_SKIP_ROW_IF_EXTRACT_TEXT_FAILS_FIELDS = (
-        "ddgen_skip_row_if_extract_text_fails_fields"  # noqa
+        "ddgen_skip_row_if_extract_text_fails_fields"
     )
     DDGEN_TABLE_ALLOWLIST = "ddgen_table_allowlist"
     DDGEN_TABLE_DEFINES_PIDS = "ddgen_table_defines_pids"
     DDGEN_TABLE_DENYLIST = "ddgen_table_denylist"
     DDGEN_TABLE_REQUIRE_FIELD_ABSOLUTE = "ddgen_table_require_field_absolute"
     DDGEN_TABLE_REQUIRE_FIELD_CONDITIONAL = (
-        "ddgen_table_require_field_conditional"  # noqa
+        "ddgen_table_require_field_conditional"
     )
     DDGEN_TRUNCATE_DATE_FIELDS = "ddgen_truncate_date_fields"
     DEBUG_LIMITED_TABLES = "debug_limited_tables"
@@ -540,6 +542,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 {_AK.DENYLIST_USE_REGEX} = {_DA.DENYLIST_USE_REGEX}
 {_AK.PHRASE_ALTERNATIVE_WORD_FILENAMES} =
 {_AK.SCRUB_ALL_DATES} = {_DA.SCRUB_ALL_DATES}
+{_AK.SCRUB_ALL_EMAIL_ADDRESSES} = {_DA.SCRUB_ALL_EMAIL_ADDRESSES}
 {_AK.SCRUB_ALL_NUMBERS_OF_N_DIGITS} =
 {_AK.SCRUB_ALL_UK_POSTCODES} = {_DA.SCRUB_ALL_UK_POSTCODES}
 {_AK.NONSPECIFIC_SCRUBBER_FIRST} = {_DA.NONSPECIFIC_SCRUBBER_FIRST}
