@@ -224,26 +224,32 @@ def gen_sufficiently_frequent_names(
     min_cumfreq_pct: float = 0,
     max_cumfreq_pct: float = 100,
     show_rejects: bool = False,
+    debug_names: List[str] = None,
 ) -> Generator[NameInfo, None, None]:
     """
     Generate names of a chosen kind of frequency.
 
     Args:
         infolist:
-            iterable of :class:`NameInfo` objects
+            Iterable of :class:`NameInfo` objects.
         min_cumfreq_pct:
-            minimum cumulative frequency (%): 0 for no limit, or above 0 to
-            exclude common names
+            Minimum cumulative frequency (%): 0 for no limit, or above 0 to
+            exclude common names.
         max_cumfreq_pct:
-            maximum cumulative frequency (%): 100 for no limit, or below 100 to
-            exclude rare names
+            Maximum cumulative frequency (%): 100 for no limit, or below 100 to
+            exclude rare names.
         show_rejects:
-            report rejected words to the Python debug log
+            Report rejected words to the Python debug log.
+        debug_names:
+            Names to show extra information about (e.g. to discover the right
+            thresholds).
 
     Yields:
         :class:`NameInfo` objects
 
     """
+    debug_names = debug_names or []  # type: List[str]
+    debug_names = [x.upper() for x in debug_names]
     assert min_cumfreq_pct <= max_cumfreq_pct
     if min_cumfreq_pct > 0 or max_cumfreq_pct < 100:
         log.info(
@@ -252,6 +258,8 @@ def gen_sufficiently_frequent_names(
         )
         for info in infolist:
             info.assert_freq_info()
+            if info.name.upper() in debug_names:
+                log.warning(info)
             if min_cumfreq_pct <= info.cumfreq_pct <= max_cumfreq_pct:
                 yield info
             elif show_rejects:
@@ -449,6 +457,7 @@ def fetch_us_forenames(
     max_cumfreq_pct: float = 100,
     min_name_length: int = 1,
     show_rejects: bool = False,
+    debug_names: List[str] = None,
 ) -> None:
     """
     Fetch US forenames and store them in a file, one per line.
@@ -472,6 +481,9 @@ def fetch_us_forenames(
             minimum word length; all words must be at least this long
         show_rejects:
             report rejected words to the Python debug log
+        debug_names:
+            Names to show extra information about (e.g. to discover the right
+            thresholds).
     """
     # -------------------------------------------------------------------------
     # Ignoring sex
@@ -493,6 +505,7 @@ def fetch_us_forenames(
             min_cumfreq_pct=min_cumfreq_pct,
             max_cumfreq_pct=max_cumfreq_pct,
             show_rejects=show_rejects,
+            debug_names=debug_names,
         ),
         min_name_length=min_name_length,
     )
@@ -742,6 +755,7 @@ def fetch_us_surnames(
     max_cumfreq_pct: float = 100,
     min_word_length: int = 1,
     show_rejects: bool = False,
+    debug_names: List[str] = None,
 ) -> None:
     """
     Fetches US surnames from the 1990 and 2010 census data. Writes them to a
@@ -766,6 +780,9 @@ def fetch_us_surnames(
             minimum word length; all words must be at least this long
         show_rejects:
             report rejected words to the Python debug log
+        debug_names:
+            Names to show extra information about (e.g. to discover the right
+            thresholds).
     """
     nameinfo_p1 = gen_name_info_via_min_length(
         gen_sufficiently_frequent_names(
@@ -777,6 +794,7 @@ def fetch_us_surnames(
             min_cumfreq_pct=min_cumfreq_pct,
             max_cumfreq_pct=max_cumfreq_pct,
             show_rejects=show_rejects,
+            debug_names=debug_names,
         ),
         min_name_length=min_word_length,
     )
@@ -926,16 +944,16 @@ def filter_files(
 # =============================================================================
 
 MIN_CUMFREQ_PCT_HELP = (
-    "Fetch only names where the cumulative frequency percentage up "
-    "to and including this name was at least this value. "
+    "Fetch only names where the cumulative frequency percentage, up "
+    "to and including this name, was at least this value. "
     "Range is 0-100. Use 0 for no limit. Setting this above 0 "
     "excludes COMMON names. (This is a trade-off between being "
-    "comprehensive and operating at a reasonable speed. Higher "
+    "comprehensive and operating at a reasonable speed. Lower "
     "numbers are more comprehensive but slower.)"
 )
 MAX_CUMFREQ_PCT_HELP = (
-    "Fetch only names where the cumulative frequency percentage up "
-    "to and including this name was less than or equal to this "
+    "Fetch only names where the cumulative frequency percentage, up "
+    "to and including this name, was less than or equal to this "
     "value. "
     "Range is 0-100. Use 100 for no limit. Setting this below 100 "
     "excludes RARE names. (This is a trade-off between being "
@@ -966,6 +984,12 @@ def main() -> None:
         action="store_true",
         help="Print to stdout (and, in verbose mode, log) the words being "
         "rejected",
+    )
+    parser.add_argument(
+        "--debug_names",
+        nargs="*",
+        help="Show extra detail about these names (e.g. to work out your "
+        "preferred frequency thresholds)",
     )
 
     english_group = parser.add_argument_group("English words")
@@ -1176,6 +1200,7 @@ def main() -> None:
             max_cumfreq_pct=args.us_forenames_max_cumfreq_pct,
             min_name_length=args.min_word_length,
             show_rejects=args.show_rejects,
+            debug_names=args.debug_names,
         )
 
     if args.us_surnames:
@@ -1188,6 +1213,7 @@ def main() -> None:
             max_cumfreq_pct=args.us_surnames_max_cumfreq_pct,
             min_word_length=args.min_word_length,
             show_rejects=args.show_rejects,
+            debug_names=args.debug_names,
         )
 
     if args.eponyms:

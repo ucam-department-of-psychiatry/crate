@@ -133,3 +133,26 @@ Specimen usage:
 
 ..  literalinclude:: crate_fetch_wordlists_specimen_usage.sh
     :language: bash
+
+The purpose of creating large name lists is usually to remove more names.
+However, it's likely that you want to remove medical eponyms, like Parkinson
+(for Parkinson's disease). CRATE has a hand-curated list of these. (If a
+patient is named Parkinson, though, and CRATE is told to remove that as a
+patient-specific identifier, that name will be removed from phrases like
+"Parkinson's disease", which may itself be a potential identifying clue,
+however, e.g. "[XXX]'s disease", but 100% reliable text de-identification is
+impossible.)
+
+The overlap between names and English words is really tricky.
+
+- If you use all names from this set and exclude English words (e.g.
+  ``--filter-exclude english_words.txt medical_eponyms.txt``), you will remove
+  from the namelist (and thus NOT remove from text being nonspecifically
+  scrubbed) names such as John (john is a noun) and Veronica (veronica
+  is also a noun).
+
+- If you keep all name in the exclusion namelist, though, you will scrub words
+  like excellent, fought, friend, games, he, hope, husband, joyful, kitten,
+  knuckle, libel, limp, lovely, man, memory, mood, music, no, power, powers,
+  sad, stress, true, yes, you, young, zone (to list but a few); these are all
+  names.
