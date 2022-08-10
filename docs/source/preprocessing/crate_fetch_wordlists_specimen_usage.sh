@@ -1,5 +1,5 @@
 #!/bin/bash
-# Specimen usage under Linux
+# Generating name files under Linux, for nonspecific name removal.
 
 # 1. Fetch our source data.
 # Downloading these and then using a file:// URL is unnecessary, but it makes

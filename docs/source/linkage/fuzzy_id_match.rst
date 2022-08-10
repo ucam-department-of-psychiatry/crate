@@ -38,3 +38,8 @@ fashion.
 
 .. literalinclude:: _crate_fuzzy_id_match_help.txt
     :language: none
+
+Name frequency data is pre-supplied. It was generated like this:
+
+.. literalinclude:: fetch_name_frequencies.sh
+    :language: bash
