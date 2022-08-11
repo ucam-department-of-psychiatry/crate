@@ -333,6 +333,11 @@ class TestAnonRegexes(TestCase):
             "Sep 2nd 1990",
             "1st Sep 90",
             "1st Sept 2000",
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Additional styles from JL
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            "blah   for some name  dob   7.3.04  but thing",
+            "x] |D.O.B. |24/02/1973   | |Detail",
         )
         suboptimal_but_accepted = (
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -346,18 +351,28 @@ class TestAnonRegexes(TestCase):
             "1nd Sep 90",  # ordinal suffix-to-number mapping not checked
         )
         valid_only_without_word_boundaries = (
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Dates with leading or trailing characters (only recognized if
             # word boundaries not required)
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             "31/12/1921AD",
             "wfuwdf12/11/74iuhwf",
             "fwefew13/11/1974",
             "01/12/1974vdwdfwe",
             "01/01/99werwer",
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Additional styles from JL
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            "x y z DOB23.07.48 questionnaire",
         )
         not_currently_valid_perhaps_should_be = (
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Valid dates before Epoch
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             "12/01/660",
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Valid date beyond the year 9999
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             "01/01/10000",
         )
         invalid = (
@@ -398,6 +413,10 @@ class TestAnonRegexes(TestCase):
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             "The cat sat on the mat."
             "He started haloperidol 5mg x7/week in 2009.",
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Additional styles from JL
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            "x / y z DOB 0804013",
         )
         working_valid = valid + suboptimal_but_accepted
         working_invalid = not_currently_valid_perhaps_should_be + invalid
@@ -622,6 +641,30 @@ class AnonRegexTests2(TestCase):
                     # Partly textual:
                     "6 May 1980",
                     "May 6, 80",
+                ],
+            ),
+            (
+                date(2004, 3, 7),
+                [
+                    "blah   for some name  dob   7.3.04  but thing",
+                ],
+            ),
+            (
+                date(2001, 4, 8),
+                [
+                    "x / y z DOB 0804013",
+                ],
+            ),
+            (
+                date(1948, 7, 23),
+                [
+                    "x y z DOB23.07.48 questionnaire",
+                ],
+            ),
+            (
+                date(1973, 2, 24),
+                [
+                    "x] |D.O.B. |24/02/1973   | |Detail",
                 ],
             ),
         ]  # type: List[Tuple[date, List[str]]]
