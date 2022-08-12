@@ -31,14 +31,20 @@ import secrets
 from tempfile import NamedTemporaryFile
 from typing import Dict
 
-from django.test import override_settings, TestCase
-from rest_framework.response import Response
-
+from cardinal_pythonlib.httpconst import HttpStatus
 from cardinal_pythonlib.nhs import generate_random_nhs_number
+from django.test import override_settings, TestCase
 from faker import Faker
+from rest_framework.response import Response
 from rest_framework.test import APIClient
 
-DEFAULT_SETTINGS = {"HASH_KEY": secrets.token_urlsafe(16)}
+from crate_anon.anonymise.constants import AnonymiseConfigKeys as ConfigKeys
+from crate_anon.crateweb.anonymise_api.constants import (
+    ApiKeys,
+    ApiSettingsKeys,
+)
+
+DEFAULT_SETTINGS = {ApiSettingsKeys.HASH_KEY: secrets.token_urlsafe(16)}
 
 
 @override_settings(ANONYMISE_API=DEFAULT_SETTINGS)
@@ -65,10 +71,10 @@ class AnonymisationTests(TestCase):
         )
 
         payload = {
-            "denylist": {
-                "words": [name, address],
+            ApiKeys.DENYLIST: {
+                ApiKeys.WORDS: [name, address],
             },
-            "text": {"test": text},
+            ApiKeys.TEXT: {"test": text},
         }
 
         self.assertIn(name, text)
@@ -76,9 +82,11 @@ class AnonymisationTests(TestCase):
         self.assertIn(str(nhs_number), text)
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(name, anonymised)
         self.assertNotIn(address, anonymised)
@@ -88,8 +96,8 @@ class AnonymisationTests(TestCase):
 
     def test_denylist_files(self) -> None:
         payload = {
-            "denylist": {"files": ["test"]},
-            "text": {"test": "secret private confidential"},
+            ApiKeys.DENYLIST: {ApiKeys.FILES: ["test"]},
+            ApiKeys.TEXT: {"test": "secret private confidential"},
         }
 
         with NamedTemporaryFile(delete=False, mode="w") as f:
@@ -99,14 +107,16 @@ class AnonymisationTests(TestCase):
             f.write("confidential\n")
 
         filename_map = {"test": filename}
-        settings = DEFAULT_SETTINGS
-        settings.update(DENYLIST_FILENAMES=filename_map)
+        settings = DEFAULT_SETTINGS.copy()
+        settings[ApiSettingsKeys.DENYLIST_FILENAMES] = filename_map
 
         with override_settings(ANONYMISE_API=settings):
             response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn("secret", anonymised)
         self.assertNotIn("private", anonymised)
@@ -117,17 +127,19 @@ class AnonymisationTests(TestCase):
         word = "secret"
 
         payload = {
-            "denylist": {
-                "words": [word],
+            ApiKeys.DENYLIST: {
+                ApiKeys.WORDS: [word],
             },
-            "replace_nonspecific_info_with": "[REDACTED]",
-            "text": {"test": word},
+            ConfigKeys.REPLACE_NONSPECIFIC_INFO_WITH: "[REDACTED]",
+            ApiKeys.TEXT: {"test": word},
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertEqual(anonymised.count("[REDACTED]"), 1)
 
@@ -136,18 +148,20 @@ class AnonymisationTests(TestCase):
         text = f"{date_of_birth} {self.fake.text()}"
 
         payload = {
-            "patient": {
-                "dates": [date_of_birth],
+            ApiKeys.PATIENT: {
+                ApiKeys.DATES: [date_of_birth],
             },
-            "text": {"test": text},
+            ApiKeys.TEXT: {"test": text},
         }
 
         self.assertIn(date_of_birth, text)
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(date_of_birth, anonymised)
 
@@ -158,10 +172,10 @@ class AnonymisationTests(TestCase):
 
         text = f"one {self.fake.text()} two {self.fake.text()} three"
         payload = {
-            "patient": {
-                "words": [words],
+            ApiKeys.PATIENT: {
+                ApiKeys.WORDS: [words],
             },
-            "text": {"test": text},
+            ApiKeys.TEXT: {"test": text},
         }
 
         all_words = text.split()
@@ -171,9 +185,11 @@ class AnonymisationTests(TestCase):
         self.assertIn("three", all_words)
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
         anonymised_words = anonymised.split()
 
         self.assertNotIn("one", anonymised_words)
@@ -185,17 +201,19 @@ class AnonymisationTests(TestCase):
     def test_patient_replacement_text(self) -> None:
         word = "secret"
         payload = {
-            "patient": {
-                "words": [word],
+            ApiKeys.PATIENT: {
+                ApiKeys.WORDS: [word],
             },
-            "replace_patient_info_with": "[REDACTED]",
-            "text": {"test": word},
+            ConfigKeys.REPLACE_PATIENT_INFO_WITH: "[REDACTED]",
+            ApiKeys.TEXT: {"test": word},
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
         self.assertEqual(anonymised.count("[REDACTED]"), 1)
 
     def test_patient_phrase_replaced(self) -> None:
@@ -204,18 +222,20 @@ class AnonymisationTests(TestCase):
         text = f"{address} {self.fake.text()}"
 
         payload = {
-            "patient": {
-                "phrases": [address],
+            ApiKeys.PATIENT: {
+                ApiKeys.PHRASES: [address],
             },
-            "text": {"test": text},
+            ApiKeys.TEXT: {"test": text},
         }
 
         self.assertIn(address, text)
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(address, anonymised)
 
@@ -226,16 +246,23 @@ class AnonymisationTests(TestCase):
         numeric_phrase = "5"
 
         payload = {
-            "patient": {
-                "non_numeric_phrases": [non_numeric_phrase, numeric_phrase],
+            ApiKeys.PATIENT: {
+                ApiKeys.NON_NUMERIC_PHRASES: [
+                    non_numeric_phrase,
+                    numeric_phrase,
+                ],
             },
-            "text": {"test": "Address is 5 High Street haloperidol 5 mg"},
+            ApiKeys.TEXT: {
+                "test": "Address is 5 High Street haloperidol 5 mg"
+            },
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertEqual(anonymised, "Address is [__PPP__] haloperidol 5 mg")
 
@@ -245,18 +272,20 @@ class AnonymisationTests(TestCase):
         text = f"{phone} {self.fake.text()}"
 
         payload = {
-            "patient": {
-                "numbers": [phone],
+            ApiKeys.PATIENT: {
+                ApiKeys.NUMBERS: [phone],
             },
-            "text": {"test": text},
+            ApiKeys.TEXT: {"test": text},
         }
 
         self.assertIn(phone, text)
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(phone, anonymised)
 
@@ -267,18 +296,20 @@ class AnonymisationTests(TestCase):
         text = f"{postcode} {self.fake.text()}"
 
         payload = {
-            "patient": {
-                "codes": [postcode],
+            ApiKeys.PATIENT: {
+                ApiKeys.CODES: [postcode],
             },
-            "text": {"test": text},
+            ApiKeys.TEXT: {"test": text},
         }
 
         self.assertIn(postcode, text)
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(postcode, anonymised)
 
@@ -289,18 +320,20 @@ class AnonymisationTests(TestCase):
         text = f"{postcode} {self.fake.text()}"
 
         payload = {
-            "third_party": {
-                "codes": [postcode],
+            ApiKeys.THIRD_PARTY: {
+                ApiKeys.CODES: [postcode],
             },
-            "text": {"test": text},
+            ApiKeys.TEXT: {"test": text},
         }
 
         self.assertIn(postcode, text)
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(postcode, anonymised)
 
@@ -310,17 +343,19 @@ class AnonymisationTests(TestCase):
         postcode = self.fake.postcode()
 
         payload = {
-            "third_party": {
-                "codes": [postcode],
+            ApiKeys.THIRD_PARTY: {
+                ApiKeys.CODES: [postcode],
             },
-            "text": {"test": postcode},
-            "replace_third_party_info_with": "[REDACTED]",
+            ApiKeys.TEXT: {"test": postcode},
+            ConfigKeys.REPLACE_THIRD_PARTY_INFO_WITH: "[REDACTED]",
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(postcode, anonymised)
 
@@ -331,19 +366,21 @@ class AnonymisationTests(TestCase):
         text = f"text{postcode}text"
 
         payload = {
-            "anonymise_codes_at_word_boundaries_only": False,
-            "third_party": {
-                "codes": [postcode],
+            ConfigKeys.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY: False,
+            ApiKeys.THIRD_PARTY: {
+                ApiKeys.CODES: [postcode],
             },
-            "text": {"test": text},
+            ApiKeys.TEXT: {"test": text},
         }
 
         self.assertIn(postcode, text)
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(postcode, anonymised)
 
@@ -354,19 +391,21 @@ class AnonymisationTests(TestCase):
         text = f"text{date_of_birth}text"
 
         payload = {
-            "anonymise_dates_at_word_boundaries_only": False,
-            "third_party": {
-                "dates": [date_of_birth],
+            ConfigKeys.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY: False,
+            ApiKeys.THIRD_PARTY: {
+                ApiKeys.DATES: [date_of_birth],
             },
-            "text": {"test": text},
+            ApiKeys.TEXT: {"test": text},
         }
 
         self.assertIn(date_of_birth, text)
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(date_of_birth, anonymised)
 
@@ -377,20 +416,22 @@ class AnonymisationTests(TestCase):
         text = f"text{phone}text"
 
         payload = {
-            "anonymise_numbers_at_numeric_boundaries_only": False,
-            "anonymise_numbers_at_word_boundaries_only": False,
-            "third_party": {
-                "numbers": [phone],
+            ConfigKeys.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY: False,
+            ConfigKeys.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY: False,
+            ApiKeys.THIRD_PARTY: {
+                ApiKeys.NUMBERS: [phone],
             },
-            "text": {"test": text},
+            ApiKeys.TEXT: {"test": text},
         }
 
         self.assertIn(phone, text)
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(phone, anonymised)
         self.assertEqual(anonymised.count("[__TTT__]"), 1)
@@ -400,20 +441,22 @@ class AnonymisationTests(TestCase):
         text = f"1234{phone}5678"
 
         payload = {
-            "anonymise_numbers_at_numeric_boundaries_only": False,
-            "anonymise_numbers_at_word_boundaries_only": False,
-            "third_party": {
-                "numbers": [phone],
+            ConfigKeys.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY: False,
+            ConfigKeys.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY: False,
+            ApiKeys.THIRD_PARTY: {
+                ApiKeys.NUMBERS: [phone],
             },
-            "text": {"test": text},
+            ApiKeys.TEXT: {"test": text},
         }
 
         self.assertIn(phone, text)
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(phone, anonymised)
         self.assertEqual(anonymised.count("[__TTT__]"), 1)
@@ -423,19 +466,21 @@ class AnonymisationTests(TestCase):
         text = f"text{word}text"
 
         payload = {
-            "anonymise_strings_at_word_boundaries_only": False,
-            "third_party": {
-                "words": [word],
+            ConfigKeys.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY: False,
+            ApiKeys.THIRD_PARTY: {
+                ApiKeys.WORDS: [word],
             },
-            "text": {"test": text},
+            ApiKeys.TEXT: {"test": text},
         }
 
         self.assertIn(word, text)
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(word, anonymised)
         self.assertEqual(anonymised.count("[__TTT__]"), 1)
@@ -446,17 +491,19 @@ class AnonymisationTests(TestCase):
         text = f"{typo}"
 
         payload = {
-            "string_max_regex_errors": 2,  # delete 1, insert 1
-            "third_party": {
-                "words": [word],
+            ConfigKeys.STRING_MAX_REGEX_ERRORS: 2,  # delete 1, insert 1
+            ApiKeys.THIRD_PARTY: {
+                ApiKeys.WORDS: [word],
             },
-            "text": {"test": text},
+            ApiKeys.TEXT: {"test": text},
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(typo, anonymised)
         self.assertEqual(anonymised.count("[__TTT__]"), 1)
@@ -470,18 +517,20 @@ class AnonymisationTests(TestCase):
         text = f"{typo1} {typo2}"
 
         payload = {
-            "string_max_regex_errors": 2,  # delete 1, insert 1
-            "min_string_length_for_errors": 7,
-            "third_party": {
-                "words": [word1, word2],
+            ConfigKeys.STRING_MAX_REGEX_ERRORS: 2,  # delete 1, insert 1
+            ConfigKeys.MIN_STRING_LENGTH_FOR_ERRORS: 7,
+            ApiKeys.THIRD_PARTY: {
+                ApiKeys.WORDS: [word1, word2],
             },
-            "text": {"test": text},
+            ApiKeys.TEXT: {"test": text},
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertIn(typo1, anonymised)
         self.assertNotIn(typo2, anonymised)
@@ -489,17 +538,19 @@ class AnonymisationTests(TestCase):
 
     def test_min_string_length_to_scrub_with(self) -> None:
         payload = {
-            "min_string_length_to_scrub_with": 6,
-            "third_party": {
-                "words": ["Craig Buchanan"],
+            ConfigKeys.MIN_STRING_LENGTH_TO_SCRUB_WITH: 6,
+            ApiKeys.THIRD_PARTY: {
+                ApiKeys.WORDS: ["Craig Buchanan"],
             },
-            "text": {"test": "Craig Buchanan"},
+            ApiKeys.TEXT: {"test": "Craig Buchanan"},
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertIn("Craig", anonymised)
         self.assertNotIn("Buchanan", anonymised)
@@ -509,17 +560,19 @@ class AnonymisationTests(TestCase):
         word = "secret"
 
         payload = {
-            "scrub_string_suffixes": ["s"],
-            "third_party": {
-                "words": [word],
+            ConfigKeys.SCRUB_STRING_SUFFIXES: ["s"],
+            ApiKeys.THIRD_PARTY: {
+                ApiKeys.WORDS: [word],
             },
-            "text": {"test": "secrets"},
+            ApiKeys.TEXT: {"test": "secrets"},
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn("secrets", anonymised)
         self.assertEqual(anonymised.count("[__TTT__]"), 1)
@@ -528,17 +581,19 @@ class AnonymisationTests(TestCase):
         # A bit of a contrived example but the allowlist should
         # take precedence.
         payload = {
-            "third_party": {
-                "words": ["secret", "private", "confidential"],
+            ApiKeys.THIRD_PARTY: {
+                ApiKeys.WORDS: ["secret", "private", "confidential"],
             },
-            "allowlist": {"words": ["secret"]},
-            "text": {"test": "secret private confidential"},
+            ApiKeys.ALLOWLIST: {"words": ["secret"]},
+            ApiKeys.TEXT: {"test": "secret private confidential"},
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertIn("secret", anonymised)
         self.assertNotIn("private", anonymised)
@@ -547,11 +602,11 @@ class AnonymisationTests(TestCase):
 
     def test_allowlist_files(self) -> None:
         payload = {
-            "third_party": {
-                "words": ["secret", "private", "confidential"],
+            ApiKeys.THIRD_PARTY: {
+                ApiKeys.WORDS: ["secret", "private", "confidential"],
             },
-            "allowlist": {"files": ["test"]},
-            "text": {"test": "secret private confidential"},
+            ApiKeys.ALLOWLIST: {"files": ["test"]},
+            ApiKeys.TEXT: {"test": "secret private confidential"},
         }
 
         with NamedTemporaryFile(delete=False, mode="w") as f:
@@ -559,14 +614,16 @@ class AnonymisationTests(TestCase):
             f.write("secret\n")
 
         filename_map = {"test": filename}
-        settings = DEFAULT_SETTINGS
-        settings.update(ALLOWLIST_FILENAMES=filename_map)
+        settings = DEFAULT_SETTINGS.copy()
+        settings[ApiSettingsKeys.ALLOWLIST_FILENAMES] = filename_map
 
         with override_settings(ANONYMISE_API=settings):
             response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertIn("secret", anonymised)
         self.assertNotIn("private", anonymised)
@@ -575,17 +632,19 @@ class AnonymisationTests(TestCase):
 
     def test_phrase_alternatives(self) -> None:
         payload = {
-            "third_party": {
-                "phrases": ["22 Acacia Avenue"],
+            ApiKeys.THIRD_PARTY: {
+                ApiKeys.PHRASES: ["22 Acacia Avenue"],
             },
-            "alternatives": [["Avenue", "Ave"]],
-            "text": {"test": "22 Acacia Ave"},
+            ApiKeys.ALTERNATIVES: [["Avenue", "Ave"]],
+            ApiKeys.TEXT: {"test": "22 Acacia Ave"},
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn("22 Acacia Ave", anonymised)
         self.assertEqual(anonymised.count("[__TTT__]"), 1)
@@ -598,14 +657,16 @@ class AnonymisationTests(TestCase):
         self.assertIn(nhs_number, text)
 
         payload = {
-            "scrub_all_numbers_of_n_digits": [10],
-            "text": {"test": text},
+            ConfigKeys.SCRUB_ALL_NUMBERS_OF_N_DIGITS: [10],
+            ApiKeys.TEXT: {"test": text},
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(nhs_number, anonymised)
         self.assertEqual(anonymised.count("[~~~]"), 1)
@@ -620,15 +681,17 @@ class AnonymisationTests(TestCase):
         self.assertIn(nhs_number, text)
 
         payload = {
-            "scrub_all_numbers_of_n_digits": [10],
-            "anonymise_numbers_at_word_boundaries_only": False,
-            "text": {"test": text},
+            ConfigKeys.SCRUB_ALL_NUMBERS_OF_N_DIGITS: [10],
+            ConfigKeys.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY: False,
+            ApiKeys.TEXT: {"test": text},
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(nhs_number, anonymised)
         self.assertEqual(anonymised.count("[~~~]"), 1)
@@ -641,14 +704,16 @@ class AnonymisationTests(TestCase):
         self.assertIn(postcode, text)
 
         payload = {
-            "scrub_all_uk_postcodes": True,
-            "text": {"test": text},
+            ConfigKeys.SCRUB_ALL_UK_POSTCODES: True,
+            ApiKeys.TEXT: {"test": text},
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(postcode, anonymised)
         self.assertEqual(anonymised.count("[~~~]"), 1)
@@ -661,15 +726,17 @@ class AnonymisationTests(TestCase):
         self.assertIn(postcode, text)
 
         payload = {
-            "anonymise_codes_at_word_boundaries_only": False,
-            "scrub_all_uk_postcodes": True,
-            "text": {"test": text},
+            ConfigKeys.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY: False,
+            ConfigKeys.SCRUB_ALL_UK_POSTCODES: True,
+            ApiKeys.TEXT: {"test": text},
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(postcode, anonymised)
         self.assertEqual(anonymised.count("[~~~]"), 1)
@@ -678,15 +745,17 @@ class AnonymisationTests(TestCase):
         postcode = self.fake.postcode()
 
         payload = {
-            "scrub_all_uk_postcodes": True,
-            "replace_nonspecific_info_with": "[REDACTED]",
-            "text": {"test": postcode},
+            ConfigKeys.SCRUB_ALL_UK_POSTCODES: True,
+            ConfigKeys.REPLACE_NONSPECIFIC_INFO_WITH: "[REDACTED]",
+            ApiKeys.TEXT: {"test": postcode},
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(postcode, anonymised)
         self.assertEqual(anonymised.count("[REDACTED]"), 1)
@@ -699,14 +768,16 @@ class AnonymisationTests(TestCase):
         self.assertIn(dob, text)
 
         payload = {
-            "scrub_all_dates": True,
-            "text": {"test": text},
+            ConfigKeys.SCRUB_ALL_DATES: True,
+            ApiKeys.TEXT: {"test": text},
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(dob, anonymised)
         self.assertEqual(anonymised.count("[~~~]"), 1)
@@ -720,16 +791,40 @@ class AnonymisationTests(TestCase):
         self.assertIn(dob_string, text)
 
         payload = {
-            "scrub_all_dates": True,
-            "replace_all_dates_with": "%b '%y",
-            "text": {"test": text},
+            ConfigKeys.SCRUB_ALL_DATES: True,
+            ConfigKeys.REPLACE_ALL_DATES_WITH: "%b '%y",
+            ApiKeys.TEXT: {"test": text},
         }
 
         response = self.scrub_post(payload)
-        self.assertEqual(response.status_code, 200, msg=response.data)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
 
-        anonymised = response.data["anonymised"]["test"]
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
 
         self.assertNotIn(dob_string, anonymised)
         expected = dob.strftime("%b '%y")
         self.assertEqual(anonymised.count(expected), 1)
+
+    def test_scrub_all_email_addresses(self) -> None:
+        email = self.fake.email()
+
+        text = f"{self.fake.text()} {email} {self.fake.text()}"
+
+        self.assertIn(email, text)
+
+        payload = {
+            ConfigKeys.SCRUB_ALL_EMAIL_ADDRESSES: True,
+            ApiKeys.TEXT: {"test": text},
+        }
+
+        response = self.scrub_post(payload)
+        self.assertEqual(
+            response.status_code, HttpStatus.OK, msg=response.data
+        )
+
+        anonymised = response.data[ApiKeys.ANONYMISED]["test"]
+
+        self.assertNotIn(email, anonymised)
+        self.assertEqual(anonymised.count("[~~~]"), 1)

@@ -30,6 +30,7 @@ crate_anon/crateweb
 
     __init__.py.rst
     anonymise_api/__init__.py.rst
+    anonymise_api/constants.py.rst
     anonymise_api/serializers.py.rst
     anonymise_api/tests.py.rst
     anonymise_api/urls.py.rst

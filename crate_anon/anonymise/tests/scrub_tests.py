@@ -435,3 +435,15 @@ class NonspecificScrubberTests(ScrubberTestCase):
                     scrub_all_dates=True,
                     replacement_text_all_dates=replacement,
                 )
+
+    def test_email_addresses_scrubbed(self) -> None:
+        """
+        Test that e-mail addresses are scrubbed.
+        """
+        scrubber = NonspecificScrubber(
+            self.hasher,
+            scrub_all_email_addresses=True,
+            replacement_text="[REDACTED]",
+        )
+
+        self.assertEqual(scrubber.scrub(self.fake.email()), "[REDACTED]")

@@ -75,6 +75,7 @@ from crate_anon.anonymise.constants import (
     ScrubMethod,
 )
 from crate_anon.anonymise.anonregex import (
+    EMAIL_REGEX_STR,
     DateRegexNames,
     get_anon_fragments_from_string,
     get_code_regex_elements,
@@ -533,6 +534,7 @@ class NonspecificScrubber(ScrubberBase):
         scrub_all_uk_postcodes: bool = DA.SCRUB_ALL_UK_POSTCODES,
         scrub_all_dates: bool = DA.SCRUB_ALL_DATES,
         replacement_text_all_dates: str = DA.REPLACE_ALL_DATES_WITH,
+        scrub_all_email_addresses: bool = DA.SCRUB_ALL_EMAIL_ADDRESSES,
         extra_regexes: Optional[List[str]] = None,
     ) -> None:
         """
@@ -568,6 +570,8 @@ class NonspecificScrubber(ScrubberBase):
                 When scrub_all_dates is True, replace with this text.
                 Supports limited datetime.strftime directives for "blurring" of
                 dates. Example: "%b %Y" for abbreviated month and year.
+            scrub_all_email_addresses:
+                Scrub all e-mail addresses?
             extra_regexes:
                 List of user-defined extra regexes to scrub.
         """  # noqa
@@ -593,6 +597,7 @@ class NonspecificScrubber(ScrubberBase):
         self.check_replacement_text_all_dates()
         self.replacer = self.get_replacer()
 
+        self.scrub_all_email_addresses = scrub_all_email_addresses
         self.extra_regexes = extra_regexes
 
         self._cached_hash = None  # type: Optional[str]
@@ -696,6 +701,8 @@ class NonspecificScrubber(ScrubberBase):
                     at_word_boundaries_only=self.anonymise_dates_at_word_boundaries_only  # noqa
                 )
             )
+        if self.scrub_all_email_addresses:
+            elements.append(EMAIL_REGEX_STR)
         if self.extra_regexes:
             elements.extend(self.extra_regexes)
         self._regex = get_regex_from_elements(elements)

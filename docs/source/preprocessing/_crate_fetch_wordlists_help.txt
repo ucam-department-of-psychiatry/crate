@@ -1,6 +1,8 @@
 usage: crate_fetch_wordlists [-h] [--verbose]
                              [--min_word_length MIN_WORD_LENGTH]
-                             [--show_rejects] [--english_words]
+                             [--show_rejects]
+                             [--debug_names [DEBUG_NAMES [DEBUG_NAMES ...]]]
+                             [--english_words]
                              [--english_words_output ENGLISH_WORDS_OUTPUT]
                              [--english_words_url ENGLISH_WORDS_URL]
                              [--valid_word_regex VALID_WORD_REGEX]
@@ -31,14 +33,16 @@ optional arguments:
                         Minimum word (or name) length to allow (default: 2)
   --show_rejects        Print to stdout (and, in verbose mode, log) the words
                         being rejected (default: False)
+  --debug_names [DEBUG_NAMES [DEBUG_NAMES ...]]
+                        Show extra detail about these names (e.g. to work out
+                        your preferred frequency thresholds) (default: None)
 
 English words:
   --english_words       Fetch English words (to remove from the nonspecific
                         denylist, not to add to an allowlist; consider words
                         like smith) (default: False)
   --english_words_output ENGLISH_WORDS_OUTPUT
-                        Output file for English words (default:
-                        english_words.txt)
+                        Output file for English words (default: None)
   --english_words_url ENGLISH_WORDS_URL
                         URL for a textfile containing all English words (will
                         then be filtered) (default: https://www.gutenberg.org/
@@ -51,12 +55,11 @@ US forenames:
   --us_forenames        Fetch US forenames (for denylist) (default: False)
   --us_forenames_freq_output US_FORENAMES_FREQ_OUTPUT
                         Output CSV file for US forename with frequencies
-                        (columns are: name, frequency) (default:
-                        us_forename_freq.csv)
+                        (columns are: name, frequency) (default: None)
   --us_forenames_sex_freq_output US_FORENAMES_SEX_FREQ_OUTPUT
                         Output CSV file for US forename with sex and
                         frequencies (columns are: name, gender, frequency)
-                        (default: us_forename_sex_freq.csv)
+                        (default: None)
   --us_forenames_url US_FORENAMES_URL
                         URL to Zip file of US Census-derived forenames lists
                         (excludes names with national frequency <5; see
@@ -65,33 +68,31 @@ US forenames:
                         https://www.ssa.gov/OACT/babynames/names.zip)
   --us_forenames_min_cumfreq_pct US_FORENAMES_MIN_CUMFREQ_PCT
                         Fetch only names where the cumulative frequency
-                        percentage up to and including this name was at least
-                        this value. Range is 0-100. Use 0 for no limit.
+                        percentage, up to and including this name, was at
+                        least this value. Range is 0-100. Use 0 for no limit.
                         Setting this above 0 excludes COMMON names. (This is a
                         trade-off between being comprehensive and operating at
-                        a reasonable speed. Higher numbers are more
+                        a reasonable speed. Lower numbers are more
                         comprehensive but slower.) (default: 0)
   --us_forenames_max_cumfreq_pct US_FORENAMES_MAX_CUMFREQ_PCT
                         Fetch only names where the cumulative frequency
-                        percentage up to and including this name was less than
-                        or equal to this value. Range is 0-100. Use 100 for no
-                        limit. Setting this below 100 excludes RARE names.
-                        (This is a trade-off between being comprehensive and
-                        operating at a reasonable speed. Higher numbers are
-                        more comprehensive but slower.) (default: 100)
+                        percentage, up to and including this name, was less
+                        than or equal to this value. Range is 0-100. Use 100
+                        for no limit. Setting this below 100 excludes RARE
+                        names. (This is a trade-off between being
+                        comprehensive and operating at a reasonable speed.
+                        Higher numbers are more comprehensive but slower.)
+                        (default: 100)
   --us_forenames_output US_FORENAMES_OUTPUT
-                        Output file for US forenames (default:
-                        us_forenames.txt)
+                        Output file for US forenames (default: None)
 
 US surnames:
   --us_surnames         Fetch US surnames (for denylist) (default: False)
   --us_surnames_output US_SURNAMES_OUTPUT
-                        Output text file for US surnames (default:
-                        us_surnames.txt)
+                        Output text file for US surnames (default: None)
   --us_surnames_freq_output US_SURNAMES_FREQ_OUTPUT
                         Output CSV file for US surnames with frequencies
-                        (columns are: name, frequency) (default:
-                        us_surname_freq.csv)
+                        (columns are: name, frequency) (default: None)
   --us_surnames_1990_census_url US_SURNAMES_1990_CENSUS_URL
                         URL for textfile of US 1990 Census surnames (default: 
                         http://www2.census.gov/topics/genealogy/1990surnames/d
@@ -102,20 +103,21 @@ US surnames:
                         .zip)
   --us_surnames_min_cumfreq_pct US_SURNAMES_MIN_CUMFREQ_PCT
                         Fetch only names where the cumulative frequency
-                        percentage up to and including this name was at least
-                        this value. Range is 0-100. Use 0 for no limit.
+                        percentage, up to and including this name, was at
+                        least this value. Range is 0-100. Use 0 for no limit.
                         Setting this above 0 excludes COMMON names. (This is a
                         trade-off between being comprehensive and operating at
-                        a reasonable speed. Higher numbers are more
+                        a reasonable speed. Lower numbers are more
                         comprehensive but slower.) (default: 0)
   --us_surnames_max_cumfreq_pct US_SURNAMES_MAX_CUMFREQ_PCT
                         Fetch only names where the cumulative frequency
-                        percentage up to and including this name was less than
-                        or equal to this value. Range is 0-100. Use 100 for no
-                        limit. Setting this below 100 excludes RARE names.
-                        (This is a trade-off between being comprehensive and
-                        operating at a reasonable speed. Higher numbers are
-                        more comprehensive but slower.) (default: 100)
+                        percentage, up to and including this name, was less
+                        than or equal to this value. Range is 0-100. Use 100
+                        for no limit. Setting this below 100 excludes RARE
+                        names. (This is a trade-off between being
+                        comprehensive and operating at a reasonable speed.
+                        Higher numbers are more comprehensive but slower.)
+                        (default: 100)
 
 Medical eponyms:
   --eponyms             Write medical eponyms (to remove from denylist)

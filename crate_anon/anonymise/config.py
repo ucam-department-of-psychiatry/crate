@@ -749,6 +749,9 @@ class Config:
         self.scrub_all_dates = cfg.opt_bool(
             AK.SCRUB_ALL_DATES, DA.SCRUB_ALL_DATES
         )
+        self.scrub_all_email_addresses = cfg.opt_bool(
+            AK.SCRUB_ALL_EMAIL_ADDRESSES, DA.SCRUB_ALL_EMAIL_ADDRESSES
+        )
         self.scrub_all_numbers_of_n_digits = cfg.opt_multiline_int(
             AK.SCRUB_ALL_NUMBERS_OF_N_DIGITS, minimum=1
         )
@@ -816,6 +819,7 @@ class Config:
             scrub_all_numbers_of_n_digits=self.scrub_all_numbers_of_n_digits,
             scrub_all_uk_postcodes=self.scrub_all_uk_postcodes,
             scrub_all_dates=self.scrub_all_dates,
+            scrub_all_email_addresses=self.scrub_all_email_addresses,
             replacement_text_all_dates=self.replace_all_dates_with,
             extra_regexes=self.extra_regexes,
         )

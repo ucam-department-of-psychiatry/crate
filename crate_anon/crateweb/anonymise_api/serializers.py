@@ -33,7 +33,7 @@ from typing import Dict, List, Optional
 
 from django.conf import settings
 
-from cardinal_pythonlib.hash import GenericHasher, make_hasher
+from cardinal_pythonlib.hash import GenericHasher, HashMethods, make_hasher
 from rest_framework.serializers import (
     BooleanField,
     CharField,
@@ -46,6 +46,7 @@ from rest_framework.serializers import (
 
 from crate_anon.anonymise.constants import (
     AnonymiseConfigDefaults as Defaults,
+    AnonymiseConfigKeys as ConfigKeys,
     DATE_BLURRING_DIRECTIVES_CSV,
     ScrubMethod,
 )
@@ -54,8 +55,13 @@ from crate_anon.anonymise.scrub import (
     PersonalizedScrubber,
     WordList,
 )
+from crate_anon.crateweb.anonymise_api.constants import (
+    ApiKeys,
+    ApiSettingsKeys,
+)
 
 
+# noinspection PyAbstractClass
 class SpecificSerializer(Serializer):
     """
     Represents scrubbing information about a specific person or group of people
@@ -107,6 +113,7 @@ class SpecificSerializer(Serializer):
     )
 
 
+# noinspection PyAbstractClass
 class AllowlistSerializer(Serializer):
     """
     Represents allowlist options.
@@ -129,6 +136,7 @@ class AllowlistSerializer(Serializer):
     )
 
 
+# noinspection PyAbstractClass
 class DenylistSerializer(Serializer):
     """
     Represents denylist options.
@@ -150,6 +158,7 @@ class DenylistSerializer(Serializer):
     )
 
 
+# noinspection PyAbstractClass
 class ScrubSerializer(Serializer):
     """
     Represents all scrubber settings, including data to be scrubbed and
@@ -297,6 +306,11 @@ class ScrubSerializer(Serializer):
             "for month names and ordinal suffixes."
         ),
     )
+    scrub_all_email_addresses = BooleanField(
+        default=Defaults.SCRUB_ALL_EMAIL_ADDRESSES,
+        initial=Defaults.SCRUB_ALL_EMAIL_ADDRESSES,
+        help_text="Scrub all e-mail addresses.",
+    )
     alternatives = ListField(
         child=ListField(child=CharField()),
         help_text=(
@@ -325,7 +339,7 @@ class ScrubSerializer(Serializer):
 
         anonymised = dict()
 
-        for key, value in data["text"].items():
+        for key, value in data[ApiKeys.TEXT].items():
             anonymised[key] = scrubber.scrub(value)
 
         return anonymised
@@ -337,24 +351,29 @@ class ScrubSerializer(Serializer):
         Create a CRATE scrubber representing patient and third-party scrubbing
         settings.
         """
-        hasher = make_hasher("HMAC_MD5", settings.ANONYMISE_API["HASH_KEY"])
+        hasher = make_hasher(
+            HashMethods.HMAC_MD5,
+            settings.ANONYMISE_API[ApiSettingsKeys.HASH_KEY],
+        )
 
         options = (
-            "anonymise_codes_at_word_boundaries_only",
-            "anonymise_dates_at_word_boundaries_only",
-            "anonymise_numbers_at_word_boundaries_only",
-            "anonymise_numbers_at_numeric_boundaries_only",
-            "anonymise_strings_at_word_boundaries_only",
-            "string_max_regex_errors",
-            "min_string_length_for_errors",
-            "min_string_length_to_scrub_with",
-            "scrub_string_suffixes",
+            ConfigKeys.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,
+            ConfigKeys.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,
+            ConfigKeys.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,
+            ConfigKeys.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY,
+            ConfigKeys.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY,
+            ConfigKeys.STRING_MAX_REGEX_ERRORS,
+            ConfigKeys.MIN_STRING_LENGTH_FOR_ERRORS,
+            ConfigKeys.MIN_STRING_LENGTH_TO_SCRUB_WITH,
+            ConfigKeys.SCRUB_STRING_SUFFIXES,
         )
 
         kwargs = {k: v for (k, v) in data.items() if k in options}
 
-        replacement_text_patient = data["replace_patient_info_with"]
-        replacement_text_third_party = data["replace_third_party_info_with"]
+        replacement_text_patient = data[ConfigKeys.REPLACE_PATIENT_INFO_WITH]
+        replacement_text_third_party = data[
+            ConfigKeys.REPLACE_THIRD_PARTY_INFO_WITH
+        ]
 
         scrubber = PersonalizedScrubber(
             hasher,
@@ -366,7 +385,7 @@ class ScrubSerializer(Serializer):
             **kwargs,
         )
 
-        for label in ("patient", "third_party"):
+        for label in (ApiKeys.PATIENT, ApiKeys.THIRD_PARTY):
             if label in data:
                 self._add_values_to_scrubber(scrubber, label, data)
 
@@ -382,7 +401,7 @@ class ScrubSerializer(Serializer):
         try:
             return [
                 [word.upper() for word in words]
-                for words in data["alternatives"]
+                for words in data[ApiKeys.ALTERNATIVES]
             ]
         except KeyError:
             return None
@@ -396,15 +415,17 @@ class ScrubSerializer(Serializer):
         allowed through.
         """
         try:
-            allowlist_data = data["allowlist"]
+            allowlist_data = data[ApiKeys.ALLOWLIST]
         except KeyError:
             return None
 
-        options = ("words",)
+        options = (ApiKeys.WORDS,)
 
         kwargs = {k: v for (k, v) in allowlist_data.items() if k in options}
-        files = allowlist_data["files"]
-        filename_lookup = settings.ANONYMISE_API.get("ALLOWLIST_FILENAMES", {})
+        files = allowlist_data[ApiKeys.FILES]
+        filename_lookup = settings.ANONYMISE_API.get(
+            ApiSettingsKeys.ALLOWLIST_FILENAMES, {}
+        )
 
         filenames = [
             filename
@@ -423,20 +444,22 @@ class ScrubSerializer(Serializer):
         """
         denylist = self._get_denylist(data, hasher)
         options = (
-            "scrub_all_numbers_of_n_digits",
-            "scrub_all_uk_postcodes",
-            "scrub_all_dates",
-            "anonymise_codes_at_word_boundaries_only",
-            "anonymise_numbers_at_word_boundaries_only",
+            # Also kwargs for NonspecificScrubber
+            ConfigKeys.SCRUB_ALL_NUMBERS_OF_N_DIGITS,
+            ConfigKeys.SCRUB_ALL_UK_POSTCODES,
+            ConfigKeys.SCRUB_ALL_DATES,
+            ConfigKeys.SCRUB_ALL_EMAIL_ADDRESSES,
+            ConfigKeys.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,
+            ConfigKeys.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,
         )
         kwargs = {k: v for (k, v) in data.items() if k in options}
 
         # TODO: extra_regexes (might be a security no-no)
-        replacement_text = data["replace_nonspecific_info_with"]
+        replacement_text = data[ConfigKeys.REPLACE_NONSPECIFIC_INFO_WITH]
 
         try:
             kwargs["replacement_text_all_dates"] = data[
-                "replace_all_dates_with"
+                ConfigKeys.REPLACE_ALL_DATES_WITH
             ]
         except KeyError:
             pass
@@ -457,17 +480,21 @@ class ScrubSerializer(Serializer):
         scrubbed.
         """
         try:
-            denylist_data = data["denylist"]
+            denylist_data = data[ApiKeys.DENYLIST]
         except KeyError:
             return None
 
-        options = ("words",)
+        options = (ApiKeys.WORDS,)
 
         kwargs = {k: v for (k, v) in denylist_data.items() if k in options}
-        kwargs["replacement_text"] = data["replace_nonspecific_info_with"]
+        kwargs["replacement_text"] = data[
+            ConfigKeys.REPLACE_NONSPECIFIC_INFO_WITH
+        ]
 
-        files = denylist_data["files"]
-        filename_lookup = settings.ANONYMISE_API.get("DENYLIST_FILENAMES", {})
+        files = denylist_data[ApiKeys.FILES]
+        filename_lookup = settings.ANONYMISE_API.get(
+            ApiSettingsKeys.DENYLIST_FILENAMES, {}
+        )
 
         filenames = [
             filename
@@ -494,15 +521,15 @@ class ScrubSerializer(Serializer):
         component of a scrubber.
         """
         method_lookup = {
-            "dates": ScrubMethod.DATE,
-            "phrases": ScrubMethod.PHRASE,
-            "non_numeric_phrases": ScrubMethod.PHRASE_UNLESS_NUMERIC,
-            "words": ScrubMethod.WORDS,
-            "numbers": ScrubMethod.NUMERIC,
-            "codes": ScrubMethod.CODE,
+            ApiKeys.DATES: ScrubMethod.DATE,
+            ApiKeys.PHRASES: ScrubMethod.PHRASE,
+            ApiKeys.NON_NUMERIC_PHRASES: ScrubMethod.PHRASE_UNLESS_NUMERIC,
+            ApiKeys.WORDS: ScrubMethod.WORDS,
+            ApiKeys.NUMBERS: ScrubMethod.NUMERIC,
+            ApiKeys.CODES: ScrubMethod.CODE,
         }
 
-        is_patient = label == "patient"
+        is_patient = label == ApiKeys.PATIENT
 
         for name, values in data[label].items():
             method = method_lookup[name]

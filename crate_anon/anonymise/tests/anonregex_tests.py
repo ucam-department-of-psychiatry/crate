@@ -43,6 +43,7 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 import regex
 
 from crate_anon.anonymise.anonregex import (
+    EMAIL_REGEX_STR,
     get_anon_fragments_from_string,
     get_code_regex_elements,
     get_date_regex_elements,
@@ -54,6 +55,7 @@ from crate_anon.anonymise.anonregex import (
     get_string_regex_elements,
     get_uk_postcode_regex_elements,
     get_uk_postcode_regex_string,
+    REGEX_COMPILE_FLAGS,
 )
 from crate_anon.common.stringfunc import (
     get_digit_string_from_vaguely_numeric_string,
@@ -331,6 +333,11 @@ class TestAnonRegexes(TestCase):
             "Sep 2nd 1990",
             "1st Sep 90",
             "1st Sept 2000",
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Additional styles from JL
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            "blah   for some name  dob   7.3.04  but thing",
+            "x] |D.O.B. |24/02/1973   | |Detail",
         )
         suboptimal_but_accepted = (
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -344,18 +351,28 @@ class TestAnonRegexes(TestCase):
             "1nd Sep 90",  # ordinal suffix-to-number mapping not checked
         )
         valid_only_without_word_boundaries = (
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Dates with leading or trailing characters (only recognized if
             # word boundaries not required)
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             "31/12/1921AD",
             "wfuwdf12/11/74iuhwf",
             "fwefew13/11/1974",
             "01/12/1974vdwdfwe",
             "01/01/99werwer",
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Additional styles from JL
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            "x y z DOB23.07.48 questionnaire",
         )
         not_currently_valid_perhaps_should_be = (
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Valid dates before Epoch
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             "12/01/660",
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # Valid date beyond the year 9999
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             "01/01/10000",
         )
         invalid = (
@@ -396,6 +413,10 @@ class TestAnonRegexes(TestCase):
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             "The cat sat on the mat."
             "He started haloperidol 5mg x7/week in 2009.",
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            # Additional styles from JL
+            # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            "x / y z DOB 0804013",
         )
         working_valid = valid + suboptimal_but_accepted
         working_invalid = not_currently_valid_perhaps_should_be + invalid
@@ -595,8 +616,10 @@ class AnonRegexTests2(TestCase):
                     "2021-12-31",
                     "31/12/2021",
                     "31/12/21",
+                    "31.12.21",
                     "12/31/2021",  # American
                     "12/31/21",  # American
+                    "12.31.21",  # American
                     # Partly textual:
                     "31 Dec 2021",
                     "31 December 2021",
@@ -612,11 +635,36 @@ class AnonRegexTests2(TestCase):
                     "1980-05-06",
                     "6/5/1980",
                     "6/5/80",
+                    "6.5.80",
                     "06/05/1980",
                     "5/6/80",  # American
                     # Partly textual:
                     "6 May 1980",
                     "May 6, 80",
+                ],
+            ),
+            (
+                date(2004, 3, 7),
+                [
+                    "blah   for some name  dob   7.3.04  but thing",
+                ],
+            ),
+            (
+                date(2001, 4, 8),
+                [
+                    "x / y z DOB 0804013",
+                ],
+            ),
+            (
+                date(1948, 7, 23),
+                [
+                    "x y z DOB23.07.48 questionnaire",
+                ],
+            ),
+            (
+                date(1973, 2, 24),
+                [
+                    "x] |D.O.B. |24/02/1973   | |Detail",
                 ],
             ),
         ]  # type: List[Tuple[date, List[str]]]
@@ -757,6 +805,55 @@ class AnonRegexTests2(TestCase):
             self.assertTrue(postcode_regex.match(v))
         for i in invalid_postcodes:
             self.assertFalse(postcode_regex.match(i))
+
+    def test_email_addresses(self) -> None:
+        """
+        Ensure we detect e-mail addresses properly.
+        This won't be completely perfect. See https://emailregex.com/.
+
+        Specimen values:
+
+        - https://help.xmatters.com/ondemand/trial/valid_email_format.htm
+        """
+        valid_email = [
+            "person@place.com",
+            "r&d@somewhere.nhs.uk",
+            "abc-d@mail.com",
+            "abc.def@mail.com",
+            "abc@mail.com",
+            "abc_def@mail.com",
+            "abc.def@mail.cc",
+            "abc.def@mail-archive.com",
+            "abc.def@mail.org",
+            "abc.def@mail.com",
+            "abc-@mail.com",  # xmatters.com thinks wrong but is OK
+            "abc#def@mail.com",  # xmatters.com thinks wrong but is OK
+            "abc.def@mail.c",  # xmatters.com thinks wrong but ?is OK
+        ]
+        invalid_email = [
+            "person",
+            "person@",
+            "@place.com",
+            "person@place",
+            "abc..def@mail.com",
+            ".abc@mail.com",
+            "abc.def@mail#archive.com",
+            "abc.def@mail",
+            "abc.def@mail..com",
+        ]
+        email_regex = regex.compile(EMAIL_REGEX_STR, flags=REGEX_COMPILE_FLAGS)
+        for v in valid_email:
+            self.assertTrue(
+                email_regex.match(v),
+                f"Should be a valid e-mail address but was not recognized: "
+                f"{v!r}",
+            )
+        for i in invalid_email:
+            self.assertFalse(
+                email_regex.match(i),
+                f"Should not be a valid e-mail address but was accepted: "
+                f"{i!r}",
+            )
 
 
 if __name__ == "__main__":
