@@ -124,16 +124,6 @@ denial, and words to exclude from such lists (such as English words or medical
 eponyms). It also provides an exclusion filter system, to find lines in some
 files that are absent from others.
 
-Options:
-
-..  literalinclude:: _crate_fetch_wordlists_help.txt
-    :language: none
-
-Specimen usage:
-
-..  literalinclude:: crate_fetch_wordlists_specimen_usage.sh
-    :language: bash
-
 The purpose of creating large name lists is usually to remove more names.
 However, it's likely that you want to remove medical eponyms, like Parkinson
 (for Parkinson's disease). CRATE has a hand-curated list of these. (If a
@@ -145,14 +135,30 @@ impossible.)
 
 The overlap between names and English words is really tricky.
 
-- If you use all names from this set and exclude English words (e.g.
-  ``--filter-exclude english_words.txt medical_eponyms.txt``), you will remove
-  from the namelist (and thus NOT remove from text being nonspecifically
-  scrubbed) names such as John (john is a noun) and Veronica (veronica
-  is also a noun).
+- If you use all names from this set and exclude all valid English words (e.g.
+  from a "valid answers in Scrabble or crosswords" list), you will remove from
+  the namelist -- and thus NOT remove from text being nonspecifically scrubbed
+  -- names such as John (john is a noun) and Veronica (veronica is also a
+  noun).
 
-- If you keep all name in the exclusion namelist, though, you will scrub words
+- If you keep all names in the exclusion namelist, though, you will scrub words
   like excellent, fought, friend, games, he, hope, husband, joyful, kitten,
   knuckle, libel, limp, lovely, man, memory, mood, music, no, power, powers,
   sad, stress, true, yes, you, young, zone (to list but a few); these are all
   names.
+
+- A compromise may be to start with all names, remove medical eponyms, and
+  remove *common* English words. CRATE provides tools to count words in a
+  subset of the Project Gutenberg corpus. For example, removing English words
+  that account for the top 99% of this corpus (and are also valid Scrabble
+  clues) does this. The process is shown in the specimen usage below.
+
+Options:
+
+..  literalinclude:: _crate_fetch_wordlists_help.txt
+    :language: none
+
+Specimen usage:
+
+..  literalinclude:: crate_fetch_wordlists_specimen_usage.sh
+    :language: bash
