@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+# noinspection HttpUrlsUsage
 """
 crate_anon/anonymise/fetch_wordlists.py
 
@@ -25,34 +26,85 @@ crate_anon/anonymise/fetch_wordlists.py
 
 ===============================================================================
 
-**Script to fetch wordlists from Internet sources, such as lists of forenames
-and surnames.**
+**Script to fetch wordlists from Internet sources, such as lists of forenames,
+surnames, and English words.**
+
+For specimen usage: see ancillary.rst, as :ref:`crate_fetch_wordlists
+<crate_fetch_wordlists>`.
 
 See:
 
 - https://stackoverflow.com/questions/1803628/raw-list-of-person-names
 - https://www.dicts.info/dictionaries.php
 
-For the Moby project:
+For the Moby project (word lists):
 
 - https://en.wikipedia.org/wiki/Moby_Project
-- https://www.gutenberg.org/ebooks/3201
+- https://www.gutenberg.org/ebooks/3201 (Moby word lists)
 - https://www.gutenberg.org/files/3201/3201.txt -- explains other files
 
-and default URLs in command-line parameters
+and default URLs in command-line parameters. The "crossword" file is good.
+However, for frequency information this is a bit sparse (it contains the top
+1000 words in various contexts).
 
-For specimen usage: see ancillary.rst, as :ref:`crate_fetch_wordlists
-<crate_fetch_wordlists>`.
+Broader corpora with frequencies include:
+
+- Google Books Ngrams,
+  https://storage.googleapis.com/books/ngrams/books/datasetsv2.html, where
+  "1-grams" means individual words. However, it's large (e.g. the "A" file is
+  1.7 Gb), it's split by year, and it has a lot of non-word entities like
+  "Amood_ADJ" and "→_ADJ".
+- Wikipedia, e.g. https://en.wiktionary.org/wiki/Wiktionary:Frequency_lists,
+  but it doesn't seem to have formats oriented to automatic processing.
+- British National Corpus,
+  http://www.natcorp.ox.ac.uk/corpus/index.xml?ID=intro (but not freely
+  distributable).
+- Non-free ones, e.g. COCA, https://www.wordfrequency.info/.
+- A "frozen" version of the Standardized Project Gutenberg Corpus (SPGC),
+  https://doi.org/10.5281/zenodo.2422561 and
+  https://github.com/pgcorpus/gutenberg.
+
+For the SPGC, notations like "PG74" refer to books (e.g. PG74 is "The
+Adventures of Tom Sawyer"); these are listed in the metadata file. Overall,
+the SPGC looks pretty good but one downside is that the SPGC software forces
+all words to lower case. See:
+
+- process_data -- calls process_book()
+- src.pipeline.process_book -- calls tokenize_text() via "tokenize_f"
+- src.tokenizer.tokenize_text -- calls filter_tokens()
+- src.tokenizer.filter_tokens -- forces everything to lower-case.
+
+and thus the output contains e.g. "ellen", "james", "jamestown", josephine",
+"mary". Cross-referencing to our Scrabble/crossword list will remove some, but
+it will retain the problem that "john" (a rare-ish word but a common name) has
+its frequency overestimated.
+
+For API access to Project Gutenberg:
+
+- https://www.gutenberg.org/policy/robot_access.html
+-
+- https://github.com/raduangelescu/gutenbergpy
 
 """
 
 import argparse
+from collections import Counter
 import csv
 import itertools
 import logging
 from operator import attrgetter
 import sys
-from typing import Dict, Generator, Iterable, List, Optional, Tuple, Union
+from typing import (
+    BinaryIO,
+    Dict,
+    Generator,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 from cardinal_pythonlib.argparse_func import (
     percentage,
@@ -70,6 +122,7 @@ from cardinal_pythonlib.file_io import (
 )
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.network import gen_binary_files_from_urls
+from gutenbergpy.textget import get_text_by_id, strip_headers
 import regex
 from sortedcontainers import SortedSet
 
@@ -113,8 +166,33 @@ def write_words_to_file(filename: str, words: Iterable[str]) -> None:
 
 
 # =============================================================================
-# English words
+# English words: simple dictionary
 # =============================================================================
+
+
+def gen_lines_from_binary_files_with_maxfiles(
+    files: Iterable[BinaryIO], encoding: str = "utf8", max_files: int = None
+) -> Generator[str, None, None]:
+    """
+    Generates lines from binary files.
+    Strips out newlines.
+
+    Args:
+        files: iterable of :class:`BinaryIO` file-like objects
+        encoding: encoding to use
+        max_files: maximum number of files to read
+
+    Yields:
+        each line of all the files
+
+    """
+    for n, file in enumerate(files, start=1):
+        for byteline in file:
+            line = byteline.decode(encoding).strip()
+            yield line
+        if max_files is not None and n >= max_files:
+            log.info(f"Stopping at {max_files} files")
+            return
 
 
 def gen_valid_words_from_words(
@@ -146,7 +224,6 @@ def gen_valid_words_from_words(
             yield word
         elif show_rejects:
             log.debug(f"Rejecting word: {word!r}")
-            print(word)
 
 
 def fetch_english_words(
@@ -182,6 +259,165 @@ def fetch_english_words(
     words = list(pipeline)
     words.sort()
     write_words_to_file(filename, words)
+
+
+# =============================================================================
+# English words: frequency, from Project Gutenberg books
+# =============================================================================
+
+
+def gen_words_from_gutenberg_ids(
+    gutenberg_ids: Iterable[int],
+    valid_word_regex_text: str,
+    min_word_length: int = 1,
+) -> Generator[str, None, None]:
+    """
+    Generates words from Project Gutenberg books. Does not alter case.
+
+    Args:
+        gutenberg_ids:
+            Project Gutenberg IDs; e.g. 74 is Tom Sawyer, 100 is the complete
+            works of Shakespeare.
+        valid_word_regex_text:
+            Regular expression text; every word must match this regex.
+        min_word_length:
+            Minimum word length; all words must be at least this long.
+
+    Yields:
+        words
+
+    """
+    valid_word = regex.compile(valid_word_regex_text)
+    for gutenberg_id in gutenberg_ids:
+        log.info(f"Reading Project Gutenberg book {gutenberg_id}...")
+        raw_book = get_text_by_id(gutenberg_id)
+        log.info("... done; processing...")
+        text = strip_headers(raw_book).decode("utf8")
+        n = 0
+        for line in text.split("\n"):
+            for word in line.split():
+                if len(word) >= min_word_length and valid_word.match(word):
+                    yield word
+                    n += 1
+        log.info(f"... yielded {n} words")
+
+
+def gen_word_freq_tuples_from_words(
+    words: Iterable[str],
+) -> Generator[Tuple[str, float], None, None]:
+    """
+    Generates valid words and their frequencies from an iterable of SPGC count
+    lines.
+
+    Args:
+        words:
+            Source iterable of words
+
+    Yields:
+        (word, count, word_freq, cum_freq) tuples, sorted by frequency
+        (ascending).
+    """
+    c = Counter(words)
+    total = sum(c.values())  # from Python 3.10: tc.total()
+    log.info(f"Calculating word frequencies across {total} words...")
+    cum_freq = 0.0
+    # Sort by frequency, from high to low frequency, with word
+    # (alphabetical order) as a tiebreaker.
+    for word, count in sorted(c.items(), key=lambda x: (-x[1], x[0])):
+        word_freq = count / total
+        cum_freq += word_freq
+        yield word, count, word_freq, cum_freq
+    log.info("... done")
+
+
+KEY_WORD = "word"
+KEY_WORD_FREQ = "word_freq"
+KEY_CUM_FREQ = "cum_freq"
+
+
+def fetch_gutenberg_word_freq(
+    filename: str = "",
+    gutenberg_id_first: int = 1,
+    gutenberg_id_last: int = 100,
+    valid_word_regex_text: str = DEFAULT_VALID_WORD_REGEX,
+    min_word_length: int = 1,
+) -> None:
+    """
+    Fetch English word frequencies from a frozen Standardized Project Gutenberg
+    Corpus, and write them to a file. Within the words selected (which might be
+    e.g. words of at least 2 characters, per min_word_length, and excluding
+    words starting with upper-case letters or containing unusual punctuationg,
+    per valid_word_regex_text), it produces a CSV file whose columns are: word,
+    word_freq, cum_freq.
+
+    Args:
+        filename:
+            Filename to write to.
+        gutenberg_id_first:
+            First book ID to use from Project Gutenberg.
+        gutenberg_id_last:
+            Last book ID to use from Project Gutenberg.
+        valid_word_regex_text:
+            Regular expression text; every word must match this regex.
+        min_word_length:
+            Minimum word length; all words must be at least this long.
+    """
+    if not filename:
+        log.warning("No output filename specified for frequencies. Skipping")
+        return
+    pipeline = gen_word_freq_tuples_from_words(
+        gen_words_from_gutenberg_ids(
+            range(gutenberg_id_first, gutenberg_id_last + 1),
+            valid_word_regex_text=valid_word_regex_text,
+            min_word_length=min_word_length,
+        )
+    )
+    with open(filename, "wt") as f:
+        writer = csv.writer(f)
+        writer.writerow([KEY_WORD, KEY_WORD_FREQ, KEY_CUM_FREQ])
+        for word, _, word_freq, cum_freq in pipeline:
+            writer.writerow((word, word_freq, cum_freq))
+
+
+def filter_words_by_freq(
+    input_filename: str,
+    output_filename: str,
+    min_cum_freq: float = 0.0,
+    max_cum_freq: float = 1.0,
+) -> None:
+    """
+    Reads words from our frequency file and filters them.
+
+    Args:
+        input_filename:
+            Input CSV file. The output of fetch_gutenberg_word_freq().
+        output_filename:
+            A plain output file, sorted.
+        min_cum_freq:
+            Minimum cumulative frequency. Set to >0 to exclude common words.
+        max_cum_freq:
+            Maximum cumulative frequency. Set to <1 to exclude rare words.
+    """
+    assert 0.0 <= min_cum_freq <= max_cum_freq <= 1.0
+    words = set()  # type: Set[str]
+    log.info(f"Reading {input_filename}...")
+    with open(input_filename) as i:
+        reader = csv.DictReader(
+            i, fieldnames=[KEY_WORD, KEY_WORD_FREQ, KEY_CUM_FREQ]
+        )
+        for rowdict in reader:
+            try:
+                cum_freq = float(rowdict[KEY_CUM_FREQ])
+            except (TypeError, ValueError):
+                log.warning(f"Bad row: {rowdict!r}")
+                continue
+            if min_cum_freq <= cum_freq <= max_cum_freq:
+                words.add(rowdict[KEY_WORD])
+    log.info(f"Writing {output_filename}...")
+    with open(output_filename, "wt") as o:
+        for word in sorted(words):
+            o.write(word + "\n")
+    log.info("... done")
 
 
 # =============================================================================
@@ -910,28 +1146,31 @@ def fetch_eponyms(filename: str, add_unaccented_versions: bool) -> None:
 
 
 def filter_files(
-    input_filenames: List[str],  # "A"
-    exclusion_filenames: List[str],  # "B"
-    output_filename: str,  # "OUT"
+    input_filenames: List[str],
+    output_filename: str,
+    exclusion_filenames: List[str] = None,
+    inclusion_filenames: List[str] = None,
     min_line_length: int = 0,
 ) -> None:
     """
-    Provides an "A-not-B" file filtering function.
-
-    Finds all lines in files defined by ``input_filenames`` (A) that are not
-    present in any files defined by ``exclusion_filenames`` (B). Writes them
-    to ``output_filename`` (OUT).
+    Read lines from input files, filters them, and writes them to the output
+    file.
 
     Args:
         input_filenames:
-            A list of "A" filenames.
-        exclusion_filenames:
-            A list of "B" filenames.
+            Read lines from these files.
         output_filename:
-            The "OUT" file.
+            The output file.
+        exclusion_filenames:
+            If a line is present in any of these files, it is excluded
+        inclusion_filenames:
+            If any files are specified here, lines must be present in at least
+            one inclusion file to pass through.
         min_line_length:
             Skip any A lines that are shorter than this value.
     """
+    exclusion_filenames = exclusion_filenames or []  # type: List[str]
+    inclusion_filenames = inclusion_filenames or []  # type: List[str]
     # Check inputs
     input_output_overlap = set(input_filenames).intersection(
         set(exclusion_filenames)
@@ -953,16 +1192,19 @@ def filter_files(
             # might want to overwrite A, but our method below reads all of B,
             # then streams A to OUT, which prohibits A and OUT being the same,
             # as above.)
+        if output_filename in inclusion_filenames:
+            raise ValueError("Output cannot be one of the inclusion files")
     # Announce intention
-    log.info(
-        f"Finding lines in A={input_filenames} that are not in "
-        f"B={exclusion_filenames} (in case-insensitive fashion); "
-        f"writing to OUT={output_filename}"
-    )
+    msg = [f"Finding lines in {input_filenames}"]
+    if exclusion_filenames:
+        msg.append(f"excluding any lines from {exclusion_filenames}")
+    if inclusion_filenames:
+        msg.append(f"requiring they be in {inclusion_filenames}")
+    msg.append(f"writing to {output_filename}")
+    log.info("; ".join(msg))
     # Do it
-    a_count = 0
+    input_count = 0
     output_count = 0
-    log.debug("... reading from B")
     exclusion_lines_lower = set(
         gen_lower(
             gen_lines_from_textfiles(
@@ -970,23 +1212,37 @@ def filter_files(
             )
         )
     )
-    log.debug("... finished reading from B")
-    b_count = len(exclusion_lines_lower)
+    using_inclusion = bool(inclusion_filenames)
+    inclusion_lines_lower = set(
+        gen_lower(
+            gen_lines_from_textfiles(
+                gen_textfiles_from_filenames(inclusion_filenames)
+            )
+        )
+    )
     log.debug("... reading from A, writing to OUT")
     with smart_open(output_filename, "w") as outfile:
         for ifilename in input_filenames:
             with smart_open(ifilename, "r") as a_file:
                 for a_line in a_file:
-                    a_count += 1
+                    input_count += 1
                     if len(a_line) < min_line_length:
                         continue
-                    if a_line.lower() in exclusion_lines_lower:
+                    a_line_lower = a_line.lower()
+                    if a_line_lower in exclusion_lines_lower:
+                        continue
+                    if (
+                        using_inclusion
+                        and a_line_lower not in inclusion_lines_lower
+                    ):
                         continue
                     outfile.write(a_line)
                     output_count += 1
     log.info(
-        f"... done (line counts: A {a_count}, B {b_count}, "
-        f"OUT {output_count})"
+        f"... done (line counts: input {input_count}, "
+        f"exclusion {len(exclusion_lines_lower)}, "
+        f"inclusion {len(inclusion_lines_lower)}, "
+        f"output {output_count})"
     )
 
 
@@ -1047,8 +1303,8 @@ def main() -> None:
     english_group.add_argument(
         "--english_words",
         action="store_true",
-        help="Fetch English words (to remove from the nonspecific denylist, "
-        "not to add to an allowlist; consider words like smith)",
+        help="Fetch English words (e.g. to remove from the nonspecific "
+        "denylist, not to add to an allowlist; consider words like smith)",
     )
     english_group.add_argument(
         "--english_words_output",
@@ -1070,6 +1326,63 @@ def main() -> None:
         type=str,
         default=DEFAULT_VALID_WORD_REGEX,
         help="Regular expression to determine valid English words",
+    )
+    english_group.add_argument(
+        "--gutenberg_word_freq",
+        action="store_true",
+        help="Fetch words from Project Gutenberg with frequencies",
+    )
+    english_group.add_argument(
+        "--gutenberg_word_freq_output",
+        type=str,
+        help="Output file for English words with frequencies. CSV file with "
+        "columns: word, word_freq, cum_freq.",
+    )
+    english_group.add_argument(
+        "--gutenberg_id_first",
+        type=int,
+        default=100,
+        # Complete Works of Shakespeare
+        # https://www.gutenberg.org/ebooks/100
+        help="For word counting: first Project Gutenberg book ID",
+    )
+    english_group.add_argument(
+        "--gutenberg_id_last",
+        type=int,
+        default=110,
+        help="For word counting: last Project Gutenberg book ID",
+    )
+
+    wordfreqfilter_group = parser.add_argument_group(
+        "Filter English words by frequency"
+    )
+    wordfreqfilter_group.add_argument(
+        "--filter_words_by_freq",
+        action="store_true",
+        help="Read a CSV file from --gutenberg_word_freq, filter it by "
+        "cumulative word frequency, and write a plain list of words.",
+    )
+    wordfreqfilter_group.add_argument(
+        "--wordfreqfilter_input",
+        help="Input filename. Usually the output of "
+        "--gutenberg_word_freq_output.",
+    )
+    wordfreqfilter_group.add_argument(
+        "--wordfreqfilter_output", help="Output filename. Plain text file."
+    )
+    wordfreqfilter_group.add_argument(
+        "--wordfreqfilter_min_cum_freq",
+        type=float,
+        default=0.0,
+        help="Minimum cumulative frequency. "
+        "(Set to >0 to exclude common words.)",
+    )
+    wordfreqfilter_group.add_argument(
+        "--wordfreqfilter_max_cum_freq",
+        type=float,
+        default=1.0,
+        help="Maximum cumulative frequency. "
+        "(Set to <1 to exclude rare words.)",
     )
 
     us_forename_group = parser.add_argument_group("US forenames")
@@ -1181,10 +1494,10 @@ def main() -> None:
 
     filter_group = parser.add_argument_group(
         "Filter functions",
-        "Extra functions to filter wordlists. Specify an input file (or "
-        "files), whose lines will be included; optional exclusion file(s), "
-        "whose lines will be excluded (in case-insensitive fashion); and an "
-        "output file. You can use '-' for the output file to mean 'stdout', "
+        "Extra functions to filter wordlists."
+        "Specify an input file, optional exclusion and/or inclusion file(s), "
+        "and an output file. "
+        "You can use '-' for the output file to mean 'stdout', "
         "and for one input file to mean 'stdin'. No filenames (other than "
         "'-' for input and output) may overlap. The --min_line_length option "
         "also applies. Duplicates are not removed.",
@@ -1193,19 +1506,28 @@ def main() -> None:
         "--filter_input",
         type=str,
         nargs="*",
-        help="Input file(s). See above.",
+        help="Input file(s). Words will be drawn from these files.",
+    )
+    filter_group.add_argument(
+        "--filter_include",
+        type=str,
+        nargs="*",
+        help="Inclusion file(s). If any inclusion files are specified, words "
+        "from the input must be present in at least one inclusion file to "
+        "pass.",
     )
     filter_group.add_argument(
         "--filter_exclude",
         type=str,
         nargs="*",
-        help="Exclusion file(s). See above.",
+        help="Exclusion file(s). Any words present in the exclusion files do "
+        "not pass.",
     )
     filter_group.add_argument(
         "--filter_output",
         type=str,
         nargs="?",
-        help="Exclusion file(s). See above.",
+        help="Output file. Words are written here.",
     )
     args = parser.parse_args()
 
@@ -1228,6 +1550,23 @@ def main() -> None:
             valid_word_regex_text=args.valid_word_regex,
             min_word_length=args.min_word_length,
             show_rejects=args.show_rejects,
+        )
+
+    if args.gutenberg_word_freq:
+        fetch_gutenberg_word_freq(
+            filename=args.gutenberg_word_freq_output,
+            gutenberg_id_first=args.gutenberg_id_first,
+            gutenberg_id_last=args.gutenberg_id_last,
+            valid_word_regex_text=args.valid_word_regex,
+            min_word_length=args.min_word_length,
+        )
+
+    if args.filter_words_by_freq:
+        filter_words_by_freq(
+            input_filename=args.wordfreqfilter_input,
+            output_filename=args.wordfreqfilter_output,
+            min_cum_freq=args.wordfreqfilter_min_cum_freq,
+            max_cum_freq=args.wordfreqfilter_max_cum_freq,
         )
 
     if args.us_forenames:
@@ -1265,6 +1604,7 @@ def main() -> None:
     if args.filter_input:
         filter_files(
             input_filenames=args.filter_input,
+            inclusion_filenames=args.filter_include,
             exclusion_filenames=args.filter_exclude,
             output_filename=args.filter_output,
             min_line_length=args.min_word_length,

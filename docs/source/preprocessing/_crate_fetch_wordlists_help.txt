@@ -6,6 +6,15 @@ usage: crate_fetch_wordlists [-h] [--verbose]
                              [--english_words_output ENGLISH_WORDS_OUTPUT]
                              [--english_words_url ENGLISH_WORDS_URL]
                              [--valid_word_regex VALID_WORD_REGEX]
+                             [--gutenberg_word_freq]
+                             [--gutenberg_word_freq_output GUTENBERG_WORD_FREQ_OUTPUT]
+                             [--gutenberg_id_first GUTENBERG_ID_FIRST]
+                             [--gutenberg_id_last GUTENBERG_ID_LAST]
+                             [--filter_words_by_freq]
+                             [--wordfreqfilter_input WORDFREQFILTER_INPUT]
+                             [--wordfreqfilter_output WORDFREQFILTER_OUTPUT]
+                             [--wordfreqfilter_min_cum_freq WORDFREQFILTER_MIN_CUM_FREQ]
+                             [--wordfreqfilter_max_cum_freq WORDFREQFILTER_MAX_CUM_FREQ]
                              [--us_forenames]
                              [--us_forenames_freq_output US_FORENAMES_FREQ_OUTPUT]
                              [--us_forenames_sex_freq_output US_FORENAMES_SEX_FREQ_OUTPUT]
@@ -23,6 +32,7 @@ usage: crate_fetch_wordlists [-h] [--verbose]
                              [--eponyms] [--eponyms_output EPONYMS_OUTPUT]
                              [--eponyms_add_unaccented_versions [EPONYMS_ADD_UNACCENTED_VERSIONS]]
                              [--filter_input [FILTER_INPUT [FILTER_INPUT ...]]]
+                             [--filter_include [FILTER_INCLUDE [FILTER_INCLUDE ...]]]
                              [--filter_exclude [FILTER_EXCLUDE [FILTER_EXCLUDE ...]]]
                              [--filter_output [FILTER_OUTPUT]]
 
@@ -38,9 +48,9 @@ optional arguments:
                         your preferred frequency thresholds) (default: None)
 
 English words:
-  --english_words       Fetch English words (to remove from the nonspecific
-                        denylist, not to add to an allowlist; consider words
-                        like smith) (default: False)
+  --english_words       Fetch English words (e.g. to remove from the
+                        nonspecific denylist, not to add to an allowlist;
+                        consider words like smith) (default: False)
   --english_words_output ENGLISH_WORDS_OUTPUT
                         Output file for English words (default: None)
   --english_words_url ENGLISH_WORDS_URL
@@ -50,6 +60,36 @@ English words:
   --valid_word_regex VALID_WORD_REGEX
                         Regular expression to determine valid English words
                         (default: ^[a-z](?:[A-Za-z'-]*[a-z])*$)
+  --gutenberg_word_freq
+                        Fetch words from Project Gutenberg with frequencies
+                        (default: False)
+  --gutenberg_word_freq_output GUTENBERG_WORD_FREQ_OUTPUT
+                        Output file for English words with frequencies. CSV
+                        file with columns: word, word_freq, cum_freq.
+                        (default: None)
+  --gutenberg_id_first GUTENBERG_ID_FIRST
+                        For word counting: first Project Gutenberg book ID
+                        (default: 100)
+  --gutenberg_id_last GUTENBERG_ID_LAST
+                        For word counting: last Project Gutenberg book ID
+                        (default: 110)
+
+Filter English words by frequency:
+  --filter_words_by_freq
+                        Read a CSV file from --gutenberg_word_freq, filter it
+                        by cumulative word frequency, and write a plain list
+                        of words. (default: False)
+  --wordfreqfilter_input WORDFREQFILTER_INPUT
+                        Input filename. Usually the output of
+                        --gutenberg_word_freq_output. (default: None)
+  --wordfreqfilter_output WORDFREQFILTER_OUTPUT
+                        Output filename. Plain text file. (default: None)
+  --wordfreqfilter_min_cum_freq WORDFREQFILTER_MIN_CUM_FREQ
+                        Minimum cumulative frequency. (Set to >0 to exclude
+                        common words.) (default: 0.0)
+  --wordfreqfilter_max_cum_freq WORDFREQFILTER_MAX_CUM_FREQ
+                        Maximum cumulative frequency. (Set to <1 to exclude
+                        rare words.) (default: 1.0)
 
 US forenames:
   --us_forenames        Fetch US forenames (for denylist) (default: False)
@@ -130,16 +170,21 @@ Medical eponyms:
                         Sjögren) (default: True)
 
 Filter functions:
-  Extra functions to filter wordlists. Specify an input file (or files),
-  whose lines will be included; optional exclusion file(s), whose lines will
-  be excluded (in case-insensitive fashion); and an output file. You can use
-  '-' for the output file to mean 'stdout', and for one input file to mean
+  Extra functions to filter wordlists.Specify an input file, optional
+  exclusion and/or inclusion file(s), and an output file. You can use '-'
+  for the output file to mean 'stdout', and for one input file to mean
   'stdin'. No filenames (other than '-' for input and output) may overlap.
   The --min_line_length option also applies. Duplicates are not removed.
 
   --filter_input [FILTER_INPUT [FILTER_INPUT ...]]
-                        Input file(s). See above. (default: None)
+                        Input file(s). Words will be drawn from these files.
+                        (default: None)
+  --filter_include [FILTER_INCLUDE [FILTER_INCLUDE ...]]
+                        Inclusion file(s). If any inclusion files are
+                        specified, words from the input must be present in at
+                        least one inclusion file to pass. (default: None)
   --filter_exclude [FILTER_EXCLUDE [FILTER_EXCLUDE ...]]
-                        Exclusion file(s). See above. (default: None)
+                        Exclusion file(s). Any words present in the exclusion
+                        files do not pass. (default: None)
   --filter_output [FILTER_OUTPUT]
-                        Exclusion file(s). See above. (default: None)
+                        Output file. Words are written here. (default: None)
