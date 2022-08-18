@@ -52,6 +52,7 @@ from cardinal_pythonlib.pdf import get_concatenated_pdf_in_memory
 from cardinal_pythonlib.reprfunc import simple_repr
 from django import forms
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.core.validators import validate_email
@@ -128,6 +129,9 @@ STUDY_FWD_REF = "Study"
 
 TEST_ID = -1
 TEST_ID_STR = str(TEST_ID)
+TEST_ID_TWO = -2
+TEST_ID_TWO_STR = str(TEST_ID_TWO)
+TEST_ID_STRINGS = (TEST_ID_STR, TEST_ID_TWO_STR)
 
 
 # =============================================================================
@@ -1219,13 +1223,14 @@ class PatientLookupBase(models.Model):
     # Paperwork
     # -------------------------------------------------------------------------
 
-    def get_traffic_light_decision_form(self) -> str:
+    def get_traffic_light_decision_form(self, generic: bool = False) -> str:
         """
         Returns HTML for a traffic-light decision form, customized to this
         patient.
         """
         context = {
             "patient_lookup": self,
+            "generic": generic,
             "settings": settings,
         }
         return render_pdf_html_to_string(
@@ -1302,8 +1307,7 @@ class PatientLookup(PatientLookupBase):
 
     def get_first_traffic_light_letter_html(self) -> str:
         """
-        **REC DOCUMENT 06. Covering letter to patient for first enquiry about
-        research preference.**
+        Covering letter to patient for first enquiry about research preference.
 
         Returns HTML for this document, customized to the patient.
         """
@@ -1692,13 +1696,17 @@ class ConsentMode(Decision):
         # noinspection PyTypeChecker
         return lookup_patient(self.nhs_number, existing_ok=True)
 
-    def get_confirm_traffic_to_patient_letter_html(self) -> str:
+    def get_confirm_traffic_to_patient_letter_html(
+        self, patient_lookup_override: PatientLookup = None
+    ) -> str:
         """
-        **REC DOCUMENT 07. Confirming patient's traffic-light choice.**
+        Letter to patient, confirming traffic-light choice.
 
         Returns HTML for this letter, customized to the patient.
         """
-        patient_lookup = self.get_latest_patient_lookup()
+        patient_lookup = (
+            patient_lookup_override or self.get_latest_patient_lookup()
+        )
         context = {
             # Letter bits
             "address_from": settings.RDBM_ADDRESS + [settings.RDBM_EMAIL],
@@ -2633,8 +2641,7 @@ class ContactRequest(models.Model):
 
     def get_letter_clinician_to_pt_re_study(self) -> str:
         """
-        **REC DOCUMENTS 10, 12, 14: draft letters from clinician to patient,
-        with decision form.**
+        Letters from clinician to patient, with decision form.
 
         Returns the HTML for this letter.
         """
@@ -2879,7 +2886,10 @@ class ClinicianResponse(models.Model):
         (RESPONSE_A, "A: Clinician will pass the request to the patient"),
         (RESPONSE_B, "B: Clinician vetoes on clinical grounds"),
         (RESPONSE_C, "C: Patient is definitely ineligible"),
-        (RESPONSE_D, "D: Patient is dead/discharged or details are defunct"),
+        (
+            RESPONSE_D,
+            "D: Patient is deceased, discharged, or details are defunct",
+        ),
     )
 
     ROUTE_EMAIL = "e"
@@ -3936,7 +3946,9 @@ class DummyObjectCollection:
         self.clinician_response = clinician_response
 
 
-def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
+def make_dummy_objects(
+    request: HttpRequest, test_id: str = TEST_ID_STR
+) -> DummyObjectCollection:
     """
     Returns a collection of dummy objects, for testing consent-to-contact
     templates without using live patient data.
@@ -3976,6 +3988,7 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
     Since this is a minor thing, and templates are unaffected, and this is only
     for debugging, let's ignore it.
     """
+    using_alt = test_id == TEST_ID_TWO_STR
 
     def get_int(query_param_name: str, default: Optional[int]) -> int:
         try:
@@ -3988,13 +4001,14 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         # noinspection PyCallByClass,PyTypeChecker
         return request.GET.get(query_param_name, default)
 
-    age = get_int("age", 40)
+    age = get_int("age", 13 if using_alt else 40)
     age_months = get_int("age_months", 2)
     today = datetime.date.today()
     dob = today - relativedelta(years=age, months=age_months)
 
-    consent_mode_str = get_str("consent_mode", None)
-    # log.critical(f"consent_mode_str: {consent_mode_str!r}")
+    consent_mode_str = get_str(
+        "consent_mode", ConsentMode.YELLOW if using_alt else None
+    )
     if consent_mode_str not in (
         None,
         ConsentMode.RED,
@@ -4011,12 +4025,13 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
 
     consent_after_discharge = bool(get_int("consent_after_discharge", 0))
 
-    nhs_number = 1234567890
+    nhs_number = 2345678901 if using_alt else 1234567890
     study_summary_plaintext = (
         "An investigation of the change in blood-oxygen-level-"
         "dependent (BOLD) functional magnetic resonance imaging "
         "(fMRI) signals during the experience of quaint and "
-        "fanciful humorous activity."
+        "fanciful humorous activity. "
+        "(Incorrectly marked as a CTIMP for illustration only.)"
         # "\n"
         # "\n"
         # "This is paragraph 2.\n"
@@ -4026,7 +4041,7 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
     study_summary_html = """
         <p>An investigation of the change in <b>blood-oxygen-level-dependent
         (BOLD)</b> <i>functional magnetic resonance imaging (fMRI)</i> signals
-        during the experience of quaint and fanciful humour activity.</p>
+        during the experience of quaint and fanciful humourous activity.</p>
     """
     # """
     #
@@ -4035,11 +4050,19 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
     #     <p>For patients aged &gt;18 and &lt;65.</p>
     # """
     use_html = False
+    User = get_user_model()
+    lead_researcher_profile = UserProfile()
+    lead_researcher_profile.title = "Prof."
+    lead_researcher_user = User()
+    lead_researcher_user.first_name = "Gabrielle"
+    lead_researcher_user.last_name = "Gnosis"
+    lead_researcher_user.profile = lead_researcher_profile
     study = Study(
         id=TEST_ID,
         institutional_id=9999999999999,
         title="Functional neuroimaging of whimsy",
-        lead_researcher=request.user,
+        lead_researcher=lead_researcher_user,
+        # lead_researcher=request.user,
         # researchers=[request.user],  # THIS BREAKS IT.
         # ... actual crash is in
         #   django/db/models/fields/related_descriptors.py:500, in
@@ -4079,16 +4102,18 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
     patient_lookup = PatientLookup(
         id=TEST_ID,
         # PatientLookupBase
-        pt_local_id_description="MyEMR#",
-        pt_local_id_number=987654,
+        pt_local_id_description="CPFT#",
+        pt_local_id_number=987654 if using_alt else 876543,
         pt_dob=dob,
         pt_dod=None,
         pt_dead=False,
         pt_discharged=False,
         pt_discharge_date=None,
-        pt_sex=PatientLookupBase.MALE,
-        pt_title="Mr",
-        pt_first_name="John",
+        pt_sex=(
+            PatientLookupBase.FEMALE if using_alt else PatientLookupBase.MALE
+        ),
+        pt_title="Miss" if using_alt else "Mr",
+        pt_first_name="Jane" if using_alt else "John",
         pt_last_name="Smith",
         pt_address_1="The Farthings",
         pt_address_2="1 Penny Lane",
@@ -4098,7 +4123,7 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         pt_address_6="CB1 0ZZ",
         pt_address_7="UK",
         pt_telephone="01223 000000",
-        pt_email="john@smith.com",
+        pt_email="jane@smith.com" if using_alt else "john@smith.com",
         gp_title="Dr",
         gp_first_name="Gordon",
         gp_last_name="Generalist",
@@ -4139,6 +4164,7 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         request_by=request.user,
         study=study,
         lookup_rid=9999999,
+        created_at=timezone.now(),
         processed=True,
         nhs_number=nhs_number,
         patient_lookup=patient_lookup,
@@ -4146,7 +4172,8 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         approaches_in_past_year=0,
         decisions="No decisions required",
         decided_no_action=False,
-        decided_send_to_researcher=False,
+        # decided_send_to_researcher=False,
+        decided_send_to_researcher=True,
         decided_send_to_clinician=True,
         clinician_involvement=clinician_involvement,
         consent_withdrawn=False,

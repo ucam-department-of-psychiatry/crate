@@ -1,0 +1,95 @@
+{# crate_anon/crateweb/consent/templates/letter_researcher_to_patient_cover_letter_template.html #}
+{% extends 'base_pdf.html' %}
+{% comment %}
+    pass in:
+        rdbm_address_str
+        settings
+{% endcomment %}
+
+{% block content %}
+
+    <div class="template">
+        [Draft template letter for researchers to invite patients to take part
+        in a study, for those identified via the CPFT Research Database.
+        Version 2.]
+    </div>
+
+    <div class="template template_comment">
+        [Details in blue italics are instructions/suggestions/templates for
+        researchers and will not be seen by potential participants, or will be
+        modified by the researchers.]
+    </div>
+
+    <p>Dear <span class="template template_comment">[recipient]</span>,</p>
+
+    <p>
+        We are contacting you because you have kindly consented to be
+        approached by Cambridgeshire and Peterborough NHS Foundation Trust
+        (CPFT) researchers about research that is relevant to you. You were
+        identified as someone who might be a suitable research participant in
+        our study,
+        <span class="template template_comment">[Insert name of study]</span>.
+    </p>
+
+    <p>
+        I am enclosing a leaflet with more information about the study we are
+        running. Please feel free to read it and discuss it with your friends,
+        family or care team if you wish. If you think this study is relevant to
+        you and that you might be interested in taking part in this research,
+        or if you wish to discuss it further:
+    </p>
+
+    <div class="template template_comment">
+        [Suggested options follow, but please provide contact details including
+        a telephone number where possible. This section may be replaced by
+        wording already ethically approved about methods and frequency of
+        contacting participants in your study via a research database.]
+    </div>
+    <div class="template">
+        <ul>
+            <li>please complete and return the reply slip in the pre-paid envelope…</li>
+            <li>further information is available at…</li>
+            <li>you can contact the study team on…</li>
+        </ul>
+    </div>
+
+    <p>
+        If you decide you do not wish to take part, there is no need to do
+        anything.
+    </p>
+
+    <p>
+        You may recall that you agreed to your details being passed on to us,
+        and for us to have access to your CPFT records, via the CPFT Research
+        Database
+        (<a href="{{ settings.RDBM_URL }}">{{ settings.RDBM_URL }}</a>). If
+        ever you want to change your mind about researchers contacting you
+        directly, or you would like more details about the research database,
+        please speak to your care team or contact the CPFT Research Database
+        Manager:
+    </p>
+    <ul>
+        <li>
+            By post at <b>{{ rdbm_address_str }}</b> (no postage required)
+        </li>
+        <li>
+            By email at <b>{{ settings.RDBM_EMAIL }}</b>
+        </li>
+        <li>
+            By telephone: call <b>{{ settings.RDBM_TELEPHONE }}</b> and ask for
+            the research database manager.
+        </li>
+    </ul>
+
+    <p>
+        Thank you for taking the time to read this letter. We’d like to remind
+        you that you’re always free to say yes or no about taking part in any
+        research, and any choices you make about research won’t affect the care
+        you receive from your health care teams.
+    </p>
+
+    <p>
+        With kind regards,
+    </p>
+
+{% endblock %}

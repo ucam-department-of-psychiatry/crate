@@ -25,7 +25,7 @@
            Should we not include patient table for security reasons? - Clinician
            could mistype email address
        {% endcomment %}
-    
+
     <p>The study is:</p>
     {% include "study_table.html" with study=study contact_request=contact_request to_clinician=True include_details=False include_clinician_form=False include_sex=True %}
 
