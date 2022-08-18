@@ -16,12 +16,10 @@
 {% endcomment %}
 
 <table {% if withdrawal %} class="patient_withdrawal" {% else %} class="patient" {% endif %}>
-    {% comment %}
-        <colgroup>
-            <col style="width:30%">
-            <col style="width:70%">
-        </colgroup>
-    {% endcomment %}
+    <colgroup>
+        <col style="width:20%">
+        <col style="width:80%">
+    </colgroup>
     <tbody>
         <tr>
             <td>Name</td>
@@ -60,7 +58,7 @@
         {% if include_email %}
             <tr>
                 <td>E-mail address</td>
-                <td><b></b>{{ patient_lookup.pt_email }}</td>
+                <td><b>{{ patient_lookup.pt_email }}</b></td>
             </tr>
         {% endif %}
         <tr>
@@ -110,7 +108,7 @@
             </tr>
 {% endcomment %}
             <tr>
-                <td>Was the patient specifically asked about your
+                <td>Was the patient asked specifically about your
                 study?</td>
                 <td><b>{{ contact_request.decided_send_to_clinician|yesno }}</b></td>
             </tr>

@@ -22,15 +22,15 @@
     {% endblock %}
 
     <div class="addresses">
-        {% block address_from %}
-            <div class="address_from">
-                {{ address_from|join:"<br>" }}
-            </div>
-        {% endblock %}
-
         {% block address_to %}
             <div class="address_to">
                 {{ address_to|join:"<br>" }}
+            </div>
+        {% endblock %}
+
+        {% block address_from %}
+            <div class="address_from">
+                {{ address_from|join:"<br>" }}
             </div>
         {% endblock %}
     </div>

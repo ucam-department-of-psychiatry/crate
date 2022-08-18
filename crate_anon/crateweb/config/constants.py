@@ -251,7 +251,11 @@ class UrlNames:
     DRAFT_LETTER_CLINICIAN_TO_PT_RE_STUDY = (
         "draft_letter_clinician_to_pt_re_study"  # noqa
     )
+    DRAFT_RESEARCHER_COVER_LETTER = "draft_researcher_cover_letter"
     DRAFT_TRAFFIC_LIGHT_DECISION_FORM = "draft_traffic_light_decision_form"
+    DRAFT_TRAFFIC_LIGHT_DECISION_FORM_GENERIC = (
+        "draft_traffic_light_decision_form_generic"
+    )
     DRAFT_WITHDRAWAL_EMAIL = "draft_withdrawal_email"
     DRAFT_WITHDRAWAL_LETTER = "draft_withdrawal_letter"
     GENERATE_RANDOM_NHS = "generate_random_nhs"

@@ -69,14 +69,17 @@ from crate_anon.crateweb.consent.models import (
     make_dummy_objects,
     PatientLookup,
     Study,
-    TEST_ID_STR,
+    TEST_ID_STRINGS,
 )
 from crate_anon.crateweb.consent.storage import privatestorage
 from crate_anon.crateweb.consent.tasks import (
     finalize_clinician_response,
     test_email_rdbm_task,
 )
-from crate_anon.crateweb.consent.utils import days_to_years
+from crate_anon.crateweb.consent.utils import (
+    days_to_years,
+    render_pdf_html_to_string,
+)
 from crate_anon.crateweb.core.utils import (
     is_developer,
     is_superuser,
@@ -175,8 +178,8 @@ def get_contact_request(
     Raises:
         :exc:`django.http.Http404` if not found
     """
-    if contact_request_id == TEST_ID_STR:
-        cr = make_dummy_objects(request).contact_request
+    if contact_request_id in TEST_ID_STRINGS:
+        cr = make_dummy_objects(request, contact_request_id).contact_request
         cr.mockup()
         return cr
     return get_object_or_404(
@@ -200,8 +203,8 @@ def get_patient_lookup(
     Raises:
         :exc:`django.http.Http404` if not found
     """
-    if patient_lookup_id == TEST_ID_STR:
-        return make_dummy_objects(request).patient_lookup
+    if patient_lookup_id in TEST_ID_STRINGS:
+        return make_dummy_objects(request, patient_lookup_id).patient_lookup
     return get_object_or_404(
         PatientLookup, id=patient_lookup_id
     )  # type: PatientLookup
@@ -223,8 +226,8 @@ def get_consent_mode(
     Raises:
         :exc:`django.http.Http404` if not found
     """
-    if consent_mode_id == TEST_ID_STR:
-        return make_dummy_objects(request).consent_mode
+    if consent_mode_id in TEST_ID_STRINGS:
+        return make_dummy_objects(request, consent_mode_id).consent_mode
     return get_object_or_404(
         ConsentMode, id=consent_mode_id
     )  # type: ConsentMode
@@ -243,8 +246,8 @@ def study_details(request: HttpRequest, study_id: str) -> HttpResponseBase:
         request: the :class:`django.http.request.HttpRequest`
         study_id: PK for :class:`crate_anon.crateweb.consent.models.Study`
     """
-    if study_id == TEST_ID_STR:
-        study = make_dummy_objects(request).study
+    if study_id in TEST_ID_STRINGS:
+        study = make_dummy_objects(request, study_id).study
     else:
         study = get_object_or_404(Study, pk=study_id)  # type: Study
     if not study.study_details_pdf:
@@ -739,8 +742,8 @@ def clinician_response_view(
         clinician_response_id: PK for
             :class:`crate_anon.crateweb.consent.models.ClinicianResponse`
     """
-    if clinician_response_id == TEST_ID_STR:
-        dummies = make_dummy_objects(request)
+    if clinician_response_id in TEST_ID_STRINGS:
+        dummies = make_dummy_objects(request, clinician_response_id)
         clinician_response = dummies.clinician_response
         contact_request = dummies.contact_request
         study = dummies.study
@@ -749,7 +752,7 @@ def clinician_response_view(
     else:
         clinician_response = get_object_or_404(
             ClinicianResponse, pk=clinician_response_id
-        )  # type: ClinicianResponse  # noqa
+        )  # type: ClinicianResponse
         contact_request = clinician_response.contact_request
         study = contact_request.study
         patient_lookup = contact_request.patient_lookup
@@ -770,16 +773,13 @@ def clinician_response_view(
         clinician_response.response_route = ClinicianResponse.ROUTE_WEB
         data = request.POST
     form = ClinicianResponseForm(instance=clinician_response, data=data)
-    # log.debug("Form data: {}".format(form.data))
 
     # Token valid? Check raw data. Say goodbye otherwise.
     # - The raw data in the form is not influenced by the form's instance.
     if form.data["token"] != clinician_response.token:
-        # log.critical("Token from user: {!r}".format(form.data['token']))
-        # log.critical("Original token: {!r}".format(clinician_response.token))
         return HttpResponseForbidden(
-            "Not authorized. The token you passed doesn't match the one you "
-            "were sent."
+            "Not authorized. The token you passed doesn't match the one "
+            "you were sent."
         )
 
     # Already responded?
@@ -890,8 +890,8 @@ def clinician_pack(
         token: security token (which we'll check against the one we sent to
             the clinician)
     """
-    if clinician_response_id == TEST_ID_STR:
-        dummies = make_dummy_objects(request)
+    if clinician_response_id in TEST_ID_STRINGS:
+        dummies = make_dummy_objects(request, clinician_response_id)
         clinician_response = dummies.clinician_response
         contact_request = dummies.contact_request
     else:
@@ -1046,7 +1046,14 @@ def draft_confirm_traffic_light_letter(
         viewtype: ``"pdf"`` or ``"html"``
     """
     consent_mode = get_consent_mode(request, consent_mode_id)
-    html = consent_mode.get_confirm_traffic_to_patient_letter_html()
+    patient_lookup_override = (
+        make_dummy_objects(request, consent_mode_id).patient_lookup
+        if consent_mode_id in TEST_ID_STRINGS
+        else None
+    )
+    html = consent_mode.get_confirm_traffic_to_patient_letter_html(
+        patient_lookup_override=patient_lookup_override
+    )
     return serve_html_or_pdf(html, viewtype)
 
 
@@ -1069,6 +1076,23 @@ def draft_traffic_light_decision_form(
 
 
 @user_passes_test(is_developer)
+def draft_traffic_light_decision_form_generic(
+    request: HttpRequest, viewtype: str
+) -> HttpResponse:
+    """
+    Developer view: draft traffic-light decision form, in the generic version
+    with no patient details.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        viewtype: ``"pdf"`` or ``"html"``
+    """
+    patient_lookup = PatientLookup()
+    html = patient_lookup.get_traffic_light_decision_form(generic=True)
+    return serve_html_or_pdf(html, viewtype)
+
+
+@user_passes_test(is_developer)
 def draft_letter_clinician_to_pt_re_study(
     request: HttpRequest, contact_request_id: str, viewtype: str
 ) -> HttpResponse:
@@ -1082,7 +1106,6 @@ def draft_letter_clinician_to_pt_re_study(
         viewtype: ``"pdf"`` or ``"html"``
     """
     contact_request = get_contact_request(request, contact_request_id)
-    # log.critical(repr(contact_request))
     html = contact_request.get_letter_clinician_to_pt_re_study()
     return serve_html_or_pdf(html, viewtype)
 
@@ -1103,6 +1126,34 @@ def decision_form_to_pt_re_study(
     contact_request = get_contact_request(request, contact_request_id)
     html = contact_request.get_decision_form_to_pt_re_study()
     return serve_html_or_pdf(html, viewtype)
+
+
+@user_passes_test(is_developer)
+def draft_researcher_cover_letter(
+    request: HttpRequest, viewtype: str
+) -> HttpResponse:
+    """
+    Developer view: decision form to patient about a study.
+
+    Args:
+        request: the :class:`django.http.request.HttpRequest`
+        viewtype: ``"pdf"`` or ``"html"``
+    """
+    context = {
+        "rdbm_address_str": ", ".join(settings.RDBM_ADDRESS),
+        "settings": settings,
+    }
+    html = render_pdf_html_to_string(
+        "letter_researcher_to_patient_cover_letter_template.html",
+        context,
+        patient=True,
+    )
+    return serve_html_or_pdf(html, viewtype)
+
+
+# -----------------------------------------------------------------------------
+# Reports for the superuser
+# -----------------------------------------------------------------------------
 
 
 @user_passes_test(is_superuser)
@@ -1151,6 +1202,11 @@ def exclusion_report(request: HttpRequest) -> HttpResponse:
             "consent_modes": consent_modes,
         },
     )
+
+
+# -----------------------------------------------------------------------------
+# E-mail testing
+# -----------------------------------------------------------------------------
 
 
 @user_passes_test(is_superuser)
