@@ -147,21 +147,21 @@ def cli_make_ethics_pack(
     save_pdf_response(
         zipfile,
         draft_first_traffic_light_letter(request, TEST_ID_STR, VIEWTYPE_PDF),
-        "08_AUTO_Clinician_to_patient_cover_letter_re_traffic_light.pdf",
+        "09_AUTO_Clinician_to_patient_cover_letter_re_traffic_light.pdf",
     )
 
     log.info("draft_traffic_light_decision_form_generic")
     save_pdf_response(
         zipfile,
         draft_traffic_light_decision_form_generic(request, VIEWTYPE_PDF),
-        "09_AUTO_Traffic_light_decision_form_GENERIC.pdf",
+        "10_AUTO_Traffic_light_decision_form_GENERIC.pdf",
     )
 
     log.info("draft_traffic_light_decision_form")
     save_pdf_response(
         zipfile,
         draft_traffic_light_decision_form(request, TEST_ID_STR, VIEWTYPE_PDF),
-        "10_AUTO_Traffic_light_decision_form_PERSONALIZED.pdf",
+        "11_AUTO_Traffic_light_decision_form_PERSONALIZED.pdf",
     )
 
     log.info("draft_confirm_traffic_light_letter")
@@ -170,7 +170,7 @@ def cli_make_ethics_pack(
         draft_confirm_traffic_light_letter(
             request, TEST_ID_TWO_STR, VIEWTYPE_PDF
         ),
-        "11_AUTO_RDBM_to_patient_confirming_traffic_light_choice.pdf",
+        "12_AUTO_RDBM_to_patient_confirming_traffic_light_choice.pdf",
     )
 
     log.warning(
