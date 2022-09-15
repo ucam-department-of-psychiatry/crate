@@ -548,7 +548,7 @@ class Config:
                     f"variable to point to a CRATE anonymisation config file, "
                     f"or specify it on the command line."
                 )
-                traceback.print_stack()
+                traceback.print_exc()  # full details, please
                 sys.exit(1)
 
         cfg = ConfigSection(
