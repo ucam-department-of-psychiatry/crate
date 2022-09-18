@@ -713,7 +713,7 @@ See also:
 .. _scrub_all_email_addresses:
 
 scrub_all_email_addresses
-=========================
+#########################
 
 *Boolean.* Default: false.
 
