@@ -67,6 +67,7 @@ from cardinal_pythonlib.hash import (
     HashMethods,
     make_hasher,
 )
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 log = logging.getLogger(__name__)
 
@@ -127,7 +128,7 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Hash IDs in bulk, using a cryptographic hash function.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     parser.add_argument(
         "infile",

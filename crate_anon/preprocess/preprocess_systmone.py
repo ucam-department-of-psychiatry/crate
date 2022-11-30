@@ -39,6 +39,7 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     hack_in_mssql_xml_type,
     make_bigint_autoincrement_column,
 )
+from rich_argparse import RawDescriptionRichHelpFormatter
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.engine.base import Engine
 
@@ -342,7 +343,7 @@ def main() -> None:
     Command-line parser. See command-line help.
     """
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        formatter_class=RawDescriptionRichHelpFormatter,
         description=r"Indexes a SystmOne database to be suitable for CRATE.",
     )
     parser.add_argument("--url", required=True, help="SQLAlchemy database URL")

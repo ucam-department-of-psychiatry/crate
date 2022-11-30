@@ -35,6 +35,7 @@ from os.path import abspath, dirname, join, realpath
 from cardinal_pythonlib.fileops import rmtree
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.sphinxtools import AutodocIndex
+from rich_argparse import RichHelpFormatter
 
 from crate_anon.common.constants import CratePath
 
@@ -185,7 +186,7 @@ def make_autodoc(make: bool, destroy_first: bool) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=RichHelpFormatter)
     parser.add_argument(
         "--make",
         action="store_true",

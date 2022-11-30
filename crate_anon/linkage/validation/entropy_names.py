@@ -296,6 +296,7 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.probability import bayes_posterior
 from numba import jit
 from numpy import log2, power
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.linkage.constants import GENDER_FEMALE, GENDER_MALE
 from crate_anon.linkage.frequencies import NameFrequencyInfo
@@ -1002,7 +1003,9 @@ def main() -> None:
         "demobayes": demo_info_theory_bayes_cancer,
         "partials": show_partial_match_frequencies,
     }
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=ArgumentDefaultsRichHelpFormatter
+    )
     parser.add_argument("command", choices=function_map.keys())
     args = parser.parse_args()
     main_only_quicksetup_rootlogger(level=logging.INFO)

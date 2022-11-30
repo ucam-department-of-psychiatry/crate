@@ -131,6 +131,7 @@ from cardinal_pythonlib.network import download
 from cardinal_pythonlib.subproc import check_call_verbose
 from cardinal_pythonlib.sysops import die
 import regex
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.common.constants import (
     EnvVar,
@@ -864,7 +865,7 @@ def main() -> NoReturn:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Prepare UMLS data for BioYodie.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     parser.add_argument(
         "umls_zip",

@@ -124,6 +124,7 @@ from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.network import gen_binary_files_from_urls
 from gutenbergpy.textget import get_text_by_id, strip_headers
 import regex
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 from sortedcontainers import SortedSet
 
 from crate_anon.anonymise.eponyms import get_plain_eponyms
@@ -1275,7 +1276,7 @@ def main() -> None:
     """
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=ArgumentDefaultsRichHelpFormatter
     )
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Be verbose"

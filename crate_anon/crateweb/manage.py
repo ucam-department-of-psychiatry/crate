@@ -39,11 +39,46 @@ from typing import List
 
 import django
 from django.core.management import execute_from_command_line
+from django.core.management.base import (
+    BaseCommand,
+    CommandParser,
+    DjangoHelpFormatter,
+)
+from rich_argparse import RichHelpFormatter
 
 from crate_anon.crateweb.config.constants import CHERRYPY_EXTRA_ARGS_ENV_VAR
 
 log = logging.getLogger(__name__)
 
+
+# =============================================================================
+# Rich-text formatting for all our Django commands
+# =============================================================================
+# See https://pypi.org/project/rich-argparse/
+
+
+class DjangoRichHelpFormatter(
+    DjangoHelpFormatter, RichHelpFormatter
+):  # django first
+    """A rich-based help formatter for django commands."""
+
+
+original_create_parser = BaseCommand.create_parser
+
+
+def create_parser(*args, **kwargs) -> CommandParser:
+    parser = original_create_parser(*args, **kwargs)
+    parser.formatter_class = DjangoRichHelpFormatter
+    # ... set the formatter_class
+    return parser
+
+
+BaseCommand.create_parser = create_parser
+
+
+# =============================================================================
+# Set up Django
+# =============================================================================
 
 os.environ.setdefault(
     "DJANGO_SETTINGS_MODULE", "crate_anon.crateweb.config.settings"

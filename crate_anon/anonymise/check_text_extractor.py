@@ -32,6 +32,7 @@ crate_anon/anonymise/check_text_extractor.py
 import argparse
 
 from cardinal_pythonlib.extract_text import is_text_extractor_available
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.version import CRATE_VERSION_PRETTY
 
@@ -49,7 +50,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=f"Check availability of tools to extract text from "
         f"different document formats. ({CRATE_VERSION_PRETTY})",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
 
     parser.add_argument(

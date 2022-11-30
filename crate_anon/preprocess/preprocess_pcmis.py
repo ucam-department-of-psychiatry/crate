@@ -175,9 +175,6 @@ import argparse
 import logging
 from typing import List
 
-from cardinal_pythonlib.argparse_func import (
-    RawDescriptionArgumentDefaultsHelpFormatter,
-)  # noqa
 from cardinal_pythonlib.debugging import pdb_run
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.sql.sql_grammar_factory import make_grammar
@@ -198,6 +195,9 @@ from crate_anon.anonymise.constants import (
     CHARSET,
     AnonymiseDatabaseSafeConfigKeys,
     HashConfigKeys,
+)
+from crate_anon.common.argparse_assist import (
+    RawDescriptionArgumentDefaultsRichHelpFormatter,
 )
 from crate_anon.common.sql import (
     add_columns,
@@ -908,7 +908,7 @@ def main() -> None:
     """
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
         description="Alters a PCMIS database to be suitable for CRATE.",
     )
     parser.add_argument("--url", required=True, help="SQLAlchemy database URL")

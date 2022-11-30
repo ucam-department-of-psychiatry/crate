@@ -36,6 +36,7 @@ from os.path import abspath, dirname, join
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.source_reformatting import reformat_python_docstrings
+from rich_argparse import RichHelpFormatter
 
 log = logging.getLogger(__name__)
 
@@ -85,7 +86,9 @@ def main() -> None:
     Command-line entry point. See command-line help.
     """
     main_only_quicksetup_rootlogger(level=logging.DEBUG)
-    parser = argparse.ArgumentParser(description="Reformat source files")
+    parser = argparse.ArgumentParser(
+        description="Reformat source files", formatter_class=RichHelpFormatter
+    )
     parser.add_argument(
         "--rewrite", action="store_true", help="Rewrite the files"
     )

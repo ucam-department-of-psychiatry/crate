@@ -56,6 +56,7 @@ from cardinal_pythonlib.subproc import (
     check_call_process,
     run_multiple_processes,
 )
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
@@ -81,7 +82,10 @@ def main() -> None:
         f"arguments not specified here are passed to the underlying script "
         f"(see crate_nlp --help)."
     )
-    parser = argparse.ArgumentParser(description=description)
+    parser = argparse.ArgumentParser(
+        description=description,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
+    )
 
     parser.add_argument(
         "--nlpdef",

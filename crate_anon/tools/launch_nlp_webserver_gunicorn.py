@@ -35,6 +35,8 @@ import platform
 import subprocess
 import sys
 
+from rich_argparse import RichHelpFormatter
+
 from crate_anon.nlp_webserver.constants import NLP_WEBSERVER_CONFIG_ENVVAR
 
 WINDOWS = platform.system() == "Windows"
@@ -46,7 +48,8 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser(
         description="Launch CRATE NLP web server via Gunicorn."
-        " (Any leftover arguments will be passed to Gunicorn.)"
+        " (Any leftover arguments will be passed to Gunicorn.)",
+        formatter_class=RichHelpFormatter,
     )
     parser.add_argument(
         "--crate_config",

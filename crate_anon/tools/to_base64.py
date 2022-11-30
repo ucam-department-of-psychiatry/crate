@@ -35,6 +35,8 @@ import logging
 import re
 import sys
 
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
+
 
 log = logging.getLogger(__name__)
 
@@ -44,7 +46,7 @@ RE_WHITESPACE = re.compile(r"[ \n\t]+")
 def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=ArgumentDefaultsRichHelpFormatter
     )
     parser.add_argument("filename", type=str, help="Filename to read")
     parser.add_argument(

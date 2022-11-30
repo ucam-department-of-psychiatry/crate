@@ -73,6 +73,7 @@ from cardinal_pythonlib.file_io import smart_open, writeline_nl
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.hash import HashMethods, make_hasher
 from cardinal_pythonlib.randomness import generate_random_string
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 log = logging.getLogger(__name__)
 
@@ -148,7 +149,7 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Test the speed of a hash method.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     parser.add_argument(
         "--outfile",

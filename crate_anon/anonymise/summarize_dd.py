@@ -35,6 +35,7 @@ import logging
 import os
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.constants import ANON_CONFIG_ENV_VAR
@@ -62,7 +63,7 @@ def summarize_dd(config: Config, output_filename: str) -> None:
     """
     config.load_dd(check_against_source_db=False)
     dd = config.dd
-    header_row = [f.name for f in fields(DDTableSummary)]
+    header_row = tuple(f.name for f in fields(DDTableSummary))
     rows = [header_row] + [
         astuple(x) for x in dd.get_summary_info_all_tables()
     ]
@@ -83,7 +84,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=f"Draft a data dictionary for the anonymiser. "
         f"({CRATE_VERSION_PRETTY})",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
 
     parser.add_argument(

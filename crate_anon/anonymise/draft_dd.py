@@ -35,6 +35,7 @@ import os
 
 from cardinal_pythonlib.enumlike import keys_descriptions_from_enum
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.constants import ANON_CONFIG_ENV_VAR
@@ -157,7 +158,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=f"Draft a data dictionary for the anonymiser. "
         f"({CRATE_VERSION_PRETTY})",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
 
     parser.add_argument(

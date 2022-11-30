@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/tools/celery_status.py
+crate_anon/common/argparse_assist.py
 
 ===============================================================================
 
@@ -25,37 +25,24 @@ crate_anon/tools/celery_status.py
 
 ===============================================================================
 
-**Show the status of CRATE Celery processes.**
+**A combination class for rich-argparse.**
 
 """
 
-import argparse
-import subprocess
-
-from rich_argparse import RichHelpFormatter
-
-from crate_anon.crateweb.config.constants import CRATEWEB_CELERY_APP_NAME
+from rich_argparse import (
+    ArgumentDefaultsRichHelpFormatter,
+    RawDescriptionRichHelpFormatter,
+)
 
 
-def main() -> None:
+class RawDescriptionArgumentDefaultsRichHelpFormatter(
+    ArgumentDefaultsRichHelpFormatter, RawDescriptionRichHelpFormatter
+):
     """
-    Command-line parser. See command-line help.
+    Combines the features of
+
+    - :class:`RawDescriptionRichHelpFormatter` -- don't mangle the description
+    - :class:`ArgumentDefaultsRichHelpFormatter` -- print argument defaults
     """
-    parser = argparse.ArgumentParser(
-        formatter_class=RichHelpFormatter,
-        description="Show status of CRATE Celery processes, "
-        "by calling Celery.",
-    )
-    parser.parse_args()
 
-    cmdargs = [
-        "celery",
-        "--app",
-        CRATEWEB_CELERY_APP_NAME,
-        "status",
-    ]
-    subprocess.call(cmdargs)
-
-
-if __name__ == "__main__":
-    main()
+    pass
