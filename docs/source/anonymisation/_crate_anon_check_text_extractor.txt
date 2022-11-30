@@ -1,15 +1,15 @@
-usage: crate_anon_check_text_extractor [-h]
+USAGE: crate_anon_check_text_extractor [-h]
                                        [checkextractor [checkextractor ...]]
 
 Check availability of tools to extract text from different document formats.
 (CRATE version 0.19.4, 2022-05-24. Created by Rudolf Cardinal.)
 
-positional arguments:
+POSITIONAL ARGUMENTS:
   checkextractor  File extensions to check for availability of a text
                   extractor. Try, for example, '.doc .docx .odt .pdf .rtf .txt
                   None' (use a '.' prefix for all extensions, and use the
                   special extension 'None' to check the fallback processor).
                   (default: None)
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help      show this help message and exit

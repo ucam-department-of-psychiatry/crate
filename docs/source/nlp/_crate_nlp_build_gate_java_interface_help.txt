@@ -1,4 +1,4 @@
-usage: crate_nlp_build_gate_java_interface [-h] [--builddir BUILDDIR]
+USAGE: crate_nlp_build_gate_java_interface [-h] [--builddir BUILDDIR]
                                            [--gatedir GATEDIR]
                                            [--gate_exec GATE_EXEC]
                                            [--java JAVA] [--javac JAVAC]
@@ -6,11 +6,11 @@ usage: crate_nlp_build_gate_java_interface [-h] [--builddir BUILDDIR]
 
 Compile Java classes for CRATE's interface to GATE
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
-  --builddir BUILDDIR   Output directory for compiled .class files (default: /
-                        path/to/crate/crate_anon/nlp_manager/compiled_nlp_clas
-                        ses)
+  --builddir BUILDDIR   Output directory for compiled .class files (default:
+                        /path/to/crate/crate_anon/nlp_manager/compiled_nlp_cla
+                        sses)
   --gatedir GATEDIR     Root directory of GATE installation (default:
                         /path/to/GATE/installation)
   --gate_exec GATE_EXEC

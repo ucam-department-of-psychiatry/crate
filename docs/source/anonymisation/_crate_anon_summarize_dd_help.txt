@@ -1,10 +1,10 @@
-usage: crate_anon_summarize_dd [-h] [--config CONFIG] [--verbose]
+USAGE: crate_anon_summarize_dd [-h] [--config CONFIG] [--verbose]
                                [--output OUTPUT]
 
 Draft a data dictionary for the anonymiser. (CRATE version 0.19.4, 2022-05-24.
 Created by Rudolf Cardinal.)
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help       show this help message and exit
   --config CONFIG  Config file (overriding environment variable
                    CRATE_ANON_CONFIG). (default: None)

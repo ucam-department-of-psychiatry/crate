@@ -12,6 +12,7 @@ Available subcommands:
     fetch_optouts
     lookup_consent
     lookup_patient
+    make_ethics_pack
     populate
     resubmit_unprocessed_tasks
     test_email

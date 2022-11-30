@@ -1,4 +1,4 @@
-usage: crate_bulk_hash [-h] [--outfile OUTFILE] [--key KEY]
+USAGE: crate_bulk_hash [-h] [--outfile OUTFILE] [--key KEY]
                        [--keyfile KEYFILE]
                        [--method {HMAC_MD5,HMAC_SHA256,HMAC_SHA512}]
                        [--keepid] [--verbose]
@@ -6,13 +6,13 @@ usage: crate_bulk_hash [-h] [--outfile OUTFILE] [--key KEY]
 
 Hash IDs in bulk, using a cryptographic hash function.
 
-positional arguments:
+POSITIONAL ARGUMENTS:
   infile                Input file, or '-' for stdin. Use one line per thing
                         to be hashed. Comments (marked with '#') and blank
                         lines are ignored. Lines have whitespace stripped left
                         and right.
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --outfile OUTFILE     Output file, or '-' for stdout. One line will be
                         written for every input line. Blank lines will be

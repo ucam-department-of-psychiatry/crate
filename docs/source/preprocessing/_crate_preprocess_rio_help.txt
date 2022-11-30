@@ -1,4 +1,4 @@
-usage: crate_preprocess_rio [-h] --url URL [-v] [--print] [--echo] [--rcep]
+USAGE: crate_preprocess_rio [-h] --url URL [-v] [--print] [--echo] [--rcep]
                             [--drop_danger_drop] [--cpft] [--debug_skiptables]
                             [--prognotes_current_only | --prognotes_all]
                             [--clindocs_current_only | --clindocs_all]
@@ -14,9 +14,9 @@ usage: crate_preprocess_rio [-h] --url URL [-v] [--print] [--echo] [--rcep]
     database (slightly later than version 6.2; exact version unclear).
     Use the "--rcep" (+/- "--cpft") switch(es) to treat it as a
     Servelec RiO CRIS Extract Program (RCEP) v2 output database.
-    
 
-optional arguments:
+
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --url URL             SQLAlchemy database URL
   -v, --verbose         Verbose

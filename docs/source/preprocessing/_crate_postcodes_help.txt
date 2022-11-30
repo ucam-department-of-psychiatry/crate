@@ -1,4 +1,4 @@
-usage: crate_postcodes [-h] [--dir DIR] [--url URL] [--echo]
+USAGE: crate_postcodes [-h] [--dir DIR] [--url URL] [--echo]
                        [--reportevery REPORTEVERY] [--commitevery COMMITEVERY]
                        [--startswith STARTSWITH [STARTSWITH ...]] [--replace]
                        [--skiplookup]
@@ -27,14 +27,14 @@ usage: crate_postcodes [-h] [--dir DIR] [--url URL] [--echo]
 -   ONS POSTCODE DATABASE LICENSE.
     Output using this program must add the following attribution statements:
 
-    Contains OS data © Crown copyright and database right [year]
-    Contains Royal Mail data © Royal Mail copyright and database right [year]
-    Contains National Statistics data © Crown copyright and database right [year]
+    Contains OS data © Crown copyright and database right
+    Contains Royal Mail data © Royal Mail copyright and database right
+    Contains National Statistics data © Crown copyright and database right
 
     See https://www.ons.gov.uk/methodology/geography/licences
-    
 
-optional arguments:
+
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --dir DIR             Root directory of unzipped ONSPD download (default:
                         /path/to/unzipped/ONSPD/download)

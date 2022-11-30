@@ -1581,6 +1581,8 @@ Changes
 
 - **Minimum Python version is now 3.8.** (Required by numpy v1.22.)
 
+- Rich text for help.
+
 
 To do
 -----

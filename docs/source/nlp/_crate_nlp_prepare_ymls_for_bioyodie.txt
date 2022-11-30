@@ -1,4 +1,4 @@
-usage: crate_nlp_prepare_ymls_for_bioyodie [-h] [--keeptemp]
+USAGE: crate_nlp_prepare_ymls_for_bioyodie [-h] [--keeptemp]
                                            [--java_home JAVA_HOME]
                                            [--gate_home GATE_HOME]
                                            [--groovy GROOVY]
@@ -8,15 +8,15 @@ usage: crate_nlp_prepare_ymls_for_bioyodie [-h] [--keeptemp]
 
 Prepare UMLS data for BioYodie.
 
-positional arguments:
-  umls_zip              Filename of ZIP file downloaded from https://www.nlm.n
-                        ih.gov/research/umls/licensedcontent/umlsknowledgesour
-                        ces.html, e.g. /path/to/umls-2017AA-full.zip . This
-                        can't be autodownloaded, as it requires a
-                        license/login.
+POSITIONAL ARGUMENTS:
+  umls_zip              Filename of ZIP file downloaded from
+                        https://www.nlm.nih.gov/research/umls/licensedcontent/
+                        umlsknowledgesources.html, e.g.
+                        /path/to/umls-2017AA-full.zip . This can't be
+                        autodownloaded, as it requires a license/login.
   dest_dir              Destination directory to write.
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --keeptemp            Keep temporary directory on exit. (default: False)
   --java_home JAVA_HOME
@@ -33,8 +33,9 @@ optional arguments:
                         system copy, if there is one. (default: None)
   --bioyodie_prep_repo_url BIOYODIE_PREP_REPO_URL
                         URL of Bio-YODIE preprocessor Git repository (default:
-                        https://github.com/RudolfCardinal/bio-yodie-resource-
-                        prep)
+                        https://github.com/RudolfCardinal/bio-yodie-resource-p
+                        rep)
   --scala_url SCALA_URL
-                        URL for Scala .tgz file (default: https://downloads.li
-                        ghtbend.com/scala/2.11.7/scala-2.11.7.tgz)
+                        URL for Scala .tgz file (default:
+                        https://downloads.lightbend.com/scala/2.11.7/scala-2.1
+                        1.7.tgz)
