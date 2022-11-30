@@ -57,6 +57,7 @@ from typing import TYPE_CHECKING
 from cardinal_pythonlib.datetimefunc import pendulum_to_datetime
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from pendulum import DateTime as Pendulum  # NB name clash with SQLAlchemy
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 from sqlalchemy import (
     create_engine,
     BigInteger,
@@ -324,7 +325,7 @@ def main() -> None:
     default_size = 0
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=ArgumentDefaultsRichHelpFormatter
     )
     parser.add_argument(
         "url",

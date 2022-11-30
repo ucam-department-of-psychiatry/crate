@@ -43,13 +43,11 @@ from io import StringIO
 import json
 import logging
 from math import ceil
-
 import sys
 import time
 from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 
 from cardinal_pythonlib.argparse_func import (
-    RawDescriptionArgumentDefaultsHelpFormatter,
     ShowAllSubparserHelpAction,
 )
 from cardinal_pythonlib.datetimefunc import coerce_to_pendulum_date
@@ -59,7 +57,11 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.maths_py import round_sf
 from cardinal_pythonlib.probability import probability_from_log_odds
 from cardinal_pythonlib.profile import do_cprofile
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
+from crate_anon.common.argparse_assist import (
+    RawDescriptionArgumentDefaultsRichHelpFormatter,
+)
 from crate_anon.common.constants import (
     CrateCommand,
     EXIT_FAILURE,
@@ -1646,7 +1648,7 @@ def main() -> int:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Identity matching via hashed fuzzy identifiers",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     subparsers = add_subparsers(parser)
 
@@ -1668,7 +1670,7 @@ unless you explicitly elect to hash it.
 Optionally, the "other" information (you can choose, e.g. attaching a direct
 identifier) is preserved, but you have to ask for that explicitly; that is
 normally for testing.""",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
     )
     hash_parser.add_argument(
         f"--{Switches.INPUT}",
@@ -1713,7 +1715,7 @@ normally for testing.""",
         "Compare a list of probands against a sample (both in "
         "plaintext). ",
         description=HELP_COMPARISON,
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
     )
     add_comparison_options(
         compare_plaintext_parser,
@@ -1737,7 +1739,7 @@ normally for testing.""",
             "Compare a list of probands against a sample (both hashed)."
         ),
         description=HELP_COMPARISON,
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
     )
     add_comparison_options(
         compare_h2h_parser, proband_is_hashed=True, sample_is_hashed=True
@@ -1759,7 +1761,7 @@ normally for testing.""",
         "Compare a list of probands (hashed) against a sample "
         "(plaintext). Hashes the sample on the fly.",
         description=HELP_COMPARISON,
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
     )
     add_comparison_options(
         compare_h2p_parser, proband_is_hashed=True, sample_is_hashed=False
@@ -1777,12 +1779,14 @@ normally for testing.""",
     demo_sample_parser = subparsers.add_parser(
         Commands.PRINT_DEMO_SAMPLE,
         help="Print a demo sample .CSV file.",
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     add_basic_options(demo_sample_parser)
 
     show_metaphone_parser = subparsers.add_parser(
         Commands.SHOW_METAPHONE,
         help="Show metaphones of words",
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     show_metaphone_parser.add_argument(
         "words", nargs="+", help="Words to check"
@@ -1792,6 +1796,7 @@ normally for testing.""",
     show_names_for_metaphone_parser = subparsers.add_parser(
         Commands.SHOW_NAMES_FOR_METAPHONE,
         help="Show names (forenames and surnames) for a given metaphone",
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     show_names_for_metaphone_parser.add_argument(
         "words", nargs="+", help="Words to check"
@@ -1802,6 +1807,7 @@ normally for testing.""",
     show_forename_freq_parser = subparsers.add_parser(
         Commands.SHOW_FORENAME_FREQ,
         help="Show frequencies of forenames",
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     show_forename_freq_parser.add_argument(
         "forenames", nargs="+", help="Forenames to check"
@@ -1812,6 +1818,7 @@ normally for testing.""",
     show_forename_metaphone_freq_parser = subparsers.add_parser(
         Commands.SHOW_FORENAME_METAPHONE_FREQ,
         help="Show frequencies of forename metaphones",
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     show_forename_metaphone_freq_parser.add_argument(
         "metaphones", nargs="+", help="Metaphones to check"
@@ -1822,6 +1829,7 @@ normally for testing.""",
     show_forename_f2c_freq_parser = subparsers.add_parser(
         Commands.SHOW_FORENAME_F2C_FREQ,
         help="Show frequencies of forename first two characters",
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     show_forename_f2c_freq_parser.add_argument(
         "f2c", nargs="+", help="First-two-character groups to check"
@@ -1832,6 +1840,7 @@ normally for testing.""",
     show_surname_freq_parser = subparsers.add_parser(
         Commands.SHOW_SURNAME_FREQ,
         help="Show frequencies of surnames",
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     show_surname_freq_parser.add_argument(
         "surnames", nargs="+", help="surnames to check"
@@ -1842,6 +1851,7 @@ normally for testing.""",
     show_surname_metaphone_freq_parser = subparsers.add_parser(
         Commands.SHOW_SURNAME_METAPHONE_FREQ,
         help="Show frequencies of surname metaphones",
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     show_surname_metaphone_freq_parser.add_argument(
         "metaphones", nargs="+", help="surnames to check"
@@ -1852,6 +1862,7 @@ normally for testing.""",
     show_surname_f2c_freq_parser = subparsers.add_parser(
         Commands.SHOW_SURNAME_F2C_FREQ,
         help="Show frequencies of surname first two characters",
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     show_surname_f2c_freq_parser.add_argument(
         "f2c", nargs="+", help="First-two-character groups to check"
@@ -1862,6 +1873,7 @@ normally for testing.""",
     show_dob_freq_parser = subparsers.add_parser(
         Commands.SHOW_DOB_FREQ,
         help="Show the frequency of any DOB",
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     add_config_options(show_dob_freq_parser)
     add_basic_options(show_dob_freq_parser)
@@ -1869,6 +1881,7 @@ normally for testing.""",
     show_postcode_freq_parser = subparsers.add_parser(
         Commands.SHOW_POSTCODE_FREQ,
         help="Show the frequency of any postcode",
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     show_postcode_freq_parser.add_argument(
         "postcodes", nargs="+", help="postcodes to check"

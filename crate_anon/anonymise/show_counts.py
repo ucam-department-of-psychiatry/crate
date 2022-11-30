@@ -36,6 +36,7 @@ from typing import List, Tuple
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.sqlalchemy.core_query import count_star
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.constants import ANON_CONFIG_ENV_VAR
@@ -102,7 +103,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=f"Print record counts from source/destination databases. "
         f"({CRATE_VERSION_PRETTY})",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
 
     parser.add_argument(

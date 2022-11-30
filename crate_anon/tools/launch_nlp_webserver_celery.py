@@ -35,6 +35,7 @@ import argparse
 import platform
 
 from cardinal_pythonlib.process import nice_call
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.nlp_webserver.constants import NLP_WEBSERVER_CELERY_APP_NAME
 
@@ -50,7 +51,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Launch CRATE NLP web server Celery processes. "
         "(Any leftover arguments will be passed to Celery.)",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     parser.add_argument("--command", default="worker", help="Celery command")
     parser.add_argument(

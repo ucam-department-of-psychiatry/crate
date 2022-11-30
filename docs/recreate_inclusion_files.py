@@ -43,6 +43,7 @@ import sys
 from typing import List
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+from rich_argparse import RichHelpFormatter
 
 from crate_anon.common.constants import CrateCommand, CratePath, EnvVar
 from crate_anon.version import CRATE_VERSION
@@ -178,7 +179,7 @@ def main():
     # -------------------------------------------------------------------------
     # Options
     # -------------------------------------------------------------------------
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=RichHelpFormatter)
     parser.add_argument(
         "--skip_medex",
         action="store_true",

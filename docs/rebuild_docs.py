@@ -34,8 +34,9 @@ import logging
 import os
 import shutil
 import subprocess
-
 from typing import List
+
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
@@ -56,7 +57,9 @@ if __name__ == "__main__":
     # When running from the GitHub action, it isn't possible to
     # download and build Medex automatically, so we just skip this
     # step.
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=ArgumentDefaultsRichHelpFormatter
+    )
     parser.add_argument(
         "--skip_medex",
         action="store_true",

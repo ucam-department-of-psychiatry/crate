@@ -80,9 +80,6 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from cardinal_pythonlib.argparse_func import (
-    RawDescriptionArgumentDefaultsHelpFormatter,
-)
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
 from cardinal_pythonlib.fileops import purge
 from cardinal_pythonlib.logs import configure_logger_for_colour
@@ -100,6 +97,9 @@ from crate_anon.anonymise.constants import (
     SEP,
 )
 from crate_anon.anonymise.dbholder import DatabaseHolder
+from crate_anon.common.argparse_assist import (
+    RawDescriptionArgumentDefaultsRichHelpFormatter,
+)
 from crate_anon.common.constants import JSON_INDENT
 from crate_anon.common.exceptions import call_main_with_exception_reporting
 from crate_anon.common.formatting import print_record_counts
@@ -1114,7 +1114,7 @@ def inner_main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=description,
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
     )
 
     config_options = parser.add_argument_group("Config options")

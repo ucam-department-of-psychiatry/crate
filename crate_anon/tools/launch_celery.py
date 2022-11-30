@@ -34,6 +34,7 @@ import os
 import platform
 
 from cardinal_pythonlib.process import nice_call
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.common.exceptions import call_main_with_exception_reporting
 from crate_anon.crateweb.config.constants import CRATEWEB_CELERY_APP_NAME
@@ -56,7 +57,7 @@ def inner_main() -> None:
     parser = argparse.ArgumentParser(
         description="Launch CRATE Celery processes. "
         "(Any leftover arguments will be passed to Celery.)",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     parser.add_argument("--command", default="worker", help="Celery command")
     parser.add_argument(

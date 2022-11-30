@@ -73,6 +73,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from cardinal_pythonlib.fileops import mkdir_p
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.typing_helpers import CSVWriterType
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.patient import Patient
@@ -463,7 +464,7 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Test anonymisation",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     parser.add_argument(
         "--config", required=True, help="Configuration file name (input)"

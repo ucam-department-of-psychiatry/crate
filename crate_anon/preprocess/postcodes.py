@@ -82,9 +82,6 @@ from typing import (
     Tuple,
 )
 
-from cardinal_pythonlib.argparse_func import (
-    RawDescriptionArgumentDefaultsHelpFormatter,
-)  # noqa
 from cardinal_pythonlib.dicts import rename_key
 from cardinal_pythonlib.fileops import find_first
 from cardinal_pythonlib.logs import configure_logger_for_colour
@@ -104,6 +101,9 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.sql.schema import MetaData, Table
 
 from crate_anon.anonymise.constants import CHARSET, TABLE_KWARGS
+from crate_anon.common.argparse_assist import (
+    RawDescriptionArgumentDefaultsRichHelpFormatter,
+)
 from crate_anon.common.constants import EnvVar
 from crate_anon.common.stringfunc import make_twocol_table
 
@@ -1393,7 +1393,7 @@ def main() -> None:
     """
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
         description=r"""
 -   This program reads data from the UK Office of National Statistics Postcode
     Database (ONSPD) and inserts it into a database.
