@@ -563,7 +563,7 @@ def process_patient_table(
         engine: an SQLAlchemy database Engine
         configoptions: instance of :class:`RioViewConfigOptions`
     """
-    log.info(f"Preprocessing patient table: {repr(table.name)}")
+    log.info(f"Preprocessing patient table: {table.name!r}")
     rio_type = table_is_rio_type(table.name, configoptions)
     if rio_type:
         pk_col = get_effective_int_pk_col(table)
@@ -1481,7 +1481,7 @@ def main() -> None:
         "(RCEP) databases"
     )
     safeargs = {k: v for k, v in vars(progargs).items() if k != "url"}
-    log.debug(f"args (except url): {repr(safeargs)}")
+    log.debug(f"args (except url): {safeargs!r}")
     log.info("RiO mode" if rio else "RCEP mode")
 
     if progargs.postcodedb and not progargs.geogcols:
@@ -1496,7 +1496,7 @@ def main() -> None:
     engine = create_engine(progargs.url, echo=progargs.echo, encoding=CHARSET)
     metadata = MetaData()
     metadata.bind = engine
-    log.info(f"Database: {repr(engine.url)}")  # ... repr hides p/w
+    log.info(f"Database: {engine.url!r}")  # ... repr (!r) hides p/w
     log.debug(f"Dialect: {engine.dialect.name}")
 
     log.info("Reflecting (inspecting) database...")

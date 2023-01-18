@@ -408,7 +408,7 @@ def main() -> None:
     hack_in_mssql_xml_type()
 
     engine = create_engine(args.url, echo=args.echo, encoding=CHARSET)
-    log.info(f"Database: {repr(engine.url)}")  # ... repr hides p/w
+    log.info(f"Database: {engine.url!r}")  # ... repr (!r) hides p/w
     log.debug(f"Dialect: {engine.dialect.name}")
 
     preprocess_systmone(

@@ -917,7 +917,7 @@ ORDER BY
         # since this is a system rather than a per-user query.
         cursor = connection.cursor()
         if debug:
-            log.debug(f"sql = {sql}, args = {repr(args)}")
+            log.debug(f"sql = {sql}, args = {args!r}")
         cursor.execute(sql, args)
         results = dictfetchall(cursor)  # list of OrderedDicts
         if debug:

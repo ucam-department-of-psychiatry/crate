@@ -51,9 +51,8 @@ def home(request: HttpRequest) -> HttpResponse:
     The home (main menu) view.
     """
     # leaflets = [{'key': x[0], 'name': x[1]} for x in Leaflet.LEAFLET_CHOICES]
-    # assert False
-    # log.critical("IP Address for debug-toolbar: " + request.META['REMOTE_ADDR'])  # noqa
-    # log.critical(f"MIDDLEWARE_CLASSES: {repr(MIDDLEWARE_CLASSES)}")
+    # log.debug("IP Address for debug-toolbar: " + request.META['REMOTE_ADDR'])
+    # log.debug(f"MIDDLEWARE_CLASSES: {MIDDLEWARE_CLASSES!r}")
     context = {
         "nav_on_main_menu": True,
         "is_clinician": is_clinician(request.user),

@@ -271,7 +271,7 @@ class AlcoholUnits(SimpleNumericalResultParser):
                 FN_TENSE: tense,
             }
             if debug:
-                log.debug(f"Match {m} for {repr(text)} -> {result}")
+                log.debug(f"Match {m} for {text!r} -> {result}")
             yield self.tablename, result
 
     def test(self, verbose: bool = False) -> None:

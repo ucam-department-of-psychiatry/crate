@@ -320,7 +320,7 @@ def add_lines_after_trigger(
         # Add stuff
         f.write(terminate(start_marker))
         for line in lines:
-            log.info(f"Adding {filename} line: {repr(line)}")
+            log.info(f"Adding {filename} line: {line!r}")
             f.write(terminate(line))
         f.write(terminate(end_marker))
         # Write the rest
@@ -368,7 +368,7 @@ def replace_in_file(
     # Make backup, if different
     backup_name = filename + backup_suffix
     os.rename(filename, backup_name)
-    log.info(f"... backup is: {repr(backup_name)}")
+    log.info(f"... backup is: {backup_name!r}")
     # Write out new
     with open(filename, "w", encoding=encoding) as output_file:
         output_file.write(new_content)

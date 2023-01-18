@@ -494,8 +494,8 @@ class AlterMethod:
                 ffdict[ddr.src_field] = row[i]
             # Use that dictionary with the format string to make the filename
             log.debug(
-                f"extract_text: file_format_str={repr(self.file_format_str)}, "
-                f"ffdict={repr(ffdict)}"
+                f"extract_text: file_format_str={self.file_format_str!r}, "
+                f"ffdict={ffdict!r}"
             )
             use_filename = True
             filename = self.file_format_str.format(**ffdict)

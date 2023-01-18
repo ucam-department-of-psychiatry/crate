@@ -839,9 +839,8 @@ class SimpleNumericalResultParser(NumericalResultParser, ABC):
                 FN_TENSE_TEXT: tense_text,
                 FN_TENSE: tense,
             }
-            # log.critical(result)
             if debug:
-                log.debug(f"Match {m} for {repr(text)} -> {result}")
+                log.debug(f"Match {m} for {text!r} -> {result}")
             yield self.tablename, result
 
 
@@ -1066,9 +1065,8 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
                 FN_TENSE_TEXT: tense_text,
                 FN_TENSE: tense,
             }
-            # log.critical(result)
             if debug:
-                log.debug(f"Match {m} for {repr(text)} -> {result}")
+                log.debug(f"Match {m} for {text!r} -> {result}")
             yield self.tablename, result
 
     def test_numerator_denominator_parser(

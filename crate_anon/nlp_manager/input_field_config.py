@@ -452,7 +452,7 @@ class InputFieldConfig:
                 f"{self._srctable}.{self._srcpkfield}"
             )
         pk_is_integer = is_sqlatype_integer(pkcoltype)
-        # log.debug(f"pk_is_integer: {repr(pkcoltype)} -> {pk_is_integer}")
+        # log.debug(f"pk_is_integer: {pkcoltype!r} -> {pk_is_integer}")
         return pk_is_integer
 
     def gen_text(
