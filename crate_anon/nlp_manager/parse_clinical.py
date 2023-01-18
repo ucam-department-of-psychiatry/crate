@@ -907,6 +907,3 @@ ALL_CLINICAL_NLP_AND_VALIDATORS = [
     (Height, HeightValidator),
     (Weight, WeightValidator),
 ]
-ALL_CLINICAL_NLP, ALL_CLINICAL_VALIDATORS = zip(
-    *ALL_CLINICAL_NLP_AND_VALIDATORS
-)  # noqa

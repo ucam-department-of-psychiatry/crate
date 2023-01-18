@@ -32,8 +32,10 @@ Unit tests.
 import unittest
 
 from crate_anon.nlp_manager.parse_haematology import (
-    ALL_HAEMATOLOGY_NLP,
-    ALL_HAEMATOLOGY_VALIDATORS,
+    ALL_HAEMATOLOGY_NLP_AND_VALIDATORS,
+)
+from crate_anon.nlp_manager.tests.regex_test_helperfunc import (
+    run_tests_nlp_and_validator_classes,
 )
 
 
@@ -48,7 +50,4 @@ class TestHaematology(unittest.TestCase):
         """
         Test all parsers in this module.
         """
-        for cls in ALL_HAEMATOLOGY_NLP:
-            cls(None, None).test(verbose=True)
-        for cls in ALL_HAEMATOLOGY_VALIDATORS:
-            cls(None, None).test(verbose=True)
+        run_tests_nlp_and_validator_classes(ALL_HAEMATOLOGY_NLP_AND_VALIDATORS)

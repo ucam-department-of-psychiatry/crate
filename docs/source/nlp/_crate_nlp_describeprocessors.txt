@@ -19,6 +19,23 @@
 | AlbuminValidator          | Validator for Albumin (see help for             |
 |                           | explanation).                                   |
 +---------------------------+-------------------------------------------------+
+| AlcoholUnits              | SUBSTANCE MISUSE.                               |
+|                           |                                                 |
+|                           | Alcohol consumption, specified explicitly as    |
+|                           | (UK) units per day or per                       |
+|                           | week. A UK unit is 10 ml of ethanol [1, 2]. UK  |
+|                           | NHS guidelines used to be                       |
+|                           | "per week" and remain broadly week-based [1].   |
+|                           |                                                 |
+|                           | [1] https://www.nhs.uk/live-well/alcohol-       |
+|                           | advice/calculating-alcohol-units/,              |
+|                           |     accessed 2023-01-18.                        |
+|                           | [2]                                             |
+|                           | https://en.wikipedia.org/wiki/Unit_of_alcohol   |
++---------------------------+-------------------------------------------------+
+| AlcoholUnitsValidator     | Validator for AlcoholUnits (see help for        |
+|                           | explanation).                                   |
++---------------------------+-------------------------------------------------+
 | AlkPhos                   | BIOCHEMISTRY (LFTs/BFTs).                       |
 |                           |                                                 |
 |                           | Alkaline phosphatase (ALP, AlkP, AlkPhos).      |

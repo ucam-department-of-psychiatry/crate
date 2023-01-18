@@ -125,6 +125,9 @@ def demo_nlp_config() -> str:
     from crate_anon.nlp_manager.parse_haematology import (
         ALL_HAEMATOLOGY_NLP_AND_VALIDATORS,
     )  # delayed import
+    from crate_anon.nlp_manager.parse_substance_misuse import (
+        ALL_SUBSTANCE_MISUSE_NLP_AND_VALIDATORS,
+    )  # delayed import
 
     # -------------------------------------------------------------------------
     # Helper functions
@@ -196,11 +199,17 @@ def demo_nlp_config() -> str:
     procdefs_haematology = _make_module_procdef_block(
         ALL_HAEMATOLOGY_NLP_AND_VALIDATORS
     )
+    procdefs_substance_misuse = _make_module_procdef_block(
+        ALL_SUBSTANCE_MISUSE_NLP_AND_VALIDATORS
+    )
 
     proclist_biochemistry = _make_proclist(ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS)
     proclist_clinical = _make_proclist(ALL_CLINICAL_NLP_AND_VALIDATORS)
     proclist_cognitive = _make_proclist(ALL_COGNITIVE_NLP_AND_VALIDATORS)
     proclist_haematology = _make_proclist(ALL_HAEMATOLOGY_NLP_AND_VALIDATORS)
+    proclist_substance_misuse = _make_proclist(
+        ALL_SUBSTANCE_MISUSE_NLP_AND_VALIDATORS
+    )
 
     if EnvVar.GENERATING_CRATE_DOCS in os.environ:
         nlp_prog_dir = "/path/to/crate_anon/nlp_manager/compiled_nlp_classes"
@@ -339,6 +348,10 @@ def demo_nlp_config() -> str:
     # Haematology
     # -------------------------------------------------------------------------
 {proclist_haematology}
+    # -------------------------------------------------------------------------
+    # Substance misuse
+    # -------------------------------------------------------------------------
+{proclist_substance_misuse}
 
 {NlpDefConfigKeys.PROGRESSDB} = {destdb}
 {NlpDefConfigKeys.HASHPHRASE} = {hashphrase}
@@ -393,6 +406,9 @@ def demo_nlp_config() -> str:
 
 {procdefs_haematology}
 
+    # Substance misuse
+
+{procdefs_substance_misuse}
 
 # -----------------------------------------------------------------------------
 # Specimen GATE demo people/places processor definition

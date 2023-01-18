@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/nlp_manager/tests/parse_clinical_tests.py
+crate_anon/nlp_manager/tests/parse_substance_misuse_tests.py
 
 ===============================================================================
 
@@ -31,8 +31,8 @@ Unit tests.
 
 import unittest
 
-from crate_anon.nlp_manager.parse_clinical import (
-    ALL_CLINICAL_NLP_AND_VALIDATORS,
+from crate_anon.nlp_manager.parse_substance_misuse import (
+    ALL_SUBSTANCE_MISUSE_NLP_AND_VALIDATORS,
 )
 from crate_anon.nlp_manager.tests.regex_test_helperfunc import (
     run_tests_nlp_and_validator_classes,
@@ -44,10 +44,12 @@ from crate_anon.nlp_manager.tests.regex_test_helperfunc import (
 # =============================================================================
 
 
-class TestClinical(unittest.TestCase):
+class TestSubstanceMisuse(unittest.TestCase):
     @staticmethod
-    def test_all_clinical() -> None:
+    def test_all_substance_misuse() -> None:
         """
         Test all parsers in this module.
         """
-        run_tests_nlp_and_validator_classes(ALL_CLINICAL_NLP_AND_VALIDATORS)
+        run_tests_nlp_and_validator_classes(
+            ALL_SUBSTANCE_MISUSE_NLP_AND_VALIDATORS
+        )

@@ -29,13 +29,11 @@ crate_anon/nlp_manager/all_processors.py
 
 """
 
-# I don't know why the PyCharm inspector goes haywire and thinks that a bunch
-# of these imports are unused. But that's the reason for all the
-# "noinspection PyUnresolvedReferences" comments.
+# =============================================================================
+# Imports
+# =============================================================================
 
 from inspect import isabstract
-
-# noinspection PyUnresolvedReferences
 from typing import Any, List, Optional, Set, Type
 
 from cardinal_pythonlib.json.typing_helpers import (
@@ -48,18 +46,29 @@ from crate_anon.common.stringfunc import (
     make_twocol_table,
     trim_docstring,
 )
-
-# noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser, TableMaker
 
-# noinspection PyUnresolvedReferences
+# Mostly, here we are not concerned with importing a specific symbol, but the
+# side effect on class inheritance (registering classes). So we can import an
+# arbitrary class or constant:
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.parse_gate import Gate
 from crate_anon.nlp_manager.parse_medex import Medex
-from crate_anon.nlp_manager.parse_biochemistry import *  # noqa: F403
-from crate_anon.nlp_manager.parse_clinical import *  # noqa: F403
-from crate_anon.nlp_manager.parse_cognitive import *  # noqa: F403
-from crate_anon.nlp_manager.parse_haematology import *  # noqa: F403
+from crate_anon.nlp_manager.parse_biochemistry import (
+    ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS,
+)
+from crate_anon.nlp_manager.parse_clinical import (
+    ALL_CLINICAL_NLP_AND_VALIDATORS,
+)
+from crate_anon.nlp_manager.parse_cognitive import (
+    ALL_COGNITIVE_NLP_AND_VALIDATORS,
+)
+from crate_anon.nlp_manager.parse_haematology import (
+    ALL_HAEMATOLOGY_NLP_AND_VALIDATORS,
+)
+from crate_anon.nlp_manager.parse_substance_misuse import (
+    ALL_SUBSTANCE_MISUSE_NLP_AND_VALIDATORS,
+)
 
 ClassType = Type[object]
 
@@ -70,32 +79,18 @@ def ignore(something: Any) -> None:
 
 
 # To make warnings go away about imports being unused:
-
-# gate_parser
 ignore(Gate)
-
-# medex_parser
 ignore(Medex)
-
-# parse_biochemistry
-ignore(Crp)  # noqa: F405
-
-# parse_clinical
-ignore(Bmi)  # noqa: F405
-
-# parse_cognitive
-ignore(Mmse)  # noqa: F405
-
-# parse_haematology
-ignore(Wbc)  # noqa: F405
-ignore(Neutrophils)  # noqa: F405
-ignore(Lymphocytes)  # noqa: F405
-ignore(Monocytes)  # noqa: F405
-ignore(Basophils)  # noqa: F405
-ignore(Eosinophils)  # noqa: F405
+ignore(ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS)
+ignore(ALL_CLINICAL_NLP_AND_VALIDATORS)
+ignore(ALL_COGNITIVE_NLP_AND_VALIDATORS)
+ignore(ALL_HAEMATOLOGY_NLP_AND_VALIDATORS)
+ignore(ALL_SUBSTANCE_MISUSE_NLP_AND_VALIDATORS)
 
 
-# T = TypeVar('T', bound=NlpParser)
+# =============================================================================
+# Factory functions
+# =============================================================================
 
 
 def get_all_subclasses(cls: ClassType) -> List[ClassType]:

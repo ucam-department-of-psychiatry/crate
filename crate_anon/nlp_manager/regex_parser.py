@@ -405,6 +405,8 @@ class NumericalResultParser(BaseNlpParser):
 
         Raises:
             :exc:`AssertionError` if a comparison fails
+
+        Compare also :func:`test_numerical_parser_detailed`.
         """
         log.info(f"Testing parser: {self.classname()}")
         if verbose:
@@ -414,22 +416,15 @@ class NumericalResultParser(BaseNlpParser):
                 ("999", [])  # no quantity specified
             ]  # use "+ [...]", not append(), so as not to modify for caller
         for test_string, expected_values in test_expected_list:
-            actual_values = list(
-                x[self.target_unit] for t, x in self.parse(test_string)
-            )
+            full_result = list(self.parse(test_string))
+            actual_values = list(x[self.target_unit] for t, x in full_result)
             assert actual_values == expected_values, (
-                "Parser {name}: Expected {expected}, got {actual}, when "
-                "parsing {test_string}; full result:\n{full}".format(
-                    name=self.classname(),
-                    expected=expected_values,
-                    actual=actual_values,
-                    test_string=repr(test_string),
-                    full=repr(list(self.parse(test_string))),
-                )
+                f"Parser {self.classname()}: Expected {expected_values!r}, "
+                f"got {actual_values!r}, when parsing {test_string!r}; "
+                f"full result:\n{full_result!r}"
             )
         log.info("... OK")
 
-    # noinspection PyUnusedLocal
     def detailed_test(
         self, text: str, expected: List[Dict[str, Any]], verbose: bool = False
     ) -> None:
@@ -452,29 +447,63 @@ class NumericalResultParser(BaseNlpParser):
                   is present, the parser must provide the corresponding value.
 
             verbose:
-                unused
+                be verbose
         """
-        i = 0
-        for _, values in self.parse(text):
-            if i >= len(expected):
-                raise ValueError(
-                    f"Too few expected values. Extra result is: {values!r}"
-                )
-            expected_values = expected[i]
-            for key, exp_val in expected_values.items():
-                if key not in values:
+        full_result = list(self.parse(text))
+        if len(full_result) != len(expected):
+            raise ValueError(
+                f"Parser {self.classname()}: expected {len(expected)} results "
+                f"but got {len(full_result)} when parsing {text!r};"
+                f"full result:\n{full_result!r}"
+            )
+        if verbose:
+            log.info(f"detailed_test: {text!r} -> {full_result!r}")
+        for i, text_result in enumerate(full_result):
+            _, result = text_result
+            expected_dict = expected[i]
+            for k, expected_value in expected_dict.items():
+                if k not in result:
                     raise ValueError(
-                        f"Test built wrong: expected key {key!r} "
-                        f"missing; result was {values!r}"
+                        f"Parser {self.classname()}: Expected value dict "
+                        f"had key {k!r} but this is absent from result "
+                        f"{result!r}"
                     )
-                if values[key] != exp_val:
+                observed_value = result[k]
+                if observed_value != expected_value:
                     raise ValueError(
-                        f"For key {key!r}, expected {exp_val!r}, "
-                        f"got {values[key]!r}; full result is {values!r}; "
-                        f"test text is {text!r}"
+                        f"Parser {self.classname()}: expected {k} = "
+                        f"{expected_value!r}, got {observed_value!r}, "
+                        f"when parsing {text!r}; full result:\n"
+                        f"{full_result!r}"
                     )
-            i += 1
-        log.info("... detailed_test: pass")
+
+    def detailed_test_multiple(
+        self,
+        tests: List[Tuple[str, List[Dict[str, Any]]]],
+        verbose: bool = False,
+    ) -> None:
+        """
+        Args:
+            tests:
+                list of tuples ``test_string, expected``. The parser will parse
+                ``test_string`` and compare the result(s) to ``expected``. This
+                is list of dictionaries with keys that can be like ``values``,
+                ``tense``, etc. Each dictionary value is the corresponding
+                expected value.
+            verbose:
+                show the regex string too
+
+        Raises:
+            :exc:`AssertionError` if a comparison fails
+        """
+        log.info(f"Detailed tests for parser: {self.classname()}")
+        if verbose:
+            log.debug(f"... regex string:\n{self.regex_str_for_debugging}")
+        for test_string, expected_dict_list in tests:
+            self.detailed_test(
+                test_string, expected_dict_list, verbose=verbose
+            )
+        log.info("... OK")
 
 
 # -----------------------------------------------------------------------------
@@ -498,6 +527,7 @@ def make_simple_numeric_regex(
     relation: str = RELATION,
     optional_results_ignorables: str = OPTIONAL_RESULTS_IGNORABLES,
     optional_ignorable_after_quantity: str = "",
+    units_optional: bool = True,
 ) -> str:
     r"""
     Makes a regex with named groups to handle simple numerical results.
@@ -529,6 +559,8 @@ def make_simple_numeric_regex(
         optional_ignorable_after_quantity:
             Regex for additional things that can be ignored right after the
             quantity. Should include its own "optionality" (e.g. ``?``).
+        units_optional:
+            The units are allowed to be omitted. Usually true.
 
     The resulting regex groups are named, not numbered:
 
@@ -586,6 +618,8 @@ def make_simple_numeric_regex(
     group_value = group(GROUP_NAME_VALUE, value)
     group_value_bracketed = bracketed(group_value)
     value_units_all_bracketed = bracketed(rf"{group_value} \s+ {group_units}")
+    units_optional_descriptor = "optional" if units_optional else "required"
+    qmark_if_units_optional = "?" if units_optional else ""
 
     return rf"""
         # - Either: quantity [tense] [relation] value [units]
@@ -635,8 +669,8 @@ def make_simple_numeric_regex(
                 )
                 # Ignorable:
                 {optional_results_ignorables}
-                # Units (optional):
-                {group_units}?
+                # Units ({units_optional_descriptor}):
+                {group_units}{qmark_if_units_optional}
             )
         )
     """

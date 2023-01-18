@@ -231,6 +231,8 @@ PER_CUBIC_MM = per("", CUBIC_MM, numerator_optional=True)
 # -----------------------------------------------------------------------------
 
 HOUR = r"(?:h(?:rs?|ours?)?)"  # h, hr, hrs, hour, hours
+DAY = r"(?:d(?:y?|ay?)?)"  # d, dy, day
+WEEK = r"(?:w(?:k?|eek?)?)"  # w, wk, week
 
 # -----------------------------------------------------------------------------
 # Proportions
@@ -246,9 +248,17 @@ PERCENT = r"""(?:%|pe?r?\s?ce?n?t)"""
 
 CELLS = r"(?:\b cells? \b)"
 
-UNITS = r"(?:[I]?U(?:nits?)?)"  # U units, IU international units, unit, units
+UNITS = r"(?:[I]?U(?:nits?)?)"  # U, IU (international units), unit, units...
 MICROUNITS = r"(?:(?:micro|μ|u)[I]?U(?:nits?)?)"
 MILLIUNITS = r"(?:m(?:illi)?[I]?U(?:nits?)?)"
+
+UK = r"(?: U(?:nited\s+|\.\s*)? K(?:ingdom|\.)? )"
+ALCOHOL = "alcohol | ethanol | EtOH"
+UK_ALCOHOL_UNITS = rf"(?: (?:{UK}\s+)? ({ALCOHOL}\s+)? U(?:nits?) ?)"
+# U, unit, units, UK units, UK alcohol units...
+# ... not "IU" as they are not international units
+UK_ALCOHOL_UNITS_PER_DAY = per(UK_ALCOHOL_UNITS, DAY)
+UK_ALCOHOL_UNITS_PER_WEEK = per(UK_ALCOHOL_UNITS, WEEK)
 
 SCORE = r"(?:scored?)"  # score(d)
 
