@@ -161,8 +161,8 @@ class AlcoholUnits(SimpleNumericalResultParser):
                 {_DRINKING} \s+ {_ALC} {_OPT_JUNK}
                 | {_ALC} {_OPT_JUNK} \s+ {_DRINKING} {_OPT_JUNK}
                 | {_DRINKING} {_OPT_JUNK}
-                | {_ALC} {_OPT_JUNK} {_OPT_SPACE_TEMPORAL} {_OPT_JUNK}
                 | {_TEMPORAL_RE} \s+ {_ALC} {_OPT_JUNK}
+                | {_ALC} {_OPT_JUNK} {_OPT_SPACE_TEMPORAL} {_OPT_JUNK}
             )
         {WORD_BOUNDARY}
     """
@@ -215,7 +215,8 @@ class AlcoholUnits(SimpleNumericalResultParser):
     ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
         """
         We override the parent version to deal with tense a bit better (e.g.
-        "used to drink"). Comments from parent version not repeated.
+        "used to drink"). Comments from parent version not repeated. Parent
+        version shortened a bit since we guarantee some aspects of the flags.
         """
         if not text:
             return
@@ -236,21 +237,20 @@ class AlcoholUnits(SimpleNumericalResultParser):
                 )
                 if not matched_unit:
                     continue
-                if callable(multiple_or_fn):
-                    value_in_target_units = multiple_or_fn(value_text)
-                else:
-                    value_in_target_units = (
-                        to_float(value_text) * multiple_or_fn
-                    )
-            elif self.assume_preferred_unit:  # unit is None or empty
-                value_in_target_units = to_float(value_text)
+                # MODIFIED: no need to check callable(multiple_or_fn); always
+                # no
+                value_in_target_units = to_float(value_text) * multiple_or_fn
+            # MODIFIED: no need to check self.assume_preferred_unit (we never
+            # assume that here)
 
-            if value_in_target_units is not None and self.take_absolute:
+            # MODIFIED: no need to check self.take_absolute (always yes)
+            if value_in_target_units is not None:
                 value_in_target_units = abs(value_in_target_units)
 
             tense, relation = common_tense(tense_text, relation_text)
 
-            # Extra bit here:
+            # MODIFIED: Extra bit here to detect tense information in a
+            # different place:
             if not tense:
                 # Does the "variable" text contain tense information?
                 _, tense = get_regex_dict_search(
