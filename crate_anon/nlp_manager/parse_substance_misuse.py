@@ -104,17 +104,17 @@ class AlcoholUnits(SimpleNumericalResultParser):
     # v3ReadCode_PBCL.xlsx.
 
     # All these are verbose regexes, so don't omit \s+ for whitespace!
-    _PAST_ADVERBS = ("previously", "formerly", "once")
+    _PAST_ADVERBS = ("previously", "formerly", "once", "peak")
     _PAST_ADVERBS_RE = noncapture_group(regex_or(*_PAST_ADVERBS))
     _DRINKING_PAST = (
         # Infinitive: she used to drink
         r"used \s+ to \s+ drink",
-        # Noun phrase: peak drinking
-        r"peak (?: \s+ drinking )?",
         # Imperfect tense: she [adverb] drank
         rf"(?: {_PAST_ADVERBS_RE} \s+ )? drank",
         # Past continuous tense: he was [adverb] drinking
         rf"was (?: \s+ {_PAST_ADVERBS_RE} )? \s+ drinking",
+        # Abbreviated past continuous tense: previously drinking
+        rf"{_PAST_ADVERBS_RE} \s+ drinking",
     )
     # We don't allow the adverbs by themselves, to avoid something that isn't
     # explicitly about alcohol or drinking, e.g. "[insulin] currently 6
@@ -129,9 +129,9 @@ class AlcoholUnits(SimpleNumericalResultParser):
     )
     _PRESENT_ADVERBS_RE = noncapture_group(regex_or(*_PRESENT_ADVERBS))
     _DRINKING_PRESENT = (
-        # Present tense (he [adverb] drinks):
+        # Present tense: he [adverb] drinks
         rf"(?: {_PRESENT_ADVERBS_RE} \s+)? drinks",
-        # Present continuous tense (he is [adverb] drinking):
+        # Present continuous tense: he is [adverb] drinking
         rf"(?: is \s+)? (?: {_PRESENT_ADVERBS_RE} \s+)? drinking",
     )
     _DRINKING = noncapture_group(
@@ -145,29 +145,33 @@ class AlcoholUnits(SimpleNumericalResultParser):
     _ALCOHOL_RE = noncapture_group(regex_or(*_ALCOHOL))
     _ALC = noncapture_group(rf"{_ALCOHOL_RE} (?: \s+ consumption)?")
     _PURE_TEMPORAL = _PAST_ADVERBS + _PRESENT_ADVERBS
-    _JUNK_ELEMENTS = (r"\s* :", r"\s+ at")
-    _OPTIONAL_JUNK = optional_noncapture_group(regex_or(*_JUNK_ELEMENTS))
-    _OPTIONAL_SPACE_TEMPORAL = optional_noncapture_group(
-        r"\s+" + noncapture_group(regex_or(*_PURE_TEMPORAL))
+    _JUNK_ELEMENTS = (r"\s* :", r"\s+ at \b")
+    _OPT_JUNK = optional_noncapture_group(regex_or(*_JUNK_ELEMENTS))
+    _OPT_SPACE_TEMPORAL = optional_noncapture_group(
+        r"\s*" + noncapture_group(regex_or(*_PURE_TEMPORAL))
+    )
+    _TEMPORAL_RE = noncapture_group(
+        noncapture_group(regex_or(*_PURE_TEMPORAL))
     )
 
+    # Move from more to less specific, or the less specific will capture first:
     ALCOHOL = rf"""
         {WORD_BOUNDARY}
             (?:
-                {_DRINKING} \s+ {_ALC} {_OPTIONAL_JUNK}
-                | {_ALC} {_OPTIONAL_JUNK} \s+ {_DRINKING} {_OPTIONAL_JUNK}
-                | {_DRINKING} {_OPTIONAL_JUNK}
-                | {_ALC} {_OPTIONAL_JUNK} {_OPTIONAL_SPACE_TEMPORAL}
+                {_DRINKING} \s+ {_ALC} {_OPT_JUNK}
+                | {_ALC} {_OPT_JUNK} \s+ {_DRINKING} {_OPT_JUNK}
+                | {_DRINKING} {_OPT_JUNK}
+                | {_ALC} {_OPT_JUNK} {_OPT_SPACE_TEMPORAL} {_OPT_JUNK}
+                | {_TEMPORAL_RE} \s+ {_ALC} {_OPT_JUNK}
             )
         {WORD_BOUNDARY}
     """
-    # Move from more to less specific, or the less specific will capture first.
     # Examples:
+    # "was drinking alcohol at" -- _DRINKING, _ALC, _OPTIONAL_JUNK
+    # "alcohol: was drinking" -- _ALC, _OPTIONAL_JUNK, _DRINKING
     # "drinking X" -- _DRINKING
     # "EtOH X" -- _ALC
-    # "peak alcohol" -- _DRINKING, _ALC
-    # "alcohol: was drinking" -- _ALC, _OPTIONAL_JUNK, _DRINKING
-    # "was drinking alcohol at" -- _DRINKING, _ALC, _OPTIONAL_JUNK
+    # "peak alcohol" -- _TEMPORAL_RE, _ALC
 
     REGEX = make_simple_numeric_regex(
         quantity=ALCOHOL,
@@ -290,20 +294,21 @@ class AlcoholUnits(SimpleNumericalResultParser):
                 ("[e.g. insulin] currently 6 units per week", no_results),
                 ("[e.g. insulin] previously 6 units per week", no_results),
                 ("[IU is wrong] alcohol 6 IU/week", no_results),
+                ("[could be insulin] peak 6 u/w", no_results),
                 # Value with no tense:
                 ("Alcohol 6 u/w", six_no_tense),
                 ("Alcohol - 6 u/w", six_no_tense),
                 ("EtOH = 6 u/w", six_no_tense),
+                ("EtOH = 6 u/wk", six_no_tense),
                 ("Alcohol (units/week): 6", six_no_tense),
                 ("Ethanol 6 units/week", six_no_tense),
                 # Past tense:
-                ("Alcohol: was 6 u/w", six_past),
-                # ... double-checked: fails with six_present, six_no_tense
+                ("Alcohol: was 6 u/w", six_past),  # other tenses fail (right)
                 ("Alcohol: formerly 6 u/w", six_past),
                 ("Alcohol: previously 6 u/w", six_past),
                 ("Alcohol: once 6 u/w", six_past),
+                ("Alcohol: peak 6 u/w", six_past),
                 ("Used to drink 6 u/w", six_past),
-                ("Peak 6 u/w", six_past),
                 ("Peak drinking 6 u/w", six_past),
                 ("Peak alcohol consumption: 6 u/w", six_past),
                 ("Drank 6 u/w", six_past),
@@ -318,6 +323,8 @@ class AlcoholUnits(SimpleNumericalResultParser):
                 ("Drinks 6 units per week", six_present),
                 ("Drinks 6 UK units per week", six_present),
                 ("Drinks 6 units/d", forty_two_present),
+                ("Drinks 6 units/dy", forty_two_present),
+                ("Drinks 6 units/day", forty_two_present),
                 ("Currently drinks 6 units per week", six_present),
                 ("These days drinks 6 units per week", six_present),
                 ("Now drinks 6 units per week", six_present),
