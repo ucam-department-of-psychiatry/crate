@@ -95,6 +95,8 @@ class AlcoholUnits(SimpleNumericalResultParser):
     converted a (potentially mixed) alcohol description to a units-per-week
     calculation.
 
+    Varieties of "none" (no alcohol) are not supported at present.
+
     [1] https://www.nhs.uk/live-well/alcohol-advice/calculating-alcohol-units/,
         accessed 2023-01-18.
     [2] https://en.wikipedia.org/wiki/Unit_of_alcohol
@@ -286,6 +288,12 @@ class AlcoholUnits(SimpleNumericalResultParser):
         six_past = [{self.target_unit: 6, FN_TENSE: PAST}]
         six_present = [{self.target_unit: 6, FN_TENSE: PRESENT}]
         forty_two_present = [{self.target_unit: 6 * 7, FN_TENSE: PRESENT}]
+        under_6_present = [
+            {self.target_unit: 6, FN_RELATION: "<", FN_TENSE: PRESENT}
+        ]
+        over_200_present = [
+            {self.target_unit: 200, FN_RELATION: ">", FN_TENSE: PRESENT}
+        ]
         self.detailed_test_multiple(
             [
                 # No results expected:
@@ -334,6 +342,12 @@ class AlcoholUnits(SimpleNumericalResultParser):
                 ("Presently drinking 6 units per week", six_present),
                 ("Alcohol: currently 6 u/w", six_present),
                 ("Alcohol: presently 6 u/w", six_present),
+                # Inequalities:
+                ("Alcohol: presently less than 6 u/w", under_6_present),
+                ("Alcohol: presently under 6 u/w", under_6_present),
+                ("Alcohol: presently >200 u/w", over_200_present),
+                ("Alcohol: currently more than 200 u/w", over_200_present),
+                ("Alcohol: currently over 200 u/w", over_200_present),
             ],
             verbose=verbose,
         )

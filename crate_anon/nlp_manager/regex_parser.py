@@ -145,11 +145,11 @@ TENSE_LOOKUP = compile_regex_dict(
 # -----------------------------------------------------------------------------
 # ... don't use unnamed groups here; EQ is also used as a return value
 
-LT = r"(?: < | less \s+ than )"
+LT = r"(?: < | less \s+ than | under )"
 LE = "<="
 EQ = r"(?: = | equals | equal \s+ to )"
 GE = ">="
-GT = r"(?: > | (?:more|greater) \s+ than )"
+GT = r"(?: > | (?:more|greater) \s+ than | over )"
 # OF = "\b of \b"  # as in: "a BMI of 30"... but too likely to be mistaken for a target?  # noqa
 
 RELATION = rf"(?: {LE} | {LT} | {EQ} | {GE} | {GT} )"
