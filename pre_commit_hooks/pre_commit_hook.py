@@ -162,7 +162,7 @@ def main() -> None:
     if get_flake8_version() < [3, 7, 8]:
         log.error(
             "flake8 version must be 3.7.8 or higher for type hint support"
-        )  # noqa
+        )
         sys.exit(EXIT_FAILURE)
 
     try:

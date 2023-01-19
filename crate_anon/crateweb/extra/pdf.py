@@ -90,7 +90,7 @@ def get_pdf_from_html_with_django_settings(
     # Customized for this Django site
     wkhtmltopdf_filename = (
         wkhtmltopdf_filename or settings.WKHTMLTOPDF_FILENAME
-    )  # noqa
+    )
     if wkhtmltopdf_options is None:
         wkhtmltopdf_options = settings.WKHTMLTOPDF_OPTIONS.copy()
     else:
@@ -134,7 +134,7 @@ def make_pdf_on_disk_from_html_with_django_settings(
     # Customized for this Django site
     wkhtmltopdf_filename = (
         wkhtmltopdf_filename or settings.WKHTMLTOPDF_FILENAME
-    )  # noqa
+    )
     if wkhtmltopdf_options is None:
         wkhtmltopdf_options = settings.WKHTMLTOPDF_OPTIONS.copy()
     else:

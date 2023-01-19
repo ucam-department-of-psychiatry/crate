@@ -143,7 +143,7 @@ def all_local_parser_classes() -> List[Type[BaseNlpParser]]:
             raise ValueError(
                 f"Trying to add NLP processor {lc_fname!r} but a processor "
                 f"with the same lower-case fully-qualified name already exists"
-            )  # noqa
+            )
         lower_case_full_names.add(lc_fname)
     return classes
 

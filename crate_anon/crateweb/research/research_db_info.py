@@ -886,17 +886,17 @@ ORDER BY
             if not schema_name:
                 raise ValueError(
                     "No schema_name specified; required for MSSQL"
-                )  # noqa
+                )
             sql, args = self._schema_query_microsoft(db_name, [schema_name])
         elif vendor == ConnectionVendors.POSTGRESQL:
             if db_name:
                 raise ValueError(
                     "db_name specified; must be '' for PostgreSQL"
-                )  # noqa
+                )
             if not schema_name:
                 raise ValueError(
                     "No schema_name specified; required for PostgreSQL"
-                )  # noqa
+                )
             sql, args = self._schema_query_postgres([schema_name])
         elif vendor == ConnectionVendors.MYSQL:
             if db_name:
@@ -904,10 +904,10 @@ ORDER BY
             if not schema_name:
                 raise ValueError(
                     "No schema_name specified; required for MySQL"
-                )  # noqa
+                )
             sql, args = self._schema_query_mysql(
                 db_and_schema_name=schema_name
-            )  # noqa
+            )
         else:
             raise ValueError(
                 f"Don't know how to get metadata for "

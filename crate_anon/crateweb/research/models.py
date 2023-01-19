@@ -2621,7 +2621,7 @@ class ArchiveAttachmentAudit(models.Model):
     patient_id = models.CharField(max_length=ARCHIVE_PATIENT_ID_MAX_LENGTH)
     filename = models.CharField(
         max_length=ARCHIVE_ATTACHMENT_FILENAME_MAX_LENGTH
-    )  # noqa
+    )
 
     def __str__(self) -> str:
         return f"<ArchiveAttachmentAudit id={self.id}>"

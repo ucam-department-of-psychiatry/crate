@@ -82,7 +82,7 @@ if (
 ):
     from crate_anon.crateweb.research.research_db_info import (
         research_database_info,
-    )  # noqa
+    )
 
     research_database_info.get_colinfolist()
 

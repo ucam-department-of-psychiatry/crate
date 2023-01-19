@@ -108,7 +108,7 @@ def make_wsgi_app(global_config: Dict[Any, Any], **settings) -> Router:
     # Compression
     config.add_tween(
         "cardinal_pythonlib.pyramid.compression.CompressionTweenFactory"
-    )  # noqa
+    )
 
     # Routes
     config.add_route("index", "/")  # route URL path / to a view named "index"
