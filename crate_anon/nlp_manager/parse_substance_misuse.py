@@ -75,6 +75,7 @@ from crate_anon.nlp_manager.regex_parser import (
     ValidatorBase,
 )
 from crate_anon.nlp_manager.regex_units import (
+    ALCOHOL,
     UK_ALCOHOL_UNITS_PER_DAY,
     UK_ALCOHOL_UNITS_PER_WEEK,
 )
@@ -175,10 +176,9 @@ class AlcoholUnits(NumericalResultParser):
         "ethanol",
         "EtOH",
     )
-    ALCOHOL_INNER_1 = noncapture_group(regex_or(*ALCOHOL_WORDS))
-    ALCOHOL_INNER_2 = rf"\b {ALCOHOL_INNER_1} \b (?: \s+ consumption \b)?"
-    ALC = noncapture_group(ALCOHOL_INNER_2)
-    OPT_ALC = optional_noncapture_group(ALCOHOL_INNER_2)
+    ALCOHOL_PM_CONSUMPTION = rf"{ALCOHOL} (?: \s+ consumption \b)?"
+    ALC = noncapture_group(ALCOHOL_PM_CONSUMPTION)
+    OPT_ALC = optional_noncapture_group(ALCOHOL_PM_CONSUMPTION)
 
     # BRK: requires some sort of wordbreak or whitespace, but also disposes of
     # junk like some punctuation (e.g. "previously: none" versus "previously
@@ -196,7 +196,7 @@ class AlcoholUnits(NumericalResultParser):
     # We capture with:
     # 1. ... DRINKING ... [ALC] ...
     # 2. ... ALC ... [DRINKING] ...
-    ALCOHOL = rf"""
+    ALCOHOL_DRINKING = rf"""
         {WORD_BOUNDARY}
             (?:
                 {OPT_TEMPORAL} {BRK}
@@ -231,7 +231,7 @@ class AlcoholUnits(NumericalResultParser):
     )
     REGEX_ALCOHOL_UNITS = (
         make_simple_numeric_regex(
-            quantity=ALCOHOL,
+            quantity=ALCOHOL_DRINKING,
             units=regex_or(
                 UK_ALCOHOL_UNITS_PER_DAY, UK_ALCOHOL_UNITS_PER_WEEK
             ),
@@ -526,7 +526,9 @@ class AlcoholUnits(NumericalResultParser):
                 # Present tense:
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 ("Drinks 6 units per week", six_present),
+                ("Drinks 6 alcohol units per week", six_present),
                 ("Drinks 6 UK units per week", six_present),
+                ("Drinks 6 UK alcohol units per week", six_present),
                 ("Drinks 6 units/d", forty_two_present),
                 ("Drinks 6 units/dy", forty_two_present),
                 ("Drinks 6 units/day", forty_two_present),
@@ -589,7 +591,7 @@ class AlcoholUnitsValidator(ValidatorBase):
 
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
-        return AlcoholUnits.NAME, [AlcoholUnits.ALCOHOL]
+        return AlcoholUnits.NAME, [AlcoholUnits.ALCOHOL_DRINKING]
 
 
 # =============================================================================

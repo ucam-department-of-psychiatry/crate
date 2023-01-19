@@ -253,8 +253,8 @@ MICROUNITS = r"(?:(?:micro|μ|u)[I]?U(?:nits?)?)"
 MILLIUNITS = r"(?:m(?:illi)?[I]?U(?:nits?)?)"
 
 UK = r"(?: U(?:nited\s+|\.\s*)? K(?:ingdom|\.)? )"
-ALCOHOL = "alcohol | ethanol | EtOH"
-UK_ALCOHOL_UNITS = rf"(?: (?:{UK}\s+)? ({ALCOHOL}\s+)? U(?:nits?) ?)"
+ALCOHOL = r"\b (?: alcohol | ethanol | EtOH ) \b"
+UK_ALCOHOL_UNITS = rf"(?: (?: {UK} \s+)? ({ALCOHOL} \s+)? U(?:nits?) ?)"
 # U, unit, units, UK units, UK alcohol units...
 # ... not "IU" as they are not international units
 UK_ALCOHOL_UNITS_PER_DAY = per(UK_ALCOHOL_UNITS, DAY)
