@@ -51,23 +51,23 @@ from crate_anon.nlp_manager.regex_func import (
 from crate_anon.nlp_manager.regex_parser import (
     common_tense,
     EVER,
+    FN_CONTENT,
+    FN_END,
+    FN_RELATION,
+    FN_RELATION_TEXT,
+    FN_START,
+    FN_TENSE,
+    FN_TENSE_TEXT,
+    FN_UNITS,
+    FN_VALUE_TEXT,
+    FN_VARIABLE_NAME,
+    FN_VARIABLE_TEXT,
     GROUP_NAME_QUANTITY,
     GROUP_NAME_RELATION,
     GROUP_NAME_TENSE,
     GROUP_NAME_UNITS,
     GROUP_NAME_VALUE,
     GROUP_NUMBER_WHOLE_EXPRESSION,
-    FN_VARIABLE_NAME,
-    FN_CONTENT,
-    FN_START,
-    FN_END,
-    FN_VARIABLE_TEXT,
-    FN_RELATION_TEXT,
-    FN_RELATION,
-    FN_VALUE_TEXT,
-    FN_UNITS,
-    FN_TENSE_TEXT,
-    FN_TENSE,
     make_simple_numeric_regex,
     NumericalResultParser,
     PAST,
@@ -171,11 +171,6 @@ class AlcoholUnits(NumericalResultParser):
     DRINKING_PAST_PRESENT = DRINKING_PAST + DRINKING_PRESENT
     DRINKING = noncapture_group(regex_or(*DRINKING_PAST_PRESENT))
     OPT_DRINKING = optional_noncapture_group(regex_or(*DRINKING_PAST_PRESENT))
-    ALCOHOL_WORDS = (
-        "alcohol",
-        "ethanol",
-        "EtOH",
-    )
     ALCOHOL_PM_CONSUMPTION = rf"{ALCOHOL} (?: \s+ consumption \b)?"
     ALC = noncapture_group(ALCOHOL_PM_CONSUMPTION)
     OPT_ALC = optional_noncapture_group(ALCOHOL_PM_CONSUMPTION)
@@ -188,23 +183,24 @@ class AlcoholUnits(NumericalResultParser):
             r"\s* : \s*",  # colon +/- whitespace
             r"\s* \b at \b \s*",  # "at" +/- whitespace
             r"\s+",  # whitespace
-            r"\b",  # other word break
+            WORD_BOUNDARY,  # other word break
         )
     )
 
-    # Move from more to less specific, or the less specific will capture first:
-    # We capture with:
-    # 1. ... DRINKING ... [ALC] ...
-    # 2. ... ALC ... [DRINKING] ...
+    # Move from more to less specific, or the less specific will capture first.
     ALCOHOL_DRINKING = rf"""
         {WORD_BOUNDARY}
+            # Alcohol drinking:
             (?:
-                {OPT_TEMPORAL} {BRK}
+                    # 1. ... DRINKING ... [ALC] ...
+                    {OPT_TEMPORAL} {BRK}
                     {DRINKING} {BRK}
                     {OPT_TEMPORAL} {BRK}
                     {OPT_ALC} {BRK}
                     {OPT_TEMPORAL}
-                | {OPT_TEMPORAL} {BRK}
+                |
+                    # 2. ... ALC ... [DRINKING] ...
+                    {OPT_TEMPORAL} {BRK}
                     {ALC} {BRK}
                     {OPT_TEMPORAL} {BRK}
                     {OPT_DRINKING} {BRK}
@@ -225,6 +221,7 @@ class AlcoholUnits(NumericalResultParser):
     # Regex building for "drinking alcohol at X units per week"
     # -------------------------------------------------------------------------
 
+    # A temporal suffix allows e.g. "drinking X units/week previously".
     GROUP_NAME_SUFFIX = "suffix"
     group_suffix = r"\b \s*" + optional_named_capture_group(
         TEMPORAL, GROUP_NAME_SUFFIX
@@ -245,7 +242,7 @@ class AlcoholUnits(NumericalResultParser):
     # -------------------------------------------------------------------------
 
     NONE = noncapture_group(
-        r"\b"
+        WORD_BOUNDARY
         + noncapture_group(
             regex_or(
                 "0",
@@ -256,41 +253,40 @@ class AlcoholUnits(NumericalResultParser):
                 "zero",
             )
         )
-        + r"\b"
+        + WORD_BOUNDARY
     )
-    # The word teetotal implies "no alcohol" just by itself.
-    # Allow the typos "tee-total", "teatotal", etc., as well as "teetotaller".
     TEETOTAL = noncapture_group(
         r"\b te[ea][-]?total(?:l?er)? \b",
     )
-
-    DRINKING_HAS_NEVER = rf"\b has \s+ {NEVER} \s+ drunk \b"
-
-    # The idea here is that we interpret "no alcohol" from:
-    # - 1. [DRINKING] ... ALC ... [DRINKING] ... NONE ...
-    # - 2. NONE ... ALC (e.g. "never alcohol")
-    # - 3. "has never drunk... alcohol"
-    # - 4. "teetotal"
-    # - ... but not just "drinking... none" (could be water etc.)
-    # Temporal modifiers might be found in all sorts of places.
+    HAS_NEVER_DRUNK = rf"\b has \s+ {NEVER} \s+ drunk \b"
     OPT_TEMPORAL_AND_OR_DRINKING_BRK = (
         f"{OPT_TEMPORAL} {BRK} {OPT_DRINKING} {BRK} {OPT_TEMPORAL} {BRK}"
     )
     NO_ALCOHOL = rf"""
         {WORD_BOUNDARY}
+            # "No alcohol" statements.
+            # Temporal modifiers might be found in all sorts of places.
             (?:
-                {OPT_TEMPORAL_AND_OR_DRINKING_BRK}
+                    # 1. [DRINKING] ... ALC ... [DRINKING] ... NONE ...
+                    {OPT_TEMPORAL_AND_OR_DRINKING_BRK}
                     {ALC} {BRK}
                     {OPT_TEMPORAL_AND_OR_DRINKING_BRK}
                     {NONE} {BRK}
                     {OPT_TEMPORAL_AND_OR_DRINKING_BRK}
-                | {OPT_TEMPORAL_AND_OR_DRINKING_BRK}
+                |
+                    # 2. NONE ... ALC (e.g. "never alcohol")
+                    {OPT_TEMPORAL_AND_OR_DRINKING_BRK}
                     {NONE} {BRK}
                     {OPT_TEMPORAL_AND_OR_DRINKING_BRK}
                     {ALC} {BRK}
                     {OPT_TEMPORAL_AND_OR_DRINKING_BRK}
-                | {DRINKING_HAS_NEVER} {BRK} {ALC} {BRK}
-                | {TEETOTAL}
+                |
+                    # 3. "has never drunk... alcohol"
+                    {HAS_NEVER_DRUNK} {BRK} {ALC} {BRK}
+                |
+                    # 4. "teetotal" with typos
+                    {TEETOTAL}
+                # ... but not just "drinking... none" (could be water etc.)
             )
         {WORD_BOUNDARY}
     """
@@ -325,7 +321,7 @@ class AlcoholUnits(NumericalResultParser):
             regex_str_for_debugging=self.REGEX_ALCOHOL_UNITS,
             commit=commit,
         )
-        self.compiled_regex = compile_regex(self.REGEX_ALCOHOL_UNITS)
+        self.compiled_regex_alcohol = compile_regex(self.REGEX_ALCOHOL_UNITS)
         self.units_to_factor = compile_regex_dict(self.UNIT_MAPPING)
         self.compiled_regex_no_alcohol = compile_regex(self.NO_ALCOHOL)
 
@@ -353,7 +349,7 @@ class AlcoholUnits(NumericalResultParser):
         That version also shortened a bit since we guarantee some aspects of
         the flags.
         """
-        for m in self.compiled_regex.finditer(text):
+        for m in self.compiled_regex_alcohol.finditer(text):
             startpos = m.start()
             endpos = m.end()
             matching_text = m.group(GROUP_NUMBER_WHOLE_EXPRESSION)
@@ -449,7 +445,7 @@ class AlcoholUnits(NumericalResultParser):
         Find a tense indicator and return the corresponding text, or None.
         """
         # We deal with "never" first because otherwise "never drank" may hit
-        # "[optional_stuff] drank" and be classified as past.
+        # "[optional_stuff] drank" and be classified as the past tense.
         _, tense = get_regex_dict_search(text, self.TENSE_NEVER_LOOKUP)
         if not tense:
             _, tense = get_regex_dict_search(
