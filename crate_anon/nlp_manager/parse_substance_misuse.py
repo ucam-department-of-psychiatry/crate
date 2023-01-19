@@ -465,7 +465,7 @@ class AlcoholUnits(NumericalResultParser):
         # docstring in parent class
         # Test via e.g.:
         #   pytest -k TestSubstanceMisuse  # self-tests
-        #   crate_run_crate_nlp_demo --processors AlcoholUnits  # interactive
+        #   crate_run_crate_nlp_demo - --processors AlcoholUnits  # interactive
         no_results = []
         six_no_tense = [{self.target_unit: 6, FN_TENSE: None}]
         six_past = [{self.target_unit: 6, FN_TENSE: PAST}]
