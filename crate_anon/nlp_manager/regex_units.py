@@ -248,15 +248,17 @@ PERCENT = r"""(?:%|pe?r?\s?ce?n?t)"""
 
 CELLS = r"(?:\b cells? \b)"
 
-UNITS = r"(?:[I]?U(?:nits?)?)"  # U, IU (international units), unit, units...
-MICROUNITS = r"(?:(?:micro|μ|u)[I]?U(?:nits?)?)"
-MILLIUNITS = r"(?:m(?:illi)?[I]?U(?:nits?)?)"
+UNITS = r"(?: (?:I\.?)? U(?:nits?|\.)? )"  # U, IU, I.U., unit, units...
+# (IU for international units)
+MICROUNITS = rf"(?: (?:micro|μ|u) {UNITS} )"
+MILLIUNITS = rf"(?: m(?:illi)? {UNITS} )"
 
 UK = r"(?: U(?:nited\s+|\.\s*)? K(?:ingdom|\.)? )"
-ALCOHOL = r"(?: \b (?: alcohol | ethanol | EtOH ) \b )"
-UK_ALCOHOL_UNITS = rf"(?: (?: {UK} \s+)? ({ALCOHOL} \s+)? U(?:nits?)? )"
+ALCOHOL = r"(?: \b(?:alcohol|ethanol|EtOH)\b )"
+UK_ALCOHOL_UNITS = rf"(?: (?: {UK} \s+)? ({ALCOHOL} \s+)? {UNITS} )"
 # U, unit, units, UK units, UK alcohol units...
-# ... not "IU" as they are not international units
+# I thought not "IU" as they are not international units; however, RS used that
+# term, so whether correct or in error, that's sufficient for me to include it!
 UK_ALCOHOL_UNITS_PER_DAY = per(UK_ALCOHOL_UNITS, DAY)
 UK_ALCOHOL_UNITS_PER_WEEK = per(UK_ALCOHOL_UNITS, WEEK)
 
@@ -271,7 +273,7 @@ MICROMOLES = r"(?: (?:micro|μ|u)mole?s? )"
 MILLIMOLES = r"(?: m(?:illi)?mole?s? )"
 
 MICROEQ = r"(?: (?:micro|μ|u)Eq )"
-MILLIEQ = r"(?:m(?:illi)?Eq)"
+MILLIEQ = r"(?: m(?:illi)?Eq )"
 
 # -----------------------------------------------------------------------------
 # Concentration (molarity)

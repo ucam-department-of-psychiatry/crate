@@ -486,9 +486,9 @@ class AlcoholUnits(NumericalResultParser):
                 ("He used to drink like a fish", no_results),
                 ("[e.g. insulin] currently 6 units per week", no_results),
                 ("[e.g. insulin] previously 6 units per week", no_results),
-                ("[IU is wrong] alcohol 6 IU/week", no_results),
                 ("[could be insulin] peak 6 u/w", no_results),
                 ("[!] methylalcohol 6 u/w", no_results),
+                ("[not starts with no] Alcohol: not explored", no_results),
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Value with no tense:
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -498,6 +498,8 @@ class AlcoholUnits(NumericalResultParser):
                 ("EtOH = 6 u/wk", six_no_tense),
                 ("Alcohol (units/week): 6", six_no_tense),
                 ("Ethanol 6 units/week", six_no_tense),
+                ("[not international but] alcohol 6 IU/week", six_no_tense),
+                ("alcohol 6 I.U./week", six_no_tense),
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Past tense:
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -525,6 +527,7 @@ class AlcoholUnits(NumericalResultParser):
                 ("Drinks 6 alcohol units per week", six_present),
                 ("Drinks 6 UK units per week", six_present),
                 ("Drinks 6 UK alcohol units per week", six_present),
+                ("[silly] Drinks 6 UK alcohol IU per week", six_present),
                 ("Drinks 6 units/d", forty_two_present),
                 ("Drinks 6 units/dy", forty_two_present),
                 ("Drinks 6 units/day", forty_two_present),
@@ -557,20 +560,28 @@ class AlcoholUnits(NumericalResultParser):
                 ("Teetotaler", no_alcohol_no_tense),  # typo
                 ("Abstinent from alcohol", no_alcohol_no_tense),
                 ("Alcohol: abstinent", no_alcohol_no_tense),
+                ("Alcohol: zero", no_alcohol_no_tense),
+                ("Alcohol: 0", no_alcohol_no_tense),
+                ("Alcohol: no", no_alcohol_no_tense),
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # References to not drinking -- past tense:
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                ("Alcohol: was abstinent", no_alcohol_past),
+                ("Alcohol: previously abstinent", no_alcohol_past),
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # References to not drinking -- present tense:
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 ("Alcohol: has been abstinent", no_alcohol_present),
                 ("Alcohol: currently abstinent", no_alcohol_present),
                 ("Alcohol: currently none", no_alcohol_present),
+                ("Drinks no alcohol", no_alcohol_present),
+                ("Drinks zero alcohol", no_alcohol_present),
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # References to not drinking -- ever:
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 ("Has never drunk alcohol", no_alcohol_ever),
                 ("Never drank alcohol", no_alcohol_ever),
                 ("Alcohol: never", no_alcohol_ever),
-                ("Alcohol: was abstinent", no_alcohol_past),
-                ("Alcohol: previously abstinent", no_alcohol_past),
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Vague references to not drinking, not interpreted:
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
