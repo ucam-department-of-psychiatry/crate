@@ -33,7 +33,9 @@ import logging
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from crate_anon.common.regex_helpers import (
+    at_wb_start_end,
     noncapture_group,
+    optional_named_capture_group,
     optional_noncapture_group,
     regex_or,
     WORD_BOUNDARY,
@@ -41,12 +43,14 @@ from crate_anon.common.regex_helpers import (
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.number import to_float
 from crate_anon.nlp_manager.regex_func import (
+    compile_regex,
     compile_regex_dict,
     get_regex_dict_match,
     get_regex_dict_search,
 )
 from crate_anon.nlp_manager.regex_parser import (
     common_tense,
+    EVER,
     GROUP_NAME_QUANTITY,
     GROUP_NAME_RELATION,
     GROUP_NAME_TENSE,
@@ -65,9 +69,9 @@ from crate_anon.nlp_manager.regex_parser import (
     FN_TENSE_TEXT,
     FN_TENSE,
     make_simple_numeric_regex,
+    NumericalResultParser,
     PAST,
     PRESENT,
-    SimpleNumericalResultParser,
     ValidatorBase,
 )
 from crate_anon.nlp_manager.regex_units import (
@@ -83,19 +87,19 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 
-class AlcoholUnits(SimpleNumericalResultParser):
+class AlcoholUnits(NumericalResultParser):
     """
     SUBSTANCE MISUSE.
 
     Alcohol consumption, specified explicitly as (UK) units per day or per
-    week. A UK unit is 10 ml of ethanol [1, 2]. UK NHS guidelines used to be
-    "per week" and remain broadly week-based [1]. It doesn't attempt any
-    understanding of other alcohol descriptions (e.g. "pints of beer", "glasses
-    of wine", "bottles of vodka") so is expected to apply where a clinician has
-    converted a (potentially mixed) alcohol description to a units-per-week
-    calculation.
+    week, or via non-numeric references to not drinking any.
 
-    Varieties of "none" (no alcohol) are not supported at present.
+    - Output is in UK units per week. A UK unit is 10 ml of ethanol [1, 2]. UK
+      NHS guidelines used to be "per week" and remain broadly week-based [1].
+    - It doesn't attempt any understanding of other alcohol descriptions (e.g.
+      "pints of beer", "glasses of wine", "bottles of vodka") so is expected to
+      apply where a clinician has converted a (potentially mixed) alcohol
+      description to a units-per-week calculation.
 
     [1] https://www.nhs.uk/live-well/alcohol-advice/calculating-alcohol-units/,
         accessed 2023-01-18.
@@ -105,81 +109,196 @@ class AlcoholUnits(SimpleNumericalResultParser):
     # There are no relevant Read codes for alcohol consumption in
     # v3ReadCode_PBCL.xlsx.
 
+    # -------------------------------------------------------------------------
+    # Regex building for tense-related statements
+    # -------------------------------------------------------------------------
+
     # All these are verbose regexes, so don't omit \s+ for whitespace!
-    _PAST_ADVERBS = ("previously", "formerly", "once", "peak")
-    _PAST_ADVERBS_RE = noncapture_group(regex_or(*_PAST_ADVERBS))
-    _DRINKING_PAST = (
-        # Infinitive: she used to drink
-        r"used \s+ to \s+ drink",
+    PAST_ADVERBS = (
+        "formerly",
+        "once",
+        "peak",
+        "previously",
+        "was",
+    )
+    PAST_ADVERBS_RE = noncapture_group(regex_or(*PAST_ADVERBS))
+    PRESENT_ADVERBS = (
+        r"at \s+ present",
+        r"currently",
+        r"has \s+ been",
+        r"now",
+        r"nowadays",
+        r"presently",
+        r"these \s+ days",
+    )
+    PRESENT_ADVERBS_RE = noncapture_group(regex_or(*PRESENT_ADVERBS))
+    TEMPORAL_WORDS = tuple(
+        at_wb_start_end(x) for x in PAST_ADVERBS + PRESENT_ADVERBS
+    )
+    TEMPORAL = noncapture_group(regex_or(*TEMPORAL_WORDS))
+    OPT_TEMPORAL = optional_noncapture_group(regex_or(*TEMPORAL_WORDS))
+
+    NEVER = "never"
+    # "Never" is both temporal and negating and thus fiddly. We do *not*
+    # include it in standard temporal words, or a statement about "has never
+    # drunk >100 u/w" would be misinterpreted as positive.
+
+    # -------------------------------------------------------------------------
+    # Regex building for drinking alcohol (and when)
+    # -------------------------------------------------------------------------
+
+    DRINKING_PAST = (
+        # Past infinitive: she used to drink
+        r"\b used \s+ to \s+ drink \b",
         # Imperfect tense: she [adverb] drank
-        rf"(?: {_PAST_ADVERBS_RE} \s+ )? drank",
+        rf"\b (?: {PAST_ADVERBS_RE} \s+ )? drank \b",
+        # Perfect tense: has drunk
+        rf"\b has (?: {PAST_ADVERBS_RE} \s+ )? drunk \b",
         # Past continuous tense: he was [adverb] drinking
-        rf"was (?: \s+ {_PAST_ADVERBS_RE} )? \s+ drinking",
-        # Abbreviated past continuous tense: previously drinking
-        rf"{_PAST_ADVERBS_RE} \s+ drinking",
+        # Also abbreviated past continuous tense: previously drinking
+        rf"\b {PAST_ADVERBS_RE} \s+ drinking \b",
     )
     # We don't allow the adverbs by themselves, to avoid something that isn't
     # explicitly about alcohol or drinking, e.g. "[insulin] currently 6
     # units/day".
-    _PRESENT_ADVERBS = (
-        "currently",
-        "presently",
-        r"at \s+ present",
-        "now",
-        "nowadays",
-        r"these \s+ days",
-    )
-    _PRESENT_ADVERBS_RE = noncapture_group(regex_or(*_PRESENT_ADVERBS))
-    _DRINKING_PRESENT = (
+    DRINKING_PRESENT = (
         # Present tense: he [adverb] drinks
-        rf"(?: {_PRESENT_ADVERBS_RE} \s+)? drinks",
+        rf"\b (?: {PRESENT_ADVERBS_RE} \s+)? drinks \b",
         # Present continuous tense: he is [adverb] drinking
-        rf"(?: is \s+)? (?: {_PRESENT_ADVERBS_RE} \s+)? drinking",
+        rf"\b (?: is \s+)? (?: {PRESENT_ADVERBS_RE} \s+)? drinking \b",
     )
-    _DRINKING = noncapture_group(
-        regex_or(*(_DRINKING_PAST + _DRINKING_PRESENT))
-    )
-    _ALCOHOL = (
+    DRINKING_PAST_PRESENT = DRINKING_PAST + DRINKING_PRESENT
+    DRINKING = noncapture_group(regex_or(*DRINKING_PAST_PRESENT))
+    OPT_DRINKING = optional_noncapture_group(regex_or(*DRINKING_PAST_PRESENT))
+    ALCOHOL_WORDS = (
         "alcohol",
         "ethanol",
         "EtOH",
     )
-    _ALCOHOL_RE = noncapture_group(regex_or(*_ALCOHOL))
-    _ALC = noncapture_group(rf"{_ALCOHOL_RE} (?: \s+ consumption)?")
-    _PURE_TEMPORAL = _PAST_ADVERBS + _PRESENT_ADVERBS
-    _JUNK_ELEMENTS = (r"\s* :", r"\s+ at \b")
-    _OPT_JUNK = optional_noncapture_group(regex_or(*_JUNK_ELEMENTS))
-    _OPT_SPACE_TEMPORAL = optional_noncapture_group(
-        r"\s*" + noncapture_group(regex_or(*_PURE_TEMPORAL))
-    )
-    _TEMPORAL_RE = noncapture_group(
-        noncapture_group(regex_or(*_PURE_TEMPORAL))
+    ALCOHOL_INNER_1 = noncapture_group(regex_or(*ALCOHOL_WORDS))
+    ALCOHOL_INNER_2 = rf"\b {ALCOHOL_INNER_1} \b (?: \s+ consumption \b)?"
+    ALC = noncapture_group(ALCOHOL_INNER_2)
+    OPT_ALC = optional_noncapture_group(ALCOHOL_INNER_2)
+
+    # BRK: requires some sort of wordbreak or whitespace, but also disposes of
+    # junk like some punctuation (e.g. "previously: none" versus "previously
+    # none") and words like "at" (e.g. in "drinking at X units/week").
+    BRK = noncapture_group(
+        regex_or(
+            r"\s* : \s*",  # colon +/- whitespace
+            r"\s* \b at \b \s*",  # "at" +/- whitespace
+            r"\s+",  # whitespace
+            r"\b",  # other word break
+        )
     )
 
     # Move from more to less specific, or the less specific will capture first:
+    # We capture with:
+    # 1. ... DRINKING ... [ALC] ...
+    # 2. ... ALC ... [DRINKING] ...
     ALCOHOL = rf"""
         {WORD_BOUNDARY}
             (?:
-                {_DRINKING} \s+ {_ALC} {_OPT_JUNK}
-                | {_ALC} {_OPT_JUNK} \s+ {_DRINKING} {_OPT_JUNK}
-                | {_DRINKING} {_OPT_JUNK}
-                | {_TEMPORAL_RE} \s+ {_ALC} {_OPT_JUNK}
-                | {_ALC} {_OPT_JUNK} {_OPT_SPACE_TEMPORAL} {_OPT_JUNK}
+                {OPT_TEMPORAL} {BRK}
+                    {DRINKING} {BRK}
+                    {OPT_TEMPORAL} {BRK}
+                    {OPT_ALC} {BRK}
+                    {OPT_TEMPORAL}
+                | {OPT_TEMPORAL} {BRK}
+                    {ALC} {BRK}
+                    {OPT_TEMPORAL} {BRK}
+                    {OPT_DRINKING} {BRK}
+                    {OPT_TEMPORAL}
             )
         {WORD_BOUNDARY}
     """
-    # Examples:
-    # "was drinking alcohol at" -- _DRINKING, _ALC, _OPTIONAL_JUNK
-    # "alcohol: was drinking" -- _ALC, _OPTIONAL_JUNK, _DRINKING
-    # "drinking X" -- _DRINKING
-    # "EtOH X" -- _ALC
-    # "peak alcohol" -- _TEMPORAL_RE, _ALC
 
-    REGEX = make_simple_numeric_regex(
-        quantity=ALCOHOL,
-        units=regex_or(UK_ALCOHOL_UNITS_PER_DAY, UK_ALCOHOL_UNITS_PER_WEEK),
-        units_optional=False,
+    _drinking_tense_dict = {}  # type: Dict[str, str]
+    for _past in DRINKING_PAST + PAST_ADVERBS:
+        _drinking_tense_dict[_past] = PAST
+    for _present in DRINKING_PRESENT + PRESENT_ADVERBS:
+        _drinking_tense_dict[_present] = PRESENT
+    TENSE_PAST_PRESENT_LOOKUP = compile_regex_dict(_drinking_tense_dict)
+    TENSE_NEVER_LOOKUP = compile_regex_dict({NEVER: EVER})
+
+    # -------------------------------------------------------------------------
+    # Regex building for "drinking alcohol at X units per week"
+    # -------------------------------------------------------------------------
+
+    GROUP_NAME_SUFFIX = "suffix"
+    group_suffix = r"\b \s*" + optional_named_capture_group(
+        TEMPORAL, GROUP_NAME_SUFFIX
     )
+    REGEX_ALCOHOL_UNITS = (
+        make_simple_numeric_regex(
+            quantity=ALCOHOL,
+            units=regex_or(
+                UK_ALCOHOL_UNITS_PER_DAY, UK_ALCOHOL_UNITS_PER_WEEK
+            ),
+            units_optional=False,
+        )
+        + group_suffix
+    )
+
+    # -------------------------------------------------------------------------
+    # Regex building for "no alcohol" statements
+    # -------------------------------------------------------------------------
+
+    NONE = noncapture_group(
+        r"\b"
+        + noncapture_group(
+            regex_or(
+                "0",
+                r"abstinent (?: \s+ from )?",
+                NEVER,
+                "no",
+                "none",
+                "zero",
+            )
+        )
+        + r"\b"
+    )
+    # The word teetotal implies "no alcohol" just by itself.
+    # Allow the typos "tee-total", "teatotal", etc., as well as "teetotaller".
+    TEETOTAL = noncapture_group(
+        r"\b te[ea][-]?total(?:l?er)? \b",
+    )
+
+    DRINKING_HAS_NEVER = rf"\b has \s+ {NEVER} \s+ drunk \b"
+
+    # The idea here is that we interpret "no alcohol" from:
+    # - 1. [DRINKING] ... ALC ... [DRINKING] ... NONE ...
+    # - 2. NONE ... ALC (e.g. "never alcohol")
+    # - 3. "has never drunk... alcohol"
+    # - 4. "teetotal"
+    # - ... but not just "drinking... none" (could be water etc.)
+    # Temporal modifiers might be found in all sorts of places.
+    OPT_TEMPORAL_AND_OR_DRINKING_BRK = (
+        f"{OPT_TEMPORAL} {BRK} {OPT_DRINKING} {BRK} {OPT_TEMPORAL} {BRK}"
+    )
+    NO_ALCOHOL = rf"""
+        {WORD_BOUNDARY}
+            (?:
+                {OPT_TEMPORAL_AND_OR_DRINKING_BRK}
+                    {ALC} {BRK}
+                    {OPT_TEMPORAL_AND_OR_DRINKING_BRK}
+                    {NONE} {BRK}
+                    {OPT_TEMPORAL_AND_OR_DRINKING_BRK}
+                | {OPT_TEMPORAL_AND_OR_DRINKING_BRK}
+                    {NONE} {BRK}
+                    {OPT_TEMPORAL_AND_OR_DRINKING_BRK}
+                    {ALC} {BRK}
+                    {OPT_TEMPORAL_AND_OR_DRINKING_BRK}
+                | {DRINKING_HAS_NEVER} {BRK} {ALC} {BRK}
+                | {TEETOTAL}
+            )
+        {WORD_BOUNDARY}
+    """
+
+    # -------------------------------------------------------------------------
+    # Other class variables
+    # -------------------------------------------------------------------------
+
     NAME = "AlcoholUnits"
     PREFERRED_UNIT_COLUMN = "value_uk_units_per_week"
     UNIT_MAPPING = {
@@ -187,12 +306,9 @@ class AlcoholUnits(SimpleNumericalResultParser):
         UK_ALCOHOL_UNITS_PER_DAY: 7,  # 1 unit/day -> 7 units/week
     }
 
-    _drinking_tense_dict = {}  # type: Dict[str, str]
-    for _past in _DRINKING_PAST + _PAST_ADVERBS:
-        _drinking_tense_dict[_past] = PAST
-    for _present in _DRINKING_PRESENT + _PRESENT_ADVERBS:
-        _drinking_tense_dict[_present] = PRESENT
-    DRINKING_TENSE_LOOKUP = compile_regex_dict(_drinking_tense_dict)
+    # -------------------------------------------------------------------------
+    # Init
+    # -------------------------------------------------------------------------
 
     def __init__(
         self,
@@ -204,24 +320,39 @@ class AlcoholUnits(SimpleNumericalResultParser):
         super().__init__(
             nlpdef=nlpdef,
             cfg_processor_name=cfg_processor_name,
-            regex_str=self.REGEX,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
-            units_to_factor=self.UNIT_MAPPING,
+            regex_str_for_debugging=self.REGEX_ALCOHOL_UNITS,
             commit=commit,
-            take_absolute=True,
         )
+        self.compiled_regex = compile_regex(self.REGEX_ALCOHOL_UNITS)
+        self.units_to_factor = compile_regex_dict(self.UNIT_MAPPING)
+        self.compiled_regex_no_alcohol = compile_regex(self.NO_ALCOHOL)
+
+    # -------------------------------------------------------------------------
+    # Parse
+    # -------------------------------------------------------------------------
 
     def parse(
         self, text: str, debug: bool = False
     ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
         """
-        We override the parent version to deal with tense a bit better (e.g.
-        "used to drink"). Comments from parent version not repeated. Parent
-        version shortened a bit since we guarantee some aspects of the flags.
+        Parse for two regexes which operate slightly differently.
         """
         if not text:
             return
+        yield from self.parse_alcohol_units(text, debug)
+        yield from self.parse_alcohol_none(text, debug)
+
+    def parse_alcohol_units(
+        self, text: str, debug: bool = False
+    ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
+        """
+        We amend SimpleNumericalResultParser.parse() to deal with tense a bit
+        better (e.g. "used to drink"). Comments from that version not repeated.
+        That version also shortened a bit since we guarantee some aspects of
+        the flags.
+        """
         for m in self.compiled_regex.finditer(text):
             startpos = m.start()
             endpos = m.end()
@@ -231,6 +362,7 @@ class AlcoholUnits(SimpleNumericalResultParser):
             relation_text = m.group(GROUP_NAME_RELATION)
             value_text = m.group(GROUP_NAME_VALUE)
             units = m.group(GROUP_NAME_UNITS)
+            suffix_text = m.group(self.GROUP_NAME_SUFFIX)
 
             value_in_target_units = None
             if units:
@@ -253,13 +385,12 @@ class AlcoholUnits(SimpleNumericalResultParser):
 
             # MODIFIED: Extra bit here to detect tense information in a
             # different place:
-            if not tense:
-                # Does the "variable" text contain tense information?
-                _, tense = get_regex_dict_search(
-                    variable_text, self.DRINKING_TENSE_LOOKUP
-                )
+            for temporal_info in (variable_text, suffix_text):
                 if tense:
-                    tense_text = variable_text
+                    break
+                tense = self._get_tense(temporal_info)
+                if tense:
+                    tense_text = temporal_info
 
             # Back to the previous code:
             result = {
@@ -280,9 +411,61 @@ class AlcoholUnits(SimpleNumericalResultParser):
                 log.debug(f"Match {m} for {text!r} -> {result}")
             yield self.tablename, result
 
+    def parse_alcohol_none(
+        self, text: str, debug: bool = False
+    ) -> Generator[Tuple[str, Dict[str, Any]], None, None]:
+        """
+        Deal with references to not drinking any alcohol (except those referred
+        to as e.g. "0 units per week", which will be picked up by the
+        units-per-week function -- that will be rare!).
+        """
+        for m in self.compiled_regex_no_alcohol.finditer(text):
+            startpos = m.start()
+            endpos = m.end()
+            matching_text = m.group(GROUP_NUMBER_WHOLE_EXPRESSION)
+            tense = self._get_tense(matching_text)
+            tense_text = matching_text if tense else None
+
+            result = {
+                FN_VARIABLE_NAME: self.variable,
+                FN_CONTENT: matching_text,
+                FN_START: startpos,
+                FN_END: endpos,
+                FN_VARIABLE_TEXT: matching_text,
+                FN_RELATION_TEXT: None,
+                FN_RELATION: None,
+                FN_VALUE_TEXT: matching_text,
+                FN_UNITS: None,
+                self.target_unit: 0,  # zero units
+                FN_TENSE_TEXT: tense_text,
+                FN_TENSE: tense,
+            }
+            if debug:
+                log.debug(f"Match {m} for {text!r} -> {result}")
+            yield self.tablename, result
+
+    def _get_tense(self, text: str) -> Optional[str]:
+        """
+        Find a tense indicator and return the corresponding text, or None.
+        """
+        # We deal with "never" first because otherwise "never drank" may hit
+        # "[optional_stuff] drank" and be classified as past.
+        _, tense = get_regex_dict_search(text, self.TENSE_NEVER_LOOKUP)
+        if not tense:
+            _, tense = get_regex_dict_search(
+                text, self.TENSE_PAST_PRESENT_LOOKUP
+            )
+        return tense
+
+    # -------------------------------------------------------------------------
+    # Test
+    # -------------------------------------------------------------------------
+
     def test(self, verbose: bool = False) -> None:
         # docstring in parent class
-        # run via e.g. "pytest -k TestSubstanceMisuse -rP"
+        # Test via e.g.:
+        #   pytest -k TestSubstanceMisuse  # self-tests
+        #   crate_run_crate_nlp_demo --processors AlcoholUnits  # interactive
         no_results = []
         six_no_tense = [{self.target_unit: 6, FN_TENSE: None}]
         six_past = [{self.target_unit: 6, FN_TENSE: PAST}]
@@ -294,24 +477,35 @@ class AlcoholUnits(SimpleNumericalResultParser):
         over_200_present = [
             {self.target_unit: 200, FN_RELATION: ">", FN_TENSE: PRESENT}
         ]
+        no_alcohol_no_tense = [{self.target_unit: 0, FN_TENSE: None}]
+        no_alcohol_past = [{self.target_unit: 0, FN_TENSE: PAST}]
+        no_alcohol_present = [{self.target_unit: 0, FN_TENSE: PRESENT}]
+        no_alcohol_ever = [{self.target_unit: 0, FN_TENSE: EVER}]
         self.detailed_test_multiple(
             [
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # No results expected:
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 ("Alcohol", no_results),
                 ("He used to drink like a fish", no_results),
                 ("[e.g. insulin] currently 6 units per week", no_results),
                 ("[e.g. insulin] previously 6 units per week", no_results),
                 ("[IU is wrong] alcohol 6 IU/week", no_results),
                 ("[could be insulin] peak 6 u/w", no_results),
+                ("[!] methylalcohol 6 u/w", no_results),
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Value with no tense:
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 ("Alcohol 6 u/w", six_no_tense),
                 ("Alcohol - 6 u/w", six_no_tense),
                 ("EtOH = 6 u/w", six_no_tense),
                 ("EtOH = 6 u/wk", six_no_tense),
                 ("Alcohol (units/week): 6", six_no_tense),
                 ("Ethanol 6 units/week", six_no_tense),
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Past tense:
-                ("Alcohol: was 6 u/w", six_past),  # other tenses fail (right)
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                ("Alcohol: was 6 u/w", six_past),  # other tenses fail (= good)
                 ("Alcohol: formerly 6 u/w", six_past),
                 ("Alcohol: previously 6 u/w", six_past),
                 ("Alcohol: once 6 u/w", six_past),
@@ -327,7 +521,10 @@ class AlcoholUnits(SimpleNumericalResultParser):
                 ("Was formerly drinking 6 u/w", six_past),
                 ("Alcohol: formerly 6 u/w", six_past),
                 ("Alcohol: previously 6 u/w", six_past),
+                ("Alcohol: 6 u/w previously", six_past),
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Present tense:
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 ("Drinks 6 units per week", six_present),
                 ("Drinks 6 UK units per week", six_present),
                 ("Drinks 6 units/d", forty_two_present),
@@ -342,12 +539,44 @@ class AlcoholUnits(SimpleNumericalResultParser):
                 ("Presently drinking 6 units per week", six_present),
                 ("Alcohol: currently 6 u/w", six_present),
                 ("Alcohol: presently 6 u/w", six_present),
+                ("In terms of alcohol she drinks 6 units/week", six_present),
+                ("Has been drinking 6 units per week", six_present),
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Inequalities:
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 ("Alcohol: presently less than 6 u/w", under_6_present),
                 ("Alcohol: presently under 6 u/w", under_6_present),
                 ("Alcohol: presently >200 u/w", over_200_present),
                 ("Alcohol: currently more than 200 u/w", over_200_present),
                 ("Alcohol: currently over 200 u/w", over_200_present),
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # References to not drinking -- no tense:
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                ("Alcohol: none", no_alcohol_no_tense),
+                ("Teetotal", no_alcohol_no_tense),
+                ("Tee-total", no_alcohol_no_tense),  # typo
+                ("Teetotaller", no_alcohol_no_tense),
+                ("Teetotaler", no_alcohol_no_tense),  # typo
+                ("Abstinent from alcohol", no_alcohol_no_tense),
+                ("Alcohol: abstinent", no_alcohol_no_tense),
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # References to not drinking -- present tense:
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                ("Alcohol: has been abstinent", no_alcohol_present),
+                ("Alcohol: currently abstinent", no_alcohol_present),
+                ("Alcohol: currently none", no_alcohol_present),
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # References to not drinking -- ever:
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                ("Has never drunk alcohol", no_alcohol_ever),
+                ("Never drank alcohol", no_alcohol_ever),
+                ("Alcohol: never", no_alcohol_ever),
+                ("Alcohol: was abstinent", no_alcohol_past),
+                ("Alcohol: previously abstinent", no_alcohol_past),
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # Vague references to not drinking, not interpreted:
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                ("Has not drunk alcohol", no_results),
             ],
             verbose=verbose,
         )

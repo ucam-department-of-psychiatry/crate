@@ -33,12 +33,16 @@ but bear in mind.
 
 """
 
+import logging
 from typing import Any, Dict, Optional, Pattern, Tuple
 
 import regex
 
 # noinspection PyProtectedMember
 from regex import _regex_core
+
+log = logging.getLogger(__name__)
+
 
 # =============================================================================
 # Core regex functions
@@ -62,7 +66,7 @@ def compile_regex(regex_str: str) -> Pattern:
     try:
         return regex.compile(regex_str, REGEX_COMPILE_FLAGS)
     except _regex_core.error:
-        print(f"FAILING REGEX:\n{regex_str}")
+        log.critical(f"FAILING REGEX:\n{regex_str}")
         raise
 
 

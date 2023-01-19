@@ -130,9 +130,11 @@ IS = "is"
 WAS = "was"
 TENSE_INDICATOR = rf"(?: \b {IS} \b | \b {WAS} \b )"
 
-# Standardized result values
+# Standardized result values; see MAX_TENSE_TEXT_LENGTH
 PAST = "past"
 PRESENT = "present"
+EVER = "ever"  # e.g. for "never"
+
 TENSE_LOOKUP = compile_regex_dict(
     {
         IS: PRESENT,

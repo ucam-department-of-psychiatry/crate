@@ -195,6 +195,13 @@ def named_capture_group(regex_str: str, name: str) -> str:
     return f"(?P<{name}>{regex_str})"
 
 
+def optional_named_capture_group(regex_str: str, name: str) -> str:
+    """
+    As for :func:`named_capture_group`, but optional.
+    """
+    return f"(?P<{name}>{regex_str})?"
+
+
 def regex_or(
     *regex_strings: str,
     wrap_each_in_noncapture_group: bool = False,
