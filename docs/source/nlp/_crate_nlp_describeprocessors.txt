@@ -23,9 +23,20 @@
 |                           |                                                 |
 |                           | Alcohol consumption, specified explicitly as    |
 |                           | (UK) units per day or per                       |
-|                           | week. A UK unit is 10 ml of ethanol [1, 2]. UK  |
-|                           | NHS guidelines used to be                       |
-|                           | "per week" and remain broadly week-based [1].   |
+|                           | week, or via non-numeric references to not      |
+|                           | drinking any.                                   |
+|                           |                                                 |
+|                           | - Output is in UK units per week. A UK unit is  |
+|                           | 10 ml of ethanol [1, 2]. UK                     |
+|                           |   NHS guidelines used to be "per week" and      |
+|                           | remain broadly week-based [1].                  |
+|                           | - It doesn't attempt any understanding of other |
+|                           | alcohol descriptions (e.g.                      |
+|                           |   "pints of beer", "glasses of wine", "bottles  |
+|                           | of vodka") so is expected to                    |
+|                           |   apply where a clinician has converted a       |
+|                           | (potentially mixed) alcohol                     |
+|                           |   description to a units-per-week calculation.  |
 |                           |                                                 |
 |                           | [1] https://www.nhs.uk/live-well/alcohol-       |
 |                           | advice/calculating-alcohol-units/,              |
