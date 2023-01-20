@@ -292,6 +292,12 @@ class Installer:
         self.configure()
         self.write_environment_variables()
         self.create_directories()
+        volume = docker.volume.inspect("crate_crate_config_volume")
+        print(f"Options: {volume.options}")
+        print(f"Labels: {volume.labels}")
+        print(f"Driver: {volume.driver}")
+        print(f"Mountpoint: {volume.mountpoint}")
+        print(f"Status: {volume.status}")
         self.create_local_settings()
         self.create_anon_config()
         if self.use_https():
