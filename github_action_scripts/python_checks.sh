@@ -20,11 +20,7 @@ python -m pip check
 echo installing vulnerability checker
 python -m pip install safety
 echo checking packages for vulnerabilities
-# All of these vulnerabilities look either harmless or very low risk
-# 44715 numpy fixed in 1.22 https://github.com/numpy/numpy/issues/19038
-# 44716 numpy fixed in 1.22 https://github.com/numpy/numpy/issues/19000
-# 44717 numpy fixed in 1.22 https://github.com/numpy/numpy/issues/18993
-safety check --full-report -i 44715 -i 44716 -i 44717
+safety check --full-report
 echo checking python formatting
 black --line-length 79 --diff --check .
 echo checking python for style and errors
