@@ -292,15 +292,8 @@ class Installer:
         self.configure()
         self.write_environment_variables()
         self.create_directories()
-        print("Listing files in / on container")
-        self.run_crate_command("ls /")
-
-        volume = docker.volume.inspect("crate_crate_config_volume")
-        print(f"Options: {volume.options}")
-        print(f"Labels: {volume.labels}")
-        print(f"Driver: {volume.driver}")
-        print(f"Mountpoint: {volume.mountpoint}")
-        print(f"Status: {volume.status}")
+        os.chdir(HostPath.DOCKERFILES_DIR)
+        docker.compose.pull()
         self.create_local_settings()
         self.create_anon_config()
         if self.use_https():
