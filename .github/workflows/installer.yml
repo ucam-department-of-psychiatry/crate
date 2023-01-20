@@ -21,11 +21,11 @@ jobs:
             - name: Run installer
               run: |
                 set -eux -o pipefail
+                source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
+                ${GITHUB_WORKSPACE}/github_action_scripts/installer_setup.sh
                 echo "HOME is ${HOME}"
                 echo "GITHUB_WORKSPACE is ${GITHUB_WORKSPACE}"
                 echo "CRATE_DOCKER_CONFIG_HOST_DIR is ${CRATE_DOCKER_CONFIG_HOST_DIR}"
-                source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
-                ${GITHUB_WORKSPACE}/github_action_scripts/installer_setup.sh
                 cd ${GITHUB_WORKSPACE}/installer
                 ./installer.sh -d
                 export CRATE_HOME=${GITHUB_WORKSPACE}
