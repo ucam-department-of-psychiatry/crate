@@ -103,7 +103,7 @@ INSTALL_REQUIRES = [
     "numpy==1.22.4",  # numerical work
     "openpyxl==3.0.7",  # read Excel
     "pendulum==2.1.2",  # dates/times
-    "Pillow==9.2.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
+    "Pillow==9.3.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==3.2.0",  # pretty formating of text-based tables
     "psutil==5.7.2",  # process management
