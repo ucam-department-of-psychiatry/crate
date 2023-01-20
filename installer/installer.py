@@ -292,6 +292,9 @@ class Installer:
         self.configure()
         self.write_environment_variables()
         self.create_directories()
+        print("Listing files in / on container")
+        self.run_crate_command("ls /")
+
         volume = docker.volume.inspect("crate_crate_config_volume")
         print(f"Options: {volume.options}")
         print(f"Labels: {volume.labels}")
