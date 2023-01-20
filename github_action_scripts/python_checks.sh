@@ -20,7 +20,12 @@ python -m pip check
 echo installing vulnerability checker
 python -m pip install safety
 echo checking packages for vulnerabilities
-safety check --full-report
+# All of these vulnerabilities look either harmless or very low risk
+# 51457 py no fix yet
+#       https://github.com/pytest-dev/py/issues/287
+# 51668 sqlalchemy fix in 2.0 beta, we don't log Engine.URL()
+#       https://github.com/sqlalchemy/sqlalchemy/issues/8567
+safety check --full-report --ignore=51457 --ignore=51668
 echo checking python formatting
 black --line-length 79 --diff --check .
 echo checking python for style and errors
