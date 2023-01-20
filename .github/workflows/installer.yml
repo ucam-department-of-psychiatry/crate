@@ -21,6 +21,8 @@ jobs:
             - name: Run installer
               run: |
                 set -eux -o pipefail
+                echo "HOME is ${HOME}"
+                echo "GITHUB_WORKSPACE is ${GITHUB_WORKSPACE}"
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
                 ${GITHUB_WORKSPACE}/github_action_scripts/installer_setup.sh
                 cd ${GITHUB_WORKSPACE}/installer
