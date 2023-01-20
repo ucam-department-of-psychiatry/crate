@@ -27,9 +27,9 @@
 |                           | drinking any.                                   |
 |                           |                                                 |
 |                           | - Output is in UK units per week. A UK unit is  |
-|                           | 10 ml of ethanol [1, 2]. UK                     |
-|                           |   NHS guidelines used to be "per week" and      |
-|                           | remain broadly week-based [1].                  |
+|                           | 10 ml of ethanol [#f1]_ [#f2]_.                 |
+|                           |   UK NHS guidelines used to be "per week" and   |
+|                           | remain broadly week-based [#f1]_.               |
 |                           | - It doesn't attempt any understanding of other |
 |                           | alcohol descriptions (e.g.                      |
 |                           |   "pints of beer", "glasses of wine", "bottles  |
@@ -38,10 +38,10 @@
 |                           | (potentially mixed) alcohol                     |
 |                           |   description to a units-per-week calculation.  |
 |                           |                                                 |
-|                           | [1] https://www.nhs.uk/live-well/alcohol-       |
+|                           | .. [#f1] https://www.nhs.uk/live-well/alcohol-  |
 |                           | advice/calculating-alcohol-units/,              |
-|                           |     accessed 2023-01-18.                        |
-|                           | [2]                                             |
+|                           |        accessed 2023-01-18.                     |
+|                           | .. [#f2]                                        |
 |                           | https://en.wikipedia.org/wiki/Unit_of_alcohol   |
 +---------------------------+-------------------------------------------------+
 | AlcoholUnitsValidator     | Validator for AlcoholUnits (see help for        |

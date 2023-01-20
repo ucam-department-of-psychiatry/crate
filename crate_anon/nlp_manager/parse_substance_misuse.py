@@ -95,17 +95,17 @@ class AlcoholUnits(NumericalResultParser):
     Alcohol consumption, specified explicitly as (UK) units per day or per
     week, or via non-numeric references to not drinking any.
 
-    - Output is in UK units per week. A UK unit is 10 ml of ethanol [1, 2]. UK
-      NHS guidelines used to be "per week" and remain broadly week-based [1].
+    - Output is in UK units per week. A UK unit is 10 ml of ethanol [#f1]_ [#f2]_.
+      UK NHS guidelines used to be "per week" and remain broadly week-based [#f1]_.
     - It doesn't attempt any understanding of other alcohol descriptions (e.g.
       "pints of beer", "glasses of wine", "bottles of vodka") so is expected to
       apply where a clinician has converted a (potentially mixed) alcohol
       description to a units-per-week calculation.
 
-    [1] https://www.nhs.uk/live-well/alcohol-advice/calculating-alcohol-units/,
-        accessed 2023-01-18.
-    [2] https://en.wikipedia.org/wiki/Unit_of_alcohol
-    """
+    .. [#f1] https://www.nhs.uk/live-well/alcohol-advice/calculating-alcohol-units/,
+           accessed 2023-01-18.
+    .. [#f2] https://en.wikipedia.org/wiki/Unit_of_alcohol
+    """  # noqa: E501
 
     # There are no relevant Read codes for alcohol consumption in
     # v3ReadCode_PBCL.xlsx.
