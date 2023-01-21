@@ -33,9 +33,10 @@ from __future__ import unicode_literals
 
 from cardinal_pythonlib.django.fields.restrictedcontentfile import (
     ContentTypeRestrictedFileField,
-)  # noqa
+)
 from django.db import migrations, models
 from django.conf import settings
+
 import crate_anon.crateweb.consent.models as consent_models
 import crate_anon.crateweb.consent.storage as consent_storage
 
@@ -62,18 +63,18 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         verbose_name="ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "created_at",
                     models.DateTimeField(
                         auto_now_add=True, verbose_name="When created"
                     ),
-                ),  # noqa
+                ),
                 ("payee", models.CharField(max_length=255)),
                 (
                     "amount",
                     models.DecimalField(decimal_places=2, max_digits=8),
-                ),  # noqa
+                ),
             ],
         ),
         migrations.CreateModel(
@@ -87,32 +88,32 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         verbose_name="ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "created_at",
                     models.DateTimeField(
                         auto_now_add=True, verbose_name="When created"
                     ),
-                ),  # noqa
+                ),
                 ("token", models.CharField(max_length=20)),
                 (
                     "responded",
                     models.BooleanField(
                         default=False, verbose_name="Responded?"
                     ),
-                ),  # noqa
+                ),
                 (
                     "responded_at",
                     models.DateTimeField(
                         null=True, verbose_name="When responded"
                     ),
-                ),  # noqa
+                ),
                 (
                     "response_route",
                     models.CharField(
                         choices=[("e", "E-mail"), ("w", "Web")], max_length=1
                     ),
-                ),  # noqa
+                ),
                 (
                     "email_choice",
                     models.CharField(
@@ -123,61 +124,64 @@ class Migration(migrations.Migration):
                         ],
                         max_length=4,
                     ),
-                ),  # noqa
+                ),
                 (
                     "response",
                     models.CharField(
                         choices=[
                             (
                                 "R",
-                                "R: Clinician asks RDBM to pass request to patient",
+                                "R: Clinician asks RDBM to pass request to "
+                                "patient",
                             ),
                             (
                                 "A",
-                                "A: Clinician will pass the request to the patient",
+                                "A: Clinician will pass the request to the "
+                                "patient",
                             ),
                             ("B", "B: Clinician vetoes on clinical grounds"),
                             ("C", "C: Patient is definitely ineligible"),
                             (
                                 "D",
-                                "D: Patient is dead/discharged or details are defunct",
+                                "D: Patient is dead/discharged or details are "
+                                "defunct",
                             ),
                         ],
                         max_length=1,
                     ),
-                ),  # noqa
+                ),
                 (
                     "veto_reason",
                     models.TextField(
                         blank=True, verbose_name="Reason for clinical veto"
                     ),
-                ),  # noqa
+                ),
                 (
                     "ineligible_reason",
                     models.TextField(
                         blank=True, verbose_name="Reason patient is ineligible"
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_uncontactable_reason",
                     models.TextField(
                         blank=True,
                         verbose_name="Reason patient is not contactable",
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_confirm_name",
                     models.CharField(
                         verbose_name="Type your name to confirm",
                         max_length=255,
                     ),
-                ),  # noqa
+                ),
                 (
                     "charity_amount_due",
                     models.DecimalField(
                         default=0, decimal_places=2, max_digits=8
                     ),
-                ),  # noqa
+                ),
             ],
         ),
         migrations.CreateModel(
@@ -191,53 +195,58 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         verbose_name="ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "decision_signed_by_patient",
                     models.BooleanField(
                         default=False,
                         verbose_name="Request signed by patient?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "decision_otherwise_directly_authorized_by_patient",
                     models.BooleanField(
                         default=False,
-                        verbose_name="Request otherwise directly authorized by patient?",
+                        verbose_name="Request otherwise directly authorized "
+                        "by patient?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "decision_under16_signed_by_parent",
                     models.BooleanField(
                         default=False,
-                        verbose_name="Patient under 16 and request countersigned by parent?",
+                        verbose_name="Patient under 16 and request "
+                        "countersigned by parent?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "decision_under16_signed_by_clinician",
                     models.BooleanField(
                         default=False,
-                        verbose_name="Patient under 16 and request countersigned by clinician?",
+                        verbose_name="Patient under 16 and request "
+                        "countersigned by clinician?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "decision_lack_capacity_signed_by_representative",
                     models.BooleanField(
                         default=False,
-                        verbose_name="Patient lacked capacity and request signed by authorized representative?",
+                        verbose_name="Patient lacked capacity and request "
+                        "signed by authorized representative?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "decision_lack_capacity_signed_by_clinician",
                     models.BooleanField(
                         default=False,
-                        verbose_name="Patient lacked capacity and request countersigned by clinician?",
+                        verbose_name="Patient lacked capacity and request "
+                        "countersigned by clinician?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "nhs_number",
                     models.BigIntegerField(verbose_name="NHS number"),
-                ),  # noqa
+                ),
                 ("current", models.BooleanField(default=False)),
                 (
                     "created_at",
@@ -245,14 +254,15 @@ class Migration(migrations.Migration):
                         auto_now_add=True,
                         verbose_name="When was this record created?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "exclude_entirely",
                     models.BooleanField(
                         default=False,
-                        verbose_name="Exclude patient from Research Database entirely?",
+                        verbose_name="Exclude patient from Research Database "
+                        "entirely?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "consent_mode",
                     models.CharField(
@@ -265,48 +275,51 @@ class Migration(migrations.Migration):
                         verbose_name="Consent mode ('red', 'yellow', 'green')",
                         max_length=10,
                     ),
-                ),  # noqa
+                ),
                 (
                     "consent_after_discharge",
                     models.BooleanField(
                         default=False,
-                        verbose_name="Consent given to contact patient after discharge?",
+                        verbose_name="Consent given to contact patient after "
+                        "discharge?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "max_approaches_per_year",
                     models.PositiveSmallIntegerField(
                         default=0,
-                        verbose_name="Maximum number of approaches permissible per year (0 = no limit)",
+                        verbose_name="Maximum number of approaches "
+                        "permissible per year (0 = no limit)",
                     ),
-                ),  # noqa
+                ),
                 (
                     "other_requests",
                     models.TextField(
                         blank=True,
                         verbose_name="Other special requests by patient",
                     ),
-                ),  # noqa
+                ),
                 (
                     "prefers_email",
                     models.BooleanField(
                         default=False,
                         verbose_name="Patient prefers e-mail contact?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "changed_by_clinician_override",
                     models.BooleanField(
                         default=False,
-                        verbose_name="Consent mode changed by clinician's override?",
+                        verbose_name="Consent mode changed by clinician's "
+                        "override?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "created_by",
                     models.ForeignKey(
                         to=settings.AUTH_USER_MODEL, on_delete=models.PROTECT
                     ),
-                ),  # noqa
+                ),
             ],
             options={
                 "abstract": False,
@@ -323,25 +336,26 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         verbose_name="ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "created_at",
                     models.DateTimeField(
                         auto_now_add=True, verbose_name="When created"
                     ),
-                ),  # noqa
+                ),
                 (
                     "request_direct_approach",
                     models.BooleanField(
-                        verbose_name="Request direct contact with patient if available (not contact with clinician first)"
+                        verbose_name="Request direct contact with patient if "
+                        "available (not contact with clinician first)"
                     ),
-                ),  # noqa
+                ),
                 (
                     "lookup_nhs_number",
                     models.BigIntegerField(
                         null=True, verbose_name="NHS number used for lookup"
                     ),
-                ),  # noqa
+                ),
                 (
                     "lookup_rid",
                     models.CharField(
@@ -349,7 +363,7 @@ class Migration(migrations.Migration):
                         null=True,
                         max_length=128,
                     ),
-                ),  # noqa
+                ),
                 (
                     "lookup_mrid",
                     models.CharField(
@@ -357,64 +371,68 @@ class Migration(migrations.Migration):
                         null=True,
                         max_length=128,
                     ),
-                ),  # noqa
+                ),
                 ("processed", models.BooleanField(default=False)),
                 (
                     "nhs_number",
                     models.BigIntegerField(
                         null=True, verbose_name="NHS number"
                     ),
-                ),  # noqa
+                ),
                 (
                     "approaches_in_past_year",
                     models.PositiveIntegerField(null=True),
-                ),  # noqa
+                ),
                 (
                     "decisions",
                     models.TextField(
                         blank=True, verbose_name="Decisions made"
                     ),
-                ),  # noqa
+                ),
                 ("decided_no_action", models.BooleanField(default=False)),
                 (
                     "decided_send_to_researcher",
                     models.BooleanField(default=False),
-                ),  # noqa
+                ),
                 (
                     "decided_send_to_clinician",
                     models.BooleanField(default=False),
-                ),  # noqa
+                ),
                 (
                     "clinician_involvement",
                     models.PositiveSmallIntegerField(
                         choices=[
                             (
                                 0,
-                                "No clinician involvement required or requested",
+                                "No clinician involvement required or "
+                                "requested",
                             ),
                             (
                                 1,
-                                "Clinician involvement requested by researchers",
+                                "Clinician involvement requested by "
+                                "researchers",
                             ),
                             (
                                 2,
-                                "Clinician involvement required by YELLOW consent mode",
+                                "Clinician involvement required by YELLOW "
+                                "consent mode",
                             ),
                             (
                                 3,
-                                "Clinician involvement required by UNKNOWN consent mode",
+                                "Clinician involvement required by UNKNOWN "
+                                "consent mode",
                             ),
                         ],
                         null=True,
                     ),
-                ),  # noqa
+                ),
                 ("consent_withdrawn", models.BooleanField(default=False)),
                 (
                     "consent_withdrawn_at",
                     models.DateTimeField(
                         null=True, verbose_name="When consent withdrawn"
                     ),
-                ),  # noqa
+                ),
                 (
                     "consent_mode",
                     models.ForeignKey(
@@ -422,7 +440,7 @@ class Migration(migrations.Migration):
                         on_delete=models.SET_NULL,
                         null=True,
                     ),
-                ),  # noqa
+                ),
             ],
         ),
         migrations.CreateModel(
@@ -436,7 +454,7 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         verbose_name="ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_local_id_description",
                     models.CharField(
@@ -444,7 +462,7 @@ class Migration(migrations.Migration):
                         verbose_name="Description of database-specific ID",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_local_id_number",
                     models.BigIntegerField(
@@ -452,7 +470,7 @@ class Migration(migrations.Migration):
                         null=True,
                         verbose_name="Database-specific ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_dob",
                     models.DateField(
@@ -460,7 +478,7 @@ class Migration(migrations.Migration):
                         null=True,
                         verbose_name="Patient date of birth",
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_dod",
                     models.DateField(
@@ -468,17 +486,17 @@ class Migration(migrations.Migration):
                         null=True,
                         verbose_name="Patient date of death (NULL if alive)",
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_dead",
                     models.BooleanField(
                         default=False, verbose_name="Patient is dead"
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_discharged",
                     models.NullBooleanField(verbose_name="Patient discharged"),
-                ),  # noqa
+                ),
                 (
                     "pt_sex",
                     models.CharField(
@@ -492,13 +510,13 @@ class Migration(migrations.Migration):
                         verbose_name="Patient sex",
                         max_length=1,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_title",
                     models.CharField(
                         blank=True, verbose_name="Patient title", max_length=20
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_first_name",
                     models.CharField(
@@ -506,7 +524,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient first name",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_last_name",
                     models.CharField(
@@ -514,7 +532,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient last name",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_address_1",
                     models.CharField(
@@ -522,7 +540,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient address line 1",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_address_2",
                     models.CharField(
@@ -530,7 +548,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient address line 2",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_address_3",
                     models.CharField(
@@ -538,7 +556,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient address line 3",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_address_4",
                     models.CharField(
@@ -546,7 +564,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient address line 4",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_address_5",
                     models.CharField(
@@ -554,7 +572,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient address line 5 (county)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_address_6",
                     models.CharField(
@@ -562,7 +580,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient address line 6 (postcode)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_address_7",
                     models.CharField(
@@ -570,7 +588,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient address line 7 (country)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_telephone",
                     models.CharField(
@@ -578,7 +596,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient telephone",
                         max_length=20,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_email",
                     models.EmailField(
@@ -586,13 +604,13 @@ class Migration(migrations.Migration):
                         verbose_name="Patient email",
                         max_length=254,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_title",
                     models.CharField(
                         blank=True, verbose_name="GP title", max_length=20
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_first_name",
                     models.CharField(
@@ -600,13 +618,13 @@ class Migration(migrations.Migration):
                         verbose_name="GP first name",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_last_name",
                     models.CharField(
                         blank=True, verbose_name="GP last name", max_length=100
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_address_1",
                     models.CharField(
@@ -614,7 +632,7 @@ class Migration(migrations.Migration):
                         verbose_name="GP address line 1",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_address_2",
                     models.CharField(
@@ -622,7 +640,7 @@ class Migration(migrations.Migration):
                         verbose_name="GP address line 2",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_address_3",
                     models.CharField(
@@ -630,7 +648,7 @@ class Migration(migrations.Migration):
                         verbose_name="GP address line 3",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_address_4",
                     models.CharField(
@@ -638,7 +656,7 @@ class Migration(migrations.Migration):
                         verbose_name="GP address line 4",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_address_5",
                     models.CharField(
@@ -646,7 +664,7 @@ class Migration(migrations.Migration):
                         verbose_name="GP address line 5 (county)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_address_6",
                     models.CharField(
@@ -654,7 +672,7 @@ class Migration(migrations.Migration):
                         verbose_name="GP address line 6 (postcode)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_address_7",
                     models.CharField(
@@ -662,19 +680,19 @@ class Migration(migrations.Migration):
                         verbose_name="GP address line 7 (country)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_telephone",
                     models.CharField(
                         blank=True, verbose_name="GP telephone", max_length=20
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_email",
                     models.EmailField(
                         blank=True, verbose_name="GP email", max_length=254
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_title",
                     models.CharField(
@@ -682,7 +700,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician title",
                         max_length=20,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_first_name",
                     models.CharField(
@@ -690,7 +708,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician first name",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_last_name",
                     models.CharField(
@@ -698,7 +716,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician last name",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_address_1",
                     models.CharField(
@@ -706,7 +724,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician address line 1",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_address_2",
                     models.CharField(
@@ -714,7 +732,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician address line 2",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_address_3",
                     models.CharField(
@@ -722,7 +740,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician address line 3",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_address_4",
                     models.CharField(
@@ -730,7 +748,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician address line 4",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_address_5",
                     models.CharField(
@@ -738,7 +756,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician address line 5 (county)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_address_6",
                     models.CharField(
@@ -746,7 +764,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician address line 6 (postcode)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_address_7",
                     models.CharField(
@@ -754,7 +772,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician address line 7 (country)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_telephone",
                     models.CharField(
@@ -762,7 +780,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician telephone",
                         max_length=20,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_email",
                     models.EmailField(
@@ -770,27 +788,28 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician email",
                         max_length=254,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_is_consultant",
                     models.BooleanField(
                         default=False, verbose_name="Clinician is a consultant"
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_signatory_title",
                     models.CharField(
                         blank=True,
-                        verbose_name="Clinician's title for signature (e.g. 'Consultant psychiatrist')",
+                        verbose_name="Clinician's title for signature (e.g. "
+                        "'Consultant psychiatrist')",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "nhs_number",
                     models.BigIntegerField(
                         unique=True, verbose_name="NHS number"
                     ),
-                ),  # noqa
+                ),
             ],
             options={
                 "verbose_name_plural": "Dummy patient source information",
@@ -807,20 +826,21 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         verbose_name="ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "created_at",
                     models.DateTimeField(
                         auto_now_add=True, verbose_name="When created"
                     ),
-                ),  # noqa
+                ),
                 (
                     "sender",
                     models.CharField(
-                        default="CPFT Research Database - DO NOT REPLY <noreply@cpft.nhs.uk>",
+                        default="CPFT Research Database - DO NOT REPLY "
+                        "<noreply@cpft.nhs.uk>",
                         max_length=255,
                     ),
-                ),  # noqa
+                ),
                 ("recipient", models.CharField(max_length=255)),
                 ("subject", models.CharField(max_length=255)),
                 ("msg_text", models.TextField()),
@@ -835,7 +855,7 @@ class Migration(migrations.Migration):
                         on_delete=models.PROTECT,
                         null=True,
                     ),
-                ),  # noqa
+                ),
             ],
         ),
         migrations.CreateModel(
@@ -849,7 +869,7 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         verbose_name="ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "file",
                     models.FileField(
@@ -858,7 +878,7 @@ class Migration(migrations.Migration):
                             base_url="download_privatestorage"
                         ),
                     ),
-                ),  # noqa
+                ),
                 ("sent_filename", models.CharField(null=True, max_length=255)),
                 ("content_type", models.CharField(null=True, max_length=255)),
                 ("owns_file", models.BooleanField(default=False)),
@@ -867,7 +887,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         to="consent.Email", on_delete=models.PROTECT
                     ),
-                ),  # noqa
+                ),
             ],
         ),
         migrations.CreateModel(
@@ -881,18 +901,18 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         verbose_name="ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "at",
                     models.DateTimeField(
                         auto_now_add=True, verbose_name="When sent"
                     ),
-                ),  # noqa
+                ),
                 ("sent", models.BooleanField(default=False)),
                 (
                     "failure_reason",
                     models.TextField(verbose_name="Reason sending failed"),
-                ),  # noqa
+                ),
                 (
                     "by",
                     models.ForeignKey(
@@ -901,13 +921,13 @@ class Migration(migrations.Migration):
                         related_name="emailtransmissions",
                         null=True,
                     ),
-                ),  # noqa
+                ),
                 (
                     "email",
                     models.ForeignKey(
                         to="consent.Email", on_delete=models.PROTECT
                     ),
-                ),  # noqa
+                ),
             ],
         ),
         migrations.CreateModel(
@@ -921,7 +941,7 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         verbose_name="ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "name",
                     models.CharField(
@@ -941,7 +961,7 @@ class Migration(migrations.Migration):
                         unique=True,
                         max_length=50,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pdf",
                     ContentTypeRestrictedFileField(
@@ -951,7 +971,7 @@ class Migration(migrations.Migration):
                             base_url="download_privatestorage"
                         ),
                     ),
-                ),  # noqa
+                ),
             ],
         ),
         migrations.CreateModel(
@@ -965,13 +985,13 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         verbose_name="ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "created_at",
                     models.DateTimeField(
                         auto_now_add=True, verbose_name="When created"
                     ),
-                ),  # noqa
+                ),
                 (
                     "pdf",
                     models.FileField(
@@ -980,7 +1000,7 @@ class Migration(migrations.Migration):
                             base_url="download_privatestorage"
                         ),
                     ),
-                ),  # noqa
+                ),
                 ("to_clinician", models.BooleanField(default=False)),
                 ("to_researcher", models.BooleanField(default=False)),
                 ("to_patient", models.BooleanField(default=False)),
@@ -993,7 +1013,7 @@ class Migration(migrations.Migration):
                         on_delete=models.PROTECT,
                         null=True,
                     ),
-                ),  # noqa
+                ),
             ],
         ),
         migrations.CreateModel(
@@ -1007,7 +1027,7 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         verbose_name="ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_local_id_description",
                     models.CharField(
@@ -1015,7 +1035,7 @@ class Migration(migrations.Migration):
                         verbose_name="Description of database-specific ID",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_local_id_number",
                     models.BigIntegerField(
@@ -1023,7 +1043,7 @@ class Migration(migrations.Migration):
                         null=True,
                         verbose_name="Database-specific ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_dob",
                     models.DateField(
@@ -1031,7 +1051,7 @@ class Migration(migrations.Migration):
                         null=True,
                         verbose_name="Patient date of birth",
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_dod",
                     models.DateField(
@@ -1039,17 +1059,17 @@ class Migration(migrations.Migration):
                         null=True,
                         verbose_name="Patient date of death (NULL if alive)",
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_dead",
                     models.BooleanField(
                         default=False, verbose_name="Patient is dead"
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_discharged",
                     models.NullBooleanField(verbose_name="Patient discharged"),
-                ),  # noqa
+                ),
                 (
                     "pt_sex",
                     models.CharField(
@@ -1063,13 +1083,13 @@ class Migration(migrations.Migration):
                         verbose_name="Patient sex",
                         max_length=1,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_title",
                     models.CharField(
                         blank=True, verbose_name="Patient title", max_length=20
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_first_name",
                     models.CharField(
@@ -1077,7 +1097,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient first name",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_last_name",
                     models.CharField(
@@ -1085,7 +1105,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient last name",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_address_1",
                     models.CharField(
@@ -1093,7 +1113,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient address line 1",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_address_2",
                     models.CharField(
@@ -1101,7 +1121,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient address line 2",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_address_3",
                     models.CharField(
@@ -1109,7 +1129,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient address line 3",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_address_4",
                     models.CharField(
@@ -1117,7 +1137,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient address line 4",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_address_5",
                     models.CharField(
@@ -1125,7 +1145,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient address line 5 (county)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_address_6",
                     models.CharField(
@@ -1133,7 +1153,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient address line 6 (postcode)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_address_7",
                     models.CharField(
@@ -1141,7 +1161,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient address line 7 (country)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_telephone",
                     models.CharField(
@@ -1149,7 +1169,7 @@ class Migration(migrations.Migration):
                         verbose_name="Patient telephone",
                         max_length=20,
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_email",
                     models.EmailField(
@@ -1157,13 +1177,13 @@ class Migration(migrations.Migration):
                         verbose_name="Patient email",
                         max_length=254,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_title",
                     models.CharField(
                         blank=True, verbose_name="GP title", max_length=20
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_first_name",
                     models.CharField(
@@ -1171,13 +1191,13 @@ class Migration(migrations.Migration):
                         verbose_name="GP first name",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_last_name",
                     models.CharField(
                         blank=True, verbose_name="GP last name", max_length=100
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_address_1",
                     models.CharField(
@@ -1185,7 +1205,7 @@ class Migration(migrations.Migration):
                         verbose_name="GP address line 1",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_address_2",
                     models.CharField(
@@ -1193,7 +1213,7 @@ class Migration(migrations.Migration):
                         verbose_name="GP address line 2",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_address_3",
                     models.CharField(
@@ -1201,7 +1221,7 @@ class Migration(migrations.Migration):
                         verbose_name="GP address line 3",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_address_4",
                     models.CharField(
@@ -1209,7 +1229,7 @@ class Migration(migrations.Migration):
                         verbose_name="GP address line 4",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_address_5",
                     models.CharField(
@@ -1217,7 +1237,7 @@ class Migration(migrations.Migration):
                         verbose_name="GP address line 5 (county)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_address_6",
                     models.CharField(
@@ -1225,7 +1245,7 @@ class Migration(migrations.Migration):
                         verbose_name="GP address line 6 (postcode)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_address_7",
                     models.CharField(
@@ -1233,19 +1253,19 @@ class Migration(migrations.Migration):
                         verbose_name="GP address line 7 (country)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_telephone",
                     models.CharField(
                         blank=True, verbose_name="GP telephone", max_length=20
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_email",
                     models.EmailField(
                         blank=True, verbose_name="GP email", max_length=254
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_title",
                     models.CharField(
@@ -1253,7 +1273,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician title",
                         max_length=20,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_first_name",
                     models.CharField(
@@ -1261,7 +1281,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician first name",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_last_name",
                     models.CharField(
@@ -1269,7 +1289,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician last name",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_address_1",
                     models.CharField(
@@ -1277,7 +1297,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician address line 1",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_address_2",
                     models.CharField(
@@ -1285,7 +1305,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician address line 2",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_address_3",
                     models.CharField(
@@ -1293,7 +1313,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician address line 3",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_address_4",
                     models.CharField(
@@ -1301,7 +1321,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician address line 4",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_address_5",
                     models.CharField(
@@ -1309,7 +1329,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician address line 5 (county)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_address_6",
                     models.CharField(
@@ -1317,7 +1337,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician address line 6 (postcode)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_address_7",
                     models.CharField(
@@ -1325,7 +1345,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician address line 7 (country)",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_telephone",
                     models.CharField(
@@ -1333,7 +1353,7 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician telephone",
                         max_length=20,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_email",
                     models.EmailField(
@@ -1341,34 +1361,35 @@ class Migration(migrations.Migration):
                         verbose_name="Clinician email",
                         max_length=254,
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_is_consultant",
                     models.BooleanField(
                         default=False, verbose_name="Clinician is a consultant"
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_signatory_title",
                     models.CharField(
                         blank=True,
-                        verbose_name="Clinician's title for signature (e.g. 'Consultant psychiatrist')",
+                        verbose_name="Clinician's title for signature (e.g. "
+                        "'Consultant psychiatrist')",
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "nhs_number",
                     models.BigIntegerField(
                         verbose_name="NHS number used for lookup"
                     ),
-                ),  # noqa
+                ),
                 (
                     "lookup_at",
                     models.DateTimeField(
                         auto_now_add=True,
                         verbose_name="When fetched from clinical database",
                     ),
-                ),  # noqa
+                ),
                 (
                     "source_db",
                     models.CharField(
@@ -1386,38 +1407,39 @@ class Migration(migrations.Migration):
                         verbose_name="Source database used for lookup",
                         max_length=20,
                     ),
-                ),  # noqa
+                ),
                 (
                     "decisions",
                     models.TextField(
                         blank=True, verbose_name="Decisions made during lookup"
                     ),
-                ),  # noqa
+                ),
                 (
                     "secret_decisions",
                     models.TextField(
                         blank=True,
-                        verbose_name="Secret (identifying) decisions made during lookup",
+                        verbose_name="Secret (identifying) decisions made "
+                        "during lookup",
                     ),
-                ),  # noqa
+                ),
                 (
                     "pt_found",
                     models.BooleanField(
                         default=False, verbose_name="Patient found"
                     ),
-                ),  # noqa
+                ),
                 (
                     "gp_found",
                     models.BooleanField(
                         default=False, verbose_name="GP found"
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinician_found",
                     models.BooleanField(
                         default=False, verbose_name="Clinician found"
                     ),
-                ),  # noqa
+                ),
             ],
             options={
                 "abstract": False,
@@ -1434,55 +1456,60 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         verbose_name="ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "decision_signed_by_patient",
                     models.BooleanField(
                         default=False,
                         verbose_name="Request signed by patient?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "decision_otherwise_directly_authorized_by_patient",
                     models.BooleanField(
                         default=False,
-                        verbose_name="Request otherwise directly authorized by patient?",
+                        verbose_name="Request otherwise directly authorized "
+                        "by patient?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "decision_under16_signed_by_parent",
                     models.BooleanField(
                         default=False,
-                        verbose_name="Patient under 16 and request countersigned by parent?",
+                        verbose_name="Patient under 16 and request "
+                        "countersigned by parent?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "decision_under16_signed_by_clinician",
                     models.BooleanField(
                         default=False,
-                        verbose_name="Patient under 16 and request countersigned by clinician?",
+                        verbose_name="Patient under 16 and request "
+                        "countersigned by clinician?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "decision_lack_capacity_signed_by_representative",
                     models.BooleanField(
                         default=False,
-                        verbose_name="Patient lacked capacity and request signed by authorized representative?",
+                        verbose_name="Patient lacked capacity and request "
+                        "signed by authorized representative?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "decision_lack_capacity_signed_by_clinician",
                     models.BooleanField(
                         default=False,
-                        verbose_name="Patient lacked capacity and request countersigned by clinician?",
+                        verbose_name="Patient lacked capacity and request "
+                        "countersigned by clinician?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "created_at",
                     models.DateTimeField(
                         auto_now_add=True, verbose_name="When created"
                     ),
-                ),  # noqa
+                ),
                 (
                     "response",
                     models.PositiveSmallIntegerField(
@@ -1490,7 +1517,7 @@ class Migration(migrations.Migration):
                         null=True,
                         verbose_name="Patient's response",
                     ),
-                ),  # noqa
+                ),
                 (
                     "contact_request",
                     models.OneToOneField(
@@ -1498,7 +1525,7 @@ class Migration(migrations.Migration):
                         on_delete=models.PROTECT,
                         related_name="patient_response",
                     ),
-                ),  # noqa
+                ),
                 (
                     "recorded_by",
                     models.ForeignKey(
@@ -1506,7 +1533,7 @@ class Migration(migrations.Migration):
                         on_delete=models.PROTECT,
                         null=True,
                     ),
-                ),  # noqa
+                ),
             ],
             options={
                 "abstract": False,
@@ -1523,20 +1550,21 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         verbose_name="ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "institutional_id",
                     models.PositiveIntegerField(
                         unique=True,
-                        verbose_name="Institutional (e.g. NHS Trust) study number",
+                        verbose_name="Institutional (e.g. NHS Trust) study "
+                        "number",
                     ),
-                ),  # noqa
+                ),
                 (
                     "title",
                     models.CharField(
                         verbose_name="Study title", max_length=255
                     ),
-                ),  # noqa
+                ),
                 (
                     "registered_at",
                     models.DateTimeField(
@@ -1544,54 +1572,55 @@ class Migration(migrations.Migration):
                         null=True,
                         verbose_name="When was the study registered?",
                     ),
-                ),  # noqa
+                ),
                 ("summary", models.TextField(verbose_name="Summary of study")),
                 (
                     "search_methods_planned",
                     models.TextField(
                         blank=True, verbose_name="Search methods planned"
                     ),
-                ),  # noqa
+                ),
                 (
                     "patient_contact",
                     models.BooleanField(
                         verbose_name="Involves patient contact?"
                     ),
-                ),  # noqa
+                ),
                 (
                     "include_under_16s",
                     models.BooleanField(
                         verbose_name="Include patients under 16?"
                     ),
-                ),  # noqa
+                ),
                 (
                     "include_lack_capacity",
                     models.BooleanField(
                         verbose_name="Include patients lacking capacity?"
                     ),
-                ),  # noqa
+                ),
                 (
                     "clinical_trial",
                     models.BooleanField(
                         verbose_name="Clinical trial (CTIMP)?"
                     ),
-                ),  # noqa
+                ),
                 (
                     "include_discharged",
                     models.BooleanField(
                         verbose_name="Include discharged patients?"
                     ),
-                ),  # noqa
+                ),
                 (
                     "request_direct_approach",
                     models.BooleanField(
-                        verbose_name="Researchers request direct approach to patients?"
+                        verbose_name="Researchers request direct approach to "
+                        "patients?"
                     ),
-                ),  # noqa
+                ),
                 (
                     "approved_by_rec",
                     models.BooleanField(verbose_name="Approved by REC?"),
-                ),  # noqa
+                ),
                 (
                     "rec_reference",
                     models.CharField(
@@ -1599,13 +1628,13 @@ class Migration(migrations.Migration):
                         verbose_name="Research Ethics Committee reference",
                         max_length=50,
                     ),
-                ),  # noqa
+                ),
                 (
                     "approved_locally",
                     models.BooleanField(
                         verbose_name="Approved by local institution?"
                     ),
-                ),  # noqa
+                ),
                 (
                     "local_approval_at",
                     models.DateTimeField(
@@ -1613,7 +1642,7 @@ class Migration(migrations.Migration):
                         null=True,
                         verbose_name="When approved by local institution?",
                     ),
-                ),  # noqa
+                ),
                 (
                     "study_details_pdf",
                     ContentTypeRestrictedFileField(
@@ -1623,7 +1652,7 @@ class Migration(migrations.Migration):
                             base_url="download_privatestorage"
                         ),
                     ),
-                ),  # noqa
+                ),
                 (
                     "subject_form_template_pdf",
                     ContentTypeRestrictedFileField(
@@ -1633,7 +1662,7 @@ class Migration(migrations.Migration):
                             base_url="download_privatestorage"
                         ),
                     ),
-                ),  # noqa
+                ),
                 (
                     "lead_researcher",
                     models.ForeignKey(
@@ -1641,7 +1670,7 @@ class Migration(migrations.Migration):
                         on_delete=models.PROTECT,
                         related_name="studies_as_lead",
                     ),
-                ),  # noqa
+                ),
                 (
                     "researchers",
                     models.ManyToManyField(
@@ -1649,7 +1678,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         related_name="studies_as_researcher",
                     ),
-                ),  # noqa
+                ),
             ],
             options={
                 "verbose_name_plural": "studies",
@@ -1666,7 +1695,7 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         verbose_name="ID",
                     ),
-                ),  # noqa
+                ),
                 (
                     "team",
                     models.CharField(
@@ -1679,13 +1708,13 @@ class Migration(migrations.Migration):
                         unique=True,
                         max_length=100,
                     ),
-                ),  # noqa
+                ),
                 (
                     "user",
                     models.ForeignKey(
                         to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE
                     ),
-                ),  # noqa
+                ),
             ],
             options={
                 "verbose_name_plural": "clinical team representatives",
@@ -1697,21 +1726,21 @@ class Migration(migrations.Migration):
             name="study",
             field=models.ForeignKey(
                 to="consent.Study", on_delete=models.PROTECT, null=True
-            ),  # noqa
+            ),
         ),
         migrations.AddField(
             model_name="email",
             name="letter",
             field=models.ForeignKey(
                 to="consent.Letter", on_delete=models.PROTECT, null=True
-            ),  # noqa
+            ),
         ),
         migrations.AddField(
             model_name="email",
             name="study",
             field=models.ForeignKey(
                 to="consent.Study", on_delete=models.PROTECT, null=True
-            ),  # noqa
+            ),
         ),
         migrations.AddField(
             model_name="contactrequest",
@@ -1720,21 +1749,21 @@ class Migration(migrations.Migration):
                 to="consent.PatientLookup",
                 on_delete=models.SET_NULL,
                 null=True,
-            ),  # noqa
+            ),
         ),
         migrations.AddField(
             model_name="contactrequest",
             name="request_by",
             field=models.ForeignKey(
                 to=settings.AUTH_USER_MODEL, on_delete=models.PROTECT
-            ),  # noqa
+            ),
         ),
         migrations.AddField(
             model_name="contactrequest",
             name="study",
             field=models.ForeignKey(
                 to="consent.Study", on_delete=models.PROTECT
-            ),  # noqa
+            ),
         ),
         migrations.AddField(
             model_name="clinicianresponse",
@@ -1743,6 +1772,6 @@ class Migration(migrations.Migration):
                 to="consent.ContactRequest",
                 on_delete=models.PROTECT,
                 related_name="clinician_response",
-            ),  # noqa
+            ),
         ),
     ]

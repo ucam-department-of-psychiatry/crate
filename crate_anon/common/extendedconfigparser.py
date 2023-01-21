@@ -215,9 +215,8 @@ class ExtendedConfigParser(configparser.ConfigParser):
                 f"required={required!r}; default={default!r}"
             )
         s = self.get(section, option, fallback=default)
-        if (
-            not s
-        ):  # ConfigParser.get() checks against None but not blank strings  # noqa
+        if not s:
+            # ConfigParser.get() checks against None but not blank strings
             s = default
         if required and not s:
             self.raise_missing(section, option)

@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
                 default="",
                 max_length=10,
                 verbose_name="Consent mode (red/yellow/green)",
-            ),  # noqa
+            ),
         ),
         migrations.AlterField(
             model_name="consentmode",
@@ -62,7 +62,7 @@ class Migration(migrations.Migration):
                 default="crate_user_entry",
                 max_length=20,
                 verbose_name="Source of information",
-            ),  # noqa
+            ),
         ),
         migrations.AlterField(
             model_name="leaflet",
@@ -72,11 +72,14 @@ class Migration(migrations.Migration):
                     ("cpft_tpir", "CPFT: Taking part in research [MANDATORY]"),
                     (
                         "nihr_yhrsl",
-                        "NIHR: Your health records save lives [not currently used]",
+                        "NIHR: Your health records save lives "
+                        "[not currently used]",
                     ),
                     (
                         "cpft_trafficlight_choice",
-                        "CPFT: traffic-light choice decision form [not currently used: personalized version created instead]",
+                        "CPFT: traffic-light choice decision form "
+                        "[not currently used: personalized version created "
+                        "instead]",
                     ),
                     (
                         "cpft_clinres",
@@ -86,6 +89,6 @@ class Migration(migrations.Migration):
                 max_length=50,
                 unique=True,
                 verbose_name="leaflet name",
-            ),  # noqa
+            ),
         ),
     ]

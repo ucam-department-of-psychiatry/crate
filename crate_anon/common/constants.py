@@ -69,7 +69,7 @@ class CratePath:
         os.path.join(
             os.path.dirname(
                 os.path.abspath(__file__)
-            ),  # this directory, common  # noqa
+            ),  # this directory, common
             os.pardir,  # parent, crate_anon
         )
     )

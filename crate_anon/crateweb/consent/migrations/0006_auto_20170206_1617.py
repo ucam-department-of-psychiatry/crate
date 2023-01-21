@@ -33,10 +33,19 @@ from __future__ import unicode_literals
 
 from cardinal_pythonlib.django.fields.restrictedcontentfile import (
     ContentTypeRestrictedFileField,
-)  # noqa
-import crate_anon.crateweb.consent.models
-import crate_anon.crateweb.consent.storage
+)
 from django.db import migrations, models
+
+from crate_anon.crateweb.consent.models import (
+    leaflet_upload_to,
+    study_details_upload_to,
+    study_form_upload_to,
+)
+from crate_anon.crateweb.consent.storage import CustomFileSystemStorage
+
+_DEFAULT_STORAGE_DIR = (
+    "/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage"
+)
 
 
 class Migration(migrations.Migration):
@@ -50,58 +59,58 @@ class Migration(migrations.Migration):
             model_name="emailattachment",
             name="file",
             field=models.FileField(
-                storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(
+                storage=CustomFileSystemStorage(
                     base_url="download_privatestorage",
-                    location="/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage",
+                    location=_DEFAULT_STORAGE_DIR,
                 ),
                 upload_to="",
-            ),  # noqa
+            ),
         ),
         migrations.AlterField(
             model_name="leaflet",
             name="pdf",
             field=ContentTypeRestrictedFileField(
                 blank=True,
-                storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(
+                storage=CustomFileSystemStorage(
                     base_url="download_privatestorage",
-                    location="/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage",
+                    location=_DEFAULT_STORAGE_DIR,
                 ),
-                upload_to=crate_anon.crateweb.consent.models.leaflet_upload_to,
-            ),  # noqa
+                upload_to=leaflet_upload_to,
+            ),
         ),
         migrations.AlterField(
             model_name="letter",
             name="pdf",
             field=models.FileField(
-                storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(
+                storage=CustomFileSystemStorage(
                     base_url="download_privatestorage",
-                    location="/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage",
+                    location=_DEFAULT_STORAGE_DIR,
                 ),
                 upload_to="",
-            ),  # noqa
+            ),
         ),
         migrations.AlterField(
             model_name="study",
             name="study_details_pdf",
             field=ContentTypeRestrictedFileField(
                 blank=True,
-                storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(
+                storage=CustomFileSystemStorage(
                     base_url="download_privatestorage",
-                    location="/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage",
+                    location=_DEFAULT_STORAGE_DIR,
                 ),
-                upload_to=crate_anon.crateweb.consent.models.study_details_upload_to,
-            ),  # noqa
+                upload_to=study_details_upload_to,
+            ),
         ),
         migrations.AlterField(
             model_name="study",
             name="subject_form_template_pdf",
             field=ContentTypeRestrictedFileField(
                 blank=True,
-                storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(
+                storage=CustomFileSystemStorage(
                     base_url="download_privatestorage",
-                    location="/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage",
+                    location=_DEFAULT_STORAGE_DIR,
                 ),
-                upload_to=crate_anon.crateweb.consent.models.study_form_upload_to,
-            ),  # noqa
+                upload_to=study_form_upload_to,
+            ),
         ),
     ]

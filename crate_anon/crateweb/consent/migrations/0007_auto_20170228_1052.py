@@ -47,8 +47,9 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 default="crate_user_entry",
                 max_length=20,
-                verbose_name="Source database used for lookup, or crate_user_entry/crate_auto_created",
-            ),  # noqa
+                verbose_name="Source database used for lookup, or "
+                "crate_user_entry/crate_auto_created",
+            ),
         ),
         migrations.AlterField(
             model_name="patientlookup",
@@ -65,6 +66,6 @@ class Migration(migrations.Migration):
                 ],
                 max_length=20,
                 verbose_name="Source database used for lookup",
-            ),  # noqa
+            ),
         ),
     ]

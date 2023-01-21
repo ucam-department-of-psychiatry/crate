@@ -67,12 +67,11 @@ class KeywordProcessorFixed(KeywordProcessor):
             for i in range(0, len(a_sentence)):
                 char = a_sentence[i]
                 len_char_lower = len(char.lower())
-                for j in range(
-                    0, len_char_lower
-                ):  # in most cases it will work just one iteration and will add the same char  # noqa
-                    orig_sentence.append(
-                        char if j == 0 else ""
-                    )  # but if it happens that X->yz, then for z it will add ''  # noqa
+                for j in range(0, len_char_lower):
+                    # in most cases it will work just one iteration and will
+                    # add the same char
+                    orig_sentence.append(char if j == 0 else "")
+                    # but if it happens that X->yz, then for z it will add ''
         else:
             sentence = a_sentence
             orig_sentence = a_sentence
@@ -111,7 +110,7 @@ class KeywordProcessorFixed(KeywordProcessor):
                             if (
                                 inner_char not in self.non_word_boundaries
                                 and self._keyword in current_dict_continued
-                            ):  # noqa
+                            ):
                                 # update longest sequence found
                                 current_white_space = inner_char
                                 longest_sequence_found = (

@@ -47,13 +47,13 @@ class Migration(migrations.Migration):
             name="pt_discharge_date",
             field=models.DateField(
                 blank=True, null=True, verbose_name="Patient date of discharge"
-            ),  # noqa
+            ),
         ),
         migrations.AddField(
             model_name="patientlookup",
             name="pt_discharge_date",
             field=models.DateField(
                 blank=True, null=True, verbose_name="Patient date of discharge"
-            ),  # noqa
+            ),
         ),
     ]
