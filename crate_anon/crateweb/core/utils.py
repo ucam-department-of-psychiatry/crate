@@ -304,13 +304,10 @@ def javascript_quoted_string_from_html(html: str) -> str:
 
     We elect to use double-quotes.
     """
-    # log.error(f"Before: {html}")
-    x = " ".join(
-        HTML_WHITESPACE.split(html)
-    )  # Remove extra whitespace/newlines  # noqa
+    # Remove extra whitespace/newlines:
+    x = " ".join(HTML_WHITESPACE.split(html))
     x = x.replace('"', r"\"")  # Escape double quotes
     x = f'"{x}"'  # Enclose string in double quotes
-    # log.critical(f"After: {x}")
     return x
 
 

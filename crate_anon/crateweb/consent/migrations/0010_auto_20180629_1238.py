@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
             name="needs_processing",
             field=models.BooleanField(
                 default=False
-            ),  # thus protecting old data from reprocessing  # noqa
+            ),  # thus protecting old data from reprocessing
         ),
         migrations.AddField(
             model_name="consentmode",

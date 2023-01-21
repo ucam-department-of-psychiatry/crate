@@ -1107,7 +1107,7 @@ class ValidatorBase(BaseNlpParser):
 
       - positive predictive value, PPV = P(Pr | Y) = precision (\*)
       - negative predictive value, NPV = P(Ab | N)
-      - sensitivity = P(Y | Pr) = recall (*) = true positive rate
+      - sensitivity = P(Y | Pr) = recall (\*) = true positive rate
       - specificity = P(N | Ab) = true negative rate
 
       (\*) common names used in the NLP context.
@@ -1136,19 +1136,22 @@ class ValidatorBase(BaseNlpParser):
 
                 - H.  Hit: software reports the value.
                 - M.  Miss: software misses the value.
-                  (maybe: "his CRP was twenty-one".)
+                  (Maybe: "his CRP was twenty-one".)
 
             - Ab1. Absent: reference to CRP, but no numerical information,
               e.g. "her CRP was normal".
 
                 - FA1. False alarm: software reports a numerical value.
-                  (maybe: "my CRP was 7 hours behind my boss's deadline")
+                  (Maybe: "my CRP was 7 hours behind my boss's deadline")
                 - CR1. Correct rejection: software doesn't report a value.
 
         - Ab2. field contains no reference to CRP at all.
 
                 - FA2. False alarm: software reports a numerical value.
-                  (a bit hard to think of examples...)
+                  (A bit harder to think of examples... but imagine a bug
+                  that gives a hit for "number of carp: 7". Or an alternative
+                  abbreviation meaning, e.g. "took part in a cardiac
+                  rehabilitation programme (CRP) 4 hours/week".)
 
                 - CR2. Correct rejection: software doesn't report a value.
 
@@ -1322,23 +1325,18 @@ class ValidatorBase(BaseNlpParser):
         log.info(f"Testing validator: {self.classname()}")
         if verbose:
             n = len(self.regex_str_list)
-            for i, r in enumerate(self.regex_str_list):
-                log.debug(f"... regex #{i + 1}/{n}: {r}\n")
+            for i, r in enumerate(self.regex_str_list, start=1):
+                log.debug(f"... regex #{i}/{n}: {r}\n")
         for test_string, expected_match in test_expected_list:
-            actual_match = any(
+            results = list(
                 r.search(test_string) for r in self.compiled_regex_list
             )
+            actual_match = any(results)
             assert actual_match == expected_match, (
-                "Validator {name}: Expected 'any search'={expected}, got "
-                "{actual}, when parsing {test_string}; full={full}".format(
-                    name=self.classname(),
-                    expected=expected_match,
-                    actual=actual_match,
-                    test_string=repr(test_string),
-                    full=list(
-                        r.search(test_string) for r in self.compiled_regex_list
-                    ),
-                )
+                f"Validator {self.classname()}: Expected 'at least one regex "
+                f"should match somewhere (search)' to be {expected_match}, "
+                f"got {actual_match}, when parsing {test_string!r}; "
+                f"full results = {results}"
             )
         log.info("... OK")
 

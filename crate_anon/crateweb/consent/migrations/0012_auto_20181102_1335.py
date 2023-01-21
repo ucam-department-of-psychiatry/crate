@@ -45,6 +45,6 @@ class Migration(migrations.Migration):
             name="team",
             field=models.CharField(
                 max_length=100, unique=True, verbose_name="Team description"
-            ),  # noqa
+            ),
         ),
     ]

@@ -152,7 +152,7 @@ urlpatterns = [
         r"^deactivate_highlight/(?P<highlight_id>[0-9]+)/$",
         research_views.highlight_deactivate,
         name=UrlNames.DEACTIVATE_HIGHLIGHT,
-    ),  # noqa
+    ),
     re_path(
         r"^delete_highlight/(?P<highlight_id>[0-9]+)/$",
         research_views.highlight_delete,

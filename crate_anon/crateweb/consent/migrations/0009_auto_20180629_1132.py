@@ -93,16 +93,16 @@ class Migration(migrations.Migration):
                     (
                         "cpft_rio_rcep",
                         "CPFT RiO 2013- (preprocessed by Servelec RCEP tool)",
-                    ),  # noqa
+                    ),
                     ("cpft_rio_raw", "CPFT RiO 2013- (raw)"),
                     (
                         "cpft_rio_crate",
                         "CPFT RiO 2013- (preprocessed by CRATE)",
-                    ),  # noqa
+                    ),
                     (
                         "cpft_rio_datamart",
                         "CPFT RiO 2013- (data warehouse processed version)",
-                    ),  # noqa
+                    ),
                 ],
                 max_length=20,
                 verbose_name="Source database used for lookup",
