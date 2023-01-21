@@ -292,6 +292,8 @@ class Installer:
         self.configure()
         self.write_environment_variables()
         self.create_directories()
+        os.chdir(HostPath.DOCKERFILES_DIR)
+        docker.compose.pull()
         self.create_local_settings()
         self.create_anon_config()
         if self.use_https():

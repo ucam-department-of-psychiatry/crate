@@ -46,6 +46,7 @@ crate_anon/nlp_manager/launch_multiprocess_nlp.py
 
 import argparse
 import logging
+import os
 import multiprocessing
 import sys
 import time
@@ -58,13 +59,17 @@ from cardinal_pythonlib.subproc import (
 )
 from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
+from crate_anon.common.constants import EnvVar
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
 log = logging.getLogger(__name__)
 
 NLP_MANAGER = "crate_anon.nlp_manager.nlp_manager"
 
-CPUCOUNT = multiprocessing.cpu_count()
+if EnvVar.GENERATING_CRATE_DOCS in os.environ:
+    CPUCOUNT = 8
+else:
+    CPUCOUNT = multiprocessing.cpu_count()
 
 
 # =============================================================================
