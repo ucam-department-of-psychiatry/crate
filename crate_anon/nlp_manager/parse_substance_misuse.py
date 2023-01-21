@@ -241,12 +241,13 @@ class AlcoholUnits(NumericalResultParser):
     # Regex building for "no alcohol" statements
     # -------------------------------------------------------------------------
 
+    ABSTINENT = r"\b abstinent \b"
     NONE = noncapture_group(
         WORD_BOUNDARY
         + noncapture_group(
             regex_or(
                 "0",
-                r"abstinent (?: \s+ from )?",
+                rf"{ABSTINENT} (?: \s+ from \b )?",
                 NEVER,
                 "no",
                 "none",
@@ -598,7 +599,15 @@ class AlcoholUnitsValidator(ValidatorBase):
 
     @classmethod
     def get_variablename_regexstrlist(cls) -> Tuple[str, List[str]]:
-        return AlcoholUnits.NAME, [AlcoholUnits.ALCOHOL_DRINKING]
+        # We're very broad here:
+        return AlcoholUnits.NAME, [
+            regex_or(
+                ALCOHOL,
+                r"\b dr[iau]nk ",  # drink/drank/drunk plus any ending
+                AlcoholUnits.ABSTINENT,
+                AlcoholUnits.TEETOTAL,
+            )
+        ]
 
 
 # =============================================================================
