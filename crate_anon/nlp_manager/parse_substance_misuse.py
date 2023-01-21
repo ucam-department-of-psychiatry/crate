@@ -76,8 +76,13 @@ from crate_anon.nlp_manager.regex_parser import (
 )
 from crate_anon.nlp_manager.regex_units import (
     ALCOHOL,
+    DAYS_PER_WEEK,
     UK_ALCOHOL_UNITS_PER_DAY,
+    UK_ALCOHOL_UNITS_PER_MONTH,
     UK_ALCOHOL_UNITS_PER_WEEK,
+    UK_ALCOHOL_UNITS_PER_YEAR,
+    WEEKS_PER_MONTH_APPROX,
+    WEEKS_PER_YEAR_APPROX,
 )
 
 log = logging.getLogger(__name__)
@@ -123,6 +128,7 @@ class AlcoholUnits(NumericalResultParser):
         "was",
     )
     PAST_ADVERBS_RE = noncapture_group(regex_or(*PAST_ADVERBS))
+    DOES_NOT = r"does\s*n[o'’]t"  # does not, doesn't
     PRESENT_ADVERBS = (
         r"at \s+ present",
         r"currently",
@@ -131,6 +137,7 @@ class AlcoholUnits(NumericalResultParser):
         r"nowadays",
         r"presently",
         r"these \s+ days",
+        DOES_NOT,
     )
     PRESENT_ADVERBS_RE = noncapture_group(regex_or(*PRESENT_ADVERBS))
     TEMPORAL_WORDS = tuple(
@@ -230,7 +237,10 @@ class AlcoholUnits(NumericalResultParser):
         make_simple_numeric_regex(
             quantity=ALCOHOL_DRINKING,
             units=regex_or(
-                UK_ALCOHOL_UNITS_PER_DAY, UK_ALCOHOL_UNITS_PER_WEEK
+                UK_ALCOHOL_UNITS_PER_DAY,
+                UK_ALCOHOL_UNITS_PER_WEEK,
+                UK_ALCOHOL_UNITS_PER_MONTH,  # perhaps unusual!
+                UK_ALCOHOL_UNITS_PER_YEAR,  # perhaps unusual!
             ),
             units_optional=False,
         )
@@ -259,7 +269,12 @@ class AlcoholUnits(NumericalResultParser):
     TEETOTAL = noncapture_group(
         r"\b te[ea][-]?total(?:l?er)? \b",
     )
-    HAS_NEVER_DRUNK = rf"\b has \s+ {NEVER} \s+ drunk \b"
+    DOES_NOT_DRINK = noncapture_group(
+        regex_or(
+            rf"\b {DOES_NOT} \s+ drink \b",
+            rf"\b has \s+ {NEVER} \s+ drunk \b",
+        )
+    )
     OPT_TEMPORAL_AND_OR_DRINKING_BRK = (
         f"{OPT_TEMPORAL} {BRK} {OPT_DRINKING} {BRK} {OPT_TEMPORAL} {BRK}"
     )
@@ -282,8 +297,8 @@ class AlcoholUnits(NumericalResultParser):
                     {ALC} {BRK}
                     {OPT_TEMPORAL_AND_OR_DRINKING_BRK}
                 |
-                    # 3. "has never drunk... alcohol"
-                    {HAS_NEVER_DRUNK} {BRK} {ALC} {BRK}
+                    # 3. "has never drunk... alcohol", etc.
+                    {DOES_NOT_DRINK} {BRK} {ALC} {BRK}
                 |
                     # 4. "teetotal" with typos
                     {TEETOTAL}
@@ -300,7 +315,9 @@ class AlcoholUnits(NumericalResultParser):
     PREFERRED_UNIT_COLUMN = "value_uk_units_per_week"
     UNIT_MAPPING = {
         UK_ALCOHOL_UNITS_PER_WEEK: 1,  # preferred unit
-        UK_ALCOHOL_UNITS_PER_DAY: 7,  # 1 unit/day -> 7 units/week
+        UK_ALCOHOL_UNITS_PER_DAY: DAYS_PER_WEEK,  # 1 unit/day -> 7 units/week
+        UK_ALCOHOL_UNITS_PER_MONTH: 1 / WEEKS_PER_MONTH_APPROX,
+        UK_ALCOHOL_UNITS_PER_YEAR: 1 / WEEKS_PER_YEAR_APPROX,
     }
 
     # -------------------------------------------------------------------------
@@ -467,7 +484,15 @@ class AlcoholUnits(NumericalResultParser):
         six_no_tense = [{self.target_unit: 6, FN_TENSE: None}]
         six_past = [{self.target_unit: 6, FN_TENSE: PAST}]
         six_present = [{self.target_unit: 6, FN_TENSE: PRESENT}]
-        forty_two_present = [{self.target_unit: 6 * 7, FN_TENSE: PRESENT}]
+        six_per_day_present = [
+            {self.target_unit: 6 * DAYS_PER_WEEK, FN_TENSE: PRESENT}
+        ]
+        six_per_month_present = [
+            {self.target_unit: 6 / WEEKS_PER_MONTH_APPROX, FN_TENSE: PRESENT}
+        ]
+        six_per_year_present = [
+            {self.target_unit: 6 / WEEKS_PER_YEAR_APPROX, FN_TENSE: PRESENT}
+        ]
         under_6_present = [
             {self.target_unit: 6, FN_RELATION: "<", FN_TENSE: PRESENT}
         ]
@@ -529,9 +554,9 @@ class AlcoholUnits(NumericalResultParser):
                 ("Drinks 6 UK units per week", six_present),
                 ("Drinks 6 UK alcohol units per week", six_present),
                 ("[silly] Drinks 6 UK alcohol IU per week", six_present),
-                ("Drinks 6 units/d", forty_two_present),
-                ("Drinks 6 units/dy", forty_two_present),
-                ("Drinks 6 units/day", forty_two_present),
+                ("Drinks 6 units/d", six_per_day_present),
+                ("Drinks 6 units/dy", six_per_day_present),
+                ("Drinks 6 units/day", six_per_day_present),
                 ("Currently drinks 6 units per week", six_present),
                 ("These days drinks 6 units per week", six_present),
                 ("Now drinks 6 units per week", six_present),
@@ -543,6 +568,8 @@ class AlcoholUnits(NumericalResultParser):
                 ("Alcohol: presently 6 u/w", six_present),
                 ("In terms of alcohol she drinks 6 units/week", six_present),
                 ("Has been drinking 6 units per week", six_present),
+                ("Drinks 6 units per month", six_per_month_present),
+                ("Drinks 6 units per year", six_per_year_present),
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Inequalities:
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -577,6 +604,8 @@ class AlcoholUnits(NumericalResultParser):
                 ("Alcohol: currently none", no_alcohol_present),
                 ("Drinks no alcohol", no_alcohol_present),
                 ("Drinks zero alcohol", no_alcohol_present),
+                ("Does not drink alcohol", no_alcohol_present),
+                ("Doesn't drink alcohol", no_alcohol_present),
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # References to not drinking -- ever:
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -587,6 +616,14 @@ class AlcoholUnits(NumericalResultParser):
                 # Vague references to not drinking, not interpreted:
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 ("Has not drunk alcohol", no_results),
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # Potential teetotal statements, but very tricky to be sure:
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                ("Doesn't drink [coffee]", no_results),
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # Distractors:
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                ("Lemonade, which he does not drink.", no_results),
             ],
             verbose=verbose,
         )

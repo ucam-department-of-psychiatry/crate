@@ -455,7 +455,7 @@ class NumericalResultParser(BaseNlpParser):
         if len(full_result) != len(expected):
             raise ValueError(
                 f"Parser {self.classname()}: expected {len(expected)} results "
-                f"but got {len(full_result)} when parsing {text!r};"
+                f"but got {len(full_result)} when parsing {text!r}; "
                 f"full result:\n{full_result!r}"
             )
         if verbose:

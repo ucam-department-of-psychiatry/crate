@@ -82,7 +82,7 @@ def per(
     ]
     if include_power_minus1:
         options.append(rf"{numerator_part} \b {denominator} \s* -1")
-    return r"(?: {} )".format(r" | ".join(options))
+    return r"(?: {} )".format(" | ".join(options))
 
 
 def _out_of_str(n_as_regex: str) -> str:
@@ -230,9 +230,27 @@ PER_CUBIC_MM = per("", CUBIC_MM, numerator_optional=True)
 # Time
 # -----------------------------------------------------------------------------
 
-HOUR = r"(?:h(?:rs?|ours?)?)"  # h, hr, hrs, hour, hours
-DAY = r"(?:d(?:y?|ay?)?)"  # d, dy, day
-WEEK = r"(?:w(?:k?|eek?)?)"  # w, wk, week
+HOUR = r"(?: \b h(?:rs?|ours?)? \b)"  # h, hr, hrs, hour, hours
+DAY = r"(?: \b d(?:y?|ay?)? \b )"  # d, dy, day
+WEEK = r"(?: \b w(?:k?|eek?)? \b)"  # w, wk, week
+MONTH = r"(?:\b month \b)"  # month
+YEAR = r"(?:\b y(?:(?:ea)?r)? \b)"  # y, yr, year
+
+DAYS_PER_WEEK = 7
+
+# The mean month (across a normal 4-year cycle ignoring century non-leap years)
+# is 30.4375 days:
+# n <- c(28, rep(30, 4), rep(31, 7))  # mean 30.41667
+# l <- c(29, rep(30, 4), rep(31, 7))  # mean 30.5
+# fouryearcycle <- c(n, n, n, l)  # mean 30.4375
+# century <- c(rep(n, 76), rep(l, 24))  # mean 30.43667
+# mean(n) / 7  # 4.345238
+# mean(fouryearcycle) / 7  # 4.348214
+# mean(century) / 7  # 4.348095
+# ... the Google answer for weeks per month is 4.34524, i.e. a normal year.
+# But let's not be spuriouly precise:
+WEEKS_PER_MONTH_APPROX = 4.35
+WEEKS_PER_YEAR_APPROX = 52
 
 # -----------------------------------------------------------------------------
 # Proportions
@@ -259,8 +277,18 @@ UK_ALCOHOL_UNITS = rf"(?: (?: {UK} \s+)? ({ALCOHOL} \s+)? {UNITS} )"
 # U, unit, units, UK units, UK alcohol units...
 # I thought not "IU" as they are not international units; however, RS used that
 # term, so whether correct or in error, that's sufficient for me to include it!
-UK_ALCOHOL_UNITS_PER_DAY = per(UK_ALCOHOL_UNITS, DAY)
-UK_ALCOHOL_UNITS_PER_WEEK = per(UK_ALCOHOL_UNITS, WEEK)
+UK_ALCOHOL_UNITS_PER_DAY = per(
+    UK_ALCOHOL_UNITS, DAY, include_power_minus1=False
+)
+UK_ALCOHOL_UNITS_PER_WEEK = per(
+    UK_ALCOHOL_UNITS, WEEK, include_power_minus1=False
+)
+UK_ALCOHOL_UNITS_PER_MONTH = per(
+    UK_ALCOHOL_UNITS, MONTH, include_power_minus1=False
+)
+UK_ALCOHOL_UNITS_PER_YEAR = per(
+    UK_ALCOHOL_UNITS, YEAR, include_power_minus1=False
+)
 
 SCORE = r"(?:scored?)"  # score(d)
 
