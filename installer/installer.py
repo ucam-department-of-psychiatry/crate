@@ -77,6 +77,7 @@ from semantic_version import Version
 # Constants
 # =============================================================================
 
+MINIMUM_DOCKER_COMPOSE_VERSION = Version("2.0.0")
 EXIT_FAILURE = 1
 
 
@@ -294,6 +295,26 @@ class Installer:
         self.create_directories()
         os.chdir(HostPath.DOCKERFILES_DIR)
         docker.compose.pull()
+
+        # Something broke here (at/before Jan 2023, during CRATE 0.19.4
+        # development), likely related to a change on Github from an older
+        # Docker Compose (my Wombat copy is 2.3.3) to Github's version of
+        # 2.15.1+azure-1 (with Docker version 20.10.22+azure-1). The
+        # self.create_local_settings() function runs a Docker command in the
+        # CRATE container, via "docker compose run --rm crate_workers /bin/bash
+        # ...". However, the RUN command in crate.Dockerfile was no longer
+        # being run first. This gave errors like
+        #   /bin/bash: /crate/venv/bin/activate: No such file or directory
+        #   /bin/bash: crate_print_demo_crateweb_config: command not found
+        # The Docker Compose changelog is at
+        # https://docs.docker.com/compose/release-notes/. The bug may be
+        # related to https://github.com/docker/compose/issues/9259. Possible
+        # solutions are to use the "--build" argument to "docker compose run"
+        # (https://docs.docker.com/engine/reference/commandline/compose_run/),
+        # or to run the "docker compose build" command first
+        # (https://docs.docker.com/engine/reference/commandline/compose_build/).
+        docker.compose.build()
+
         self.create_local_settings()
         self.create_anon_config()
         if self.use_https():
@@ -388,10 +409,10 @@ class Installer:
             )
 
         version = Version(version_string)
-        if version.major < 2:
+        if version < MINIMUM_DOCKER_COMPOSE_VERSION:
             self.fail(
                 f"The version of Docker Compose ({version}) is too old. "
-                "Please install v2 or greater."
+                f"Please install v{MINIMUM_DOCKER_COMPOSE_VERSION} or greater."
             )
 
     def configure(self) -> None:

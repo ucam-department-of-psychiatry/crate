@@ -46,15 +46,20 @@ set -eux -o pipefail
 PRODUCTION=1
 
 while getopts 'dh' OPT; do
-  case "$OPT" in
-    d)
-        PRODUCTION=0
-        ;;
-    h)
-        echo "Usage: $(basename $0) [-d]"
-        exit 0
-        ;;
-  esac
+    case "$OPT" in
+        d)
+            PRODUCTION=0
+            ;;
+        h)
+            echo "Usage: $(basename "$0") [-d]"
+            # https://unix.stackexchange.com/questions/118433/quoting-within-command-substitution-in-bash
+            exit 0
+            ;;
+        *)
+            echo "Usage: $(basename "$0") [-d]"
+            exit 1
+            ;;
+    esac
 done
 
 
