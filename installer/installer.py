@@ -77,6 +77,7 @@ from semantic_version import Version
 # Constants
 # =============================================================================
 
+MINIMUM_DOCKER_COMPOSE_VERSION = Version("2.0.0")
 EXIT_FAILURE = 1
 
 
@@ -386,10 +387,10 @@ class Installer:
             )
 
         version = Version(version_string)
-        if version.major < 2:
+        if version < MINIMUM_DOCKER_COMPOSE_VERSION:
             self.fail(
                 f"The version of Docker Compose ({version}) is too old. "
-                "Please install v2 or greater."
+                f"Please install v{MINIMUM_DOCKER_COMPOSE_VERSION} or greater."
             )
 
     def configure(self) -> None:
