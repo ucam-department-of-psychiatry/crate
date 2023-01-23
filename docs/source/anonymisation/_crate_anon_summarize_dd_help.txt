@@ -1,7 +1,7 @@
 USAGE: crate_anon_summarize_dd [-h] [--config CONFIG] [--verbose]
                                [--output OUTPUT]
 
-Draft a data dictionary for the anonymiser. (CRATE version 0.19.4, 2022-05-24.
+Draft a data dictionary for the anonymiser. (CRATE version 0.19.4, 2023-01-22.
 Created by Rudolf Cardinal.)
 
 OPTIONAL ARGUMENTS:
