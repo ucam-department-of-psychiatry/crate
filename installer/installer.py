@@ -293,8 +293,8 @@ class Installer:
         self.configure()
         self.write_environment_variables()
         self.create_directories()
-        os.chdir(HostPath.DOCKERFILES_DIR)
-        docker.compose.pull()
+        # os.chdir(HostPath.DOCKERFILES_DIR)
+        # docker.compose.pull()
 
         # Something broke here (at/before Jan 2023, during CRATE 0.19.4
         # development), likely related to a change on Github from an older
@@ -313,8 +313,7 @@ class Installer:
         # (https://docs.docker.com/engine/reference/commandline/compose_run/),
         # or to run the "docker compose build" command first
         # (https://docs.docker.com/engine/reference/commandline/compose_build/).
-        docker.compose.build()
-
+        # docker.compose.build()
         self.create_local_settings()
         self.create_anon_config()
         if self.use_https():
