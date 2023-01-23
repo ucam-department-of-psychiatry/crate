@@ -26,9 +26,10 @@ jobs:
                 ls -a ${DOCKER_CONFIG}/cli-plugins
                 docker version
                 docker compose version
-                # 2.2.2 works???
+                # 2.2.2 works
+                # 2.7.0 ??
                 # 2.15.1 fails
-                curl -SL https://github.com/docker/compose/releases/download/v2.2.2/docker-compose-linux-x86_64 -o ${DOCKER_CONFIG}/cli-plugins/docker-compose
+                curl -SL https://github.com/docker/compose/releases/download/v2.7.0/docker-compose-linux-x86_64 -o ${DOCKER_CONFIG}/cli-plugins/docker-compose
                 chmod ugo+x ${DOCKER_CONFIG}/cli-plugins/docker-compose
                 docker compose version
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
