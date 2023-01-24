@@ -78,6 +78,7 @@ from semantic_version import Version
 # =============================================================================
 
 MINIMUM_DOCKER_COMPOSE_VERSION = Version("2.0.0")
+MAXIMUM_DOCKER_COMPOSE_VERSION = Version("2.14.0")
 EXIT_FAILURE = 1
 
 
@@ -293,27 +294,13 @@ class Installer:
         self.configure()
         self.write_environment_variables()
         self.create_directories()
-        # os.chdir(HostPath.DOCKERFILES_DIR)
-        # docker.compose.pull()
-
         # Something broke here (at/before Jan 2023, during CRATE 0.19.4
-        # development), likely related to a change on Github from an older
-        # Docker Compose (my Wombat copy is 2.3.3) to Github's version of
-        # 2.15.1+azure-1 (with Docker version 20.10.22+azure-1). The
-        # self.create_local_settings() function runs a Docker command in the
-        # CRATE container, via "docker compose run --rm crate_workers /bin/bash
-        # ...". However, the RUN command in crate.Dockerfile was no longer
-        # being run first. This gave errors like
-        #   /bin/bash: /crate/venv/bin/activate: No such file or directory
-        #   /bin/bash: crate_print_demo_crateweb_config: command not found
-        # The Docker Compose changelog is at
-        # https://docs.docker.com/compose/release-notes/. The bug may be
-        # related to https://github.com/docker/compose/issues/9259. Possible
-        # solutions are to use the "--build" argument to "docker compose run"
-        # (https://docs.docker.com/engine/reference/commandline/compose_run/),
-        # or to run the "docker compose build" command first
-        # (https://docs.docker.com/engine/reference/commandline/compose_build/).
-        # docker.compose.build()
+        # development), with GitHub's adoption of a later release of Docker
+        # Compose. This is no longer working with Docker Compose >= 2.14.1
+        # https://github.com/ucam-department-of-psychiatry/crate/issues/110
+        # Creating the local settings no longer executes the commands in the
+        # crate.Dockerfile to set up the virtual environment before the command
+        # is run and we get a "No such file or directory" error.
         self.create_local_settings()
         self.create_anon_config()
         if self.use_https():
@@ -411,7 +398,15 @@ class Installer:
         if version < MINIMUM_DOCKER_COMPOSE_VERSION:
             self.fail(
                 f"The version of Docker Compose ({version}) is too old. "
-                f"Please install v{MINIMUM_DOCKER_COMPOSE_VERSION} or greater."
+                f"Please install v{MINIMUM_DOCKER_COMPOSE_VERSION} - "
+                f"v{MAXIMUM_DOCKER_COMPOSE_VERSION}."
+            )
+        if version > MAXIMUM_DOCKER_COMPOSE_VERSION:
+            self.fail(
+                "The installer is currently broken with Docker Compose "
+                f"{version}. "
+                f"Please install v{MINIMUM_DOCKER_COMPOSE_VERSION} - "
+                f"v{MAXIMUM_DOCKER_COMPOSE_VERSION}."
             )
 
     def configure(self) -> None:

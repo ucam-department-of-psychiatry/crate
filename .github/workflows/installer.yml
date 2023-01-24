@@ -23,25 +23,16 @@ jobs:
                 set -eux -o pipefail
                 DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
                 mkdir -p ${DOCKER_CONFIG}/cli-plugins
-                ls -a ${DOCKER_CONFIG}/cli-plugins
                 docker version
                 docker compose version
-                # 2.2.2 works
-                # 2.7.0 works
-                # 2.11.2 works
-                # 2.13 works
-                # 2.14.0 works
-                # 2.14.1
-                # 2.14.2 fails
-                # 2.15.1 fails
-                curl -SL https://github.com/docker/compose/releases/download/v2.14.1/docker-compose-linux-x86_64 -o ${DOCKER_CONFIG}/cli-plugins/docker-compose
+                # Something in 2.14.1 broke the installer.
+                # https://github.com/ucam-department-of-psychiatry/crate/issues/110
+                echo "Installing older Docker Compose..."
+                curl -SL https://github.com/docker/compose/releases/download/v2.14.0/docker-compose-linux-x86_64 -o ${DOCKER_CONFIG}/cli-plugins/docker-compose
                 chmod ugo+x ${DOCKER_CONFIG}/cli-plugins/docker-compose
                 docker compose version
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
                 ${GITHUB_WORKSPACE}/github_action_scripts/installer_setup.sh
-                echo "HOME is ${HOME}"
-                echo "GITHUB_WORKSPACE is ${GITHUB_WORKSPACE}"
-                echo "CRATE_DOCKER_CONFIG_HOST_DIR is ${CRATE_DOCKER_CONFIG_HOST_DIR}"
                 cd ${GITHUB_WORKSPACE}/installer
                 ./installer.sh -d
                 export CRATE_HOME=${GITHUB_WORKSPACE}
