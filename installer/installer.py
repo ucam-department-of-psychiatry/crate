@@ -78,7 +78,6 @@ from semantic_version import Version
 # =============================================================================
 
 MINIMUM_DOCKER_COMPOSE_VERSION = Version("2.0.0")
-MAXIMUM_DOCKER_COMPOSE_VERSION = Version("2.14.0")
 EXIT_FAILURE = 1
 
 
@@ -294,13 +293,6 @@ class Installer:
         self.configure()
         self.write_environment_variables()
         self.create_directories()
-        # Something broke here (at/before Jan 2023, during CRATE 0.19.4
-        # development), with GitHub's adoption of a later release of Docker
-        # Compose. This is no longer working with Docker Compose >= 2.14.1
-        # https://github.com/ucam-department-of-psychiatry/crate/issues/110
-        # Creating the local settings no longer executes the commands in the
-        # crate.Dockerfile to set up the virtual environment before the command
-        # is run and we get a "No such file or directory" error.
         self.create_local_settings()
         self.create_anon_config()
         if self.use_https():
@@ -398,15 +390,7 @@ class Installer:
         if version < MINIMUM_DOCKER_COMPOSE_VERSION:
             self.fail(
                 f"The version of Docker Compose ({version}) is too old. "
-                f"Please install v{MINIMUM_DOCKER_COMPOSE_VERSION} - "
-                f"v{MAXIMUM_DOCKER_COMPOSE_VERSION}."
-            )
-        if version > MAXIMUM_DOCKER_COMPOSE_VERSION:
-            self.fail(
-                "The installer is currently broken with Docker Compose "
-                f"{version}. "
-                f"Please install v{MINIMUM_DOCKER_COMPOSE_VERSION} - "
-                f"v{MAXIMUM_DOCKER_COMPOSE_VERSION}."
+                f"Please install v{MINIMUM_DOCKER_COMPOSE_VERSION} or greater."
             )
 
     def configure(self) -> None:

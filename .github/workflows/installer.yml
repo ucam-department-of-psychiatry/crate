@@ -25,12 +25,6 @@ jobs:
                 mkdir -p ${DOCKER_CONFIG}/cli-plugins
                 docker version
                 docker compose version
-                # Something in 2.14.1 broke the installer.
-                # https://github.com/ucam-department-of-psychiatry/crate/issues/110
-                echo "Installing older Docker Compose..."
-                curl -SL https://github.com/docker/compose/releases/download/v2.14.0/docker-compose-linux-x86_64 -o ${DOCKER_CONFIG}/cli-plugins/docker-compose
-                chmod ugo+x ${DOCKER_CONFIG}/cli-plugins/docker-compose
-                docker compose version
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
                 ${GITHUB_WORKSPACE}/github_action_scripts/installer_setup.sh
                 cd ${GITHUB_WORKSPACE}/installer
