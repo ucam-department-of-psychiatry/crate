@@ -49,3 +49,7 @@ http://doi.org/10.1186/s12911-017-0437-1.
     consent-to-contact process. The anonymisation, NLP, front end, and
     consent-to-contact components are modular and usable separately.
 
+- Source code is at https://github.com/ucam-department-of-psychiatry/crate.
+
+- CRATE is https://web.www.healthdatagateway.org/tool/5247022928209417 at the
+  HDR UK Innovation Gateway.

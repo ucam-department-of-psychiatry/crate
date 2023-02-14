@@ -119,6 +119,7 @@ def bulk_hash(
                 outline = f"{hashed},{line}" if keep_id else hashed
                 # log.debug(f"{line!r} -> {hashed!r}")
                 writeline_nl(o, outline)
+    log.info("Done.")
 
 
 def main() -> None:
