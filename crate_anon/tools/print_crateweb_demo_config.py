@@ -56,6 +56,7 @@ from typing import List, TYPE_CHECKING
 # Include the following if you want to use it in CELERYBEAT_SCHEDULE
 # from celery.schedules import crontab
 
+from crate_anon.common.constants import mebibytes
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
 
 if TYPE_CHECKING:
@@ -365,7 +366,7 @@ PRIVATE_FILE_STORAGE_ROOT = "@@private_file_storage_root@@"
 XSENDFILE = False
 
 # How big will we accept?
-MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 Mb
+MAX_UPLOAD_SIZE_BYTES = mebibytes(10)
 
 
 # =============================================================================

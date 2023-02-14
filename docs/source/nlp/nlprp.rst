@@ -49,7 +49,7 @@
 Natural Language Processing Request Protocol (NLPRP)
 ----------------------------------------------------
 
-**Version 0.2.0**
+**Version 0.3.0**
 
 .. contents::
    :local:
@@ -751,8 +751,8 @@ the following structure:
     * - ``content``
       - Array
       - Mandatory
-      - A list of JSON objects representing text to be parsed, with optional
-        associated metadata. Each object has the following keys:
+      - A list of JSON objects representing text to be parsed (documents), with
+        optional associated metadata. Each object has the following keys:
 
         - ``text`` (string, mandatory): The actual text to parse.
         - ``metadata`` (value, optional): The metadata will be returned
@@ -1280,12 +1280,36 @@ the queue ID.
 
 - If the queue ID doesn’t correspond to a current queue entry, an error will be
   returned (HTTP 404 Not Found).
-- If the queue entry is still busy being processed, an information code will be
-  returned (HTTP 102 Processing).
+
 - If the queue entry is ready for collection, the reply will be of the format
   for an “immediate” process request. The queue entry will be deleted upon
   collection.
 
+- If the queue entry is still busy being processed, an information code will be
+  returned (HTTP 202 Accepted), along with details as follows:
+
+  .. rst-class:: nlprpresponse
+
+    .. list-table::
+      :widths: 15 15 15 55
+      :header-rows: 1
+
+      * - Key
+        - JSON type
+        - Required?
+        - Description
+
+      * - ``n_docprocs``
+        - Value
+        - Optional
+        - The total number of document/processor pairs corresponding to the
+          queue entry.
+
+      * - ``n_docprocs_completed``
+        - Value
+        - Optional
+        - The number of document/processor pairs corresponding to the queue
+          entry for which processing has been completed.
 
 .. _nlprp_delete_from_queue:
 
@@ -1368,7 +1392,7 @@ process_           Request queued                            202 Accepted
 process_           Upstream server went wrong                502 Bad Gateway
 process_           Server is too busy right now              503 Service Unavailable
 fetch_from_queue_  No such queue entry                       404 Not Found
-fetch_from_queue_  Entry still in queue and being processed  102 Processing [#http102]_
+fetch_from_queue_  Entry still in queue and being processed  202 Accepted
 ================== ========================================= ==========================
 
 
@@ -1523,6 +1547,13 @@ NLPRP history
 - Corresponding constraints on the results format for processors that provide a
   tabular schema.
 
+**v0.3.0**
+
+- 14 Feb 2023, RNC.
+- Use HTTP 202 (Accepted), not 102 (Processing), for the in-progress response
+  to fetch_from_queue_, and report how many are complete. See
+  https://github.com/ucam-department-of-psychiatry/crate/issues/106.
+
 
 ===============================================================================
 
@@ -1547,10 +1578,3 @@ NLPRP history
     - https://developer.twitter.com/en/docs/basics/response-codes
     - http://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
     - https://blog.runscope.com/posts/6-common-api-errors
-
-.. [#http102]
-
-    See:
-
-    - https://stackoverflow.com/questions/9794696/how-do-i-choose-a-http-status-code-in-rest-api-for-not-ready-yet-try-again-lat
-    - https://tools.ietf.org/html/rfc2518#section-10.1

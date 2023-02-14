@@ -31,6 +31,7 @@ crate_anon/crateweb/config/test_settings.py
 
 from pathlib import Path
 
+from crate_anon.common.constants import mebibytes
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -106,7 +107,7 @@ RESEARCH_DB_INFO = [
 RESEARCH_DB_FOR_CONTACT_LOOKUP = "research"
 
 PRIVATE_FILE_STORAGE_ROOT = "/tmp/files"
-MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 Mb
+MAX_UPLOAD_SIZE_BYTES = mebibytes(10)
 SECRET_KEY = "ti_aghvCFNnC6L3M8Sq48n1j0SIXaITJO0uFi2DTXBc"
 RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 FORCE_SCRIPT_NAME = "/crate"
