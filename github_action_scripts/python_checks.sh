@@ -21,10 +21,13 @@ echo installing vulnerability checker
 python -m pip install safety
 echo checking packages for vulnerabilities
 # All of these vulnerabilities look either harmless or very low risk
-# 44715 numpy fixed in 1.22 https://github.com/numpy/numpy/issues/19038
-# 44716 numpy fixed in 1.22 https://github.com/numpy/numpy/issues/19000
-# 44717 numpy fixed in 1.22 https://github.com/numpy/numpy/issues/18993
-safety check --full-report -i 44715 -i 44716 -i 44717
+# 51457 py no fix yet
+#       https://github.com/pytest-dev/py/issues/287
+# 51668 sqlalchemy fix in 2.0 beta, we don't log Engine.URL()
+#       https://github.com/sqlalchemy/sqlalchemy/issues/8567
+# 52495 setuptools fix in 65.5.1, we'll be careful not to
+#       install malicious packages.
+safety check --full-report --ignore=51457 --ignore=51668 --ignore=52495
 echo checking python formatting
 black --line-length 79 --diff --check .
 echo checking python for style and errors

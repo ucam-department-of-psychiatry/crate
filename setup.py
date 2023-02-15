@@ -71,14 +71,14 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==1.1.21",  # RNC libraries
+    "cardinal_pythonlib==1.1.24",  # RNC libraries
     "cairosvg==2.5.1",  # work with SVG files
     "celery==5.2.3",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==3.2.14",  # for main CRATE research database web server
+    "django==3.2.18",  # for main CRATE research database web server
     "django-debug-toolbar==3.0a2",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
@@ -89,13 +89,13 @@ INSTALL_REQUIRES = [
     "drf-spectacular==0.22.0",  # Open API Schema and documentation
     "drf-spectacular-sidecar==2022.3.21",  # Static files for drf-spectacular
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
-    "flower==1.1.0",  # debug Celery; web server; only runs explicitly
+    "flower==1.2.0",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
     "gunicorn==20.0.4",  # UNIX only, though will install under Windows
     "gutenbergpy==0.3.4",  # Project Gutenberg API
     "jsonlines==3.0.0",  # JSON Lines format
     "kombu==5.2.3",  # AMQP library for Celery; requires VC++ under Windows
-    "mako==1.1.3",  # templates with Python in
+    "mako==1.2.2",  # templates with Python in
     "MarkupSafe==2.0.1",  # for HTML escaping
     # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa: E501
@@ -103,7 +103,7 @@ INSTALL_REQUIRES = [
     "numpy==1.22.4",  # numerical work
     "openpyxl==3.0.7",  # read Excel
     "pendulum==2.1.2",  # dates/times
-    "Pillow==9.0.1",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
+    "Pillow==9.3.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==3.2.0",  # pretty formating of text-based tables
     "psutil==5.7.2",  # process management
@@ -111,7 +111,7 @@ INSTALL_REQUIRES = [
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.8.1",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
-    "PyPDF2==1.27.5",  # [pin exact version from cardinal_pythonlib]
+    "pypdf==3.1.0",
     "pytz==2021.3",  # timezones
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
@@ -124,7 +124,7 @@ INSTALL_REQUIRES = [
     "unidecode==1.1.1",  # for removing accents
     # Packages for cloud NLP:
     "bcrypt==3.1.7",  # bcrypt encryption
-    "cryptography==3.3.2",  # cryptography library
+    "cryptography==39.0.1",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework
