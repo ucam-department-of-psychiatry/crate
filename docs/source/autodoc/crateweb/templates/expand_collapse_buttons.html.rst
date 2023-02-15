@@ -24,4 +24,4 @@ crate_anon/crateweb/templates/expand_collapse_buttons.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/expand_collapse_buttons.html
-    :language: html+django
+    :language: HTML

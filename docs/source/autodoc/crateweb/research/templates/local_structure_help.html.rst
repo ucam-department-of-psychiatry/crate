@@ -24,4 +24,4 @@ crate_anon/crateweb/research/templates/local_structure_help.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/local_structure_help.html
-    :language: html+django
+    :language: HTML

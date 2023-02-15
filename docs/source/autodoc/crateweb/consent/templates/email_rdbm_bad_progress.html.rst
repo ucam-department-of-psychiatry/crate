@@ -24,4 +24,4 @@ crate_anon/crateweb/consent/templates/email_rdbm_bad_progress.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/email_rdbm_bad_progress.html
-    :language: html+django
+    :language: HTML

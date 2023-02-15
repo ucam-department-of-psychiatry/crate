@@ -24,4 +24,4 @@ crate_anon/crateweb/research/templates/include_clinician_warning_yours_only.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/include_clinician_warning_yours_only.html
-    :language: html+django
+    :language: HTML

@@ -24,4 +24,4 @@ crate_anon/crateweb/consent/templates/email_researcher_withdrawal.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/email_researcher_withdrawal.html
-    :language: html+django
+    :language: HTML

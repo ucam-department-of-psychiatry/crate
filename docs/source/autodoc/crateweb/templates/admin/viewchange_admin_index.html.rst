@@ -24,4 +24,4 @@ crate_anon/crateweb/templates/admin/viewchange_admin_index.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/templates/admin/viewchange_admin_index.html
-    :language: html+django
+    :language: HTML

@@ -24,4 +24,4 @@ crate_anon/crateweb/consent/templates/letter_patient_confirm_traffic.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/letter_patient_confirm_traffic.html
-    :language: html+django
+    :language: HTML

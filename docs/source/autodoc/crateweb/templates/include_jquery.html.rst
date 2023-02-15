@@ -24,4 +24,4 @@ crate_anon/crateweb/templates/include_jquery.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/include_jquery.html
-    :language: html+django
+    :language: HTML

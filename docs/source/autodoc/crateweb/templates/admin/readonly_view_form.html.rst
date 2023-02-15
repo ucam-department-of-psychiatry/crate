@@ -24,4 +24,4 @@ crate_anon/crateweb/templates/admin/readonly_view_form.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/templates/admin/readonly_view_form.html
-    :language: html+django
+    :language: HTML

@@ -24,4 +24,4 @@ crate_anon/crateweb/templates/password_change.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/password_change.html
-    :language: html+django
+    :language: HTML

@@ -24,4 +24,4 @@ crate_anon/crateweb/templates/anonymise_api/home.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/templates/anonymise_api/home.html
-    :language: html+django
+    :language: HTML

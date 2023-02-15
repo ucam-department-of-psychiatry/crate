@@ -24,4 +24,4 @@ crate_anon/crateweb/consent/templates/contact_request_result.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/contact_request_result.html
-    :language: html+django
+    :language: HTML

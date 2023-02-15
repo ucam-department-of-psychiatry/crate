@@ -24,4 +24,4 @@ crate_anon/crateweb/consent/templates/letter_patient_first_traffic_light.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/letter_patient_first_traffic_light.html
-    :language: html+django
+    :language: HTML

@@ -24,4 +24,4 @@ crate_anon/crateweb/research/templates/querybuilder_extrahead.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/querybuilder_extrahead.html
-    :language: html+django
+    :language: HTML

@@ -24,4 +24,4 @@ crate_anon/crateweb/consent/templates/email_rdbm_new_work_pt_from_clinician.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/email_rdbm_new_work_pt_from_clinician.html
-    :language: html+django
+    :language: HTML
