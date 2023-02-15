@@ -124,7 +124,7 @@ INSTALL_REQUIRES = [
     "unidecode==1.1.1",  # for removing accents
     # Packages for cloud NLP:
     "bcrypt==3.1.7",  # bcrypt encryption
-    "cryptography==3.3.2",  # cryptography library
+    "cryptography==39.0.1",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework
