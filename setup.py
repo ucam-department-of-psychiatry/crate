@@ -71,7 +71,7 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==1.1.21",  # RNC libraries
+    "cardinal_pythonlib==1.1.24",  # RNC libraries
     "cairosvg==2.5.1",  # work with SVG files
     "celery==5.2.3",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib
@@ -111,7 +111,7 @@ INSTALL_REQUIRES = [
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.8.1",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
-    "PyPDF2==1.27.5",  # [pin exact version from cardinal_pythonlib]
+    "pypdf==3.1.0",
     "pytz==2021.3",  # timezones
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
