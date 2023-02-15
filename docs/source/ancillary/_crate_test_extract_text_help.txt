@@ -1,4 +1,4 @@
-usage: crate_test_extract_text [-h] [--plain] [--semiplain] [--width WIDTH]
+USAGE: crate_test_extract_text [-h] [--plain] [--semiplain] [--width WIDTH]
                                [--rstrip] [--silent] [--outfile OUTFILE]
                                [--encoding ENCODING] [--verbose]
                                filename
@@ -9,12 +9,12 @@ Exit codes:
 - 0 for "text found"
 - 1 for "no text found"
 - 2 for "error" (e.g. file not found)
-        
 
-positional arguments:
+
+POSITIONAL ARGUMENTS:
   filename             File from which to extract text
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help           show this help message and exit
   --plain              Use plainest format (re e.g. table layouts) (default:
                        False)

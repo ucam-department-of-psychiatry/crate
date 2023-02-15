@@ -1,4 +1,4 @@
-usage: crate_anon_draft_dd [-h] [--config CONFIG] [--verbose] [--incremental]
+USAGE: crate_anon_draft_dd [-h] [--config CONFIG] [--verbose] [--incremental]
                            [--skip_dd_check] [--output OUTPUT]
                            [--explicit_dest_datatype] [--systmone]
                            [--systmone_context {tpp_sre,cpft_dw}]
@@ -11,7 +11,7 @@ usage: crate_anon_draft_dd [-h] [--config CONFIG] [--verbose] [--incremental]
 Draft a data dictionary for the anonymiser. (CRATE version 0.19.4, 2023-01-22.
 Created by Rudolf Cardinal.)
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --config CONFIG       Config file (overriding environment variable
                         CRATE_ANON_CONFIG). Note that the config file has
@@ -39,11 +39,10 @@ optional arguments:
                         can read a database and customize the data dictionary
                         for SystmOne. (default: False)
 
-SystmOne options (for when --systmone is used):
+SYSTMONE OPTIONS (FOR WHEN --SYSTMONE IS USED):
   --systmone_context {tpp_sre,cpft_dw}
                         Context of the SystmOne database that you are reading.
-                        [tpp_sre: TPP Strategic Reporting Extract // cpft_dw:
-                        CPFT Data Warehouse] (default: cpft_dw)
+                        (default: cpft_dw)
   --systmone_sre_spec SYSTMONE_SRE_SPEC
                         SystmOne Strategic Reporting Extract (SRE)
                         specification CSV filename (from TPP, containing

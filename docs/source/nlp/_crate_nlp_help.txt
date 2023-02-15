@@ -1,4 +1,4 @@
-usage: crate_nlp [-h] [--config CONFIG] [--nlpdef NLPDEF] [-i | -f]
+USAGE: crate_nlp [-h] [--config CONFIG] [--nlpdef NLPDEF] [-i | -f]
                  [--dropremake] [--skipdelete] [--nlp] [--chunksize CHUNKSIZE]
                  [--verbose] [--report_every_fast REPORT_EVERY_FAST]
                  [--report_every_nlp REPORT_EVERY_NLP] [--echo] [--timing]
@@ -11,10 +11,10 @@ usage: crate_nlp [-h] [--config CONFIG] [--nlpdef NLPDEF] [-i | -f]
 
 NLP manager. Version 0.19.4 (2023-01-22). By Rudolf Cardinal.
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
 
-Config options:
+CONFIG OPTIONS:
   --config CONFIG       Config file (overriding environment variable
                         CRATE_NLP_CONFIG) (default: None)
   --nlpdef NLPDEF       NLP definition name (from config file) (default: None)
@@ -29,7 +29,7 @@ Config options:
                         Number of records copied in a chunk when copying PKs
                         from one database to another (default: 100000)
 
-Reporting options:
+REPORTING OPTIONS:
   --verbose, -v         Be verbose (use twice for extra verbosity) (default:
                         False)
   --report_every_fast REPORT_EVERY_FAST
@@ -41,7 +41,7 @@ Reporting options:
   --echo                Echo SQL (default: False)
   --timing              Show detailed timing breakdown (default: False)
 
-Multiprocessing options:
+MULTIPROCESSING OPTIONS:
   --process PROCESS     For multiprocess mode: specify process number
                         (default: 0)
   --nprocesses NPROCESSES
@@ -51,7 +51,7 @@ Multiprocessing options:
   --processcluster PROCESSCLUSTER
                         Process cluster name (default: )
 
-Info actions:
+INFO ACTIONS:
   --version             show program's version number and exit
   --democonfig          Print a demo config file (default: False)
   --listprocessors      Show all possible built-in NLP processor names
@@ -75,7 +75,7 @@ Info actions:
   --count               Count records in source/destination databases, then
                         stop (default: False)
 
-Cloud options:
+CLOUD OPTIONS:
   --cloud               Use cloud-based NLP processing tools. Queued mode by
                         default. (default: False)
   --immediate           To be used with 'cloud'. Process immediately.

@@ -1,35 +1,35 @@
-usage: crate_run_crate_nlp_demo [-h] [--terminator TERMINATOR] --processors
+USAGE: crate_run_crate_nlp_demo [-h] [--terminator TERMINATOR] --processors
                                 PROCESSOR [PROCESSOR ...] [--verbose]
                                 inputs [inputs ...]
 
 Demonstrate CRATE's built-in Python NLP tools
 
-positional arguments:
+POSITIONAL ARGUMENTS:
   inputs                Input files (use '-' for stdin)
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --terminator TERMINATOR
                         Single-line terminator separating input chunks in an
                         input file. (default: STOP)
   --processors PROCESSOR [PROCESSOR ...]
-                        NLP processor(s) to apply. Possibilities: all,Ace,AceV
-                        alidator,Albumin,AlbuminValidator,AlkPhos,AlkPhosValid
-                        ator,ALT,ALTValidator,Basophils,BasophilsValidator,Bil
-                        irubin,BilirubinValidator,Bmi,BmiValidator,Bp,BpValida
-                        tor,Creatinine,CreatinineValidator,Crp,CrpValidator,Eo
-                        sinophils,EosinophilsValidator,Esr,EsrValidator,GammaG
-                        T,GammaGTValidator,Glucose,GlucoseValidator,Haematocri
-                        t,HaematocritValidator,Haemoglobin,HaemoglobinValidato
-                        r,HbA1c,HbA1cValidator,HDLCholesterol,HDLCholesterolVa
-                        lidator,Height,HeightValidator,LDLCholesterol,LDLChole
-                        sterolValidator,Lithium,LithiumValidator,Lymphocytes,L
-                        ymphocytesValidator,MiniAce,MiniAceValidator,Mmse,Mmse
-                        Validator,Moca,MocaValidator,Monocytes,MonocytesValida
-                        tor,Neutrophils,NeutrophilsValidator,Platelets,Platele
-                        tsValidator,Potassium,PotassiumValidator,RBC,RBCValida
-                        tor,Sodium,SodiumValidator,TotalCholesterol,TotalChole
-                        sterolValidator,Triglycerides,TriglyceridesValidator,T
-                        sh,TshValidator,Urea,UreaValidator,Wbc,WbcValidator,We
-                        ight,WeightValidator (default: None)
+                        NLP processor(s) to apply. Possibilities:
+                        all,Ace,AceValidator,Albumin,AlbuminValidator,AlkPhos,
+                        AlkPhosValidator,ALT,ALTValidator,Basophils,BasophilsV
+                        alidator,Bilirubin,BilirubinValidator,Bmi,BmiValidator
+                        ,Bp,BpValidator,Creatinine,CreatinineValidator,Crp,Crp
+                        Validator,Eosinophils,EosinophilsValidator,Esr,EsrVali
+                        dator,GammaGT,GammaGTValidator,Glucose,GlucoseValidato
+                        r,Haematocrit,HaematocritValidator,Haemoglobin,Haemogl
+                        obinValidator,HbA1c,HbA1cValidator,HDLCholesterol,HDLC
+                        holesterolValidator,Height,HeightValidator,LDLCholeste
+                        rol,LDLCholesterolValidator,Lithium,LithiumValidator,L
+                        ymphocytes,LymphocytesValidator,MiniAce,MiniAceValidat
+                        or,Mmse,MmseValidator,Moca,MocaValidator,Monocytes,Mon
+                        ocytesValidator,Neutrophils,NeutrophilsValidator,Plate
+                        lets,PlateletsValidator,Potassium,PotassiumValidator,R
+                        BC,RBCValidator,Sodium,SodiumValidator,TotalCholestero
+                        l,TotalCholesterolValidator,Triglycerides,Triglyceride
+                        sValidator,Tsh,TshValidator,Urea,UreaValidator,Wbc,Wbc
+                        Validator,Weight,WeightValidator (default: None)
   --verbose             Be verbose (default: False)

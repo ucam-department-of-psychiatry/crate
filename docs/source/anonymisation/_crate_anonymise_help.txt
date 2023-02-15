@@ -1,4 +1,4 @@
-usage: crate_anonymise [-h] [--config CONFIG] [--version] [--verbose]
+USAGE: crate_anonymise [-h] [--config CONFIG] [--version] [--verbose]
                        [-i | -f] [--skipdelete] [--dropremake] [--drop_all]
                        [--optout] [--nonpatienttables] [--patienttables]
                        [--index] [--restrict RESTRICT]
@@ -14,14 +14,14 @@ usage: crate_anonymise [-h] [--config CONFIG] [--version] [--verbose]
 Database anonymiser. (CRATE version 0.19.4, 2023-01-22. Created by Rudolf
 Cardinal.)
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --config CONFIG       Config file (overriding environment variable
                         CRATE_ANON_CONFIG). (default: None)
   --version             show program's version number and exit
   --verbose, -v         Be verbose (default: False)
 
-Mode options:
+MODE OPTIONS:
   -i, --incremental     Process only new/changed information, where possible.
                         (default: True)
   -f, --full            Drop and remake everything. (default: False)
@@ -29,7 +29,7 @@ Mode options:
                         in the destination but not the source. (default:
                         False)
 
-Action options (default is to do all, but if any are specified, only those are done):
+ACTION OPTIONS (DEFAULT IS TO DO ALL, BUT IF ANY ARE SPECIFIED, ONLY THOSE ARE DONE):
   --dropremake          Drop/remake destination tables, and admin tables
                         except opt-out tables. (default: False)
   --drop_all            Drop all destination tables known to the data
@@ -43,7 +43,7 @@ Action options (default is to do all, but if any are specified, only those are d
   --patienttables       Process patient tables only. (default: False)
   --index               Create indexes only. (default: False)
 
-Restriction options:
+RESTRICTION OPTIONS:
   --restrict RESTRICT   Restrict which patients are processed. Specify which
                         field to base the restriction on or 'pid' for patient
                         ids. (default: None)
@@ -53,8 +53,8 @@ Restriction options:
   --file FILE           Specify a file with a list of values for the field
                         specified in '--restrict'. (default: None)
   --list LIST [LIST ...]
-                        Specify a list of values for the field specified in '
-                        --restrict'. (default: None)
+                        Specify a list of values for the field specified in
+                        '--restrict'. (default: None)
   --free_text_limit FREE_TEXT_LIMIT
                         Filter out all free text fields over the specified
                         length. For example, if you specify 200, then
@@ -64,7 +64,7 @@ Restriction options:
   --excludescrubbed     Exclude all text fields which are being scrubbed.
                         (default: False)
 
-Processing options:
+PROCESSING OPTIONS:
   --process [PROCESS]   For multiprocess mode: specify process number.
                         (default: 0)
   --nprocesses [NPROCESSES]
@@ -83,7 +83,7 @@ Processing options:
                         Number of records copied in a chunk when copying PKs
                         from one database to another. (default: 100000)
 
-Reporting and debugging:
+REPORTING AND DEBUGGING:
   --reportevery [REPORTEVERY]
                         Report insert progress every n rows in verbose mode.
                         (default: 100000)

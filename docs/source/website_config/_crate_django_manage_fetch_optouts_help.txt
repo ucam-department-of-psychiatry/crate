@@ -1,4 +1,4 @@
-usage: crate_django_manage fetch_optouts [-h] --pidfile PIDFILE --mpidfile
+USAGE: crate_django_manage fetch_optouts [-h] --pidfile PIDFILE --mpidfile
                                          MPIDFILE [--version] [-v {0,1,2,3}]
                                          [--settings SETTINGS]
                                          [--pythonpath PYTHONPATH]
@@ -9,12 +9,12 @@ Fetch patient IDs (PIDs) and master patient IDs (MPIDs, e.g. NHS numbers) from
 the clinical consent-mode lookup database, and store them in a file (e.g. for
 use by the CRATE anonymiser).
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --pidfile PIDFILE     Filename to store PIDs in (one line per PID)
   --mpidfile MPIDFILE   Filename to store MPIDs in (one line per PID)
   --version             show program's version number and exit
-  -v {0,1,2,3}, --verbosity {0,1,2,3}
+  -v, --verbosity {0,1,2,3}
                         Verbosity level; 0=minimal output, 1=normal output,
                         2=verbose output, 3=very verbose output
   --settings SETTINGS   The Python path to a settings module, e.g.

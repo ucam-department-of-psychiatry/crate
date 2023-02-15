@@ -1,4 +1,4 @@
-usage: crate_django_manage email_rdbm [-h] [--subject SUBJECT] [--text TEXT]
+USAGE: crate_django_manage email_rdbm [-h] [--subject SUBJECT] [--text TEXT]
                                       [--queue] [--version] [-v {0,1,2,3}]
                                       [--settings SETTINGS]
                                       [--pythonpath PYTHONPATH] [--traceback]
@@ -7,14 +7,14 @@ usage: crate_django_manage email_rdbm [-h] [--subject SUBJECT] [--text TEXT]
 
 Email the RDBM
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --subject SUBJECT     Subject
   --text TEXT           Text body
   --queue               E-mail via backend task queue (rather than
                         immediately)
   --version             show program's version number and exit
-  -v {0,1,2,3}, --verbosity {0,1,2,3}
+  -v, --verbosity {0,1,2,3}
                         Verbosity level; 0=minimal output, 1=normal output,
                         2=verbose output, 3=very verbose output
   --settings SETTINGS   The Python path to a settings module, e.g.

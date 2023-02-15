@@ -1,4 +1,4 @@
-usage: crate_preprocess_pcmis [-h] --url URL [-v] [--print] [--echo]
+USAGE: crate_preprocess_pcmis [-h] --url URL [-v] [--print] [--echo]
                               [--drop_danger_drop] [--debug_skiptables]
                               [--postcodedb POSTCODEDB]
                               [--geogcols [GEOGCOLS [GEOGCOLS ...]]]
@@ -6,7 +6,7 @@ usage: crate_preprocess_pcmis [-h] --url URL [-v] [--print] [--echo]
 
 Alters a PCMIS database to be suitable for CRATE.
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --url URL             SQLAlchemy database URL (default: None)
   -v, --verbose         Verbose (default: False)

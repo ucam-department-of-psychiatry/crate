@@ -1,4 +1,4 @@
-usage: crate_django_manage runcpserver [-h] [--host HOST] [--port PORT]
+USAGE: crate_django_manage runcpserver [-h] [--host HOST] [--port PORT]
                                        [--server_name SERVER_NAME]
                                        [--threads THREADS]
                                        [--ssl_certificate SSL_CERTIFICATE]
@@ -14,7 +14,7 @@ usage: crate_django_manage runcpserver [-h] [--host HOST] [--port PORT]
 Run this project in a CherryPy webserver. To do this, CherryPy is required
 (pip install cherrypy).
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --host HOST           hostname to listen on (default: 127.0.0.1)
   --port PORT           port to listen on (default: 8088)
@@ -23,11 +23,11 @@ optional arguments:
                         localhost)
   --threads THREADS     Number of threads for server to use (default: 10)
   --ssl_certificate SSL_CERTIFICATE
-                        SSL certificate file (e.g. /etc/ssl/certs/ssl-cert-
-                        snakeoil.pem)
+                        SSL certificate file (e.g.
+                        /etc/ssl/certs/ssl-cert-snakeoil.pem)
   --ssl_private_key SSL_PRIVATE_KEY
-                        SSL private key file (e.g. /etc/ssl/private/ssl-cert-
-                        snakeoil.key)
+                        SSL private key file (e.g.
+                        /etc/ssl/private/ssl-cert-snakeoil.key)
   --log_screen          log access requests etc. to terminal (default)
   --no_log_screen       don't log access requests etc. to terminal
   --debug_static        show debug info for static file requests
@@ -35,7 +35,7 @@ optional arguments:
                         Root path to serve CRATE at. Default:
                         /crate/root/path/
   --version             show program's version number and exit
-  -v {0,1,2,3}, --verbosity {0,1,2,3}
+  -v, --verbosity {0,1,2,3}
                         Verbosity level; 0=minimal output, 1=normal output,
                         2=verbose output, 3=very verbose output
   --settings SETTINGS   The Python path to a settings module, e.g.
