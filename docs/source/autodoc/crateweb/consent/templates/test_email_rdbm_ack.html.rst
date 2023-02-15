@@ -24,4 +24,4 @@ crate_anon/crateweb/consent/templates/test_email_rdbm_ack.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/test_email_rdbm_ack.html
-    :language: HTML
+    :language: html+django

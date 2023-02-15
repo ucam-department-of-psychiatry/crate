@@ -24,4 +24,4 @@ crate_anon/crateweb/consent/templates/patient_lookup_result.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/patient_lookup_result.html
-    :language: HTML
+    :language: html+django

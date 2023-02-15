@@ -24,4 +24,4 @@ crate_anon/crateweb/research/templates/sqlhelper_form_drugtype.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/sqlhelper_form_drugtype.html
-    :language: HTML
+    :language: html+django

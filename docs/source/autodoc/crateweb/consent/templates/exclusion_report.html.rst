@@ -24,4 +24,4 @@ crate_anon/crateweb/consent/templates/exclusion_report.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/exclusion_report.html
-    :language: HTML
+    :language: html+django

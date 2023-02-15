@@ -24,4 +24,4 @@ crate_anon/crateweb/templates/shortlist_studies.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/shortlist_studies.html
-    :language: HTML
+    :language: html+django

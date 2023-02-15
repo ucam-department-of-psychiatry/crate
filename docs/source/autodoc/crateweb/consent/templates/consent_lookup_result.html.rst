@@ -24,4 +24,4 @@ crate_anon/crateweb/consent/templates/consent_lookup_result.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/consent_lookup_result.html
-    :language: HTML
+    :language: html+django

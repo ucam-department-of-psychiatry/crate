@@ -24,4 +24,4 @@ crate_anon/crateweb/research/templates/highlight_bad_id.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/highlight_bad_id.html
-    :language: HTML
+    :language: html+django

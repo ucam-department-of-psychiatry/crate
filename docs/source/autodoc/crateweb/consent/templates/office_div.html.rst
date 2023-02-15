@@ -24,4 +24,4 @@ crate_anon/crateweb/consent/templates/office_div.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/office_div.html
-    :language: HTML
+    :language: html+django

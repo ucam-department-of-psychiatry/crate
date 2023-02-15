@@ -24,4 +24,4 @@ crate_anon/crateweb/consent/templates/email_clinician.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/email_clinician.html
-    :language: HTML
+    :language: html+django

@@ -24,4 +24,4 @@ crate_anon/crateweb/consent/templates/phrase_red.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/phrase_red.html
-    :language: HTML
+    :language: html+django

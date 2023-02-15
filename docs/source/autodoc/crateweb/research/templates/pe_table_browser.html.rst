@@ -24,4 +24,4 @@ crate_anon/crateweb/research/templates/pe_table_browser.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/pe_table_browser.html
-    :language: HTML
+    :language: html+django

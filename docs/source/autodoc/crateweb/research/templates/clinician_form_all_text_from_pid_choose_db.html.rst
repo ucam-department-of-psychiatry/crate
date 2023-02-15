@@ -24,4 +24,4 @@ crate_anon/crateweb/research/templates/clinician_form_all_text_from_pid_choose_d
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/clinician_form_all_text_from_pid_choose_db.html
-    :language: HTML
+    :language: html+django

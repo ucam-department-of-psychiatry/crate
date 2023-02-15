@@ -24,4 +24,4 @@ crate_anon/crateweb/consent/templates/signature_box_patient.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/signature_box_patient.html
-    :language: HTML
+    :language: html+django

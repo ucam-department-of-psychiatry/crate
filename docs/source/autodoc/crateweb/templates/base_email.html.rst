@@ -24,4 +24,4 @@ crate_anon/crateweb/templates/base_email.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/base_email.html
-    :language: HTML
+    :language: html+django

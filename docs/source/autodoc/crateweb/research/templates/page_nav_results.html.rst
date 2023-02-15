@@ -24,4 +24,4 @@ crate_anon/crateweb/research/templates/page_nav_results.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/page_nav_results.html
-    :language: HTML
+    :language: html+django

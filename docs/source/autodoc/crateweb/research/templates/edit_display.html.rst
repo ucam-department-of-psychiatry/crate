@@ -24,4 +24,4 @@ crate_anon/crateweb/research/templates/edit_display.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/edit_display.html
-    :language: HTML
+    :language: html+django

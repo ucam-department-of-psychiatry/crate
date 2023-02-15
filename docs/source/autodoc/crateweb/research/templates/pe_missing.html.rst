@@ -24,4 +24,4 @@ crate_anon/crateweb/research/templates/pe_missing.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/pe_missing.html
-    :language: HTML
+    :language: html+django

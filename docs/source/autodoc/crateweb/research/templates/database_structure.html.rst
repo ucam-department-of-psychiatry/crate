@@ -24,4 +24,4 @@ crate_anon/crateweb/research/templates/database_structure.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/database_structure.html
-    :language: HTML
+    :language: html+django

@@ -24,4 +24,4 @@ crate_anon/crateweb/research/templates/query_bad.html
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/query_bad.html
-    :language: HTML
+    :language: html+django
