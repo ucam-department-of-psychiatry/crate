@@ -114,7 +114,7 @@ SKIP_GLOBS = [
     "**/compiled_nlp_classes/*",
 ]
 
-PYGMENTS_LANGUAGE_OVERRIDE = {".html": "html+django", ".css": "css+django"}
+PYGMENTS_LANGUAGE_OVERRIDE = {"*.html": "html+django", "*.css": "css+django"}
 
 
 # =============================================================================
