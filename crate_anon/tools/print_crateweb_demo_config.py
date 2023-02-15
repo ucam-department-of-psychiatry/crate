@@ -34,6 +34,8 @@ import re
 import sys
 from typing import Dict
 
+from rich_argparse import RichHelpFormatter
+
 from crate_anon.common.constants import EXIT_FAILURE
 
 DEMO_CONFIG = r"""
@@ -517,7 +519,7 @@ def main() -> None:
     """
     Command-line entry point.
     """
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=RichHelpFormatter)
     parser.add_argument(
         "--leave_placeholders",
         action="store_true",

@@ -35,6 +35,7 @@ from pprint import pformat
 from typing import Any, Dict, List
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.common.constants import DEMO_NLP_INPUT_TERMINATOR
 from crate_anon.common.inputfunc import gen_chunks_from_files
@@ -113,7 +114,7 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Demonstrate CRATE's built-in Python NLP tools",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     parser.add_argument(
         "inputs", type=str, nargs="+", help="Input files (use '-' for stdin)"

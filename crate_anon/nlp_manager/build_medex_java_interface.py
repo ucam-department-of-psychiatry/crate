@@ -37,6 +37,7 @@ import sys
 import tempfile
 
 from cardinal_pythonlib.logs import configure_logger_for_colour
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.common.constants import EnvVar
 from crate_anon.nlp_manager.constants import (
@@ -72,7 +73,7 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Compile Java classes for CRATE's interface to MedEx-UIMA",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     parser.add_argument(
         "--builddir",

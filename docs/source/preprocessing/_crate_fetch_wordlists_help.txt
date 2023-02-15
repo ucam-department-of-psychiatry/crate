@@ -1,4 +1,4 @@
-usage: crate_fetch_wordlists [-h] [--verbose]
+USAGE: crate_fetch_wordlists [-h] [--verbose]
                              [--min_word_length MIN_WORD_LENGTH]
                              [--show_rejects]
                              [--debug_names [DEBUG_NAMES [DEBUG_NAMES ...]]]
@@ -36,7 +36,7 @@ usage: crate_fetch_wordlists [-h] [--verbose]
                              [--filter_exclude [FILTER_EXCLUDE [FILTER_EXCLUDE ...]]]
                              [--filter_output [FILTER_OUTPUT]]
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --verbose, -v         Be verbose (default: False)
   --min_word_length MIN_WORD_LENGTH
@@ -47,7 +47,7 @@ optional arguments:
                         Show extra detail about these names (e.g. to work out
                         your preferred frequency thresholds) (default: None)
 
-English words:
+ENGLISH WORDS:
   --english_words       Fetch English words (e.g. to remove from the
                         nonspecific denylist, not to add to an allowlist;
                         consider words like smith) (default: False)
@@ -55,8 +55,9 @@ English words:
                         Output file for English words (default: None)
   --english_words_url ENGLISH_WORDS_URL
                         URL for a textfile containing all English words (will
-                        then be filtered) (default: https://www.gutenberg.org/
-                        files/3201/files/CROSSWD.TXT)
+                        then be filtered) (default:
+                        https://www.gutenberg.org/files/3201/files/CROSSWD.TXT
+                        )
   --valid_word_regex VALID_WORD_REGEX
                         Regular expression to determine valid English words
                         (default: ^[a-z](?:[A-Za-z'-]*[a-z])*$)
@@ -74,7 +75,7 @@ English words:
                         For word counting: last Project Gutenberg book ID
                         (default: 110)
 
-Filter English words by frequency:
+FILTER ENGLISH WORDS BY FREQUENCY:
   --filter_words_by_freq
                         Read a CSV file from --gutenberg_word_freq, filter it
                         by cumulative word frequency, and write a plain list
@@ -91,7 +92,7 @@ Filter English words by frequency:
                         Maximum cumulative frequency. (Set to <1 to exclude
                         rare words.) (default: 1.0)
 
-US forenames:
+US FORENAMES:
   --us_forenames        Fetch US forenames (for denylist) (default: False)
   --us_forenames_freq_output US_FORENAMES_FREQ_OUTPUT
                         Output CSV file for US forename with frequencies
@@ -126,7 +127,7 @@ US forenames:
   --us_forenames_output US_FORENAMES_OUTPUT
                         Output file for US forenames (default: None)
 
-US surnames:
+US SURNAMES:
   --us_surnames         Fetch US surnames (for denylist) (default: False)
   --us_surnames_output US_SURNAMES_OUTPUT
                         Output text file for US surnames (default: None)
@@ -134,13 +135,13 @@ US surnames:
                         Output CSV file for US surnames with frequencies
                         (columns are: name, frequency) (default: None)
   --us_surnames_1990_census_url US_SURNAMES_1990_CENSUS_URL
-                        URL for textfile of US 1990 Census surnames (default: 
+                        URL for textfile of US 1990 Census surnames (default:
                         http://www2.census.gov/topics/genealogy/1990surnames/d
                         ist.all.last)
   --us_surnames_2010_census_url US_SURNAMES_2010_CENSUS_URL
-                        URL for zip of US 2010 Census surnames (default: https
-                        ://www2.census.gov/topics/genealogy/2010surnames/names
-                        .zip)
+                        URL for zip of US 2010 Census surnames (default:
+                        https://www2.census.gov/topics/genealogy/2010surnames/
+                        names.zip)
   --us_surnames_min_cumfreq_pct US_SURNAMES_MIN_CUMFREQ_PCT
                         Fetch only names where the cumulative frequency
                         percentage, up to and including this name, was at
@@ -159,7 +160,7 @@ US surnames:
                         Higher numbers are more comprehensive but slower.)
                         (default: 100)
 
-Medical eponyms:
+MEDICAL EPONYMS:
   --eponyms             Write medical eponyms (to remove from denylist)
                         (default: False)
   --eponyms_output EPONYMS_OUTPUT
@@ -169,7 +170,7 @@ Medical eponyms:
                         Add unaccented versions (e.g. Sjogren as well as
                         Sjögren) (default: True)
 
-Filter functions:
+FILTER FUNCTIONS:
   Extra functions to filter wordlists.Specify an input file, optional
   exclusion and/or inclusion file(s), and an output file. You can use '-'
   for the output file to mean 'stdout', and for one input file to mean

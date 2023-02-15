@@ -36,6 +36,7 @@ import sys
 from typing import Dict
 
 from cardinal_pythonlib.file_io import smart_open
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.anonymise.constants import DEMO_CONFIG
 from crate_anon.common.constants import EXIT_FAILURE
@@ -117,7 +118,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=f"Print a demo config file for the CRATE anonymiser. "
         f"({CRATE_VERSION_PRETTY})",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
 
     parser.add_argument(

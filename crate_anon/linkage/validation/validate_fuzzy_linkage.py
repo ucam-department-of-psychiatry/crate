@@ -52,9 +52,6 @@ from typing import (
     Tuple,
 )
 
-from cardinal_pythonlib.argparse_func import (
-    RawDescriptionArgumentDefaultsHelpFormatter,
-)
 from cardinal_pythonlib.datetimefunc import (
     coerce_to_pendulum_date,
     truncate_date_to_first_of_month,
@@ -64,11 +61,15 @@ from cardinal_pythonlib.nhs import is_test_nhs_number, is_valid_nhs_number
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.profile import do_cprofile
 from pendulum import Date
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.result import ResultProxy, RowProxy
 from sqlalchemy.sql import text
 
+from crate_anon.common.argparse_assist import (
+    RawDescriptionArgumentDefaultsRichHelpFormatter,
+)
 from crate_anon.common.constants import (
     EXIT_FAILURE,
     EXIT_SUCCESS,
@@ -2406,7 +2407,7 @@ def main() -> int:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Validate identity matching via hashed fuzzy identifiers",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     subparsers = add_subparsers(parser)
 
@@ -2421,7 +2422,7 @@ def main() -> int:
         This will run several comparisons to test hashing and comparison
         speed. Results are reported as microseconds per comparison.
         """,
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     speedtest_parser.add_argument(
         "--profile",
@@ -2445,7 +2446,7 @@ def main() -> int:
         "is compared to a version of itself, at times with elements "
         "deleted or with typos introduced.",
         description=HELP_VALIDATE_1,
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
     )
     validate1_parser.add_argument(
         "--people",
@@ -2521,7 +2522,7 @@ def main() -> int:
         "validate2_fetch_cdl",
         help="Validation 2A: fetch people from CPFT CDL database",
         description=HELP_VALIDATE_2_CDL,
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
     )
     _add_validate2_elements(validate2_cdl_parser)
 
@@ -2530,7 +2531,7 @@ def main() -> int:
         "validate2_fetch_rio",
         help="Validation 2B: fetch people from CPFT RiO database",
         description="See validate2_fetch_cdl command.",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
     )
     _add_validate2_elements(validate2_rio_parser)
 
@@ -2539,7 +2540,7 @@ def main() -> int:
         "validate2_fetch_pcmis",
         help="Validation 2C: fetch people from CPFT PCMIS database",
         description="See validate2_fetch_cdl command.",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
     )
     _add_validate2_elements(validate2_pcmis_parser)
 
@@ -2548,7 +2549,7 @@ def main() -> int:
         "validate2_fetch_systmone",
         help="Validation 2B: fetch people from CPFT SystmOne database",
         description="See validate2_fetch_cdl command.",
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
     )
     _add_validate2_elements(validate2_systmone_parser)
 

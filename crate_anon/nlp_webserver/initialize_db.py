@@ -35,8 +35,9 @@ import logging
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.sqlalchemy.session import get_safe_url_from_engine
-from sqlalchemy import engine_from_config
 from pyramid.paster import get_appsettings
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
+from sqlalchemy import engine_from_config
 
 from crate_anon.nlp_webserver.constants import NlpServerConfigKeys
 from crate_anon.nlp_webserver.models import dbsession, Base
@@ -50,7 +51,8 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser(
         description="Tool to initialize the database used by CRATE's "
-        "implementation of an NLPRP server."
+        "implementation of an NLPRP server.",
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     parser.add_argument(
         "config_uri",

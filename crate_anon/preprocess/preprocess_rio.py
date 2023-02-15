@@ -430,6 +430,7 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     hack_in_mssql_xml_type,
     make_bigint_autoincrement_column,
 )
+from rich_argparse import RawDescriptionRichHelpFormatter
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.schema import Column, Table
@@ -1322,8 +1323,7 @@ def main() -> None:
     """
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=RawDescriptionRichHelpFormatter,
         description=r"""
 *   Alters a RiO database to be suitable for CRATE.
 

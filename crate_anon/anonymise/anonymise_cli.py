@@ -40,6 +40,7 @@ import os
 from typing import List
 
 from cardinal_pythonlib.logs import configure_logger_for_colour
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.anonymise.constants import (
     ANON_CONFIG_ENV_VAR,
@@ -73,7 +74,7 @@ def inner_main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=f"Database anonymiser. ({CRATE_VERSION_PRETTY})",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
 
     parser.add_argument(

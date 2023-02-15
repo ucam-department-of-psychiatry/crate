@@ -35,15 +35,15 @@ import os
 import sys
 import traceback
 
-from cardinal_pythonlib.argparse_func import (
-    RawDescriptionArgumentDefaultsHelpFormatter,
-)
 from cardinal_pythonlib.extract_text import (
     document_to_text,
     TextProcessingConfig,
 )
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
+from crate_anon.common.argparse_assist import (
+    RawDescriptionArgumentDefaultsRichHelpFormatter,
+)
 from crate_anon.common.stringfunc import uprint
 
 EXIT_TEXT = 0
@@ -65,7 +65,7 @@ Exit codes:
 - {EXIT_NO_TEXT} for "no text found"
 - {EXIT_ERROR} for "error" (e.g. file not found)
         """,
-        formatter_class=RawDescriptionArgumentDefaultsHelpFormatter,
+        formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
     )
     parser.add_argument(
         "filename", type=str, help="File from which to extract text"

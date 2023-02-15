@@ -1,4 +1,4 @@
-usage: crate_preprocess_systmone [-h] --url URL [-v] [--print] [--echo]
+USAGE: crate_preprocess_systmone [-h] --url URL [-v] [--print] [--echo]
                                  [--systmone_context {tpp_sre,cpft_dw}]
                                  [--systmone_allow_unprefixed_tables]
                                  [--postcodedb POSTCODEDB]
@@ -7,7 +7,7 @@ usage: crate_preprocess_systmone [-h] --url URL [-v] [--print] [--echo]
 
 Indexes a SystmOne database to be suitable for CRATE.
 
-optional arguments:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --url URL             SQLAlchemy database URL
   -v, --verbose         Verbose
@@ -16,8 +16,6 @@ optional arguments:
   --echo                Echo SQL
   --systmone_context {tpp_sre,cpft_dw}
                         Context of the SystmOne database that you are reading.
-                        [tpp_sre: TPP Strategic Reporting Extract // cpft_dw:
-                        CPFT Data Warehouse]
   --systmone_allow_unprefixed_tables
                         Permit tables that don't start with the expected
                         prefix (which is e.g. 'SR' for the TPP SRE context,

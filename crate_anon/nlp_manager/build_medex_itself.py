@@ -40,6 +40,7 @@ from typing import Dict, List, Tuple, Union
 from cardinal_pythonlib.fileops import purge
 from cardinal_pythonlib.logs import configure_logger_for_colour
 import chardet
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.common.constants import EnvVar
 
@@ -383,7 +384,7 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description="Compile MedEx-UIMA itself (in Java)",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     parser.add_argument(
         "--medexdir",

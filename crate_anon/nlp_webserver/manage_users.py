@@ -36,6 +36,7 @@ from shutil import copyfile
 from typing import Dict
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+from rich_argparse import RichHelpFormatter
 
 from crate_anon.nlp_webserver.constants import NlpServerConfigKeys
 from crate_anon.nlp_webserver.security import hash_password
@@ -147,7 +148,7 @@ def main() -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=description,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        formatter_class=RichHelpFormatter,
     )
     arg_group = parser.add_mutually_exclusive_group()
     arg_group.add_argument(

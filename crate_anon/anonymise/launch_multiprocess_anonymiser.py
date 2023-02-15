@@ -46,6 +46,7 @@ Python version: see
 import argparse
 import logging
 import multiprocessing
+import os
 import sys
 import time
 from typing import List
@@ -55,14 +56,19 @@ from cardinal_pythonlib.subproc import (
     check_call_process,
     run_multiple_processes,
 )
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
+from crate_anon.common.constants import EnvVar
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
 log = logging.getLogger(__name__)
 
 ANONYMISER = "crate_anon.anonymise.anonymise_cli"
 
-CPUCOUNT = multiprocessing.cpu_count()
+if EnvVar.GENERATING_CRATE_DOCS in os.environ:
+    CPUCOUNT = 8
+else:
+    CPUCOUNT = multiprocessing.cpu_count()
 
 
 # =============================================================================
@@ -80,7 +86,10 @@ def main() -> None:
         f"Note that all arguments not specified here are passed to the "
         f"underlying script (see crate_anonymise --help)."
     )
-    parser = argparse.ArgumentParser(description=description)
+    parser = argparse.ArgumentParser(
+        description=description,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
+    )
 
     parser.add_argument(
         "--nproc",

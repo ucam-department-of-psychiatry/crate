@@ -46,6 +46,7 @@ import logging
 from typing import Dict, List, Optional, Type
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+from rich_argparse import ArgumentDefaultsRichHelpFormatter
 from sqlalchemy.dialects.mssql.base import dialect as mssql_server_dialect
 
 from crate_anon.ancillary.timely_project.dd_criteria import (
@@ -261,7 +262,7 @@ def main() -> None:
     Command-line entry point.
     """
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
     parser.add_argument(
         "input",
