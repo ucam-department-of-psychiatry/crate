@@ -32,8 +32,10 @@ Unit tests.
 import unittest
 
 from crate_anon.nlp_manager.parse_cognitive import (
-    ALL_COGNITIVE_NLP,
-    ALL_COGNITIVE_VALIDATORS,
+    ALL_COGNITIVE_NLP_AND_VALIDATORS,
+)
+from crate_anon.nlp_manager.tests.regex_test_helperfunc import (
+    run_tests_nlp_and_validator_classes,
 )
 
 
@@ -48,8 +50,5 @@ class TestCognitive(unittest.TestCase):
         """
         Test all parsers in this module.
         """
-        for cls in ALL_COGNITIVE_NLP:
-            cls(None, None).test(verbose=True)
-        for cls in ALL_COGNITIVE_VALIDATORS:
-            # we want the ACE validator in particular
-            cls(None, None).test(verbose=True)
+        run_tests_nlp_and_validator_classes(ALL_COGNITIVE_NLP_AND_VALIDATORS)
+        # ... we want the ACE validator in particular

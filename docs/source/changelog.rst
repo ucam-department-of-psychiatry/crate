@@ -1577,9 +1577,16 @@ Changes
   - The NLP cloud client checks that all requested processors are available
     remotely, and fails overtly, rather than silently ignoring those.
 
+  - Alcohol units-per-week regex NLP.
+
+  - Support "over" and "under" as further synonyms for inequalities in regex
+    NLP.
+
 - Bayesian linkage, identifiable and de-identified.
 
 - **Minimum Python version is now 3.8.** (Required by numpy v1.22.)
+
+- Rich text for help.
 
 
 To do

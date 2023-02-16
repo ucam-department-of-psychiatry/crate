@@ -108,7 +108,7 @@ def main() -> None:
     all_processors = "all"
     possible_proc_names = (
         possible_local_processor_names_without_external_tools()
-    )  # noqa
+    )
     possible_processor_options = [all_processors] + possible_proc_names
 
     # noinspection PyTypeChecker

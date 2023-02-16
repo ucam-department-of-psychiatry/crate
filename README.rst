@@ -47,7 +47,9 @@ Create and use de-identified databases for research.
 - Provides tools to link databases, including via Bayesian personal identity
   matching, in identifiable or de-identified fashion.
 
-- Provides a natural language processing (NLP) pipeline.
+- Provides a natural language processing (NLP) pipeline, including built-in
+  NLP, support for external tools, and client/server support for the Natural
+  Language Processing Request Protocol (NLPRP).
 
 - Web app for
 

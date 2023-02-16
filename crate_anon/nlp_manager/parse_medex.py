@@ -761,7 +761,7 @@ class Medex(BaseNlpParser):
             with open(
                 inputfilename, mode="w", encoding=self._file_encoding
             ) as infile:
-                # log.critical(f"text: {repr(text)}")
+                # log.info(f"text: {text!r}")
                 infile.write(text)
 
             if (

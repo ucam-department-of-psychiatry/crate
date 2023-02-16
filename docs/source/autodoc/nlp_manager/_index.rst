@@ -55,6 +55,7 @@ crate_anon/nlp_manager
     parse_gate.py.rst
     parse_haematology.py.rst
     parse_medex.py.rst
+    parse_substance_misuse.py.rst
     prepare_umls_for_bioyodie.py.rst
     regex_func.py.rst
     regex_numbers.py.rst
@@ -77,6 +78,7 @@ crate_anon/nlp_manager
     tests/parse_clinical_tests.py.rst
     tests/parse_cognitive_tests.py.rst
     tests/parse_haematology_tests.py.rst
+    tests/parse_substance_misuse_tests.py.rst
     tests/regex_numbers_tests.py.rst
     tests/regex_parser_tests.py.rst
     tests/regex_read_codes_tests.py.rst

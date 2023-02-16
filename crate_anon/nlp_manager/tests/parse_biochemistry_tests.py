@@ -32,8 +32,10 @@ Unit tests.
 import unittest
 
 from crate_anon.nlp_manager.parse_biochemistry import (
-    ALL_BIOCHEMISTRY_NLP,
-    ALL_BIOCHEMISTRY_VALIDATORS,
+    ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS,
+)
+from crate_anon.nlp_manager.tests.regex_test_helperfunc import (
+    run_tests_nlp_and_validator_classes,
 )
 
 
@@ -48,7 +50,6 @@ class TestBiochemistry(unittest.TestCase):
         """
         Test all parsers in this module.
         """
-        for cls in ALL_BIOCHEMISTRY_NLP:
-            cls(None, None).test(verbose=True)
-        for cls in ALL_BIOCHEMISTRY_VALIDATORS:
-            cls(None, None).test(verbose=True)
+        run_tests_nlp_and_validator_classes(
+            ALL_BIOCHEMISTRY_NLP_AND_VALIDATORS
+        )

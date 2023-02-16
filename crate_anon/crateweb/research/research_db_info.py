@@ -54,6 +54,7 @@ from django.db import connections
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.conf import settings
 from openpyxl import Workbook
+from requests.structures import CaseInsensitiveDict
 
 from crate_anon.common.constants import RUNNING_WITHOUT_CONFIG
 from crate_anon.common.sql import (
@@ -120,15 +121,24 @@ class ColumnInfo:
     """
 
     def __init__(self, **kwargs) -> None:
-        self.table_catalog = kwargs.pop("table_catalog")  # type: str
-        self.table_schema = kwargs.pop("table_schema")  # type: str
-        self.table_name = kwargs.pop("table_name")  # type: str
-        self.column_name = kwargs.pop("column_name")  # type: str
-        self.is_nullable = bool(kwargs.pop("is_nullable"))
-        self.column_type = kwargs.pop("column_type")  # type: str
-        self.column_comment = kwargs.pop("column_comment")  # type: str
-        self.indexed = bool(kwargs.pop("indexed"))
-        self.indexed_fulltext = bool(kwargs.pop("indexed_fulltext"))
+        # Different databases may vary the case, although the column headings
+        # are ANSI standard.
+        cid = CaseInsensitiveDict(kwargs)
+        try:
+            self.table_catalog = cid["table_catalog"]  # type: str
+            self.table_schema = cid["table_schema"]  # type: str
+            self.table_name = cid["table_name"]  # type: str
+            self.column_name = cid["column_name"]  # type: str
+            self.is_nullable = bool(cid["is_nullable"])
+            self.column_type = cid["column_type"]  # type: str
+            self.column_comment = cid["column_comment"]  # type: str
+            self.indexed = bool(cid["indexed"])
+            self.indexed_fulltext = bool(cid["indexed_fulltext"])
+        except KeyError:
+            log.critical(
+                "Information missing from column info dictionary: {}", kwargs
+            )
+            raise
 
     @property
     def basetype(self) -> str:
@@ -876,17 +886,17 @@ ORDER BY
             if not schema_name:
                 raise ValueError(
                     "No schema_name specified; required for MSSQL"
-                )  # noqa
+                )
             sql, args = self._schema_query_microsoft(db_name, [schema_name])
         elif vendor == ConnectionVendors.POSTGRESQL:
             if db_name:
                 raise ValueError(
                     "db_name specified; must be '' for PostgreSQL"
-                )  # noqa
+                )
             if not schema_name:
                 raise ValueError(
                     "No schema_name specified; required for PostgreSQL"
-                )  # noqa
+                )
             sql, args = self._schema_query_postgres([schema_name])
         elif vendor == ConnectionVendors.MYSQL:
             if db_name:
@@ -894,10 +904,10 @@ ORDER BY
             if not schema_name:
                 raise ValueError(
                     "No schema_name specified; required for MySQL"
-                )  # noqa
+                )
             sql, args = self._schema_query_mysql(
                 db_and_schema_name=schema_name
-            )  # noqa
+            )
         else:
             raise ValueError(
                 f"Don't know how to get metadata for "
@@ -907,7 +917,7 @@ ORDER BY
         # since this is a system rather than a per-user query.
         cursor = connection.cursor()
         if debug:
-            log.debug(f"sql = {sql}, args = {repr(args)}")
+            log.debug(f"sql = {sql}, args = {args!r}")
         cursor.execute(sql, args)
         results = dictfetchall(cursor)  # list of OrderedDicts
         if debug:

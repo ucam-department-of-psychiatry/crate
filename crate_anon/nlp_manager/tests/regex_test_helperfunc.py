@@ -33,6 +33,7 @@ import logging
 
 from typing import List, Pattern, Tuple
 from crate_anon.nlp_manager.regex_func import compile_regex
+from crate_anon.nlp_manager.regex_parser import BaseNlpParser, ValidatorBase
 
 log = logging.getLogger(__name__)
 
@@ -131,5 +132,16 @@ def assert_text_regex(
             )
         )
     log.info("... OK")
-    # print_compiled_regex_results(compiled_regex, text,
-    #                              prefix_spaces=prefix_spaces)
+
+
+def run_tests_nlp_and_validator_classes(
+    all_nlp_and_validators: List[Tuple[BaseNlpParser, ValidatorBase]]
+) -> None:
+    """
+    Tests multiple pairs of NLP classes and their associated validators.
+    """
+    all_nlp_classes, all_validator_classes = zip(*all_nlp_and_validators)
+    for cls in all_nlp_classes:
+        cls(None, None).test(verbose=True)
+    for cls in all_validator_classes:
+        cls(None, None).test(verbose=True)

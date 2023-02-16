@@ -413,6 +413,3 @@ ALL_COGNITIVE_NLP_AND_VALIDATORS = [
     (Mmse, MmseValidator),
     (Moca, MocaValidator),
 ]
-ALL_COGNITIVE_NLP, ALL_COGNITIVE_VALIDATORS = zip(
-    *ALL_COGNITIVE_NLP_AND_VALIDATORS
-)  # noqa

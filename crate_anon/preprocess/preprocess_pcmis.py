@@ -966,7 +966,7 @@ def main() -> None:
 
     log.info("CRATE in-place preprocessor for PCMIS databases")
     safeargs = {k: v for k, v in vars(progargs).items() if k != "url"}
-    log.debug(f"args (except url): {repr(safeargs)}")
+    log.debug(f"args (except url): {safeargs!r}")
 
     if progargs.postcodedb and not progargs.geogcols:
         raise ValueError(
@@ -980,7 +980,7 @@ def main() -> None:
     engine = create_engine(progargs.url, echo=progargs.echo, encoding=CHARSET)
     metadata = MetaData()
     metadata.bind = engine
-    log.info(f"Database: {repr(engine.url)}")  # ... repr hides p/w
+    log.info(f"Database: {engine.url!r}")  # ... repr (!r) hides p/w
     log.debug(f"Dialect: {engine.dialect.name}")
 
     log.info("Reflecting (inspecting) database...")

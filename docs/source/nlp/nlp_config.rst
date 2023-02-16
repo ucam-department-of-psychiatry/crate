@@ -472,11 +472,15 @@ assume_preferred_unit
 
 *Boolean.* Default: True.
 
-**Applicable to: all numerical CRATE Python processors.**
+**Applicable to: nearly all numerical CRATE Python processors.**
 
 If a unit is not specified, assume that values are in the processor's preferred
 units. (For example, :class:`crate_anon.nlp_manager.parse_biochemistry.Crp`
 will assume mg/L.)
+
+Some override this and are not configurable, however:
+
+- ``AlcoholUnits`` never assumes this.
 
 
 .. _nlp_config_processor_desttable:
@@ -492,8 +496,6 @@ Table name in the destination (NLP output) database into which to write results
 from the cloud NLP processor. Use this for single-table processors.
 
 The alternative is :ref:`outputtypemap <nlp_config_processor_outputtypemap>`.
-
-
 
 
 .. _nlp_config_processor_outputtypemap:

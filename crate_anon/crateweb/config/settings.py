@@ -580,7 +580,7 @@ else:
         TRAFFIC_LIGHT_RED_ABS_URL,
         TRAFFIC_LIGHT_YELLOW_ABS_URL,
         TRAFFIC_LIGHT_GREEN_ABS_URL,
-    )  # noqa
+    )
 
     if RUNNING_UNDER_DOCKER:
         # /crate/cfg or /crate/venv

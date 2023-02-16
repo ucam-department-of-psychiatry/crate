@@ -103,8 +103,8 @@ class DDHint:
         """
         if isinstance(columns, str):
             columns = [columns]
-        assert table, f"Bad table: {repr(table)}"
-        assert columns, f"Bad columns: {repr(columns)}"
+        assert table, f"Bad table: {table!r}"
+        assert columns, f"Bad columns: {columns!r}"
         assert len(columns) == len(
             set(columns)
         ), f"Duplicate columns in: {columns!r}"

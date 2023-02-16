@@ -33,12 +33,16 @@ but bear in mind.
 
 """
 
+import logging
 from typing import Any, Dict, Optional, Pattern, Tuple
 
 import regex
 
 # noinspection PyProtectedMember
 from regex import _regex_core
+
+log = logging.getLogger(__name__)
+
 
 # =============================================================================
 # Core regex functions
@@ -62,7 +66,7 @@ def compile_regex(regex_str: str) -> Pattern:
     try:
         return regex.compile(regex_str, REGEX_COMPILE_FLAGS)
     except _regex_core.error:
-        print(f"FAILING REGEX:\n{regex_str}")
+        log.critical(f"FAILING REGEX:\n{regex_str}")
         raise
 
 
@@ -86,6 +90,8 @@ def get_regex_dict_match(
     a match, and if there was a match, the value that was associated (in the
     dictionary) with the matching regex.
 
+    (Note: "match", as usual, means "match at the beginning of the string".)
+
     Args:
         text:
             text to test
@@ -101,5 +107,21 @@ def get_regex_dict_match(
     if text:
         for r, value in regex_to_value_dict.items():
             if r.match(text):
+                return True, value
+    return False, default
+
+
+def get_regex_dict_search(
+    text: Optional[str],
+    regex_to_value_dict: Dict[Pattern, Any],
+    default: Any = None,
+) -> Tuple[bool, Any]:
+    """
+    As for :func:`get_regex_dict_match`, but performs a search (find anywhere
+    in the string) rather than a match.
+    """
+    if text:
+        for r, value in regex_to_value_dict.items():
+            if r.search(text):
                 return True, value
     return False, default

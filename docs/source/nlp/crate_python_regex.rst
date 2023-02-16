@@ -23,8 +23,8 @@
 CRATE's Python regex NLP
 ------------------------
 
-CRATE provides several simple numerical results processors. Each comes with a
-corresponding *validator*.
+CRATE provides several simple numerical results processors. All are in English
+unless specified. Each comes with a corresponding *validator*.
 
 **Processor**
 

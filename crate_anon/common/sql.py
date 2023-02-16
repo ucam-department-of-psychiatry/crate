@@ -754,19 +754,11 @@ def parser_add_result_column(
         a `pyparsing.ParseResults` result
 
     """
-    # log.critical("Adding: " + repr(column))
     existing_columns = parsed.select_expression.select_columns.asList()
-    # log.critical(parsed.dump())
-    # log.critical(f"existing columns: {repr(existing_columns)}")
-    # log.critical(f"adding column: {column}")
     if column not in existing_columns:
-        # log.critical("... doesn't exist; adding")
+        # doesn't exist; add it
         newcol = grammar.get_result_column().parseString(column, parseAll=True)
-        # log.critical("... " + repr(newcol))
         parsed.select_expression.extend([",", newcol])
-    # else:
-    #     log.critical("... skipping column; exists")
-    # log.critical(parsed.dump())
     return parsed
 
 
@@ -1071,7 +1063,7 @@ def add_columns(engine: Engine, table: Table, columns: List[Column]) -> None:
                 f"already exists; not adding"
             )
     for column_def in column_defs:
-        log.info(f"Table {repr(table.name)}: adding column {repr(column_def)}")
+        log.info(f"Table {table.name!r}: adding column {column_def!r}")
         sql = f"ALTER TABLE {table.name} ADD {column_def}"
         execute(engine, sql)
 
@@ -1341,7 +1333,7 @@ def create_view(engine: Engine, viewname: str, select_sql: str) -> None:
         # SQL Server doesn't: https://stackoverflow.com/questions/18534919
         drop_view(engine, viewname, quiet=True)
         sql = f"CREATE VIEW {viewname} AS {select_sql}"
-    log.info(f"Creating view: {repr(viewname)}")
+    log.info(f"Creating view: {viewname!r}")
     execute(engine, sql)
 
 
@@ -1394,7 +1386,7 @@ def drop_view(engine: Engine, viewname: str, quiet: bool = False) -> None:
         log.debug(f"View {viewname} does not exist; not dropping")
     else:
         if not quiet:
-            log.info(f"Dropping view: {repr(viewname)}")
+            log.info(f"Dropping view: {viewname!r}")
         sql = f"DROP VIEW {viewname}"
         execute(engine, sql)
 

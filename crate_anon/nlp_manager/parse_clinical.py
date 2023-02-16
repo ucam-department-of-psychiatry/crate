@@ -223,7 +223,7 @@ class Height(NumericalResultParser):
         """
         for m in self.COMPILED_REGEX.finditer(text):  # watch out: 'm'/metres
             if debug:
-                print(f"Match {m} for {repr(text)}")
+                log.info(f"Match {m} for {text!r}")
             startpos = m.start()
             endpos = m.end()
             matching_text = m.group(0)  # the whole thing
@@ -435,7 +435,7 @@ class Weight(NumericalResultParser):
         """
         for m in self.COMPILED_REGEX.finditer(text):
             if debug:
-                print(f"Match {m} for {repr(text)}")
+                log.info(f"Match {m} for {text!r}")
             startpos = m.start()
             endpos = m.end()
             matching_text = m.group(0)  # the whole thing
@@ -768,7 +768,7 @@ class Bp(BaseNlpParser):
         """
         for m in self.COMPILED_REGEX.finditer(text):
             if debug:
-                print(f"Match {m} for {repr(text)}")
+                log.info(f"Match {m} for {text!r}")
             startpos = m.start()
             endpos = m.end()
             matching_text = m.group(0)  # the whole thing
@@ -907,6 +907,3 @@ ALL_CLINICAL_NLP_AND_VALIDATORS = [
     (Height, HeightValidator),
     (Weight, WeightValidator),
 ]
-ALL_CLINICAL_NLP, ALL_CLINICAL_VALIDATORS = zip(
-    *ALL_CLINICAL_NLP_AND_VALIDATORS
-)  # noqa
