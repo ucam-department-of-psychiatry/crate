@@ -55,6 +55,7 @@ crate_anon/crateweb
     consent/management/commands/fetch_optouts.py.rst
     consent/management/commands/lookup_consent.py.rst
     consent/management/commands/lookup_patient.py.rst
+    consent/management/commands/make_ethics_pack.py.rst
     consent/management/commands/populate.py.rst
     consent/management/commands/resubmit_unprocessed_tasks.py.rst
     consent/management/commands/test_email.py.rst
@@ -113,6 +114,7 @@ crate_anon/crateweb
     consent/templates/letter_patient_first_traffic_light.html.rst
     consent/templates/letter_patient_from_clinician_re_study.html.rst
     consent/templates/letter_researcher_approve.html.rst
+    consent/templates/letter_researcher_to_patient_cover_letter_template.html.rst
     consent/templates/letter_researcher_withdraw.html.rst
     consent/templates/office_div.html.rst
     consent/templates/patient_lookup_get_nhs.html.rst
