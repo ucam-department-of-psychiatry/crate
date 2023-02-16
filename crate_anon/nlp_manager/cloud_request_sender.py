@@ -186,7 +186,7 @@ class CloudRequestSender:
             self._requests,
             self._num_recs_processed > 0,
             self._global_recnum,
-        )  # noqa
+        )
 
     def _build_request(self) -> None:
         """

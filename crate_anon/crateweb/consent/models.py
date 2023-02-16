@@ -2110,7 +2110,7 @@ class ContactRequest(models.Model):
             days_since_discharge = self.patient_lookup.days_since_discharge()
             permitted_n_days = (
                 settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS
-            )  # noqa
+            )
             if not self.consent_mode.consent_after_discharge:
                 if days_since_discharge is None:
                     self.stop(

@@ -115,13 +115,13 @@ class KeywordProcessorFixed(KeywordProcessor):
                                 current_white_space = inner_char
                                 longest_sequence_found = (
                                     current_dict_continued[self._keyword]
-                                )  # noqa
+                                )
                                 sequence_end_pos = idy
                                 is_longer_seq_found = True
                             if inner_char in current_dict_continued:
                                 current_dict_continued = (
                                     current_dict_continued[inner_char]
-                                )  # noqa
+                                )
                             else:
                                 break
                             idy += 1
@@ -132,7 +132,7 @@ class KeywordProcessorFixed(KeywordProcessor):
                                 current_white_space = ""
                                 longest_sequence_found = (
                                     current_dict_continued[self._keyword]
-                                )  # noqa
+                                )
                                 sequence_end_pos = idy
                                 is_longer_seq_found = True
                         if is_longer_seq_found:

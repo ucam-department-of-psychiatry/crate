@@ -678,7 +678,7 @@ def prepare_umls_for_bioyodie(cfg: UmlsBioyodieConversionConfig) -> None:
     # These are required by the Bio-YODIE preprocessor:
     groovy_executable = cfg.groovy_executable or require_external_tool(
         "groovy"
-    )  # noqa
+    )
     require_external_tool("gzip")
     require_external_tool("zcat")
 

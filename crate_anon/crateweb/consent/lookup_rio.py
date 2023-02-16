@@ -836,7 +836,7 @@ def lookup_cpft_rio_generic(
         contactable_curr_clin.sort(key=attrgetter("start_date"), reverse=True)
         contactable_curr_clin.sort(
             key=attrgetter("clinician_preference_order")
-        )  # noqa
+        )
         decisions.append(
             f"{len(contactable_curr_clin)} contactable active "
             f"clinician(s) found."
