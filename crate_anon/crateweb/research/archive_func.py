@@ -155,7 +155,7 @@ def delimit_sql_identifier(identifer: str) -> str:
     """
     return research_database_info.grammar.quote_identifier_if_required(
         identifer
-    )  # noqa
+    )
 
 
 def nlp_source_url(row: List[Any]) -> str:
