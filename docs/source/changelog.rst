@@ -1524,7 +1524,7 @@ Changes
   - The Docker version of CRATE can now be :ref:`installed with a single script
     <quick_start>`.
 
-**0.19.4, 2022-05-24**
+**0.19.4 to 0.20.0, 2022-05-24 to 2023-02-14**
 
 - Anonymisation:
 
@@ -1581,6 +1581,11 @@ Changes
 
   - Support "over" and "under" as further synonyms for inequalities in regex
     NLP.
+
+  - **NLPRP version now 0.3.0.** Uses HTTP return code 202 (Accepted), not
+    102 (Processing), to respond to calls about NLP jobs that are in progress
+    via ``fetch_from_queue``. See
+    https://github.com/ucam-department-of-psychiatry/crate/issues/106.
 
 - Bayesian linkage, identifiable and de-identified.
 

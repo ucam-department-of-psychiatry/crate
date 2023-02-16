@@ -30,6 +30,7 @@ Natural Language Processing Request Protocol (NLPRP) constants.
 """
 
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
+from semantic_version import Version
 
 
 # =============================================================================
@@ -64,6 +65,8 @@ class NlprpKeys:
     MESSAGE = "message"  # response
     METADATA = "metadata"  # bidirectional
     NAME = "name"  # bidirectional
+    N_DOCPROCS = "n_docprocs"  # response
+    N_DOCPROCS_COMPLETED = "n_docprocs_completed"  # response
     PROCESSORS = "processors"  # bidirectional
     PROTOCOL = "protocol"  # bidirectional
     QUEUE = "queue"  # bidirectional
@@ -125,3 +128,13 @@ class SqlDialects:
 ALL_SQL_DIALECTS = [
     v for k, v in SqlDialects.__dict__.items() if not k.startswith("_")
 ]
+
+
+class NlprpVersions:
+    """
+    NLPRP versions where something changed.
+    """
+
+    # The version from which fetch_from_queue returns 202 (Accepted) for "in
+    # progress"/pending, rather than 102 (Processing):
+    FETCH_Q_PENDING_RETURNS_202 = Version("0.3.0")

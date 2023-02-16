@@ -33,8 +33,12 @@ import logging
 import sys
 from unittest import mock, TestCase
 
+from cardinal_pythonlib.httpconst import HttpStatus
 from sqlalchemy.exc import OperationalError
 
+from crate_anon.nlprp.constants import (
+    NlprpKeys as NKeys,
+)
 from crate_anon.nlp_manager.cloud_request import CloudRequestProcess
 
 
@@ -133,3 +137,100 @@ class CloudRequestProcessTests(TestCase):
 
         self.assertIn(f"ERROR:{logger_name}", logging_cm.output[0])
         self.assertIn("Insert failed", logging_cm.output[0])
+
+    def test_not_ready_if_queue_id_is_none(self) -> None:
+        self.process.queue_id = None
+        with self.assertLogs(level=logging.WARNING) as logging_cm:
+            ready = self.process.check_if_ready()
+        self.assertFalse(ready)
+        self.assertIn(
+            "Tried to fetch from queue before sending request.",
+            logging_cm.output[0],
+        )
+
+    def test_not_ready_if_fetched(self) -> None:
+        self.process.queue_id = "queue_0001"
+        self.process._fetched = True
+
+        ready = self.process.check_if_ready()
+        self.assertFalse(ready)
+
+    def test_not_ready_if_no_response(self) -> None:
+        self.process.queue_id = "queue_0001"
+        with mock.patch.object(self.process, "_try_fetch", return_value=None):
+            ready = self.process.check_if_ready()
+        self.assertFalse(ready)
+
+    def test_ready_for_status_ok(self) -> None:
+        self.process.queue_id = "queue_0001"
+
+        response = {
+            NKeys.STATUS: HttpStatus.OK,
+            NKeys.VERSION: "0.3.0",
+        }
+
+        with mock.patch.object(
+            self.process, "_try_fetch", return_value=response
+        ):
+            ready = self.process.check_if_ready()
+        self.assertTrue(ready)
+
+    def test_not_ready_when_old_server_status_processing(self) -> None:
+        self.process.queue_id = "queue_0001"
+
+        response = {
+            NKeys.STATUS: HttpStatus.PROCESSING,
+            NKeys.VERSION: "0.2.0",
+        }
+
+        with mock.patch.object(
+            self.process, "_try_fetch", return_value=response
+        ):
+            ready = self.process.check_if_ready()
+        self.assertFalse(ready)
+
+    def test_not_ready_when_new_server_status_accepted(self) -> None:
+        self.process.queue_id = "queue_0001"
+
+        response = {
+            NKeys.STATUS: HttpStatus.ACCEPTED,
+            NKeys.VERSION: "0.3.0",
+        }
+
+        with mock.patch.object(
+            self.process, "_try_fetch", return_value=response
+        ):
+            ready = self.process.check_if_ready()
+        self.assertFalse(ready)
+
+    def test_not_ready_when_server_status_not_found(self) -> None:
+        self.process.queue_id = "queue_0001"
+
+        response = {
+            NKeys.STATUS: HttpStatus.NOT_FOUND,
+            NKeys.VERSION: "0.3.0",
+        }
+
+        with mock.patch.object(
+            self.process, "_try_fetch", return_value=response
+        ):
+            with self.assertLogs(level=logging.WARNING) as logging_cm:
+                ready = self.process.check_if_ready()
+        self.assertFalse(ready)
+        self.assertIn("Got HTTP status code 404", logging_cm.output[0])
+
+    def test_not_ready_when_server_status_anything_else(self) -> None:
+        self.process.queue_id = "queue_0001"
+
+        response = {
+            NKeys.STATUS: HttpStatus.FORBIDDEN,
+            NKeys.VERSION: "0.3.0",
+        }
+
+        with mock.patch.object(
+            self.process, "_try_fetch", return_value=response
+        ):
+            with self.assertLogs(level=logging.WARNING) as logging_cm:
+                ready = self.process.check_if_ready()
+        self.assertFalse(ready)
+        self.assertIn("Got HTTP status code 403", logging_cm.output[0])

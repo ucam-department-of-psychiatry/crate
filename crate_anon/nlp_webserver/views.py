@@ -637,16 +637,17 @@ class NlpWebViews:
         dprs = list(q_dpr.all())  # type: List[DocProcRequest]
         if not dprs:
             raise mkerror(NOT_FOUND, "The queue_id given was not found")
-        busy = not all([dpr.done for dpr in dprs])
+        n = len(dprs)
+        n_done = sum(dpr.done for dpr in dprs)
+        busy = n_done < n
         if busy:
-            response = self.create_response(HttpStatus.PROCESSING, {})
-            # todo: is it correct (from previous comments) that we can't
-            # return JSON via Pyramid with a status of HttpStatus.PROCESSING?
-            # If that's true, we have to force as below, but then we need to
-            # alter the NLPRP docs (as these state the JSON code and HTTP code
-            # should always be the same).
-            self.set_http_response_status(HttpStatus.OK)
-            return response
+            return self.create_response(
+                HttpStatus.ACCEPTED,
+                {
+                    NKeys.N_DOCPROCS: n,
+                    NKeys.N_DOCPROCS_COMPLETED: n_done,
+                },
+            )
 
         # ---------------------------------------------------------------------
         # Make it easy to look up processors

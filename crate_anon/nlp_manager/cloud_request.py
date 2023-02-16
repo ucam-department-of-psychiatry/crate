@@ -54,6 +54,7 @@ from cardinal_pythonlib.httpconst import HttpStatus
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 from requests import post, Response
 from requests.exceptions import HTTPError, RequestException
+from semantic_version import Version
 from urllib3.exceptions import NewConnectionError
 
 from crate_anon.common.constants import JSON_INDENT, JSON_SEPARATORS_COMPACT
@@ -66,12 +67,10 @@ from crate_anon.nlp_manager.constants import (
     full_sectionname,
     GateResultKeys,
     NlpConfigPrefixes,
-    # ProcessorConfigKeys,
     NlpDefValues,
 )
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 
-# from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 from crate_anon.nlprp.api import (
     json_get_array,
     json_get_int,
@@ -83,10 +82,9 @@ from crate_anon.nlprp.constants import (
     NlprpCommands,
     NlprpKeys as NKeys,
     NlprpValues,
+    NlprpVersions,
 )
 from crate_anon.nlp_webserver.server_processor import ServerProcessor
-
-# from crate_anon.common.profiling import do_cprofile
 
 if TYPE_CHECKING:
     from crate_anon.nlp_manager.cloud_run_info import CloudRunInfo
@@ -465,9 +463,8 @@ class CloudRequestProcess(CloudRequest):
         self._fetch_request = make_nlprp_dict()
         self._fetch_request[NKeys.COMMAND] = NlprpCommands.FETCH_FROM_QUEUE
 
-        self.nlp_data = (
-            None
-        )  # type: Optional[JsonObjectType]  # the JSON response  # noqa
+        self.nlp_data = None  # type: Optional[JsonObjectType]
+        # ... the JSON response
         self.queue_id = None  # type: Optional[str]
 
         self.request_failed = False
@@ -738,11 +735,19 @@ class CloudRequestProcess(CloudRequest):
         if not json_response:
             return False
         status = json_response[NKeys.STATUS]
+        pending_use_202 = (
+            Version(json_response[NKeys.VERSION])
+            >= NlprpVersions.FETCH_Q_PENDING_RETURNS_202
+        )
         if status == HttpStatus.OK:
             self.nlp_data = json_response
             self._fetched = True
             return True
-        elif status == HttpStatus.PROCESSING:
+        elif not pending_use_202 and status == HttpStatus.PROCESSING:
+            # Old server version returning 102 (Processing) (deprecated).
+            return False
+        elif pending_use_202 and status == HttpStatus.ACCEPTED:
+            # Newer server version returning 202 (Accepted).
             return False
         elif status == HttpStatus.NOT_FOUND:
             # print(json_response)
