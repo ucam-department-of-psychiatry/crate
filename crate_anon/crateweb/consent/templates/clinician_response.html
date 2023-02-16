@@ -34,7 +34,7 @@
 
     <p>Dear {{ patient_lookup.clinician_salutation }},</p>
 
-    <p>Based on anonymised information in the CPFT Research Database, a
+    <p>Based on de-identified information in the CPFT Research Database, a
     research team has identified the following patient of yours as
     potentially eligible for a study that they are conducting:</p>
 
@@ -45,7 +45,7 @@
     {% include 'study_table.html' with study=study contact_request=contact_request to_clinician=True offer_details=True offer_clinician_form=True %}
 
     <p>At this stage, the researchers do not know the patient’s identity.
-    They have identified the patient based on a search of the anonymised
+    They have identified the patient based on a search of the de-identified
     CPFT Research Database. Patient information may only be disclosed to
     the researchers with the patient’s consent.</p>
 
@@ -182,7 +182,7 @@
                 <input type="radio" name="response"
                        value="{{ ClinicianResponse.RESPONSE_D }}"
                        {% if clinician_response.response == ClinicianResponse.RESPONSE_D %}checked{% endif %}>
-                <b>D. The patient is Dead, Discharged more than
+                <b>D. The patient is Deceased, Discharged more than
                     {{ permitted_to_contact_discharged_patients_for_n_days }} days
                     ({{ permitted_to_contact_discharged_patients_for_n_years }} years) ago,
                     or their Details are Defunct, preventing contact.</b>

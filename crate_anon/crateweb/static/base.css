@@ -50,14 +50,29 @@ td p {  /* p within td */
     color: rgb(0, 0, 150);  /* close to navy blue */
 }
 .addresses {
+    /*
+        https://stackoverflow.com/questions/10272605/align-two-inline-blocks-left-and-right-on-same-line
+        https://stackoverflow.com/questions/57020675/using-flex-css-with-wkhtmltopdf
+        https://github.com/wkhtmltopdf/wkhtmltopdf/issues/1522
+        https://developer.mozilla.org/en-US/docs/Web/CSS/justify-content
+        NB:
+        - browsers -- display: flex; justify-content: space-between;
+        - wkhtmltopdf -- display: -webkit-box; -webkit-box-pack: justify;
+    */
     clear: both;
+    font-size: 0.8em;
 }
 .address_to {
     float: left;
+    width: 50%;
+    text-align: left;
+    padding-bottom: 1em;
 }
 .address_from {
     float: right;
+    width: 50%;
     text-align: right;
+    padding-bottom: 1em;
 }
 .code {
     font-family: monospace;
@@ -184,10 +199,12 @@ td p {  /* p within td */
 }
 .logo {
     text-align: right;
+    padding-bottom: 0.3em;
 }
 .office {
     background-color: rgb(200, 200, 200);  /* grey */
-    padding: 0.5em;
+    padding: 0.3em;
+    font-size: 0.8em;
 }
 
 .options {
@@ -242,7 +259,7 @@ table.options, .options table {
 .signature {
     width: 100%;
     border: none;
-    padding: 0.5em;
+    padding: 0.3em;
     table-layout: fixed;
 }
 .signature tr, .signature th, .signature td {
@@ -252,10 +269,17 @@ table.options, .options table {
     text-align: right;
     vertical-align: bottom;
 }
+.signature_label_left {
+    text-align: left;
+    vertical-align: bottom;
+}
 .signature_box, .consent .signature_box, .signature .signature_box {
     /* Increase CSS specificity to have this override ".signature td" etc. */
-    padding-top: 2.5em;
+    padding-top: 2.0em;
     border-bottom: 0.5mm solid black;
+}
+.smallertext {
+    font-size: 0.8em;
 }
 .study {
     background-color: rgb(200, 200, 255);  /* close to lavender */
@@ -267,6 +291,17 @@ table.options, .options table {
 }
 .sql {
     background-color: rgb(230, 230, 255);  /* very pale blue */
+}
+.tabledivider, .tabledivider tr, .tabledivider th, .tabledivider td {
+    border-bottom: 0.5mm solid black;
+    height: 1mm;
+}
+.template {
+    color: rgb(0, 0, 255);
+}
+.template_comment {
+    font-style: italic;
+    font-weight: bold;
 }
 .tickbox {
     font-family: 'Consolas', 'Monaco', 'Bitstream Vera Sans Mono', monospace;

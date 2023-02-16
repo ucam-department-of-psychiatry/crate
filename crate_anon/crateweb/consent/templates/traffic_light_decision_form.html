@@ -4,6 +4,7 @@
 {% comment %}
     template parameters:
         patient_lookup: PatientLookup
+        generic: bool; for any patient, not a specific patient?
         settings: Django settings object
 {% endcomment %}
 
@@ -107,9 +108,9 @@
 
     <p><br></p>
 
-    <p>CPFT routinely anonymises information for use in improving health care
-        and for research. You can opt out from the use of your information for
-        research even after all details that could identify you have been
+    <p>CPFT routinely de-identifies information for use in improving health
+        care and for research. You can opt out from the use of your information
+        for research even after all details that could identify you have been
         removed. Tick below if you want to opt out entirely. This is completely
         separate from being contacted about research.</p>
 
@@ -130,7 +131,14 @@
 
     <p><b>Please turn over.</b></p>
 
-    <p class="page_break_before"><em>Please sign and date below.</em></p>
+    <p class="page_break_before"><em>
+        {% if generic %}
+            {# Generic version, not for a specific patient. #}
+            Please fill in your details and sign below.
+        {% else %}
+            Please sign and date below.
+        {% endif %}
+    </em></p>
 
     <p>By signing you also agree that the CPFT Research Database Manager (who
         is independent of any research team) can see the information you
@@ -139,15 +147,17 @@
 
     <p>You can tell us at any time if you want to change your preference.</p>
 
-    {% include "signature_box_patient.html" with patient_lookup=patient_lookup %}
+    {% include "signature_box_patient.html" with patient_lookup=patient_lookup generic=generic %}
 
-    <p>If any of your details are incorrect, we apologize; please correct them
-        above.</p>
+    {% if not generic %}
+        <p>If any of your details are incorrect, we apologize; please correct
+        them above.</p>
+    {% endif %}
 
-    {% if patient_lookup.is_under_15 %}
+    {% if not generic and patient_lookup.is_under_15 %}
         <p><span class="underline">As you are under 16, please also fill in the
         box below.</span></p>
-    {% elif patient_lookup.is_under_16 %}
+    {% elif generic or patient_lookup.is_under_16 %}
         {# Might have been sent out with 16th birthday approaching, etc. #}
         <p><span class="underline">If you are under 16, or another adult is
         making decisions on your behalf</span>, please also fill in the
@@ -166,6 +176,6 @@
 
     <p>Thank you!</p>
 
-    {% include "consent_table.html" with settings=settings patient_lookup=patient_lookup LEAFLET_URL_CPFTRD_CLINRES_SHORT=LEAFLET_URL_CPFTRD_CLINRES_SHORT with_page_break=False %}
+    {% include "consent_table.html" with settings=settings patient_lookup=patient_lookup generic=generic LEAFLET_URL_CPFTRD_CLINRES_SHORT=LEAFLET_URL_CPFTRD_CLINRES_SHORT with_page_break=False %}
 
 {% endblock content %}

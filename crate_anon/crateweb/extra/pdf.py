@@ -92,7 +92,7 @@ def get_pdf_from_html_with_django_settings(
         wkhtmltopdf_filename or settings.WKHTMLTOPDF_FILENAME
     )  # noqa
     if wkhtmltopdf_options is None:
-        wkhtmltopdf_options = settings.WKHTMLTOPDF_OPTIONS
+        wkhtmltopdf_options = settings.WKHTMLTOPDF_OPTIONS.copy()
     else:
         wkhtmltopdf_options = merge_two_dicts(
             settings.WKHTMLTOPDF_OPTIONS, wkhtmltopdf_options
@@ -136,7 +136,7 @@ def make_pdf_on_disk_from_html_with_django_settings(
         wkhtmltopdf_filename or settings.WKHTMLTOPDF_FILENAME
     )  # noqa
     if wkhtmltopdf_options is None:
-        wkhtmltopdf_options = settings.WKHTMLTOPDF_OPTIONS
+        wkhtmltopdf_options = settings.WKHTMLTOPDF_OPTIONS.copy()
     else:
         wkhtmltopdf_options = merge_two_dicts(
             settings.WKHTMLTOPDF_OPTIONS, wkhtmltopdf_options

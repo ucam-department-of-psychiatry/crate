@@ -569,6 +569,16 @@ urlpatterns = [
         consent_views.draft_traffic_light_decision_form,
         name=UrlNames.DRAFT_TRAFFIC_LIGHT_DECISION_FORM,
     ),
+    re_path(
+        r"^draft_traffic_light_decision_form_generic/(?P<viewtype>pdf|html)/$",
+        consent_views.draft_traffic_light_decision_form_generic,
+        name=UrlNames.DRAFT_TRAFFIC_LIGHT_DECISION_FORM_GENERIC,
+    ),
+    re_path(
+        r"^draft_researcher_cover_letter/(?P<viewtype>pdf|html)/$",
+        consent_views.draft_researcher_cover_letter,
+        name=UrlNames.DRAFT_RESEARCHER_COVER_LETTER,
+    ),
     # -------------------------------------------------------------------------
     # Other test views
     # -------------------------------------------------------------------------

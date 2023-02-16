@@ -75,15 +75,15 @@
 
     {% if patient_lookup.is_under_15 %}
         <p><span class="underline">As you are under 16, please also fill in the
-        box on the next page.</span></p>
+        box below/on the next page.</span></p>
     {% elif patient_lookup.is_under_16 %}
         {# Might have been sent out with 16th birthday approaching, etc. #}
         <p><span class="underline">If you are under 16, or another adult is
         making decisions on your behalf</span>, please also fill in the
-        relevant box on the next page.</p>
+        relevant box below.</p>
     {% else %}
         <p><span class="underline">If another adult is making decisions on your
-        behalf</span>, please also fill in the box on the next page.</p>
+        behalf</span>, please also fill in the box below.</p>
     {% endif %}
 
     <p><br></p>
@@ -109,11 +109,7 @@
 
     <p>Thank you!</p>
 
-    <p><br></p>
-
-    {% include "office_div.html" with study=study contact_request=contact_request %}
-
-    {% include "consent_table.html" with settings=settings patient_lookup=patient_lookup LEAFLET_URL_CPFTRD_CLINRES_SHORT=LEAFLET_URL_CPFTRD_CLINRES_SHORT with_page_break=True %}
+    {% include "consent_table.html" with settings=settings patient_lookup=patient_lookup LEAFLET_URL_CPFTRD_CLINRES_SHORT=LEAFLET_URL_CPFTRD_CLINRES_SHORT with_page_break=False %}
 
     {% include "office_div.html" with study=study contact_request=contact_request %}
 

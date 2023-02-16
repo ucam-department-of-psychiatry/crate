@@ -23,11 +23,12 @@
         <col style="width:18%">
     </colgroup>
     <tbody>
-        {% if patient_lookup.is_under_16 %}
+        {% if generic or patient_lookup.is_under_16 %}
+            <!-- "Under 16" box -->
             <tr>
                 <td colspan=7>
                     <b>
-                        {% if patient_lookup.is_under_15 %}
+                        {% if patient_lookup.is_under_15 and not generic %}
                             As
                         {% else %}
                             If
@@ -78,16 +79,23 @@
                 <td class="signature_box"></td>
             </tr>
         {% endif %}
-        {% if patient_lookup.is_under_16 and not patient_lookup.is_under_15 %}
-            <tr><td colspan="7"><br></td></tr>  <!-- two boxes; extra space -->
+
+        {# Are we showing two boxes? If so, insert a visual divider. #}
+        {# Note: you can't use brackets in Django logic expressions. #}
+        {% if generic %}
+            <tr class="tabledivider"><td colspan="7"><br></td></tr>
+        {% elif patient_lookup.is_under_16 and not patient_lookup.is_under_15 %}
+            <tr class="tabledivider"><td colspan="7"><br></td></tr>
         {% endif %}
-        {% if not patient_lookup.is_under_15 %}
+
+        {% if generic or not patient_lookup.is_under_15 %}
+            <!-- MCA box -->
             {# MCA doesn't apply to under-16s, but this form may go out shortly before 16th birthday #}
             <tr>
                 <td colspan=7>
                     <b>If
                         {# let's not offend adults! #}
-                        {% if patient_lookup.is_under_16 %}
+                        {% if generic or patient_lookup.is_under_16 %}
                             you are an adult and
                         {% endif %}
                         another adult is making decisions on your behalf:</b>

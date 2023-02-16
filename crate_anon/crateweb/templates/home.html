@@ -221,7 +221,7 @@
                     report</a></li>
 
                     <li><a href="{% url 'exclusion_report' %}">Report patients to
-                    be excluded entirely from anonymised database</a></li>
+                    be excluded entirely from de-identified database</a></li>
 
                     <li><a href="{% url 'test_email_rdbm' %}">Test message queue
                     by sending an e-mail to the RDBM</a></li>
@@ -275,10 +275,16 @@
                         Covering letter for first traffic-light decision form (HTML)</a></li>
 
                     <li><a href="{% url 'draft_traffic_light_decision_form' -1 'pdf' %}">
-                        Traffic-light decision form (PDF)</a></li>
+                        Traffic-light decision form, personalized (PDF)</a></li>
 
                     <li><a href="{% url 'draft_traffic_light_decision_form' -1 'html' %}">
-                        Traffic-light decision form (HTML)</a></li>
+                        Traffic-light decision form, personalized (HTML)</a></li>
+
+                    <li><a href="{% url 'draft_traffic_light_decision_form_generic' 'pdf' %}">
+                        Traffic-light decision form, generic (PDF)</a></li>
+
+                    <li><a href="{% url 'draft_traffic_light_decision_form_generic' 'html' %}">
+                        Traffic-light decision form, generic (HTML)</a></li>
 
                     <li><a href="{% url 'draft_confirm_traffic_light_letter' -1 'pdf' %}">
                         Letter confirming traffic-light decision (PDF)</a> (use e.g. "?consent_mode=yellow")</li>
@@ -313,6 +319,12 @@
 
                     <li><a href="{% url 'draft_approval_email' -1 %}">
                         Approval covering e-mail to researcher</a></li>
+
+                    <li><a href="{% url 'draft_researcher_cover_letter' 'html' %}">
+                        Template cover letter from researcher to patient (HTML)</a></li>
+
+                    <li><a href="{% url 'draft_researcher_cover_letter' 'pdf' %}">
+                        Template cover letter from researcher to patient (PDF)</a></li>
 
                     <li><a href="{% url 'draft_withdrawal_letter' -1 'html' %}">
                         Withdrawal letter to researcher (HTML)</a></li>
