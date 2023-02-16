@@ -188,9 +188,7 @@ class DataDictionaryRow:
         self.src_db = None  # type: Optional[str]
         self.src_table = None  # type: Optional[str]
         self.src_field = None  # type: Optional[str]
-        self.src_datatype = (
-            None
-        )  # type: Optional[str]  # in SQL string format  # noqa
+        self.src_datatype = None  # type: Optional[str]  # in SQL string format
         # src_flags: a property; see below
 
         self.scrub_src = None  # type: Optional[str]
@@ -498,7 +496,7 @@ class DataDictionaryRow:
         if value:
             self._inclusion_values = (
                 ast.literal_eval(value) or []
-            )  # type: List[Any]  # noqa
+            )  # type: List[Any]
         else:
             self._inclusion_values = []  # type: List[Any]
 
@@ -533,7 +531,7 @@ class DataDictionaryRow:
         if value:
             self._exclusion_values = (
                 ast.literal_eval(value) or []
-            )  # type: List[Any]  # noqa
+            )  # type: List[Any]
         else:
             self._exclusion_values = []  # type: List[Any]
 
@@ -1432,7 +1430,7 @@ class DataDictionaryRow:
                 and dbconf.ddgen_add_per_table_pids_to_scrubber
             )
             or self.matches_fielddef(dbconf.ddgen_scrubsrc_patient_fields)
-        ):  # noqa
+        ):
             self.scrub_src = ScrubSrc.PATIENT
 
         elif self.matches_fielddef(dbconf.ddgen_scrubsrc_thirdparty_fields):
@@ -1464,7 +1462,7 @@ class DataDictionaryRow:
             or self.matches_fielddef(dbconf.ddgen_per_table_pid_field)
             or self.matches_fielddef(dbconf.ddgen_master_pid_fieldname)
             or self.matches_fielddef(dbconf.ddgen_scrubmethod_number_fields)
-        ):  # noqa
+        ):
             self.scrub_method = ScrubMethod.NUMERIC
 
         elif is_sqlatype_date(src_sqla_coltype) or self.matches_fielddef(

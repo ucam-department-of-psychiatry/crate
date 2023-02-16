@@ -1977,7 +1977,7 @@ class WhereCondition:
             else:
                 assert not isinstance(
                     value_or_values, list
-                ), "Need single value"  # noqa
+                ), "Need single value"
 
     def init_kwargs(self) -> Dict:
         return {
