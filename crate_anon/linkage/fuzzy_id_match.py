@@ -145,7 +145,7 @@ block, and then compare the sequence of mini-hashes for similarity.
     triggered piecewise hashing", *Digital Investigation* 3S: S91-S97,
     https://doi.org/10.1016/j.diin.2006.06.015.
 
-... cited in the paper via Kornblum (2006) and Lee & Atkinson (2017), which
+... cited in the paper via Kornblum (2006) and Lee & Atkison (2017), which
 covers SSDEEP, TLSH, sdhash, and others.
 
 

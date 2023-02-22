@@ -45,6 +45,8 @@ from typing import (
     Set,
 )
 
+from ordered_set import OrderedSet
+
 from crate_anon.linkage.constants import INFINITY, MINUS_INFINITY
 from crate_anon.linkage.matchconfig import MatchConfig
 from crate_anon.linkage.matchresult import MatchResult
@@ -217,9 +219,9 @@ class People:
 
     def gen_shortlist(self, proband: Person) -> Generator[Person, None, None]:
         """
-        Generates a shortlist of potential candidates for fuzzy matching, by
-        date of birth. Doesn't bother with perfect matches; that job should
-        already have been done.
+        Generates a shortlist of potential candidates for fuzzy matching (e.g.
+        by restriction to same/similar dates of birth -- or with no such
+        restriction, if preferred).
 
         Yields:
             proband: a :class:`Person`
@@ -232,14 +234,22 @@ class People:
         if cfg.complete_dob_mismatch_allowed:
             # No shortlisting; everyone's a candidate. Slow.
             for person in self.people:
+                # self.people is a list, so order is consistent and matches
+                # the input.
                 yield person
         else:
             # Implement the shortlist by DOB.
             # Most efficient to let set operations determine uniqueness, then
             # iterate through the set.
+            # We use an OrderedSet to be sure of consistency; the precise
+            # ordering is as below (e.g. people with the same DOB, then those
+            # with the partial matches as shown below). Within each category,
+            # the ordering will be as the input. (Thus, if configured for
+            # duplicate detection, which entails identical DOBs, the earliest
+            # winner will always be the first in the input.)
 
             # First, exact matches:
-            shortlist = set(self.dob_ymd_to_people[dob.dob_str])
+            shortlist = OrderedSet(self.dob_ymd_to_people[dob.dob_str])
 
             # Now, we'll slow it all down with partial matches:
             if cfg.partial_dob_mismatch_allowed:
@@ -288,6 +298,9 @@ class People:
                 elif log_odds > second_best_log_odds:
                     second_best_log_odds = log_odds
                     second_best_candidate = candidate
+                # If log_odds == best_log_odds, we don't change the winner,
+                # i.e. the first-encountered candidate continues in the lead.
+                # The shortlist is generated in a consistent order.
 
         result = MatchResult(
             best_log_odds=best_log_odds,

@@ -102,6 +102,7 @@ INSTALL_REQUIRES = [
     "numba==0.55.2",  # just-in-time compilation of functions
     "numpy==1.22.4",  # numerical work
     "openpyxl==3.0.7",  # read Excel
+    "ordered-set==4.1.0",  # ordered sets; search for ordered_set
     "pendulum==2.1.2",  # dates/times
     "Pillow==9.3.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
