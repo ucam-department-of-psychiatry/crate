@@ -36,14 +36,17 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from crate_anon.linkage.fuzzy_id_match import get_demo_people
 from crate_anon.linkage.matchconfig import MatchConfig
 
+log = logging.getLogger(__name__)
+
 
 def main(
-    wholly_different: bool = False,
-    asymmetry_forename_count: bool = False,
-    asymmetry_surname_frequency: bool = False,
-    use_dummy_frequencies: bool = False,
-    forename_order_1: bool = False,
+    wholly_different: bool = True,
+    asymmetry_forename_count: bool = True,
+    asymmetry_surname_frequency: bool = True,
+    use_dummy_frequencies: bool = True,
+    forename_order_1: bool = True,
     forename_order_2: bool = True,
+    no_dob: bool = True,
     verbose: bool = False,
 ) -> None:
     """
@@ -62,26 +65,36 @@ def main(
     a_smith = pp[10]  # Alice SMITH, one postcode
     a_abadilla = pp[11]  # Alice ABADILLA, one postcode
     za_smith = pp[12]  # Zara Alice SMITH, one postcode
+    s_holmes = pp[13]  # Sherlock HOLMES, no DOB
 
     if wholly_different:
+        log.warning("Wholly different")
         az_smith.debug_compare(candidate=dww_cartwright, verbose=verbose)
         dww_cartwright.debug_compare(candidate=az_smith, verbose=verbose)
 
     if asymmetry_forename_count:
+        log.warning("Asymmetric forename count")
         az_smith.debug_compare(candidate=a_smith, verbose=verbose)
         a_smith.debug_compare(candidate=az_smith, verbose=verbose)
 
     if asymmetry_surname_frequency:
+        log.warning("Asymmetric surname frequency")
         a_smith.debug_compare(candidate=a_abadilla, verbose=verbose)
         a_abadilla.debug_compare(candidate=a_smith, verbose=verbose)
 
     if forename_order_1:
+        log.warning("Forename order 1")
         az_smith.debug_compare(candidate=az_smith, verbose=verbose)
         az_smith.debug_compare(candidate=za_smith, verbose=verbose)
 
     if forename_order_2:
+        log.warning("Forename order 2")
         a_smith.debug_compare(candidate=az_smith, verbose=verbose)
         a_smith.debug_compare(candidate=za_smith, verbose=verbose)
+
+    if no_dob:
+        log.warning("No DOB")
+        s_holmes.debug_compare(candidate=s_holmes, verbose=verbose)
 
 
 if __name__ == "__main__":

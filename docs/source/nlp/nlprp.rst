@@ -61,10 +61,10 @@ Authors
 In alphabetical order:
 
 - Rudolf N. Cardinal (RNC), University of Cambridge, 2017-.
-- Joe Kearney (JK), University of Cambridge, 2018.
+- Joe Kearney (JK), University of Cambridge, 2018-19.
 - Angus Roberts (AR), King's College London, 2018-.
 - Ian Roberts (IR), University of Sheffield, 2018-.
-- Francesca Spivack (FS), University of Cambridge, 2018-.
+- Francesca Spivack (FS), University of Cambridge, 2018-20.
 
 
 Rationale

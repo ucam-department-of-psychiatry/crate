@@ -168,9 +168,9 @@ class Person:
                 TemporalIDHolder objects.
             dob:
                 The date of birth, in ISO-8061 "YYYY-MM-DD" string format,
-                or as a DateOfBirth object.
+                or as a DateOfBirth object, or None, or ''.
             gender:
-                The gender: 'M', 'F', 'X', or '', or a Gender object.
+                The gender: 'M', 'F', 'X', or '', or None, or a Gender object.
             postcodes:
                 Any UK postcodes for this person, with optional associated
                 dates.
@@ -272,8 +272,9 @@ class Person:
             chk_plaintext(s)
             self.surnames.append(s)
 
-        # dob (NB mandatory for real work but we still want to be able to
-        # create Person objects without a DOB inc. for testing)
+        # dob (NB highly desirable for real work, but not mandatory, and we
+        # also want to be able to create Person objects without a DOB for
+        # testing)
         dob = "" if dob is None else dob
         if isinstance(dob, DateOfBirth):
             self.dob = dob
@@ -708,15 +709,13 @@ class Person:
     # Validation
     # -------------------------------------------------------------------------
 
-    def ensure_valid_as_proband(
-        self, debug_allow_no_dob: bool = False
-    ) -> None:
+    def ensure_valid_as_proband(self) -> None:
         """
         Ensures this person has sufficient information to act as a proband, or
         raises :exc:`ValueError`.
+
+        We previously required a DOB unless debugging, but no longer.
         """
-        if not self.has_dob() and not debug_allow_no_dob:
-            raise ValueError("Proband: missing DOB")
         for f in self.forenames:
             f.ensure_has_freq_info_if_id_present()
         for s in self.surnames:
@@ -726,15 +725,14 @@ class Person:
         for p in self.postcodes:
             p.ensure_has_freq_info_if_id_present()
 
-    def ensure_valid_as_candidate(
-        self, debug_allow_no_dob: bool = False
-    ) -> None:
+    def ensure_valid_as_candidate(self) -> None:
         """
         Ensures this person has sufficient information to act as a candidate,
         or raises :exc:`AssertionError`.
+
+        We previously required a DOB unless debugging, but no longer.
         """
-        if not self.has_dob() and not debug_allow_no_dob:
-            raise ValueError("Candidate: missing DOB")
+        pass
 
     # -------------------------------------------------------------------------
     # Debugging functions to check this object

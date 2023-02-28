@@ -145,7 +145,7 @@ block, and then compare the sequence of mini-hashes for similarity.
     triggered piecewise hashing", *Digital Investigation* 3S: S91-S97,
     https://doi.org/10.1016/j.diin.2006.06.015.
 
-... cited in the paper via Kornblum (2006) and Lee & Atkinson (2017), which
+... cited in the paper via Kornblum (2006) and Lee & Atkison (2017), which
 covers SSDEEP, TLSH, sdhash, and others.
 
 
@@ -199,6 +199,7 @@ class ComparisonOutputColnames:
     SECOND_BEST_LOG_ODDS = "second_best_log_odds"
 
     BEST_CANDIDATE_LOCAL_ID = "best_candidate_local_id"
+    SECOND_BEST_CANDIDATE_LOCAL_ID = "second_best_candidate_local_id"
 
     COMPARISON_OUTPUT_COLNAMES = [
         PROBAND_LOCAL_ID,
@@ -208,7 +209,10 @@ class ComparisonOutputColnames:
         SAMPLE_MATCH_LOCAL_ID,
         SECOND_BEST_LOG_ODDS,
     ]
-    COMPARISON_EXTRA_COLNAMES = [BEST_CANDIDATE_LOCAL_ID]
+    COMPARISON_EXTRA_COLNAMES = [
+        BEST_CANDIDATE_LOCAL_ID,
+        SECOND_BEST_CANDIDATE_LOCAL_ID,
+    ]
 
 
 _ = """
@@ -375,6 +379,11 @@ def compare_probands_to_sample(
         if extra_validation_output:
             rowdata[c.BEST_CANDIDATE_LOCAL_ID] = (
                 r.best_candidate.local_id if r.best_candidate else None
+            )
+            rowdata[c.SECOND_BEST_CANDIDATE_LOCAL_ID] = (
+                r.second_best_candidate.local_id
+                if r.second_best_candidate
+                else None
             )
         writer.writerow(rowdata)
 
@@ -804,6 +813,15 @@ def get_demo_people(cfg: MatchConfig = None) -> List[Person]:
             gender=GENDER_FEMALE,
             postcodes=[p("CB2 0QQ")],
         ),
+        Person(
+            cfg=cfg,
+            local_id="r13",
+            other_info=mkother("13"),
+            forenames=["Sherlock"],
+            surnames=["Holmes"],
+            # no DOB
+            gender=GENDER_MALE,
+        ),
     ]
 
 
@@ -867,6 +885,9 @@ added:
         Local ID of the closest-matching person (candidate) in the sample, EVEN
         IF THEY DID NOT WIN. (This will be the same as the winner if there was
         a match.) String; blank for no match.
+    {ComparisonOutputColnames.SECOND_BEST_CANDIDATE_LOCAL_ID}:
+        Local ID of the second-best candidate in the sample, if any. String;
+        blank for no match.
 
 Proband order is retained in the output (even using parallel processing).
 """
@@ -913,6 +934,7 @@ def add_subparsers(
     parser.add_argument(
         "--version", action="version", version=f"CRATE {CRATE_VERSION}"
     )
+    # noinspection PyTypeChecker
     parser.add_argument(
         "--allhelp",
         action=ShowAllSubparserHelpAction,
@@ -1319,7 +1341,9 @@ def add_matching_rules(parser: argparse.ArgumentParser) -> None:
     control_group.add_argument(
         f"--{Switches.EXTRA_VALIDATION_OUTPUT}",
         action="store_true",
-        help="Add extra output for validation purposes.",
+        help="Add extra output for validation purposes (the local IDs of the "
+        "best and second-best candidates, if any, even if there was no "
+        "match).",
     )
     control_group.add_argument(
         f"--{Switches.CHECK_COMPARISON_ORDER}",

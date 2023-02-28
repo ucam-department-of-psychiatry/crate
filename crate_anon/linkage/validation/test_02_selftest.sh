@@ -62,7 +62,8 @@ rm -f "${SAMPLE_CACHE}"
     --probands "${SAMPLE}" \
     --sample "${SAMPLE}" \
     --sample_cache "${SAMPLE_CACHE}" \
-    --output "${COMPARISON_P2P}"
+    --output "${COMPARISON_P2P}" \
+    --extra_validation_output
 
 # (b) From the cache at the previous step
 # This should produce matches for most (comparing a sample to itself):
@@ -70,7 +71,8 @@ rm -f "${SAMPLE_CACHE}"
     --probands "${SAMPLE}" \
     --sample "${SAMPLE}" \
     --sample_cache "${SAMPLE_CACHE}" \
-    --output "${COMPARISON_P2P}"
+    --output "${COMPARISON_P2P}" \
+    --extra_validation_output
 
 # For larger comparisons, see the speedtest script.
 
@@ -84,6 +86,7 @@ rm -f "${SAMPLE_CACHE}"
     --probands "${SAMPLE_HASHED}" \
     --sample "${SAMPLE_HASHED}" \
     --output "${COMPARISON_H2H}" \
+    --extra_validation_output \
     --n_workers 1
 cmp "${COMPARISON_H2H}" "${COMPARISON_P2P}" || { echo "H2H doesn't match P2P"; exit 1; }
 
@@ -92,6 +95,7 @@ cmp "${COMPARISON_H2H}" "${COMPARISON_P2P}" || { echo "H2H doesn't match P2P"; e
     --probands "${SAMPLE_HASHED}" \
     --sample "${SAMPLE}" \
     --output "${COMPARISON_H2P}" \
+    --extra_validation_output \
     --n_workers 1 \
     --rounding_sf None
 cmp "${COMPARISON_H2P}" "${COMPARISON_P2P}" || { echo "H2P doesn't match P2P"; exit 1; }

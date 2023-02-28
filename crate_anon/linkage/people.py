@@ -45,6 +45,8 @@ from typing import (
     Set,
 )
 
+from ordered_set import OrderedSet
+
 from crate_anon.linkage.constants import INFINITY, MINUS_INFINITY
 from crate_anon.linkage.matchconfig import MatchConfig
 from crate_anon.linkage.matchresult import MatchResult
@@ -162,6 +164,15 @@ class People:
             self.dob_yd_to_people[dob.dob_yd].append(person)
             self.dob_ym_to_people[dob.dob_ym].append(person)
             self.dob_ymd_to_people[dob.dob_str].append(person)
+        else:
+            # DOB absent.
+            # We do need a way to retrieve people with no DOB.
+            # We use a blank string key for this:
+            self.dob_ymd_to_people[""].append(person)
+            # It's also true that dob.dob_str will be "", so this is just for
+            # clarity.
+            # We do not need to add to the partial DOB maps. See
+            # gen_shortlist().
 
         # Add the person.
         self.people.append(person)
@@ -217,9 +228,9 @@ class People:
 
     def gen_shortlist(self, proband: Person) -> Generator[Person, None, None]:
         """
-        Generates a shortlist of potential candidates for fuzzy matching, by
-        date of birth. Doesn't bother with perfect matches; that job should
-        already have been done.
+        Generates a shortlist of potential candidates for fuzzy matching (e.g.
+        by restriction to same/similar dates of birth -- or with no such
+        restriction, if preferred).
 
         Yields:
             proband: a :class:`Person`
@@ -227,25 +238,43 @@ class People:
         # A high-speed function.
         cfg = self.cfg
         dob = proband.dob
-        if not dob:
-            return
-        if cfg.complete_dob_mismatch_allowed:
+
+        # 2023-02-28 update for referees:
+        # - Allow comparison where the DOB is missing.
+        # - Of necessity, probands with no DOBs must be compared to all
+        #   candidates.
+        # - Likewise, if we permit a complete DOB mismatch (where DOBs are
+        #   present), we must compare to all candidates.
+        if cfg.complete_dob_mismatch_allowed or not dob:
             # No shortlisting; everyone's a candidate. Slow.
             for person in self.people:
+                # self.people is a list, so order is consistent and matches
+                # the input.
                 yield person
         else:
             # Implement the shortlist by DOB.
             # Most efficient to let set operations determine uniqueness, then
             # iterate through the set.
+            # We use an OrderedSet to be sure of consistency; the precise
+            # ordering is as below (e.g. people with the same DOB, then those
+            # with the partial matches as shown below). Within each category,
+            # the ordering will be as the input. (Thus, if configured for
+            # duplicate detection, which entails identical DOBs, the earliest
+            # winner will always be the first in the input.)
 
             # First, exact matches:
-            shortlist = set(self.dob_ymd_to_people[dob.dob_str])
+            shortlist = OrderedSet(self.dob_ymd_to_people[dob.dob_str])
 
             # Now, we'll slow it all down with partial matches:
             if cfg.partial_dob_mismatch_allowed:
                 shortlist.update(self.dob_md_to_people[dob.dob_md])
                 shortlist.update(self.dob_yd_to_people[dob.dob_yd])
                 shortlist.update(self.dob_ym_to_people[dob.dob_ym])
+
+            # But also, we must include any candidates who have no DOB.
+            # (We already know that our proband has a DOB, or we wouldn't be
+            # in this part of the if statement.)
+            shortlist.update(self.dob_ymd_to_people[""])
 
             for person in shortlist:
                 yield person
@@ -288,6 +317,9 @@ class People:
                 elif log_odds > second_best_log_odds:
                     second_best_log_odds = log_odds
                     second_best_candidate = candidate
+                # If log_odds == best_log_odds, we don't change the winner,
+                # i.e. the first-encountered candidate continues in the lead.
+                # The shortlist is generated in a consistent order.
 
         result = MatchResult(
             best_log_odds=best_log_odds,

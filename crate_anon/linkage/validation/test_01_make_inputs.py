@@ -120,6 +120,8 @@ def main() -> None:
         ),
         10000,
     )
+
+    # Don't alter this: it provides the five-example Figure 3.
     write_people(
         filename=os.path.join(
             FuzzyDefaults.DEFAULT_CACHE_DIR, "crate_fuzzy_demo_fig3_sample.csv"
