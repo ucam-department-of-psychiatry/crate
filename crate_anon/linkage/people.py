@@ -164,6 +164,15 @@ class People:
             self.dob_yd_to_people[dob.dob_yd].append(person)
             self.dob_ym_to_people[dob.dob_ym].append(person)
             self.dob_ymd_to_people[dob.dob_str].append(person)
+        else:
+            # DOB absent.
+            # We do need a way to retrieve people with no DOB.
+            # We use a blank string key for this:
+            self.dob_ymd_to_people[""].append(person)
+            # It's also true that dob.dob_str will be "", so this is just for
+            # clarity.
+            # We do not need to add to the partial DOB maps. See
+            # gen_shortlist().
 
         # Add the person.
         self.people.append(person)
@@ -229,9 +238,14 @@ class People:
         # A high-speed function.
         cfg = self.cfg
         dob = proband.dob
-        if not dob:
-            return
-        if cfg.complete_dob_mismatch_allowed:
+
+        # 2023-02-28 update for referees:
+        # - Allow comparison where the DOB is missing.
+        # - Of necessity, probands with no DOBs must be compared to all
+        #   candidates.
+        # - Likewise, if we permit a complete DOB mismatch (where DOBs are
+        #   present), we must compare to all candidates.
+        if cfg.complete_dob_mismatch_allowed or not dob:
             # No shortlisting; everyone's a candidate. Slow.
             for person in self.people:
                 # self.people is a list, so order is consistent and matches
@@ -256,6 +270,11 @@ class People:
                 shortlist.update(self.dob_md_to_people[dob.dob_md])
                 shortlist.update(self.dob_yd_to_people[dob.dob_yd])
                 shortlist.update(self.dob_ym_to_people[dob.dob_ym])
+
+            # But also, we must include any candidates who have no DOB.
+            # (We already know that our proband has a DOB, or we wouldn't be
+            # in this part of the if statement.)
+            shortlist.update(self.dob_ymd_to_people[""])
 
             for person in shortlist:
                 yield person

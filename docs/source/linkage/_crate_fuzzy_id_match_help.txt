@@ -330,6 +330,9 @@ added:
         Local ID of the closest-matching person (candidate) in the sample, EVEN
         IF THEY DID NOT WIN. (This will be the same as the winner if there was
         a match.) String; blank for no match.
+    second_best_candidate_local_id:
+        Local ID of the second-best candidate in the sample, if any. String;
+        blank for no match.
 
 Proband order is retained in the output (even using parallel processing).
 
@@ -399,8 +402,9 @@ MATCHING RULES:
 
 CONTROL OPTIONS:
   --extra_validation_output
-                        Add extra output for validation purposes. (default:
-                        False)
+                        Add extra output for validation purposes (the local
+                        IDs of the best and second-best candidates, if any,
+                        even if there was no match). (default: False)
   --check_comparison_order
                         Check every comparison for log-likelihood ratio
                         sequence 'no match ≤ partial(s) ≤ full' and warn if
@@ -671,6 +675,9 @@ added:
         Local ID of the closest-matching person (candidate) in the sample, EVEN
         IF THEY DID NOT WIN. (This will be the same as the winner if there was
         a match.) String; blank for no match.
+    second_best_candidate_local_id:
+        Local ID of the second-best candidate in the sample, if any. String;
+        blank for no match.
 
 Proband order is retained in the output (even using parallel processing).
 
@@ -712,8 +719,9 @@ MATCHING RULES:
 
 CONTROL OPTIONS:
   --extra_validation_output
-                        Add extra output for validation purposes. (default:
-                        False)
+                        Add extra output for validation purposes (the local
+                        IDs of the best and second-best candidates, if any,
+                        even if there was no match). (default: False)
   --check_comparison_order
                         Check every comparison for log-likelihood ratio
                         sequence 'no match ≤ partial(s) ≤ full' and warn if
@@ -990,6 +998,9 @@ added:
         Local ID of the closest-matching person (candidate) in the sample, EVEN
         IF THEY DID NOT WIN. (This will be the same as the winner if there was
         a match.) String; blank for no match.
+    second_best_candidate_local_id:
+        Local ID of the second-best candidate in the sample, if any. String;
+        blank for no match.
 
 Proband order is retained in the output (even using parallel processing).
 
@@ -1067,8 +1078,9 @@ MATCHING RULES:
 
 CONTROL OPTIONS:
   --extra_validation_output
-                        Add extra output for validation purposes. (default:
-                        False)
+                        Add extra output for validation purposes (the local
+                        IDs of the best and second-best candidates, if any,
+                        even if there was no match). (default: False)
   --check_comparison_order
                         Check every comparison for log-likelihood ratio
                         sequence 'no match ≤ partial(s) ≤ full' and warn if

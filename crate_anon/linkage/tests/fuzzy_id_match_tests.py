@@ -324,7 +324,7 @@ class TestCondition:
 
         for id_person in (self.person_a, self.person_b):
             assert id_person.is_plaintext()
-            id_person.ensure_valid_as_proband(debug_allow_no_dob=True)
+            id_person.ensure_valid_as_proband()
             for identifier in id_person.debug_gen_identifiers():
                 assert identifier.is_plaintext
 
@@ -333,7 +333,7 @@ class TestCondition:
         self.hashed_b = self.person_b.hashed()
         for h_person in (self.hashed_a, self.hashed_b):
             assert h_person.is_hashed()
-            h_person.ensure_valid_as_proband(debug_allow_no_dob=True)
+            h_person.ensure_valid_as_proband()
             for identifier in h_person.debug_gen_identifiers():
                 assert not identifier.is_plaintext
         self.debug = debug
