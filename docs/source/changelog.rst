@@ -43,6 +43,7 @@ Quick links:
 - :ref:`2020 <changelog_2020>`
 - :ref:`2021 <changelog_2021>`
 - :ref:`2022 <changelog_2022>`
+- :ref:`2023 <changelog_2023>`
 
 
 Changes
@@ -1524,7 +1525,7 @@ Changes
   - The Docker version of CRATE can now be :ref:`installed with a single script
     <quick_start>`.
 
-**0.19.4 to 0.20.0, 2022-05-24 to 2023-02-14**
+**0.19.4, 2022-05-24**
 
 - Anonymisation:
 
@@ -1547,6 +1548,13 @@ Changes
 
   - Support for blurring of dates with new config option
     :ref:`replace_all_dates_with <replace_all_dates_with>`.
+
+.. _changelog_2023:
+
+2023
+~~~~
+
+**0.20.0, 2023-03-14**
 
   - Support for removing all e-mail addresses, with new config option
     :ref:`scrub_all_email_addresses <scrub_all_email_addresses>`.
@@ -1593,6 +1601,11 @@ Changes
 
 - Rich text for help.
 
+- Fix installer to work with Docker Compose >= 2.14.1. The named 'crate' image
+  will be pulled from DockerHub even if there is a Dockerfile present. We don't
+  want to do that.
+
+**0.20.1, in progress**
 
 To do
 -----
