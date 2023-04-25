@@ -336,6 +336,20 @@ class Installer:
             f"source /crate/venv/bin/activate; {crate_command}"
         )
 
+    def exec_crate_command(self, crate_command: str) -> None:
+        venv_command = f'""source /crate/venv/bin/activate; {crate_command}""'
+
+        os.chdir(HostPath.DOCKERFILES_DIR)
+
+        # command = ["docker", "compose", "exec"] + [DockerComposeServices.CRATE_SERVER, DockerPath.BASH, "-c", venv_command]
+
+        # print(f"Executing CRATE command:\n{command}\n")
+        # run(command)
+        docker.compose.execute(
+            DockerComposeServices.CRATE_SERVER,
+            [DockerPath.BASH, "-c", venv_command],
+        )
+
     # -------------------------------------------------------------------------
     # Info messages
     # -------------------------------------------------------------------------
@@ -1048,7 +1062,7 @@ class Installer:
         with open(filename, "r") as f:
             contents = f.read()
 
-        for (search, replace) in replace_dict.items():
+        for search, replace in replace_dict.items():
             if replace is None:
                 self.fail(f"Can't replace '{search}' with None")
 
@@ -1133,6 +1147,7 @@ def get_installer(verbose: bool) -> Installer:
 
 
 class Command:
+    EXEC_COMMAND = "exec"
     INSTALL = "install"
     RUN_COMMAND = "run"
     START = "start"
@@ -1170,6 +1185,13 @@ def main() -> None:
     )
     run_crate_command.add_argument("crate_command", type=str)
 
+    exec_crate_command = subparsers.add_parser(
+        Command.EXEC_COMMAND,
+        help=f"Execute a command within the CRATE Docker environment, in the "
+        f"existing {DockerComposeServices.CRATE_SERVER!r} service/container",
+    )
+    exec_crate_command.add_argument("crate_command", type=str)
+
     shell = subparsers.add_parser(
         Command.SHELL,
         help=f"Start a shell (command prompt) within a already-running CRATE "
@@ -1198,6 +1220,9 @@ def main() -> None:
 
     elif args.command == Command.RUN_COMMAND:
         installer.run_crate_command(args.crate_command)
+
+    elif args.command == Command.EXEC_COMMAND:
+        installer.exec_crate_command(args.crate_command)
 
     elif args.command == Command.SHELL:
         installer.run_shell_in_crate_container(as_root=args.as_root)
