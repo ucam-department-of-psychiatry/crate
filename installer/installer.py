@@ -341,10 +341,6 @@ class Installer:
 
         os.chdir(HostPath.DOCKERFILES_DIR)
 
-        # command = ["docker", "compose", "exec"] + [DockerComposeServices.CRATE_SERVER, DockerPath.BASH, "-c", venv_command]
-
-        # print(f"Executing CRATE command:\n{command}\n")
-        # run(command)
         docker.compose.execute(
             DockerComposeServices.CRATE_SERVER,
             [DockerPath.BASH, "-c", venv_command],
