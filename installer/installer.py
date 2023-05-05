@@ -164,6 +164,8 @@ class DockerEnvVar:
     MYSQL_CRATE_USER_NAME = f"{PREFIX}_MYSQL_CRATE_USER_NAME"
     MYSQL_CRATE_USER_PASSWORD = f"{PREFIX}_MYSQL_CRATE_USER_{PASSWORD_SUFFIX}"
 
+    ODBC_USER_CONFIG = f"{PREFIX}_ODBC_USER_CONFIG"
+
     RESEARCH_DATABASE_ENGINE = f"{PREFIX}_RESEARCH_DATABASE_ENGINE"
     RESEARCH_DATABASE_HOST = f"{PREFIX}_RESEARCH_DATABASE_HOST"
     RESEARCH_DATABASE_NAME = f"{PREFIX}_RESEARCH_DATABASE_NAME"
@@ -436,6 +438,7 @@ class Installer:
             DockerEnvVar.CRATEWEB_CONFIG_FILENAME, "crateweb_local_settings.py"
         )
         self.setenv(DockerEnvVar.CRATE_ANON_CONFIG, "crate_anon_config.ini")
+        self.setenv(DockerEnvVar.ODBC_USER_CONFIG, "odbc_user.ini")
 
     def configure_crateweb(self) -> None:
         self.setenv(
