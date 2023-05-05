@@ -236,7 +236,7 @@ RUN echo "======================================================================
     && echo "- Installing CRATE (crate_anon, from source) and Python database drivers..." \
     && echo "  * MySQL [mysqlclient]" \
     && echo "  * PostgreSQL [psycopg2]" \
-    && echo "  * SQL Server [django-mssql-backend, pyodbc, Microsoft ODBC Driver for SQL Server (Linux) as above]" \
+    && echo "  * SQL Server [mssql-django, pyodbc, Microsoft ODBC Driver for SQL Server (Linux) as above]" \
     && "${CRATE_VENV_BIN}/python3" -m pip install \
         "${CRATE_SRC}" \
         mssql-django==1.2 \
