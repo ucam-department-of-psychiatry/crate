@@ -239,7 +239,7 @@ RUN echo "======================================================================
     && echo "  * SQL Server [django-mssql-backend, pyodbc, Microsoft ODBC Driver for SQL Server (Linux) as above]" \
     && "${CRATE_VENV_BIN}/python3" -m pip install \
         "${CRATE_SRC}" \
-        django-mssql-backend==2.8.1 \
+        mssql-django==1.2 \
         mysqlclient==1.4.6 \
         psycopg2==2.8.5 \
         pyodbc==4.0.30 \
