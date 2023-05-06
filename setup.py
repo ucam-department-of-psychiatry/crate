@@ -131,7 +131,7 @@ INSTALL_REQUIRES = [
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework
     "pyramid_tm==2.4",  # Pyramid transaction management
-    "redis==3.5.3",  # interface to Redis in-memory key-value database
+    "redis==4.5.4",  # interface to Redis in-memory key-value database
     "requests==2.25.1",  # HTTP requests
     "tornado==6.1",  # web framework
     "transaction==3.0.0",  # generic transaction management
