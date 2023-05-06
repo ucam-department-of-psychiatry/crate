@@ -15,7 +15,7 @@ echo dumping pre-installed packages
 python -m pip freeze
 echo installing pip packages
 python -m pip install -e .
-pythin -m pip install mysqlclient
+python -m pip install mysqlclient
 echo checking packages for conflicts
 python -m pip check
 echo installing vulnerability checker
