@@ -34,4 +34,5 @@ echo checking python for style and errors
 flake8 --config=setup.cfg .
 echo running tests
 export CRATE_RUN_WITHOUT_LOCAL_SETTINGS=True
+export CRATE_NLP_WEB_CONFIG=${GITHUB_WORKSPACE}/github_action_scripts/test_nlp_web_config.ini
 pytest -v
