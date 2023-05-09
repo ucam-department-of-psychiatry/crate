@@ -93,6 +93,7 @@ class HostPath:
 
     HOME_DIR = os.path.expanduser("~")
     DEFAULT_HOST_CRATE_CONFIG_DIR = os.path.join(HOME_DIR, "crate_config")
+    DEFAULT_HOST_CRATE_STATIC_DIR = os.path.join(HOME_DIR, "static")
     DEFAULT_HOST_BIOYODIE_DIR = os.path.join(HOME_DIR, "bioyodie_resources")
 
     ENVVAR_SAVE_FILE = "set_crate_docker_host_envvars"
@@ -201,6 +202,7 @@ class DockerEnvVar:
     SOURCE_DATABASE_USER_PASSWORD = (
         f"{PREFIX}_SOURCE_DATABASE_USER_{PASSWORD_SUFFIX}"  # noqa
     )
+    STATIC_HOST_DIR = f"{PREFIX}_STATIC_HOST_DIR"
 
 
 # =============================================================================
@@ -409,6 +411,7 @@ class Installer:
         try:
             self.configure_user()
             self.configure_config_files()
+            self.configure_static_dir()
             self.configure_crateweb()
             self.configure_crate_db()
             self.configure_research_db()
@@ -439,6 +442,11 @@ class Installer:
         )
         self.setenv(DockerEnvVar.CRATE_ANON_CONFIG, "crate_anon_config.ini")
         self.setenv(DockerEnvVar.ODBC_USER_CONFIG, "odbc_user.ini")
+
+    def configure_static_dir(self) -> None:
+        self.setenv(
+            DockerEnvVar.STATIC_HOST_DIR, self.get_docker_static_host_dir
+        )
 
     def configure_crateweb(self) -> None:
         self.setenv(
@@ -540,6 +548,9 @@ class Installer:
     def create_directories() -> None:
         crate_config_dir = os.environ.get(DockerEnvVar.CONFIG_HOST_DIR)
         Path(crate_config_dir).mkdir(parents=True, exist_ok=True)
+
+        crate_static_dir = os.environ.get(DockerEnvVar.STATIC_HOST_DIR)
+        Path(crate_static_dir).mkdir(parents=True, exist_ok=True)
 
         bioyodie_resources_dir = os.environ.get(
             DockerEnvVar.GATE_BIOYODIE_RESOURCES_HOST_DIR
@@ -836,6 +847,13 @@ class Installer:
             "Select the host directory where CRATE will store its "
             "configuration:",
             default=HostPath.DEFAULT_HOST_CRATE_CONFIG_DIR,
+        )
+
+    def get_docker_static_host_dir(self) -> str:
+        return self.get_user_dir(
+            "Select the host directory where CRATE will store static files "
+            "for the CRATE web application:",
+            default=HostPath.DEFAULT_HOST_CRATE_STATIC_DIR,
         )
 
     def get_docker_gate_bioyodie_resources_host_dir(self) -> str:

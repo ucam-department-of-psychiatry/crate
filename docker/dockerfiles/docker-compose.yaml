@@ -29,6 +29,7 @@
 #   CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR
 #   CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
 #   CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD
+#   CRATE_DOCKER_STATIC_HOST_DIR
 
 
 # =============================================================================
@@ -75,6 +76,13 @@ volumes:
 
     crate_static_volume:
         # Space to collect static files (Django STATIC_ROOT)
+        driver: local
+        driver_opts:
+            o: bind
+            type: none
+            # We use environment variable substitution.
+            # https://docs.docker.com/compose/compose-file/#variable-substitution
+            device: "${CRATE_DOCKER_STATIC_HOST_DIR}"
 
     crate_tmp_volume:
         # Space to put lock files, user downloads, etc., that need to be shared
