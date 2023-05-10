@@ -298,6 +298,7 @@ class Installer:
         self.configure()
         self.write_environment_variables()
         self.create_directories()
+        self.write_odbc_config()
         self.create_local_settings()
         self.create_anon_config()
         if self.use_https():
@@ -558,6 +559,27 @@ class Installer:
         )
         Path(bioyodie_resources_dir).mkdir(parents=True, exist_ok=True)
 
+    def write_odbc_config(self) -> None:
+        demo_config = r"""# Example ODBC DSN definition
+
+# [put_name_of_dsn_here]
+# Driver = /opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.2.1
+# Description  = Put description here
+# SERVER       = host.docker.internal
+# USER         = username
+# Password     = password
+# Database     = name_of_database
+
+# [put_name_of_second_dsn_here]
+# ...
+"""  # noqa: E501
+
+        config = self.odbc_config_full_path()
+        if not os.path.exists(config):
+            self.info(f"Writing ODBC config: {config}")
+            with open(config, "w") as f:
+                f.write(demo_config)
+
     def create_local_settings(self) -> None:
         settings = self.local_settings_full_path()
         if not os.path.exists(settings):
@@ -772,6 +794,13 @@ class Installer:
         return os.path.join(
             os.getenv(DockerEnvVar.CONFIG_HOST_DIR),
             os.getenv(DockerEnvVar.CRATE_ANON_CONFIG),
+        )
+
+    @staticmethod
+    def odbc_config_full_path() -> str:
+        return os.path.join(
+            os.getenv(DockerEnvVar.CONFIG_HOST_DIR),
+            os.getenv(DockerEnvVar.ODBC_USER_CONFIG),
         )
 
     @staticmethod
