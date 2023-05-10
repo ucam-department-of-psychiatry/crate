@@ -69,8 +69,8 @@ done
 CRATE_INSTALLER_VENV=${HOME}/.virtualenvs/crate-installer
 
 if [ ${PRODUCTION} -eq 1 ]; then
-    CRATE_HOME=${HOME}/crate
-    INSTALLER_HOME=${CRATE_HOME}/installer
+    CRATE_SRC_DIR=${HOME}/crate/src
+    INSTALLER_HOME=${CRATE_SRC_DIR}/installer
 else
     INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
 fi
@@ -95,10 +95,10 @@ if [ ${PRODUCTION} -eq 1 ]; then
     CRATE_DOWNLOAD_URL=${CRATE_GITHUB_REPOSITORY}/releases/latest/download/${CRATE_TAR_FILE}
 
     # Make directories
-    mkdir -p "${CRATE_HOME}"
+    mkdir -p "${CRATE_SRC_DIR}"
 
     # Fetch and unpack CRATE
-    cd "${CRATE_HOME}"
+    cd "${CRATE_SRC_DIR}"
     curl -L --retry 10 --fail "${CRATE_DOWNLOAD_URL}"  --output "${CRATE_TAR_FILE}"
     tar xzf "${CRATE_TAR_FILE}" --strip-components=1
 fi

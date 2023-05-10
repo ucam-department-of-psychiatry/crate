@@ -92,9 +92,10 @@ class HostPath:
     DOCKERFILES_DIR = os.path.join(DOCKER_DIR, "dockerfiles")
 
     HOME_DIR = os.path.expanduser("~")
-    DEFAULT_HOST_CRATE_CONFIG_DIR = os.path.join(HOME_DIR, "crate_config")
-    DEFAULT_HOST_CRATE_STATIC_DIR = os.path.join(HOME_DIR, "static")
-    DEFAULT_HOST_BIOYODIE_DIR = os.path.join(HOME_DIR, "bioyodie_resources")
+    CRATE_DIR = os.path.join(HOME_DIR, "crate")
+    DEFAULT_HOST_CRATE_CONFIG_DIR = os.path.join(CRATE_DIR, "config")
+    DEFAULT_HOST_CRATE_STATIC_DIR = os.path.join(CRATE_DIR, "static")
+    DEFAULT_HOST_BIOYODIE_DIR = os.path.join(CRATE_DIR, "bioyodie_resources")
 
     ENVVAR_SAVE_FILE = "set_crate_docker_host_envvars"
 
