@@ -43,7 +43,7 @@ from subprocess import run
 import sys
 from tempfile import NamedTemporaryFile
 import textwrap
-from typing import Callable, Dict, Iterable, NoReturn, TextIO, Union
+from typing import Callable, Dict, Iterable, NoReturn, TextIO, Type, Union
 import urllib.parse
 
 # See installer-requirements.txt
@@ -133,6 +133,7 @@ class DockerComposeServices:
 
     CRATE_SERVER = "crate_server"
     CRATE_WORKERS = "crate_workers"
+    FLOWER = "flower"
 
 
 class DockerEnvVar:
@@ -259,8 +260,14 @@ class EmailValidator(Validator):
 
 
 class Installer:
-    def __init__(self, verbose: bool = False) -> None:
+    def __init__(
+        self,
+        verbose: bool = False,
+        update: bool = False,
+    ) -> None:
         self.verbose = verbose
+        self.update = update
+
         self.title = "CRATE Setup"
         self.intro_style = Style.from_dict(
             {
@@ -297,13 +304,17 @@ class Installer:
         self.check_setup()
         self.configure()
         self.write_environment_variables()
+
+        if self.update:
+            self.rebuild_crate_image()
+
         self.create_directories()
         self.write_odbc_config()
         self.create_local_settings()
         self.create_anon_config()
         if self.use_https():
             self.copy_ssl_files()
-        self.create_crate_database()
+        self.create_or_update_crate_database()
         self.collect_static()
         self.populate()
         self.create_superuser()
@@ -312,6 +323,18 @@ class Installer:
         self.create_data_dictionary()
         self.anonymise_demo_data()
         self.report_status()
+
+    def rebuild_crate_image(self) -> None:
+        self.info("Updating existing CRATE installation")
+        os.chdir(HostPath.DOCKERFILES_DIR)
+        docker.compose.build(
+            services=[
+                DockerComposeServices.CRATE_SERVER,
+                DockerComposeServices.CRATE_WORKERS,
+                DockerComposeServices.FLOWER,
+            ],
+            cache=False,
+        )
 
     @staticmethod
     def start() -> None:
@@ -732,7 +755,7 @@ class Installer:
         )
         shutil.copy(os.getenv(DockerEnvVar.CRATEWEB_SSL_PRIVATE_KEY), key_dest)
 
-    def create_crate_database(self) -> None:
+    def create_or_update_crate_database(self) -> None:
         self.run_crate_command("crate_django_manage migrate")
 
     def collect_static(self) -> None:
@@ -1163,17 +1186,17 @@ class MacOsInstaller(Installer):
 # =============================================================================
 
 
-def get_installer(verbose: bool) -> Installer:
+def get_installer_class() -> Type[Installer]:
     sys_info = uname()
 
     if "microsoft-standard" in sys_info.release:
-        return Wsl2Installer(verbose=verbose)
+        return Wsl2Installer
 
     if sys_info.system == "Linux":
-        return NativeLinuxInstaller(verbose=verbose)
+        return NativeLinuxInstaller
 
     if sys_info.system == "Darwin":
-        return MacOsInstaller(verbose=verbose)
+        return MacOsInstaller
 
     if sys_info.system == "Windows":
         print(
@@ -1205,6 +1228,11 @@ class Command:
 def main() -> None:
     parser = ArgumentParser()
     parser.add_argument("--verbose", action="store_true", help="Be verbose")
+    parser.add_argument(
+        "--update",
+        action="store_true",
+        help="Rebuild the CRATE Docker image",
+    )
     subparsers = parser.add_subparsers(
         title="commands",
         description="Valid CRATE installer commands are:",
@@ -1254,7 +1282,10 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    installer = get_installer(verbose=args.verbose)
+    installer = get_installer_class()(
+        verbose=args.verbose,
+        update=args.update,
+    )
 
     if args.command == Command.INSTALL:
         installer.install()

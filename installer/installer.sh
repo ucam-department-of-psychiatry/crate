@@ -43,25 +43,47 @@ set -eux -o pipefail
 # With the -d (development) option, the installer runs on the local copy of the
 # source code.
 
+INSTALLER_ARGS=()
 PRODUCTION=1
+RECREATE_VIRTUALENV=0
 
-while getopts 'dh' OPT; do
-    case "$OPT" in
-        d)
-            PRODUCTION=0
-            ;;
-        h)
-            echo "Usage: $(basename "$0") [-d]"
-            # https://unix.stackexchange.com/questions/118433/quoting-within-command-substitution-in-bash
-            exit 0
-            ;;
-        *)
-            echo "Usage: $(basename "$0") [-d]"
-            exit 1
-            ;;
-    esac
+usage() {
+    cat <<EOF
+    Usage: $(basename $0) [options]
+
+    -d Development. Run installer on local copy of code instead of
+       downloading from GitHub.
+    -h Display this help message.
+    -n Recreate the installer virtual environment.
+    -u Upgrade existing CRATE installation.
+EOF
+}
+
+
+while getopts 'dhnu' OPT; do
+  case "$OPT" in
+    d)
+        PRODUCTION=0
+        ;;
+    h)
+        usage
+        exit 0
+        ;;
+    n)
+        RECREATE_VIRTUALENV=1
+        ;;
+    u)
+        INSTALLER_ARGS+=(--update)
+        RECREATE_VIRTUALENV=1
+        ;;
+    *)
+        usage
+        exit 1
+        ;;
+  esac
 done
 
+INSTALLER_ARGS+=("install")
 
 # -----------------------------------------------------------------------------
 # Directories
@@ -94,6 +116,10 @@ if [ ${PRODUCTION} -eq 1 ]; then
     # and upload the tar file so that it can be accessed as "latest".
     CRATE_DOWNLOAD_URL=${CRATE_GITHUB_REPOSITORY}/releases/latest/download/${CRATE_TAR_FILE}
 
+    if [ -d "${CRATE_SRC_DIR}" ]; then
+        mv "${CRATE_SRC_DIR}" "${CRATE_SRC_DIR}.renamed.$(date +%Y%m%d%H%M%S)"
+    fi
+
     # Make directories
     mkdir -p "${CRATE_SRC_DIR}"
 
@@ -105,8 +131,12 @@ fi
 
 
 # Create virtual environment
+# Create virtual environment
+if [ ${RECREATE_VIRTUALENV} -eq 1 ]; then
+    rm -rf "${CRATE_INSTALLER_VENV}"
+fi
+
 if [ ! -d "${CRATE_INSTALLER_VENV}" ]; then
-    # TODO: Option to rebuild venv
     "${CRATE_INSTALLER_PYTHON}" -m venv "${CRATE_INSTALLER_VENV}"
 fi
 
@@ -126,4 +156,4 @@ python -m pip install -U pip setuptools
 python -m pip install -r "${INSTALLER_HOME}/installer-requirements.txt"
 
 # Run the Python installer
-python "${INSTALLER_HOME}/installer.py" install
+python "${INSTALLER_HOME}/installer.py" ${INSTALLER_ARGS[*]}
