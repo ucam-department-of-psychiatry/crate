@@ -39,7 +39,6 @@ import re
 import secrets
 import shutil
 import string
-from subprocess import run
 import sys
 from tempfile import NamedTemporaryFile
 import textwrap
@@ -265,6 +264,7 @@ class Installer:
         verbose: bool = False,
         update: bool = False,
     ) -> None:
+        self._docker = None
         self.verbose = verbose
         self.update = update
 
@@ -353,18 +353,15 @@ class Installer:
         os.chdir(HostPath.DOCKERFILES_DIR)
         self.docker.compose.down()
 
-    @staticmethod
-    def run_shell_in_crate_container(as_root: bool = False) -> None:
-        # python_on_whales doesn't support docker compose exec yet
+    def run_shell_in_crate_container(self, as_root: bool = False) -> None:
         os.chdir(HostPath.DOCKERFILES_DIR)
 
-        command = ["docker", "compose", "exec"]
-        user_option = ["-u", "0"] if as_root else []
+        user = "root" if as_root else None
 
-        run(
-            command
-            + user_option
-            + [DockerComposeServices.CRATE_SERVER, DockerPath.BASH]
+        self.docker.compose.execute(
+            DockerComposeServices.CRATE_SERVER,
+            [DockerPath.BASH],
+            user=user,
         )
 
     def run_crate_command(self, crate_command: str) -> None:
