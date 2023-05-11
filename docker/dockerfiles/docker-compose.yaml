@@ -378,7 +378,6 @@ services:
         environment:
             CRATE_ANON_CONFIG: "/crate/cfg/${CRATE_DOCKER_CRATE_ANON_CONFIG}"
             CRATE_GATE_PLUGIN_FILE: "/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini"
-            CRATE_PACKAGE_ROOT: "/crate/venv/lib/python3.7/site-packages/crate_anon"
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
             CRATE_WEB_STATIC_ROOT: "/crate/static"
             DJANGO_SUPERUSER_USERNAME: "${CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME}"
