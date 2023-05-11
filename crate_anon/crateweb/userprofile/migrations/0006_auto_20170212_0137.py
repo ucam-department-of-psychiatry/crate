@@ -47,7 +47,9 @@ class Migration(migrations.Migration):
             name="patient_multiquery_scratchpad",
             field=JsonClassField(
                 null=True,
-                verbose_name="PatientMultiQuery scratchpad (in JSON) for builder",
+                verbose_name=(
+                    "PatientMultiQuery scratchpad (in JSON) for builder"
+                ),
             ),  # noqa
         ),
     ]

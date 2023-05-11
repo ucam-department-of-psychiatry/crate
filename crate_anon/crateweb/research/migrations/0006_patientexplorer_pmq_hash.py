@@ -47,7 +47,10 @@ class Migration(migrations.Migration):
             name="pmq_hash",
             field=models.BigIntegerField(
                 default=0,
-                verbose_name="64-bit non-cryptographic hash of JSON of patient_multiquery",
+                verbose_name=(
+                    "64-bit non-cryptographic hash of JSON of"
+                    " patient_multiquery"
+                ),
             ),  # noqa
             preserve_default=False,
         ),

@@ -75,14 +75,20 @@ class Migration(migrations.Migration):
                     "line_length",
                     models.PositiveSmallIntegerField(
                         default=80,
-                        verbose_name="Characters to word-wrap text at in results display (0 for no wrap)",
+                        verbose_name=(
+                            "Characters to word-wrap text at in results"
+                            " display (0 for no wrap)"
+                        ),
                     ),
                 ),  # noqa
                 (
                     "collapse_at",
                     models.PositiveSmallIntegerField(
                         default=400,
-                        verbose_name="Number of characters beyond which results field starts collapsed (0 for none)",
+                        verbose_name=(
+                            "Number of characters beyond which results field"
+                            " starts collapsed (0 for none)"
+                        ),
                     ),
                 ),  # noqa
                 (
@@ -160,7 +166,10 @@ class Migration(migrations.Migration):
                     "signatory_title",
                     models.CharField(
                         max_length=255,
-                        verbose_name='Title for signature (e.g. "Consultant psychiatrist")',
+                        verbose_name=(
+                            'Title for signature (e.g. "Consultant'
+                            ' psychiatrist")'
+                        ),
                     ),
                 ),  # noqa
             ],

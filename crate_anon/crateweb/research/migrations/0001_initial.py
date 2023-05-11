@@ -117,7 +117,10 @@ class Migration(migrations.Migration):
                 (
                     "qmark",
                     models.BooleanField(
-                        verbose_name="Parameter-substituted SQL uses ?, not %s, as placeholders",
+                        verbose_name=(
+                            "Parameter-substituted SQL uses ?, not %s, as"
+                            " placeholders"
+                        ),
                         default=True,
                     ),
                 ),  # noqa
@@ -126,7 +129,10 @@ class Migration(migrations.Migration):
                 (
                     "deleted",
                     models.BooleanField(
-                        verbose_name="Deleted from the user's perspective. Audited queries are never properly deleted.",
+                        verbose_name=(
+                            "Deleted from the user's perspective. Audited"
+                            " queries are never properly deleted."
+                        ),
                         default=False,
                     ),
                 ),  # noqa

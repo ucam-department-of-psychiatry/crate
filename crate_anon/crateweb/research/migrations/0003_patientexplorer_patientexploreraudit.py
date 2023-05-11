@@ -65,7 +65,10 @@ class Migration(migrations.Migration):
                     "deleted",
                     models.BooleanField(
                         default=False,
-                        verbose_name="Deleted from the user's perspective. Audited queries are never properly deleted.",
+                        verbose_name=(
+                            "Deleted from the user's perspective. Audited"
+                            " queries are never properly deleted."
+                        ),
                     ),
                 ),  # noqa
                 ("audited", models.BooleanField(default=False)),
