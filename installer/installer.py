@@ -54,7 +54,7 @@ from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import Validator, ValidationError
 
 # noinspection PyUnresolvedReferences
-from python_on_whales import docker, DockerException
+from python_on_whales import DockerClient, DockerException
 from semantic_version import Version
 
 # Python Prompt Toolkit has basic support for text entry / yes-no / alert
@@ -295,6 +295,15 @@ class Installer:
             }
         )
 
+    @property
+    def docker(self) -> DockerClient:
+        if self._docker is None:
+            compose_files = ["docker-compose.yaml"]
+
+            self._docker = DockerClient(compose_files=compose_files)
+
+        return self._docker
+
     # -------------------------------------------------------------------------
     # Commands
     # -------------------------------------------------------------------------
@@ -327,7 +336,7 @@ class Installer:
     def rebuild_crate_image(self) -> None:
         self.info("Updating existing CRATE installation")
         os.chdir(HostPath.DOCKERFILES_DIR)
-        docker.compose.build(
+        self.docker.compose.build(
             services=[
                 DockerComposeServices.CRATE_SERVER,
                 DockerComposeServices.CRATE_WORKERS,
@@ -336,15 +345,13 @@ class Installer:
             cache=False,
         )
 
-    @staticmethod
-    def start() -> None:
+    def start(self) -> None:
         os.chdir(HostPath.DOCKERFILES_DIR)
-        docker.compose.up(detach=True)
+        self.docker.compose.up(detach=True)
 
-    @staticmethod
-    def stop() -> None:
+    def stop(self) -> None:
         os.chdir(HostPath.DOCKERFILES_DIR)
-        docker.compose.down()
+        self.docker.compose.down()
 
     @staticmethod
     def run_shell_in_crate_container(as_root: bool = False) -> None:
@@ -370,7 +377,7 @@ class Installer:
 
         os.chdir(HostPath.DOCKERFILES_DIR)
 
-        docker.compose.execute(
+        self.docker.compose.execute(
             DockerComposeServices.CRATE_SERVER,
             [DockerPath.BASH, "-c", venv_command],
         )
@@ -406,7 +413,7 @@ class Installer:
     # -------------------------------------------------------------------------
 
     def check_setup(self) -> None:
-        info = docker.info()
+        info = self.docker.info()
         if info.id is None:
             self.fail(
                 "Could not connect to Docker. Check that Docker is "
@@ -416,7 +423,9 @@ class Installer:
         try:
             # python_on_whales doesn't support --short or --format so we do
             # some parsing
-            version_string = docker.compose.version().split()[-1].lstrip("v")
+            version_string = (
+                self.docker.compose.version().split()[-1].lstrip("v")
+            )
         except DockerException:
             self.fail(
                 "It looks like you don't have Docker Compose installed. "
@@ -880,9 +889,8 @@ class Installer:
     def get_crate_server_path() -> str:
         return "/crate"
 
-    @staticmethod
-    def get_crate_server_ip_address() -> str:
-        container = docker.container.inspect("crate_crate_server")
+    def get_crate_server_ip_address(self) -> str:
+        container = self.docker.container.inspect("crate_crate_server")
         network_settings = container.network_settings
 
         return network_settings.networks["crate_crateanon_network"].ip_address
@@ -1099,10 +1107,9 @@ class Installer:
     # Shell handling
     # -------------------------------------------------------------------------
 
-    @staticmethod
-    def run_bash_command_inside_docker(bash_command: str) -> None:
+    def run_bash_command_inside_docker(self, bash_command: str) -> None:
         os.chdir(HostPath.DOCKERFILES_DIR)
-        docker.compose.run(
+        self.docker.compose.run(
             DockerComposeServices.CRATE_WORKERS,
             remove=True,
             command=[DockerPath.BASH, "-c", bash_command],
