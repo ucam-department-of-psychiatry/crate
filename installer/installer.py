@@ -155,6 +155,7 @@ class DockerEnvVar:
     )
     CRATEWEB_SUPERUSER_USERNAME = f"{PREFIX}_CRATEWEB_SUPERUSER_USERNAME"
     CRATEWEB_USE_HTTPS = f"{PREFIX}_CRATEWEB_USE_HTTPS"
+    FILES_HOST_DIR = f"{PREFIX}_FILES_HOST_DIR"
     GATE_BIOYODIE_RESOURCES_HOST_DIR = (
         f"{PREFIX}_GATE_BIOYODIE_RESOURCES_HOST_DIR"
     )
@@ -474,6 +475,11 @@ class Installer:
         self.setenv(DockerEnvVar.CRATE_ANON_CONFIG, "crate_anon_config.ini")
         self.setenv(DockerEnvVar.ODBC_USER_CONFIG, "odbc_user.ini")
 
+    def configure_files_dir(self) -> None:
+        self.setenv(
+            DockerEnvVar.FILES_HOST_DIR, self.get_docker_files_host_dir
+        )
+
     def configure_static_dir(self) -> None:
         self.setenv(
             DockerEnvVar.STATIC_HOST_DIR, self.get_docker_static_host_dir
@@ -579,6 +585,9 @@ class Installer:
     def create_directories() -> None:
         crate_config_dir = os.environ.get(DockerEnvVar.CONFIG_HOST_DIR)
         Path(crate_config_dir).mkdir(parents=True, exist_ok=True)
+
+        crate_files_dir = os.environ.get(DockerEnvVar.FILES_HOST_DIR)
+        Path(crate_files_dir).mkdir(parents=True, exist_ok=True)
 
         crate_static_dir = os.environ.get(DockerEnvVar.STATIC_HOST_DIR)
         Path(crate_static_dir).mkdir(parents=True, exist_ok=True)
@@ -905,6 +914,12 @@ class Installer:
             "Select the host directory where CRATE will store its "
             "configuration:",
             default=HostPath.DEFAULT_HOST_CRATE_CONFIG_DIR,
+        )
+
+    def get_docker_files_host_dir(self) -> str:
+        return self.get_user_dir(
+            "Select the host directory for general CRATE file storage",
+            default=HostPath.DEFAULT_HOST_CRATE_FILES_DIR,
         )
 
     def get_docker_static_host_dir(self) -> str:
