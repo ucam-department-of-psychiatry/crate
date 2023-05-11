@@ -144,6 +144,7 @@ INSTALL_REQUIRES = [
     "flake8==3.8.4",  # code checks
     "docutils==0.17",  # documentation, 0.18 not compatible with Sphinx
     "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
+    "pre-commit==2.20.0",  # development only, various sanity checks on code
     "pytest==7.1.1",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
     # Sphinx 4.4.0 gives "more than one target for cross-reference" warning
