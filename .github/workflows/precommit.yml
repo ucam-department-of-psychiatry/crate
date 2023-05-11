@@ -1,0 +1,24 @@
+---
+# yamllint disable rule:line-length
+name: Pre-commit checks
+# yamllint disable-line rule:truthy
+on:
+    push:
+        paths:
+            - '**.py'
+            - github_action_scripts/python_setup.sh
+            - .github/workflows/precommit.yml
+jobs:
+    precommit-checks:
+        runs-on: ubuntu-20.04
+        steps:
+            - uses: actions/checkout@v3
+            - uses: actions/setup-python@v4
+              with:
+                  python-version: 3.8
+            - name: Pre-commit checks
+              run: |
+                  set -euxo pipefail
+                  ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh
+                  source ${HOME}/venv/bin/activate
+                  pre-commit run --all-files
