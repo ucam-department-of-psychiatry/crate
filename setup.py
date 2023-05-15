@@ -122,7 +122,7 @@ INSTALL_REQUIRES = [
     "semantic_version==2.8.5",  # semantic versioning; better than semver
     "sortedcontainers==2.2.2",  # for SortedSet
     "SQLAlchemy==1.3.18",  # database access
-    "sqlparse==0.4.2",  # [pin exact version from cardinal_pythonlib]
+    "sqlparse==0.4.4",  # [pin exact version from cardinal_pythonlib]
     "unidecode==1.1.1",  # for removing accents
     # Packages for cloud NLP:
     "bcrypt==3.1.7",  # bcrypt encryption
@@ -131,7 +131,7 @@ INSTALL_REQUIRES = [
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework
     "pyramid_tm==2.4",  # Pyramid transaction management
-    "redis==3.5.3",  # interface to Redis in-memory key-value database
+    "redis==4.5.4",  # interface to Redis in-memory key-value database
     "requests==2.25.1",  # HTTP requests
     "tornado==6.1",  # web framework
     "transaction==3.0.0",  # generic transaction management

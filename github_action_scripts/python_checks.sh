@@ -15,6 +15,7 @@ echo dumping pre-installed packages
 python -m pip freeze
 echo installing pip packages
 python -m pip install -e .
+python -m pip install mysqlclient
 echo checking packages for conflicts
 python -m pip check
 echo installing vulnerability checker
@@ -34,4 +35,5 @@ echo checking python for style and errors
 flake8 --config=setup.cfg .
 echo running tests
 export CRATE_RUN_WITHOUT_LOCAL_SETTINGS=True
+export CRATE_NLP_WEB_CONFIG=${GITHUB_WORKSPACE}/github_action_scripts/test_nlp_web_config.ini
 pytest -v
