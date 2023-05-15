@@ -1607,6 +1607,11 @@ Changes
 
 **0.20.1, in progress**
 
+- Remove row-level data dictionary check for the combination of "OMIT" and
+  the "H" (add source hash) flag -- should be a table-level check only (i.e.
+  if you're omitting the whole table, it's fine to have this combination).
+
+
 To do
 -----
 
