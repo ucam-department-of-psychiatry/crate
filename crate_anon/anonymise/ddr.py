@@ -1145,11 +1145,10 @@ class DataDictionaryRow:
                     f"can only be set on "
                     f"{self.SRC_FLAGS}={SrcFlag.PK} fields"
                 )
-            if self.omit:
-                raise ValueError(
-                    f"Cannot omit fields with "
-                    f"{self.SRC_FLAGS}={SrcFlag.ADD_SRC_HASH} set"
-                )
+            # Don't exclude the self.omit and SrcFlag.ADD_SRC_HASH here. That
+            # is done as a table-level check in dd.py instead, in
+            # DataDictionary.check_valid(), because if the whole table is being
+            # omitted, this is OK.
             if self.index != IndexType.UNIQUE:
                 raise ValueError(
                     f"{self.SRC_FLAGS}={SrcFlag.ADD_SRC_HASH} fields require "
