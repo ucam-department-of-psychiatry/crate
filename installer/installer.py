@@ -1573,7 +1573,7 @@ class Installer:
         self, permit_cfg_dir_save: bool = True
     ) -> None:
         config_dir = os.environ.get(DockerEnvVar.CONFIG_HOST_DIR)
-        if config_dir and permit_cfg_dir_save:
+        if config_dir and os.path.exists(config_dir) and permit_cfg_dir_save:
             filename = os.path.join(config_dir, HostPath.ENVVAR_SAVE_FILE)
             with open(filename, mode="w") as f:
                 self._write_envvars_to_file(f)
