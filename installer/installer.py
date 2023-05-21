@@ -1565,7 +1565,9 @@ class Installer:
                 or key.startswith(InstallerEnvVar.PREFIX)
             ):
                 continue
-            f.write(f"export {key}={value}\n")
+            if not include_passwords and key.endswith(EnvVar.PASSWORD_SUFFIX):
+                continue
+            f.write(f'export {key}="{value}"\n')
 
     def write_environment_variables(
         self, permit_cfg_dir_save: bool = True
