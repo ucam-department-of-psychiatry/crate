@@ -1,0 +1,127 @@
+---
+# yamllint disable rule:line-length
+# yamllint disable rule:comments-indentation
+# docker/dockerfiles/docker-compose-crate-db.yaml
+#
+# Overrides for CRATE web application (Django) database running in container
+#
+# =============================================================================
+# Environment variables used (see help)
+# =============================================================================
+#
+# Those with defaults in the .env file in this directory:
+#
+#   CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME
+#   CRATE_DOCKER_MYSQL_CRATE_HOST_PORT
+#   CRATE_DOCKER_MYSQL_CRATE_USER_NAME
+#
+# Those without defaults:
+#
+#   CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
+#   CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD
+
+
+# =============================================================================
+# Data volumes
+# =============================================================================
+
+volumes:
+    # See Docker Compose "Volume configuration reference". Note that the syntax
+    # here is not the same as for "volumes:" within a service (container).
+    # https://docs.docker.com/compose/compose-file/#volume-configuration-reference
+
+    crate_db_data_volume:
+        # Without any options, the default driver (usually "local") is used.
+        # This will probably create a volume at
+        # /var/lib/docker/volumes/VOLUME/_data on the host.
+
+
+# =============================================================================
+# Containers (services)
+# =============================================================================
+
+services:
+
+    # -------------------------------------------------------------------------
+    # MySQL containers, providing database services
+    # -------------------------------------------------------------------------
+
+    crate_db:
+        # Base Docker image. We use a standard MySQL image; see
+        # https://hub.docker.com/_/mysql
+        image: mysql:5.7
+        container_name: crate_crate_db
+        # Restart policy.
+        # - I am slightly confused between "when the computer reboots" and
+        #   "if the container crashes".
+        # - See Docker Compose docs, but also
+        #   https://stackoverflow.com/questions/30449313/how-do-i-make-a-docker-container-start-automatically-on-system-boot
+        # - Empirically:
+        #   - "no" means "neither on reboot nor container crash".
+        #   - "always" includes reboots and crashes.
+        #   - The other options are "on-failure" and "unless-stopped".
+        #   - There doesn't appear to be an option for "restart on reboot, but
+        #     leave stopped if it crashed".
+        # - So: always.
+        restart: "always"
+
+        # Environment variables.
+        # See https://hub.docker.com/_/mysql
+        environment:
+            # Create database with this name at first container startup.
+            MYSQL_DATABASE: "${CRATE_DOCKER_CRATE_DB_DATABASE_NAME}"
+
+            # Create user with this name at first container startup, with
+            # GRANT ALL access to the database named in MYSQL_DATABASE.
+            MYSQL_USER: "${CRATE_DOCKER_CRATE_DB_USER_NAME}"
+
+            # Password for MYSQL_USER (set at first container startup).
+            MYSQL_PASSWORD: "${CRATE_DOCKER_CRATE_DB_USER_PASSWORD}"
+
+            # Password for user "root" (set at first container startup).
+            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_CRATE_DB_ROOT_PASSWORD}"
+
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+
+        networks:
+            - crateanon_network
+
+        # Expose ports from the container, "publishing" them to the host.
+        # For example, if you offer a MySQL server via "9999:3306", you should
+        # be able to run
+        #
+        #   $ mysql --host=127.0.0.1 --port=9999 --user=root --password
+        #
+        # on the host, and connect to the server.
+        ports:
+            # Short format is: "HOST_PORT:CONTAINER_PORT".
+            # Should always use explicit string format here.
+            # MySQL offers port 3306 by default.
+            - "${CRATE_DOCKER_CRATE_DB_HOST_PORT}:3306"
+
+        # Expose ports to linked services without publishing them to the host.
+        # Specify the container (internal) port.
+        expose:
+            - "3306"
+
+        # Note that if you do not specify mount points, some are created
+        # anyway; for example, the MySQL image wants something at
+        # /var/lib/mysql (internally) and on the host this might actually be
+        # e.g. /var/lib/docker/volumes/<gibberish>/_data
+        volumes:
+            # Format is "[SOURCE:]TARGET[:MODE]", such as
+            # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
+            - crate_db_data_volume:/var/lib/mysql
+            - "./mysqlconf:/etc/mysql/conf.d"
+
+    # -------------------------------------------------------------------------
+    # CRATE image, with build commands (to create from the Dockerfile),
+    # running the workers.
+    # -------------------------------------------------------------------------
+
+    crate_workers:
+        # Start order. See docs -- note that this is "order to start", not
+        # "wait for startup to complete".
+        depends_on:
+            - crate_db

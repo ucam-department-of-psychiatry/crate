@@ -294,6 +294,7 @@ RUN echo "======================================================================
 # -----------------------------------------------------------------------------
 # We'll do this via docker-compose instead.
 
+ENTRYPOINT ["/crate/src/docker/dockerfiles/docker-entrypoint.sh"]
 
 # -----------------------------------------------------------------------------
 # CMD: run the foreground task whose lifetime determines the container

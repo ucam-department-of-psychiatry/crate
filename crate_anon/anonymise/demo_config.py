@@ -61,30 +61,15 @@ def search_replace_text(text: str, replace_dict: Dict[str, str]) -> str:
 
 def get_demo_config() -> str:
     replace_dict = {
-        "admin_db_engine": "mysql+mysqldb",
-        "admin_db_host": "127.0.0.1",
-        "admin_db_name": "admin_databasename",
-        "admin_db_password": "password",
-        "admin_db_port": "3306",
-        "admin_db_user": "username",
+        "admin_db_url": "mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charset=utf8",  # noqa: E501
         "change_detection_encryption_phrase": "YETANOTHER",
         "data_dictionary_filename": "testdd.tsv",
-        "dest_db_engine": "mysql+mysqldb",
-        "dest_db_host": "127.0.0.1",
-        "dest_db_name": "output_databasename",
-        "dest_db_password": "password",
-        "dest_db_port": "3306",
-        "dest_db_user": "username",
+        "dest_db_url": "mysql+mysqldb://username:password@127.0.0.1:3306/output_databasename?charset=utf8",  # noqa: E501
         "master_patient_id_encryption_phrase": "SOME_OTHER_PASSPHRASE_REPLACE_ME",  # noqa: E501
         "per_table_patient_id_encryption_phrase": "SOME_PASSPHRASE_REPLACE_ME",
         "source_db1_ddgen_include_fields": "",
         "source_db1_ddgen_scrubsrc_patient_fields": "",
-        "source_db1_engine": "mysql+mysqldb",
-        "source_db1_host": "127.0.0.1",
-        "source_db1_name": "source_databasename",
-        "source_db1_password": "password",
-        "source_db1_port": "3306",
-        "source_db1_user": "username",
+        "source_db1_url": "mysql+mysqldb://username:password@127.0.0.1:3306/source_databasename?charset=utf8",  # noqa: E501
     }
 
     config = search_replace_text(DEMO_CONFIG, replace_dict)
