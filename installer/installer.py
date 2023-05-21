@@ -287,17 +287,6 @@ class FileValidator(Validator):
             raise ValidationError(message=f"{filename!r} is not a valid file")
 
 
-class PasswordMatchValidator(Validator):
-    def __init__(self, first_password: str) -> None:
-        self.first_password = first_password
-
-    def validate(self, document: Document) -> None:
-        password = document.text
-
-        if password != self.first_password:
-            raise ValidationError(message="Passwords do not match")
-
-
 class EmailValidator(Validator):
     _SIMPLE_EMAIL_REGEX = re.compile(r"[^@]+@[^@]+\.[^@]+")
 
@@ -1467,14 +1456,22 @@ class Installer:
         return os.path.expanduser(file)
 
     def get_user_password(self, text: str) -> str:
-        first = self.prompt(
-            text, is_password=True, validator=NotEmptyValidator()
-        )
-        self.prompt(
-            "Enter the same password again:",
-            is_password=True,
-            validator=PasswordMatchValidator(first),
-        )
+
+        while True:
+            first = self.prompt(
+                text, is_password=True, validator=NotEmptyValidator()
+            )
+            second = self.prompt(
+                "Enter the same password again:",
+                is_password=True,
+                validator=NotEmptyValidator(),
+            )
+
+            if first == second:
+                break
+
+            self.error("Passwords do not match. Try again.")
+
         return first
 
     def get_user_boolean(self, text: str) -> str:
