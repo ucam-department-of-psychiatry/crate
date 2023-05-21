@@ -1560,10 +1560,9 @@ class Installer:
         do contain passwords.
         """
         for key, value in os.environ.items():
-            if not key.startswith(DockerEnvVar.PREFIX):
-                continue
-            if not include_passwords and key.endswith(
-                DockerEnvVar.PASSWORD_SUFFIX
+            if not (
+                key.startswith(DockerEnvVar.PREFIX)
+                or key.startswith(InstallerEnvVar.PREFIX)
             ):
                 continue
             f.write(f"export {key}={value}\n")
