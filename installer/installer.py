@@ -480,7 +480,7 @@ class Installer:
 
     def stop(self) -> None:
         os.chdir(HostPath.DOCKERFILES_DIR)
-        self.docker.compose.down()
+        self.docker.compose.down(volumes=True)
 
     def run_shell_in_crate_container(self, as_root: bool = False) -> None:
         os.chdir(HostPath.DOCKERFILES_DIR)
