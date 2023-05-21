@@ -1630,6 +1630,8 @@ class Installer:
             contents = contents.replace(f"@@{search}@@", replace)
 
         with open(filename, "w") as f:
+            print(f"Filename: {filename}")
+            print(f"Contents:\n{contents}")
             f.write(contents)
 
 
