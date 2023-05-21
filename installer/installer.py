@@ -1216,9 +1216,7 @@ class Installer:
 
     @staticmethod
     def get_data_dictionary_docker_filename() -> str:
-        return os.path.join(
-            DockerPath.CONFIG_DIR, "data_dictionary.tsv"
-        )
+        return os.path.join(DockerPath.CONFIG_DIR, "data_dictionary.tsv")
 
     def get_sqlalchemy_url(
         self,
