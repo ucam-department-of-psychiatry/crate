@@ -105,6 +105,7 @@ class HostPath:
     HOME_DIR = os.path.expanduser("~")
     CRATE_DIR = os.path.join(HOME_DIR, "crate")
     DEFAULT_HOST_CRATE_CONFIG_DIR = os.path.join(CRATE_DIR, "config")
+    DEFAULT_HOST_CRATE_FILES_DIR = os.path.join(CRATE_DIR, "files")
     DEFAULT_HOST_CRATE_STATIC_DIR = os.path.join(CRATE_DIR, "static")
     DEFAULT_HOST_BIOYODIE_DIR = os.path.join(CRATE_DIR, "bioyodie_resources")
 
