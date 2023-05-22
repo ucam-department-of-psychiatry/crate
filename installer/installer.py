@@ -440,8 +440,7 @@ class Installer:
         self.configure()
         self.write_environment_variables()
 
-        if self.update:
-            self.rebuild_crate_image()
+        self.build_crate_image()
 
         # At this point the containers get created
         self.create_local_settings()
@@ -462,8 +461,9 @@ class Installer:
 
         self.report_status()
 
-    def rebuild_crate_image(self) -> None:
-        self.info("Updating existing CRATE installation")
+    def build_crate_image(self) -> None:
+        if self.update:
+            self.info("Updating existing CRATE installation")
         os.chdir(HostPath.DOCKERFILES_DIR)
         self.docker.compose.build(
             services=[
@@ -471,7 +471,7 @@ class Installer:
                 DockerComposeServices.CRATE_WORKERS,
                 DockerComposeServices.FLOWER,
             ],
-            cache=False,
+            cache=not self.update,
         )
 
     def start(self) -> None:
