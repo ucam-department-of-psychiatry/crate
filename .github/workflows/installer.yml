@@ -36,6 +36,8 @@ jobs:
                 ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh
                 ${GITHUB_WORKSPACE}/github_action_scripts/anonymisation_checks.sh
                 # Now do it again with external databases
+                # docker-compose down --volumes with relevant docker-compose files
+                ./installer.sh -d -p
                 rm ${CRATE_DOCKER_CONFIG_HOST_DIR}/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}
                 rm ${CRATE_DOCKER_CONFIG_HOST_DIR}/${CRATE_DOCKER_CRATE_ANON_CONFIG}
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_mysql_environment

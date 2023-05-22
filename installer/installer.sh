@@ -43,6 +43,7 @@ set -eux -o pipefail
 # With the -d (development) option, the installer runs on the local copy of the
 # source code.
 
+COMMAND="install"
 INSTALLER_ARGS=()
 PRODUCTION=1
 RECREATE_VIRTUALENV=0
@@ -55,13 +56,14 @@ usage() {
        downloading from GitHub.
     -h Display this help message.
     -n Recreate the installer virtual environment.
+    -p Stop existing installation.
     -u Upgrade existing CRATE installation.
     -v Display more verbose messages.
 EOF
 }
 
 
-while getopts 'dhnuv' OPT; do
+while getopts 'dhnpuv' OPT; do
   case "$OPT" in
     d)
         PRODUCTION=0
@@ -72,6 +74,9 @@ while getopts 'dhnuv' OPT; do
         ;;
     n)
         RECREATE_VIRTUALENV=1
+        ;;
+    p)
+        COMMAND="stop"
         ;;
     u)
         INSTALLER_ARGS+=(--update)
@@ -87,7 +92,7 @@ while getopts 'dhnuv' OPT; do
   esac
 done
 
-INSTALLER_ARGS+=("install")
+INSTALLER_ARGS+=(${COMMAND})
 
 # -----------------------------------------------------------------------------
 # Directories
