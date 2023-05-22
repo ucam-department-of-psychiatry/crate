@@ -7,6 +7,7 @@ set -euxo pipefail
 
 cd "${CRATE_HOME}/docker/dockerfiles"
 # Check anonymiser worked
+SERVER_IP=$(docker inspect crate_crate_server --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
 anonymised=$(docker compose -f docker-compose.yaml -f docker-compose-crate-db.yaml -f docker-compose-research-db.yaml -f docker-compose-secret-db.yaml -f docker-compose-source-db.yaml exec -T research_db mysql -Ns -u research -presearch research -e "SELECT SUBSTR(note, 1, 36) FROM note LIMIT 1")
 [ "${anonymised}" = "\n[__PPP__] [__PPP__] lived on a farm" ]
 # Check anonymisation API is working
