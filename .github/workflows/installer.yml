@@ -9,6 +9,7 @@ on:
             - .github/workflows/installer.yml
             - github_action_scripts/anonymisation_checks.sh
             - github_action_scripts/installer_setup.sh
+            - github_action_scripts/mysql_docker_setup.sh
             - github_action_scripts/post_installation_checks.sh
             - github_action_scripts/set_crate_docker_environment
             - github_action_scripts/set_crate_docker_mysql_environment
