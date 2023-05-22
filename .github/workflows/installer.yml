@@ -13,6 +13,7 @@ on:
             - github_action_scripts/post_installation_checks.sh
             - github_action_scripts/set_crate_docker_environment
             - github_action_scripts/set_crate_docker_mysql_environment
+            - github_action_scripts/source_database.sql
             - 'docker/**'
             - 'installer/**'
             - setup.py
