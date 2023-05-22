@@ -1654,9 +1654,8 @@ class NativeLinuxInstaller(Installer):
     def get_crate_server_url(self) -> str:
         scheme = self.get_crate_server_scheme()
         ip_address = self.get_crate_server_ip_from_host()
-        port = self.get_crate_server_port_from_host()
 
-        netloc = f"{ip_address}:{port}"
+        netloc = f"{ip_address}:8000"
         path = self.get_crate_server_path()
         params = query = fragment = None
 
