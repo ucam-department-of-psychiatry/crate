@@ -10,7 +10,7 @@ cd "${CRATE_HOME}/docker/dockerfiles"
 docker compose logs
 SERVER_IP=$(docker inspect crate_crate_server --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
 wait-for-it "${SERVER_IP}:8000" --timeout=300
-curl -v -I -L --retry 10 --fail --insecure "${SERVER_IP}:8000/crate/"
+curl -v -I -L --retry 10 --fail --insecure "https://${SERVER_IP}:8000/crate/"
 # Check static files collected
-curl -v -I -L --fail --insecure "${SERVER_IP}:8000/crate_static/scrubber.png"
+curl -v -I -L --fail --insecure "https://${SERVER_IP}:8000/crate_static/scrubber.png"
 cd "${CRATE_HOME}/docker/dockerfiles"
