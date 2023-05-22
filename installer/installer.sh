@@ -56,11 +56,12 @@ usage() {
     -h Display this help message.
     -n Recreate the installer virtual environment.
     -u Upgrade existing CRATE installation.
+    -v Display more verbose messages.
 EOF
 }
 
 
-while getopts 'dhnu' OPT; do
+while getopts 'dhnuv' OPT; do
   case "$OPT" in
     d)
         PRODUCTION=0
@@ -75,6 +76,9 @@ while getopts 'dhnu' OPT; do
     u)
         INSTALLER_ARGS+=(--update)
         RECREATE_VIRTUALENV=1
+        ;;
+    v)
+        INSTALLER_ARGS+=(--verbose)
         ;;
     *)
         usage
