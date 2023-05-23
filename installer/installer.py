@@ -971,7 +971,7 @@ class Installer:
         demo_config = r"""# Example ODBC DSN definition
 
 # [put_name_of_dsn_here]
-# Driver = /opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.10.so.2.1
+# Driver = ODBC Driver 17 for SQL Server
 # Description  = Put description here
 # SERVER       = host.docker.internal
 # USER         = username
