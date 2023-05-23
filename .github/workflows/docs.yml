@@ -9,7 +9,7 @@ on:
             - github_action_scripts/build_docs.sh
             - docs/**
             - crate_anon/**
-
+            - setup.py
 jobs:
     build-docs:
         strategy:
