@@ -1559,7 +1559,7 @@ class Installer:
         We typically avoid saving passwords. Note that some of the config files
         do contain passwords.
         """
-        for key, value in os.environ.items():
+        for key, value in sorted(os.environ.items()):
             if not (
                 key.startswith(DockerEnvVar.PREFIX)
                 or key.startswith(InstallerEnvVar.PREFIX)
