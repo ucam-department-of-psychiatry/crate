@@ -112,8 +112,6 @@ def draft_dd(
             Alter rows that were loaded from disk (not read from a database)?
             The default is to leave such rows untouched.
     """
-    breakpoint()
-
     if incremental:
         # For "incremental", we load the data dictionary from disk.
         # Otherwise, we don't, so a completely fresh one will be generated.
