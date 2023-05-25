@@ -122,15 +122,15 @@ class DockerPath:
     ROOT_DIR = "/crate"
 
     CONFIG_DIR = os.path.join(ROOT_DIR, "cfg")
-    ARCHIVE_TEMPLATE_DIR = os.path.join(CONFIG_DIR, "archive_templates")
-    ARCHIVE_ATTACHMENT_DIR = os.path.join(CONFIG_DIR, "archive_attachments")
-    ARCHIVE_STATIC_DIR = os.path.join(CONFIG_DIR, "static")
+    FILES_DIR = os.path.join(ROOT_DIR, "files")
+    ARCHIVE_TEMPLATE_DIR = os.path.join(FILES_DIR, "archive_templates")
+    ARCHIVE_ATTACHMENT_DIR = os.path.join(FILES_DIR, "archive_attachments")
+    ARCHIVE_STATIC_DIR = os.path.join(ARCHIVE_TEMPLATE_DIR, "static")
 
-    TMP_DIR = os.path.join(ROOT_DIR, "tmp")
     ARCHIVE_TEMPLATE_CACHE_DIR = os.path.join(
-        TMP_DIR, "archive_template_cache"
+        FILES_DIR, "archive_template_cache"
     )
-    PRIVATE_FILE_STORAGE_ROOT = os.path.join(TMP_DIR, "files")
+    PRIVATE_FILE_STORAGE_ROOT = os.path.join(FILES_DIR, "private")
 
     VENV_DIR = os.path.join(ROOT_DIR, "venv")
     CRATE_INSTALL_DIR = os.path.join(
