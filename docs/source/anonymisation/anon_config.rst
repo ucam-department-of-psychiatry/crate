@@ -1356,7 +1356,7 @@ ddgen_prefer_original_pk
 *Boolean.* Default: false.
 
 If a source database reports a PK *and* a fieldname matches
-:ref:`ddgen_pk_fields <_anon_config_ddgen_pk_fields>`, which should be
+:ref:`ddgen_pk_fields <anon_config_ddgen_pk_fields>`, which should be
 preferred? Specify ``true`` to use the original (source database) PK, and
 ``false`` to use the one from ``ddgen_pk_fields``.
 
