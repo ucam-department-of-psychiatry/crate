@@ -7,7 +7,7 @@ USAGE: crate_django_manage lookup_patient [-h] --nhs_numbers NHS_NUMBERS
 
 Tests lookup of patient details from the relevant CLINICAL database.
 
-OPTIONAL ARGUMENTS:
+OPTIONS:
   -h, --help            show this help message and exit
   --nhs_numbers NHS_NUMBERS [NHS_NUMBERS ...]
                         NHS numbers to look up

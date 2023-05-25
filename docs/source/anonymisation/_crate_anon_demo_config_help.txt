@@ -3,7 +3,7 @@ USAGE: crate_anon_demo_config [-h] [--output OUTPUT] [--leave_placeholders]
 Print a demo config file for the CRATE anonymiser. (CRATE version 0.20.0,
 2023-02-14. Created by Rudolf Cardinal.)
 
-OPTIONAL ARGUMENTS:
+OPTIONS:
   -h, --help            show this help message and exit
   --output OUTPUT       File for output; use '-' for stdout. (default: -)
   --leave_placeholders  Don't substitute @@ placeholders with examples
