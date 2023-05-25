@@ -7,7 +7,7 @@ USAGE: crate_django_manage lookup_consent [-h] --nhs_numbers NHS_NUMBERS
 
 Tests lookup of the consent mode from the relevant CLINICAL database.
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --nhs_numbers NHS_NUMBERS [NHS_NUMBERS ...]
                         NHS numbers to look up

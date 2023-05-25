@@ -8,7 +8,7 @@ USAGE: crate_test_anonymisation [-h] --config CONFIG --dsttable DSTTABLE
 
 Test anonymisation
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --config CONFIG       Configuration file name (input) (default: None)
   --dsttable DSTTABLE   Destination table (default: None)

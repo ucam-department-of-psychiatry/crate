@@ -14,7 +14,7 @@ Exit codes:
 POSITIONAL ARGUMENTS:
   filename             File from which to extract text
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help           show this help message and exit
   --plain              Use plainest format (re e.g. table layouts) (default:
                        False)

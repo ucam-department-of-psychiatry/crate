@@ -7,7 +7,7 @@ USAGE: crate_django_manage email_rdbm [-h] [--subject SUBJECT] [--text TEXT]
 
 Email the RDBM
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --subject SUBJECT     Subject
   --text TEXT           Text body

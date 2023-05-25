@@ -3,7 +3,7 @@ USAGE: crate_nlp_webserver_print_demo [-h] [--config | --processors]
 Print demo config file or demo processor constants file for server side cloud
 nlp.
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help    show this help message and exit
   --config      Print a demo config file for server side cloud nlp.
   --processors  Print a demo processor constants file for server side cloud

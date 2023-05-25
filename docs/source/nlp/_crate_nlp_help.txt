@@ -11,7 +11,7 @@ USAGE: crate_nlp [-h] [--config CONFIG] [--nlpdef NLPDEF] [-i | -f]
 
 NLP manager. Version 0.20.0 (2023-02-14). By Rudolf Cardinal.
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
 
 CONFIG OPTIONS:

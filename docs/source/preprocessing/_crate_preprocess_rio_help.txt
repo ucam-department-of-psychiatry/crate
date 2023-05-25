@@ -5,7 +5,7 @@ USAGE: crate_preprocess_rio [-h] --url URL [-v] [--print] [--echo] [--rcep]
                             [--allergies_current_only | --allergies_all]
                             [--audit_info | --no_audit_info]
                             [--postcodedb POSTCODEDB]
-                            [--geogcols [GEOGCOLS ...]]
+                            [--geogcols [GEOGCOLS [GEOGCOLS ...]]]
                             [--settings_filename SETTINGS_FILENAME]
 
 *   Alters a RiO database to be suitable for CRATE.
@@ -16,7 +16,7 @@ USAGE: crate_preprocess_rio [-h] --url URL [-v] [--print] [--echo] [--rcep]
     Servelec RiO CRIS Extract Program (RCEP) v2 output database.
 
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --url URL             SQLAlchemy database URL
   -v, --verbose         Verbose
@@ -53,7 +53,7 @@ OPTIONS:
                         as a view. With SQL Server, you will have to specify
                         the schema as well as the database; e.g. "--postcodedb
                         ONS_PD.dbo"
-  --geogcols [GEOGCOLS ...]
+  --geogcols [GEOGCOLS [GEOGCOLS ...]]
                         List of geographical information columns to link in
                         from ONS Postcode Database. BEWARE that you do not
                         specify anything too identifying. Default: bua11

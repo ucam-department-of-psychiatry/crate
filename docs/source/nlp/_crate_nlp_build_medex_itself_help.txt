@@ -3,7 +3,7 @@ USAGE: crate_nlp_build_medex_itself [-h] [--medexdir MEDEXDIR] [--javac JAVAC]
 
 Compile MedEx-UIMA itself (in Java)
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help           show this help message and exit
   --medexdir MEDEXDIR  Root directory of MedEx installation (default:
                        /path/to/Medex/installation)
