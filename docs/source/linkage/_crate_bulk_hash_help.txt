@@ -12,7 +12,7 @@ POSITIONAL ARGUMENTS:
                         lines are ignored. Lines have whitespace stripped left
                         and right.
 
-OPTIONAL ARGUMENTS:
+OPTIONS:
   -h, --help            show this help message and exit
   --outfile OUTFILE     Output file, or '-' for stdout. One line will be
                         written for every input line. Blank lines will be

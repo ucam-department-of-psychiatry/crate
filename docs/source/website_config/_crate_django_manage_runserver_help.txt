@@ -11,7 +11,7 @@ Starts a lightweight Web server for development and also serves static files.
 POSITIONAL ARGUMENTS:
   addrport              Optional port number, or ipaddr:port
 
-OPTIONAL ARGUMENTS:
+OPTIONS:
   -h, --help            show this help message and exit
   --ipv6, -6            Tells Django to use an IPv6 address.
   --nothreading         Tells Django to NOT use threading.

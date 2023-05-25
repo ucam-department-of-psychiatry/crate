@@ -1,7 +1,7 @@
 USAGE: crate_fetch_wordlists [-h] [--verbose]
                              [--min_word_length MIN_WORD_LENGTH]
                              [--show_rejects]
-                             [--debug_names [DEBUG_NAMES [DEBUG_NAMES ...]]]
+                             [--debug_names [DEBUG_NAMES ...]]
                              [--english_words]
                              [--english_words_output ENGLISH_WORDS_OUTPUT]
                              [--english_words_url ENGLISH_WORDS_URL]
@@ -31,19 +31,19 @@ USAGE: crate_fetch_wordlists [-h] [--verbose]
                              [--us_surnames_max_cumfreq_pct US_SURNAMES_MAX_CUMFREQ_PCT]
                              [--eponyms] [--eponyms_output EPONYMS_OUTPUT]
                              [--eponyms_add_unaccented_versions [EPONYMS_ADD_UNACCENTED_VERSIONS]]
-                             [--filter_input [FILTER_INPUT [FILTER_INPUT ...]]]
-                             [--filter_include [FILTER_INCLUDE [FILTER_INCLUDE ...]]]
-                             [--filter_exclude [FILTER_EXCLUDE [FILTER_EXCLUDE ...]]]
+                             [--filter_input [FILTER_INPUT ...]]
+                             [--filter_include [FILTER_INCLUDE ...]]
+                             [--filter_exclude [FILTER_EXCLUDE ...]]
                              [--filter_output [FILTER_OUTPUT]]
 
-OPTIONAL ARGUMENTS:
+OPTIONS:
   -h, --help            show this help message and exit
   --verbose, -v         Be verbose (default: False)
   --min_word_length MIN_WORD_LENGTH
                         Minimum word (or name) length to allow (default: 2)
   --show_rejects        Print to stdout (and, in verbose mode, log) the words
                         being rejected (default: False)
-  --debug_names [DEBUG_NAMES [DEBUG_NAMES ...]]
+  --debug_names [DEBUG_NAMES ...]
                         Show extra detail about these names (e.g. to work out
                         your preferred frequency thresholds) (default: None)
 
@@ -177,14 +177,14 @@ FILTER FUNCTIONS:
   'stdin'. No filenames (other than '-' for input and output) may overlap.
   The --min_line_length option also applies. Duplicates are not removed.
 
-  --filter_input [FILTER_INPUT [FILTER_INPUT ...]]
+  --filter_input [FILTER_INPUT ...]
                         Input file(s). Words will be drawn from these files.
                         (default: None)
-  --filter_include [FILTER_INCLUDE [FILTER_INCLUDE ...]]
+  --filter_include [FILTER_INCLUDE ...]
                         Inclusion file(s). If any inclusion files are
                         specified, words from the input must be present in at
                         least one inclusion file to pass. (default: None)
-  --filter_exclude [FILTER_EXCLUDE [FILTER_EXCLUDE ...]]
+  --filter_exclude [FILTER_EXCLUDE ...]
                         Exclusion file(s). Any words present in the exclusion
                         files do not pass. (default: None)
   --filter_output [FILTER_OUTPUT]

@@ -86,6 +86,7 @@ from crate_anon.common.spreadsheet import (
     SINGLE_SPREADSHEET_TYPE,
     write_spreadsheet,
 )
+from crate_anon.common.sql import matches_fielddef
 
 if TYPE_CHECKING:
     from crate_anon.anonymise.config import Config
@@ -443,6 +444,13 @@ class DataDictionary:
                     )
                     continue
 
+                # Does the database know the PK for this table?
+                table_has_explicit_pk = any(c.primary_key for c in t.columns)
+                table_has_candidate_pk = any(
+                    matches_fielddef(tablename, c.name, cfg.ddgen_pk_fields)
+                    for c in t.columns
+                )
+
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Scan each column
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -487,6 +495,8 @@ class DataDictionary:
                         comment=comment,
                         nullable=c.nullable,
                         primary_key=c.primary_key,
+                        table_has_explicit_pk=table_has_explicit_pk,
+                        table_has_candidate_pk=table_has_candidate_pk,
                     )
 
                     # ---------------------------------------------------------
@@ -683,7 +693,6 @@ class DataDictionary:
             db = self.config.sources[d]
 
             for t in self.get_src_tables(d):
-
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Ensure each source table maps to only one destination table
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

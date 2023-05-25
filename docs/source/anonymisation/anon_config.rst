@@ -1186,10 +1186,10 @@ ddgen_omit_by_default
 
 *Boolean.* Default: true.
 
-By default, most fields (except PKs and patient ID codes) are marked as
-``OMIT`` (see :ref:`decision <dd_decision>`), pending human review. If you want
-to live dangerously, set this to False, and they will be marked as ``include``
-from the outset.
+By default, most fields (except primary keys [PKs] and patient ID codes) are
+marked as ``OMIT`` (see :ref:`decision <dd_decision>`), pending human review.
+If you want to live dangerously, set this to False, and they will be marked as
+``include`` from the outset.
 
 
 ddgen_omit_fields
@@ -1335,13 +1335,34 @@ Allow any fields? (Allowlists override denylists.)
     language review.
 
 
+.. _anon_config_ddgen_pk_fields:
+
 ddgen_pk_fields
 ###############
 
 *Multiline string.*
 
 Fieldnames assumed to be their table's PK. In addition to these, any columns
-that the source database reports as a PK will be treated as such.
+that the source database reports as a PK will be treated as such. (If the
+source database reports a PK *and* a fieldname matches this option, see
+:ref:`ddgen_prefer_original_pk <anon_config_ddgen_prefer_original_pk>`.
+
+
+.. _anon_config_ddgen_prefer_original_pk:
+
+ddgen_prefer_original_pk
+########################
+
+*Boolean.* Default: false.
+
+If a source database reports a PK *and* a fieldname matches
+:ref:`ddgen_pk_fields <anon_config_ddgen_pk_fields>`, which should be
+preferred? Specify ``true`` to use the original (source database) PK, and
+``false`` to use the one from ``ddgen_pk_fields``.
+
+Use ``true`` to lean towards the databases's original structure, and ``false``
+if you are trying to create PK name standardization through preprocessing and
+you want your standardized names to be preferred.
 
 
 .. _anon_config_ddgen_constant_content:

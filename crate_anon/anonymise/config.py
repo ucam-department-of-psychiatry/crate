@@ -224,6 +224,9 @@ class DatabaseSafeConfig:
             SK.DDGEN_FIELD_ALLOWLIST
         )
         self.ddgen_pk_fields = cfg.opt_multiline(SK.DDGEN_PK_FIELDS)
+        self.ddgen_prefer_original_pk = cfg.opt_bool(
+            SK.DDGEN_PREFER_ORIGINAL_PK, DS.DDGEN_PREFER_ORIGINAL_PK
+        )
 
         self.ddgen_constant_content = cfg.opt_bool(
             SK.DDGEN_CONSTANT_CONTENT, DS.DDGEN_CONSTANT_CONTENT

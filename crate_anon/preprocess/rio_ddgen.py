@@ -235,6 +235,8 @@ def get_rio_dd_settings(ddhint: DDHint) -> str:
 
 {sk.DDGEN_PK_FIELDS} = crate_pk
 
+{sk.DDGEN_PREFER_ORIGINAL_PK} = False
+
 {sk.DDGEN_CONSTANT_CONTENT} = False
 
 {sk.DDGEN_CONSTANT_CONTENT_TABLES} =

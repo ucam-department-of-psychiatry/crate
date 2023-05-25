@@ -9,7 +9,7 @@ USAGE: crate_django_manage createsuperuser [-h] [--username USERNAME]
 
 Used to create a superuser.
 
-OPTIONAL ARGUMENTS:
+OPTIONS:
   -h, --help            show this help message and exit
   --username USERNAME   Specifies the login for the superuser.
   --noinput, --no-input
