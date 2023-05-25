@@ -7,5 +7,5 @@ POSITIONAL ARGUMENTS:
   config_uri  Config file to read (e.g. 'development.ini'); URL of database is
               found here.
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help  show this help message and exit

@@ -7,7 +7,7 @@ Demonstrate CRATE's built-in Python NLP tools
 POSITIONAL ARGUMENTS:
   inputs                Input files (use '-' for stdin)
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --terminator TERMINATOR
                         Single-line terminator separating input chunks in an

@@ -8,7 +8,7 @@ USAGE: crate_django_manage collectstatic [-h] [--noinput] [--no-post-process]
 
 Collect static files in a single location.
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --noinput, --no-input
                         Do NOT prompt the user for input of any kind.

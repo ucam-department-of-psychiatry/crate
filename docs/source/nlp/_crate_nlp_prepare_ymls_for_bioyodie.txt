@@ -16,7 +16,7 @@ POSITIONAL ARGUMENTS:
                         autodownloaded, as it requires a license/login.
   dest_dir              Destination directory to write.
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --keeptemp            Keep temporary directory on exit. (default: False)
   --java_home JAVA_HOME

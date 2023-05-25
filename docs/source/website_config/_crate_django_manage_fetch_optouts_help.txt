@@ -9,7 +9,7 @@ Fetch patient IDs (PIDs) and master patient IDs (MPIDs, e.g. NHS numbers) from
 the clinical consent-mode lookup database, and store them in a file (e.g. for
 use by the CRATE anonymiser).
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --pidfile PIDFILE     Filename to store PIDs in (one line per PID)
   --mpidfile MPIDFILE   Filename to store MPIDs in (one line per PID)

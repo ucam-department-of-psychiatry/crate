@@ -2,12 +2,12 @@ USAGE: crate_preprocess_systmone [-h] --url URL [-v] [--print] [--echo]
                                  [--systmone_context {tpp_sre,cpft_dw}]
                                  [--systmone_allow_unprefixed_tables]
                                  [--postcodedb POSTCODEDB]
-                                 [--geogcols [GEOGCOLS ...]]
+                                 [--geogcols [GEOGCOLS [GEOGCOLS ...]]]
                                  [--drop_danger_drop]
 
 Indexes a SystmOne database to be suitable for CRATE.
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --url URL             SQLAlchemy database URL
   -v, --verbose         Verbose
@@ -27,7 +27,7 @@ OPTIONS:
                         as a view. With SQL Server, you will have to specify
                         the schema as well as the database; e.g. "--postcodedb
                         ONS_PD.dbo"
-  --geogcols [GEOGCOLS ...]
+  --geogcols [GEOGCOLS [GEOGCOLS ...]]
                         List of geographical information columns to link in
                         from ONS Postcode Database. BEWARE that you do not
                         specify anything too identifying. Default: bua11

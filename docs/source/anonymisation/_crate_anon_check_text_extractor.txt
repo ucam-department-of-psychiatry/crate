@@ -1,4 +1,5 @@
-USAGE: crate_anon_check_text_extractor [-h] [checkextractor ...]
+USAGE: crate_anon_check_text_extractor [-h]
+                                       [checkextractor [checkextractor ...]]
 
 Check availability of tools to extract text from different document formats.
 (CRATE version 0.20.0, 2023-02-14. Created by Rudolf Cardinal.)
@@ -10,5 +11,5 @@ POSITIONAL ARGUMENTS:
                   special extension 'None' to check the fallback processor).
                   (default: None)
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help      show this help message and exit

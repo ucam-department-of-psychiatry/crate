@@ -12,7 +12,7 @@ POSITIONAL ARGUMENTS:
                         gone away', increase the max_allowed_packet parameter
                         in my.cnf (e.g. to 32M).
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --size {0,1,2,3}      Make tiny (0), small (1), medium (2), or large (3)
                         database (default: 0)

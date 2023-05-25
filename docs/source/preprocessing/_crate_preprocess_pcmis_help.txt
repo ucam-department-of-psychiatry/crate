@@ -1,12 +1,12 @@
 USAGE: crate_preprocess_pcmis [-h] --url URL [-v] [--print] [--echo]
                               [--drop_danger_drop] [--debug_skiptables]
                               [--postcodedb POSTCODEDB]
-                              [--geogcols [GEOGCOLS ...]]
+                              [--geogcols [GEOGCOLS [GEOGCOLS ...]]]
                               [--settings_filename SETTINGS_FILENAME]
 
 Alters a PCMIS database to be suitable for CRATE.
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --url URL             SQLAlchemy database URL (default: None)
   -v, --verbose         Verbose (default: False)
@@ -26,7 +26,7 @@ OPTIONS:
                         as a view. With SQL Server, you will have to specify
                         the schema as well as the database; e.g. "--postcodedb
                         ONS_PD.dbo" (default: None)
-  --geogcols [GEOGCOLS ...]
+  --geogcols [GEOGCOLS [GEOGCOLS ...]]
                         List of geographical information columns to link in
                         from ONS Postcode Database. BEWARE that you do not
                         specify anything too identifying. (default: ['bua11',

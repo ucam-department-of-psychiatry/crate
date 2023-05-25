@@ -4,7 +4,7 @@ USAGE: crate_fuzzy_id_match [-h] [--version] [--allhelp]
 
 Identity matching via hashed fuzzy identifiers
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
   --allhelp             Show help for all commands and exit.
@@ -85,7 +85,7 @@ Optionally, the "other" information (you can choose, e.g. attaching a direct
 identifier) is preserved, but you have to ask for that explicitly; that is
 normally for testing.
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --input INPUT         Filename for input (plaintext) data. (1) CSV format
                         with header row. Columns: ['local_id', 'forenames',
@@ -336,7 +336,7 @@ added:
 
 Proband order is retained in the output (even using parallel processing).
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
 
 COMPARISON OPTIONS:
@@ -681,7 +681,7 @@ added:
 
 Proband order is retained in the output (even using parallel processing).
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
 
 COMPARISON OPTIONS:
@@ -1004,7 +1004,7 @@ added:
 
 Proband order is retained in the output (even using parallel processing).
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
 
 COMPARISON OPTIONS:
@@ -1269,7 +1269,7 @@ Help for command 'print_demo_sample'
 ===============================================================================
 USAGE: crate_fuzzy_id_match print_demo_sample [-h] [--verbose]
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help  show this help message and exit
 
 DISPLAY OPTIONS:
@@ -1283,7 +1283,7 @@ USAGE: crate_fuzzy_id_match show_metaphone [-h] [--verbose] words [words ...]
 POSITIONAL ARGUMENTS:
   words       Words to check
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help  show this help message and exit
 
 DISPLAY OPTIONS:
@@ -1316,7 +1316,7 @@ USAGE: crate_fuzzy_id_match show_names_for_metaphone [-h]
 POSITIONAL ARGUMENTS:
   words                 Words to check
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
 
 FREQUENCY INFORMATION FOR PRIOR PROBABILITIES:
@@ -1453,7 +1453,7 @@ USAGE: crate_fuzzy_id_match show_forename_freq [-h]
 POSITIONAL ARGUMENTS:
   forenames             Forenames to check
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
 
 FREQUENCY INFORMATION FOR PRIOR PROBABILITIES:
@@ -1591,7 +1591,7 @@ USAGE: crate_fuzzy_id_match show_forename_metaphone_freq [-h]
 POSITIONAL ARGUMENTS:
   metaphones            Metaphones to check
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
 
 FREQUENCY INFORMATION FOR PRIOR PROBABILITIES:
@@ -1728,7 +1728,7 @@ USAGE: crate_fuzzy_id_match show_forename_f2c_freq [-h]
 POSITIONAL ARGUMENTS:
   f2c                   First-two-character groups to check
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
 
 FREQUENCY INFORMATION FOR PRIOR PROBABILITIES:
@@ -1865,7 +1865,7 @@ USAGE: crate_fuzzy_id_match show_surname_freq [-h]
 POSITIONAL ARGUMENTS:
   surnames              surnames to check
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
 
 FREQUENCY INFORMATION FOR PRIOR PROBABILITIES:
@@ -2003,7 +2003,7 @@ USAGE: crate_fuzzy_id_match show_surname_metaphone_freq [-h]
 POSITIONAL ARGUMENTS:
   metaphones            surnames to check
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
 
 FREQUENCY INFORMATION FOR PRIOR PROBABILITIES:
@@ -2140,7 +2140,7 @@ USAGE: crate_fuzzy_id_match show_surname_f2c_freq [-h]
 POSITIONAL ARGUMENTS:
   f2c                   First-two-character groups to check
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
 
 FREQUENCY INFORMATION FOR PRIOR PROBABILITIES:
@@ -2273,7 +2273,7 @@ USAGE: crate_fuzzy_id_match show_dob_freq [-h]
                                           [--k_pseudopostcode K_PSEUDOPOSTCODE]
                                           [--verbose]
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
 
 FREQUENCY INFORMATION FOR PRIOR PROBABILITIES:
@@ -2410,7 +2410,7 @@ USAGE: crate_fuzzy_id_match show_postcode_freq [-h]
 POSITIONAL ARGUMENTS:
   postcodes             postcodes to check
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
 
 FREQUENCY INFORMATION FOR PRIOR PROBABILITIES:

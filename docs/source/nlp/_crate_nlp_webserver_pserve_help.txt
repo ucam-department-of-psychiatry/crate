@@ -2,7 +2,7 @@ usage: crate_nlp_webserver_pserve [-h] [-n NAME] [-s SERVER_TYPE]
                                   [--server-name SECTION_NAME] [--reload]
                                   [--reload-interval RELOAD_INTERVAL] [-b]
                                   [-v] [-q]
-                                  [config_uri] [config_vars ...]
+                                  [config_uri] [config_vars [config_vars ...]]
 
 This command serves a web application that uses a PasteDeploy
 configuration file for the server and application.
@@ -16,7 +16,7 @@ positional arguments:
                         `http_port=%(http_port)s` would expect
                         `http_port=8080` to be passed here.
 
-options:
+optional arguments:
   -h, --help            show this help message and exit
   -n NAME, --app-name NAME
                         Load the named application (default main)

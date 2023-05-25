@@ -6,7 +6,7 @@ USAGE: crate_django_manage test_email [-h] [--version] [-v {0,1,2,3}]
 
 Test email to RDBM (without saving to database)
 
-OPTIONS:
+OPTIONAL ARGUMENTS:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
   -v, --verbosity {0,1,2,3}
