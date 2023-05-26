@@ -2,8 +2,14 @@
 # yamllint disable rule:line-length
 name: Build docs
 # yamllint disable-line rule:truthy
-on: push
-
+on:
+    push:
+        paths:
+            - .github/workflows/docs.yml
+            - github_action_scripts/build_docs.sh
+            - docs/**
+            - crate_anon/**
+            - setup.py
 jobs:
     build-docs:
         strategy:
