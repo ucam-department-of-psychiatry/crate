@@ -6,7 +6,7 @@ USAGE: crate_nlp_build_gate_java_interface [-h] [--builddir BUILDDIR]
 
 Compile Java classes for CRATE's interface to GATE
 
-OPTIONAL ARGUMENTS:
+OPTIONS:
   -h, --help            show this help message and exit
   --builddir BUILDDIR   Output directory for compiled .class files (default:
                         /path/to/crate/crate_anon/nlp_manager/compiled_nlp_cla

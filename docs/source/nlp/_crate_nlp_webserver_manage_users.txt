@@ -3,7 +3,7 @@ USAGE: crate_nlp_webserver_manage_users [-h]
 
 Manage users for the CRATE nlp_web server.
 
-OPTIONAL ARGUMENTS:
+OPTIONS:
   -h, --help            show this help message and exit
   --adduser USERNAME PASSWORD
                         Add a user and associated password.
