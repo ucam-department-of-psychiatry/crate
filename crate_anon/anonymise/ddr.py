@@ -1145,11 +1145,10 @@ class DataDictionaryRow:
                     f"can only be set on "
                     f"{self.SRC_FLAGS}={SrcFlag.PK} fields"
                 )
-            if self.omit:
-                raise ValueError(
-                    f"Cannot omit fields with "
-                    f"{self.SRC_FLAGS}={SrcFlag.ADD_SRC_HASH} set"
-                )
+            # Don't exclude the self.omit and SrcFlag.ADD_SRC_HASH here. That
+            # is done as a table-level check in dd.py instead, in
+            # DataDictionary.check_valid(), because if the whole table is being
+            # omitted, this is OK.
             if self.index != IndexType.UNIQUE:
                 raise ValueError(
                     f"{self.SRC_FLAGS}={SrcFlag.ADD_SRC_HASH} fields require "
@@ -1335,6 +1334,8 @@ class DataDictionaryRow:
         comment: str = None,
         nullable: bool = True,
         primary_key: bool = False,
+        table_has_explicit_pk: bool = False,
+        table_has_candidate_pk: bool = False,
     ) -> None:
         """
         Set up this DDR from a field in the source database, using options set
@@ -1362,6 +1363,12 @@ class DataDictionaryRow:
                 (False).
             primary_key:
                 Whether the source is marked as a primary key.
+            table_has_explicit_pk:
+                Whether the source database knows of a formal PK field for this
+                table, whether or not this is it.
+            table_has_candidate_pk:
+                Whether the source table contains a field that matches
+                CRATE's name detection criteria, whether or not this is it.
         """
         self.src_db = src_db
         self.src_table = src_table
@@ -1382,7 +1389,25 @@ class DataDictionaryRow:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # ddgen: Is the field special, such as a PK?
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        if self.matches_fielddef(dbconf.ddgen_pk_fields) or primary_key:
+        resembles_pk = self.matches_fielddef(dbconf.ddgen_pk_fields)
+        if table_has_explicit_pk:
+            if dbconf.ddgen_prefer_original_pk:
+                # Use the database's PK.
+                treat_as_pk = primary_key
+            else:
+                # The table has an explicit PK. However, we prefer to use our
+                # name-based rules, if something matches that.
+                if table_has_candidate_pk:
+                    # There's a name-based match in the table. Use it.
+                    treat_as_pk = resembles_pk
+                else:
+                    # Nothing matches. So it's the original PK or nothing.
+                    treat_as_pk = primary_key
+        else:
+            # The table doesn't have an explicit PK, so we just follow our
+            # name-based rules.
+            treat_as_pk = resembles_pk
+        if treat_as_pk:
             # Table primary key (e.g. arbitrary integer).
             self._pk = True
             self._constant = (
