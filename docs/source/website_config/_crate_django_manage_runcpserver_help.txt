@@ -14,7 +14,7 @@ USAGE: crate_django_manage runcpserver [-h] [--host HOST] [--port PORT]
 Run this project in a CherryPy webserver. To do this, CherryPy is required
 (pip install cherrypy).
 
-OPTIONAL ARGUMENTS:
+OPTIONS:
   -h, --help            show this help message and exit
   --host HOST           hostname to listen on (default: 127.0.0.1)
   --port PORT           port to listen on (default: 8088)

@@ -34,6 +34,7 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 from typing import List
 
 from rich_argparse import ArgumentDefaultsRichHelpFormatter
@@ -49,8 +50,14 @@ BUILD_HTML_DIR = os.path.join(THIS_DIR, "build", "html")
 
 DEST_DIRS = []  # type: List[str]
 
+EXIT_FAILURE = 1
 
 if __name__ == "__main__":
+    python_ok = sys.version_info.major >= 3 and sys.version_info.minor >= 10
+    if not python_ok:
+        log.error("You must run this script with Python 3.10 or later")
+        sys.exit(EXIT_FAILURE)
+
     # -------------------------------------------------------------------------
     # Arguments
     # -------------------------------------------------------------------------
