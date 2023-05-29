@@ -6,15 +6,7 @@
 set -eux -o pipefail
 
 cd "${GITHUB_WORKSPACE}"
-python -m venv "${HOME}/venv"
 source "${HOME}/venv/bin/activate"
-python -VV
-python -m site
-python -m pip install -U pip setuptools
-echo dumping pre-installed packages
-python -m pip freeze
-echo installing pip packages
-python -m pip install -e .
 python -m pip install mysqlclient
 echo checking packages for conflicts
 python -m pip check
@@ -29,10 +21,6 @@ echo checking packages for vulnerabilities
 # 52495 setuptools fix in 65.5.1, we'll be careful not to
 #       install malicious packages.
 safety check --full-report --ignore=51457 --ignore=51668 --ignore=52495
-echo checking python formatting
-black --line-length 79 --diff --check .
-echo checking python for style and errors
-flake8 --config=setup.cfg .
 echo running tests
 export CRATE_RUN_WITHOUT_LOCAL_SETTINGS=True
 export CRATE_NLP_WEB_CONFIG=${GITHUB_WORKSPACE}/github_action_scripts/test_nlp_web_config.ini

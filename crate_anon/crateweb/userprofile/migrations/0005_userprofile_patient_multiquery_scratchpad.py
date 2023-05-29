@@ -50,7 +50,9 @@ class Migration(migrations.Migration):
             field=picklefield.fields.PickledObjectField(
                 editable=False,
                 null=True,
-                verbose_name="PatientMultiQuery scratchpad (pickled) for builder",
+                verbose_name=(
+                    "PatientMultiQuery scratchpad (pickled) for builder"
+                ),
             ),  # noqa
         ),
     ]

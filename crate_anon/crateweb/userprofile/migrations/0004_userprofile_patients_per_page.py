@@ -54,7 +54,10 @@ class Migration(migrations.Migration):
                     (100, "100"),
                 ],
                 default=1,
-                verbose_name="Number of patients to show per page (for Patient Explorer view)",
+                verbose_name=(
+                    "Number of patients to show per page (for Patient Explorer"
+                    " view)"
+                ),
             ),  # noqa
         ),
     ]
