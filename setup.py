@@ -78,7 +78,7 @@ INSTALL_REQUIRES = [
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==3.2.18",  # for main CRATE research database web server
+    "django==3.2.19",  # for main CRATE research database web server
     "django-debug-toolbar==3.0a2",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
@@ -132,8 +132,8 @@ INSTALL_REQUIRES = [
     "pyramid==1.10.4",  # Pyramid web framework
     "pyramid_tm==2.4",  # Pyramid transaction management
     "redis==4.5.4",  # interface to Redis in-memory key-value database
-    "requests==2.25.1",  # HTTP requests
-    "tornado==6.1",  # web framework
+    "requests==2.31.0",  # HTTP requests
+    "tornado==6.3.2",  # web framework
     "transaction==3.0.0",  # generic transaction management
     "urllib3==1.26.5",  # used by requests
     "waitress==2.1.2",  # pure-Python WSGI server
