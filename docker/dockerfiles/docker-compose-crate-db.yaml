@@ -63,7 +63,7 @@ services:
         #   - There doesn't appear to be an option for "restart on reboot, but
         #     leave stopped if it crashed".
         # - So: always.
-        restart: "always"
+        restart: "${CRATE_DOCKER_RESTART_POLICY}"
 
         # Environment variables.
         # See https://hub.docker.com/_/mysql

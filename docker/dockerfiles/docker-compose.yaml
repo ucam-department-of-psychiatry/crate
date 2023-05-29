@@ -120,7 +120,7 @@ services:
         container_name: crate_rabbitmq
 
         # Restart policy
-        restart: "always"
+        restart: "${CRATE_DOCKER_RESTART_POLICY}"
 
         # Expose ports to linked services without publishing them to the host.
         # Specify the container (internal) port.
@@ -171,7 +171,7 @@ services:
             - rabbitmq
 
         # Restart policy
-        restart: "always"
+        restart: "${CRATE_DOCKER_RESTART_POLICY}"
 
         # Mount config file directory and other volumes.
         volumes:
@@ -228,7 +228,7 @@ services:
             - crate_workers
 
         # Restart policy
-        restart: "always"
+        restart: "${CRATE_DOCKER_RESTART_POLICY}"
 
         extra_hosts:
             - "host.docker.internal:host-gateway"
@@ -280,7 +280,7 @@ services:
             - crate_workers
 
         # Restart policy
-        restart: "always"
+        restart: "${CRATE_DOCKER_RESTART_POLICY}"
 
         extra_hosts:
             - "host.docker.internal:host-gateway"
@@ -326,7 +326,7 @@ services:
     # semehr:
     #    image: semehr/core
     #
-    #    restart: "always"
+    #    restart: "${CRATE_DOCKER_RESTART_POLICY}"
 
 
 # =============================================================================

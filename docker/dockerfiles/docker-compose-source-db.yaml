@@ -28,7 +28,7 @@ services:
     source_db:
         image: mysql:5.7
         container_name: crate_source_db
-        restart: "always"
+        restart: "${CRATE_DOCKER_RESTART_POLICY}"
 
         environment:
             # Create database with this name at first container startup.
