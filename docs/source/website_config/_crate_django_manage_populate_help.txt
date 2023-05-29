@@ -6,7 +6,7 @@ USAGE: crate_django_manage populate [-h] [--version] [-v {0,1,2,3}]
 
 Populate the database with leaflet entries if necessary
 
-OPTIONAL ARGUMENTS:
+OPTIONS:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
   -v, --verbosity {0,1,2,3}

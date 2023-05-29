@@ -2,7 +2,7 @@ USAGE: crate_postcodes [-h] [--dir DIR] [--url URL] [--echo]
                        [--reportevery REPORTEVERY] [--commitevery COMMITEVERY]
                        [--startswith STARTSWITH [STARTSWITH ...]] [--replace]
                        [--skiplookup]
-                       [--specific_lookup_tables [SPECIFIC_LOOKUP_TABLES [SPECIFIC_LOOKUP_TABLES ...]]]
+                       [--specific_lookup_tables [SPECIFIC_LOOKUP_TABLES ...]]
                        [--list_lookup_tables] [--skippostcodes] [--docsonly]
                        [-v]
 
@@ -34,7 +34,7 @@ USAGE: crate_postcodes [-h] [--dir DIR] [--url URL] [--echo]
     See https://www.ons.gov.uk/methodology/geography/licences
 
 
-OPTIONAL ARGUMENTS:
+OPTIONS:
   -h, --help            show this help message and exit
   --dir DIR             Root directory of unzipped ONSPD download (default:
                         /path/to/unzipped/ONSPD/download)
@@ -53,7 +53,7 @@ OPTIONAL ARGUMENTS:
   --replace             Replace tables even if they exist (default: skip
                         existing tables) (default: False)
   --skiplookup          Skip generation of code lookup tables (default: False)
-  --specific_lookup_tables [SPECIFIC_LOOKUP_TABLES [SPECIFIC_LOOKUP_TABLES ...]]
+  --specific_lookup_tables [SPECIFIC_LOOKUP_TABLES ...]
                         Within the lookup tables, process only specific named
                         tables (default: None)
   --list_lookup_tables  List all possible lookup tables, then stop (default:
