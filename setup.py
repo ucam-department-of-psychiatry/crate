@@ -110,7 +110,7 @@ INSTALL_REQUIRES = [
     "psutil==5.7.2",  # process management
     "pyexcel-ods==0.6.0",  # for reading/writing ODS files
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
-    "pygments==2.8.1",  # syntax highlighting
+    "pygments==2.15.0",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
     "pypdf==3.9.0",  # create PDF files
     "pytz==2021.3",  # timezones
