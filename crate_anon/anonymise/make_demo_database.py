@@ -51,11 +51,13 @@ import enum
 import logging
 import os
 import random
-import subprocess
 from typing import TYPE_CHECKING
 
 from cardinal_pythonlib.datetimefunc import pendulum_to_datetime
 from cardinal_pythonlib.logs import configure_logger_for_colour
+from cardinal_pythonlib.nhs import generate_random_nhs_number
+from faker import Faker
+import pendulum
 from pendulum import DateTime as Pendulum  # NB name clash with SQLAlchemy
 from rich_argparse import ArgumentDefaultsRichHelpFormatter
 from sqlalchemy import (
@@ -98,27 +100,12 @@ Base = declarative_base(metadata=metadata)
 
 CONSOLE_ENCODING = "utf8"
 REPORT_EVERY = 50
-BASE_DOB = datetime.date(day=1, month=10, year=1980)
-DT_FORMATS = [
+DATE_FORMATS = [
     "%d %b %Y",  # e.g. 24 Jul 2013
     "%d %B %Y",  # e.g. 24 July 2013
-    "%a %d %B %Y",  # e.g. Wed 24 July 2013
-    "%d %B %Y, %H:%M %z",  # ... e.g. 24 July 2013, 20:04 +0100
-    "%a %d %B %Y, %H:%M %z",  # ... e.g. Wed 24 July 2013, 20:04 +0100
-    "%a %d %B %Y, %H:%M",  # ... e.g. Wed 24 July 2013, 20:04
-    "%a %d %b %Y, %H:%M",  # ... e.g. Wed 24 Jul 2013, 20:04
-    "%d %B %Y, %H:%M:%S %z",
-    "%d %b %Y, %H:%M %z",
-    "%d %b %Y, %H:%M:%S %z",
-    "%H:%M",
-    "%Y-%m-%dT%H:%M:%S%z",  # e.g. 2013-07-24T20:04:07+0100
     "%Y-%m-%d",  # e.g. 2013-07-24
-    "%Y-%m-%dT%H%M",  # e.g. 20130724T2004
     "%Y-%m-%d",  # e.g. 20130724
-    "%Y%m%d%H%M%S%z",  # e.g. 20130724200407+0100
     "%Y%m%d",  # e.g. 20130724
-    "%Y-%m-%dT%H:%M:%SZ",  # e.g. 2013-07-24T20:03:07Z
-    "%d/%m/%Y %H:%M",  # e.g. 01/12/2014 09:45
 ]
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -322,6 +309,8 @@ def main() -> None:
     """
     Command-line processor. See command-line help.
     """
+    fake = Faker("en_GB")
+    us_fake = Faker("en_US")  # For text. You get Lorem ipsum with en_GB.
     default_size = 0
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
@@ -363,7 +352,6 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    nwords = 10000
     if args.size == 0:
         n_patients = 20
         notes_per_patient = 1
@@ -395,31 +383,20 @@ def main() -> None:
         f"words_per_note={words_per_note}"
     )
 
-    # 1. Get words
-
-    log.info("Fetching words.")
-    words = (
-        subprocess.check_output(
-            ["grep", "-v", "'s", "-m", str(nwords), "/usr/share/dict/words"]
-        )
-        .decode(CONSOLE_ENCODING)
-        .splitlines()
-    )
-
-    # 2. Open database
+    # 1. Open database
 
     log.info("Opening database.")
     log.debug(f"URL: {args.url}")
     engine = create_engine(args.url, echo=args.echo, encoding=CHARSET)
     session = sessionmaker(bind=engine)()
 
-    # 3. Create tables
+    # 2. Create tables
 
     log.info("Creating tables.")
     metadata.drop_all(engine, checkfirst=True)
     metadata.create_all(engine, checkfirst=True)
 
-    # 4. Insert
+    # 3. Insert
 
     log.info(
         f"Aiming for a total of "
@@ -431,7 +408,9 @@ def main() -> None:
 
     # Autoincrementing date
 
-    _datetime = Pendulum(year=2000, month=1, day=1, hour=9)
+    # No one is born after this
+    first_note_datetime = Pendulum(year=2000, month=1, day=1, hour=9)
+    _datetime = first_note_datetime
 
     def incdatetime() -> datetime.datetime:
         nonlocal _datetime
@@ -439,154 +418,159 @@ def main() -> None:
         _datetime = _datetime.add(days=1)
         return pendulum_to_datetime(_p)
 
-    # Special extra patient
-
-    # noinspection PyTypeChecker
-    p1 = Patient(
-        patient_id=1,
-        forename="Ronald Gibbet",
-        surname="MacDonald",
-        dob=datetime.date(day=11, month=11, year=1911),
-        nhsnum=123456,
-        phone="(01223)-123456",
-        postcode="CB2 3EB",
-        colour=EnumColours.red,
-    )
-    session.add(p1)
-    for _ in range(notes_per_patient):
-        n1 = Note(
-            patient=p1,
-            note="""
-Ronald MacDonald lived on a farm and kept a gibbet for scaring off
-small animals. He was born on 11 Nov 1911 and was very proud of this.
-His cat’s name was Flitterwick. It did not like the gibbets.
-Ronalds other passion was blimping.
-A typo might be RonaldMacDonald.
-His phone number was 0122-312-3456, or 01223-123456, or (01223) 123456,
-or 01223 123 456, or 01223 123456.
-His NHS number was 123.456 or possibly 12 34 56.
-His postcode was CB2 3EB, or possible CB23EB, or CB2, or 3EB.
-
-Some HTML encoding is &amp; and &lt;.
-An HTML tag is <a href="http://somewhere">this link</a>.
-Start aspirin 75mg od. Remains on Lipitor 40mg nocte.
-For haloperidol 2mg po prn max qds.
-Start amoxicillin 500 mg b.i.d. for 7 days.
-
-Some numerical results:
-His CRP is 10. His previous CRP was <13 mg/dl.
-Sodium 140.
-TSH 3.5; urea normal.
-Height 1.82m, weight 75kg, BMI 22.6. BP 135/82.
-MMSE 28/30. ACE-R 72, ACE-II 73, ACE 73.
-ESR 16 (H) mm/h.
-WBC 9.2; neutrophils 4.3; lymphocytes 2.6; eosinophils 0.4; monocytes 1.2;
-basophils 0.6.
-            """,
-            note_datetime=incdatetime(),
-        )
-        session.add(n1)
-    for filename in (
-        args.doctest_doc,
-        args.doctest_docx,
-        args.doctest_odt,
-        args.doctest_pdf,
-    ):
-        bd = BlobDoc(
-            patient=p1, filename=filename, blob_datetime=incdatetime()
-        )
-        session.add(bd)
-        fd = FilenameDoc(
-            patient=p1, filename=filename, file_datetime=incdatetime()
-        )
-        session.add(fd)
-
-    # noinspection PyTypeChecker
-    p2 = Patient(
-        patient_id=2,
-        forename="Bob D'Souza",
-        surname="",
-        dob=datetime.date(day=11, month=11, year=1911),
-        nhsnum=234567,
-        phone="(01223)-234567",
-        postcode="CB2 3EB",
-        related_patient_id=1,
-        colour=EnumColours.green,
-    )
-    session.add(p2)
-    for _ in range(notes_per_patient):
-        n2 = Note(
-            patient=p2,
-            note="""
-Bob D'Souza, also known as Bob, or Mr DSouza, or sometimes Mr D Souza,
-or the D'Souza bloke down the road, or BobDSouza or BobD'Souza.
-His phone number was 0122-312-3456, or 01223-123456, or (01223) 123456,
-or 01223 123 456, or 01223 123456.
-His NHS number was 123.456 or possibly 12 34 56 or 123456, perhaps.
-His postcode was CB2 3EB, or possible CB23EB, or CB2, or 3EB.
-Bob Hope visited Seattle.
-Bob took venlafaxine 375 M/R od, and is due to start clozapine 75mg bd.
-            """,
-            note_datetime=incdatetime(),
-        )
-        session.add(n2)
-
     # A bunch of patients
-    random.seed(1)
     prev_forename = ""
     prev_surname = ""
-    for p in range(n_patients):
+    total_words = 0
+
+    for p in range(1, n_patients + 1):
+        Faker.seed(p)
         if p % REPORT_EVERY == 0:
             log.info(f"patient {p}")
-        forename = words[(p + 1) % nwords] + " " + words[(p + 10) % nwords]
-        surname = words[(p + 2) % nwords]
-        dob = BASE_DOB + datetime.timedelta(days=p)
-        ok_date = dob + datetime.timedelta(days=1)
-        nhsnum = random.randint(1, 9999999999)
+
+        sex = fake.random.choices(["M", "F", "X"], weights=[49.8, 49.8, 0.4])[
+            0
+        ]
+
+        if sex == "M":
+            forename = fake.first_name_male()
+            possessive_pronoun = "his"
+        elif sex == "F":
+            forename = fake.first_name_female()
+            possessive_pronoun = "her"
+        else:
+            forename = fake.first_name()[:1]
+            possessive_pronoun = "their"
+
+        surname = fake.last_name()
+        # Faker date_of_birth calculates from the current time so gives
+        # different results on different days. In our case we don't want
+        # the date of birth to be greater than the date stamp on the note.
+        dob = fake.date_between_dates(
+            date_start=pendulum.date(1900, 1, 1), date_end=first_note_datetime
+        )
+        nhsnum = generate_random_nhs_number()
+
+        if p == 1:
+            related_patient_id = None
+            relation_name = ""
+        else:
+            related_patient_id = p - 1
+            relation_name = f" {prev_forename} {prev_surname}"
+
         # noinspection PyTypeChecker
         patient = Patient(
-            patient_id=p + 3,
+            patient_id=p,
             forename=forename,
             surname=surname,
             dob=dob,
             nhsnum=nhsnum,
-            phone="123456",
-            postcode="CB2 3EB",
-            related_patient_id=p + 2,  # one back from patient_id
+            phone=fake.phone_number(),
+            postcode=fake.postcode(),
+            related_patient_id=related_patient_id,
             colour=EnumColours.blue if coin() else None,
         )
         session.add(patient)
         patient_id = patient.patient_id
-        dates = (
-            "DATES: "
-            + (
-                " ".join([dob.strftime(fmt) for fmt in DT_FORMATS])
-                + " ".join([ok_date.strftime(fmt) for fmt in DT_FORMATS])
-            )
-            + ". "
-        )
-        fname = "FORENAME: " + forename + ". "
-        sname = "SURNAME: " + surname + ". "
-        rname = "RELATIVE: " + prev_forename + " " + prev_surname + ". "
-        numbers = f"NUMBERS: {patient_id}, {patient_id + 1}, {nhsnum}. "
+
+        dob_format = fake.random.choices(DATE_FORMATS)[0]
+        dob_formatted = dob.strftime(dob_format)
+        # non-gendered for now
+        relation = fake.random.choices(
+            [
+                "child",
+                "parent",
+                "sibling",
+                "spouse",
+                "partner",
+                "carer",
+            ]
+        )[0]
+
         for n in range(notes_per_patient):
-            wstr = " ".join(words[p % nwords : (p + words_per_note) % nwords])
-            note = Note(
-                patient=patient,
-                note=fname + sname + rname + numbers + dates + wstr,
-                note_datetime=incdatetime(),
+            note_datetime = incdatetime()
+            note_datetime_format = fake.random.choices(DATE_FORMATS)[0]
+            note_datetime_formatted = note_datetime.strftime(
+                note_datetime_format
             )
+
+            another_date = fake.date_of_birth()
+            another_date_format = fake.random.choices(DATE_FORMATS)[0]
+            another_date_formatted = another_date.strftime(another_date_format)
+
+            other = fake.random.choices(
+                [
+                    "Start aspirin 75mg od. Remains on Lipitor 40mg nocte",
+                    "For haloperidol 2mg po prn max qds",
+                    "Start amoxicillin 500 mg b.i.d. for 7 days",
+                    f"{possessive_pronoun.capitalize()} CRP is 10",
+                    (
+                        f"{possessive_pronoun.capitalize()} "
+                        "previous CRP was <13 mg/dl"
+                    ),
+                    "Sodium 140",
+                    "TSH 3.5; urea normal",
+                    "Height 1.82m, weight 75kg, BMI 22.6. BP 135/82",
+                    "MMSE 28/30. ACE-R 72, ACE-II 73, ACE 73",
+                    "ESR 16 (H) mm/h",
+                    (
+                        "WBC 9.2; neutrophils 4.3; lymphocytes 2.6; "
+                        "eosinophils 0.4; monocytes 1.2; basophils 0.6"
+                    ),
+                    (
+                        f"{forename} took venlafaxine 375 M/R od, "
+                        "and is due to start clozapine 75mg bd"
+                    ),
+                ]
+            )[0]
+
+            units = fake.pyint(max_value=100)
+            alcohol = fake.random.choices(
+                [
+                    f"Alcohol {units} u/w",
+                    f"EtOH = {units} u/w",
+                    f"Alcohol (units/week): {units}",
+                    f"alcohol {units} I.U./week",
+                    f"Was previously drinking {units} u/w",
+                    "teetotal",
+                    "Alcohol: no",
+                    "Abstinant from alcohol",
+                    f"Alcohol: presently less than {units} u/w",
+                ]
+            )[0]
+            note_text = (
+                f"I saw {forename} {surname} on {note_datetime_formatted} "
+                f"(DOB: {dob_formatted}, NHS {nhsnum}, "
+                f"Patient id: {patient_id}), "
+                f"accompanied by {possessive_pronoun} {relation}"
+                f"{relation_name}. "
+                f"{alcohol}. "
+                f"Another date: {another_date_formatted}. "
+                f"{other}."
+            )
+            pad_words = words_per_note - len(note_text.split())
+            while pad_words > 2:
+                nb_words = min(15, pad_words)
+                sentence = us_fake.sentence(nb_words=nb_words)
+                note_text = f"{note_text} {sentence}"
+                pad_words -= len(sentence.split())
+
+            note = Note(
+                patient=patient, note=note_text, note_datetime=note_datetime
+            )
+            total_words += len(note_text.split())
             session.add(note)
+
         prev_forename = forename
         prev_surname = surname
 
-    # 5. Commit
+    # 4. Commit
 
     log.info("Committing...")
     session.commit()
     log.info("Done.")
 
-    # 6. Report size
+    # 5. Report size
 
     if engine.dialect.name == "mysql":
         log.info("Done. Database size:")
@@ -609,6 +593,8 @@ Bob took venlafaxine 375 M/R od, and is due to start clozapine 75mg bd.
                 "schema={}, table={}, rows={}, data_length={}, "
                 "index_length={}, size_MB={}".format(*r)
             )
+
+    log.info(f"Total words in all notes: {total_words}")
 
 
 if __name__ == "__main__":
