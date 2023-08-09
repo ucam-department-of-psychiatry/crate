@@ -145,7 +145,6 @@ def literal(value: Any) -> str:
     - Dates are NOT enclosed in quotes here.
     - DATETIME values are truncated to dates.
     """
-    value = "-5"
     if isinstance(value, str):
         value = value.replace("'", "''")
         return "'%s'" % value
