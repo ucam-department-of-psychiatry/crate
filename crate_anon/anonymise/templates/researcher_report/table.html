@@ -16,7 +16,7 @@
         <tr>
             <th>Column</th>
             <th>SQL type</th>
-            <th>PK</th>
+            <th>Keys</th>
             <th>Nullable</th>
             <th>Comment</th>
             <th>CRATE DD info</th>
@@ -26,12 +26,13 @@
         </tr>
         {% for c in columns %}
             <tr>
-                <td class="name_col{% if c.pk %} pk_name_col{% endif %}">
+                <td class="name_col{% if c.pk %} name_col_pk{% endif %}">
                     {{ c.name }}
                 </td>
                 <td>{{ c.sql_type }}</td>
-                <td {% if c.pk %} class="pk_pk_col" {% endif %}>
+                <td{% if c.pk %} class="key_col_pk"{% elif c.fk %} class="key_col_fk"{% endif %}>
                     {{ c.pk_str }}
+                    {{ c.fk_str }}
                 </td>
                 <td>{{ c.not_null_str }}</td>
                 <td>{{ c.comment }}</td>

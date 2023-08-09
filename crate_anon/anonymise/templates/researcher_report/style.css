@@ -23,7 +23,7 @@ body {
 table, tr, th, td {
     border: 1px solid black;
     border-collapse: collapse;
-    font-size: small;
+    font-size: smaller;
     padding: 2px;
     text-align: left;
     vertical-align: top;
@@ -39,14 +39,16 @@ tr:nth-child(odd) {
 .name_col {
     font-weight: bold;
 }
-.pk_name_col {
-    text-decoration: underline;
+.name_col_pk {
+    color: red;
 }
-.pk_pk_col {
+.key_col_pk {
+    color: red;
     font-weight: bold;
+}
+.key_col_fk {
 }
 
 .result {
-    /* color: red; */
     font-weight: bold;
 }

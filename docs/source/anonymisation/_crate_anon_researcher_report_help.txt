@@ -2,11 +2,14 @@ USAGE: crate_anon_researcher_report [-h] [--config CONFIG] [--count]
                                     [--nocount] [--url] [--nourl] [--values]
                                     [--novalues]
                                     [--max_distinct_values MAX_DISTINCT_VALUES]
+                                    [--max_value_length MAX_VALUE_LENGTH]
                                     [--verbose] [--debug_pdf]
                                     output
 
 Produce a researcher-oriented PDF report about a destination database. (CRATE
-version 0.20.0, 2023-02-14. Created by Rudolf Cardinal.)
+version 0.20.0, 2023-02-14. Created by Rudolf Cardinal.). Note: if wkhtmtopdf
+reports 'Too many open files', see https://stackoverflow.com/q/25355697;
+https://github.com/wkhtmltopdf/wkhtmltopdf/issues/3081.
 
 POSITIONAL ARGUMENTS:
   output                Output filename (PDF).
@@ -25,5 +28,8 @@ OPTIONS:
   --max_distinct_values MAX_DISTINCT_VALUES
                         Maximum number of distinct values to show, where
                         applicable. (default: 20)
+  --max_value_length MAX_VALUE_LENGTH
+                        Maximum string length to show for a literal value
+                        (default: 50)
   --verbose, -v         Be verbose (default: False)
   --debug_pdf           Debug PDF creation (default: False)

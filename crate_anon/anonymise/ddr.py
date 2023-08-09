@@ -90,6 +90,25 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
+# Constants for reporting
+# =============================================================================
+
+
+class DDRLabels:
+    BEING_SCRUBBED = "Scrubbed free text."
+    DEFINES_PRIMARY_PID = (
+        "PRINCIPAL PATIENT-DEFINING COLUMN IN THE WHOLE DATABASE."
+    )
+    MRID = "MRID."
+    NOTHING = "–"  # en dash
+    RID = "RID."
+    SOURCE_HASH = "Hash of source row to detect changes."
+    THIRD_PARTY_RID = "Third-party RID (e.g. relative)."
+    TRID = "TRID."
+    UNKNOWN = "?"
+
+
+# =============================================================================
 # Helper functions
 # =============================================================================
 
@@ -754,22 +773,20 @@ class DataDictionaryRow:
           destination RID.
         """
         items = []  # type: List[str]
-        if self.defines_primary_pids:
-            items.append(
-                "PRINCIPAL PATIENT-DEFINING COLUMN IN THE WHOLE DATABASE."
-            )
         if self.primary_pid:
-            items.append("Patient research ID (RID).")
+            items.append(DDRLabels.RID)
+        if self.defines_primary_pids:
+            items.append(DDRLabels.DEFINES_PRIMARY_PID)
         if self.master_pid:
-            items.append("Patient master research ID (MRID).")
+            items.append(DDRLabels.MRID)
         if self.third_party_pid:
-            items.append("Research ID (RID) of a third party (e.g. relative).")
+            items.append(DDRLabels.THIRD_PARTY_RID)
 
         if self.being_scrubbed:
-            items.append("Scrubbed; expected to contain free text.")
+            items.append(DDRLabels.BEING_SCRUBBED)
 
         if not items:
-            return "–"
+            return DDRLabels.NOTHING
         return " ".join(items)
 
     # -------------------------------------------------------------------------

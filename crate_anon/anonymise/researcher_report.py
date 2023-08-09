@@ -30,7 +30,7 @@ crate_anon/anonymise/researcher_report.py
 """
 
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import datetime
 import decimal
 import logging
@@ -51,11 +51,11 @@ import pendulum
 from rich_argparse import ArgumentDefaultsRichHelpFormatter
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql.expression import distinct, func, select, table
-from sqlalchemy.schema import Column, Table
+from sqlalchemy.schema import Column, ForeignKey, Table
 
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.constants import ANON_CONFIG_ENV_VAR
-from crate_anon.anonymise.ddr import DataDictionaryRow
+from crate_anon.anonymise.ddr import DataDictionaryRow, DDRLabels
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_PRETTY
 
 log = logging.getLogger(__name__)
@@ -66,6 +66,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 DEFAULT_MAX_DISTINCT_VALUES = 20
+DEFAULT_MAX_VALUE_LENGTH = 50
 
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 TEMPLATE_DIR = os.path.join(THIS_DIR, "templates", "researcher_report")
@@ -83,13 +84,16 @@ EN_DASH = "–"
 MINUS = "−"
 HYPHEN = "-"
 TICK = "✓"
+RIGHT_ARROW = "►"
+
+PAPER_MARGIN = "15mm"
 
 WKHTMLTOPDF_OPTIONS = {  # dict for pdfkit
     "page-size": "A4",
-    "margin-left": "20mm",
-    "margin-right": "20mm",
-    "margin-top": "20mm",  # from paper edge down to top of content?
-    "margin-bottom": "20mm",  # from paper edge up to bottom of content?
+    "margin-left": PAPER_MARGIN,
+    "margin-right": PAPER_MARGIN,
+    "margin-top": PAPER_MARGIN,  # from paper edge down to top of content?
+    "margin-bottom": PAPER_MARGIN,  # from paper edge up to bottom of content?
     "header-spacing": "3",  # mm, from content up to bottom of header
     "footer-spacing": "3",  # mm, from content down to top of footer
     # "--print-media-type": None  # https://stackoverflow.com/q/42005819
@@ -108,6 +112,7 @@ class ResearcherReportOptions:
     url: bool = True  # include a sanitised URL for the database
     values: bool = True  # include specimen values/ranges
     max_distinct_values: int = DEFAULT_MAX_DISTINCT_VALUES
+    max_value_length: int = DEFAULT_MAX_VALUE_LENGTH
 
 
 @dataclass
@@ -115,6 +120,7 @@ class ColumnInfo:
     name: str
     sql_type: str
     pk: bool = False
+    fk: list[ForeignKey] = field(default_factory=list)
     nullable: bool = True
     comment: str = ""  # database comment
     crate_annotation: str = "?"
@@ -128,6 +134,16 @@ class ColumnInfo:
     def pk_str(self) -> str:
         return "PK" if self.pk else ""
 
+    @property
+    def fk_str(self) -> str:
+        if self.fk:
+            fk_cols = [
+                f"{fk.column.table.name}.{fk.column.name}" for fk in self.fk
+            ]
+            return "FK to " + ", ".join(fk_cols)
+        else:
+            return ""
+
 
 def template(filename: str) -> str:
     """
@@ -136,9 +152,30 @@ def template(filename: str) -> str:
     return os.path.join(TEMPLATE_DIR, filename)
 
 
-def literal(value: Any) -> str:
+def mk_comment(column: Column, ddr: DataDictionaryRow = None) -> str:
+    """
+    Return a comment. For databases that don't support comments, we'll want
+    the CRATE DD one. For databases that do, we don't want duplication.
+    """
+    col_comment = column.comment or ""
+    dd_comment = (ddr.comment or "") if ddr else ""
+    if not col_comment and not dd_comment:
+        return EN_DASH
+    if dd_comment in col_comment:  # within, or equals
+        return col_comment
+    if col_comment in dd_comment:
+        return dd_comment
+    return f"[DB] {col_comment} [DD] {dd_comment}"
+
+
+def literal(
+    value: Any,
+    max_length: int = DEFAULT_MAX_VALUE_LENGTH,
+    truncated_suffix: str = "...",
+) -> str:
     """
     Returns a rough-and-ready SQL literal, intended for human viewing only.
+    Truncates long strings at a given length.
 
     - Some duplication from within
       cardinal_pythonlib.sqlalchemy.dump.get_literal_query.
@@ -146,6 +183,8 @@ def literal(value: Any) -> str:
     - DATETIME values are truncated to dates.
     """
     if isinstance(value, str):
+        if len(value) > max_length:
+            value = value[:max_length] + truncated_suffix
         value = value.replace("'", "''")
         return "'%s'" % value
     elif value is None:
@@ -164,10 +203,22 @@ def literal(value: Any) -> str:
     ):
         # All have an isoformat() method.
         return value.strftime(DATE_FORMAT)
+    elif isinstance(value, bytes):
+        return "<binary>"
+    elif isinstance(value, datetime.timedelta):
+        return str(value)
     else:
         raise NotImplementedError(
             "Don't know how to literal-quote value %r" % value
         )
+
+
+def sorter(x: Any) -> Tuple[bool, Any]:
+    """
+    Used for sorting values that may be None/NULL.
+    Remember that False < True.
+    """
+    return x is not None, x
 
 
 # =============================================================================
@@ -243,8 +294,12 @@ def get_values_summary(
         items.append(f"Min {literal(min_val)}; max {literal(max_val)}.")
     if do_distinct:
         dv_rows = session.execute(select([func.distinct(column)])).fetchall()
-        distinct_values = ", ".join(sorted(literal(row[0]) for row in dv_rows))
-        items.append(f"Distinct values: [{distinct_values}].")
+        # Sort before literal (so we get numeric, not string, sort):
+        distinct_values = sorted((row[0] for row in dv_rows), key=sorter)
+        distinct_value_str = ", ".join(
+            literal(v, options.max_value_length) for v in distinct_values
+        )
+        items.append(f"Distinct values: [{distinct_value_str}].")
 
     return " ".join(items)
 
@@ -267,6 +322,7 @@ def mk_table_html(
     Returns:
         HTML as a string.
     """
+    log.info(f"Processing table: {table_name}")
     dest_ddr_rows = config.dd.get_rows_for_dest_table(table_name)
     session = config.destdb.session
 
@@ -283,13 +339,22 @@ def mk_table_html(
     columns = []  # type: List[ColumnInfo]
     for c in sorted(t.c, key=lambda x: x.name):
         log.debug(repr(c))
+        colname = c.name
         try:
-            ddr = next(x for x in dest_ddr_rows if x.dest_field == c.name)
+            ddr = next(x for x in dest_ddr_rows if x.dest_field == colname)
             crate_annotation = ddr.report_dest_annotation()
         except StopIteration:
             ddr = None
-            crate_annotation = "?"
-            # todo: deal with TRID and other auto-added things too ***
+            if colname == config.trid_fieldname:
+                crate_annotation = DDRLabels.TRID
+            elif colname == config.master_research_id_fieldname:
+                crate_annotation = DDRLabels.MRID
+            elif colname == config.research_id_fieldname:
+                crate_annotation = DDRLabels.RID
+            elif colname == config.source_hash_fieldname:
+                crate_annotation = DDRLabels.SOURCE_HASH
+            else:
+                crate_annotation = DDRLabels.UNKNOWN
         values_info = get_values_summary(
             session=session,
             column=c,
@@ -298,11 +363,12 @@ def mk_table_html(
         )
         columns.append(
             ColumnInfo(
-                name=c.name,
+                name=colname,
                 sql_type=str(c.type),
                 pk=c.primary_key,
                 nullable=c.nullable,
-                comment=c.comment or EN_DASH,
+                fk=list(c.foreign_keys),
+                comment=mk_comment(c, ddr),
                 crate_annotation=crate_annotation,
                 values_info=values_info,
             )
@@ -449,8 +515,11 @@ def main() -> None:
     """
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        description=f"Produce a researcher-oriented PDF report about a "
-        f"destination database. ({CRATE_VERSION_PRETTY})",
+        description="Produce a researcher-oriented PDF report about a "
+        f"destination database. ({CRATE_VERSION_PRETTY}). Note: if wkhtmtopdf "
+        "reports 'Too many open files', see "
+        "https://stackoverflow.com/q/25355697; "
+        "https://github.com/wkhtmltopdf/wkhtmltopdf/issues/3081.",
         formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
 
@@ -509,6 +578,12 @@ def main() -> None:
         help="Maximum number of distinct values to show, where applicable.",
     )
     parser.add_argument(
+        "--max_value_length",
+        type=int,
+        default=DEFAULT_MAX_VALUE_LENGTH,
+        help="Maximum string length to show for a literal value",
+    )
+    parser.add_argument(
         "--verbose", "-v", action="store_true", help="Be verbose"
     )
     parser.add_argument(
@@ -522,6 +597,7 @@ def main() -> None:
         url=args.url,
         values=args.values,
         max_distinct_values=args.max_distinct_values,
+        max_value_length=args.max_value_length,
     )
 
     # -------------------------------------------------------------------------

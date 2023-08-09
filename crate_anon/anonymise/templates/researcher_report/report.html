@@ -16,16 +16,16 @@
             Database:
             <span class="result">{{ db_name }}</span>
         </p>
+        <p>
+            Report generated at:
+            <span class="result">{{ now }}</span>
+        </p>
         {% if url %}
             <p>
                 URL (sanitised):
                 <span class="result">{{ url }}</span>
             </p>
         {% endif %}
-        <p>
-            Report generated at:
-            <span class="result">{{ now }}</span>
-        </p>
         <p>
             Number of tables:
             <span class="result">{{ n_tables }}</span>
@@ -41,7 +41,17 @@
         </p>
         <ul class="info">
             <li>
-                DD: data dictionary.
+                CRATE (Clinical Records Anonymisation and Text Extraction):
+                software for creating research databases.
+                See <a href="https://www.pubmed.gov/28441940">https://www.pubmed.gov/28441940</a>
+                or <a href="https://crateanon.readthedocs.io/">https://crateanon.readthedocs.io/</a>.
+            </li>
+            <li>
+                DB: database.
+            </li>
+            <li>
+                DD: data dictionary, used by CRATE to build a de-identified
+                research database from source data.
             </li>
             <li>
                 FK: foreign key, a cross-reference to a PK in another table.
@@ -53,10 +63,10 @@
                 NOT NULL: a column that is not allowed to contain NULL values.
             </li>
             <li>
-                NULL: a missing (blank) value.
+                NULL: a missing or blank value.
             </li>
             <li>
-                PK: primary key, the main column (or sometimes columns)
+                PK: primary key, the main column, or sometimes columns,
                 defining and indexing a table.
             </li>
             <li>
@@ -68,7 +78,7 @@
             </li>
             <li>
                 TRID: transient patient research identifier; this can be useful
-                for fast cross-referencing (within SQL queries) but will change
+                for fast cross-referencing within SQL queries, but will change
                 when the database is rebuilt.
             </li>
             <li>
