@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>{{ title }}</title>
+        <style>{{ css|safe }}</style>
+        <script>
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+var pdf_info = {};  /* global; must use var, not let */
+
+// In general: wkhtmltopdf 0.12.5 seems to fail with "let".
+
+function setupPdfInfo() {
+    const kvp_list = document.location.search.substring(1).split('&');
+        // list of strings
+        // ... location.search.substring(1) is the part of the URL after the ?
+        // ... e.g. "prop1=val1,prop2=val2"
+    var key_value_pair;
+    var i;
+    for (i = 0; i < kvp_list.length; ++i) {
+        key_value_pair = kvp_list[i].split('=', 2);
+        pdf_info[key_value_pair[0]] = decodeURI(key_value_pair[1]);
+    }
+}
+
+function setPageNumbers() {
+    const page = pdf_info.page || 1;
+    const page_count = pdf_info.topage || 1;
+    document.getElementById('page_number').textContent = page;
+    document.getElementById('page_count').textContent = page_count;
+}
+
+function onload() {
+    setupPdfInfo();
+    setPageNumbers();
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        </script>
+    </head>
+    <body onload="onload()">
+        <div class="pdf_footer">
+            Page <span id="page_number"></span> of <span id="page_count"></span>
+        </div>
+    </body>
+</html>

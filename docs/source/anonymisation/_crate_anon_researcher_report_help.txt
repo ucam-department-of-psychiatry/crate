@@ -1,0 +1,29 @@
+USAGE: crate_anon_researcher_report [-h] [--config CONFIG] [--count]
+                                    [--nocount] [--url] [--nourl] [--values]
+                                    [--novalues]
+                                    [--max_distinct_values MAX_DISTINCT_VALUES]
+                                    [--verbose] [--debug_pdf]
+                                    output
+
+Produce a researcher-oriented PDF report about a destination database. (CRATE
+version 0.20.0, 2023-02-14. Created by Rudolf Cardinal.)
+
+POSITIONAL ARGUMENTS:
+  output                Output filename (PDF).
+
+OPTIONS:
+  -h, --help            show this help message and exit
+  --config CONFIG       Config file (overriding environment variable
+                        CRATE_ANON_CONFIG). (default: None)
+  --count               Include record (row) counts (default: True)
+  --nocount             Do not include record (row) counts (default: False)
+  --url                 Include (sanitised, password-safe) database URL
+                        (default: True)
+  --nourl               Do not include database URL (default: False)
+  --values              Include specimen values/ranges (default: True)
+  --novalues            Do not include specimen values/ranges (default: False)
+  --max_distinct_values MAX_DISTINCT_VALUES
+                        Maximum number of distinct values to show, where
+                        applicable. (default: 20)
+  --verbose, -v         Be verbose (default: False)
+  --debug_pdf           Debug PDF creation (default: False)

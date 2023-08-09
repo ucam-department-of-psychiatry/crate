@@ -742,6 +742,36 @@ class DataDictionaryRow:
             row.append(v)
         return row
 
+    def report_dest_annotation(self) -> str:
+        """
+        Returns information useful for a researcher looking at the destination
+        database, in simple string form.
+
+        - Therefore: does not include fields like "constant",
+          "addition_only", which are primarily for database managers; we're
+          trying to keep this terse.
+        - Relates to DESTINATION fields, e.g. a source PID becomes a
+          destination RID.
+        """
+        items = []  # type: List[str]
+        if self.defines_primary_pids:
+            items.append(
+                "PRINCIPAL PATIENT-DEFINING COLUMN IN THE WHOLE DATABASE."
+            )
+        if self.primary_pid:
+            items.append("Patient research ID (RID).")
+        if self.master_pid:
+            items.append("Patient master research ID (MRID).")
+        if self.third_party_pid:
+            items.append("Research ID (RID) of a third party (e.g. relative).")
+
+        if self.being_scrubbed:
+            items.append("Scrubbed; expected to contain free text.")
+
+        if not items:
+            return "–"
+        return " ".join(items)
+
     # -------------------------------------------------------------------------
     # Setting
     # -------------------------------------------------------------------------

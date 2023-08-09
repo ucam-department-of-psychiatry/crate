@@ -48,9 +48,15 @@ crate_anon/anonymise
     make_demo_database.py.rst
     models.py.rst
     patient.py.rst
+    researcher_report.py.rst
     scrub.py.rst
     show_counts.py.rst
     summarize_dd.py.rst
+    templates/researcher_report/pdf_footer.html.rst
+    templates/researcher_report/pdf_header.html.rst
+    templates/researcher_report/report.html.rst
+    templates/researcher_report/style.css.rst
+    templates/researcher_report/table.html.rst
     test_anonymisation.py.rst
     test_extract_text.py.rst
     tests/anonregex_tests.py.rst

@@ -1,0 +1,52 @@
+body {
+    border: none;
+    font-family: Arial, Helvetica, sans-serif;
+    margin: none;
+    padding: none;
+}
+
+.pdf_header, .pdf_footer {
+    color: #005EB8;  /* NHS Blue */
+    font-size: x-small;
+    text-align: right;
+}
+
+.database_table_section {
+    page-break-before: always;
+}
+
+.info {
+    color: #005EB8;  /* NHS Blue */
+    font-size: small;
+}
+
+table, tr, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+    font-size: small;
+    padding: 2px;
+    text-align: left;
+    vertical-align: top;
+}
+th {
+    color: white;
+    background: gray;
+}
+tr:nth-child(odd) {
+    background-color: #DDDDDD;  /* quite light grey */
+}
+
+.name_col {
+    font-weight: bold;
+}
+.pk_name_col {
+    text-decoration: underline;
+}
+.pk_pk_col {
+    font-weight: bold;
+}
+
+.result {
+    /* color: red; */
+    font-weight: bold;
+}
