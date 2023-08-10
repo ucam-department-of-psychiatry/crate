@@ -102,13 +102,15 @@ class Default:
     Default values.
     """
 
+    BASE_FONT_SIZE = "11pt"
     HEADER_FOOTER_SPACING_MM = 3
     # ... always in mm; https://wkhtmltopdf.org/usage/wkhtmltopdf.txt
     MAX_DISTINCT_VALUES = 20
     MAX_VALUE_LENGTH = 50
     ORIENTATION = "landscape"
     PAGE_SIZE = "A4"
-    PAPER_MARGIN = "15mm"
+    MARGIN_LEFT_RIGHT = "15mm"
+    MARGIN_TOP_BOTTOM = "18mm"  # see HEADER_FOOTER_SPACING_MM
 
 
 EN_DASH = "–"
@@ -128,14 +130,16 @@ class ResearcherReportConfig:
     anonconfig: Config
     output_filename: str
 
+    base_font_size: str = Default.BASE_FONT_SIZE
     db_name: str = None  # overrides that in config
     db_url: str = None  # overrides that in config
     debug_pdf: bool = False
     max_distinct_values: int = Default.MAX_DISTINCT_VALUES
     max_value_length: int = Default.MAX_VALUE_LENGTH
     header_footer_spacing_mm: int = Default.HEADER_FOOTER_SPACING_MM
+    margin_left_right: str = Default.MARGIN_LEFT_RIGHT
+    margin_top_bottom: str = Default.MARGIN_TOP_BOTTOM
     page_size: str = Default.PAGE_SIZE
-    paper_margin: str = Default.PAPER_MARGIN
     orientation: str = Default.ORIENTATION
     show_counts: bool = True  # count records in each table?
     show_url: bool = True  # include a sanitised URL for the database
@@ -193,10 +197,10 @@ class ResearcherReportConfig:
         """
         return {  # dict for pdfkit
             "page-size": self.page_size,
-            "margin-left": self.paper_margin,
-            "margin-right": self.paper_margin,
-            "margin-top": self.paper_margin,
-            "margin-bottom": self.paper_margin,
+            "margin-left": self.margin_left_right,
+            "margin-right": self.margin_left_right,
+            "margin-top": self.margin_top_bottom,
+            "margin-bottom": self.margin_top_bottom,
             "header-spacing": str(self.header_footer_spacing_mm),
             "footer-spacing": str(self.header_footer_spacing_mm),
             # "--print-media-type": None
@@ -510,7 +514,10 @@ def mk_researcher_report_html(
     db_name = reportcfg.get_db_name()
     now = format_datetime(get_now_localtz_pendulum(), DateFormat.PRETTY)
     title = f"{db_name}: CRATE researcher report, {now}"
-    css = render_to_string(template(Templates.STYLE))
+    css = render_to_string(
+        template(Templates.STYLE),
+        dict(base_font_size=reportcfg.base_font_size),
+    )
     coredict = dict(title=title, css=css, now=now)
 
     # -------------------------------------------------------------------------
@@ -602,25 +609,25 @@ setting e.g. "ulimit -n 2048" is one solution.
         formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
     )
 
-    parser.add_argument("output", help="Output filename (PDF).")
+    parser.add_argument("output", help="PDF output filename")
 
     grp_db = parser.add_argument_group("DATABASE")
     grp_db.add_argument(
         "--config",
-        help=f"Config file (overriding environment variable "
-        f"{ANON_CONFIG_ENV_VAR})",
+        help=f"Config file, overriding environment variable "
+        f"{ANON_CONFIG_ENV_VAR}",
     )
     grp_db.add_argument(
         "--db_url",
         type=str,
         default=None,
-        help="Database URL (overriding that in the config file)",
+        help="Database URL, overriding that in the config file",
     )
     grp_db.add_argument(
         "--db_name",
         type=str,
         default=None,
-        help="Database name (overriding that in the config file); must be "
+        help="Database name, overriding that in the config file; must be "
         "specified if you use --db_url",
     )
 
@@ -630,7 +637,7 @@ setting e.g. "ulimit -n 2048" is one solution.
         dest="show_url",
         action="store_true",
         default=False,
-        help="Include (sanitised, password-safe) database URL",
+        help="Include sanitised, password-safe version of database URL",
     )
     grp_detail.add_argument(
         "--no_show_url",
@@ -644,14 +651,14 @@ setting e.g. "ulimit -n 2048" is one solution.
         dest="show_counts",
         action="store_true",
         default=True,
-        help="Include record (row) counts",
+        help="Include row counts for each table",
     )
     grp_detail.add_argument(
         "--no_show_counts",
         dest="show_counts",
         action="store_false",
         default=False,
-        help="Do not include record (row) counts",
+        help="Do not include row counts",
     )
     grp_detail.add_argument(
         "--show_values",
@@ -684,13 +691,18 @@ setting e.g. "ulimit -n 2048" is one solution.
     grp_visuals.add_argument(
         "--page_size",
         default=Default.PAGE_SIZE,
-        help="Page size (paper type)",
+        help="Page size, i.e. paper type",
     )
     grp_visuals.add_argument(
-        "--margin",
-        default=Default.PAPER_MARGIN,
-        help="Margins for page (with units): "
-        "for content, ignoring header/footer",
+        "--margin_left_right",
+        default=Default.MARGIN_LEFT_RIGHT,
+        help="Page left/right margins, with units",
+    )
+    grp_visuals.add_argument(
+        "--margin_top_bottom",
+        default=Default.MARGIN_TOP_BOTTOM,
+        help="Page top/bottom margins for content, ignoring header/footer "
+        "(see --header_footer_spacing_mm), with units",
     )
     grp_visuals.add_argument(
         "--header_footer_spacing_mm",
@@ -703,6 +715,11 @@ setting e.g. "ulimit -n 2048" is one solution.
         choices=["portrait", "landscape"],
         default=Default.ORIENTATION,
         help="Page orientation",
+    )
+    grp_visuals.add_argument(
+        "--base_font_size",
+        default=Default.BASE_FONT_SIZE,
+        help="Base font size, with units",
     )
 
     grp_progress = parser.add_argument_group("PROGRESS")
@@ -732,16 +749,18 @@ setting e.g. "ulimit -n 2048" is one solution.
 
     reportcfg = ResearcherReportConfig(
         anonconfig=config,
+        base_font_size=args.base_font_size,
         db_name=args.db_name,
         db_url=args.db_url,
         debug_pdf=args.debug_pdf,
         header_footer_spacing_mm=args.header_footer_spacing_mm,
+        margin_left_right=args.margin_left_right,
+        margin_top_bottom=args.margin_top_bottom,
         max_distinct_values=args.max_distinct_values,
         max_value_length=args.max_value_length,
         orientation=args.orientation,
         output_filename=args.output,
         page_size=args.page_size,
-        paper_margin=args.margin,
         show_counts=args.show_counts,
         show_url=args.show_url,
         show_values=args.show_values,

@@ -25,10 +25,11 @@ function setupPdfInfo() {
 }
 
 function setPageNumbers() {
-    const page = pdf_info.page || 1;
-    const page_count = pdf_info.topage || 1;
-    document.getElementById('page_number').textContent = page;
-    document.getElementById('page_count').textContent = page_count;
+    // For possibilities, see: wkhtmltopdf --extended-help
+    // "section" corresponds to <h1>; "subsection" to <h2>.
+    document.getElementById('page_number').textContent = pdf_info.page || "?";
+    document.getElementById('page_count').textContent = pdf_info.topage || "?";
+    document.getElementById('section').textContent = pdf_info.subsection || "";
 }
 
 function onload() {
@@ -40,7 +41,10 @@ function onload() {
         </script>
     </head>
     <body onload="onload()">
-        <div class="pdf_footer">
+        <div class="pdf_footer left">
+            <span id="section"></span>
+        </div>
+        <div class="pdf_footer right">
             Page <span id="page_number"></span> of <span id="page_count"></span>
         </div>
     </body>

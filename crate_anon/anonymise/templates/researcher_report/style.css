@@ -1,6 +1,12 @@
 body {
     border: none;
     font-family: Arial, Helvetica, sans-serif;
+    font-size: {{ base_font_size }};
+    /*
+        NB wkhtmltopdf seems to cope with relative sizes like "smaller" but
+        less so with absolute ones like "small" or "x-small", even when the
+        content is within <body>.
+     */
     margin: none;
     padding: none;
 }
@@ -8,6 +14,11 @@ body {
 .pdf_header, .pdf_footer {
     color: #005EB8;  /* NHS Blue */
     font-size: x-small;
+}
+.left {
+    text-align: left;
+}
+.right {
     text-align: right;
 }
 
@@ -17,7 +28,7 @@ body {
 
 .info {
     color: #005EB8;  /* NHS Blue */
-    font-size: small;
+    font-size: smaller;
 }
 
 table, tr, th, td {

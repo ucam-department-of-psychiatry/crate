@@ -5,9 +5,12 @@ USAGE: crate_anon_researcher_report [-h] [--config CONFIG] [--db_url DB_URL]
                                     [--no_show_values]
                                     [--max_distinct_values MAX_DISTINCT_VALUES]
                                     [--max_value_length MAX_VALUE_LENGTH]
-                                    [--page_size PAGE_SIZE] [--margin MARGIN]
+                                    [--page_size PAGE_SIZE]
+                                    [--margin_left_right MARGIN_LEFT_RIGHT]
+                                    [--margin_top_bottom MARGIN_TOP_BOTTOM]
                                     [--header_footer_spacing_mm HEADER_FOOTER_SPACING_MM]
                                     [--orientation {portrait,landscape}]
+                                    [--base_font_size BASE_FONT_SIZE]
                                     [--verbose] [--debug_pdf]
                                     output
 
@@ -20,25 +23,25 @@ Note: if wkhtmtopdf reports 'Too many open files', see
 setting e.g. "ulimit -n 2048" is one solution.
 
 POSITIONAL ARGUMENTS:
-  output                Output filename (PDF).
+  output                PDF output filename
 
 OPTIONS:
   -h, --help            show this help message and exit
 
 DATABASE:
-  --config CONFIG       Config file (overriding environment variable
-                        CRATE_ANON_CONFIG) (default: None)
-  --db_url DB_URL       Database URL (overriding that in the config file)
+  --config CONFIG       Config file, overriding environment variable
+                        CRATE_ANON_CONFIG (default: None)
+  --db_url DB_URL       Database URL, overriding that in the config file
                         (default: None)
-  --db_name DB_NAME     Database name (overriding that in the config file);
+  --db_name DB_NAME     Database name, overriding that in the config file;
                         must be specified if you use --db_url (default: None)
 
 DETAIL:
-  --show_url            Include (sanitised, password-safe) database URL
-                        (default: False)
+  --show_url            Include sanitised, password-safe version of database
+                        URL (default: False)
   --no_show_url         Do not include database URL (default: True)
-  --show_counts         Include record (row) counts (default: True)
-  --no_show_counts      Do not include record (row) counts (default: False)
+  --show_counts         Include row counts for each table (default: True)
+  --no_show_counts      Do not include row counts (default: False)
   --show_values         Include specimen values/ranges (default: True)
   --no_show_values      Do not include specimen values/ranges (default: False)
   --max_distinct_values MAX_DISTINCT_VALUES
@@ -50,14 +53,20 @@ DETAIL:
 
 VISUALS:
   --page_size PAGE_SIZE
-                        Page size (paper type) (default: A4)
-  --margin MARGIN       Margins for page (with units): for content, ignoring
-                        header/footer (default: 15mm)
+                        Page size, i.e. paper type (default: A4)
+  --margin_left_right MARGIN_LEFT_RIGHT
+                        Page left/right margins, with units (default: 15mm)
+  --margin_top_bottom MARGIN_TOP_BOTTOM
+                        Page top/bottom margins for content, ignoring
+                        header/footer (see --header_footer_spacing_mm), with
+                        units (default: 18mm)
   --header_footer_spacing_mm HEADER_FOOTER_SPACING_MM
                         Gap between content and header/footer, in mm (default:
                         3)
   --orientation {portrait,landscape}
                         Page orientation (default: landscape)
+  --base_font_size BASE_FONT_SIZE
+                        Base font size, with units (default: 11pt)
 
 PROGRESS:
   --verbose, -v         Be verbose (default: False)
