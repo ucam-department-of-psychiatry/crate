@@ -405,7 +405,8 @@ def get_values_summary(
         distinct_value_str = ", ".join(
             literal(v, reportcfg.max_value_length) for v in distinct_values
         )
-        items.append(f"Distinct values: [{distinct_value_str}].")
+        items.append(f"Distinct values: {{{distinct_value_str}}}.")
+        # It's a set, so use set notation.
 
     return " ".join(items)
 

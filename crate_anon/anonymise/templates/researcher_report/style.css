@@ -6,7 +6,7 @@ body {
         NB wkhtmltopdf seems to cope with relative sizes like "smaller" but
         less so with absolute ones like "small" or "x-small", even when the
         content is within <body>.
-     */
+    */
     margin: none;
     padding: none;
 }
@@ -46,6 +46,45 @@ th {
 tr:nth-child(odd) {
     background-color: #DDDDDD;  /* quite light grey */
 }
+
+/* Not respected: see https://stackoverflow.com/questions/274149/ */
+/*
+thead {
+    display: table-header-group;
+}
+tfoot {
+    display: table-footer-group;
+}
+*/
+
+/* Worse than auto mode: */
+/*
+.database_table {
+    table-layout: fixed;
+    width: 100%;
+}
+.col_colname {
+    width: 10%;
+}
+.col_sqltype {
+    width: 7%;
+}
+.col_keys {
+    width: 5%;
+}
+.col_nullable {
+    width: 5%;
+}
+.col_comment {
+    width: 35%;
+}
+.col_ddinfo {
+    width: 5%;
+}
+.col_values {
+    width: 33%;
+}
+*/
 
 .name_col {
     font-weight: bold;

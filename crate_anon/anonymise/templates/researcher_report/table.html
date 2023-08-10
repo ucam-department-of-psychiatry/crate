@@ -12,14 +12,23 @@
             <span class="result">{{ n_records }}</span>
         </p>
     {% endif %}
-    <table>
+    <table class="database_table">
+        <colgroup>
+            <col class="col_colname">
+            <col class="col_sqltype">
+            <col class="col_keys">
+            <col class="col_nullable">
+            <col class="col_comment">
+            <col class="col_ddinfo">
+            <col class="col_values">
+        </colgroup>
         <tr>
             <th>Column</th>
             <th>SQL type</th>
             <th>Keys</th>
             <th>Nullable</th>
             <th>Comment</th>
-            <th>CRATE DD info</th>
+            <th>DD info</th>
             {% if show_values %}
                 <th>Values</th>
             {% endif %}
