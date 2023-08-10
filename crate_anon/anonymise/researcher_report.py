@@ -233,7 +233,7 @@ class ColumnInfo:
     name: str
     sql_type: str
     pk: bool = False
-    fk: list[ForeignKey] = field(default_factory=list)
+    fk: List[ForeignKey] = field(default_factory=list)
     nullable: bool = True
     comment: str = ""  # database comment
     crate_annotation: str = "?"
