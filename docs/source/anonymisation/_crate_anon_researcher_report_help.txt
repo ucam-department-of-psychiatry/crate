@@ -1,7 +1,8 @@
 USAGE: crate_anon_researcher_report [-h] [--config CONFIG] [--db_url DB_URL]
                                     [--db_name DB_NAME] [--show_url]
                                     [--no_show_url] [--show_counts]
-                                    [--no_show_counts] [--show_values]
+                                    [--no_show_counts] [--use_dd]
+                                    [--no_use_dd] [--show_values]
                                     [--no_show_values]
                                     [--max_distinct_values MAX_DISTINCT_VALUES]
                                     [--max_value_length MAX_VALUE_LENGTH]
@@ -42,6 +43,13 @@ DETAIL:
   --no_show_url         Do not include database URL (default: True)
   --show_counts         Include row counts for each table (default: True)
   --no_show_counts      Do not include row counts (default: False)
+  --use_dd              Use information obtainable from the CRATE data
+                        dictionary (DD), including comments, annotations, and
+                        value suppression for potentially sensitive fields;
+                        only sensible for reporting on a database completely
+                        unrelated to the DD (default: True)
+  --no_use_dd           Do not use information from the CRATE data dictionary
+                        (default: False)
   --show_values         Include specimen values/ranges (default: True)
   --no_show_values      Do not include specimen values/ranges (default: False)
   --max_distinct_values MAX_DISTINCT_VALUES

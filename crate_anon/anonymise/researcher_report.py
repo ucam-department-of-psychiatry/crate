@@ -144,6 +144,7 @@ class ResearcherReportConfig:
     show_counts: bool = True  # count records in each table?
     show_url: bool = True  # include a sanitised URL for the database
     show_values: bool = True  # include specimen values/ranges
+    use_dd: bool = True  # include info from the data dictionary
 
     def __post_init__(self) -> None:
         # Set up lookups.
@@ -156,10 +157,12 @@ class ResearcherReportConfig:
         }
 
         # Set up DD
-        anonconfig.load_dd(check_against_source_db=False)
+        if self.use_dd:
+            anonconfig.load_dd(check_against_source_db=False)
 
         # Set up database
         if self.db_url:
+            # Use a custom database
             if not self.db_name:
                 raise ValueError(
                     "Should specify database name if passing a custom URL"
@@ -269,12 +272,19 @@ def template(filename: str) -> str:
     return os.path.join(TEMPLATE_DIR, filename)
 
 
-def mk_comment(column: Column, ddr: DataDictionaryRow = None) -> str:
+def mk_comment(
+    reportcfg: ResearcherReportConfig,
+    column: Column,
+    ddr: DataDictionaryRow = None,
+) -> str:
     """
-    Return a comment. For databases that don't support comments, we'll want
-    the CRATE DD one. For databases that do, we don't want duplication.
+    Return a comment. For databases that don't support comments, we'll want the
+    CRATE DD one (unless that's been disabled). For databases that do, we don't
+    want duplication.
     """
     col_comment = column.comment or ""
+    if not reportcfg.use_dd:
+        return col_comment or EN_DASH
     dd_comment = (ddr.comment or "") if ddr else ""
     if not col_comment and not dd_comment:
         return EN_DASH
@@ -439,17 +449,21 @@ def mk_table_html(table_name: str, reportcfg: ResearcherReportConfig) -> str:
     t = reportcfg.db.metadata.tables[table_name]  # type: Table
     table_comment = t.comment or ""  # may be blank
     columns = []  # type: List[ColumnInfo]
-    for c in sorted(t.c, key=lambda x: x.name):
+    for c in sorted(t.c, key=lambda x: x.name):  # type: Column
         log.debug(repr(c))
         colname = c.name
-        try:
-            ddr = next(x for x in dest_ddr_rows if x.dest_field == colname)
-            crate_annotation = ddr.report_dest_annotation()
-        except StopIteration:
+        if reportcfg.use_dd:
+            try:
+                ddr = next(x for x in dest_ddr_rows if x.dest_field == colname)
+                crate_annotation = ddr.report_dest_annotation()
+            except StopIteration:
+                ddr = None
+                crate_annotation = reportcfg.get_annotation_when_no_ddr_found(
+                    col_name=colname
+                )
+        else:
             ddr = None
-            crate_annotation = reportcfg.get_annotation_when_no_ddr_found(
-                col_name=colname
-            )
+            crate_annotation = ""
         values_info = get_values_summary(
             column=c,
             reportcfg=reportcfg,
@@ -462,7 +476,7 @@ def mk_table_html(table_name: str, reportcfg: ResearcherReportConfig) -> str:
                 pk=c.primary_key,
                 nullable=c.nullable,
                 fk=list(c.foreign_keys),
-                comment=mk_comment(c, ddr),
+                comment=mk_comment(reportcfg, c, ddr),
                 crate_annotation=crate_annotation,
                 values_info=values_info,
             )
@@ -477,6 +491,7 @@ def mk_table_html(table_name: str, reportcfg: ResearcherReportConfig) -> str:
             show_values=reportcfg.show_values,
             table_comment=table_comment,
             table_name=table_name,
+            use_dd=reportcfg.use_dd,
         ),
     )
 
@@ -662,6 +677,23 @@ setting e.g. "ulimit -n 2048" is one solution.
         help="Do not include row counts",
     )
     grp_detail.add_argument(
+        "--use_dd",
+        dest="use_dd",
+        action="store_true",
+        default=True,
+        help="Use information obtainable from the CRATE data dictionary (DD), "
+        "including comments, annotations, and value suppression for "
+        "potentially sensitive fields; only sensible for reporting on a "
+        "database completely unrelated to the DD",
+    )
+    grp_detail.add_argument(
+        "--no_use_dd",
+        dest="use_dd",
+        action="store_false",
+        default=False,
+        help="Do not use information from the CRATE data dictionary",
+    )
+    grp_detail.add_argument(
         "--show_values",
         dest="show_values",
         action="store_true",
@@ -765,6 +797,7 @@ setting e.g. "ulimit -n 2048" is one solution.
         show_counts=args.show_counts,
         show_url=args.show_url,
         show_values=args.show_values,
+        use_dd=args.use_dd,
     )
 
     mk_researcher_report_pdf(reportcfg)

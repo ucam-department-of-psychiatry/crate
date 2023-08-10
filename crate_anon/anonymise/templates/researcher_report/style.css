@@ -47,43 +47,24 @@ tr:nth-child(odd) {
     background-color: #DDDDDD;  /* quite light grey */
 }
 
-/* Not respected: see https://stackoverflow.com/questions/274149/ */
 /*
-thead {
-    display: table-header-group;
-}
-tfoot {
-    display: table-footer-group;
-}
-*/
+    Table header repetition on subsequent pages (see
+    https://stackoverflow.com/questions/274149/) is not respected:
 
-/* Worse than auto mode: */
-/*
-.database_table {
-    table-layout: fixed;
-    width: 100%;
-}
-.col_colname {
-    width: 10%;
-}
-.col_sqltype {
-    width: 7%;
-}
-.col_keys {
-    width: 5%;
-}
-.col_nullable {
-    width: 5%;
-}
-.col_comment {
-    width: 35%;
-}
-.col_ddinfo {
-    width: 5%;
-}
-.col_values {
-    width: 33%;
-}
+thead { display: table-header-group; }
+tfoot { display: table-footer-group; }
+
+    Fixed layout is worse than auto mode. Also, as the user can turn columns
+    on/off, a fixed layout becomes impractical.
+
+.database_table { table-layout: fixed; width: 100%; }
+.col_colname { width: 10%; }
+.col_sqltype { width: 7%; }
+.col_keys { width: 5%; }
+.col_nullable { width: 5%; }
+.col_comment { width: 35%; }
+.col_ddinfo { width: 5%; }
+.col_values { width: 33%; }
 */
 
 .name_col {

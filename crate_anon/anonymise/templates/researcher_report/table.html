@@ -19,7 +19,7 @@
             <col class="col_keys">
             <col class="col_nullable">
             <col class="col_comment">
-            <col class="col_ddinfo">
+            {% if use_dd %}<col class="col_ddinfo">{% endif %}
             <col class="col_values">
         </colgroup>
         <tr>
@@ -28,10 +28,8 @@
             <th>Keys</th>
             <th>Nullable</th>
             <th>Comment</th>
-            <th>DD info</th>
-            {% if show_values %}
-                <th>Values</th>
-            {% endif %}
+            {% if use_dd %}<th>DD info</th>{% endif %}
+            {% if show_values %}<th>Values</th>{% endif %}
         </tr>
         {% for c in columns %}
             <tr>
@@ -40,15 +38,13 @@
                 </td>
                 <td>{{ c.sql_type }}</td>
                 <td{% if c.pk %} class="key_col_pk"{% elif c.fk %} class="key_col_fk"{% endif %}>
-                    {{ c.pk_str }}
+                    {{ c.pk_str }}{% if c.pk_str and c.fk_str %};{% endif %}
                     {{ c.fk_str }}
                 </td>
                 <td>{{ c.nullable_str }}</td>
                 <td>{{ c.comment }}</td>
-                <td>{{ c.crate_annotation }}</td>
-                {% if show_values %}
-                    <td>{{ c.values_info }}</td>
-                {% endif %}
+                {% if use_dd %}<td>{{ c.crate_annotation }}</td>{% endif %}
+                {% if show_values %}<td>{{ c.values_info }}</td>{% endif %}
             </tr>
         {% endfor %}
     </table>
