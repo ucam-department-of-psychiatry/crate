@@ -69,7 +69,7 @@ def draft_dd(
     systmone_alter_loaded_rows: bool = False,
 ) -> None:
     """
-    Draft a data dictionary.
+    Draft a data dictionary, by scanning a source database.
 
     Args:
         config:
@@ -156,8 +156,8 @@ def main() -> None:
     """
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        description=f"Draft a data dictionary for the anonymiser. "
-        f"({CRATE_VERSION_PRETTY})",
+        description=f"Draft a data dictionary for the anonymiser, by scanning "
+        f"a source database. ({CRATE_VERSION_PRETTY})",
         formatter_class=ArgumentDefaultsRichHelpFormatter,
     )
 
