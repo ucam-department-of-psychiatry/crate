@@ -1,0 +1,64 @@
+USAGE: crate_anon_researcher_report [-h] [--config CONFIG] [--db_url DB_URL]
+                                    [--db_name DB_NAME] [--show_url]
+                                    [--no_show_url] [--show_counts]
+                                    [--no_show_counts] [--show_values]
+                                    [--no_show_values]
+                                    [--max_distinct_values MAX_DISTINCT_VALUES]
+                                    [--max_value_length MAX_VALUE_LENGTH]
+                                    [--page_size PAGE_SIZE] [--margin MARGIN]
+                                    [--header_footer_spacing_mm HEADER_FOOTER_SPACING_MM]
+                                    [--orientation {portrait,landscape}]
+                                    [--verbose] [--debug_pdf]
+                                    output
+
+Produce a researcher-oriented PDF report about a destination database.
+(CRATE version 0.20.1, 2023-02-14. Created by Rudolf Cardinal.)
+
+Note: if wkhtmtopdf reports 'Too many open files', see
+- https://stackoverflow.com/q/25355697;
+- https://github.com/wkhtmltopdf/wkhtmltopdf/issues/3081;
+setting e.g. "ulimit -n 2048" is one solution.
+
+POSITIONAL ARGUMENTS:
+  output                Output filename (PDF).
+
+OPTIONS:
+  -h, --help            show this help message and exit
+
+DATABASE:
+  --config CONFIG       Config file (overriding environment variable
+                        CRATE_ANON_CONFIG) (default: None)
+  --db_url DB_URL       Database URL (overriding that in the config file)
+                        (default: None)
+  --db_name DB_NAME     Database name (overriding that in the config file);
+                        must be specified if you use --db_url (default: None)
+
+DETAIL:
+  --show_url            Include (sanitised, password-safe) database URL
+                        (default: False)
+  --no_show_url         Do not include database URL (default: True)
+  --show_counts         Include record (row) counts (default: True)
+  --no_show_counts      Do not include record (row) counts (default: False)
+  --show_values         Include specimen values/ranges (default: True)
+  --no_show_values      Do not include specimen values/ranges (default: False)
+  --max_distinct_values MAX_DISTINCT_VALUES
+                        Maximum number of distinct values to show, where
+                        applicable (default: 20)
+  --max_value_length MAX_VALUE_LENGTH
+                        Maximum string length to show for a literal value
+                        (default: 50)
+
+VISUALS:
+  --page_size PAGE_SIZE
+                        Page size (paper type) (default: A4)
+  --margin MARGIN       Margins for page (with units): for content, ignoring
+                        header/footer (default: 15mm)
+  --header_footer_spacing_mm HEADER_FOOTER_SPACING_MM
+                        Gap between content and header/footer, in mm (default:
+                        3)
+  --orientation {portrait,landscape}
+                        Page orientation (default: landscape)
+
+PROGRESS:
+  --verbose, -v         Be verbose (default: False)
+  --debug_pdf           Debug PDF creation (default: False)

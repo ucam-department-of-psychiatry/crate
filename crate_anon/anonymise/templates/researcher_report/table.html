@@ -1,0 +1,46 @@
+<div class="database_table_section">
+    <h2>{{ table_name }}</h2>
+    {% if table_comment %}
+        <p>
+            Comment:
+            <span class="result">{{ table_comment }}</span>
+        </p>
+    {% endif %}
+    {% if show_counts %}
+        <p>
+            Number of records (rows) in this table:
+            <span class="result">{{ n_records }}</span>
+        </p>
+    {% endif %}
+    <table>
+        <tr>
+            <th>Column</th>
+            <th>SQL type</th>
+            <th>Keys</th>
+            <th>Nullable</th>
+            <th>Comment</th>
+            <th>CRATE DD info</th>
+            {% if show_values %}
+                <th>Values</th>
+            {% endif %}
+        </tr>
+        {% for c in columns %}
+            <tr>
+                <td class="name_col{% if c.pk %} name_col_pk{% endif %}">
+                    {{ c.name }}
+                </td>
+                <td>{{ c.sql_type }}</td>
+                <td{% if c.pk %} class="key_col_pk"{% elif c.fk %} class="key_col_fk"{% endif %}>
+                    {{ c.pk_str }}
+                    {{ c.fk_str }}
+                </td>
+                <td>{{ c.nullable_str }}</td>
+                <td>{{ c.comment }}</td>
+                <td>{{ c.crate_annotation }}</td>
+                {% if show_values %}
+                    <td>{{ c.values_info }}</td>
+                {% endif %}
+            </tr>
+        {% endfor %}
+    </table>
+</div>

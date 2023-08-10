@@ -164,6 +164,7 @@ class CrateCommand:
     ANON_CHECK_TEXT_EXTRACTOR = "crate_anon_check_text_extractor"
     ANON_DEMO_CONFIG = "crate_anon_demo_config"
     ANON_DRAFT_DD = "crate_anon_draft_dd"
+    ANON_RESEARCHER_REPORT = "crate_anon_researcher_report"
     ANON_SHOW_COUNTS = "crate_anon_show_counts"
     ANON_SUMMARIZE_DD = "crate_anon_summarize_dd"
     ANONYMISE = "crate_anonymise"

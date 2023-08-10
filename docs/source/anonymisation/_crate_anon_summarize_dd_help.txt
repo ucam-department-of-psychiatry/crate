@@ -1,8 +1,9 @@
 USAGE: crate_anon_summarize_dd [-h] [--config CONFIG] [--verbose]
                                [--output OUTPUT]
 
-Draft a data dictionary for the anonymiser. (CRATE version 0.20.1, 2023-02-14.
-Created by Rudolf Cardinal.)
+Summarize a data dictionary for the anonymiser. The resulting
+spreadsheet-style report has one row per source table. (CRATE version 0.20.1,
+2023-02-14. Created by Rudolf Cardinal.)
 
 OPTIONS:
   -h, --help       show this help message and exit

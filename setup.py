@@ -239,6 +239,7 @@ setup(
             f"{CrateCommand.ANON_CHECK_TEXT_EXTRACTOR}=crate_anon.anonymise.check_text_extractor:main",  # noqa: E501
             f"{CrateCommand.ANON_DEMO_CONFIG}=crate_anon.anonymise.demo_config:main",  # noqa: E501
             f"{CrateCommand.ANON_DRAFT_DD}=crate_anon.anonymise.draft_dd:main",
+            f"{CrateCommand.ANON_RESEARCHER_REPORT}=crate_anon.anonymise.researcher_report:main",  # noqa: E501
             f"{CrateCommand.ANON_SHOW_COUNTS}=crate_anon.anonymise.show_counts:main",  # noqa: E501
             f"{CrateCommand.ANON_SUMMARIZE_DD}=crate_anon.anonymise.summarize_dd:main",  # noqa: E501
             f"{CrateCommand.ANONYMISE}=crate_anon.anonymise.anonymise_cli:main",  # noqa: E501

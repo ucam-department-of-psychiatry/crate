@@ -90,6 +90,25 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
+# Constants for reporting
+# =============================================================================
+
+
+class DDRLabels:
+    BEING_SCRUBBED = "Scrubbed free text."
+    DEFINES_PRIMARY_PID = (
+        "PRINCIPAL PATIENT-DEFINING COLUMN IN THE WHOLE DATABASE."
+    )
+    MRID = "MRID."
+    NOTHING = "–"  # en dash
+    RID = "RID."
+    SOURCE_HASH = "Hash of source row to detect changes."
+    THIRD_PARTY_RID = "Third-party RID (e.g. relative)."
+    TRID = "TRID."
+    UNKNOWN = "?"
+
+
+# =============================================================================
 # Helper functions
 # =============================================================================
 
@@ -741,6 +760,34 @@ class DataDictionaryRow:
                 v = str(v)
             row.append(v)
         return row
+
+    def report_dest_annotation(self) -> str:
+        """
+        Returns information useful for a researcher looking at the destination
+        database, in simple string form.
+
+        - Therefore: does not include fields like "constant",
+          "addition_only", which are primarily for database managers; we're
+          trying to keep this terse.
+        - Relates to DESTINATION fields, e.g. a source PID becomes a
+          destination RID.
+        """
+        items = []  # type: List[str]
+        if self.primary_pid:
+            items.append(DDRLabels.RID)
+        if self.defines_primary_pids:
+            items.append(DDRLabels.DEFINES_PRIMARY_PID)
+        if self.master_pid:
+            items.append(DDRLabels.MRID)
+        if self.third_party_pid:
+            items.append(DDRLabels.THIRD_PARTY_RID)
+
+        if self.being_scrubbed:
+            items.append(DDRLabels.BEING_SCRUBBED)
+
+        if not items:
+            return DDRLabels.NOTHING
+        return " ".join(items)
 
     # -------------------------------------------------------------------------
     # Setting

@@ -53,7 +53,8 @@ log = logging.getLogger(__name__)
 
 def summarize_dd(config: Config, output_filename: str) -> None:
     """
-    Produces a summary report about a data dictionary.
+    Produces a summary report about a data dictionary. The report has one row
+    per table.
 
     Args:
         config:
@@ -82,7 +83,8 @@ def main() -> None:
     """
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        description=f"Draft a data dictionary for the anonymiser. "
+        description=f"Summarize a data dictionary for the anonymiser. The "
+        f"resulting spreadsheet-style report has one row per source table. "
         f"({CRATE_VERSION_PRETTY})",
         formatter_class=ArgumentDefaultsRichHelpFormatter,
     )

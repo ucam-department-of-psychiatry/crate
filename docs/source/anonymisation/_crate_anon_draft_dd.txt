@@ -8,8 +8,8 @@ USAGE: crate_anon_draft_dd [-h] [--config CONFIG] [--verbose] [--incremental]
                            [--systmone_allow_unprefixed_tables]
                            [--systmone_alter_loaded_rows]
 
-Draft a data dictionary for the anonymiser. (CRATE version 0.20.1, 2023-02-14.
-Created by Rudolf Cardinal.)
+Draft a data dictionary for the anonymiser, by scanning a source database.
+(CRATE version 0.20.1, 2023-02-14. Created by Rudolf Cardinal.)
 
 OPTIONS:
   -h, --help            show this help message and exit

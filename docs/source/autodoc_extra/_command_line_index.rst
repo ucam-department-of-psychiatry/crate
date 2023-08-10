@@ -25,6 +25,8 @@ Index of CRATE commands
 
 :ref:`crate_anon_draft_dd <crate_anon_draft_dd>`
 
+:ref:`crate_anon_researcher_report <crate_anon_researcher_report>`
+
 :ref:`crate_anon_show_counts <crate_anon_show_counts>`
 
 :ref:`crate_anon_summarize_dd <crate_anon_summarize_dd>`

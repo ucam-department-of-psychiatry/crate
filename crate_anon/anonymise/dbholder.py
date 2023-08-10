@@ -90,6 +90,19 @@ class DatabaseHolder:
         if with_conn:  # for raw connections
             self.conn = self.engine.connect()
         if with_session:  # for ORM
+            self.create_session()
+
+    def enable_reflect(self) -> None:
+        """
+        Enables reflection, if it wasn't enabled to begin with.
+        """
+        self._reflect_on_request = True
+
+    def create_session(self) -> None:
+        """
+        Creates a database session, if not created to begin with.
+        """
+        if not self.session:
             self.session = sessionmaker(bind=self.engine)()  # for ORM
 
     def _reflect(self) -> None:

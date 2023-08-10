@@ -262,6 +262,10 @@ def main():
         join(DevPath.DOCS_ANON_DIR, "_crate_anon_summarize_dd_help.txt"),
     )
     run_cmd(
+        [CrateCommand.ANON_RESEARCHER_REPORT, helpflag],
+        join(DevPath.DOCS_ANON_DIR, "_crate_anon_researcher_report_help.txt"),
+    )
+    run_cmd(
         [CrateCommand.ANONYMISE, helpflag],
         join(DevPath.DOCS_ANON_DIR, "_crate_anonymise_help.txt"),
     )
