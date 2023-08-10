@@ -35,27 +35,30 @@ import datetime
 import decimal
 import logging
 import os
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from cardinal_pythonlib.datetimefunc import (
     format_datetime,
     get_now_localtz_pendulum,
+    strfdelta,
 )
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.pdf import make_pdf_on_disk_from_html
-from cardinal_pythonlib.sqlalchemy.session import get_safe_url_from_engine
 import django
 from django.conf import settings
 from django.template.loader import render_to_string
 import pendulum
-from rich_argparse import ArgumentDefaultsRichHelpFormatter
-from sqlalchemy.orm.session import Session
+from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql.expression import distinct, func, select, table
 from sqlalchemy.schema import Column, ForeignKey, Table
 
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.constants import ANON_CONFIG_ENV_VAR
+from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.anonymise.ddr import DataDictionaryRow, DDRLabels
+from crate_anon.common.argparse_assist import (
+    RawDescriptionArgumentDefaultsRichHelpFormatter,
+)
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_PRETTY
 
 log = logging.getLogger(__name__)
@@ -65,40 +68,54 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
-DEFAULT_MAX_DISTINCT_VALUES = 20
-DEFAULT_MAX_VALUE_LENGTH = 50
 
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 TEMPLATE_DIR = os.path.join(THIS_DIR, "templates", "researcher_report")
 
-TEMPLATE_PDF_FOOTER = "pdf_footer.html"
-TEMPLATE_PDF_HEADER = "pdf_header.html"
-TEMPLATE_REPORT = "report.html"
-TEMPLATE_STYLE = "style.css"
-TEMPLATE_TABLE = "table.html"
 
-PRETTY_DATETIME_FORMAT = "%a %d %B %Y, %H:%M %z"
-# ... e.g. Wed 24 July 2013, 20:04 +0100
-DATE_FORMAT = "%Y-%m-%d"  # e.g. 2023-07-24
+class Templates:
+    """
+    Template filenames, within TEMPLATE_DIR.
+    """
+
+    PDF_FOOTER = "pdf_footer.html"
+    PDF_HEADER = "pdf_header.html"
+    REPORT = "report.html"
+    STYLE = "style.css"
+    TABLE = "table.html"
+
+
+class DateFormat:
+    # https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes  # noqa: E501
+    PRETTY = "%a %d %B %Y, %H:%M %z"
+    # ... e.g. Wed 24 July 2013, 20:04 +0100
+    DATE = "%Y-%m-%d"  # e.g. 2023-07-24
+    DATETIME = "%Y-%m-%d %H:%M"  # e.g. 2023-07-24 20:04
+    TIME = "%H:%M"  # e.g. 20:04
+
+    # And one for our custom strfdelta function:
+    TIMEDELTA = "{D:02}d {H:02}h {M:02}m {S:02}s"
+
+
+class Default:
+    """
+    Default values.
+    """
+
+    HEADER_FOOTER_SPACING_MM = 3
+    # ... always in mm; https://wkhtmltopdf.org/usage/wkhtmltopdf.txt
+    MAX_DISTINCT_VALUES = 20
+    MAX_VALUE_LENGTH = 50
+    ORIENTATION = "landscape"
+    PAGE_SIZE = "A4"
+    PAPER_MARGIN = "15mm"
+
+
 EN_DASH = "–"
 MINUS = "−"
 HYPHEN = "-"
 TICK = "✓"
-RIGHT_ARROW = "►"
-
-PAPER_MARGIN = "15mm"
-
-WKHTMLTOPDF_OPTIONS = {  # dict for pdfkit
-    "page-size": "A4",
-    "margin-left": PAPER_MARGIN,
-    "margin-right": PAPER_MARGIN,
-    "margin-top": PAPER_MARGIN,  # from paper edge down to top of content?
-    "margin-bottom": PAPER_MARGIN,  # from paper edge up to bottom of content?
-    "header-spacing": "3",  # mm, from content up to bottom of header
-    "footer-spacing": "3",  # mm, from content down to top of footer
-    # "--print-media-type": None  # https://stackoverflow.com/q/42005819
-    "orientation": "Landscape",
-}
+# RIGHT_ARROW = "►"
 
 
 # =============================================================================
@@ -107,12 +124,108 @@ WKHTMLTOPDF_OPTIONS = {  # dict for pdfkit
 
 
 @dataclass
-class ResearcherReportOptions:
-    count: bool = True  # count records in each table?
-    url: bool = True  # include a sanitised URL for the database
-    values: bool = True  # include specimen values/ranges
-    max_distinct_values: int = DEFAULT_MAX_DISTINCT_VALUES
-    max_value_length: int = DEFAULT_MAX_VALUE_LENGTH
+class ResearcherReportConfig:
+    anonconfig: Config
+    output_filename: str
+
+    db_name: str = None  # overrides that in config
+    db_url: str = None  # overrides that in config
+    debug_pdf: bool = False
+    max_distinct_values: int = Default.MAX_DISTINCT_VALUES
+    max_value_length: int = Default.MAX_VALUE_LENGTH
+    header_footer_spacing_mm: int = Default.HEADER_FOOTER_SPACING_MM
+    page_size: str = Default.PAGE_SIZE
+    paper_margin: str = Default.PAPER_MARGIN
+    orientation: str = Default.ORIENTATION
+    show_counts: bool = True  # count records in each table?
+    show_url: bool = True  # include a sanitised URL for the database
+    show_values: bool = True  # include specimen values/ranges
+
+    def __post_init__(self) -> None:
+        # Set up lookups.
+        anonconfig = self.anonconfig
+        self.annotation_from_colname = {
+            anonconfig.trid_fieldname: DDRLabels.TRID,
+            anonconfig.master_research_id_fieldname: DDRLabels.MRID,
+            anonconfig.research_id_fieldname: DDRLabels.RID,
+            anonconfig.source_hash_fieldname: DDRLabels.SOURCE_HASH,
+        }
+
+        # Set up DD
+        anonconfig.load_dd(check_against_source_db=False)
+
+        # Set up database
+        if self.db_url:
+            if not self.db_name:
+                raise ValueError(
+                    "Should specify database name if passing a custom URL"
+                )
+            self.db = DatabaseHolder(
+                self.db_name,
+                self.db_url,
+                with_session=True,
+                reflect=True,
+            )
+        else:
+            # Use destination database from the config
+            self.db = anonconfig.destdb
+            self.db.enable_reflect()
+            self.db.create_session()
+            self.db_name = self.db_name or anonconfig.destdb.name
+            self.db_url = self.db.engine.url
+        self.db_session = self.db.session
+
+    def safe_db_url_if_selected(self) -> str:
+        """
+        Sanitised version of the database URL, or a blank string if not
+        enabled.
+        """
+        if not self.show_url:
+            return ""
+        url_obj = make_url(self.db_url)  # type: URL
+        return repr(url_obj)
+        # The default repr() implementation calls
+        # self.__to_string__(hide_password=False)
+
+    def wkhtmltopdf_options(self) -> Dict[str, Optional[str]]:
+        """
+        Returns wkhtmltopdf options for the current setup.
+        """
+        return {  # dict for pdfkit
+            "page-size": self.page_size,
+            "margin-left": self.paper_margin,
+            "margin-right": self.paper_margin,
+            "margin-top": self.paper_margin,
+            "margin-bottom": self.paper_margin,
+            "header-spacing": str(self.header_footer_spacing_mm),
+            "footer-spacing": str(self.header_footer_spacing_mm),
+            # "--print-media-type": None
+            # ... https://stackoverflow.com/q/42005819
+            "orientation": self.orientation,
+        }
+
+    def get_db_name(self) -> str:
+        """
+        Returns a short database name used for titles.
+        """
+        return self.db_name
+
+    def get_db_engine_type(self) -> str:
+        """
+        Returns the engine type (e.g. mysql).
+        """
+        return self.db.engine.name
+
+    def get_annotation_when_no_ddr_found(self, col_name: str) -> str:
+        """
+        Returns best-guess CRATE annotation information when no data dictionary
+        row is available.
+
+        Args:
+            col_name:
+                Column name.
+        """
+        return self.annotation_from_colname.get(col_name, DDRLabels.UNKNOWN)
 
 
 @dataclass
@@ -127,7 +240,7 @@ class ColumnInfo:
     values_info: str = "?"
 
     @property
-    def not_null_str(self) -> str:
+    def nullable_str(self) -> str:
         return TICK if self.nullable else "NOT NULL"
 
     @property
@@ -170,7 +283,7 @@ def mk_comment(column: Column, ddr: DataDictionaryRow = None) -> str:
 
 def literal(
     value: Any,
-    max_length: int = DEFAULT_MAX_VALUE_LENGTH,
+    max_length: int = Default.MAX_VALUE_LENGTH,
     truncated_suffix: str = "...",
 ) -> str:
     """
@@ -182,41 +295,39 @@ def literal(
     - Dates are NOT enclosed in quotes here.
     - DATETIME values are truncated to dates.
     """
-    if isinstance(value, str):
+    if value is None:
+        return "NULL"
+    elif isinstance(value, str):
         if len(value) > max_length:
             value = value[:max_length] + truncated_suffix
-        value = value.replace("'", "''")
-        return "'%s'" % value
-    elif value is None:
-        return "NULL"
+        value = value.replace("'", "''")  # SQL-style escaping of quotes
+        return f"'{value}'"
     elif isinstance(value, (float, int)):
         return repr(value).replace(HYPHEN, MINUS)
     elif isinstance(value, decimal.Decimal):
         return str(value).replace(HYPHEN, MINUS)
-    elif (
-        isinstance(value, datetime.datetime)
-        or isinstance(value, datetime.date)
-        or isinstance(value, datetime.time)
-        or isinstance(value, pendulum.DateTime)
-        or isinstance(value, pendulum.Date)
-        or isinstance(value, pendulum.Time)
+    elif isinstance(value, datetime.datetime) or isinstance(
+        value, pendulum.DateTime
     ):
-        # All have an isoformat() method.
-        return value.strftime(DATE_FORMAT)
+        return value.strftime(DateFormat.DATETIME)
+    elif isinstance(value, datetime.date) or isinstance(value, pendulum.Date):
+        return value.strftime(DateFormat.DATE)
+    elif isinstance(value, datetime.time) or isinstance(value, pendulum.Time):
+        return value.strftime(DateFormat.TIME)
     elif isinstance(value, bytes):
-        return "<binary>"
+        return f"<binary_length_{len(value)}>"
     elif isinstance(value, datetime.timedelta):
-        return str(value)
+        return strfdelta(value, fmt=DateFormat.TIMEDELTA)
     else:
         raise NotImplementedError(
-            "Don't know how to literal-quote value %r" % value
+            f"Don't know how to represent value {value!r}"
         )
 
 
 def sorter(x: Any) -> Tuple[bool, Any]:
     """
-    Used for sorting values that may be None/NULL.
-    Remember that False < True.
+    Used for sorting values that may be None/NULL. Remember that False < True,
+    so this puts None values lowest (first in a default sort).
     """
     return x is not None, x
 
@@ -226,21 +337,9 @@ def sorter(x: Any) -> Tuple[bool, Any]:
 # =============================================================================
 
 
-def get_db_name(config: Config) -> str:
-    """
-    Returns a short database name used for titles.
-
-    Args:
-        config:
-            Anonymisation config object.
-    """
-    return config.destdb.name
-
-
 def get_values_summary(
-    session: Session,
     column: Column,
-    options: ResearcherReportOptions,
+    reportcfg: ResearcherReportConfig,
     ddr: DataDictionaryRow = None,
 ) -> str:
     """
@@ -248,43 +347,45 @@ def get_values_summary(
     database).
 
     Args:
-        session:
-            SQLAlchemy session.
         column:
             SQLAlchemy Column object to summarize. (It knows its own Table.)
-        options:
+        reportcfg:
             ResearcherReportOptions object, governing the report.
         ddr:
             Corresponding CRATE DataDictionaryRow, if there is one.
     """
-    if not options.values:
+    if not reportcfg.show_values:
         # Don't show anything.
         return EN_DASH
 
     # Otherwise, we can always do the number of distinct values:
     items = []  # type: List[str]
+    session = reportcfg.db_session
     n_distinct = session.execute(
         select([func.count(distinct(column))])
     ).fetchone()[0]
-    suffix = "s" if n_distinct != 1 else ""
+    suffix = "" if n_distinct == 1 else "s"  # "value" or "values"?
     items.append(f"{n_distinct} distinct value{suffix}.")
 
     do_min_max = False
     do_distinct = False
 
-    if ddr and (
-        ddr.defines_primary_pids
-        or ddr.primary_pid
-        or ddr.master_pid
-        or ddr.third_party_pid
+    if n_distinct == 0:
+        # We don't need min/max/distinct if the table is empty.
+        pass
+    elif ddr and (
+        ddr.contains_patient_info
+        or ddr.contains_third_party_info
+        or ddr.contains_scrub_src
         or ddr.being_scrubbed
     ):
         # More sensitive fields. Don't show these specifically.
         pass
     else:
-        # Do some more.
-        do_min_max = True
-        if n_distinct <= options.max_distinct_values:
+        # Show some more detail.
+        if n_distinct > 1:
+            do_min_max = True
+        if n_distinct <= reportcfg.max_distinct_values:
             do_distinct = True
 
     if do_min_max:
@@ -292,49 +393,45 @@ def get_values_summary(
             select([func.min(column), func.max(column)])
         ).fetchone()
         items.append(f"Min {literal(min_val)}; max {literal(max_val)}.")
+
     if do_distinct:
         dv_rows = session.execute(select([func.distinct(column)])).fetchall()
         # Sort before literal (so we get numeric, not string, sort):
         distinct_values = sorted((row[0] for row in dv_rows), key=sorter)
         distinct_value_str = ", ".join(
-            literal(v, options.max_value_length) for v in distinct_values
+            literal(v, reportcfg.max_value_length) for v in distinct_values
         )
         items.append(f"Distinct values: [{distinct_value_str}].")
 
     return " ".join(items)
 
 
-def mk_table_html(
-    table_name: str, config: Config, options: ResearcherReportOptions
-) -> str:
+def mk_table_html(table_name: str, reportcfg: ResearcherReportConfig) -> str:
     """
-    Returns HTML for the whole-database aspects of the report, shown at the
-    start.
+    Returns HTML for the per-table aspects of the report.
 
     Args:
         table_name:
             Table to process.
-        config:
-            Anonymisation config object.
-        options:
+        reportcfg:
             ResearcherReportOptions object, governing the report.
 
     Returns:
         HTML as a string.
     """
     log.info(f"Processing table: {table_name}")
-    dest_ddr_rows = config.dd.get_rows_for_dest_table(table_name)
-    session = config.destdb.session
+    dest_ddr_rows = reportcfg.anonconfig.dd.get_rows_for_dest_table(table_name)
+    session = reportcfg.db_session
 
     n_records = (
         session.execute(
             select([func.count()]).select_from(table(table_name))
         ).fetchone()[0]
-        if options.count
+        if reportcfg.show_counts
         else None
     )
 
-    t = config.destdb.metadata.tables[table_name]  # type: Table
+    t = reportcfg.db.metadata.tables[table_name]  # type: Table
     table_comment = t.comment or ""  # may be blank
     columns = []  # type: List[ColumnInfo]
     for c in sorted(t.c, key=lambda x: x.name):
@@ -345,20 +442,12 @@ def mk_table_html(
             crate_annotation = ddr.report_dest_annotation()
         except StopIteration:
             ddr = None
-            if colname == config.trid_fieldname:
-                crate_annotation = DDRLabels.TRID
-            elif colname == config.master_research_id_fieldname:
-                crate_annotation = DDRLabels.MRID
-            elif colname == config.research_id_fieldname:
-                crate_annotation = DDRLabels.RID
-            elif colname == config.source_hash_fieldname:
-                crate_annotation = DDRLabels.SOURCE_HASH
-            else:
-                crate_annotation = DDRLabels.UNKNOWN
+            crate_annotation = reportcfg.get_annotation_when_no_ddr_found(
+                col_name=colname
+            )
         values_info = get_values_summary(
-            session=session,
             column=c,
-            options=options,
+            reportcfg=reportcfg,
             ddr=ddr,
         )
         columns.append(
@@ -375,29 +464,27 @@ def mk_table_html(
         )
 
     return render_to_string(
-        template(TEMPLATE_TABLE),
+        template(Templates.TABLE),
         dict(
             columns=columns,
-            count=options.count,
             n_records=n_records,
-            table_name=table_name,
+            show_counts=reportcfg.show_counts,
+            show_values=reportcfg.show_values,
             table_comment=table_comment,
-            values=options.values,
+            table_name=table_name,
         ),
     )
 
 
 def mk_researcher_report_html(
-    config: Config, options: ResearcherReportOptions
+    reportcfg: ResearcherReportConfig,
 ) -> Tuple[str, str, str]:
     """
     Produces a researcher-oriented report about a destination database, as
     HTML.
 
     Args:
-        config:
-            Anonymisation config object.
-        options:
+        reportcfg:
             ResearcherReportOptions object, governing the report.
 
     Returns:
@@ -420,43 +507,39 @@ def mk_researcher_report_html(
     # -------------------------------------------------------------------------
     # 2. Core variables
     # -------------------------------------------------------------------------
-    db_name = get_db_name(config)
-    now = format_datetime(get_now_localtz_pendulum(), PRETTY_DATETIME_FORMAT)
+    db_name = reportcfg.get_db_name()
+    now = format_datetime(get_now_localtz_pendulum(), DateFormat.PRETTY)
     title = f"{db_name}: CRATE researcher report, {now}"
-    css = render_to_string(template(TEMPLATE_STYLE))
+    css = render_to_string(template(Templates.STYLE))
     coredict = dict(title=title, css=css, now=now)
 
     # -------------------------------------------------------------------------
     # 3. Read header/footer (e.g. for PDF page numbers).
     # -------------------------------------------------------------------------
-    header_html = render_to_string(template(TEMPLATE_PDF_HEADER), coredict)
-    footer_html = render_to_string(template(TEMPLATE_PDF_FOOTER), coredict)
+    header_html = render_to_string(template(Templates.PDF_HEADER), coredict)
+    footer_html = render_to_string(template(Templates.PDF_FOOTER), coredict)
 
     # -------------------------------------------------------------------------
     # 4. Scan the database.
     # -------------------------------------------------------------------------
-    url = get_safe_url_from_engine(config.destdb.engine) if options.url else ""
-    config.load_dd(check_against_source_db=False)
-    config.destdb.enable_reflect()
-    config.destdb.create_session()
-    table_names = config.destdb.table_names  # reflects (introspects)
+    table_names = sorted(reportcfg.db.table_names)  # reflects (introspects)
 
     # -------------------------------------------------------------------------
     # 5. Generate our main report.
     # -------------------------------------------------------------------------
     table_html_list = [
-        mk_table_html(table_name, config, options)
-        for table_name in table_names
+        mk_table_html(table_name, reportcfg) for table_name in table_names
     ]
     html = render_to_string(
-        template(TEMPLATE_REPORT),
+        template(Templates.REPORT),
         dict(
             CRATE_VERSION=CRATE_VERSION,
+            db_engine=reportcfg.get_db_engine_type(),
             db_name=db_name,
-            table_names=table_names,
             n_tables=len(table_names),
+            table_names=table_names,
             tables_html="".join(table_html_list),
-            url=url,
+            url=reportcfg.safe_db_url_if_selected(),
             **coredict,
         ),
     )
@@ -468,39 +551,30 @@ def mk_researcher_report_html(
 
 
 def mk_researcher_report_pdf(
-    config: Config,
-    output_filename: str,
-    options: ResearcherReportOptions,
-    debug_pdf: bool = False,
+    reportcfg: ResearcherReportConfig,
 ) -> bool:
     """
     Produces a researcher-oriented report about a destination database, as a
     PDF.
 
     Args:
-        config:
-            Anonymisation config object.
-        output_filename:
-            PDF file for output.
-        options:
+        reportcfg:
             ResearcherReportOptions object, governing the report.
-        debug_pdf:
-            Be verbose?
 
     Returns:
         success
     """
-    header_html, html, footer_html = mk_researcher_report_html(config, options)
-    log.info(f"Writing to {output_filename}")
+    header_html, html, footer_html = mk_researcher_report_html(reportcfg)
+    log.info(f"Writing to {reportcfg.output_filename}")
     return make_pdf_on_disk_from_html(
         html=html,
-        output_path=output_filename,
+        output_path=reportcfg.output_filename,
         header_html=header_html,
         footer_html=footer_html,
-        wkhtmltopdf_options=WKHTMLTOPDF_OPTIONS,
-        debug_options=debug_pdf,
-        debug_content=debug_pdf,
-        debug_wkhtmltopdf_args=debug_pdf,
+        wkhtmltopdf_options=reportcfg.wkhtmltopdf_options(),
+        debug_options=reportcfg.debug_pdf,
+        debug_content=reportcfg.debug_pdf,
+        debug_wkhtmltopdf_args=reportcfg.debug_pdf,
     )
 
 
@@ -515,90 +589,131 @@ def main() -> None:
     """
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
-        description="Produce a researcher-oriented PDF report about a "
-        f"destination database. ({CRATE_VERSION_PRETTY}). Note: if wkhtmtopdf "
-        "reports 'Too many open files', see "
-        "https://stackoverflow.com/q/25355697; "
-        "https://github.com/wkhtmltopdf/wkhtmltopdf/issues/3081.",
-        formatter_class=ArgumentDefaultsRichHelpFormatter,
+        description=f"""
+Produce a researcher-oriented PDF report about a destination database.
+({CRATE_VERSION_PRETTY})
+
+Note: if wkhtmtopdf reports 'Too many open files', see
+- https://stackoverflow.com/q/25355697;
+- https://github.com/wkhtmltopdf/wkhtmltopdf/issues/3081;
+setting e.g. "ulimit -n 2048" is one solution.
+
+""",
+        formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
     )
 
     parser.add_argument("output", help="Output filename (PDF).")
-    parser.add_argument(
+
+    grp_db = parser.add_argument_group("DATABASE")
+    grp_db.add_argument(
         "--config",
         help=f"Config file (overriding environment variable "
-        f"{ANON_CONFIG_ENV_VAR}).",
+        f"{ANON_CONFIG_ENV_VAR})",
     )
-    parser.add_argument(
-        "--count",
-        dest="count",
+    grp_db.add_argument(
+        "--db_url",
+        type=str,
+        default=None,
+        help="Database URL (overriding that in the config file)",
+    )
+    grp_db.add_argument(
+        "--db_name",
+        type=str,
+        default=None,
+        help="Database name (overriding that in the config file); must be "
+        "specified if you use --db_url",
+    )
+
+    grp_detail = parser.add_argument_group("DETAIL")
+    grp_detail.add_argument(
+        "--show_url",
+        dest="show_url",
+        action="store_true",
+        default=False,
+        help="Include (sanitised, password-safe) database URL",
+    )
+    grp_detail.add_argument(
+        "--no_show_url",
+        dest="show_url",
+        action="store_false",
+        default=True,
+        help="Do not include database URL",
+    )
+    grp_detail.add_argument(
+        "--show_counts",
+        dest="show_counts",
         action="store_true",
         default=True,
         help="Include record (row) counts",
     )
-    parser.add_argument(
-        "--nocount",
-        dest="count",
+    grp_detail.add_argument(
+        "--no_show_counts",
+        dest="show_counts",
         action="store_false",
         default=False,
         help="Do not include record (row) counts",
     )
-    parser.add_argument(
-        "--url",
-        dest="url",
-        action="store_true",
-        default=True,
-        help="Include (sanitised, password-safe) database URL",
-    )
-    parser.add_argument(
-        "--nourl",
-        dest="url",
-        action="store_false",
-        default=False,
-        help="Do not include database URL",
-    )
-    parser.add_argument(
-        "--values",
-        dest="values",
+    grp_detail.add_argument(
+        "--show_values",
+        dest="show_values",
         action="store_true",
         default=True,
         help="Include specimen values/ranges",
     )
-    parser.add_argument(
-        "--novalues",
-        dest="values",
+    grp_detail.add_argument(
+        "--no_show_values",
+        dest="show_values",
         action="store_false",
         default=False,
         help="Do not include specimen values/ranges",
     )
-    parser.add_argument(
+    grp_detail.add_argument(
         "--max_distinct_values",
         type=int,
-        default=DEFAULT_MAX_DISTINCT_VALUES,
-        help="Maximum number of distinct values to show, where applicable.",
+        default=Default.MAX_DISTINCT_VALUES,
+        help="Maximum number of distinct values to show, where applicable",
     )
-    parser.add_argument(
+    grp_detail.add_argument(
         "--max_value_length",
         type=int,
-        default=DEFAULT_MAX_VALUE_LENGTH,
+        default=Default.MAX_VALUE_LENGTH,
         help="Maximum string length to show for a literal value",
     )
-    parser.add_argument(
+
+    grp_visuals = parser.add_argument_group("VISUALS")
+    grp_visuals.add_argument(
+        "--page_size",
+        default=Default.PAGE_SIZE,
+        help="Page size (paper type)",
+    )
+    grp_visuals.add_argument(
+        "--margin",
+        default=Default.PAPER_MARGIN,
+        help="Margins for page (with units): "
+        "for content, ignoring header/footer",
+    )
+    grp_visuals.add_argument(
+        "--header_footer_spacing_mm",
+        type=int,
+        default=Default.HEADER_FOOTER_SPACING_MM,
+        help="Gap between content and header/footer, in mm",
+    )
+    grp_visuals.add_argument(
+        "--orientation",
+        choices=["portrait", "landscape"],
+        default=Default.ORIENTATION,
+        help="Page orientation",
+    )
+
+    grp_progress = parser.add_argument_group("PROGRESS")
+    grp_progress.add_argument(
         "--verbose", "-v", action="store_true", help="Be verbose"
     )
-    parser.add_argument(
+    grp_progress.add_argument(
         "--debug_pdf", action="store_true", help="Debug PDF creation"
     )
 
     args = parser.parse_args()
-
-    options = ResearcherReportOptions(
-        count=args.count,
-        url=args.url,
-        values=args.values,
-        max_distinct_values=args.max_distinct_values,
-        max_value_length=args.max_value_length,
-    )
 
     # -------------------------------------------------------------------------
     # Verbosity, logging
@@ -615,9 +730,21 @@ def main() -> None:
         os.environ[ANON_CONFIG_ENV_VAR] = args.config
     from crate_anon.anonymise.config_singleton import config  # delayed import
 
-    mk_researcher_report_pdf(
-        config=config,
-        output_filename=args.output,
-        options=options,
+    reportcfg = ResearcherReportConfig(
+        anonconfig=config,
+        db_name=args.db_name,
+        db_url=args.db_url,
         debug_pdf=args.debug_pdf,
+        header_footer_spacing_mm=args.header_footer_spacing_mm,
+        max_distinct_values=args.max_distinct_values,
+        max_value_length=args.max_value_length,
+        orientation=args.orientation,
+        output_filename=args.output,
+        page_size=args.page_size,
+        paper_margin=args.margin,
+        show_counts=args.show_counts,
+        show_url=args.show_url,
+        show_values=args.show_values,
     )
+
+    mk_researcher_report_pdf(reportcfg)

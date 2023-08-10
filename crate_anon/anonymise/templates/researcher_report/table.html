@@ -6,7 +6,7 @@
             <span class="result">{{ table_comment }}</span>
         </p>
     {% endif %}
-    {% if count %}
+    {% if show_counts %}
         <p>
             Number of records (rows) in this table:
             <span class="result">{{ n_records }}</span>
@@ -20,7 +20,7 @@
             <th>Nullable</th>
             <th>Comment</th>
             <th>CRATE DD info</th>
-            {% if values %}
+            {% if show_values %}
                 <th>Values</th>
             {% endif %}
         </tr>
@@ -34,10 +34,10 @@
                     {{ c.pk_str }}
                     {{ c.fk_str }}
                 </td>
-                <td>{{ c.not_null_str }}</td>
+                <td>{{ c.nullable_str }}</td>
                 <td>{{ c.comment }}</td>
                 <td>{{ c.crate_annotation }}</td>
-                {% if values %}
+                {% if show_values %}
                     <td>{{ c.values_info }}</td>
                 {% endif %}
             </tr>
