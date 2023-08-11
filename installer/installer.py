@@ -204,6 +204,7 @@ class DockerEnvVar(EnvVar):
     RESEARCH_DATABASE_USER_PASSWORD = (
         f"{PREFIX}_RESEARCH_DATABASE_USER_{EnvVar.PASSWORD_SUFFIX}"  # noqa
     )
+    RESEARCH_DATABASE_HOST_PORT = f"{PREFIX}_RESEARCH_DATABASE_HOST_PORT"
 
     SECRET_DATABASE_NAME = f"{PREFIX}_SECRET_DATABASE_NAME"
     SECRET_DATABASE_ROOT_PASSWORD = (
@@ -213,6 +214,7 @@ class DockerEnvVar(EnvVar):
     SECRET_DATABASE_USER_PASSWORD = (
         f"{PREFIX}_SECRET_DATABASE_USER_{EnvVar.PASSWORD_SUFFIX}"  # noqa
     )
+    SECRET_DATABASE_HOST_PORT = f"{PREFIX}_SECRET_DATABASE_HOST_PORT"
 
     SOURCE_DATABASE_NAME = f"{PREFIX}_SOURCE_DATABASE_NAME"
     SOURCE_DATABASE_ROOT_PASSWORD = (
@@ -222,6 +224,7 @@ class DockerEnvVar(EnvVar):
     SOURCE_DATABASE_USER_PASSWORD = (
         f"{PREFIX}_SOURCE_DATABASE_USER_{EnvVar.PASSWORD_SUFFIX}"  # noqa
     )
+    SOURCE_DATABASE_HOST_PORT = f"{PREFIX}_SOURCE_DATABASE_HOST_PORT"
     STATIC_HOST_DIR = f"{PREFIX}_STATIC_HOST_DIR"
 
 
@@ -248,6 +251,20 @@ class InstallerEnvVar(EnvVar):
     SOURCE_DATABASE_ENGINE = f"{PREFIX}_SOURCE_DATABASE_ENGINE"
     SOURCE_DATABASE_HOST = f"{PREFIX}_SOURCE_DATABASE_HOST"
     SOURCE_DATABASE_PORT = f"{PREFIX}_SOURCE_DATABASE_PORT"
+
+
+# =============================================================================
+# Ports
+# =============================================================================
+class Ports:
+    # In numeric order
+    MYSQL = "3306"
+    CRATEWEB = "8000"
+    RABBITMQ = "5672"
+    CRATE_DB_HOST = "43306"
+    RESEARCH_DB_HOST = "43307"
+    SECRET_DB_HOST = "43308"
+    SOURCE_DB_HOST = "43309"
 
 
 # =============================================================================
@@ -689,7 +706,7 @@ class Installer:
     def configure_crate_db_container(self) -> None:
         self.setenv(InstallerEnvVar.CRATE_DB_ENGINE, "mysql")
         self.setenv(InstallerEnvVar.CRATE_DB_SERVER, "crate_db")
-        self.setenv(InstallerEnvVar.CRATE_DB_PORT, "3306")
+        self.setenv(InstallerEnvVar.CRATE_DB_PORT, Ports.MYSQL)
         self.setenv(
             DockerEnvVar.CRATE_DB_ROOT_PASSWORD,
             self.get_docker_crate_db_root_password,
@@ -759,7 +776,7 @@ class Installer:
     def configure_demo_research_db(self) -> None:
         self.setenv(InstallerEnvVar.RESEARCH_DATABASE_ENGINE, "mysql")
         self.setenv(InstallerEnvVar.RESEARCH_DATABASE_HOST, "research_db")
-        self.setenv(InstallerEnvVar.RESEARCH_DATABASE_PORT, "3306")
+        self.setenv(InstallerEnvVar.RESEARCH_DATABASE_PORT, Ports.MYSQL)
         self.setenv(
             DockerEnvVar.RESEARCH_DATABASE_ROOT_PASSWORD,
             "research",
@@ -772,11 +789,14 @@ class Installer:
             "research",
             obscure=True,
         )
+        self.setenv(
+            DockerEnvVar.RESEARCH_DATABASE_HOST_PORT, Ports.RESEARCH_DB_HOST
+        )
 
     def configure_demo_secret_db(self) -> None:
         self.setenv(InstallerEnvVar.SECRET_DATABASE_ENGINE, "mysql")
         self.setenv(InstallerEnvVar.SECRET_DATABASE_HOST, "secret_db")
-        self.setenv(InstallerEnvVar.SECRET_DATABASE_PORT, "3306")
+        self.setenv(InstallerEnvVar.SECRET_DATABASE_PORT, Ports.MYSQL)
         self.setenv(
             DockerEnvVar.SECRET_DATABASE_ROOT_PASSWORD, "secret", obscure=True
         )
@@ -785,11 +805,14 @@ class Installer:
         self.setenv(
             DockerEnvVar.SECRET_DATABASE_USER_PASSWORD, "secret", obscure=True
         )
+        self.setenv(
+            DockerEnvVar.SECRET_DATABASE_HOST_PORT, Ports.SECRET_DB_HOST
+        )
 
     def configure_demo_source_db(self) -> None:
         self.setenv(InstallerEnvVar.SOURCE_DATABASE_ENGINE, "mysql")
         self.setenv(InstallerEnvVar.SOURCE_DATABASE_HOST, "source_db")
-        self.setenv(InstallerEnvVar.SOURCE_DATABASE_PORT, "3306")
+        self.setenv(InstallerEnvVar.SOURCE_DATABASE_PORT, Ports.MYSQL)
         self.setenv(
             DockerEnvVar.SOURCE_DATABASE_ROOT_PASSWORD, "source", obscure=True
         )
@@ -797,6 +820,9 @@ class Installer:
         self.setenv(DockerEnvVar.SOURCE_DATABASE_USER_NAME, "source")
         self.setenv(
             DockerEnvVar.SOURCE_DATABASE_USER_PASSWORD, "source", obscure=True
+        )
+        self.setenv(
+            DockerEnvVar.SOURCE_DATABASE_HOST_PORT, Ports.SOURCE_DB_HOST
         )
 
     def configure_external_research_db(self) -> None:
@@ -943,7 +969,7 @@ class Installer:
     def configure_cherrypy(self) -> None:
         # - Re host 0.0.0.0:
         #   https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors
-        cherrypy_args = ["--host 0.0.0.0", "--port 8000"]
+        cherrypy_args = ["--host 0.0.0.0", f"--port {Ports.CRATEWEB}"]
 
         if self.use_https():
             cherrypy_args.extend(
@@ -956,18 +982,18 @@ class Installer:
 
     def configure_wait_for(self) -> None:
         wait_for = [
-            f"{DockerComposeServices.RABBITMQ}:5672",
+            f"{DockerComposeServices.RABBITMQ}:{Ports.RABBITMQ}",
         ]
 
         if self.should_create_crate_db_container():
-            wait_for.append(f"{DockerComposeServices.CRATE_DB}:3306")
+            wait_for.append(f"{DockerComposeServices.CRATE_DB}:{Ports.MYSQL}")
         #
         if self.should_create_demo_containers():
             wait_for.extend(
                 [
-                    f"{DockerComposeServices.RESEARCH_DB}:3306",
-                    f"{DockerComposeServices.SECRET_DB}:3306",
-                    f"{DockerComposeServices.SOURCE_DB}:3306",
+                    f"{DockerComposeServices.RESEARCH_DB}:{Ports.MYSQL}",
+                    f"{DockerComposeServices.SECRET_DB}:{Ports.MYSQL}",
+                    f"{DockerComposeServices.SOURCE_DB}:{Ports.MYSQL}",
                 ]
             )
 
@@ -1027,7 +1053,7 @@ class Installer:
             "archive_static_dir": DockerPath.ARCHIVE_STATIC_DIR,
             "archive_template_cache_dir": DockerPath.ARCHIVE_TEMPLATE_CACHE_DIR,  # noqa: E501
             "archive_template_dir": DockerPath.ARCHIVE_TEMPLATE_DIR,
-            "broker_url": "amqp://rabbitmq:5672",
+            "broker_url": f"amqp://rabbitmq:{Ports.RABBITMQ}",
             "crate_db_engine": self.engines[
                 os.getenv(InstallerEnvVar.CRATE_DB_ENGINE)
             ].django,
@@ -1362,7 +1388,7 @@ class Installer:
                 "Enter the port where the CRATE web app will appear on the "
                 "host:"
             ),
-            default="8000",
+            default=Ports.CRATEWEB,
         )
 
     def get_docker_crateweb_use_https(self) -> str:
@@ -1402,7 +1428,7 @@ class Installer:
                 "Enter the port where CRATE's internal MySQL database will "
                 "appear on the host:"
             ),
-            default="43306",
+            default=Ports.CRATE_DB_HOST,
         )
 
     def get_create_demo_containers(self) -> bool:
@@ -1677,7 +1703,7 @@ class NativeLinuxInstaller(Installer):
         scheme = self.get_crate_server_scheme()
         ip_address = self.get_crate_server_ip_from_host()
 
-        netloc = f"{ip_address}:8000"
+        netloc = f"{ip_address}:{Ports.CRATEWEB}"
         path = self.get_crate_server_path()
         params = query = fragment = None
 

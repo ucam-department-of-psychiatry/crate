@@ -55,10 +55,8 @@ services:
         networks:
             - crateanon_network
 
-        # Expose ports to linked services without publishing them to the host.
-        # Specify the container (internal) port.
-        expose:
-            - "3306"
+        ports:
+            - "${CRATE_DOCKER_RESEARCH_DATABASE_HOST_PORT}:3306"
 
         # Note that if you do not specify mount points, some are created
         # anyway; for example, the MySQL image wants something at
