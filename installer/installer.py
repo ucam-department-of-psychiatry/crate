@@ -363,6 +363,7 @@ class Installer:
     ) -> None:
         self._docker = None
         self._engines = None
+        self._env_dict = None
         self.verbose = verbose
         self.update = update
 
@@ -644,9 +645,32 @@ class Installer:
         )
 
     def configure_tag(self) -> None:
-        # Need to keep in sync with crate_anon/version.py
-        # Use e.g. -rc1 suffix in development
-        self.setenv(DockerEnvVar.IMAGE_TAG, "crate:0.20.1")
+        tag = self.env_dict[DockerEnvVar.IMAGE_TAG]
+        self.setenv(DockerEnvVar.IMAGE_TAG, tag)
+
+    @property
+    def env_dict(self) -> Dict[str, str]:
+        # Variables set in .env
+        if self._env_dict is None:
+            self._env_dict = self.read_env_file()
+
+        return self._env_dict
+
+    def read_env_file(self) -> Dict[str, str]:
+        env_file = os.path.join(HostPath.DOCKERFILES_DIR, ".env")
+
+        env_dict = {}
+
+        with open(env_file, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line == "" or line.startswith("#"):
+                    continue
+
+                parts = line.split("=")
+                env_dict[parts[0]] = parts[1]
+
+        return env_dict
 
     def configure_config_files(self) -> None:
         self.setenv(
