@@ -69,13 +69,10 @@ from python_on_whales.components.container.cli_wrapper import Container
 from semantic_version import Version
 
 # Python Prompt Toolkit has basic support for text entry / yes-no / alert
-# dialogs but unfortunately there are a couple of features lacking:
+# dialogs but unfortunately there is one feature lacking:
 #
 # Completion does not display:
 # https://github.com/prompt-toolkit/python-prompt-toolkit/issues/715
-#
-# No way of specifying a default:
-# https://github.com/prompt-toolkit/python-prompt-toolkit/issues/1544
 #
 # So for now, just use basic prompts.
 #
