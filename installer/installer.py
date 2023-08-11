@@ -107,6 +107,7 @@ class HostPath:
     DEFAULT_HOST_BIOYODIE_DIR = os.path.join(CRATE_DIR, "bioyodie_resources")
 
     ENVVAR_SAVE_FILE = "set_crate_docker_host_envvars"
+    ENVVAR_UNSET_FILE = "unset_crate_docker_host_envvars"
 
 
 class DockerPath:
@@ -1614,22 +1615,42 @@ class Installer:
                 continue
             f.write(f'export {key}="{value}"\n')
 
+    @staticmethod
+    def _write_envvar_unsets_to_file(f: TextIO) -> None:
+        for key, value in sorted(os.environ.items()):
+            if key.startswith(DockerEnvVar.PREFIX) or key.startswith(
+                InstallerEnvVar.PREFIX
+            ):
+                f.write(f"unset {key}\n")
+
     def write_environment_variables(
         self, permit_cfg_dir_save: bool = True
     ) -> None:
         config_dir = os.environ.get(DockerEnvVar.CONFIG_HOST_DIR)
         if config_dir and os.path.exists(config_dir) and permit_cfg_dir_save:
-            filename = os.path.join(config_dir, HostPath.ENVVAR_SAVE_FILE)
-            with open(filename, mode="w") as f:
+            envvar_save_file = os.path.join(
+                config_dir, HostPath.ENVVAR_SAVE_FILE
+            )
+            with open(envvar_save_file, mode="w") as f:
                 self._write_envvars_to_file(f)
+            envvar_unset_file = os.path.join(
+                config_dir, HostPath.ENVVAR_UNSET_FILE
+            )
+            with open(envvar_unset_file, mode="w") as f:
+                self._write_envvar_unsets_to_file(f)
+
         else:
             with NamedTemporaryFile(delete=False, mode="w") as f:
-                filename = f.name
+                envvar_save_file = f.name
                 self._write_envvars_to_file(f)
+            with NamedTemporaryFile(delete=False, mode="w") as f:
+                envvar_unset_file = f.name
+                self._write_envvar_unsets_to_file(f)
         self.info(
             "Settings have been saved and can be loaded with "
-            f"'source {filename}'."
+            f"'source {envvar_save_file}'."
         )
+        self.info(f"To unset all settings 'source {envvar_unset_file}'.")
 
     # -------------------------------------------------------------------------
     # Shell handling
