@@ -21,7 +21,7 @@
 # FROM: Base image
 # -----------------------------------------------------------------------------
 
-FROM python:3.8-slim-buster
+FROM python:3.8-slim-buster AS crate-build-1-user
 # This is a version of Debian 10 (see "cat /etc/debian_version").
 
 
@@ -43,6 +43,7 @@ LABEL maintainer="Rudolf Cardinal <rudolf@pobox.com>"
 ARG USER_ID
 RUN adduser --disabled-password --gecos '' --uid $USER_ID crate
 
+FROM crate-build-1-user AS crate-build-2-files
 
 # -----------------------------------------------------------------------------
 # ADD: files to copy
@@ -58,6 +59,7 @@ RUN adduser --disabled-password --gecos '' --uid $USER_ID crate
 
 ADD . /crate/src
 
+FROM crate-build-2-files AS crate-build-3-environment
 
 # -----------------------------------------------------------------------------
 # COPY: can copy from other Docker images
@@ -117,24 +119,24 @@ WORKDIR /crate
 #   - see https://github.com/GateNLP/bio-yodie-resource-prep
 #   - UMLS: separate licensing
 
+ARG CRATE_ROOT=/crate
+ARG CRATE_SRC=$CRATE_ROOT/src
+ARG CRATE_VENV=$CRATE_ROOT/venv
+ARG CRATE_VENV_BIN=$CRATE_VENV/bin
+ARG CRATE_PACKAGE_ROOT=$CRATE_VENV/lib/python3.8/site-packages/crate_anon
+ARG CRATE_GATE_PLUGIN_FILE=$CRATE_PACKAGE_ROOT/nlp_manager/specimen_gate_plugin_file.ini
+ARG BIOYODIE_DIR=$CRATE_ROOT/bioyodie
+ARG GATE_HOME=$CRATE_ROOT/gate
+ARG KCL_LEWY_BODY_DIAGNOSIS_DIR=$CRATE_ROOT/kcl_lewy_body_dementia
+ARG KCL_PHARMACOTHERAPY_PARENT_DIR=$CRATE_ROOT/kcl_pharmacotherapy
+ARG KCL_PHARMACOTHERAPY_DIR=$KCL_PHARMACOTHERAPY_PARENT_DIR/brc-gate-pharmacotherapy
+ARG TMPDIR=/tmp/crate_tmp
+
+RUN mkdir -p "$TMPDIR"
+
+FROM crate-build-3-environment AS crate-build-4-os-packages
+
 RUN echo "===============================================================================" \
-    && echo "Setting environment variables" \
-    && echo "===============================================================================" \
-    && export CRATE_ROOT=/crate \
-    && export CRATE_SRC="${CRATE_ROOT}/src" \
-    && export CRATE_VENV="${CRATE_ROOT}/venv" \
-    && export CRATE_VENV_BIN="${CRATE_VENV}/bin" \
-    && export CRATE_PACKAGE_ROOT="${CRATE_VENV}/lib/python3.8/site-packages/crate_anon" \
-    && export CRATE_GATE_PLUGIN_FILE=${CRATE_PACKAGE_ROOT}/nlp_manager/specimen_gate_plugin_file.ini \
-    && export BIOYODIE_DIR="${CRATE_ROOT}/bioyodie" \
-    && export GATE_HOME="${CRATE_ROOT}/gate" \
-    && export KCL_LEWY_BODY_DIAGNOSIS_DIR="${CRATE_ROOT}/kcl_lewy_body_dementia" \
-    && export KCL_PHARMACOTHERAPY_PARENT_DIR="${CRATE_ROOT}/kcl_pharmacotherapy" \
-    && export KCL_PHARMACOTHERAPY_DIR="${KCL_PHARMACOTHERAPY_PARENT_DIR}/brc-gate-pharmacotherapy" \
-    && export TMPDIR="/tmp/crate_tmp" \
-    && mkdir -p "${TMPDIR}" \
-    \
-    && echo "===============================================================================" \
     && echo "OS packages, basic tools, and database drivers" \
     && echo "===============================================================================" \
     \
@@ -169,9 +171,11 @@ RUN echo "======================================================================
         poppler-utils \
         tdsodbc \
         unrtf \
-        wbritish \
-    \
-    && echo "- Adding repositories..." \
+        wbritish
+
+FROM crate-build-4-os-packages AS crate-build-5-odbc-packages
+
+RUN echo "- Adding repositories..." \
     && echo "  * Microsoft ODBC driver for SQL Server" \
     && curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
     && curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list \
@@ -185,95 +189,111 @@ RUN echo "======================================================================
         libgssapi-krb5-2 \
         unixodbc-dev=2.3.7 unixodbc=2.3.7 odbcinst1debian2=2.3.7 odbcinst=2.3.7 \
     && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bash_profile \
-    && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc \
-    \
-    && echo "- wkhtmltopdf: Fetching wkhtmltopdf with patched Qt (~14 Mb)..." \
+    && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
+
+FROM crate-build-5-odbc-packages AS crate-build-6-wkhtmltopdf
+
+RUN echo "- wkhtmltopdf: Fetching wkhtmltopdf with patched Qt (~14 Mb)..." \
     && wget \
         --progress=dot:giga \
-        -O "${TMPDIR}/wkhtmltopdf.deb" \
+        -O "$TMPDIR/wkhtmltopdf.deb" \
         https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.stretch_amd64.deb \
     && echo "- wkhtmltopdf: Installing wkhtmltopdf..." \
-    && gdebi --non-interactive "${TMPDIR}/wkhtmltopdf.deb" \
-    \
-    && echo "===============================================================================" \
+    && gdebi --non-interactive "$TMPDIR/wkhtmltopdf.deb"
+
+FROM crate-build-6-wkhtmltopdf AS crate-build-7-nlp-tools
+
+RUN echo "===============================================================================" \
     && echo "Third-party NLP tools" \
     && echo "===============================================================================" \
     && echo "- GATE..." \
     && wget \
         --progress=dot:giga \
-        -O "${TMPDIR}/gate-installer.jar" \
+        -O "$TMPDIR/gate-installer.jar" \
         https://github.com/GateNLP/gate-core/releases/download/v8.6.1/gate-developer-8.6.1-installer.jar \
-    && java -jar "${TMPDIR}/gate-installer.jar" \
-        "${CRATE_SRC}/docker/dockerfiles/gate_auto_install.xml" \
+    && java -jar "$TMPDIR/gate-installer.jar" \
+        "$CRATE_SRC/docker/dockerfiles/gate_auto_install.xml" \
     \
     && echo "- KCL BRC GATE Pharmacotherapy app..." \
     && wget \
         --progress=dot:giga \
-        -O "${TMPDIR}/brc-gate-pharmacotherapy.zip" \
+        -O "$TMPDIR/brc-gate-pharmacotherapy.zip" \
         https://github.com/KHP-Informatics/brc-gate-pharmacotherapy/releases/download/1.1/brc-gate-pharmacotherapy.zip \
-    && unzip "${TMPDIR}/brc-gate-pharmacotherapy.zip" -d "${KCL_PHARMACOTHERAPY_PARENT_DIR}" \
+    && unzip "$TMPDIR/brc-gate-pharmacotherapy.zip" -d "$KCL_PHARMACOTHERAPY_PARENT_DIR" \
     \
     && echo "- Bio-YODIE..." \
-    && git clone https://github.com/GateNLP/Bio-YODIE "${BIOYODIE_DIR}" \
-    && cd "${BIOYODIE_DIR}" \
+    && git clone https://github.com/GateNLP/Bio-YODIE "$BIOYODIE_DIR" \
+    && cd "$BIOYODIE_DIR" \
     && git pull --recurse-submodules=on-demand \
     && git submodule update --init --recursive \
     && plugins/compilePlugins.sh \
     \
     && echo "- KCL BRC GATE Lewy body dementia app..." \
-    && git clone https://github.com/KHP-Informatics/brc-gate-LBD "${TMPDIR}/kcl_lewy" \
-    && unzip "${TMPDIR}/kcl_lewy/Lewy_Body_Diagnosis.zip" -d "${KCL_LEWY_BODY_DIAGNOSIS_DIR}" \
-    \
-    && echo "===============================================================================" \
+    && git clone https://github.com/KHP-Informatics/brc-gate-LBD "$TMPDIR/kcl_lewy" \
+    && unzip "$TMPDIR/kcl_lewy/Lewy_Body_Diagnosis.zip" -d "$KCL_LEWY_BODY_DIAGNOSIS_DIR"
+
+FROM crate-build-7-nlp-tools AS crate-build-8-python-packages
+
+RUN echo "===============================================================================" \
     && echo "CRATE" \
     && echo "===============================================================================" \
     && echo "- Creating Python 3 virtual environment..." \
     && python3 -m venv /crate/venv \
     && echo "- Upgrading pip within virtual environment..." \
-    && "${CRATE_VENV_BIN}/python3" -m pip install --upgrade pip \
+    && "$CRATE_VENV_BIN/python3" -m pip install --upgrade pip \
     && echo "- Installing wheel within virtual environment..." \
-    && "${CRATE_VENV_BIN}/pip" install wheel==0.35.1 \
+    && "$CRATE_VENV_BIN/pip" install wheel==0.35.1 \
     && echo "- Installing CRATE (crate_anon, from source) and Python database drivers..." \
     && echo "  * MySQL [mysqlclient]" \
     && echo "  * PostgreSQL [psycopg2]" \
     && echo "  * SQL Server [mssql-django, pyodbc, Microsoft ODBC Driver for SQL Server (Linux) as above]" \
-    && "${CRATE_VENV_BIN}/python3" -m pip install \
-        "${CRATE_SRC}" \
+    && "$CRATE_VENV_BIN/python3" -m pip install \
+        "$CRATE_SRC" \
         mssql-django==1.2 \
         mysqlclient==1.4.6 \
         psycopg2==2.8.5 \
         pyodbc==4.0.30 \
     && echo "- Installing remote debugger..." \
-    && "${CRATE_VENV_BIN}/python3" -m pip install remote-pdb \
+    && "$CRATE_VENV_BIN/python3" -m pip install remote-pdb \
     && echo "- Compiling CRATE Java interfaces..." \
-    && "${CRATE_VENV_BIN}/crate_nlp_build_gate_java_interface" \
-        --gatedir "${GATE_HOME}" \
-    \
-    && echo "===============================================================================" \
+    && "$CRATE_VENV_BIN/crate_nlp_build_gate_java_interface" \
+        --gatedir "$GATE_HOME"
+
+FROM crate-build-8-python-packages AS crate-build-9-extra-nlp
+
+RUN echo "===============================================================================" \
     && echo "Extra NLP steps" \
     && echo "===============================================================================" \
     && echo "- Running a GATE application to pre-download plugins..." \
     && java \
-        -classpath "${CRATE_PACKAGE_ROOT}/nlp_manager/compiled_nlp_classes:${GATE_HOME}/lib/*" \
-        -Dgate.home="${GATE_HOME}" \
+        -classpath "$CRATE_PACKAGE_ROOT/nlp_manager/compiled_nlp_classes:$GATE_HOME/lib/*" \
+        -Dgate.home="$GATE_HOME" \
         CrateGatePipeline \
-        --gate_app "${KCL_PHARMACOTHERAPY_DIR}/application.xgapp" \
-        --pluginfile "${CRATE_GATE_PLUGIN_FILE}" \
+        --gate_app "$KCL_PHARMACOTHERAPY_DIR/application.xgapp" \
+        --pluginfile "$CRATE_GATE_PLUGIN_FILE" \
         --suppress_gate_stdout \
         --verbose \
-        --launch_then_stop \
-    \
-    && echo "===============================================================================" \
+        --launch_then_stop
+
+FROM crate-build-9-extra-nlp AS crate-build-10-static-files
+
+RUN echo "===============================================================================" \
     && echo "Creating static files directory" \
     && echo "===============================================================================" \
     && mkdir -p /crate/static \
-    && chown -R crate:crate /crate/static \
-    && echo "===============================================================================" \
+    && chown -R crate:crate /crate/static
+
+FROM crate-build-10-static-files AS crate-build-11-temp-files
+
+RUN echo "===============================================================================" \
     && echo "Creating temp files directory" \
     && echo "===============================================================================" \
     && mkdir -p /crate/tmp \
-    && chown -R crate:crate /crate/tmp \
-    && echo "===============================================================================" \
+    && chown -R crate:crate /crate/tmp
+
+FROM crate-build-11-temp-files AS crate-build-12-cleanup
+
+RUN echo "===============================================================================" \
     && echo "Cleanup" \
     && echo "===============================================================================" \
     && echo "- Removing OS packages used only for the installation..." \
@@ -286,10 +306,9 @@ RUN echo "======================================================================
         gnupg2 \
     && apt-get autoremove -y \
     && echo "- Cleaning up..." \
-    && rm -rf "${TMPDIR}" \
+    && rm -rf "$TMPDIR" \
     && rm -rf /var/lib/apt/lists/* \
     && echo "- Done."
-
 
 # -----------------------------------------------------------------------------
 # EXPOSE: expose a port.
