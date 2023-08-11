@@ -185,6 +185,7 @@ class DockerEnvVar(EnvVar):
     GATE_BIOYODIE_RESOURCES_HOST_DIR = (
         f"{PREFIX}_GATE_BIOYODIE_RESOURCES_HOST_DIR"
     )
+    IMAGE_TAG = f"{PREFIX}_IMAGE_TAG"
     INSTALL_USER_ID = f"{PREFIX}_INSTALL_USER_ID"
 
     CRATE_DB_DATABASE_NAME = f"{PREFIX}_CRATE_DB_DATABASE_NAME"
@@ -462,17 +463,32 @@ class Installer:
         self.report_status()
 
     def build_crate_image(self) -> None:
+        # Only build the crate image if the tag has changed
+        # or the update flag was set explicitly
+        if self.image_needs_building():
+            # Could set cache=False here if there are problems.
+            # It looks like docker.compose.build will always rebuild the docker
+            # image even if there is an existing image with the same tag.
+            os.chdir(HostPath.DOCKERFILES_DIR)
+
+            self.docker.compose.build(
+                services=[
+                    DockerComposeServices.CRATE_SERVER,
+                    DockerComposeServices.CRATE_WORKERS,
+                    DockerComposeServices.FLOWER,
+                ]
+            )
+
+    def image_needs_building(self) -> bool:
         if self.update:
-            self.info("Updating existing CRATE installation")
+            return True
+
         os.chdir(HostPath.DOCKERFILES_DIR)
-        self.docker.compose.build(
-            services=[
-                DockerComposeServices.CRATE_SERVER,
-                DockerComposeServices.CRATE_WORKERS,
-                DockerComposeServices.FLOWER,
-            ],
-            cache=not self.update,
-        )
+
+        filters = dict(reference=os.getenv(DockerEnvVar.IMAGE_TAG))
+        images = self.docker.image.list(filters=filters)
+
+        return len(images) == 0
 
     def start(self) -> None:
         os.chdir(HostPath.DOCKERFILES_DIR)
@@ -589,6 +605,7 @@ class Installer:
     def configure(self) -> None:
         try:
             self.configure_user()
+            self.configure_tag()
             self.configure_config_files()
             self.configure_files_dir()
             self.configure_static_dir()
@@ -610,6 +627,11 @@ class Installer:
         self.setenv(
             DockerEnvVar.INSTALL_USER_ID, self.get_docker_install_user_id
         )
+
+    def configure_tag(self) -> None:
+        # Need to keep in sync with crate_anon/version.py
+        # Use e.g. -rc1 suffix in development
+        self.setenv(DockerEnvVar.IMAGE_TAG, "crate:0.20.1")
 
     def configure_config_files(self) -> None:
         self.setenv(
