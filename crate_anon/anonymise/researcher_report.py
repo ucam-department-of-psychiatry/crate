@@ -445,13 +445,14 @@ def mk_table_html(table_name: str, reportcfg: ResearcherReportConfig) -> str:
     )
     session = reportcfg.db_session
 
-    n_records = (
+    n_rows = (
         session.execute(
             select([func.count()]).select_from(table(table_name))
         ).fetchone()[0]
         if reportcfg.show_counts
         else None
     )
+    # Rows versus records: https://dba.stackexchange.com/questions/31805/
 
     t = reportcfg.db.metadata.tables[table_name]  # type: Table
     table_comment = t.comment or ""  # may be blank
@@ -493,7 +494,7 @@ def mk_table_html(table_name: str, reportcfg: ResearcherReportConfig) -> str:
         template(Templates.TABLE),
         dict(
             columns=columns,
-            n_records=n_records,
+            n_rows=n_rows,
             show_counts=reportcfg.show_counts,
             show_values=reportcfg.show_values,
             table_comment=table_comment,
