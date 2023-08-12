@@ -20,7 +20,7 @@
             <col class="col_nullable">
             <col class="col_comment">
             {% if use_dd %}<col class="col_ddinfo">{% endif %}
-            <col class="col_values">
+            {% if show_values %}<col class="col_values">{% endif %}
         </colgroup>
         <tr>
             <th>Column</th>

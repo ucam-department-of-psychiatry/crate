@@ -191,8 +191,9 @@ class ResearcherReportConfig:
             return ""
         url_obj = make_url(self.db_url)  # type: URL
         return repr(url_obj)
-        # The default repr() implementation calls
-        # self.__to_string__(hide_password=False)
+        # For SQLAlchemy URL objects, the default str() implementation calls
+        # self.__to_string__(hide_password=False), but the default repr() hides
+        # passwords.
 
     def wkhtmltopdf_options(self) -> Dict[str, Optional[str]]:
         """
@@ -256,13 +257,15 @@ class ColumnInfo:
 
     @property
     def fk_str(self) -> str:
-        if self.fk:
-            fk_cols = [
-                f"{fk.column.table.name}.{fk.column.name}" for fk in self.fk
-            ]
-            return "FK to " + ", ".join(fk_cols)
-        else:
+        if not self.fk:
             return ""
+        fk_cols = [
+            f"{fk.column.table.name}.{fk.column.name}"
+            for fk in sorted(
+                self.fk, key=lambda x: (x.column.table.name, x.column.name)
+            )
+        ]
+        return "FK to " + ", ".join(fk_cols)
 
 
 def template(filename: str) -> str:
@@ -306,8 +309,7 @@ def literal(
 
     - Some duplication from within
       cardinal_pythonlib.sqlalchemy.dump.get_literal_query.
-    - Dates are NOT enclosed in quotes here.
-    - DATETIME values are truncated to dates.
+    - Dates/times are NOT enclosed in quotes here.
     """
     if value is None:
         return "NULL"
@@ -402,19 +404,20 @@ def get_values_summary(
         if n_distinct <= reportcfg.max_distinct_values:
             do_distinct = True
 
+    def lit(value: Any) -> str:
+        return literal(value, reportcfg.max_value_length)
+
     if do_min_max:
         min_val, max_val = session.execute(
             select([func.min(column), func.max(column)])
         ).fetchone()
-        items.append(f"Min {literal(min_val)}; max {literal(max_val)}.")
+        items.append(f"Min {lit(min_val)}; max {lit(max_val)}.")
 
     if do_distinct:
         dv_rows = session.execute(select([func.distinct(column)])).fetchall()
         # Sort before literal (so we get numeric, not string, sort):
         distinct_values = sorted((row[0] for row in dv_rows), key=sorter)
-        distinct_value_str = ", ".join(
-            literal(v, reportcfg.max_value_length) for v in distinct_values
-        )
+        distinct_value_str = ", ".join(lit(v) for v in distinct_values)
         items.append(f"Distinct values: {{{distinct_value_str}}}.")
         # It's a set, so use set notation.
 
@@ -435,7 +438,11 @@ def mk_table_html(table_name: str, reportcfg: ResearcherReportConfig) -> str:
         HTML as a string.
     """
     log.info(f"Processing table: {table_name}")
-    dest_ddr_rows = reportcfg.anonconfig.dd.get_rows_for_dest_table(table_name)
+    dest_ddr_rows = (
+        reportcfg.anonconfig.dd.get_rows_for_dest_table(table_name)
+        if reportcfg.use_dd
+        else []
+    )
     session = reportcfg.db_session
 
     n_records = (
