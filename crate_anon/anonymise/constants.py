@@ -204,6 +204,7 @@ TABLE_KWARGS = {
     "mysql_charset": CHARSET,
     "mysql_engine": "InnoDB",
 }
+COMMENT = "comment"
 
 MYSQL_MAX_IDENTIFIER_LENGTH = 64
 # MySQL: 64 -- http://dev.mysql.com/doc/refman/5.7/en/identifiers.html
@@ -457,6 +458,10 @@ class AnonymiseDatabaseSafeConfigDefaults:
     DDGEN_OMIT_BY_DEFAULT = True
     DDGEN_PREFER_ORIGINAL_PK = False
     DEBUG_ROW_LIMIT = 0
+
+
+class AnonymiseColumnComments:
+    TIMEFIELD_COMMENT = "Date/time that CRATE processed the source row (UTC)"
 
 
 class HashConfigKeys:

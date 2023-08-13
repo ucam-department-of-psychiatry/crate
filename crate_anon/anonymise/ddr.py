@@ -669,6 +669,13 @@ class DataDictionaryRow:
         """
         return not self.omit
 
+    @property
+    def is_table_comment(self) -> bool:
+        """
+        Is this a table comment, free of column information?
+        """
+        return bool(self.comment and not self.src_field)
+
     # -------------------------------------------------------------------------
     # Comparisons
     # -------------------------------------------------------------------------
@@ -717,6 +724,8 @@ class DataDictionaryRow:
         Returns a signature based on the source database/table/field, in the
         format ``db.table.column``.
         """
+        if self.is_table_comment:
+            return f"{self.src_db}.{self.src_table}"
         return f"{self.src_db}.{self.src_table}.{self.src_field}"
 
     @property
@@ -725,6 +734,8 @@ class DataDictionaryRow:
         Returns a signature based on the destination table/field, in the format
         ``table.column``.
         """
+        if self.is_table_comment:
+            return f"{self.dest_table}"
         return f"{self.dest_table}.{self.dest_field}"
 
     @property
@@ -998,6 +1009,7 @@ class DataDictionaryRow:
         fetching here is, for example, the String(50) part. For the full
         column, see ``dest_sqla_column`` below.
         """
+        assert not self.is_table_comment
         if self.dest_datatype:
             # User (or our autogeneration process) wants to override
             # the type.
@@ -1026,6 +1038,7 @@ class DataDictionaryRow:
         Returns an SQLAlchemy :class:`sqlalchemy.sql.schema.Column` for the
         destination column.
         """
+        assert not self.is_table_comment
         name = self.dest_field
         coltype = self.dest_sqla_coltype
         comment = self.comment or ""
@@ -1047,6 +1060,8 @@ class DataDictionaryRow:
         field is not populated explicit, just implicitly. This option makes
         them explicit by instantiating those values. Primarily for debugging.
         """
+        if self.is_table_comment:
+            return
         if not self.dest_datatype:
             self.dest_datatype = str(self.dest_sqla_coltype)
 
@@ -1098,47 +1113,26 @@ class DataDictionaryRow:
         Raises:
             :exc:`AssertionError`, :exc:`ValueError`
         """
-        src_sqla_coltype = self.src_sqla_coltype
-        dest_sqla_coltype = self.dest_sqla_coltype
-
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Anything missing?
+        # Check source database/table is OK
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         assert self.src_db, "Need src_db"
-        assert self.src_table, "Need src_table"
-        assert self.src_field, "Need src_field"
-        assert self.src_datatype, "Need src_datatype"
-        if not self.omit:
-            assert self.dest_table, "Need dest_table"
-            assert self.dest_field, "Need dest_field"
-
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Check source database/table/field are OK
-        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         if self.src_db not in self.config.source_db_names:
             raise ValueError(
                 "Data dictionary row references non-existent source "
                 "database"
             )
-
         srccfg = self.config.sources[self.src_db].srccfg
 
+        assert self.src_table, "Need src_table"
         ensure_valid_table_name(self.src_table)
-        ensure_valid_field_name(self.src_field)
 
-        if self.include:
-            # Ensure the destination table/column names are OK for the dialect.
-            warn_if_identifier_long(
-                self.dest_table, self.dest_field, self.dest_dialect_name
-            )
-
-        # REMOVED 2016-06-04; fails with complex SQL Server types, which can
-        # look like 'NVARCHAR(10) COLLATE "Latin1_General_CI_AS"'.
-        #
-        # if not is_sqltype_valid(self.src_datatype):
-        #     raise ValueError(
-        #         "Field has invalid source data type: {}".format(
-        #             self.src_datatype))
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Check destination table is OK
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        if not self.omit:
+            assert self.dest_table, "Need dest_table"
+        ensure_valid_table_name(self.dest_table)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Check for conflicting or missing flags
@@ -1234,9 +1228,49 @@ class DataDictionaryRow:
             return
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Table comment? If so, and it's OK, then we'll end here.
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        if not self.src_field:
+            assert self.comment, (
+                "src_field can only be missing for table comments, "
+                "but there is no comment"
+            )
+            assert (
+                not self.src_datatype and not self.dest_datatype
+            ), "Table comments cannot have datatypes"
+            assert not self.src_flags, "Table comments cannot have any flags"
+            assert not self.scrub_src, "Table comments cannot be scrub sources"
+            assert not self.scrub_method, "Table comments cannot be scrubbed"
+            assert (
+                not self.inclusion_values and not self.exclusion_values
+            ), "Table comments cannot have inclusion/exclusion values"
+            assert not self.dest_field, "Table comments cannot have dest_field"
+            assert (
+                self.index == IndexType.NONE
+            ), "Table comments cannot be indexed"
+            return
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Check other source field information
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        ensure_valid_field_name(self.src_field)
+        assert self.src_datatype, "Need src_datatype"
+
+        # REMOVED 2016-06-04; fails with complex SQL Server types, which can
+        # look like 'NVARCHAR(10) COLLATE "Latin1_General_CI_AS"'.
+        #
+        # if not is_sqltype_valid(self.src_datatype):
+        #     raise ValueError(
+        #         "Field has invalid source data type: {}".format(
+        #             self.src_datatype))
+
+        src_sqla_coltype = self.src_sqla_coltype
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Check destination table/field/datatype
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Table
+        assert self.dest_field, "Need dest_field"
         ensure_valid_table_name(self.dest_table)
         if self.dest_table == self.config.temporary_tablename:
             raise ValueError(
@@ -1261,12 +1295,17 @@ class DataDictionaryRow:
                 f"in the config's {AnonymiseConfigKeys.TRID_FIELDNAME} "
                 f"variable"
             )
+        # Ensure the destination table/column names are OK for the dialect.
+        warn_if_identifier_long(
+            self.dest_table, self.dest_field, self.dest_dialect_name
+        )
         # Datatype
         if self.dest_datatype and not is_sqltype_valid(self.dest_datatype):
             raise ValueError(
                 f"Field has invalid {self.DEST_DATATYPE}: "
                 f"{self.dest_datatype}"
             )
+        dest_sqla_coltype = self.dest_sqla_coltype
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Check destination flags/special fields
@@ -1749,3 +1788,26 @@ class DataDictionaryRow:
 
         else:
             self.omit = dbconf.ddgen_omit_by_default
+
+    def set_as_table_comment(
+        self, src_db: str, src_table: str, comment: str
+    ) -> None:
+        """
+        Set up this DDR as a special table-comment row. (Used in data
+        dictionary drafting.)
+
+        Args:
+            src_db:
+                Source database name.
+            src_table:
+                Source table name.
+            comment:
+                Textual comment.
+        """
+        self.src_db = src_db
+        self.src_table = src_table
+        self.src_field = ""
+        self.dest_table = src_table
+        self.comment = comment
+        self.omit = False
+        self._from_file = False

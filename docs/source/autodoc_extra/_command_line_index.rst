@@ -25,8 +25,6 @@ Index of CRATE commands
 
 :ref:`crate_anon_draft_dd <crate_anon_draft_dd>`
 
-:ref:`crate_anon_researcher_report <crate_anon_researcher_report>`
-
 :ref:`crate_anon_show_counts <crate_anon_show_counts>`
 
 :ref:`crate_anon_summarize_dd <crate_anon_summarize_dd>`
@@ -98,6 +96,8 @@ Index of CRATE commands
 :ref:`crate_preprocess_systmone <crate_preprocess_systmone>`
 
 :ref:`crate_print_demo_crateweb_config <crate_print_demo_crateweb_config>`
+
+:ref:`crate_researcher_report <crate_researcher_report>`
 
 :ref:`crate_run_crate_nlp_demo <crate_run_crate_nlp_demo>`
 

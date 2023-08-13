@@ -82,6 +82,7 @@ from sqlalchemy.sql import text
 
 from crate_anon.anonymise.constants import (
     CHARSET,
+    COMMENT,
     TABLE_KWARGS,
 )
 from crate_anon.common.constants import EnvVar
@@ -123,6 +124,8 @@ DEFAULT_DOCTEST_ODT = os.path.join(DEFAULT_DOCDIR, "doctest.odt")
 DEFAULT_DOCTEST_PDF = os.path.join(DEFAULT_DOCDIR, "doctest.pdf")
 
 MAX_EXT_LENGTH_WITH_DOT = 10
+
+PATIENT_ID_COMMENT = "Patient ID"
 
 
 # =============================================================================
@@ -218,19 +221,33 @@ class Patient(Base):
     """
 
     __tablename__ = "patient"
-    __table_args__ = TABLE_KWARGS
+    __table_args__ = {
+        COMMENT: "Fictional patients",
+        **TABLE_KWARGS,
+    }
 
-    patient_id = Column(Integer, primary_key=True, autoincrement=False)
-    forename = Column(String(50))
-    surname = Column(String(50))
-    dob = Column(Date)
-    nullfield = Column(Integer)
-    nhsnum = Column(BigInteger)
-    phone = Column(String(50))
-    postcode = Column(String(50))
-    optout = Column(Boolean, default=False)
-    related_patient_id = Column(Integer)
-    colour = Column(Enum(EnumColours), nullable=True)  # new in v0.18.41
+    patient_id = Column(
+        Integer,
+        primary_key=True,
+        autoincrement=False,
+        comment=PATIENT_ID_COMMENT,
+    )
+    forename = Column(String(50), comment="Forename")
+    surname = Column(String(50), comment="Surname")
+    dob = Column(Date, comment="Date of birth (DOB)")
+    nullfield = Column(Integer, comment="Always NULL")
+    nhsnum = Column(BigInteger, comment="NHS number")
+    phone = Column(String(50), comment="Phone number")
+    postcode = Column(String(50), comment="Postcode")
+    optout = Column(
+        Boolean, default=False, comment="Opt out from research database?"
+    )
+    related_patient_id = Column(Integer, comment="ID of another patient")
+    colour = Column(
+        Enum(EnumColours),
+        nullable=True,
+        comment="An enum column, which may be red/green/blue",
+    )  # new in v0.18.41
 
 
 class Note(Base):
@@ -239,12 +256,17 @@ class Note(Base):
     """
 
     __tablename__ = "note"
-    __table_args__ = TABLE_KWARGS
+    __table_args__ = {
+        COMMENT: "Fictional textual notes",
+        **TABLE_KWARGS,
+    }
 
-    note_id = Column(Integer, primary_key=True)
-    patient_id = Column(Integer, ForeignKey("patient.patient_id"))
-    note = Column(Text)
-    note_datetime = Column(DateTime)
+    note_id = Column(Integer, primary_key=True, comment="Note ID")
+    patient_id = Column(
+        Integer, ForeignKey("patient.patient_id"), comment=PATIENT_ID_COMMENT
+    )
+    note = Column(Text, comment="Text of the note")
+    note_datetime = Column(DateTime, comment="Date/time of the note")
 
     patient = relationship("Patient")
 
@@ -255,13 +277,24 @@ class BlobDoc(Base):
     """
 
     __tablename__ = "blobdoc"
-    __table_args__ = TABLE_KWARGS
+    __table_args__ = {
+        COMMENT: "Fictional documents as binary large objects",
+        **TABLE_KWARGS,
+    }
 
-    blob_doc_id = Column(Integer, primary_key=True)
-    patient_id = Column(Integer, ForeignKey("patient.patient_id"))
-    blob = Column(LargeBinary)  # modified as above!
-    extension = Column(String(MAX_EXT_LENGTH_WITH_DOT))
-    blob_datetime = Column(DateTime)
+    blob_doc_id = Column(
+        Integer, primary_key=True, comment="Binary document ID"
+    )
+    patient_id = Column(
+        Integer, ForeignKey("patient.patient_id"), comment=PATIENT_ID_COMMENT
+    )
+    blob = Column(
+        LargeBinary, comment="The BLOB (binary large object)"
+    )  # modified as above!
+    extension = Column(
+        String(MAX_EXT_LENGTH_WITH_DOT), comment="Filename extension"
+    )
+    blob_datetime = Column(DateTime, comment="Date/time of the document")
 
     patient = relationship("Patient")
 
@@ -294,12 +327,17 @@ class FilenameDoc(Base):
     """
 
     __tablename__ = "filenamedoc"
-    __table_args__ = TABLE_KWARGS
+    __table_args__ = {
+        COMMENT: "Filenames of binary documents",
+        **TABLE_KWARGS,
+    }
 
-    filename_doc_id = Column(Integer, primary_key=True)
-    patient_id = Column(Integer, ForeignKey("patient.patient_id"))
-    filename = Column(Text)
-    file_datetime = Column(DateTime)
+    filename_doc_id = Column(Integer, primary_key=True, comment="Filename ID")
+    patient_id = Column(
+        Integer, ForeignKey("patient.patient_id"), comment=PATIENT_ID_COMMENT
+    )
+    filename = Column(Text, comment="Filename")
+    file_datetime = Column(DateTime, comment="Date/time of the document")
 
     patient = relationship("Patient")
 

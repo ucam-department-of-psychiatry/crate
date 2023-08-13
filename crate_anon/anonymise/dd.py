@@ -49,6 +49,7 @@ from typing import (
     Dict,
     List,
     Optional,
+    Set,
     Tuple,
     TYPE_CHECKING,
     Union,
@@ -70,6 +71,7 @@ from sqlalchemy.sql.sqltypes import String, TypeEngine
 # don't import config: circular dependency would have to be sorted out
 from crate_anon.anonymise.constants import (
     AlterMethodType,
+    AnonymiseColumnComments,
     AnonymiseConfigKeys,
     Decision,
     IndexType,
@@ -136,6 +138,7 @@ class DDTableSummary:
     src_has_patient_scrub_info: bool
     src_has_third_party_scrub_info: bool
     src_has_required_scrub_info: bool
+    src_has_table_comment: bool
 
     # Destination information
     dest_table: str
@@ -451,6 +454,16 @@ class DataDictionary:
                     for c in t.columns
                 )
 
+                # Is there a table comment?
+                if t.comment:
+                    comment_ddr = DataDictionaryRow(self.config)
+                    comment_ddr.set_as_table_comment(
+                        src_db=pretty_dbname,
+                        src_table=tablename,
+                        comment=t.comment,
+                    )
+                    self.rows.append(comment_ddr)
+
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Scan each column
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -458,6 +471,7 @@ class DataDictionary:
                     i += 1
                     if report_every and i % report_every == 0:
                         log.debug(f"... reading source field number {i}")
+                    log.debug(repr(c))
                     # Name
                     columnname = c.name
                     # Do not manipulate the case of SOURCE tables/columns.
@@ -482,15 +496,16 @@ class DataDictionary:
                     # ... not all dialects support reflecting comments;
                     # https://docs.sqlalchemy.org/en/14/core/reflection.html
                     if cfg.ddgen_append_source_info_to_comment:
-                        comment = f"[from {tablename}.{columnname}]"
+                        comment += f" [from {tablename}.{columnname}]"
+                    comment = comment.strip()
                     # Create row
                     ddr = DataDictionaryRow(self.config)
                     ddr.set_from_src_db_info(
-                        pretty_dbname,
-                        tablename,
-                        columnname,
-                        datatype_sqltext,
-                        sqla_coltype,
+                        src_db=pretty_dbname,
+                        src_table=tablename,
+                        src_field=columnname,
+                        src_datatype_sqltext=datatype_sqltext,
+                        src_sqla_coltype=sqla_coltype,
                         dbconf=cfg,
                         comment=comment,
                         nullable=c.nullable,
@@ -941,6 +956,18 @@ class DataDictionary:
                 f"{SrcFlag.DEFINES_PRIMARY_PIDS} set."
             )
 
+        log.debug("Checking DD: table comments")
+        table_comments_seen = set()  # type: Set[str]
+        for ddr in self.rows:
+            if not ddr.is_table_comment:
+                continue
+            if ddr.dest_table in table_comments_seen:
+                raise ValueError(
+                    f"More than one table comment for destination table "
+                    f"{ddr.dest_table}"
+                )
+            table_comments_seen.add(ddr.dest_table)
+
         log.debug("... DD checked.")
 
     # -------------------------------------------------------------------------
@@ -1171,7 +1198,9 @@ class DataDictionary:
         """
         Returns summary information for a specific table.
         """
-        rows = self.get_rows_for_src_table(src_db, src_table)
+        rows = self.get_rows_for_src_table(
+            src_db, src_table, skip_table_comments=False
+        )
 
         # Source
         src_has_pk = False
@@ -1185,6 +1214,7 @@ class DataDictionary:
         src_has_patient_scrub_info = False
         src_has_third_party_scrub_info = False
         src_has_required_scrub_info = False
+        src_has_table_comment = False
         # Destination
         dest_table = None  # type: Optional[str]
         dest_has_rows = False
@@ -1212,6 +1242,9 @@ class DataDictionary:
             src_has_required_scrub_info = (
                 src_has_required_scrub_info or ddr.required_scrubber
             )
+            src_has_table_comment = (
+                src_has_table_comment or ddr.is_table_comment
+            )
             # Destination
             dest_table = dest_table or ddr.dest_table
             dest_has_rows = dest_has_rows or not ddr.omit
@@ -1234,6 +1267,7 @@ class DataDictionary:
             src_has_patient_scrub_info=src_has_patient_scrub_info,
             src_has_third_party_scrub_info=src_has_third_party_scrub_info,
             src_has_required_scrub_info=src_has_required_scrub_info,
+            src_has_table_comment=src_has_table_comment,
             # Destination info
             dest_table=dest_table,
             dest_has_rows=dest_has_rows,
@@ -1349,7 +1383,7 @@ class DataDictionary:
 
     @lru_cache(maxsize=None)
     def get_rows_for_src_table(
-        self, src_db: str, src_table: str
+        self, src_db: str, src_table: str, skip_table_comments: bool = True
     ) -> AbstractSet[DataDictionaryRow]:
         """
         For a given source database name/table, return a SortedSet of DD rows.
@@ -1358,7 +1392,9 @@ class DataDictionary:
             [
                 ddr
                 for ddr in self.rows
-                if ddr.src_db == src_db and ddr.src_table == src_table
+                if ddr.src_db == src_db
+                and ddr.src_table == src_table
+                and (not skip_table_comments or not ddr.is_table_comment)
             ]
         )
 
@@ -1374,7 +1410,9 @@ class DataDictionary:
             [
                 ddr.src_field
                 for ddr in self.rows
-                if ddr.src_db == src_db and ddr.src_table == src_table
+                if ddr.src_db == src_db
+                and ddr.src_table == src_table
+                and ddr.src_field
             ]
         )
 
@@ -1546,7 +1584,7 @@ class DataDictionary:
     ) -> AbstractSet[Tuple[str, str]]:
         """
         For a given destination table, return a SortedSet of ``dbname, table``
-        tuples.
+        tuples, representing source database(s)/table(s).
         """
         return SortedSet(
             [
@@ -1558,7 +1596,7 @@ class DataDictionary:
 
     @lru_cache(maxsize=None)
     def get_rows_for_dest_table(
-        self, dest_table: str
+        self, dest_table: str, skip_table_comments: bool = True
     ) -> AbstractSet[DataDictionaryRow]:
         """
         For a given destination table, return a SortedSet of DD rows.
@@ -1567,7 +1605,9 @@ class DataDictionary:
             [
                 ddr
                 for ddr in self.rows
-                if ddr.dest_table == dest_table and not ddr.omit
+                if ddr.dest_table == dest_table
+                and not ddr.omit
+                and (not skip_table_comments or not ddr.is_table_comment)
             ]
         )
 
@@ -1589,7 +1629,13 @@ class DataDictionary:
         pid_found = False
         rows_include_mrid_with_expected_name = False
         columns = []  # type: List[Column]
-        for ddr in self.get_rows_for_dest_table(tablename):
+        extra_kwargs = {}  # type: Dict[str, Any]
+        for ddr in self.get_rows_for_dest_table(
+            tablename, skip_table_comments=False
+        ):
+            if ddr.is_table_comment and not ddr.omit:
+                extra_kwargs["comment"] = ddr.comment
+                continue  # don't build a column for this one
             columns.append(ddr.dest_sqla_column)
             if ddr.add_src_hash:
                 columns.append(self._get_srchash_sqla_column())
@@ -1611,9 +1657,15 @@ class DataDictionary:
         ):
             columns.append(self._get_mrid_sqla_column())
         if timefield:
-            timecol = Column(timefield, DateTime)
+            timecol = Column(
+                timefield,
+                DateTime,
+                comment=AnonymiseColumnComments.TIMEFIELD_COMMENT,
+            )
             columns.append(timecol)
-        return Table(tablename, metadata, *columns, **TABLE_KWARGS)
+        return Table(
+            tablename, metadata, *columns, **TABLE_KWARGS, **extra_kwargs
+        )
 
     def _get_srchash_sqla_column(self) -> Column:
         """
@@ -1720,6 +1772,7 @@ class DataDictionary:
     def remove_rows_by_filter(self, keep: KEEP_FUNCTION_TYPE) -> None:
         """
         Removes any rows that do not pass a filter function.
+        (Retains table comment rows.)
 
         Args:
             keep:
@@ -1732,6 +1785,7 @@ class DataDictionary:
         """
         Set to "omit" any rows that do not pass a filter function.
         Does not alter any rows already set to omit.
+        (Skips table comment rows.)
 
         Args:
             keep:
@@ -1739,6 +1793,8 @@ class DataDictionary:
                 returning a boolean of whether to keep the row.
         """
         for row in self.rows:
+            if row.is_table_comment:
+                continue
             if not row.omit:
                 row.omit = not keep(row)
 
@@ -1753,6 +1809,7 @@ class DataDictionary:
         """
         Removes any rows that do not pass a filter function; allows the filter
         function to modify rows that are kept.
+        (Retains table comment rows.)
 
         Args:
             keep_modify:
@@ -1762,6 +1819,8 @@ class DataDictionary:
         """
         new_rows = []  # type: List[DataDictionaryRow]
         for row in self.rows:
+            if row.is_table_comment:
+                continue
             result = keep_modify(row)
             if result is not None:
                 new_rows.append(result)

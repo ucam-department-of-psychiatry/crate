@@ -65,6 +65,10 @@ from sqlalchemy.sql.schema import MetaData
 from sqlalchemy.types import Integer, Text
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
+from crate_anon.anonymise.constants import (
+    COMMENT,
+    TABLE_KWARGS,
+)
 from crate_anon.common.stringfunc import (
     compress_docstring,
     does_text_contain_word_chars,
@@ -480,7 +484,13 @@ class TableMaker(ABC):
                 copy_of_cols + core_indexes + extra_dest_indexes + copy_indexes
             )
             # log.critical(repr(column_like_things))
-            tables[tablename] = Table(tablename, meta, *column_like_things)
+            table_kwargs = {
+                COMMENT: f"CRATE NLP results for {self._friendly_name}",
+                **TABLE_KWARGS,
+            }
+            tables[tablename] = Table(
+                tablename, meta, *column_like_things, **table_kwargs
+            )
             # You can put indexes in the column list:
             # http://docs.sqlalchemy.org/en/latest/core/constraints.html
 
