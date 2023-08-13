@@ -1,9 +1,8 @@
 <div class="database_table_section">
     <h2>{{ table_name }}</h2>
     {% if table_comment %}
-        <p>
-            Comment:
-            <span class="result">{{ table_comment }}</span>
+        <p class="table_comment">
+            {{ table_comment }}
         </p>
     {% endif %}
     {% if show_counts %}

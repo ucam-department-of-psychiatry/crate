@@ -79,7 +79,9 @@ tfoot { display: table-footer-group; }
 }
 .key_col_fk {
 }
-
 .result {
     font-weight: bold;
+}
+.table_comment {
+    font-style: italic;
 }
