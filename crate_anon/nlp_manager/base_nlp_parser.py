@@ -282,7 +282,7 @@ class TableMaker(ABC):
         """
         Returns the NLP parser's friendly name and config section.
         """
-        return f"{self._friendly_name} [{self._sectionname}]"
+        return f"{self.friendly_name} [{self._sectionname}]"
 
     @property
     def dest_dbname(self) -> str:
@@ -485,7 +485,7 @@ class TableMaker(ABC):
             )
             # log.critical(repr(column_like_things))
             table_kwargs = {
-                COMMENT: f"CRATE NLP results for {self._friendly_name}",
+                COMMENT: f"CRATE NLP results for {self.friendly_name}",
                 **TABLE_KWARGS,
             }
             tables[tablename] = Table(
