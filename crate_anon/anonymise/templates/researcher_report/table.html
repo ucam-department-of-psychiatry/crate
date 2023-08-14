@@ -42,8 +42,8 @@
                 </td>
                 <td>{{ c.nullable_str }}</td>
                 <td>{{ c.comment }}</td>
-                {% if use_dd %}<td>{{ c.crate_annotation }}</td>{% endif %}
-                {% if show_values %}<td>{{ c.values_info }}</td>{% endif %}
+                {% if use_dd %}<td>{{ c.crate_annotation_str }}</td>{% endif %}
+                {% if show_values %}<td>{{ c.values_info_str }}</td>{% endif %}
             </tr>
         {% endfor %}
     </table>

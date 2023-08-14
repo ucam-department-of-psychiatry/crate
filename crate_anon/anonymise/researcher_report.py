@@ -30,7 +30,7 @@ crate_anon/anonymise/researcher_report.py
 """
 
 import argparse
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import datetime
 import decimal
 import logging
@@ -50,7 +50,7 @@ from django.template.loader import render_to_string
 import pendulum
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql.expression import distinct, func, select, table
-from sqlalchemy.schema import Column, ForeignKey, Table
+from sqlalchemy.schema import Column, Table
 
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.constants import ANON_CONFIG_ENV_VAR
@@ -59,6 +59,7 @@ from crate_anon.anonymise.ddr import DataDictionaryRow, DDRLabels
 from crate_anon.common.argparse_assist import (
     RawDescriptionArgumentDefaultsRichHelpFormatter,
 )
+from crate_anon.common.sql import ReflectedColumnInfo
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_PRETTY
 
 log = logging.getLogger(__name__)
@@ -234,38 +235,6 @@ class ResearcherReportConfig:
                 Column name.
         """
         return self.annotation_from_colname.get(col_name, DDRLabels.UNKNOWN)
-
-
-@dataclass
-class ColumnInfo:
-    name: str
-    sql_type: str
-    pk: bool = False
-    fk: List[ForeignKey] = field(default_factory=list)
-    nullable: bool = True
-    comment: str = ""  # database comment
-    crate_annotation: str = "?"
-    values_info: str = "?"
-
-    @property
-    def nullable_str(self) -> str:
-        return TICK if self.nullable else "NOT NULL"
-
-    @property
-    def pk_str(self) -> str:
-        return "PK" if self.pk else ""
-
-    @property
-    def fk_str(self) -> str:
-        if not self.fk:
-            return ""
-        fk_cols = [
-            f"{fk.column.table.name}.{fk.column.name}"
-            for fk in sorted(
-                self.fk, key=lambda x: (x.column.table.name, x.column.name)
-            )
-        ]
-        return "FK to " + ", ".join(fk_cols)
 
 
 def template(filename: str) -> str:
@@ -456,7 +425,7 @@ def mk_table_html(table_name: str, reportcfg: ResearcherReportConfig) -> str:
 
     t = reportcfg.db.metadata.tables[table_name]  # type: Table
     table_comment = t.comment or ""  # may be blank
-    columns = []  # type: List[ColumnInfo]
+    columns = []  # type: List[ReflectedColumnInfo]
     for c in sorted(t.c, key=lambda x: x.name):  # type: Column
         log.debug(repr(c))
         colname = c.name
@@ -478,13 +447,9 @@ def mk_table_html(table_name: str, reportcfg: ResearcherReportConfig) -> str:
             ddr=ddr,
         )
         columns.append(
-            ColumnInfo(
-                name=colname,
-                sql_type=str(c.type),
-                pk=c.primary_key,
-                nullable=c.nullable,
-                fk=list(c.foreign_keys),
-                comment=mk_comment(reportcfg, c, ddr),
+            ReflectedColumnInfo(
+                column=c,
+                override_comment=mk_comment(reportcfg, c, ddr),
                 crate_annotation=crate_annotation,
                 values_info=values_info,
             )

@@ -62,12 +62,15 @@ from sqlalchemy import inspect
 from sqlalchemy.dialects.mssql.base import MS_2012_VERSION
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.exc import CompileError
 from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import Column, Table
+from sqlalchemy.sql.sqltypes import TypeEngine
 
 from crate_anon.common.stringfunc import get_spec_match_regex
 
 log = logging.getLogger(__name__)
+
 
 # =============================================================================
 # Types
@@ -1389,6 +1392,134 @@ def drop_view(engine: Engine, viewname: str, quiet: bool = False) -> None:
             log.info(f"Dropping view: {viewname!r}")
         sql = f"DROP VIEW {viewname}"
         execute(engine, sql)
+
+
+def get_column_fk_description(c: Column) -> str:
+    """
+    Standardized description of a column's foreign keys.
+
+    Args:
+        c:
+            SQLAlchemy Column
+    """
+    fkeys = sorted(
+        c.foreign_keys, key=lambda x: (x.column.table.name, x.column.name)
+    )
+    if not fkeys:
+        return ""
+    fk_strings = [f"{fk.column.table.name}.{fk.column.name}" for fk in fkeys]
+    return "FK to " + ", ".join(fk_strings)
+
+
+@dataclass
+class ReflectedColumnInfo:
+    """
+    Provides information about a column reflected from a database, with
+    optional additional information from a CRATE data dictionary, +/- a
+    description of values in that column (for researcher reports).
+    """
+
+    column: Column
+    override_comment: str = None  # can override SQLAlchemy-level comment
+    crate_annotation: str = None
+    values_info: str = None
+
+    @property
+    def name(self) -> str:
+        return self.columnname
+
+    @property
+    def columnname(self) -> str:
+        return self.column.name
+        # Do not manipulate the case of SOURCE tables/columns.
+        # If you do, they can fail to match the SQLAlchemy
+        # introspection and cause a crash.
+
+    @property
+    def tablename(self) -> str:
+        return self.column.table.name
+
+    @property
+    def tablename_columname(self) -> str:
+        return f"{self.column.table.name}.{self.column.name}"
+
+    @property
+    def sqla_coltype(self) -> TypeEngine:
+        return self.column.type
+
+    @property
+    def sql_type(self) -> str:
+        try:
+            return str(self.column.type)
+        except CompileError:
+            log.critical(f"Column that failed was: {self.column!r}")
+            raise
+
+    @property
+    def datatype_sqltext(self) -> str:
+        return self.sql_type
+
+    @property
+    def pk(self) -> bool:
+        return self.column.primary_key
+
+    @property
+    def nullable(self) -> bool:
+        return self.column.nullable
+
+    @property
+    def comment(self) -> str:
+        """
+        The database comment, if present, or another that has been supplied.
+        """
+        db_comment = getattr(self.column, "comment", "")
+        # ... not all dialects support reflecting comments;
+        # https://docs.sqlalchemy.org/en/14/core/reflection.html
+        return self.override_comment or db_comment or ""
+
+    @property
+    def nullable_str(self) -> str:
+        return "✓" if self.nullable else "NOT NULL"
+
+    @property
+    def pk_str(self) -> str:
+        return "PK" if self.pk else ""
+
+    @property
+    def fk_str(self) -> str:
+        return get_column_fk_description(self.column)
+
+    def get_column_source_description(self, with_fk: bool = True) -> str:
+        """
+        Returns a description of where the column is from, used as a suffix for
+        data dictionary comment generation.
+
+        Args:
+            with_fk:
+                Include foreign key descriptions (helpful because CRATE doesn't
+                reproduce FK relationships in the destination DDL).
+        """
+        if with_fk:
+            fk_str = self.fk_str
+            if fk_str:
+                fk_str = "; " + fk_str
+        else:
+            fk_str = ""
+        return f" [from {self.tablename_columname}{fk_str}]"
+
+    @property
+    def crate_annotation_str(self) -> str:
+        """
+        Human-oriented version for report.
+        """
+        return self.crate_annotation or "?"
+
+    @property
+    def values_info_str(self) -> str:
+        """
+        Human-oriented version for report.
+        """
+        return self.values_info or "?"
 
 
 # =============================================================================

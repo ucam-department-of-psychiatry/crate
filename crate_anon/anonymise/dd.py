@@ -63,7 +63,6 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     is_sqlatype_text_over_one_char,
 )
 from sortedcontainers import SortedSet
-import sqlalchemy.exc
 from sqlalchemy import Column, Table, DateTime
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.sqltypes import String, TypeEngine
@@ -88,7 +87,7 @@ from crate_anon.common.spreadsheet import (
     SINGLE_SPREADSHEET_TYPE,
     write_spreadsheet,
 )
-from crate_anon.common.sql import matches_fielddef
+from crate_anon.common.sql import matches_fielddef, ReflectedColumnInfo
 
 if TYPE_CHECKING:
     from crate_anon.anonymise.config import Config
@@ -472,40 +471,28 @@ class DataDictionary:
                     if report_every and i % report_every == 0:
                         log.debug(f"... reading source field number {i}")
                     log.debug(repr(c))
-                    # Name
-                    columnname = c.name
-                    # Do not manipulate the case of SOURCE tables/columns.
-                    # If you do, they can fail to match the SQLAlchemy
-                    # introspection and cause a crash.
+                    r = ReflectedColumnInfo(c)
 
                     # Skip column?
-                    if cfg.is_field_denied(columnname):
+                    if cfg.is_field_denied(r.columnname):
                         log.debug(
-                            f"Skipping denied column: "
-                            f"{tablename}.{columnname}"
+                            f"Skipping denied column: {r.tablename_columname}"
                         )
                         continue
-                    # Other attributes
-                    sqla_coltype = c.type
-                    try:
-                        datatype_sqltext = str(sqla_coltype)
-                    except sqlalchemy.exc.CompileError:
-                        log.critical(f"Column that failed was: {c!r}")
-                        raise
-                    comment = getattr(c, "comment", "")
-                    # ... not all dialects support reflecting comments;
-                    # https://docs.sqlalchemy.org/en/14/core/reflection.html
+
+                    comment = r.comment
                     if cfg.ddgen_append_source_info_to_comment:
-                        comment += f" [from {tablename}.{columnname}]"
+                        comment += r.get_column_source_description()
                     comment = comment.strip()
+
                     # Create row
                     ddr = DataDictionaryRow(self.config)
                     ddr.set_from_src_db_info(
                         src_db=pretty_dbname,
                         src_table=tablename,
-                        src_field=columnname,
-                        src_datatype_sqltext=datatype_sqltext,
-                        src_sqla_coltype=sqla_coltype,
+                        src_field=r.columnname,
+                        src_datatype_sqltext=r.datatype_sqltext,
+                        src_sqla_coltype=r.sqla_coltype,
                         dbconf=cfg,
                         comment=comment,
                         nullable=c.nullable,
@@ -522,7 +509,7 @@ class DataDictionary:
                     if sig in existing_signatures:
                         log.debug(
                             f"Skipping duplicated column: "
-                            f"{tablename}.{columnname}"
+                            f"{r.tablename_columname}"
                         )
                         continue
                     existing_signatures.add(sig)
@@ -682,6 +669,9 @@ class DataDictionary:
     def sort(self) -> None:
         """
         Sorts the data dictionary.
+
+        (Table comments, having no source field, will be first among rows for
+        their tables.)
         """
         log.info("Sorting data dictionary")
         self.rows = sorted(

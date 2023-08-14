@@ -67,6 +67,7 @@ def draft_dd(
     systmone_include_generic: bool = False,
     systmone_allow_unprefixed_tables: bool = False,
     systmone_alter_loaded_rows: bool = False,
+    systmone_table_info_in_comments: bool = True,
 ) -> None:
     """
     Draft a data dictionary, by scanning a source database.
@@ -111,6 +112,8 @@ def draft_dd(
         systmone_alter_loaded_rows:
             Alter rows that were loaded from disk (not read from a database)?
             The default is to leave such rows untouched.
+        systmone_table_info_in_comments:
+            Include table descriptions in column comments?
     """
     if incremental:
         # For "incremental", we load the data dictionary from disk.
@@ -134,6 +137,7 @@ def draft_dd(
             include_generic=systmone_include_generic,
             allow_unprefixed_tables=systmone_allow_unprefixed_tables,
             alter_loaded_rows=systmone_alter_loaded_rows,
+            table_info_in_comments=systmone_table_info_in_comments,
         )
 
     dd.tidy_draft()
@@ -250,6 +254,21 @@ def main() -> None:
         "(not read from a database)? The default is to leave such rows "
         "untouched.",
     )
+    s1_options.add_argument(
+        "--systmone_table_info_in_comments",
+        dest="systmone_table_info_in_comments",
+        action="store_true",
+        default=True,
+        help="Add table descriptions to column comments. Useful if the "
+        "database does not itself support table comments.",
+    )
+    s1_options.add_argument(
+        "--systmone_no_table_info_in_comments",
+        dest="systmone_table_info_in_comments",
+        action="store_false",
+        default=False,
+        help="Opposite of --systmone_table_info_in_comments.",
+    )
 
     args = parser.parse_args()
 
@@ -281,4 +300,5 @@ def main() -> None:
         systmone_include_generic=args.systmone_include_generic,
         systmone_allow_unprefixed_tables=args.systmone_allow_unprefixed_tables,
         systmone_alter_loaded_rows=args.systmone_alter_loaded_rows,
+        systmone_table_info_in_comments=args.systmone_table_info_in_comments,
     )
