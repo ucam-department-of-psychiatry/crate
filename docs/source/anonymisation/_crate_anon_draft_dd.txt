@@ -7,6 +7,8 @@ USAGE: crate_anon_draft_dd [-h] [--config CONFIG] [--verbose] [--incremental]
                            [--systmone_include_generic]
                            [--systmone_allow_unprefixed_tables]
                            [--systmone_alter_loaded_rows]
+                           [--systmone_table_info_in_comments]
+                           [--systmone_no_table_info_in_comments]
 
 Draft a data dictionary for the anonymiser, by scanning a source database.
 (CRATE version 0.20.0, 2023-02-14. Created by Rudolf Cardinal.)
@@ -63,3 +65,10 @@ SYSTMONE OPTIONS (FOR WHEN --SYSTMONE IS USED):
                         (For --incremental.) Alter rows that were loaded from
                         disk (not read from a database)? The default is to
                         leave such rows untouched. (default: False)
+  --systmone_table_info_in_comments
+                        Add table descriptions to column comments. Useful if
+                        the database does not itself support table comments.
+                        (default: True)
+  --systmone_no_table_info_in_comments
+                        Opposite of --systmone_table_info_in_comments.
+                        (default: False)
