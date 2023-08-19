@@ -70,14 +70,8 @@ tfoot { display: table-footer-group; }
 .name_col {
     font-weight: bold;
 }
-.name_col_pk {
+.pk {
     color: red;
-}
-.key_col_pk {
-    color: red;
-    font-weight: bold;
-}
-.key_col_fk {
 }
 .result {
     font-weight: bold;

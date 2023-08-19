@@ -114,9 +114,14 @@ class Default:
     MARGIN_TOP_BOTTOM = "18mm"  # see HEADER_FOOTER_SPACING_MM
 
 
+ELLIPSIS = "…"
 EN_DASH = "–"
 MINUS = "−"
 HYPHEN = "-"
+SINGLE_QUOTE_L = "‘"
+SINGLE_QUOTE_R = "’"
+# SINGLE_QUOTE = "'"
+# TWO_SINGLE_QUOTES = "''"
 TICK = "✓"
 # RIGHT_ARROW = "►"
 
@@ -270,7 +275,7 @@ def mk_comment(
 def literal(
     value: Any,
     max_length: int = Default.MAX_VALUE_LENGTH,
-    truncated_suffix: str = "...",
+    truncated_suffix: str = ELLIPSIS,
 ) -> str:
     """
     Returns a rough-and-ready SQL literal, intended for human viewing only.
@@ -283,10 +288,15 @@ def literal(
     if value is None:
         return "NULL"
     elif isinstance(value, str):
-        if len(value) > max_length:
-            value = value[:max_length] + truncated_suffix
-        value = value.replace("'", "''")  # SQL-style escaping of quotes
-        return f"'{value}'"
+        length = len(value)
+        if length > max_length:
+            value = value[:max_length]
+            suffix = truncated_suffix + SINGLE_QUOTE_R + f" [length {length}]"
+        else:
+            suffix = SINGLE_QUOTE_R
+        # We won't escape quotes. This report is about visual ease, not
+        # electronic exactness.
+        return SINGLE_QUOTE_L + value + suffix
     elif isinstance(value, (float, int)):
         return repr(value).replace(HYPHEN, MINUS)
     elif isinstance(value, decimal.Decimal):
@@ -352,45 +362,47 @@ def get_values_summary(
     suffix = "" if n_distinct == 1 else "s"  # "value" or "values"?
     items.append(f"{n_distinct} distinct value{suffix}.")
 
-    do_min_max = False
-    do_distinct = False  # show the actual distinct values?
+    show_min_max = False
+    show_distinct = False  # show the actual distinct values?
 
-    if n_distinct == 0:
-        # We don't need min/max/distinct if the table is empty.
-        pass
-    elif (
-        ddr
+    empty = n_distinct == 0
+    sensitive = (
+        not empty
+        and ddr
         and (
             ddr.contains_patient_info
             or ddr.contains_third_party_info
             or ddr.contains_scrub_src
             or ddr.being_scrubbed
         )
-        or (
-            not ddr
-            and column.name == reportcfg.anonconfig.source_hash_fieldname
-        )
-    ):
-        # More sensitive fields (person/scrubbed info), or more tedious fields
-        # (source hash). Don't show these specifically.
-        pass
-    else:
+    )
+    # ... not *actually* sensitive; merely having the appearance of being
+    # sensitive for a general-purpose report.
+    dull = (
+        not empty
+        and not sensitive
+        and reportcfg.use_dd
+        and not ddr
+        and column.name in reportcfg.annotation_from_colname.keys()
+    )
+
+    if not (empty or sensitive or dull):
         # Show some more detail.
         if n_distinct > 1:
-            do_min_max = True
+            show_min_max = True
         if n_distinct <= reportcfg.max_distinct_values:
-            do_distinct = True
+            show_distinct = True
 
     def lit(value: Any) -> str:
         return literal(value, reportcfg.max_value_length)
 
-    if do_min_max:
+    if show_min_max:
         min_val, max_val = session.execute(
             select([func.min(column), func.max(column)])
         ).fetchone()
         items.append(f"Min {lit(min_val)}; max {lit(max_val)}.")
 
-    if do_distinct:
+    if show_distinct:
         dv_rows = session.execute(select([func.distinct(column)])).fetchall()
         # Sort before literal (so we get numeric, not string, sort):
         distinct_values = sorted((row[0] for row in dv_rows), key=sorter)
