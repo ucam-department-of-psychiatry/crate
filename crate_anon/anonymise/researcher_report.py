@@ -353,18 +353,26 @@ def get_values_summary(
     items.append(f"{n_distinct} distinct value{suffix}.")
 
     do_min_max = False
-    do_distinct = False
+    do_distinct = False  # show the actual distinct values?
 
     if n_distinct == 0:
         # We don't need min/max/distinct if the table is empty.
         pass
-    elif ddr and (
-        ddr.contains_patient_info
-        or ddr.contains_third_party_info
-        or ddr.contains_scrub_src
-        or ddr.being_scrubbed
+    elif (
+        ddr
+        and (
+            ddr.contains_patient_info
+            or ddr.contains_third_party_info
+            or ddr.contains_scrub_src
+            or ddr.being_scrubbed
+        )
+        or (
+            not ddr
+            and column.name == reportcfg.anonconfig.source_hash_fieldname
+        )
     ):
-        # More sensitive fields. Don't show these specifically.
+        # More sensitive fields (person/scrubbed info), or more tedious fields
+        # (source hash). Don't show these specifically.
         pass
     else:
         # Show some more detail.
