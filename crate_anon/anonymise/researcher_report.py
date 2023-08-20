@@ -150,6 +150,7 @@ class ResearcherReportConfig:
     show_counts: bool = True  # count records in each table?
     show_url: bool = True  # include a sanitised URL for the database
     show_values: bool = True  # include specimen values/ranges
+    skip_values_if_too_many: bool = False
     use_dd: bool = True  # include info from the data dictionary
 
     def __post_init__(self) -> None:
@@ -356,16 +357,17 @@ def get_values_summary(
     # Otherwise, we can always do the number of distinct values:
     items = []  # type: List[str]
     session = reportcfg.db_session
-    n_distinct = session.execute(
+    n_distinct_notnull = session.execute(
         select([func.count(distinct(column))])
     ).fetchone()[0]
-    suffix = "" if n_distinct == 1 else "s"  # "value" or "values"?
-    items.append(f"{n_distinct} distinct value{suffix}.")
+    # This does NOT include NULL values, by the SQL standard.
+    suffix = "" if n_distinct_notnull == 1 else "s"  # "value" or "values"?
+    items.append(f"{n_distinct_notnull} distinct non-null value{suffix}.")
 
     show_min_max = False
     show_distinct = False  # show the actual distinct values?
 
-    empty = n_distinct == 0
+    empty = n_distinct_notnull == 0
     sensitive = (
         not empty
         and ddr
@@ -388,9 +390,12 @@ def get_values_summary(
 
     if not (empty or sensitive or dull):
         # Show some more detail.
-        if n_distinct > 1:
+        if n_distinct_notnull > 1:
             show_min_max = True
-        if n_distinct <= reportcfg.max_distinct_values:
+        if (
+            n_distinct_notnull <= reportcfg.max_distinct_values
+            or not reportcfg.skip_values_if_too_many
+        ):
             show_distinct = True
 
     def lit(value: Any) -> str:
@@ -403,10 +408,24 @@ def get_values_summary(
         items.append(f"Min {lit(min_val)}; max {lit(max_val)}.")
 
     if show_distinct:
-        dv_rows = session.execute(select([func.distinct(column)])).fetchall()
+        dv_rows = session.execute(
+            select([func.distinct(column)])
+            .order_by(column)
+            .limit(reportcfg.max_value_length + 1)
+        ).fetchall()
+        # These WILL include any NULL values, so there may be one more than
+        # n_distinct_notnull (or the same, if there are no NULLs). The only
+        # way to be sure if we are truncating, therefore, and to show a
+        # truncation indicator, is to fetch up to one more and see if we are
+        # over the limit.
         # Sort before literal (so we get numeric, not string, sort):
         distinct_values = sorted((row[0] for row in dv_rows), key=sorter)
-        distinct_value_str = ", ".join(lit(v) for v in distinct_values)
+        distinct_value_elements = [lit(v) for v in distinct_values]
+        if len(distinct_values) > reportcfg.max_distinct_values:
+            distinct_value_elements = distinct_value_elements[
+                0 : reportcfg.max_distinct_values
+            ] + [ELLIPSIS]
+        distinct_value_str = ", ".join(distinct_value_elements)
         items.append(f"Distinct values: {{{distinct_value_str}}}.")
         # It's a set, so use set notation.
 
@@ -704,7 +723,13 @@ setting e.g. "ulimit -n 2048" is one solution.
         "--max_distinct_values",
         type=int,
         default=Default.MAX_DISTINCT_VALUES,
-        help="Maximum number of distinct values to show, where applicable",
+        help="Maximum number of distinct values to show, if applicable",
+    )
+    grp_detail.add_argument(
+        "--skip_values_if_too_many",
+        action="store_true",
+        help="If showing values, and there are more distinct values than the "
+        "maximum, omit them (rather than showing the first few)?",
     )
     grp_detail.add_argument(
         "--max_value_length",
@@ -790,6 +815,7 @@ setting e.g. "ulimit -n 2048" is one solution.
         show_counts=args.show_counts,
         show_url=args.show_url,
         show_values=args.show_values,
+        skip_values_if_too_many=args.skip_values_if_too_many,
         use_dd=args.use_dd,
     )
 
