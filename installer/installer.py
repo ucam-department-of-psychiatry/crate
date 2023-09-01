@@ -546,17 +546,22 @@ class Installer:
             command=[crate_command],
         )
 
-    def exec_crate_command(self, crate_command: str) -> None:
+    def exec_crate_command(
+        self, crate_command: str, as_root: bool = False
+    ) -> None:
         # Run a command in the existing instance of the crate_server
         # container. This does not go through entrypoint.sh so we have to
         # source the virtualenv and call /bin/bash
         venv_command = f'""source /crate/venv/bin/activate; {crate_command}""'
+
+        user = "root" if as_root else None
 
         os.chdir(HostPath.DOCKERFILES_DIR)
 
         self.docker.compose.execute(
             DockerComposeServices.CRATE_SERVER,
             [DockerPath.BASH, "-c", venv_command],
+            user=user,
         )
 
     # -------------------------------------------------------------------------
@@ -1846,6 +1851,12 @@ def main() -> None:
         f"existing {DockerComposeServices.CRATE_SERVER!r} service/container",
     )
     exec_crate_command.add_argument("crate_command", type=str)
+    exec_crate_command.add_argument(
+        "--as_root",
+        action="store_true",
+        help="Enter as the 'root' user instead of the 'crate' user",
+        default=False,
+    )
 
     shell = subparsers.add_parser(
         Command.SHELL,
@@ -1880,7 +1891,7 @@ def main() -> None:
         installer.run_crate_command(args.crate_command)
 
     elif args.command == Command.EXEC_COMMAND:
-        installer.exec_crate_command(args.crate_command)
+        installer.exec_crate_command(args.crate_command, as_root=args.as_root)
 
     elif args.command == Command.SHELL:
         installer.run_shell_in_crate_container(as_root=args.as_root)
