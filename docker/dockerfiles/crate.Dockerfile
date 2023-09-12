@@ -236,13 +236,15 @@ RUN echo "======================================================================
     && echo "- Installing CRATE (crate_anon, from source) and Python database drivers..." \
     && echo "  * MySQL [mysqlclient]" \
     && echo "  * PostgreSQL [psycopg2]" \
-    && echo "  * SQL Server [django-mssql-backend, pyodbc, Microsoft ODBC Driver for SQL Server (Linux) as above]" \
+    && echo "  * SQL Server [mssql-django, pyodbc, Microsoft ODBC Driver for SQL Server (Linux) as above]" \
     && "${CRATE_VENV_BIN}/python3" -m pip install \
         "${CRATE_SRC}" \
-        django-mssql-backend==2.8.1 \
+        mssql-django==1.2 \
         mysqlclient==1.4.6 \
         psycopg2==2.8.5 \
         pyodbc==4.0.30 \
+    && echo "- Installing remote debugger..." \
+    && "${CRATE_VENV_BIN}/python3" -m pip install remote-pdb \
     && echo "- Compiling CRATE Java interfaces..." \
     && "${CRATE_VENV_BIN}/crate_nlp_build_gate_java_interface" \
         --gatedir "${GATE_HOME}" \
@@ -294,6 +296,7 @@ RUN echo "======================================================================
 # -----------------------------------------------------------------------------
 # We'll do this via docker-compose instead.
 
+ENTRYPOINT ["/crate/src/docker/dockerfiles/docker-entrypoint.sh"]
 
 # -----------------------------------------------------------------------------
 # CMD: run the foreground task whose lifetime determines the container

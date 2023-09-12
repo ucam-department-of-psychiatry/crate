@@ -1,7 +1,7 @@
 # dev only
 flake8
-python-on-whales==0.50.0
-prompt-toolkit==3.0.30
+python-on-whales==0.60.1
+prompt-toolkit==3.0.38
 semantic_version==2.10.0
 # python-on-whales doesn't support pydantic v2
 pydantic==1.10.11

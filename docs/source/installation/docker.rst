@@ -133,6 +133,7 @@ Here is an example settings file. See :ref:`environment_variables
     .. code-block:: bash
 
         export CRATE_DOCKER_CONFIG_HOST_DIR=${HOME}/crate_config
+        export CRATE_DOCKER_FILES_HOST_DIR=${HOME}/crate_files
         export CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR=${HOME}/bioyodie_resources
         export CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD=mysqluserpassword
         export CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD=mysqlrootpassword
@@ -174,6 +175,18 @@ use a trailing slash.
     ``/host_mnt/c/Users/myuser/my_crate_dir``. As of 2020-07-21, this doesn't
     seem easy to find in the Docker docs! Ensure that this path is within the
     Windows (not WSL2) file system.
+
+
+.. _CRATE_DOCKER_FILEs_HOST_DIR:
+
+
+CRATE_DOCKER_FILES_HOST_DIR
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**No default. Must be set.**
+
+Path to a directory on the host for general file storage e.g. binary files
+uploaded to CRATE, such as PDFs.
 
 
 .. _CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME:
