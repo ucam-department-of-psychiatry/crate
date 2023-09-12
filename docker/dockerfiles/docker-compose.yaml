@@ -159,7 +159,7 @@ services:
 
         # If you specify "image" as well as "build", Compose names the built
         # image. Syntax is "IMAGE[:TAG]".
-        image: crate:${CRATE_DOCKER_IMAGE_TAG}
+        image: ${CRATE_DOCKER_IMAGE_TAG}
         # Otherwise it will try to pull https://hub.docker.com/_/crate
         # which isn't us
         pull_policy: never
@@ -217,7 +217,7 @@ services:
 
     crate_server:
         # Re-use the image built above.
-        image: crate:${CRATE_DOCKER_IMAGE_TAG}
+        image: ${CRATE_DOCKER_IMAGE_TAG}
         # Otherwise it will try to pull https://hub.docker.com/_/crate
         # which isn't us
         pull_policy: never
@@ -269,7 +269,7 @@ services:
 
     flower:
         # Re-use the image built above.
-        image: crate:${CRATE_DOCKER_IMAGE_TAG}
+        image: ${CRATE_DOCKER_IMAGE_TAG}
         # Otherwise it will try to pull https://hub.docker.com/_/crate
         # which isn't us
         pull_policy: never

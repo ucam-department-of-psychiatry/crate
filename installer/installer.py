@@ -69,13 +69,10 @@ from python_on_whales.components.container.cli_wrapper import Container
 from semantic_version import Version
 
 # Python Prompt Toolkit has basic support for text entry / yes-no / alert
-# dialogs but unfortunately there are a couple of features lacking:
+# dialogs but unfortunately there is one feature lacking:
 #
 # Completion does not display:
 # https://github.com/prompt-toolkit/python-prompt-toolkit/issues/715
-#
-# No way of specifying a default:
-# https://github.com/prompt-toolkit/python-prompt-toolkit/issues/1544
 #
 # So for now, just use basic prompts.
 #
@@ -110,6 +107,7 @@ class HostPath:
     DEFAULT_HOST_BIOYODIE_DIR = os.path.join(CRATE_DIR, "bioyodie_resources")
 
     ENVVAR_SAVE_FILE = "set_crate_docker_host_envvars"
+    ENVVAR_UNSET_FILE = "unset_crate_docker_host_envvars"
 
 
 class DockerPath:
@@ -185,6 +183,7 @@ class DockerEnvVar(EnvVar):
     GATE_BIOYODIE_RESOURCES_HOST_DIR = (
         f"{PREFIX}_GATE_BIOYODIE_RESOURCES_HOST_DIR"
     )
+    IMAGE_TAG = f"{PREFIX}_IMAGE_TAG"
     INSTALL_USER_ID = f"{PREFIX}_INSTALL_USER_ID"
 
     CRATE_DB_DATABASE_NAME = f"{PREFIX}_CRATE_DB_DATABASE_NAME"
@@ -203,6 +202,7 @@ class DockerEnvVar(EnvVar):
     RESEARCH_DATABASE_USER_PASSWORD = (
         f"{PREFIX}_RESEARCH_DATABASE_USER_{EnvVar.PASSWORD_SUFFIX}"  # noqa
     )
+    RESEARCH_DATABASE_HOST_PORT = f"{PREFIX}_RESEARCH_DATABASE_HOST_PORT"
 
     SECRET_DATABASE_NAME = f"{PREFIX}_SECRET_DATABASE_NAME"
     SECRET_DATABASE_ROOT_PASSWORD = (
@@ -212,6 +212,7 @@ class DockerEnvVar(EnvVar):
     SECRET_DATABASE_USER_PASSWORD = (
         f"{PREFIX}_SECRET_DATABASE_USER_{EnvVar.PASSWORD_SUFFIX}"  # noqa
     )
+    SECRET_DATABASE_HOST_PORT = f"{PREFIX}_SECRET_DATABASE_HOST_PORT"
 
     SOURCE_DATABASE_NAME = f"{PREFIX}_SOURCE_DATABASE_NAME"
     SOURCE_DATABASE_ROOT_PASSWORD = (
@@ -221,6 +222,7 @@ class DockerEnvVar(EnvVar):
     SOURCE_DATABASE_USER_PASSWORD = (
         f"{PREFIX}_SOURCE_DATABASE_USER_{EnvVar.PASSWORD_SUFFIX}"  # noqa
     )
+    SOURCE_DATABASE_HOST_PORT = f"{PREFIX}_SOURCE_DATABASE_HOST_PORT"
     STATIC_HOST_DIR = f"{PREFIX}_STATIC_HOST_DIR"
 
 
@@ -247,6 +249,20 @@ class InstallerEnvVar(EnvVar):
     SOURCE_DATABASE_ENGINE = f"{PREFIX}_SOURCE_DATABASE_ENGINE"
     SOURCE_DATABASE_HOST = f"{PREFIX}_SOURCE_DATABASE_HOST"
     SOURCE_DATABASE_PORT = f"{PREFIX}_SOURCE_DATABASE_PORT"
+
+
+# =============================================================================
+# Ports
+# =============================================================================
+class Ports:
+    # In numeric order
+    MYSQL = "3306"
+    CRATEWEB = "8000"
+    RABBITMQ = "5672"
+    CRATE_DB_HOST = "43306"
+    RESEARCH_DB_HOST = "43307"
+    SECRET_DB_HOST = "43308"
+    SOURCE_DB_HOST = "43309"
 
 
 # =============================================================================
@@ -347,6 +363,7 @@ class Installer:
     ) -> None:
         self._docker = None
         self._engines = None
+        self._env_dict = None
         self.verbose = verbose
         self.update = update
 
@@ -462,17 +479,32 @@ class Installer:
         self.report_status()
 
     def build_crate_image(self) -> None:
+        # Only build the crate image if the tag has changed
+        # or the update flag was set explicitly
+        if self.image_needs_building():
+            # Could set cache=False here if there are problems.
+            # It looks like docker.compose.build will always rebuild the docker
+            # image even if there is an existing image with the same tag.
+            os.chdir(HostPath.DOCKERFILES_DIR)
+
+            self.docker.compose.build(
+                services=[
+                    DockerComposeServices.CRATE_SERVER,
+                    DockerComposeServices.CRATE_WORKERS,
+                    DockerComposeServices.FLOWER,
+                ]
+            )
+
+    def image_needs_building(self) -> bool:
         if self.update:
-            self.info("Updating existing CRATE installation")
+            return True
+
         os.chdir(HostPath.DOCKERFILES_DIR)
-        self.docker.compose.build(
-            services=[
-                DockerComposeServices.CRATE_SERVER,
-                DockerComposeServices.CRATE_WORKERS,
-                DockerComposeServices.FLOWER,
-            ],
-            cache=not self.update,
-        )
+
+        filters = dict(reference=os.getenv(DockerEnvVar.IMAGE_TAG))
+        images = self.docker.image.list(filters=filters)
+
+        return len(images) == 0
 
     def start(self) -> None:
         os.chdir(HostPath.DOCKERFILES_DIR)
@@ -514,17 +546,22 @@ class Installer:
             command=[crate_command],
         )
 
-    def exec_crate_command(self, crate_command: str) -> None:
+    def exec_crate_command(
+        self, crate_command: str, as_root: bool = False
+    ) -> None:
         # Run a command in the existing instance of the crate_server
         # container. This does not go through entrypoint.sh so we have to
         # source the virtualenv and call /bin/bash
         venv_command = f'""source /crate/venv/bin/activate; {crate_command}""'
+
+        user = "root" if as_root else None
 
         os.chdir(HostPath.DOCKERFILES_DIR)
 
         self.docker.compose.execute(
             DockerComposeServices.CRATE_SERVER,
             [DockerPath.BASH, "-c", venv_command],
+            user=user,
         )
 
     # -------------------------------------------------------------------------
@@ -589,6 +626,7 @@ class Installer:
     def configure(self) -> None:
         try:
             self.configure_user()
+            self.configure_tag()
             self.configure_config_files()
             self.configure_files_dir()
             self.configure_static_dir()
@@ -610,6 +648,34 @@ class Installer:
         self.setenv(
             DockerEnvVar.INSTALL_USER_ID, self.get_docker_install_user_id
         )
+
+    def configure_tag(self) -> None:
+        tag = self.env_dict[DockerEnvVar.IMAGE_TAG]
+        self.setenv(DockerEnvVar.IMAGE_TAG, tag)
+
+    @property
+    def env_dict(self) -> Dict[str, str]:
+        # Variables set in .env
+        if self._env_dict is None:
+            self._env_dict = self.read_env_file()
+
+        return self._env_dict
+
+    def read_env_file(self) -> Dict[str, str]:
+        env_file = os.path.join(HostPath.DOCKERFILES_DIR, ".env")
+
+        env_dict = {}
+
+        with open(env_file, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line == "" or line.startswith("#"):
+                    continue
+
+                parts = line.split("=")
+                env_dict[parts[0]] = parts[1]
+
+        return env_dict
 
     def configure_config_files(self) -> None:
         self.setenv(
@@ -667,7 +733,7 @@ class Installer:
     def configure_crate_db_container(self) -> None:
         self.setenv(InstallerEnvVar.CRATE_DB_ENGINE, "mysql")
         self.setenv(InstallerEnvVar.CRATE_DB_SERVER, "crate_db")
-        self.setenv(InstallerEnvVar.CRATE_DB_PORT, "3306")
+        self.setenv(InstallerEnvVar.CRATE_DB_PORT, Ports.MYSQL)
         self.setenv(
             DockerEnvVar.CRATE_DB_ROOT_PASSWORD,
             self.get_docker_crate_db_root_password,
@@ -737,7 +803,7 @@ class Installer:
     def configure_demo_research_db(self) -> None:
         self.setenv(InstallerEnvVar.RESEARCH_DATABASE_ENGINE, "mysql")
         self.setenv(InstallerEnvVar.RESEARCH_DATABASE_HOST, "research_db")
-        self.setenv(InstallerEnvVar.RESEARCH_DATABASE_PORT, "3306")
+        self.setenv(InstallerEnvVar.RESEARCH_DATABASE_PORT, Ports.MYSQL)
         self.setenv(
             DockerEnvVar.RESEARCH_DATABASE_ROOT_PASSWORD,
             "research",
@@ -750,11 +816,14 @@ class Installer:
             "research",
             obscure=True,
         )
+        self.setenv(
+            DockerEnvVar.RESEARCH_DATABASE_HOST_PORT, Ports.RESEARCH_DB_HOST
+        )
 
     def configure_demo_secret_db(self) -> None:
         self.setenv(InstallerEnvVar.SECRET_DATABASE_ENGINE, "mysql")
         self.setenv(InstallerEnvVar.SECRET_DATABASE_HOST, "secret_db")
-        self.setenv(InstallerEnvVar.SECRET_DATABASE_PORT, "3306")
+        self.setenv(InstallerEnvVar.SECRET_DATABASE_PORT, Ports.MYSQL)
         self.setenv(
             DockerEnvVar.SECRET_DATABASE_ROOT_PASSWORD, "secret", obscure=True
         )
@@ -763,11 +832,14 @@ class Installer:
         self.setenv(
             DockerEnvVar.SECRET_DATABASE_USER_PASSWORD, "secret", obscure=True
         )
+        self.setenv(
+            DockerEnvVar.SECRET_DATABASE_HOST_PORT, Ports.SECRET_DB_HOST
+        )
 
     def configure_demo_source_db(self) -> None:
         self.setenv(InstallerEnvVar.SOURCE_DATABASE_ENGINE, "mysql")
         self.setenv(InstallerEnvVar.SOURCE_DATABASE_HOST, "source_db")
-        self.setenv(InstallerEnvVar.SOURCE_DATABASE_PORT, "3306")
+        self.setenv(InstallerEnvVar.SOURCE_DATABASE_PORT, Ports.MYSQL)
         self.setenv(
             DockerEnvVar.SOURCE_DATABASE_ROOT_PASSWORD, "source", obscure=True
         )
@@ -775,6 +847,9 @@ class Installer:
         self.setenv(DockerEnvVar.SOURCE_DATABASE_USER_NAME, "source")
         self.setenv(
             DockerEnvVar.SOURCE_DATABASE_USER_PASSWORD, "source", obscure=True
+        )
+        self.setenv(
+            DockerEnvVar.SOURCE_DATABASE_HOST_PORT, Ports.SOURCE_DB_HOST
         )
 
     def configure_external_research_db(self) -> None:
@@ -921,7 +996,7 @@ class Installer:
     def configure_cherrypy(self) -> None:
         # - Re host 0.0.0.0:
         #   https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors
-        cherrypy_args = ["--host 0.0.0.0", "--port 8000"]
+        cherrypy_args = ["--host 0.0.0.0", f"--port {Ports.CRATEWEB}"]
 
         if self.use_https():
             cherrypy_args.extend(
@@ -934,18 +1009,18 @@ class Installer:
 
     def configure_wait_for(self) -> None:
         wait_for = [
-            f"{DockerComposeServices.RABBITMQ}:5672",
+            f"{DockerComposeServices.RABBITMQ}:{Ports.RABBITMQ}",
         ]
 
         if self.should_create_crate_db_container():
-            wait_for.append(f"{DockerComposeServices.CRATE_DB}:3306")
+            wait_for.append(f"{DockerComposeServices.CRATE_DB}:{Ports.MYSQL}")
         #
         if self.should_create_demo_containers():
             wait_for.extend(
                 [
-                    f"{DockerComposeServices.RESEARCH_DB}:3306",
-                    f"{DockerComposeServices.SECRET_DB}:3306",
-                    f"{DockerComposeServices.SOURCE_DB}:3306",
+                    f"{DockerComposeServices.RESEARCH_DB}:{Ports.MYSQL}",
+                    f"{DockerComposeServices.SECRET_DB}:{Ports.MYSQL}",
+                    f"{DockerComposeServices.SOURCE_DB}:{Ports.MYSQL}",
                 ]
             )
 
@@ -1005,7 +1080,7 @@ class Installer:
             "archive_static_dir": DockerPath.ARCHIVE_STATIC_DIR,
             "archive_template_cache_dir": DockerPath.ARCHIVE_TEMPLATE_CACHE_DIR,  # noqa: E501
             "archive_template_dir": DockerPath.ARCHIVE_TEMPLATE_DIR,
-            "broker_url": "amqp://rabbitmq:5672",
+            "broker_url": f"amqp://rabbitmq:{Ports.RABBITMQ}",
             "crate_db_engine": self.engines[
                 os.getenv(InstallerEnvVar.CRATE_DB_ENGINE)
             ].django,
@@ -1340,7 +1415,7 @@ class Installer:
                 "Enter the port where the CRATE web app will appear on the "
                 "host:"
             ),
-            default="8000",
+            default=Ports.CRATEWEB,
         )
 
     def get_docker_crateweb_use_https(self) -> str:
@@ -1380,7 +1455,7 @@ class Installer:
                 "Enter the port where CRATE's internal MySQL database will "
                 "appear on the host:"
             ),
-            default="43306",
+            default=Ports.CRATE_DB_HOST,
         )
 
     def get_create_demo_containers(self) -> bool:
@@ -1569,22 +1644,42 @@ class Installer:
                 continue
             f.write(f'export {key}="{value}"\n')
 
+    @staticmethod
+    def _write_envvar_unsets_to_file(f: TextIO) -> None:
+        for key, value in sorted(os.environ.items()):
+            if key.startswith(DockerEnvVar.PREFIX) or key.startswith(
+                InstallerEnvVar.PREFIX
+            ):
+                f.write(f"unset {key}\n")
+
     def write_environment_variables(
         self, permit_cfg_dir_save: bool = True
     ) -> None:
         config_dir = os.environ.get(DockerEnvVar.CONFIG_HOST_DIR)
         if config_dir and os.path.exists(config_dir) and permit_cfg_dir_save:
-            filename = os.path.join(config_dir, HostPath.ENVVAR_SAVE_FILE)
-            with open(filename, mode="w") as f:
+            envvar_save_file = os.path.join(
+                config_dir, HostPath.ENVVAR_SAVE_FILE
+            )
+            with open(envvar_save_file, mode="w") as f:
                 self._write_envvars_to_file(f)
+            envvar_unset_file = os.path.join(
+                config_dir, HostPath.ENVVAR_UNSET_FILE
+            )
+            with open(envvar_unset_file, mode="w") as f:
+                self._write_envvar_unsets_to_file(f)
+
         else:
             with NamedTemporaryFile(delete=False, mode="w") as f:
-                filename = f.name
+                envvar_save_file = f.name
                 self._write_envvars_to_file(f)
+            with NamedTemporaryFile(delete=False, mode="w") as f:
+                envvar_unset_file = f.name
+                self._write_envvar_unsets_to_file(f)
         self.info(
             "Settings have been saved and can be loaded with "
-            f"'source {filename}'."
+            f"'source {envvar_save_file}'."
         )
+        self.info(f"To unset all settings 'source {envvar_unset_file}'.")
 
     # -------------------------------------------------------------------------
     # Shell handling
@@ -1655,7 +1750,7 @@ class NativeLinuxInstaller(Installer):
         scheme = self.get_crate_server_scheme()
         ip_address = self.get_crate_server_ip_from_host()
 
-        netloc = f"{ip_address}:8000"
+        netloc = f"{ip_address}:{Ports.CRATEWEB}"
         path = self.get_crate_server_path()
         params = query = fragment = None
 
@@ -1756,6 +1851,12 @@ def main() -> None:
         f"existing {DockerComposeServices.CRATE_SERVER!r} service/container",
     )
     exec_crate_command.add_argument("crate_command", type=str)
+    exec_crate_command.add_argument(
+        "--as_root",
+        action="store_true",
+        help="Enter as the 'root' user instead of the 'crate' user",
+        default=False,
+    )
 
     shell = subparsers.add_parser(
         Command.SHELL,
@@ -1790,7 +1891,7 @@ def main() -> None:
         installer.run_crate_command(args.crate_command)
 
     elif args.command == Command.EXEC_COMMAND:
-        installer.exec_crate_command(args.crate_command)
+        installer.exec_crate_command(args.crate_command, as_root=args.as_root)
 
     elif args.command == Command.SHELL:
         installer.run_shell_in_crate_container(as_root=args.as_root)
