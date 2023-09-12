@@ -126,14 +126,14 @@ INSTALL_REQUIRES = [
     "unidecode==1.1.1",  # for removing accents
     # Packages for cloud NLP:
     "bcrypt==3.1.7",  # bcrypt encryption
-    "cryptography==41.0.2",  # cryptography library
+    "cryptography==41.0.3",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework
     "pyramid_tm==2.4",  # Pyramid transaction management
     "redis==4.5.4",  # interface to Redis in-memory key-value database
     "requests==2.31.0",  # HTTP requests
-    "tornado==6.3.2",  # web framework
+    "tornado==6.3.3",  # web framework
     "transaction==3.0.0",  # generic transaction management
     "urllib3==1.26.5",  # used by requests
     "waitress==2.1.2",  # pure-Python WSGI server
