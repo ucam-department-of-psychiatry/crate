@@ -875,7 +875,7 @@ ORDER BY
         """
         db_name = self.database
         schema_name = self.schema_name
-        log.debug(
+        log.info(
             f"Fetching/caching database structure (for database "
             f"{db_name!r}, schema {schema_name!r})..."
         )

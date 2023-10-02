@@ -115,8 +115,12 @@ const QB_DATATYPE_DATE = "date",
 // The variables that follow are pre-populated by the server.
 // See query_build.html and research/views.py
 // The declarations from the server come later in the HTML and will override
-// these, so it's safe to declare dummy instances here, which helps the linter:
+// these, so it's safe to declare dummy instances here, which helps the linter.
+// ... or it was, but on 2023-10-02 that generates "Uncaught SyntaxError:
+// redeclaration of const DATABASE_STRUCTURE" in Firefox, and crashed
+// subsequent Javascript.
 
+/*
 const DATABASE_STRUCTURE = [
         {
             database: 'dummy_database',
@@ -153,6 +157,7 @@ const DATABASE_STRUCTURE = [
         'with_database': false
     },
     SQL_DIALECT = DIALECT_MYSQL;
+*/
 
 // ============================================================================
 // Javascript helpers
