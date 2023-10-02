@@ -1,4 +1,4 @@
-..  crate_anon/docs/source/introduction/index.rst
+..  docs/source/administrator/docker.rst
 
 ..  Copyright (C) 2015, University of Cambridge, Department of Psychiatry.
     Created by Rudolf Cardinal (rnc1001@cam.ac.uk).
@@ -18,14 +18,24 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
-Installing CRATE
-================
+Firewall setup
+==============
 
-..  toctree::
-    :maxdepth: 2
+..  contents::
+    :local:
+    :depth: 3
 
-    firewall.rst
-    docker.rst
-    installation.rst
-    database_drivers.rst
-    upgrading.rst
+List of domains that the CRATE installer will need to access
+------------------------------------------------------------
+
+If you are installing CRATE behind a firewall that restricts access to the internet, you will need to ensure the following domains are allowed.This list is correct as of May 2023 and is likely to change over time:
+
+- \*.debian.org
+- \*.docker.com
+- \*.docker.io
+- \*.github.com
+- \*.githubusercontent.com
+- \*.maven.org
+- \*.pypi.org
+- \*.pythonhosted.org
+- \*.ubuntu.com

@@ -1611,6 +1611,9 @@ Changes
   the "H" (add source hash) flag -- should be a table-level check only (i.e.
   if you're omitting the whole table, it's fine to have this combination).
 
+- Improvements to the installer, in particular around access to real-world
+  databases and external file storage.
+
 
 To do
 -----

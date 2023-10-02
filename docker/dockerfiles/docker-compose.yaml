@@ -1,7 +1,7 @@
 ---
 # yamllint disable rule:line-length
 # yamllint disable rule:comments-indentation
-# server/docker/dockerfiles/docker-compose.yaml
+# docker/dockerfiles/docker-compose.yaml
 #
 # See the help!
 # https://crateanon.readthedocs.io/en/latest/installation/docker.html
@@ -26,9 +26,11 @@
 # Those without defaults:
 #
 #   CRATE_DOCKER_CONFIG_HOST_DIR
+#   CRATE_DOCKER_FILES_HOST_DIR
 #   CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR
 #   CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
 #   CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD
+#   CRATE_DOCKER_STATIC_HOST_DIR
 
 
 # =============================================================================
@@ -46,14 +48,6 @@ volumes:
     # See Docker Compose "Volume configuration reference". Note that the syntax
     # here is not the same as for "volumes:" within a service (container).
     # https://docs.docker.com/compose/compose-file/#volume-configuration-reference
-
-    crate_db_data_volume:
-        # Without any options, the default driver (usually "local") is used.
-        # This will probably create a volume at
-        # /var/lib/docker/volumes/VOLUME/_data on the host.
-    research_db_data_volume:
-    secret_db_data_volume:
-    source_db_data_volume:
 
     rabbitmq_volume:
         # Again, we make it explicit (or we get Docker gibberish names).
@@ -73,8 +67,25 @@ volumes:
             # https://docs.docker.com/compose/compose-file/#variable-substitution
             device: "${CRATE_DOCKER_CONFIG_HOST_DIR}"
 
+    crate_files_volume:
+        # General file storage on the host machine
+        driver: local
+        driver_opts:
+            o: bind
+            type: none
+            # We use environment variable substitution.
+            # https://docs.docker.com/compose/compose-file/#variable-substitution
+            device: "${CRATE_DOCKER_FILES_HOST_DIR}"
+
     crate_static_volume:
         # Space to collect static files (Django STATIC_ROOT)
+        driver: local
+        driver_opts:
+            o: bind
+            type: none
+            # We use environment variable substitution.
+            # https://docs.docker.com/compose/compose-file/#variable-substitution
+            device: "${CRATE_DOCKER_STATIC_HOST_DIR}"
 
     crate_tmp_volume:
         # Space to put lock files, user downloads, etc., that need to be shared
@@ -97,200 +108,6 @@ volumes:
 services:
 
     # -------------------------------------------------------------------------
-    # MySQL containers, providing database services
-    # -------------------------------------------------------------------------
-
-    crate_db:
-        # Base Docker image. We use a standard MySQL image; see
-        # https://hub.docker.com/_/mysql
-        image: mysql:5.7
-        container_name: crate_crate_db
-        # Restart policy.
-        # - I am slightly confused between "when the computer reboots" and
-        #   "if the container crashes".
-        # - See Docker Compose docs, but also
-        #   https://stackoverflow.com/questions/30449313/how-do-i-make-a-docker-container-start-automatically-on-system-boot
-        # - Empirically:
-        #   - "no" means "neither on reboot nor container crash".
-        #   - "always" includes reboots and crashes.
-        #   - The other options are "on-failure" and "unless-stopped".
-        #   - There doesn't appear to be an option for "restart on reboot, but
-        #     leave stopped if it crashed".
-        # - So: always.
-        restart: "always"
-
-        # Environment variables.
-        # See https://hub.docker.com/_/mysql
-        environment:
-            # Create database with this name at first container startup.
-            MYSQL_DATABASE: "${CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME}"
-
-            # Create user with this name at first container startup, with
-            # GRANT ALL access to the database named in MYSQL_DATABASE.
-            MYSQL_USER: "${CRATE_DOCKER_MYSQL_CRATE_USER_NAME}"
-
-            # Password for MYSQL_USER (set at first container startup).
-            MYSQL_PASSWORD: "${CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD}"
-
-            # Password for user "root" (set at first container startup).
-            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD}"
-
-        extra_hosts:
-            - "host.docker.internal:host-gateway"
-
-        networks:
-            - crateanon_network
-
-        # Expose ports from the container, "publishing" them to the host.
-        # For example, if you offer a MySQL server via "9999:3306", you should
-        # be able to run
-        #
-        #   $ mysql --host=127.0.0.1 --port=9999 --user=root --password
-        #
-        # on the host, and connect to the server.
-        ports:
-            # Short format is: "HOST_PORT:CONTAINER_PORT".
-            # Should always use explicit string format here.
-            # MySQL offers port 3306 by default.
-            - "${CRATE_DOCKER_MYSQL_CRATE_HOST_PORT}:3306"
-
-        # Expose ports to linked services without publishing them to the host.
-        # Specify the container (internal) port.
-        expose:
-            - "3306"
-
-        # Note that if you do not specify mount points, some are created
-        # anyway; for example, the MySQL image wants something at
-        # /var/lib/mysql (internally) and on the host this might actually be
-        # e.g. /var/lib/docker/volumes/<gibberish>/_data
-        volumes:
-            # Format is "[SOURCE:]TARGET[:MODE]", such as
-            # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
-            - crate_db_data_volume:/var/lib/mysql
-            - "./mysqlconf:/etc/mysql/conf.d"
-
-    research_db:
-        image: mysql:5.7
-        container_name: crate_research_db
-        restart: "always"
-
-        environment:
-            # Create database with this name at first container startup.
-            MYSQL_DATABASE: "${CRATE_DOCKER_RESEARCH_DATABASE_NAME}"
-
-            # Create user with this name at first container startup, with
-            # GRANT ALL access to the database named in MYSQL_DATABASE.
-            MYSQL_USER: "${CRATE_DOCKER_RESEARCH_DATABASE_USER_NAME}"
-
-            # Password for MYSQL_USER (set at first container startup).
-            MYSQL_PASSWORD: "${CRATE_DOCKER_RESEARCH_DATABASE_USER_PASSWORD}"
-
-            # Password for user "root" (set at first container startup).
-            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_RESEARCH_DATABASE_ROOT_PASSWORD}"
-
-        extra_hosts:
-            - "host.docker.internal:host-gateway"
-
-        networks:
-            - crateanon_network
-
-        # Expose ports to linked services without publishing them to the host.
-        # Specify the container (internal) port.
-        expose:
-            - "3306"
-
-        # Note that if you do not specify mount points, some are created
-        # anyway; for example, the MySQL image wants something at
-        # /var/lib/mysql (internally) and on the host this might actually be
-        # e.g. /var/lib/docker/volumes/<gibberish>/_data
-        volumes:
-            # Format is "[SOURCE:]TARGET[:MODE]", such as
-            # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
-            - research_db_data_volume:/var/lib/mysql
-            - "./mysqlconf:/etc/mysql/conf.d"
-
-    secret_db:
-        image: mysql:5.7
-        container_name: crate_secret_db
-        restart: "always"
-
-        environment:
-            # Create database with this name at first container startup.
-            MYSQL_DATABASE: "${CRATE_DOCKER_SECRET_DATABASE_NAME}"
-
-            # Create user with this name at first container startup, with
-            # GRANT ALL access to the database named in MYSQL_DATABASE.
-            MYSQL_USER: "${CRATE_DOCKER_SECRET_DATABASE_USER_NAME}"
-
-            # Password for MYSQL_USER (set at first container startup).
-            MYSQL_PASSWORD: "${CRATE_DOCKER_SECRET_DATABASE_USER_PASSWORD}"
-
-            # Password for user "root" (set at first container startup).
-            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_SECRET_DATABASE_ROOT_PASSWORD}"
-
-        extra_hosts:
-            - "host.docker.internal:host-gateway"
-
-        networks:
-            - crateanon_network
-
-        # Expose ports to linked services without publishing them to the host.
-        # Specify the container (internal) port.
-        expose:
-            - "3306"
-
-        # Note that if you do not specify mount points, some are created
-        # anyway; for example, the MySQL image wants something at
-        # /var/lib/mysql (internally) and on the host this might actually be
-        # e.g. /var/lib/docker/volumes/<gibberish>/_data
-        volumes:
-            # Format is "[SOURCE:]TARGET[:MODE]", such as
-            # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
-            - secret_db_data_volume:/var/lib/mysql
-            - "./mysqlconf:/etc/mysql/conf.d"
-
-    source_db:
-        image: mysql:5.7
-        container_name: crate_source_db
-        restart: "always"
-
-        environment:
-            # Create database with this name at first container startup.
-            MYSQL_DATABASE: "${CRATE_DOCKER_SOURCE_DATABASE_NAME}"
-
-            # Create user with this name at first container startup, with
-            # GRANT ALL access to the database named in MYSQL_DATABASE.
-            MYSQL_USER: "${CRATE_DOCKER_SOURCE_DATABASE_USER_NAME}"
-
-            # Password for MYSQL_USER (set at first container startup).
-            MYSQL_PASSWORD: "${CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD}"
-
-            # Password for user "root" (set at first container startup).
-            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_SOURCE_DATABASE_ROOT_PASSWORD}"
-
-        extra_hosts:
-            - "host.docker.internal:host-gateway"
-
-        networks:
-            - crateanon_network
-
-        # Expose ports to linked services without publishing them to the host.
-        # Specify the container (internal) port.
-        expose:
-            - "3306"
-
-        # Note that if you do not specify mount points, some are created
-        # anyway; for example, the MySQL image wants something at
-        # /var/lib/mysql (internally) and on the host this might actually be
-        # e.g. /var/lib/docker/volumes/<gibberish>/_data
-        volumes:
-            # Format is "[SOURCE:]TARGET[:MODE]", such as
-            # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
-            - source_db_data_volume:/var/lib/mysql
-            - "./mysqlconf:/etc/mysql/conf.d"
-
-
-    # -------------------------------------------------------------------------
     # RabbitMQ container, providing a message queue.
     # -------------------------------------------------------------------------
     # AMQP security is not a concern because this is only used internally to
@@ -303,7 +120,7 @@ services:
         container_name: crate_rabbitmq
 
         # Restart policy
-        restart: "always"
+        restart: "${CRATE_DOCKER_RESTART_POLICY}"
 
         # Expose ports to linked services without publishing them to the host.
         # Specify the container (internal) port.
@@ -342,7 +159,7 @@ services:
 
         # If you specify "image" as well as "build", Compose names the built
         # image. Syntax is "IMAGE[:TAG]".
-        image: crate
+        image: ${CRATE_DOCKER_IMAGE_TAG}
         # Otherwise it will try to pull https://hub.docker.com/_/crate
         # which isn't us
         pull_policy: never
@@ -351,45 +168,42 @@ services:
         # Start order. See docs -- note that this is "order to start", not
         # "wait for startup to complete".
         depends_on:
-            - crate_db
-            - research_db
-            - secret_db
-            - source_db
             - rabbitmq
 
         # Restart policy
-        restart: "always"
+        restart: "${CRATE_DOCKER_RESTART_POLICY}"
 
         # Mount config file directory and other volumes.
         volumes:
             - bioyodie_resource_volume:/crate/bioyodie/bio-yodie-resources
             - crate_config_volume:/crate/cfg
+            - crate_files_volume:/crate/files
             - crate_static_volume:/crate/static
             - crate_tmp_volume:/crate/tmp
+
+        ports:
+            - "${CRATE_DOCKER_REMOTE_PDB_CRATE_WORKERS_HOST_PORT}:${CRATE_DOCKER_REMOTE_PDB_PORT}"
 
         environment:
             CRATE_ANON_CONFIG: "/crate/cfg/${CRATE_DOCKER_CRATE_ANON_CONFIG}"
             CRATE_GATE_PLUGIN_FILE: "/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini"
-            CRATE_PACKAGE_ROOT: "/crate/venv/lib/python3.7/site-packages/crate_anon"
+            CRATE_WAIT_FOR: ${CRATE_DOCKER_CRATE_WAIT_FOR}
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
             CRATE_WEB_STATIC_ROOT: "/crate/static"
+            DJANGO_SUPERUSER_USERNAME: "${CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME}"
+            DJANGO_SUPERUSER_PASSWORD: "${CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD}"
+            DJANGO_SUPERUSER_EMAIL: "${CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL}"
             GATE_HOME: "/crate/gate"
             KCL_LEWY_BODY_DIAGNOSIS_DIR: "/crate/kcl_lewy_body_dementia"
             KCL_PHARMACOTHERAPY_DIR: "/crate/kcl_pharmacotherapy/brc-gate-pharmacotherapy"
             KCL_KCONNECT_DIR: "/crate/bioyodie"
-            DJANGO_SUPERUSER_USERNAME: "${CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME}"
-            DJANGO_SUPERUSER_PASSWORD: "${CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD}"
-            DJANGO_SUPERUSER_EMAIL: "${CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL}"
+            ODBCINI: "/crate/cfg/${CRATE_DOCKER_ODBC_USER_CONFIG}"
+            PYTHONBREAKPOINT: "remote_pdb.set_trace"
+            REMOTE_PDB_HOST: "0.0.0.0"
+            REMOTE_PDB_PORT: ${CRATE_DOCKER_REMOTE_PDB_PORT}
 
         # Command to execute
-        command: [
-            "wait-for-it", "--host=crate_db", "--port=3306", "--timeout=0", "--strict", "--",
-            "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
-            "bash", "-c", "
-                source /crate/venv/bin/activate &&
-                crate_launch_celery
-            ",
-        ]
+        command: ["crate_launch_celery"]
 
         extra_hosts:
             - "host.docker.internal:host-gateway"
@@ -403,7 +217,7 @@ services:
 
     crate_server:
         # Re-use the image built above.
-        image: crate
+        image: ${CRATE_DOCKER_IMAGE_TAG}
         # Otherwise it will try to pull https://hub.docker.com/_/crate
         # which isn't us
         pull_policy: never
@@ -414,7 +228,7 @@ services:
             - crate_workers
 
         # Restart policy
-        restart: "always"
+        restart: "${CRATE_DOCKER_RESTART_POLICY}"
 
         extra_hosts:
             - "host.docker.internal:host-gateway"
@@ -424,36 +238,29 @@ services:
         # Publish port to host.
         ports:
             - "${CRATE_DOCKER_CRATEWEB_HOST_PORT}:8000"
+            - "${CRATE_DOCKER_REMOTE_PDB_CRATE_SERVER_HOST_PORT}:${CRATE_DOCKER_REMOTE_PDB_PORT}"
 
         # Mount config file directory and other volumes.
         volumes:
             - bioyodie_resource_volume:/crate/bioyodie/bio-yodie-resources
             - crate_config_volume:/crate/cfg
+            - crate_files_volume:/crate/files
             - crate_static_volume:/crate/static
             - crate_tmp_volume:/crate/tmp
 
         environment:
             CRATE_ANON_CONFIG: "/crate/cfg/${CRATE_DOCKER_CRATE_ANON_CONFIG}"
+            CRATE_WAIT_FOR: ${CRATE_DOCKER_CRATE_WAIT_FOR}
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
             CRATE_WEB_STATIC_ROOT: "/crate/static"
-            SSL_ARGS: ""
+            ODBCINI: "/crate/cfg/${CRATE_DOCKER_ODBC_USER_CONFIG}"
+            PYTHONBREAKPOINT: "remote_pdb.set_trace"
+            REMOTE_PDB_HOST: "0.0.0.0"
+            REMOTE_PDB_PORT: ${CRATE_DOCKER_REMOTE_PDB_PORT}
 
         # Command to execute
         # Can use shell-style or list-style syntax.
-        command: [
-            "wait-for-it", "--host=crate_db", "--port=3306", "--timeout=0", "--strict", "--",
-            "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
-            "bash", "-c", '
-                [[ "${CRATE_DOCKER_CRATEWEB_USE_HTTPS}" == "0" ]] && SSL_ARGS="" || SSL_ARGS="--ssl_certificate /crate/cfg/crate.crt --ssl_private_key /crate/cfg/crate.key" &&
-                source /crate/venv/bin/activate &&
-                crate_launch_cherrypy_server
-                    --host 0.0.0.0
-                    --port 8000
-                    $${SSL_ARGS}
-            ',
-            # - Re host 0.0.0.0:
-            #   https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors
-        ]
+        command: ["crate_launch_cherrypy_server ${CRATE_DOCKER_CRATE_CHERRYPY_ARGS}"]
 
 
     # -------------------------------------------------------------------------
@@ -462,7 +269,7 @@ services:
 
     flower:
         # Re-use the image built above.
-        image: crate
+        image: ${CRATE_DOCKER_IMAGE_TAG}
         # Otherwise it will try to pull https://hub.docker.com/_/crate
         # which isn't us
         pull_policy: never
@@ -473,7 +280,7 @@ services:
             - crate_workers
 
         # Restart policy
-        restart: "always"
+        restart: "${CRATE_DOCKER_RESTART_POLICY}"
 
         extra_hosts:
             - "host.docker.internal:host-gateway"
@@ -484,6 +291,7 @@ services:
         ports:
             # Default internal Flower port is 5555.
             - "${CRATE_DOCKER_FLOWER_HOST_PORT}:5555"
+            - "${CRATE_DOCKER_REMOTE_PDB_CRATE_FLOWER_HOST_PORT}:${CRATE_DOCKER_REMOTE_PDB_PORT}"
 
         # Mount config file directory
         volumes:
@@ -492,16 +300,15 @@ services:
 
         environment:
             CRATE_ANON_CONFIG: "/crate/cfg/${CRATE_DOCKER_CRATE_ANON_CONFIG}"
+            CRATE_WAIT_FOR: ${CRATE_DOCKER_CRATE_WAIT_FOR}
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
             CRATE_WEB_STATIC_ROOT: "/crate/static"
+            ODBCINI: "/crate/cfg/${CRATE_DOCKER_ODBC_USER_CONFIG}"
+            PYTHONBREAKPOINT: "remote_pdb.set_trace"
+            REMOTE_PDB_HOST: "0.0.0.0"
+            REMOTE_PDB_PORT: ${CRATE_DOCKER_REMOTE_PDB_PORT}
 
-        command: [
-            "wait-for-it", "--host=rabbitmq", "--port=5672", "--timeout=0", "--strict", "--",
-            "bash", "-c", "
-                source /crate/venv/bin/activate &&
-                crate_launch_flower
-            ",
-        ]
+        command: ["crate_launch_flower"]
 
     # -------------------------------------------------------------------------
     # TODO: CRATE NLPRP server
@@ -519,7 +326,7 @@ services:
     # semehr:
     #    image: semehr/core
     #
-    #    restart: "always"
+    #    restart: "${CRATE_DOCKER_RESTART_POLICY}"
 
 
 # =============================================================================

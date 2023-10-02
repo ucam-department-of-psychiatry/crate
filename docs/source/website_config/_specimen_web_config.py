@@ -100,7 +100,7 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
         "HOST": "127.0.0.1",  # e.g. 127.0.0.1
-        "PORT": 3306,  # local e.g. 3306
+        "PORT": "3306",  # local e.g. 3306
         "NAME": "crate_db",
         "USER": "someuser",
         "PASSWORD": "somepassword",
@@ -123,7 +123,7 @@ DATABASES = {
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         "ENGINE": "django.db.backends.mysql",
         "HOST": "127.0.0.1",  # e.g. 127.0.0.1
-        "PORT": 3306,  # local, e.g. 3306
+        "PORT": "3306",  # local, e.g. 3306
         "NAME": "anonymous_output",  # will be the default database; use None for no default database  # noqa
         "USER": "researcher",
         "PASSWORD": "somepassword",
@@ -134,7 +134,7 @@ DATABASES = {
     "secret_1": {
         "ENGINE": "django.db.backends.mysql",
         "HOST": "127.0.0.1",  # e.g. 127.0.0.1
-        "PORT": 3306,
+        "PORT": "3306",
         "NAME": "anonymous_mapping",
         "USER": "anonymiser_system",
         "PASSWORD": "somepassword",

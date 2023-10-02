@@ -1,0 +1,75 @@
+---
+# yamllint disable rule:line-length
+# yamllint disable rule:comments-indentation
+# docker/dockerfiles/docker-compose-source-db.yaml
+#
+# See the help!
+# https://crateanon.readthedocs.io/en/latest/installation/docker.html
+
+# =============================================================================
+# Data volumes
+# =============================================================================
+
+volumes:
+    # See Docker Compose "Volume configuration reference". Note that the syntax
+    # here is not the same as for "volumes:" within a service (container).
+    # https://docs.docker.com/compose/compose-file/#volume-configuration-reference
+
+    source_db_data_volume:
+        # Without any options, the default driver (usually "local") is used.
+        # This will probably create a volume at
+        # /var/lib/docker/volumes/VOLUME/_data on the host.
+
+# =============================================================================
+# Containers (services)
+# =============================================================================
+
+services:
+    source_db:
+        image: mysql:5.7
+        container_name: crate_source_db
+        restart: "${CRATE_DOCKER_RESTART_POLICY}"
+
+        environment:
+            # Create database with this name at first container startup.
+            MYSQL_DATABASE: "${CRATE_DOCKER_SOURCE_DATABASE_NAME}"
+
+            # Create user with this name at first container startup, with
+            # GRANT ALL access to the database named in MYSQL_DATABASE.
+            MYSQL_USER: "${CRATE_DOCKER_SOURCE_DATABASE_USER_NAME}"
+
+            # Password for MYSQL_USER (set at first container startup).
+            MYSQL_PASSWORD: "${CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD}"
+
+            # Password for user "root" (set at first container startup).
+            MYSQL_ROOT_PASSWORD: "${CRATE_DOCKER_SOURCE_DATABASE_ROOT_PASSWORD}"
+
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+
+        networks:
+            - crateanon_network
+
+        ports:
+            - "${CRATE_DOCKER_SOURCE_DATABASE_HOST_PORT}:3306"
+
+        # Note that if you do not specify mount points, some are created
+        # anyway; for example, the MySQL image wants something at
+        # /var/lib/mysql (internally) and on the host this might actually be
+        # e.g. /var/lib/docker/volumes/<gibberish>/_data
+        volumes:
+            # Format is "[SOURCE:]TARGET[:MODE]", such as
+            # "VOLUME_NAME:CONTAINER_PATH" to use a named volume.
+            - source_db_data_volume:/var/lib/mysql
+            - "./mysqlconf:/etc/mysql/conf.d"
+
+    # -------------------------------------------------------------------------
+    # CRATE image, with build commands (to create from the Dockerfile),
+    # running the workers.
+    # -------------------------------------------------------------------------
+
+    crate_workers:
+        # Start order. See docs -- note that this is "order to start", not
+        # "wait for startup to complete".
+        depends_on:
+            - source_db

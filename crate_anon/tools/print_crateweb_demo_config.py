@@ -139,12 +139,12 @@ DATABASES = {
     # },
     # Quick MySQL example:
     "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "HOST": "@@mysql_host@@",  # e.g. 127.0.0.1
-        "PORT": @@mysql_port@@,  # local e.g. 3306
-        "NAME": "@@mysql_db@@",
-        "USER": "@@mysql_user@@",
-        "PASSWORD": "@@mysql_password@@",
+        "ENGINE": "@@crate_db_engine@@",
+        "HOST": "@@crate_db_host@@",  # e.g. 127.0.0.1
+        "PORT": "@@crate_db_port@@",  # local e.g. 3306
+        "NAME": "@@crate_db_name@@",
+        "USER": "@@crate_db_user@@",
+        "PASSWORD": "@@crate_db_password@@",
     },
     # -------------------------------------------------------------------------
     # Anonymised research database
@@ -164,7 +164,7 @@ DATABASES = {
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         "ENGINE": "@@dest_db_engine@@",
         "HOST": "@@dest_db_host@@",  # e.g. 127.0.0.1
-        "PORT": @@dest_db_port@@,  # local, e.g. 3306
+        "PORT": "@@dest_db_port@@",  # local, e.g. 3306
         "NAME": "@@dest_db_name@@",  # will be the default database; use None for no default database  # noqa
         "USER": "@@dest_db_user@@",
         "PASSWORD": "@@dest_db_password@@",
@@ -175,7 +175,7 @@ DATABASES = {
     "secret_1": {
         "ENGINE": "@@secret_db1_engine@@",
         "HOST": "@@secret_db1_host@@",  # e.g. 127.0.0.1
-        "PORT": @@secret_db1_port@@,
+        "PORT": "@@secret_db1_port@@",
         "NAME": "@@secret_db1_name@@",
         "USER": "@@secret_db1_user@@",
         "PASSWORD": "@@secret_db1_password@@",
@@ -550,11 +550,12 @@ def main() -> None:
         "django_site_root_absolute_url": "http://mymachine.mydomain",
         "force_script_name": "",
         "hash_key": "aaaa CHANGE THIS! aaaa",
-        "mysql_db": "crate_db",
-        "mysql_host": "127.0.0.1",
-        "mysql_password": "somepassword",
-        "mysql_port": "3306",
-        "mysql_user": "someuser",
+        "crate_db_engine": "django.db.backends.mysql",
+        "crate_db_name": "crate_db",
+        "crate_db_host": "127.0.0.1",
+        "crate_db_password": "somepassword",
+        "crate_db_port": "3306",
+        "crate_db_user": "someuser",
         "pdf_logo_abs_url": "http://localhost/crate_logo",
         "private_file_storage_root": "/srv/crate_filestorage",
         "rdi1_database": "",
