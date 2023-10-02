@@ -1160,7 +1160,12 @@ class ResearchDatabaseInfo:
         - This is probably a functional duplicate of
           :func:`_get_db_info`!
         """
-        return next(x for x in self.dbinfolist if x.schema_id == schema_id)
+        try:
+            return next(x for x in self.dbinfolist if x.schema_id == schema_id)
+        except StopIteration:
+            raise StopIteration(
+                f"get_dbinfo_by_schema_id(): not found for {schema_id=}"
+            )
 
     @property
     def first_dbinfo(self) -> SingleResearchDatabase:
