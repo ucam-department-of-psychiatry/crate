@@ -424,8 +424,6 @@ class VersionReleaser:
         self.run_with_check([REBUILD_DOCS, "--warnings_as_errors"])
 
     def release(self) -> None:
-        self.remove_old_packages()
-
         self.remove_old_pypi_builds()
         os.chdir(PROJECT_ROOT)
 
