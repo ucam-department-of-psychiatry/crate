@@ -113,7 +113,7 @@ each table. It may be helpful to find problems with large data dictionaries.
 .. _crate_anon_researcher_report:
 
 crate_anon_researcher_report
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This ancillary tool reads your destination database (and data dictionary) and
 generates a PDF report intended for use by researchers. Optionally, it can
