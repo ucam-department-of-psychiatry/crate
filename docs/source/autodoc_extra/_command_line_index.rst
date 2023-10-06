@@ -119,4 +119,4 @@ Index of CRATE commands
 
 :ref:`crate_windows_service <crate_windows_service>`
 
-(Documentation built with CRATE 0.20.1.)
+(Documentation built with CRATE 0.20.2.)

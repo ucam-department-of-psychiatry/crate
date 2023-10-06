@@ -1614,7 +1614,7 @@ Changes
 - Improvements to the installer, in particular around access to real-world
   databases and external file storage.
 
-**0.20.2, in progress**
+**0.20.2, 2023-10-06**
 
 - Support table comments, by:
 
@@ -1626,6 +1626,7 @@ Changes
   - supporting table comments for NLP output tables
   - and adding column comments more consistently overall
 
+**0.20.3, in progress**
 
 To do
 -----

@@ -36,8 +36,8 @@ import sys
 # Constants
 # =============================================================================
 
-CRATE_VERSION = "0.20.1"
-CRATE_VERSION_DATE = "2023-10-05"
+CRATE_VERSION = "0.20.2"
+CRATE_VERSION_DATE = "2023-10-06"
 
 MINIMUM_PYTHON_VERSION = (3, 8)
 # Only other place that has this: install_virtualenv.py (which can't import
