@@ -1605,7 +1605,7 @@ Changes
   will be pulled from DockerHub even if there is a Dockerfile present. We don't
   want to do that.
 
-**0.20.1, in progress**
+**0.20.1, 2023-10-05**
 
 - Remove row-level data dictionary check for the combination of "OMIT" and
   the "H" (add source hash) flag -- should be a table-level check only (i.e.
@@ -1613,6 +1613,8 @@ Changes
 
 - Improvements to the installer, in particular around access to real-world
   databases and external file storage.
+
+**0.20.2, in progress**
 
 
 To do
