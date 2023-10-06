@@ -1616,6 +1616,16 @@ Changes
 
 **0.20.2, in progress**
 
+- Support table comments, by:
+
+  - creating some in the demo database
+  - scanning table comments when drafting a data dictionary
+  - not ignoring (overwriting) column comments when ddgen_append_source_info_to_comment is set (bugfix)!
+  - supporting a kind of DD row with no source/destination field, just a comment
+  - writing that to the destination database
+  - supporting table comments for NLP output tables
+  - and adding column comments more consistently overall
+
 
 To do
 -----
