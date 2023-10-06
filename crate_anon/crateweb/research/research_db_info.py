@@ -875,7 +875,7 @@ ORDER BY
         """
         db_name = self.database
         schema_name = self.schema_name
-        log.debug(
+        log.info(
             f"Fetching/caching database structure (for database "
             f"{db_name!r}, schema {schema_name!r})..."
         )
@@ -1160,7 +1160,12 @@ class ResearchDatabaseInfo:
         - This is probably a functional duplicate of
           :func:`_get_db_info`!
         """
-        return next(x for x in self.dbinfolist if x.schema_id == schema_id)
+        try:
+            return next(x for x in self.dbinfolist if x.schema_id == schema_id)
+        except StopIteration:
+            raise StopIteration(
+                f"get_dbinfo_by_schema_id(): not found for {schema_id=}"
+            )
 
     @property
     def first_dbinfo(self) -> SingleResearchDatabase:

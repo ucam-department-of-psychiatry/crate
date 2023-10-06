@@ -934,7 +934,10 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
         self.take_absolute = take_absolute
 
         super().__init__(
-            nlpdef=nlpdef, cfg_processor_name=cfg_processor_name, commit=commit
+            nlpdef=nlpdef,
+            cfg_processor_name=cfg_processor_name,
+            commit=commit,
+            friendly_name=variable_name,
         )
         if nlpdef is None:  # only None for debugging!
             self.tablename = self.classname().lower()

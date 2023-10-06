@@ -66,6 +66,10 @@ Columns in the data dictionary
 - In TSV format, lines beginning with a hash (``#``) are treated as comments
   and ignored, as are blank lines.
 
+- There is a special row type for **table comments**, in which the fieldnames
+  are blank. That is, just the database and table names are specified, with a
+  comment (but no other flags).
+
 
 src_db
 ~~~~~~

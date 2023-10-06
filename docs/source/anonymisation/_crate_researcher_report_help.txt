@@ -1,19 +1,19 @@
-USAGE: crate_anon_researcher_report [-h] [--config CONFIG] [--db_url DB_URL]
-                                    [--db_name DB_NAME] [--show_url]
-                                    [--no_show_url] [--show_counts]
-                                    [--no_show_counts] [--use_dd]
-                                    [--no_use_dd] [--show_values]
-                                    [--no_show_values]
-                                    [--max_distinct_values MAX_DISTINCT_VALUES]
-                                    [--max_value_length MAX_VALUE_LENGTH]
-                                    [--page_size PAGE_SIZE]
-                                    [--margin_left_right MARGIN_LEFT_RIGHT]
-                                    [--margin_top_bottom MARGIN_TOP_BOTTOM]
-                                    [--header_footer_spacing_mm HEADER_FOOTER_SPACING_MM]
-                                    [--orientation {portrait,landscape}]
-                                    [--base_font_size BASE_FONT_SIZE]
-                                    [--verbose] [--debug_pdf]
-                                    output
+USAGE: crate_researcher_report [-h] [--config CONFIG] [--db_url DB_URL]
+                               [--db_name DB_NAME] [--show_url]
+                               [--no_show_url] [--show_counts]
+                               [--no_show_counts] [--use_dd] [--no_use_dd]
+                               [--show_values] [--no_show_values]
+                               [--max_distinct_values MAX_DISTINCT_VALUES]
+                               [--skip_values_if_too_many]
+                               [--max_value_length MAX_VALUE_LENGTH]
+                               [--page_size PAGE_SIZE]
+                               [--margin_left_right MARGIN_LEFT_RIGHT]
+                               [--margin_top_bottom MARGIN_TOP_BOTTOM]
+                               [--header_footer_spacing_mm HEADER_FOOTER_SPACING_MM]
+                               [--orientation {portrait,landscape}]
+                               [--base_font_size BASE_FONT_SIZE] [--verbose]
+                               [--debug_pdf]
+                               output
 
 Produce a researcher-oriented PDF report about a destination database.
 (CRATE version 0.20.1, 2023-10-05. Created by Rudolf Cardinal.)
@@ -53,8 +53,12 @@ DETAIL:
   --show_values         Include specimen values/ranges (default: True)
   --no_show_values      Do not include specimen values/ranges (default: False)
   --max_distinct_values MAX_DISTINCT_VALUES
-                        Maximum number of distinct values to show, where
+                        Maximum number of distinct values to show, if
                         applicable (default: 20)
+  --skip_values_if_too_many
+                        If showing values, and there are more distinct values
+                        than the maximum, omit them (rather than showing the
+                        first few)? (default: False)
   --max_value_length MAX_VALUE_LENGTH
                         Maximum string length to show for a literal value
                         (default: 50)

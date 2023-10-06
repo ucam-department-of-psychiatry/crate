@@ -103,7 +103,7 @@
                 {{ CRATE_VERSION }}.
             </li>
             <li>
-                The number of distinct values is taken from SELECT
+                The number of distinct non-null values is taken from SELECT
                 COUNT(DISTINCT some_column), which does not include NULL
                 values. The actual distinct values, if shown, are taken from
                 SELECT DISTINCT some_column, which does include NULL values.

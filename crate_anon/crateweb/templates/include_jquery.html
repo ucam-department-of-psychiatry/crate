@@ -1,6 +1,10 @@
 {# crate_anon/crateweb/templates/include_jquery.html #}
 
+{% load static %}
+
 {% comment %}
+- Use "load static" -- won't necessarily carry over from base.html. See
+  https://stackoverflow.com/questions/27886477/invalid-block-tag-static
 - Use Modernizr to sort out date pickers.
 - From https://modernizr.com, choose Download.
 - Pick the "Form input types" option, then "Build", then save.

@@ -262,10 +262,6 @@ def main():
         join(DevPath.DOCS_ANON_DIR, "_crate_anon_summarize_dd_help.txt"),
     )
     run_cmd(
-        [CrateCommand.ANON_RESEARCHER_REPORT, helpflag],
-        join(DevPath.DOCS_ANON_DIR, "_crate_anon_researcher_report_help.txt"),
-    )
-    run_cmd(
         [CrateCommand.ANONYMISE, helpflag],
         join(DevPath.DOCS_ANON_DIR, "_crate_anonymise_help.txt"),
     )
@@ -276,6 +272,10 @@ def main():
     run_cmd(
         [CrateCommand.MAKE_DEMO_DATABASE, helpflag],
         join(DevPath.DOCS_ANCILLARY_DIR, "_crate_make_demo_database_help.txt"),
+    )
+    run_cmd(
+        [CrateCommand.RESEARCHER_REPORT, helpflag],
+        join(DevPath.DOCS_ANON_DIR, "_crate_researcher_report_help.txt"),
     )
     run_cmd(
         [CrateCommand.TEST_ANONYMISATION, helpflag],

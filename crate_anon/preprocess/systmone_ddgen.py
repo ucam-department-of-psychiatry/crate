@@ -425,7 +425,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 import logging
 import re
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from cardinal_pythonlib.dicts import reversedict
 from cardinal_pythonlib.enumlike import CaseInsensitiveEnumMeta
@@ -454,9 +454,6 @@ log = logging.getLogger(__name__)
 # Typing
 # -----------------------------------------------------------------------------
 
-SRE_SPEC_TYPE = Dict[Tuple[str, str], "SystmOneSRESpecRow"]
-# ... maps (tablename, colname) tuples to SystmOneSRESpecRow objects.
-
 TABLE_TRANSLATION_DICT_TYPE = Dict["SystmOneContext", Dict[str, str]]
 # ... maps a SystmOneContext to a dictionary mapping one tablename to another
 
@@ -475,10 +472,7 @@ def _flip_coldict(d: Dict[Tuple[str, str], str]) -> Dict[Tuple[str, str], str]:
     """
     Flips a mapping from (tablename, col1): col2 to (tablename, col2): col1.
     """
-    newmap = {}  # type: Dict[Tuple[str, str], str]
-    for (table, srccol), newcol in d.items():
-        newmap[(table, newcol)] = srccol
-    return newmap
+    return {(table, newcol): srccol for (table, srccol), newcol in d.items()}
 
 
 # -----------------------------------------------------------------------------
@@ -693,7 +687,7 @@ _OMIT_AND_IGNORE_TABLES_REGEX_CPFT = (
     # ... e.g. Accommodation_20210329, Accommodation_Wendy
     "AuditLog",  # may have gone now! Was there for a while. Not relevant.
     # KEPT: ClinicalOutcome_NHS_Staff_LongCovid.
-    # This one filters for CTV3 codes Y2c49 and Y2ca. As d/w NP 2021-12-14:
+    # This one filters for CTV3 codes "Y2c49" and "Y2ca". As d/w NP 2021-12-14:
     # - These are "local" codes.
     #   ("Official" Read codes have been frozen since 2016, according to
     #   https://datadictionary.nhs.uk/supporting_information/read_coded_clinical_terms.html.)  # noqa
@@ -1731,6 +1725,18 @@ def contextual_columnname(
 
 
 # =============================================================================
+# Comments
+# =============================================================================
+
+
+def join_comments(*comments) -> str:
+    """
+    Joins comment elements, skipping any blanks.
+    """
+    return COMMENT_SEP.join(filter(None, comments))
+
+
+# =============================================================================
 # Helper classes
 # =============================================================================
 
@@ -1781,14 +1787,25 @@ class SystmOneSRESpecRow:
             self.linked_table, from_context=SystmOneContext.TPP_SRE
         )
 
-    def comment(self, context: SystmOneContext) -> str:
+    def comment(
+        self, context: SystmOneContext, with_table: bool = True
+    ) -> str:
         """
         Used to generate a comment for the CRATE data dictionary.
+
+        Args:
+            context:
+                The SystmOneContext in which data is being processed.
+            with_table:
+                Include information about the table.
         """
-        elements = [
-            f"TABLE: {self.table_description}",
-            f"COLUMN: {self.column_description}",
-        ]
+        if with_table:
+            elements = [
+                f"TABLE: {self.table_description}",
+                f"COLUMN: {self.column_description}",
+            ]
+        else:
+            elements = [f"{self.column_description}"]
         if self.linked_table:
             context_prefix = tablename_prefix(context)
             linked_table_ctx = f"{context_prefix}{self.linked_table_core}"
@@ -1801,18 +1818,91 @@ class SystmOneSRESpecRow:
             if self.linked_column_2:
                 links.append(f"WITH {linked_table_ctx}.{self.linked_column_2}")
             elements.append(" ".join(links))
-        return COMMENT_SEP.join(elements)
+        return join_comments(elements)
 
-    def description(self, context: SystmOneContext) -> str:
+    def description(
+        self, context: SystmOneContext, with_table: bool = True
+    ) -> str:
         """
         Full description line.
+
+        Args:
+            context:
+                The SystmOneContext in which data is being processed.
+            with_table:
+                Include information about the table.
         """
         tname = contextual_tablename(self.tablename_core, context)
         cname = contextual_columnname(
             self.tablename_core, self.column_name, context
         )
-        elements = [f"{tname}.{cname}", self.comment(context)]
-        return COMMENT_SEP.join(elements)
+        elements = [
+            f"{tname}.{cname}",
+            self.comment(context, with_table=with_table),
+        ]
+        return join_comments(elements)
+
+
+class SystmOneSRESpecs:
+    """
+    Loads and represents the SystmOne SRE specifications.
+    """
+
+    def __init__(self, context: SystmOneContext, filename: str) -> None:
+        """
+        Initialize by reading a SystmOne SRE specification CSV file.
+
+        context:
+            The context from which SystmOne data is being extracted (e.g. the
+            raw TPP Strategic Reporting Extract (SRE), or a local version
+            processed into CPFT's Data Warehouse).
+        filename:
+            Optional filename for the TPP SRE specification file, in
+            comma-separated value (CSV) format.
+        """
+        self.context = context
+        self.filename = filename
+        # All specifications:
+        self.specs = []  # type: List[SystmOneSRESpecRow]
+        # Map from (tablename_core, columnname) to SystmOneSRESpecRow:
+        self.tabcolmap = {}  # type: Dict[Tuple[str, str], SystmOneSRESpecRow]
+        # Map from tablename_core to table comment:
+        self.tabcomments = {}  # type: Dict[str, str]
+        if filename:
+            log.info(f"Reading SystmOne SRE specs from: {filename}")
+            with open(filename, "r") as f:
+                reader = csv.DictReader(f)
+                for rowdict in reader:
+                    s = SystmOneSRESpecRow(rowdict)
+                    self.specs.append(s)
+                    self.tabcolmap[s.tablename_core, s.column_name] = s
+                    self.tabcomments.setdefault(
+                        s.tablename_core, s.table_description
+                    )
+
+    def debug_specs(self) -> None:
+        """
+        Print the specs to the debugging log.
+        """
+        specs_str = "\n".join(
+            spec.description(self.context) for spec in self.specs
+        )
+        log.debug(f"SystmOne specs:\n{specs_str}")
+
+    def get_spec_row(
+        self, tablename_core: str, columnname: str
+    ) -> SystmOneSRESpecRow:
+        """
+        Look up a row specification.
+        """
+        return self.tabcolmap.get((tablename_core, columnname))
+
+    def table_comment(self, tablename_core: str) -> str:
+        """
+        Returns the table description/comment for a given table, if known, or
+        a blank string.
+        """
+        return self.tabcomments.get(tablename_core) or ""
 
 
 @dataclass
@@ -2392,13 +2482,108 @@ def get_index_flag(
 # =============================================================================
 
 
+class TableCommentWorking:
+    """
+    Class used to store data temporarily about table comments, during SystmOne
+    data dictionary annotation. Slightly complex because
+    """
+
+    def __init__(
+        self,
+        dd: DataDictionary,
+        specifications: SystmOneSRESpecs,
+        append_comments: bool = False,
+        allow_unprefixed_tables: bool = False,
+    ) -> None:
+        """
+        Args:
+            dd:
+                The data dictionary.
+            specifications:
+                Details of the TPP SRE specifications.
+            append_comments:
+                Append comments to any that were autogenerated, rather than
+                replacing them. (If you use the SRE specifications, you may as
+                well set this to False as the SRE specification comments are
+                much better.)
+            allow_unprefixed_tables:
+                Permit tables that don't start with the expected contextual
+                prefix? Discouraged; you may get odd tables and views.
+        """
+        self.dd = dd
+        self.specifications = specifications
+        self.append_comments = append_comments
+        self.allow_unprefixed_tables = allow_unprefixed_tables
+
+        # "Core" tablenames for which the DD has a table comment already:
+        self.coretable_comments_already_exist = set()  # type: Set[str]
+        for ddr in dd.rows:
+            if not ddr.is_table_comment:
+                continue
+            tablename_core = self._get_core_tablename(ddr.src_table)
+            if not tablename_core:
+                continue
+            self.coretable_comments_already_exist.add(tablename_core)
+
+        # We maintain a list of extra DDRs to add:
+        self.extra_table_comment_rows = []  # type: List[DataDictionaryRow]
+
+    def _get_core_tablename(self, dd_tablename: str) -> str:
+        """
+        Returns the equivalent "core" (unprefixed) table name, which we use
+        with our SystmOne specifications file.
+
+        If the input doesn't have the right prefix and allow_unprefixed_tables
+        is False, this will return a blank string.
+        """
+        return core_tablename(
+            dd_tablename,
+            from_context=self.specifications.context,
+            allow_unprefixed=self.allow_unprefixed_tables,
+        )
+
+    def maybe_add_table_comment(self, ddr: DataDictionaryRow):
+        """
+        We scan each data dictionary row via this function.
+
+        - If we already have seen a comment for this table in the data
+          dictionary, we don't do anything, UNLESS this row is itself that
+          comment, and then if
+
+        - Otherwise, we add the SystmOne comment, if found, as an extra DDR,
+          storing it in our "extra_table_comment_rows" list.
+        """
+        tablename_core = self._get_core_tablename(ddr.src_table)
+        if not tablename_core:
+            return
+        s1_table_comment = self.specifications.table_comment(tablename_core)
+        if not s1_table_comment:
+            return
+        if tablename_core in self.coretable_comments_already_exist:
+            if ddr.is_table_comment:
+                # This DDR is itself the table comment. Modify it.
+                if self.append_comments:
+                    ddr.comment = join_comments(ddr.comment, s1_table_comment)
+                else:
+                    ddr.comment = s1_table_comment
+            return
+        # Add a new DDR for the table comment:
+        tc_ddr = DataDictionaryRow(self.dd.config)
+        tc_ddr.set_as_table_comment(
+            ddr.src_db, ddr.src_table, s1_table_comment
+        )
+        self.extra_table_comment_rows.append(tc_ddr)
+        self.coretable_comments_already_exist.add(tablename_core)
+
+
 def annotate_systmone_dd_row(
     ddr: DataDictionaryRow,
     context: SystmOneContext,
-    specifications: SRE_SPEC_TYPE,
+    specifications: SystmOneSRESpecs,
     append_comments: bool = False,
     include_generic: bool = False,
     allow_unprefixed_tables: bool = False,
+    table_info_in_comments: bool = True,
 ) -> None:
     """
     Modifies (in place) a data dictionary row for SystmOne.
@@ -2425,6 +2610,8 @@ def annotate_systmone_dd_row(
             Permit tables that don't start with the expected contextual prefix?
             Discouraged; you may get odd tables and views.
             A few (see INCLUDE_TABLES_REGEX) are explicitly included anyway.
+        table_info_in_comments:
+            Include table descriptions in column comments?
     """
     tablename = core_tablename(
         ddr.src_table,
@@ -2471,38 +2658,15 @@ def annotate_systmone_dd_row(
     ddr.index = get_index_flag(tablename, colname, ddr, context)
 
     # Improve comment
-    spec = specifications.get((tablename, colname))
+    spec = specifications.get_spec_row(tablename, colname)
     if spec:
-        spec_comment = spec.comment(context)
+        spec_comment = spec.comment(context, with_table=table_info_in_comments)
         # If we have no new comment, leave the old one alone.
         if spec_comment:
             if append_comments:
-                ddr.comment = COMMENT_SEP.join(
-                    (ddr.comment or "", spec_comment)
-                )
+                ddr.comment = join_comments(ddr.comment, spec_comment)
             else:
                 ddr.comment = spec_comment
-
-
-# =============================================================================
-# Read a SystmOne SRE specification CSV file
-# =============================================================================
-
-
-def read_systmone_sre_spec(filename: str) -> SRE_SPEC_TYPE:
-    """
-    Read a SystmOne SRE specification CSV file. This provides useful comments!
-    The format is of a dictionary mapping (tablename, colname) tuples to
-    SystmOneSRESpecRow objects.
-    """
-    specs = {}  # type: SRE_SPEC_TYPE
-    with open(filename, "r") as f:
-        reader = csv.DictReader(f)
-        for rowdict in reader:
-            s = SystmOneSRESpecRow(rowdict)
-            tablename_colname_tuple = s.tablename_core, s.column_name
-            specs[tablename_colname_tuple] = s
-    return specs
 
 
 # =============================================================================
@@ -2519,6 +2683,7 @@ def modify_dd_for_systmone(
     include_generic: bool = False,
     allow_unprefixed_tables: bool = False,
     alter_loaded_rows: bool = False,
+    table_info_in_comments: bool = True,
 ) -> None:
     """
     Modifies a data dictionary in place.
@@ -2552,20 +2717,25 @@ def modify_dd_for_systmone(
         alter_loaded_rows:
             Alter rows that were loaded from disk (not read from a database)?
             The default is to leave such rows untouched.
+        table_info_in_comments:
+            Include table descriptions in column comments?
     """
     log.info(f"Modifying data dictionary for SystmOne. Context = {context}")
-    specs = (
-        read_systmone_sre_spec(sre_spec_csv_filename)
-        if sre_spec_csv_filename
-        else []
-    )
+    specs = SystmOneSRESpecs(context, sre_spec_csv_filename)
     if debug_specs:
-        specs_str = "\n".join(spec.description(context) for spec in specs)
-        log.debug(f"SystmOne specs:\n{specs_str}")
+        specs.debug_specs()
+    table_comment_working = TableCommentWorking(
+        dd=dd,
+        specifications=specs,
+        allow_unprefixed_tables=allow_unprefixed_tables,
+    )
     for ddr in dd.rows:
+        table_comment_working.maybe_add_table_comment(ddr)
         if ddr.from_file and not alter_loaded_rows:
             # Skip rows that were loaded from disk.
             continue
+        if ddr.is_table_comment:
+            continue  # those were handled above
         annotate_systmone_dd_row(
             ddr=ddr,
             context=context,
@@ -2573,5 +2743,9 @@ def modify_dd_for_systmone(
             append_comments=append_comments,
             include_generic=include_generic,
             allow_unprefixed_tables=allow_unprefixed_tables,
+            table_info_in_comments=table_info_in_comments,
         )
+    dd.rows += table_comment_working.extra_table_comment_rows
     log.info("... done")
+    # We may have added table comments, so sort.
+    dd.sort()

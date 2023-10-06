@@ -110,14 +110,14 @@ each table. It may be helpful to find problems with large data dictionaries.
     :language: none
 
 
-.. _crate_anon_researcher_report:
+.. _crate_researcher_report:
 
-crate_anon_researcher_report
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+crate_researcher_report
+~~~~~~~~~~~~~~~~~~~~~~~
 
 This ancillary tool reads your destination database (and data dictionary) and
 generates a PDF report intended for use by researchers. Optionally, it can
 include row counts and specimen values or value ranges.
 
-..  literalinclude:: _crate_anon_researcher_report_help.txt
+..  literalinclude:: _crate_researcher_report_help.txt
     :language: none

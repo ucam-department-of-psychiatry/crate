@@ -30,7 +30,7 @@ crate_anon/anonymise/researcher_report.py
 """
 
 import argparse
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import datetime
 import decimal
 import logging
@@ -50,7 +50,7 @@ from django.template.loader import render_to_string
 import pendulum
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql.expression import distinct, func, select, table
-from sqlalchemy.schema import Column, ForeignKey, Table
+from sqlalchemy.schema import Column, Table
 
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.constants import ANON_CONFIG_ENV_VAR
@@ -59,6 +59,7 @@ from crate_anon.anonymise.ddr import DataDictionaryRow, DDRLabels
 from crate_anon.common.argparse_assist import (
     RawDescriptionArgumentDefaultsRichHelpFormatter,
 )
+from crate_anon.common.sql import ReflectedColumnInfo
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_PRETTY
 
 log = logging.getLogger(__name__)
@@ -113,9 +114,14 @@ class Default:
     MARGIN_TOP_BOTTOM = "18mm"  # see HEADER_FOOTER_SPACING_MM
 
 
+ELLIPSIS = "…"
 EN_DASH = "–"
 MINUS = "−"
 HYPHEN = "-"
+SINGLE_QUOTE_L = "‘"
+SINGLE_QUOTE_R = "’"
+# SINGLE_QUOTE = "'"
+# TWO_SINGLE_QUOTES = "''"
 TICK = "✓"
 # RIGHT_ARROW = "►"
 
@@ -144,6 +150,7 @@ class ResearcherReportConfig:
     show_counts: bool = True  # count records in each table?
     show_url: bool = True  # include a sanitised URL for the database
     show_values: bool = True  # include specimen values/ranges
+    skip_values_if_too_many: bool = False
     use_dd: bool = True  # include info from the data dictionary
 
     def __post_init__(self) -> None:
@@ -236,38 +243,6 @@ class ResearcherReportConfig:
         return self.annotation_from_colname.get(col_name, DDRLabels.UNKNOWN)
 
 
-@dataclass
-class ColumnInfo:
-    name: str
-    sql_type: str
-    pk: bool = False
-    fk: List[ForeignKey] = field(default_factory=list)
-    nullable: bool = True
-    comment: str = ""  # database comment
-    crate_annotation: str = "?"
-    values_info: str = "?"
-
-    @property
-    def nullable_str(self) -> str:
-        return TICK if self.nullable else "NOT NULL"
-
-    @property
-    def pk_str(self) -> str:
-        return "PK" if self.pk else ""
-
-    @property
-    def fk_str(self) -> str:
-        if not self.fk:
-            return ""
-        fk_cols = [
-            f"{fk.column.table.name}.{fk.column.name}"
-            for fk in sorted(
-                self.fk, key=lambda x: (x.column.table.name, x.column.name)
-            )
-        ]
-        return "FK to " + ", ".join(fk_cols)
-
-
 def template(filename: str) -> str:
     """
     Returns a filename from our specific template directory.
@@ -301,7 +276,7 @@ def mk_comment(
 def literal(
     value: Any,
     max_length: int = Default.MAX_VALUE_LENGTH,
-    truncated_suffix: str = "...",
+    truncated_suffix: str = ELLIPSIS,
 ) -> str:
     """
     Returns a rough-and-ready SQL literal, intended for human viewing only.
@@ -314,10 +289,15 @@ def literal(
     if value is None:
         return "NULL"
     elif isinstance(value, str):
-        if len(value) > max_length:
-            value = value[:max_length] + truncated_suffix
-        value = value.replace("'", "''")  # SQL-style escaping of quotes
-        return f"'{value}'"
+        length = len(value)
+        if length > max_length:
+            value = value[:max_length]
+            suffix = truncated_suffix + SINGLE_QUOTE_R + f" [length {length}]"
+        else:
+            suffix = SINGLE_QUOTE_R
+        # We won't escape quotes. This report is about visual ease, not
+        # electronic exactness.
+        return SINGLE_QUOTE_L + value + suffix
     elif isinstance(value, (float, int)):
         return repr(value).replace(HYPHEN, MINUS)
     elif isinstance(value, decimal.Decimal):
@@ -377,47 +357,75 @@ def get_values_summary(
     # Otherwise, we can always do the number of distinct values:
     items = []  # type: List[str]
     session = reportcfg.db_session
-    n_distinct = session.execute(
+    n_distinct_notnull = session.execute(
         select([func.count(distinct(column))])
     ).fetchone()[0]
-    suffix = "" if n_distinct == 1 else "s"  # "value" or "values"?
-    items.append(f"{n_distinct} distinct value{suffix}.")
+    # This does NOT include NULL values, by the SQL standard.
+    suffix = "" if n_distinct_notnull == 1 else "s"  # "value" or "values"?
+    items.append(f"{n_distinct_notnull} distinct non-null value{suffix}.")
 
-    do_min_max = False
-    do_distinct = False
+    show_min_max = False
+    show_distinct = False  # show the actual distinct values?
 
-    if n_distinct == 0:
-        # We don't need min/max/distinct if the table is empty.
-        pass
-    elif ddr and (
-        ddr.contains_patient_info
-        or ddr.contains_third_party_info
-        or ddr.contains_scrub_src
-        or ddr.being_scrubbed
-    ):
-        # More sensitive fields. Don't show these specifically.
-        pass
-    else:
+    empty = n_distinct_notnull == 0
+    sensitive = (
+        not empty
+        and ddr
+        and (
+            ddr.contains_patient_info
+            or ddr.contains_third_party_info
+            or ddr.contains_scrub_src
+            or ddr.being_scrubbed
+        )
+    )
+    # ... not *actually* sensitive; merely having the appearance of being
+    # sensitive for a general-purpose report.
+    dull = (
+        not empty
+        and not sensitive
+        and reportcfg.use_dd
+        and not ddr
+        and column.name in reportcfg.annotation_from_colname.keys()
+    )
+
+    if not (empty or sensitive or dull):
         # Show some more detail.
-        if n_distinct > 1:
-            do_min_max = True
-        if n_distinct <= reportcfg.max_distinct_values:
-            do_distinct = True
+        if n_distinct_notnull > 1:
+            show_min_max = True
+        if (
+            n_distinct_notnull <= reportcfg.max_distinct_values
+            or not reportcfg.skip_values_if_too_many
+        ):
+            show_distinct = True
 
     def lit(value: Any) -> str:
         return literal(value, reportcfg.max_value_length)
 
-    if do_min_max:
+    if show_min_max:
         min_val, max_val = session.execute(
             select([func.min(column), func.max(column)])
         ).fetchone()
         items.append(f"Min {lit(min_val)}; max {lit(max_val)}.")
 
-    if do_distinct:
-        dv_rows = session.execute(select([func.distinct(column)])).fetchall()
+    if show_distinct:
+        dv_rows = session.execute(
+            select([func.distinct(column)])
+            .order_by(column)
+            .limit(reportcfg.max_value_length + 1)
+        ).fetchall()
+        # These WILL include any NULL values, so there may be one more than
+        # n_distinct_notnull (or the same, if there are no NULLs). The only
+        # way to be sure if we are truncating, therefore, and to show a
+        # truncation indicator, is to fetch up to one more and see if we are
+        # over the limit.
         # Sort before literal (so we get numeric, not string, sort):
         distinct_values = sorted((row[0] for row in dv_rows), key=sorter)
-        distinct_value_str = ", ".join(lit(v) for v in distinct_values)
+        distinct_value_elements = [lit(v) for v in distinct_values]
+        if len(distinct_values) > reportcfg.max_distinct_values:
+            distinct_value_elements = distinct_value_elements[
+                0 : reportcfg.max_distinct_values
+            ] + [ELLIPSIS]
+        distinct_value_str = ", ".join(distinct_value_elements)
         items.append(f"Distinct values: {{{distinct_value_str}}}.")
         # It's a set, so use set notation.
 
@@ -456,7 +464,7 @@ def mk_table_html(table_name: str, reportcfg: ResearcherReportConfig) -> str:
 
     t = reportcfg.db.metadata.tables[table_name]  # type: Table
     table_comment = t.comment or ""  # may be blank
-    columns = []  # type: List[ColumnInfo]
+    columns = []  # type: List[ReflectedColumnInfo]
     for c in sorted(t.c, key=lambda x: x.name):  # type: Column
         log.debug(repr(c))
         colname = c.name
@@ -478,13 +486,9 @@ def mk_table_html(table_name: str, reportcfg: ResearcherReportConfig) -> str:
             ddr=ddr,
         )
         columns.append(
-            ColumnInfo(
-                name=colname,
-                sql_type=str(c.type),
-                pk=c.primary_key,
-                nullable=c.nullable,
-                fk=list(c.foreign_keys),
-                comment=mk_comment(reportcfg, c, ddr),
+            ReflectedColumnInfo(
+                column=c,
+                override_comment=mk_comment(reportcfg, c, ddr),
                 crate_annotation=crate_annotation,
                 values_info=values_info,
             )
@@ -719,7 +723,13 @@ setting e.g. "ulimit -n 2048" is one solution.
         "--max_distinct_values",
         type=int,
         default=Default.MAX_DISTINCT_VALUES,
-        help="Maximum number of distinct values to show, where applicable",
+        help="Maximum number of distinct values to show, if applicable",
+    )
+    grp_detail.add_argument(
+        "--skip_values_if_too_many",
+        action="store_true",
+        help="If showing values, and there are more distinct values than the "
+        "maximum, omit them (rather than showing the first few)?",
     )
     grp_detail.add_argument(
         "--max_value_length",
@@ -805,6 +815,7 @@ setting e.g. "ulimit -n 2048" is one solution.
         show_counts=args.show_counts,
         show_url=args.show_url,
         show_values=args.show_values,
+        skip_values_if_too_many=args.skip_values_if_too_many,
         use_dd=args.use_dd,
     )
 

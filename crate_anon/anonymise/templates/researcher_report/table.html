@@ -32,18 +32,32 @@
         </tr>
         {% for c in columns %}
             <tr>
-                <td class="name_col{% if c.pk %} name_col_pk{% endif %}">
+                <td class="name_col{% if c.pk %} pk{% endif %}">
                     {{ c.name }}
                 </td>
-                <td>{{ c.sql_type }}</td>
-                <td{% if c.pk %} class="key_col_pk"{% elif c.fk %} class="key_col_fk"{% endif %}>
+                <td{% if c.pk %} class="pk"{% endif %}>
+                    {{ c.sql_type }}
+                </td>
+                <td{% if c.pk %} class="pk"{% endif %}>
                     {{ c.pk_str }}{% if c.pk_str and c.fk_str %};{% endif %}
                     {{ c.fk_str }}
                 </td>
-                <td>{{ c.nullable_str }}</td>
-                <td>{{ c.comment }}</td>
-                {% if use_dd %}<td>{{ c.crate_annotation }}</td>{% endif %}
-                {% if show_values %}<td>{{ c.values_info }}</td>{% endif %}
+                <td{% if c.pk %} class="pk"{% endif %}>
+                    {{ c.nullable_str }}
+                </td>
+                <td{% if c.pk %} class="pk"{% endif %}>
+                    {{ c.comment }}
+                </td>
+                {% if use_dd %}
+                    <td{% if c.pk %} class="pk"{% endif %}>
+                        {{ c.crate_annotation_str }}
+                    </td>
+                {% endif %}
+                {% if show_values %}
+                    <td{% if c.pk %} class="pk"{% endif %}>
+                        {{ c.values_info_str }}
+                    </td>
+                {% endif %}
             </tr>
         {% endfor %}
     </table>
