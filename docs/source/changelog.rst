@@ -1626,7 +1626,13 @@ Changes
   - supporting table comments for NLP output tables
   - and adding column comments more consistently overall
 
-**0.20.3, in progress**
+**0.20.3, 2023-10-06**
+
+- No change in functionality. Updates Django to 3.2.21 to fix CVE-2023-41164.
+
+
+**0.20.4, in progress**
+
 
 To do
 -----
