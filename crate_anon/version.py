@@ -36,7 +36,7 @@ import sys
 # Constants
 # =============================================================================
 
-CRATE_VERSION = "0.20.2"
+CRATE_VERSION = "0.20.3"
 CRATE_VERSION_DATE = "2023-10-06"
 
 MINIMUM_PYTHON_VERSION = (3, 8)
