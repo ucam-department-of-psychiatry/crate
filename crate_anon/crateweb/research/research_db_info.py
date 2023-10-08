@@ -1164,7 +1164,9 @@ class ResearchDatabaseInfo:
             return next(x for x in self.dbinfolist if x.schema_id == schema_id)
         except StopIteration:
             raise StopIteration(
-                f"get_dbinfo_by_schema_id(): not found for {schema_id=}"
+                f"get_dbinfo_by_schema_id(): not found for {schema_id=}; "
+                f"has your database structure changed? If so, delete the "
+                f"query and start again."
             )
 
     @property
