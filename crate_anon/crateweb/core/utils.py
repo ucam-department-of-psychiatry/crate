@@ -160,8 +160,8 @@ def url_with_querystring(
         https://stackoverflow.com/questions/43893853/http-cache-control-and-params-order.
     """  # noqa
     # Get initial query parameters, if any.
-    # log.critical(f"IN: path={path!r}, querydict={querydict!r}, "
-    #              f"kwargs={kwargs!r}")
+    # log.debug(f"IN: path={path!r}, querydict={querydict!r}, "
+    #           f"kwargs={kwargs!r}")
     pr = urllib.parse.urlparse(path)  # type: urllib.parse.ParseResult
     qd = QueryDict(mutable=True)
     if pr.query:
@@ -192,7 +192,7 @@ def url_with_querystring(
     components = list(pr)
     components[4] = querystring
     url = urllib.parse.urlunparse(components)
-    # log.critical(f"OUT: {url}")
+    # log.debug(f"OUT: {url}")
     return url
 
 

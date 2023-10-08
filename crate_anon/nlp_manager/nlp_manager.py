@@ -564,7 +564,7 @@ def process_nlp(
                     )
                 )
             recnum += ntasks
-            # log.critical("other_values={}".format(repr(other_values)))
+            # log.debug("other_values={}".format(repr(other_values)))
             srchash = nlpdef.hash(text)
 
             progrec = None

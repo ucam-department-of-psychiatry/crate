@@ -53,6 +53,7 @@ from crate_anon.common.sql import (
     TableId,
     WhereCondition,
 )
+from crate_anon.crateweb.research.errors import DatabaseStructureNotUnderstood
 from crate_anon.crateweb.research.research_db_info import (
     research_database_info,
 )
@@ -100,6 +101,10 @@ def get_join_info(
         a list of :class:`crate_anon.common.sql.JoinInfo` objects, e.g.
         ``[JoinInfo("tablename", "INNER JOIN", "WHERE somecondition")]``.
 
+    Raises:
+        ``DatabaseStructureNotUnderstood`` if the relevant schema information
+        cannot be looked up.
+
     Notes:
 
     - ``INNER JOIN`` etc. is part of ANSI SQL
@@ -125,11 +130,11 @@ def get_join_info(
 
     if exact_match_table:
         # This table is already in the query. No JOIN should be required.
-        # log.critical("get_join_info: same table already in query")
+        # log.debug("get_join_info: same table already in query")
         return []
 
     if not magic_join:
-        # log.critical("get_join_info: non-magic join")
+        # log.debug("get_join_info: non-magic join")
         return [
             JoinInfo(
                 join_type=nonmagic_join_type,
@@ -141,7 +146,7 @@ def get_join_info(
     if from_table_in_join_schema:
         # Another table from the same database is present. Link on the
         # TRID field.
-        # log.critical("get_join_info: joining to another table in same DB")
+        # log.debug("get_join_info: joining to another table in same DB")
         return [
             JoinInfo(
                 join_type="INNER JOIN",
@@ -158,16 +163,28 @@ def get_join_info(
         ]
 
     # OK. So now we're building a cross-database join.
-    existing_family = research_database_info.get_dbinfo_by_schema_id(
-        first_from_table.schema_id
-    ).rid_family
-    new_family = research_database_info.get_dbinfo_by_schema_id(
-        jointable.schema_id
-    ).rid_family
-    # log.critical("existing_family={}, new_family={}".format(
+    try:
+        existing_family = research_database_info.get_dbinfo_by_schema(
+            first_from_table.schema_id
+        ).rid_family
+        new_family = research_database_info.get_dbinfo_by_schema(
+            jointable.schema_id
+        ).rid_family
+    except ValueError:
+        # Some schema information is absent. This probably means that the user
+        # has created a custom query and passed it to the query builder;
+        # alternatively, that the database structure has changed. Either way,
+        # the query builder won't cope.
+        raise DatabaseStructureNotUnderstood(
+            "Some schema information is absent. Likely, either a custom query "
+            "has passed to the query builder, or the database structure has "
+            "changed since the query was written."
+        )
+
+    # log.debug("existing_family={}, new_family={}".format(
     #     existing_family, new_family))
     if existing_family and existing_family == new_family:
-        # log.critical("get_join_info: new DB, same RID family")
+        # log.debug("get_join_info: new DB, same RID family")
         return [
             JoinInfo(
                 join_type="INNER JOIN",
@@ -184,7 +201,7 @@ def get_join_info(
         ]
 
     # If we get here, we have to do a complicated join via the MRID.
-    # log.critical("get_join_info: new DB, different RID family, using MRID")
+    # log.debug("get_join_info: new DB, different RID family, using MRID")
     existing_mrid_column = research_database_info.get_mrid_column_from_table(
         first_from_table
     )
@@ -468,6 +485,10 @@ def add_to_select(
     Returns:
         str: SQL statement
 
+    Raises:
+        ``DatabaseStructureNotUnderstood`` if the relevant schema information
+        cannot be looked up.
+
     """
     select_elements = select_elements or []  # type: List[SelectElement]
     where_conditions = where_conditions or []  # type: List[WhereCondition]
@@ -576,7 +597,7 @@ def add_to_select(
                 magic_join=magic_join,
                 nonmagic_join_type=join_type,
                 nonmagic_join_condition=join_condition,
-            ),
+            ),  # may raise DatabaseStructureNotUnderstood
             grammar=grammar,
         )
 

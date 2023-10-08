@@ -1774,7 +1774,7 @@ class PatientMultiQuery:
         if with_order_by:
             sql += " ORDER BY " + mrid_alias
         sql = format_sql(sql)
-        # log.critical(sql)
+        # log.debug(sql)
         return sql
 
     @property

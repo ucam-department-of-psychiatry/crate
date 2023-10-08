@@ -31,7 +31,6 @@ crate_anon/crateweb/research/research_db_info.py
 
 from collections import OrderedDict
 
-# from functools import lru_cache
 import logging
 import re
 from typing import Any, Dict, List, Optional, Set
@@ -1108,8 +1107,8 @@ class ResearchDatabaseInfo:
 
     def _get_dbinfo_by_index(self, index: int) -> SingleResearchDatabase:
         """
-        Returns a :class:`SingleResearchDatabase` by its zero-based index, and
-        assert if the index is bad.
+        Returns a :class:`SingleResearchDatabase` by its zero-based index, or
+        raise an exception if the index is bad.
 
         Args:
             index: a zero-based index
@@ -1142,7 +1141,7 @@ class ResearchDatabaseInfo:
         except StopIteration:
             raise ValueError(f"No research database named {name!r}")
 
-    def get_dbinfo_by_schema_id(
+    def get_dbinfo_by_schema(
         self, schema_id: SchemaId
     ) -> SingleResearchDatabase:
         """
@@ -1155,18 +1154,16 @@ class ResearchDatabaseInfo:
             a :class:`SingleResearchDatabase`
 
         Raises:
-            :exc:`StopIteration` if none is found
-
-        - This is probably a functional duplicate of
-          :func:`_get_db_info`!
+            :exc:`ValueError` if none is found
         """
+        if schema_id.is_blank():
+            raise ValueError("get_db_info(): error: blank schema provided")
         try:
             return next(x for x in self.dbinfolist if x.schema_id == schema_id)
         except StopIteration:
-            raise StopIteration(
-                f"get_dbinfo_by_schema_id(): not found for {schema_id=}; "
-                f"has your database structure changed? If so, delete the "
-                f"query and start again."
+            raise ValueError(
+                f"No such database/schema: "
+                f"{schema_id.identifier(self.grammar)!r}"
             )
 
     @property
@@ -1234,31 +1231,6 @@ class ResearchDatabaseInfo:
         else:
             raise ValueError("Bad settings.RESEARCH_DB_DIALECT")
 
-    def _get_db_info(self, schema_id: SchemaId) -> SingleResearchDatabase:
-        """
-        Returns the first database representing the specified schema.
-
-        Args:
-            schema_id: a :class:`crate_anon.common.sql.SchemaId`
-
-        Returns:
-            a :class:`SingleResearchDatabase`
-
-        Raises:
-            :exc:`ValueError` if none is found
-
-        - This is probably a functional duplicate of
-          :func:`get_dbinfo_by_schema_id`!
-
-        """
-        try:
-            return next(d for d in self.dbinfolist if d.schema_id == schema_id)
-        except StopIteration:
-            raise ValueError(
-                f"No such database/schema: "
-                f"{schema_id.identifier(self.grammar)!r}"
-            )
-
     # -------------------------------------------------------------------------
     # Database-wide fields and descriptions
     # -------------------------------------------------------------------------
@@ -1275,7 +1247,7 @@ class ResearchDatabaseInfo:
             a :class:`crate_anon.common.sql.ColumnId`, which may be blank
 
         """
-        dbinfo = self._get_db_info(table.schema_id)
+        dbinfo = self.get_dbinfo_by_schema(table.schema_id)
         return table.column_id(dbinfo.rid_field)
 
     def get_trid_column(self, table: TableId) -> ColumnId:
@@ -1290,7 +1262,7 @@ class ResearchDatabaseInfo:
             a :class:`crate_anon.common.sql.ColumnId`, which may be blank
 
         """
-        dbinfo = self._get_db_info(table.schema_id)
+        dbinfo = self.get_dbinfo_by_schema(table.schema_id)
         return table.column_id(dbinfo.trid_field)
 
     def get_mrid_column_from_schema(self, schema: SchemaId) -> ColumnId:
@@ -1305,7 +1277,7 @@ class ResearchDatabaseInfo:
             a :class:`crate_anon.common.sql.ColumnId`, which may be blank
 
         """
-        dbinfo = self._get_db_info(schema)
+        dbinfo = self.get_dbinfo_by_schema(schema)
         return schema.column_id(
             table=dbinfo.mrid_table, column=dbinfo.mrid_field
         )
@@ -1342,7 +1314,7 @@ class ResearchDatabaseInfo:
             return mrid_in_same_db
         # OK. So our table isn't from a database with an MRID table, but it
         # might be linked to one.
-        table_db = self._get_db_info(table.schema_id)
+        table_db = self.get_dbinfo_by_schema(table.schema_id)
         first_db = self.first_dbinfo
         if not first_db.talks_to_world:
             return None
@@ -1363,7 +1335,7 @@ class ResearchDatabaseInfo:
             a :class:`crate_anon.common.sql.ColumnId`, which may be blank
 
         """
-        dbinfo = self._get_db_info(table.schema_id)
+        dbinfo = self.get_dbinfo_by_schema(table.schema_id)
         return dbinfo.get_default_date_field(table)
 
     # -------------------------------------------------------------------------
@@ -1617,7 +1589,7 @@ class ResearchDatabaseInfo:
         """
         eligible_tables = set()  # type: Set[TableId]
         for table in self.get_tables():
-            dbinfo = self._get_db_info(table.schema_id)
+            dbinfo = self.get_dbinfo_by_schema(table.schema_id)
             if not dbinfo.has_mrid:
                 continue
             if self.table_contains_rid(table):

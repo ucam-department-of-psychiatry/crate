@@ -152,6 +152,7 @@ crate_anon/crateweb
     research/__init__.py.rst
     research/archive_backend.py.rst
     research/archive_func.py.rst
+    research/errors.py.rst
     research/forms.py.rst
     research/html_functions.py.rst
     research/migrations/0001_initial.py.rst

@@ -483,7 +483,7 @@ class TableMaker(ABC):
             column_like_things = (
                 copy_of_cols + core_indexes + extra_dest_indexes + copy_indexes
             )
-            # log.critical(repr(column_like_things))
+            # log.debug(repr(column_like_things))
             table_kwargs = {
                 COMMENT: f"CRATE NLP results for {self.friendly_name}",
                 **TABLE_KWARGS,
@@ -781,7 +781,7 @@ class BaseNlpParser(TableMaker):
                         for k, v in nlp_values.items()
                         if k in column_names
                     }
-                    # log.critical(repr(sqla_table))
+                    # log.debug(repr(sqla_table))
                     insertquery = sqla_table.insert().values(final_values)
                     try:
                         with MultiTimerContext(timer, TIMING_INSERT):
@@ -853,7 +853,7 @@ class BaseNlpParser(TableMaker):
             f"{ALL_SQL_DIALECTS}"
         )
         dialect = registry.load(sql_dialect)()  # type: Dialect
-        # log.critical(f"dialect: {dialect}")
+        # log.debug(f"dialect: {dialect}")
         # dialect = MSDialect()
         column_type = column.type.compile(dialect)
         data_type = column_type.partition("(")[0]

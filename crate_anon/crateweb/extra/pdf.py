@@ -97,7 +97,7 @@ def get_pdf_from_html_with_django_settings(
         wkhtmltopdf_options = merge_two_dicts(
             settings.WKHTMLTOPDF_OPTIONS, wkhtmltopdf_options
         )
-    # log.critical(f"{wkhtmltopdf_options!r}")
+    # log.debug(f"{wkhtmltopdf_options!r}")
 
     return get_pdf_from_html(
         html=html,

@@ -109,6 +109,7 @@ from crate_anon.crateweb.research.archive_backend import (
     get_archive_attachment_filepath,
     get_archive_static_filepath,
 )
+from crate_anon.crateweb.research.errors import DatabaseStructureNotUnderstood
 from crate_anon.crateweb.research.forms import (
     AddHighlightForm,
     AddQueryForm,
@@ -493,7 +494,7 @@ def query_build(request: HttpRequest) -> HttpResponse:
                 else:
                     pass
 
-        except ParseException as e:
+        except (ParseException, DatabaseStructureNotUnderstood) as e:
             parse_error = str(e)
 
     if form is None:
