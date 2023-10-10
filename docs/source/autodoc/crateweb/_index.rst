@@ -219,7 +219,7 @@ crate_anon/crateweb
     research/templates/sqlhelper_form_drugtype.html.rst
     research/templates/sqlhelper_form_text_anywhere.html.rst
     research/templates/sqlhelper_form_text_anywhere_choose_db.html.rst
-    research/tests.py.rst
+    research/tests/sql_writer_tests.py.rst
     research/views.py.rst
     specimen_archives/basic/clinical_documents.mako.rst
     specimen_archives/basic/diagnoses.mako.rst
