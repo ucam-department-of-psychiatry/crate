@@ -33,14 +33,11 @@ of the fields that can be used to link across tables/databases.**
 import logging
 from typing import List, Optional
 
-from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.sql.sql_grammar import (
     format_sql,
     SqlGrammar,
     text_from_parsed,
 )
-from cardinal_pythonlib.sql.sql_grammar_factory import make_grammar
-from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 from pyparsing import ParseResults
 
 from crate_anon.common.sql import (
@@ -609,81 +606,3 @@ def add_to_select(
     if debug:
         log.info(f"END: {result}")
     return result
-
-
-# =============================================================================
-# Unit tests
-# =============================================================================
-
-
-def unit_tests() -> None:
-    """
-    Unit tests.
-    """
-    grammar = make_grammar(SqlaDialectName.MYSQL)
-    log.info(
-        add_to_select(
-            "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
-            grammar=grammar,
-            select_elements=[
-                SelectElement(column_id=ColumnId(table="t2", column="c"))
-            ],
-            magic_join=False,  # magic_join requires DB knowledge hence Django
-        )
-    )
-    log.info(
-        add_to_select(
-            "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
-            grammar=grammar,
-            select_elements=[
-                SelectElement(column_id=ColumnId(table="t1", column="a"))
-            ],
-        )
-    )
-    log.info(
-        add_to_select(
-            "",
-            grammar=grammar,
-            select_elements=[
-                SelectElement(column_id=ColumnId(table="t2", column="c"))
-            ],
-        )
-    )
-    log.info(
-        add_to_select(
-            "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
-            grammar=grammar,
-            where_conditions=[WhereCondition(raw_sql="t1.col2 < 3")],
-        )
-    )
-    log.info(
-        add_to_select(
-            "SELECT t1.a, t1.b FROM t1",
-            grammar=grammar,
-            where_conditions=[WhereCondition(raw_sql="t1.col1 > 5")],
-        )
-    )
-    log.info(
-        add_to_select(
-            "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5 AND t3.col99 = 100",
-            grammar=grammar,
-            where_conditions=[WhereCondition(raw_sql="t1.col2 < 3")],
-        )
-    )
-
-    # Multiple WHEREs where before there were none:
-    log.info(
-        add_to_select(
-            "SELECT t1.a, t1.b FROM t1",
-            grammar=grammar,
-            where_conditions=[
-                WhereCondition(raw_sql="t1.col1 > 99"),
-                WhereCondition(raw_sql="t1.col2 < 999"),
-            ],
-        )
-    )
-
-
-if __name__ == "__main__":
-    main_only_quicksetup_rootlogger()
-    unit_tests()
