@@ -34,6 +34,7 @@ from cardinal_pythonlib.sql.sql_grammar_factory import make_grammar
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 
 from crate_anon.common.sql import ColumnId, WhereCondition
+from crate_anon.crateweb.research.errors import DatabaseStructureNotUnderstood
 from crate_anon.crateweb.research.sql_writer import (
     add_to_select,
     SelectElement,
@@ -148,7 +149,7 @@ class AddToSelectTests(TestCase):
         column_id = ColumnId(
             schema="research", table="blobdoc", column="_src_hash"
         )
-        with self.assertRaises(ValueError):
+        with self.assertRaises(DatabaseStructureNotUnderstood):
             add_to_select(
                 "SELECT foo from bar",
                 grammar=self.grammar,
