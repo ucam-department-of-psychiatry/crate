@@ -48,6 +48,8 @@ class AddToSelectTests(TestCase):
         self.grammar = make_grammar(SqlaDialectName.MYSQL)
 
     def assert_query_equal(self, actual: str, expected: str) -> None:
+        # Test a query string matches the expected value, ignoring
+        # whitespace differences
         actual = actual.replace(" ,", ",")
         actual = " ".join(actual.split())
 
@@ -141,3 +143,14 @@ class AddToSelectTests(TestCase):
             sql,
             "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 99 AND t1.col2 < 999",
         )
+
+    def test_raises_when_table_does_not_exist(self) -> None:
+        column_id = ColumnId(
+            schema="research", table="blobdoc", column="_src_hash"
+        )
+        with self.assertRaises(ValueError):
+            add_to_select(
+                "SELECT foo from bar",
+                grammar=self.grammar,
+                select_elements=[SelectElement(column_id=column_id)],
+            )
