@@ -20,8 +20,10 @@
 
     <h2>Current query</h2>
     {% if parse_error %}
-        <div class="warning">SQL FAILED TO PARSE. Please clear the query.
-            Error was: {{ parse_error }}</div>
+        <div class="warning">
+            SQL FAILED TO PARSE. Please clear the query or edit it manually in
+            the SQL view. Error was: {{ parse_error }}
+        </div>
     {% endif %}
     {% if sql %}
         <div class="sql">{{ sql|safe }}</div>

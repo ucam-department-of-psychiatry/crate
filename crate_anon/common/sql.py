@@ -331,6 +331,20 @@ class SchemaId:
     def __repr__(self) -> str:
         return mapped_repr_stripping_underscores(self, ["_db", "_schema"])
 
+    def is_present(self) -> bool:
+        """
+        Is this a blank/nonfunctional schema, with no ``database`` or
+        ``schema`` part?
+        """
+        return bool(self._db or self._schema)
+
+    def is_blank(self) -> bool:
+        """
+        Is this a blank/nonfunctional schema, with no ``database`` or
+        ``schema`` part?
+        """
+        return not self.is_present()
+
 
 @register_for_json(method=METHOD_STRIP_UNDERSCORE)
 @functools.total_ordering

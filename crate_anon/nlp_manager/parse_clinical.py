@@ -306,7 +306,7 @@ class Height(NumericalResultParser):
                 FN_TENSE_TEXT: tense_text,
                 FN_TENSE: tense,
             }
-            # log.critical(result)
+            # log.debug(result)
             yield self.tablename, result
 
     def test(self, verbose: bool = False) -> None:
@@ -502,7 +502,7 @@ class Weight(NumericalResultParser):
                 FN_TENSE_TEXT: tense_text,
                 FN_TENSE: tense,
             }
-            # log.critical(result)
+            # log.debug(result)
             yield self.tablename, result
 
     def test(self, verbose: bool = False) -> None:
