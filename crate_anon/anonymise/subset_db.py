@@ -38,7 +38,7 @@ from cardinal_pythonlib.file_io import gen_lines_without_comments
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy.engine.url import make_url
 
-from sqlalchemy.engine import Row 
+from sqlalchemy.engine import Row
 from sqlalchemy.sql.expression import select, table
 from sqlalchemy.schema import Table
 
@@ -185,10 +185,11 @@ class SubsetConfig:
         """
         Should this table be permitted (judging only by its name)?
         """
-        # Only specifically named tables can be included.
-        if table_name not in self.include_tables:
-            # Not specifically named.
-            return False
+        if self.include_tables:
+            # Only specifically named tables can be included.
+            if table_name not in self.include_tables:
+                # Not specifically named.
+                return False
         if table_name in self.exclude_tables:
             # Specifically excluded.
             return False
