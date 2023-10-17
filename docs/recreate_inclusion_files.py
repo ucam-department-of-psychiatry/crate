@@ -278,6 +278,10 @@ def main():
         join(DevPath.DOCS_ANON_DIR, "_crate_researcher_report_help.txt"),
     )
     run_cmd(
+        [CrateCommand.SUBSET_DB, helpflag],
+        join(DevPath.DOCS_ANON_DIR, "_crate_subset_db_help.txt"),
+    )
+    run_cmd(
         [CrateCommand.TEST_ANONYMISATION, helpflag],
         join(DevPath.DOCS_ANCILLARY_DIR, "_crate_test_anonymisation_help.txt"),
     )

@@ -170,6 +170,7 @@ class CrateCommand:
     ANONYMISE_MULTIPROCESS = "crate_anonymise_multiprocess"
     MAKE_DEMO_DATABASE = "crate_make_demo_database"
     RESEARCHER_REPORT = "crate_researcher_report"
+    SUBSET_DB = "crate_subset_db"
     TEST_ANONYMISATION = "crate_test_anonymisation"
     TEST_EXTRACT_TEXT = "crate_test_extract_text"
 

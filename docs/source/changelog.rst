@@ -1636,6 +1636,9 @@ Changes
 
 **0.20.4, in progress**
 
+- ``crate_researcher_report`` command.
+- ``crate_subset_db`` command.
+
 
 To do
 -----

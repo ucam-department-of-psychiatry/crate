@@ -51,6 +51,7 @@ crate_anon/anonymise
     researcher_report.py.rst
     scrub.py.rst
     show_counts.py.rst
+    subset_db.py.rst
     summarize_dd.py.rst
     templates/researcher_report/pdf_footer.html.rst
     templates/researcher_report/pdf_header.html.rst
