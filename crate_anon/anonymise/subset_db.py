@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-crate_anon/anonymise/researcher_report.py
+crate_anon/anonymise/subset_db.py
 
 ===============================================================================
 
