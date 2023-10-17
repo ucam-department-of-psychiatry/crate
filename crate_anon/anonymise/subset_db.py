@@ -38,9 +38,7 @@ from cardinal_pythonlib.file_io import gen_lines_without_comments
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy.engine.url import make_url
 
-# from sqlalchemy.engine.row import Row  # SQLAlchemy 1.4+
-# noinspection PyUnresolvedReferences
-from sqlalchemy.engine.result import RowProxy as Row  # SQLAlchemy 1.3
+from sqlalchemy.engine import Row 
 from sqlalchemy.sql.expression import select, table
 from sqlalchemy.schema import Table
 
