@@ -1639,6 +1639,8 @@ Changes
 - ``crate_researcher_report`` command.
 - ``crate_subset_db`` command.
 
+- Supported SQLAlchemy version now 1.4
+
 
 To do
 -----

@@ -62,9 +62,8 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.profile import do_cprofile
 from pendulum import Date
 from rich_argparse import ArgumentDefaultsRichHelpFormatter
-from sqlalchemy.engine import create_engine
+from sqlalchemy.engine import create_engine, CursorResult, Row
 from sqlalchemy.engine.base import Engine
-from sqlalchemy.engine.result import ResultProxy, RowProxy
 from sqlalchemy.sql import text
 
 from crate_anon.common.argparse_assist import (
@@ -1094,7 +1093,7 @@ def validate_2_fetch_cdl(
     """  # noqa
     )
     engine = create_engine(url, echo=echo)
-    result = engine.execute(sql)  # type: ResultProxy
+    result = engine.execute(sql)  # type: CursorResult
     q = QueryColnames
     for row in result:
         cdl_m_number = row["cdl_m_number"]  # type: int
@@ -1235,7 +1234,7 @@ def validate_2_fetch_pcmis(
 
             -- From diagnostic codes:
             -- Possibilities:
-            -- CaseContactDetails.PrimaryDiagnosis -- ICD-10 with dot 
+            -- CaseContactDetails.PrimaryDiagnosis -- ICD-10 with dot
             -- IAPTDataReferral.ProvDiag -- empty
             -- CPFT_Referrals.PrimaryDiagnosis -- ICD-10 with dot
             -- ReferralDetails.PrimaryDiagnosis -- ICD-10 with dot
@@ -1280,7 +1279,7 @@ def validate_2_fetch_pcmis(
                         dx_smi.PatientId = p.PatientId
                         AND (
                             -- To be more efficient: the dots are predictable,
-                            -- so include in the query strings rather than 
+                            -- so include in the query strings rather than
                             -- using REPLACE().
                             dx_smi.PrimaryDiagnosis LIKE 'F20%'  -- schizophrenia
                             OR dx_smi.PrimaryDiagnosis LIKE 'F21%'  -- schizotypal
@@ -1348,7 +1347,7 @@ def validate_2_fetch_pcmis(
     """  # noqa
     )
     engine = create_engine(url, echo=echo)
-    result = engine.execute(sql)  # type: ResultProxy
+    result = engine.execute(sql)  # type: CursorResult
     q = QueryColnames
     for row in result:
         pcmis_patient_id = row["pcmis_patient_id"]  # type: str
@@ -1600,8 +1599,8 @@ def _get_rio_names(
             AND AliasType = '1'  -- usual name
     """
     )
-    result = engine.execute(sql, client_id=rio_client_id)  # type: ResultProxy
-    rows = result.fetchall()  # type: List[RowProxy]
+    result = engine.execute(sql, client_id=rio_client_id)  # type: CursorResult
+    rows = result.fetchall()  # type: List[Row]
     n_rows = len(rows)  # or result.rowcount()
     assert n_rows <= 1, "Didn't expect >1 row per patient in ClientName"
     if n_rows == 0:
@@ -1662,7 +1661,7 @@ def validate_2_fetch_rio(
         """
         SELECT
             -- TOP 0  -- for debugging
-        
+
             -- From the main patient index:
             c.ClientID AS rio_client_id,  -- VARCHAR(15) NOT NULL
             CAST(c.NNN AS BIGINT) AS nhs_number,
@@ -1694,7 +1693,7 @@ def validate_2_fetch_rio(
                         dx_any.ClientID = c.ClientID
                         AND dx_any.RemovalDate IS NULL  -- not removed
                         -- NB RemovalDate indicates deletion and is separate
-                        -- from DiagnosisEndDate, e.g. a real problem now gone. 
+                        -- from DiagnosisEndDate, e.g. a real problem now gone.
                         -- AND dx_any.CodingScheme = 'ICD10'  -- redundant
                         -- AND dx_any.Diagnosis IS NOT NULL  -- redundant
                         -- AND dx_any.Diagnosis != ''  -- redundant
@@ -1740,7 +1739,7 @@ def validate_2_fetch_rio(
 
         FROM
             RiO62CAMLive.dbo.Client AS c  -- identifiable patient table
-            -- We use the original raw RiO database, not the CRATE-processed 
+            -- We use the original raw RiO database, not the CRATE-processed
             -- one.
         LEFT JOIN
             RiO62CAMLive.dbo.GenEthnicity ge
@@ -1779,7 +1778,7 @@ def validate_2_fetch_rio(
     """  # noqa
     )
     engine = create_engine(url, echo=echo)
-    result = engine.execute(sql)  # type: ResultProxy
+    result = engine.execute(sql)  # type: CursorResult
     q = QueryColnames
     for row in result:
         rio_client_id = row["rio_client_id"]  # type: str
@@ -1962,7 +1961,7 @@ def validate_2_fetch_systmone(
         """
         SELECT
             -- TOP 0  -- for debugging
-        
+
             -- From the main patient index:
             p.IDPatient as systmone_patient_id,  -- BIGINT NULL
             CAST(p.NHSNumber AS BIGINT) AS nhs_number,
@@ -2076,7 +2075,7 @@ def validate_2_fetch_systmone(
     """  # noqa
     )
     engine = create_engine(url, echo=echo)
-    result = engine.execute(sql)  # type: ResultProxy
+    result = engine.execute(sql)  # type: CursorResult
     q = QueryColnames
     for row in result:
         systmone_patient_id = row["systmone_patient_id"]  # type: int
