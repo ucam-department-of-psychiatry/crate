@@ -22,7 +22,8 @@
 CRATE: Clinical Records Anonymisation and Text Extraction
 =========================================================
 
-By Rudolf Cardinal <rudolf@pobox.com>.
+Created by Rudolf Cardinal. Currently developed by Rudolf Cardinal and Martin
+Burchell. See :ref:`contributors <contributors>`.
 
 .. image:: images/scrubber.png
 

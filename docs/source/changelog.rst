@@ -26,6 +26,9 @@
 Change log/history
 ==================
 
+
+.. _contributors:
+
 Contributors
 ------------
 
