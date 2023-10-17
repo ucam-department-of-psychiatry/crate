@@ -113,8 +113,6 @@ Index of CRATE commands
 
 :ref:`crate_show_crate_medex_pipeline_options <crate_show_crate_medex_pipeline_options>`
 
-:ref:`crate_subset_db <crate_subset_db>`
-
 :ref:`crate_test_anonymisation <crate_test_anonymisation>`
 
 :ref:`crate_test_extract_text <crate_test_extract_text>`
