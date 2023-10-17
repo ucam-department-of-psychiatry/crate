@@ -1633,6 +1633,7 @@ Changes
 
 **0.20.4, in progress**
 
+- Supported SQLAlchemy version now 1.4
 
 To do
 -----

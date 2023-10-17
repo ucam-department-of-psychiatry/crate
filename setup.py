@@ -71,7 +71,7 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==1.1.24",  # RNC libraries
+    "cardinal_pythonlib==1.1.25",  # RNC libraries
     "cairosvg==2.7.0",  # work with SVG files
     "celery==5.2.3",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib
@@ -121,7 +121,7 @@ INSTALL_REQUIRES = [
     "rich-argparse==0.5.0",  # colourful help
     "semantic_version==2.8.5",  # semantic versioning; better than semver
     "sortedcontainers==2.2.2",  # for SortedSet
-    "SQLAlchemy==1.3.18",  # database access
+    "SQLAlchemy==1.4.49",  # database access
     "sqlparse==0.4.4",  # [pin exact version from cardinal_pythonlib]
     "unidecode==1.1.1",  # for removing accents
     # Packages for cloud NLP:
