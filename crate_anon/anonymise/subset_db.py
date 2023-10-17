@@ -310,8 +310,7 @@ class Subsetter:
         Create a table on the destination side.
         """
         log.debug(f"Creating destination table: {table_name}")
-        t = self.src_sqla_table(table_name).tometadata(self.dst_db.metadata)
-        # ... there is "to_metadata" in SQLAlchemy 1.4+
+        t = self.src_sqla_table(table_name).to_metadata(self.dst_db.metadata)
         t.create(self.dst_db.engine, checkfirst=True)
 
     # -------------------------------------------------------------------------
