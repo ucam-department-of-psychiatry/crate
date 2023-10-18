@@ -30,8 +30,9 @@ crate_anon/anonymise/subset_db.py
 """
 
 import argparse
+from dataclasses import dataclass
 import logging
-from typing import Generator, List, Set, Union
+from typing import Any, Generator, List, Set, Union
 
 from cardinal_pythonlib.argparse_func import str2bool
 from cardinal_pythonlib.file_io import gen_lines_without_comments
@@ -39,7 +40,7 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy.engine.url import make_url
 
 from sqlalchemy.engine import Row
-from sqlalchemy.sql.expression import select, table
+from sqlalchemy.sql.expression import column, select, table
 from sqlalchemy.schema import Table
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
@@ -58,13 +59,49 @@ log = logging.getLogger(__name__)
 BOOLHELP = " (Specify as yes/y/true/t/1 or no/n/false/f/0.)"
 INCHELP = (
     " (If 'include' tables are given, only tables explicitly named are "
-    "included.)"
+    "included. If no 'include' tables are specified, all tables are included "
+    "by default. Explicit excluding always overrides including.)"
 )
 
 
 class SubsetDefaults:
     INC_IF_FILTERCOL_NULL = False
     INC_TABLES_NO_FILTERCOL = True
+
+
+# =============================================================================
+# Helper functions
+# =============================================================================
+
+
+def to_str(x: Any) -> Union[str, None]:
+    """
+    Convert to a string, or None.
+    """
+    return None if x is None else str(x)
+
+
+# =============================================================================
+# Data classes
+# =============================================================================
+
+
+@dataclass
+class DatabaseFilterSource:
+    name: str
+    url: str
+    table: str
+    column: str
+    echo: bool = False
+
+    def gen_values(self) -> Generator[str, None, None]:
+        dbh = DatabaseHolder(
+            name=self.name, url=self.url, with_session=True, echo=self.echo
+        )
+        query = select(column(self.column)).select_from(table(self.table))
+        result = dbh.session.execute(query)
+        for row in result:
+            yield to_str(row[0])
 
 
 # =============================================================================
@@ -84,6 +121,8 @@ class SubsetConfig:
         filter_column: str = None,
         filter_values: List[str] = None,
         filter_value_filenames: List[str] = None,
+        filter_value_db_urls: List[str] = None,
+        filter_value_tablecols: List[str] = None,
         include_rows_filtercol_null: bool = (
             SubsetDefaults.INC_IF_FILTERCOL_NULL
         ),
@@ -127,6 +166,8 @@ class SubsetConfig:
         """
         filter_values = filter_values or []
         filter_value_filenames = filter_value_filenames or []
+        filter_value_db_urls = filter_value_db_urls or []
+        filter_value_tablecols = filter_value_tablecols or []
         include_tables = include_tables or []
         include_table_filenames = include_table_filenames or []
         exclude_tables = exclude_tables or []
@@ -141,10 +182,43 @@ class SubsetConfig:
         )
         self.echo = echo
 
-        # Fetch filter values:
+        # Parse database filter sources
+        if len(filter_value_db_urls) != len(filter_value_tablecols):
+            raise ValueError(
+                f"filter_value_db_urls (length {len(filter_value_db_urls)} "
+                f"must be the same length as filter_value_tablecols (length "
+                f"{len(filter_value_tablecols)})"
+            )
+        dbfilters = []  # type: List[DatabaseFilterSource]
+        for i, (url, tablecol) in enumerate(
+            zip(filter_value_db_urls, filter_value_tablecols), start=1
+        ):
+            tcvals = tablecol.split(".")
+            if len(tcvals) != 2:
+                raise ValueError(
+                    f"Arguments to 'filter_value_tablecols' must be in the "
+                    f"format 'table.column' but one is: {tablecol!r}"
+                )
+            dbfilters.append(
+                DatabaseFilterSource(
+                    name=f"filtersource_{i}",
+                    url=url,
+                    table=tcvals[0],
+                    column=tcvals[1],
+                    echo=self.echo,
+                )
+            )
+
+        # Fetch filter values.
+        # - No conversion to string required for command-line arguments, or
+        #   file sources, which come to us as strings anyway.
+        # - But conversion required for database sources, which is
+        #   performed by the DatabaseFilterSource generator.
         self.filter_values = set(filter_values)  # type: Set[Union[str, None]]
         for filename in filter_value_filenames:
             self.filter_values.update(gen_lines_without_comments(filename))
+        for dbfiltersource in dbfilters:
+            self.filter_values.update(dbfiltersource.gen_values())
         # Permit NULL?
         if self.include_rows_filtercol_null:
             self.filter_values.add(None)
@@ -186,9 +260,12 @@ class SubsetConfig:
         Should this table be permitted (judging only by its name)?
         """
         if self.include_tables:
-            # Only specifically named tables can be included.
+            # "include_tables" is not empty; therefore, some tables are being
+            # explicitly included. In that case, only specifically named tables
+            # can be included. (If "include_tables" was empty, we'd include
+            # everything by default. See command-line help.)
             if table_name not in self.include_tables:
-                # Not specifically named.
+                # Not specifically included.
                 return False
         if table_name in self.exclude_tables:
             # Specifically excluded.
@@ -335,11 +412,8 @@ class Subsetter:
             filtercol = self.cfg.filter_column
             filtervals = self.cfg.filter_values
             for row in srcgen:
-                v = row[filtercol]
-                if v is not None:
-                    # String-based comparison.
-                    v = str(v)
-                if v in filtervals:
+                # String-based comparison
+                if to_str(row[filtercol]) in filtervals:
                     # Row permitted
                     yield row
         else:
@@ -394,8 +468,11 @@ def main() -> None:
     """
     parser = argparse.ArgumentParser(
         description=f"Create a simple subset of a database, copying one "
-        f"database to another while applying filters. "
-        f"({CRATE_VERSION_PRETTY})",
+        f"database to another while applying filters. You can filter by a "
+        f"standard column (e.g. one representing patient IDs), taking "
+        f"permitted filter values from the command line, from file(s), and/or "
+        f"from database(s). You can also decide which tables to "
+        f"include/exclude. ({CRATE_VERSION_PRETTY})",
         formatter_class=RawDescriptionArgumentDefaultsRichHelpFormatter,
     )
 
@@ -432,13 +509,29 @@ def main() -> None:
         "Comparison is performed as strings.)",
     )
     grp_fr.add_argument(
+        "--filter_value_db_urls",
+        nargs="*",
+        help="SQLAlchemy URLs of databases to pull additional filter values "
+        "from. Must be in the same order as corresponding arguments to "
+        "--filter_value_tablecols.",
+    )
+    grp_fr.add_argument(
+        "--filter_value_tablecols",
+        nargs="*",
+        help="Table/column pairs, each expressed as 'table.column', of "
+        "database columns to pull additional filter values from. Must be in "
+        "the same order as corresponding arguments to "
+        "--filter_value_db_urls.",
+    )
+    grp_fr.add_argument(
         "--include_rows_filtercol_null",
         type=str2bool,
         nargs="?",
         const=SubsetDefaults.INC_IF_FILTERCOL_NULL,
         default=SubsetDefaults.INC_IF_FILTERCOL_NULL,
         help="Include rows where the filter column is NULL. You can't "
-        "otherwise specify NULL as a permitted value." + BOOLHELP,
+        "otherwise specify NULL as a permitted value (at least, not from the "
+        "command line or from files)." + BOOLHELP,
     )
 
     grp_ft = parser.add_argument_group("TABLE FILTERING")
@@ -507,6 +600,8 @@ def main() -> None:
         filter_column=args.filter_column,
         filter_values=args.filter_values,
         filter_value_filenames=args.filter_value_filenames,
+        filter_value_db_urls=args.filter_value_db_urls,
+        filter_value_tablecols=args.filter_value_tablecols,
         include_rows_filtercol_null=args.include_rows_filtercol_null,
         include_tables_without_filtercol=args.include_tables_without_filtercol,
         include_tables=args.include_tables,
