@@ -26,6 +26,9 @@
 Change log/history
 ==================
 
+
+.. _contributors:
+
 Contributors
 ------------
 
@@ -1633,7 +1636,11 @@ Changes
 
 **0.20.4, in progress**
 
+- ``crate_researcher_report`` command.
+- ``crate_subset_db`` command.
+
 - Supported SQLAlchemy version now 1.4
+
 
 To do
 -----

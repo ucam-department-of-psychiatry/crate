@@ -121,3 +121,16 @@ include row counts and specimen values or value ranges.
 
 ..  literalinclude:: _crate_researcher_report_help.txt
     :language: none
+
+
+.. _crate_subset_db:
+
+crate_subset_db
+~~~~~~~~~~~~~~~
+
+This ancillary tool makes a subset of a database. It's typically for use by
+database administrators to create custom subset of data for specific research
+projects.
+
+..  literalinclude:: _crate_subset_db_help.txt
+    :language: none

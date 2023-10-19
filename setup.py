@@ -245,6 +245,7 @@ setup(
             f"{CrateCommand.ANONYMISE_MULTIPROCESS}=crate_anon.anonymise.launch_multiprocess_anonymiser:main",  # noqa: E501
             f"{CrateCommand.MAKE_DEMO_DATABASE}=crate_anon.anonymise.make_demo_database:main",  # noqa: E501
             f"{CrateCommand.RESEARCHER_REPORT}=crate_anon.anonymise.researcher_report:main",  # noqa: E501
+            f"{CrateCommand.SUBSET_DB}=crate_anon.anonymise.subset_db:main",
             f"{CrateCommand.TEST_ANONYMISATION}=crate_anon.anonymise.test_anonymisation:main",  # noqa: E501
             f"{CrateCommand.TEST_EXTRACT_TEXT}=crate_anon.anonymise.test_extract_text:main",  # noqa: E501
             # NLP

@@ -1,0 +1,85 @@
+USAGE: crate_subset_db [-h] --src_db_url SRC_DB_URL --dst_db_url DST_DB_URL
+                       [--filter_column FILTER_COLUMN]
+                       [--filter_values [FILTER_VALUES ...]]
+                       [--filter_value_filenames [FILTER_VALUE_FILENAMES ...]]
+                       [--filter_value_db_urls [FILTER_VALUE_DB_URLS ...]]
+                       [--filter_value_tablecols [FILTER_VALUE_TABLECOLS ...]]
+                       [--include_rows_filtercol_null [INCLUDE_ROWS_FILTERCOL_NULL]]
+                       [--include_tables_without_filtercol [INCLUDE_TABLES_WITHOUT_FILTERCOL]]
+                       [--include_tables [INCLUDE_TABLES ...]]
+                       [--include_table_filenames [INCLUDE_TABLE_FILENAMES ...]]
+                       [--exclude_tables [EXCLUDE_TABLES ...]]
+                       [--exclude_table_filenames [EXCLUDE_TABLE_FILENAMES ...]]
+                       [--verbose] [--echo]
+
+Create a simple subset of a database, copying one database to another while applying filters. You can filter by a standard column (e.g. one representing patient IDs), taking permitted filter values from the command line, from file(s), and/or from database(s). You can also decide which tables to include/exclude. (CRATE version 0.20.4, 2023-10-17. Created by Rudolf Cardinal.)
+
+OPTIONS:
+  -h, --help            show this help message and exit
+
+SOURCE DATABASE:
+  --src_db_url SRC_DB_URL
+                        Source database SQLAlchemy URL (default: None)
+
+DESTINATION DATABASE:
+  --dst_db_url DST_DB_URL
+                        Destination database SQLAlchemy URL (default: None)
+
+ROW FILTERING:
+  --filter_column FILTER_COLUMN
+                        Column on which to filter. Typically the one that
+                        defines individuals (e.g. 'patient_research_id',
+                        'rid', 'brcid'). If omitted, then the whole database
+                        might be copied unfiltered (if you set
+                        --include_tables_without_filtercol). (default: None)
+  --filter_values [FILTER_VALUES ...]
+                        Filter values to permit. (Comparison is performed as
+                        strings.) (default: None)
+  --filter_value_filenames [FILTER_VALUE_FILENAMES ...]
+                        Filename(s) of files containing filter values to
+                        permit. ('#' denotes comments in the file. Comparison
+                        is performed as strings.) (default: None)
+  --filter_value_db_urls [FILTER_VALUE_DB_URLS ...]
+                        SQLAlchemy URLs of databases to pull additional filter
+                        values from. Must be in the same order as
+                        corresponding arguments to --filter_value_tablecols.
+                        (default: None)
+  --filter_value_tablecols [FILTER_VALUE_TABLECOLS ...]
+                        Table/column pairs, each expressed as 'table.column',
+                        of database columns to pull additional filter values
+                        from. Must be in the same order as corresponding
+                        arguments to --filter_value_db_urls. (default: None)
+  --include_rows_filtercol_null [INCLUDE_ROWS_FILTERCOL_NULL]
+                        Include rows where the filter column is NULL. You
+                        can't otherwise specify NULL as a permitted value (at
+                        least, not from the command line or from files).
+                        (Specify as yes/y/true/t/1 or no/n/false/f/0.)
+                        (default: False)
+
+TABLE FILTERING:
+  --include_tables_without_filtercol [INCLUDE_TABLES_WITHOUT_FILTERCOL]
+                        Include tables that do not possess the filter column
+                        (e.g. system/lookup tables). (Specify as
+                        yes/y/true/t/1 or no/n/false/f/0.) (default: True)
+  --include_tables [INCLUDE_TABLES ...]
+                        Names of tables to include. (If 'include' tables are
+                        given, only tables explicitly named are included. If
+                        no 'include' tables are specified, all tables are
+                        included by default. Explicit excluding always
+                        overrides including.) (default: None)
+  --include_table_filenames [INCLUDE_TABLE_FILENAMES ...]
+                        Filename(s) of files containing names of tables to
+                        include. (If 'include' tables are given, only tables
+                        explicitly named are included. If no 'include' tables
+                        are specified, all tables are included by default.
+                        Explicit excluding always overrides including.)
+                        (default: None)
+  --exclude_tables [EXCLUDE_TABLES ...]
+                        Names of tables to exclude. (default: None)
+  --exclude_table_filenames [EXCLUDE_TABLE_FILENAMES ...]
+                        Filename(s) of files containing names of tables to
+                        exclude. (default: None)
+
+PROGRESS:
+  --verbose, -v         Be verbose (default: False)
+  --echo                Echo SQL (slow; for debugging only) (default: False)

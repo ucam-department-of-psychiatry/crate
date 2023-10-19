@@ -1107,7 +1107,7 @@ def inner_main() -> None:
     Indirect command-line entry point. See command-line help.
     """
     version = f"Version {CRATE_VERSION} ({CRATE_VERSION_DATE})"
-    description = f"NLP manager. {version}. By Rudolf Cardinal."
+    description = f"NLP manager. {version}. Created by Rudolf Cardinal."
 
     # todo: better with a subcommand parser?
 
