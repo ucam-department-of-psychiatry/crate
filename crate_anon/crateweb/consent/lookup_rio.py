@@ -32,11 +32,7 @@ RiO clinical database.**
 
 from typing import Generator, List, Optional, Tuple
 
-from cardinal_pythonlib.dbfunc import (
-    dictfetchall,
-    dictfetchone,
-    genrows,
-)
+from cardinal_pythonlib.dbfunc import dictfetchall, dictfetchone, genrows
 from django.db import connections
 
 from crate_anon.crateweb.consent.lookup_common import (

@@ -29,13 +29,11 @@ crate_anon/crateweb/consent/lookup_systmone.py
 Extract (SRE) database, or at least its CPFT equivalent.**
 
 """
+
 import datetime
 from typing import Generator, List, Optional, Tuple
 
-from cardinal_pythonlib.dbfunc import (
-    dictfetchall,
-    dictfetchone,
-)
+from cardinal_pythonlib.dbfunc import dictfetchall, dictfetchone, genrows
 from cardinal_pythonlib.typing_helpers import (
     Pep249DatabaseCursorType as Cursor,
 )
@@ -55,6 +53,7 @@ from crate_anon.crateweb.consent.models import (
 from crate_anon.crateweb.consent.utils import to_date
 from crate_anon.preprocess.systmone_ddgen import (
     cpft_s1_tablename,
+    CPFTTable,
     S1Table,
 )
 
@@ -539,6 +538,36 @@ def lookup_cpft_systmone(
 # =============================================================================
 
 
+class ResearchSNOMED:
+    """
+    SNOMED codes used for the CPFT Research Database in SystmOne.
+
+    Verify at https://termbrowser.nhs.uk/.
+    """
+
+    RED = 752581000000107
+    # 752581000000107 | Declined consent for researcher to access clinical
+    # record (finding) |
+
+    YELLOW = 871801000000106
+    # 871801000000106 | Possibly eligible for participation in research study
+    # (finding) |
+
+    GREEN = 873791000000106
+    # 873791000000106 | Consent given to review medical record in research
+    # study (finding) |
+
+    EMAIL = 705025004
+    # 705025004 | Consent given for communication by email (finding) |
+
+    NO_EMAIL = 835231000000104
+    # 835231000000104 | Declined consent for communication by email (finding) |
+
+    OPT_OUT = 1091881000000109
+    # 1091881000000109 | Invitation to participate in research study declined
+    # (situation) |
+
+
 def get_latest_consent_mode_from_cpft_systmone(
     nhs_number: int,
     decisions: List[str],
@@ -554,18 +583,136 @@ def get_latest_consent_mode_from_cpft_systmone(
     Returns:
         a :class:`crate_anon.crateweb.consent.models.ConsentMode`, or ``None``
     """
-    # *** S1_ClinicalOutcome_ConsentResearch
-    # *** S1_ClinicalOutcome_ConsentResearch_OptOutCheck
-    # *** S1_ClinicalOutcome_ConsentResearch_EmailCheck
-    raise NotImplementedError("todo: ***")
+    cursor = connections[ClinicalDatabaseType.CPFT_SYSTMONE].cursor()
+    patient_tab = cpft_s1_tablename(S1Table.PATIENT)
+    prefs_tab = cpft_s1_tablename(CPFTTable.CPFTRD_PREFS)
+    email_tab = cpft_s1_tablename(CPFTTable.CPFTRD_EMAIL)
+    opt_out_tab = cpft_s1_tablename(CPFTTable.CPFTRD_OPT_OUT)
+
+    # (a) Establish SystmOne patient ID (required)/
+    cursor.execute(
+        f"""
+            SELECT IDPatient
+            FROM {patient_tab}
+            WHERE
+                NHSNumber = %s  -- CHAR comparison; VARCHAR(10)
+        """,
+        [str(nhs_number)],
+    )
+    row = dictfetchone(cursor)
+    if not row:
+        decisions.append("Could not find patient by NHS number")
+        return None
+    patient_id = row["IDPatient"]
+
+    # (b) Traffic-light preferences (required).
+    cursor.execute(
+        f"""
+            SELECT TOP 1 SNOMEDCode, DateEvent
+            FROM {prefs_tab}
+            WHERE IDPatient = %s
+            ORDER BY DateEvent DESC  -- most recent (for this patient) first
+        """,
+        [patient_id],
+    )
+    # Note also:
+    # - ResearchOption -- a textual version, e.g. "Red - Declined consent...";
+    # - EmailCheck: VARCHAR(100) -- e.g. "Email - Consent given...", but see
+    #   below;
+    # - OptOut: textual "Declined..." or NULL, but see below;
+    # - NationalDataOptOut (but that's for other purposes).
+    # Not shown:
+    # - age; capacity decisions; etc.
+    row = dictfetchone(cursor)
+    if not row:
+        decisions.append("No traffic-light decision found for patient")
+        return None
+        # Opt-outs will still be respected (via a separate process).
+    traffic_snomed = row["SNOMEDCode"]
+    traffic_light_when = to_date(row["DateEvent"])
+    if traffic_snomed == ResearchSNOMED.RED:
+        decisions.append("Patient has chosen RED")
+        traffic_light = ConsentMode.RED
+    elif traffic_snomed == ResearchSNOMED.YELLOW:
+        decisions.append("Patient has chosen YELLOW")
+        traffic_light = ConsentMode.YELLOW
+    elif traffic_snomed == ResearchSNOMED.GREEN:
+        decisions.append("Patient has chosen GREEN")
+        traffic_light = ConsentMode.GREEN
+    else:
+        decisions.append("Unknown SNOMED code for traffic-light decision")
+        return None
+
+    # (c) Email preferences (optional).
+    cursor.execute(
+        f"""
+            SELECT TOP 1 SNOMEDCode
+            FROM {email_tab}
+            WHERE IDPatient = %s
+            ORDER BY DateEvent DESC  -- most recent (for this patient) first
+        """,
+        [patient_id],
+    )
+    row = dictfetchone(cursor)
+    prefers_email = False
+    if row:
+        email_snomed = row["SNOMEDCode"]
+        if email_snomed == ResearchSNOMED.EMAIL:
+            decisions.append("Patient prefers e-mail")
+            prefers_email = True
+        elif email_snomed == ResearchSNOMED.NO_EMAIL:
+            decisions.append("Patient prefers not to use e-mail")
+        else:
+            decisions.append("Unknown SNOMED code regarding e-mail")
+    else:
+        decisions.append("Could not find e-mail decision")
+
+    # (d) Opting out (excluding entirely)?
+    cursor.execute(
+        f"""
+            SELECT COUNT(*) AS n_opt_outs
+            FROM {opt_out_tab}
+            WHERE
+                IDPatient = %s
+                AND SNOMEDCode = %s  -- likely a redundant check
+        """,
+        [patient_id, ResearchSNOMED.OPT_OUT],
+    )
+    row = dictfetchone(cursor)
+    n_opt_outs = row["n_opt_outs"]
+    if n_opt_outs > 0:
+        decisions.append("Opt-out found for patient")
+        exclude_entirely = True
+    else:
+        decisions.append("No opt-out found for patient")
+        exclude_entirely = False
+
+    # Compile results.
+    return ConsentMode(
+        nhs_number=nhs_number,
+        created_at=traffic_light_when,  # source, not "now"; see lookup_rio.py
+        exclude_entirely=exclude_entirely,
+        consent_mode=traffic_light,
+        prefers_email=prefers_email,
+        # SystmOne doesn't provide the following information, but relies (as
+        # CPFT policy) on valid decisions being attested to by the clinician
+        # entering the information. The following is valid, and meets the
+        # Decision.decision_valid() test.
+        decision_signed_by_patient=False,
+        decision_otherwise_directly_authorized_by_patient=True,
+        decision_under16_signed_by_parent=False,
+        decision_under16_signed_by_clinician=False,
+        decision_lack_capacity_signed_by_representative=False,
+        decision_lack_capacity_signed_by_clinician=False,
+    )
 
 
 def gen_opt_out_pids_mpids_cpft_systmone() -> Generator[
     Tuple[str, str], None, None
 ]:
     """
-    Generates PID/MPID pairs from all patients opting out, from a CPFT SystmOne
-    database.
+    Generates PID/MPID pairs from all patients opting out entirely from the
+    CPFT Research Database, from a CPFT SystmOne database.
 
     Note: this is the CPFT Research Database opt-out, not the NHS National Data
     Opt-Out. The latter applies to NHS Act s251 work, and is in
@@ -575,6 +722,33 @@ def gen_opt_out_pids_mpids_cpft_systmone() -> Generator[
     Yields:
         ``s1_patient_id, nhs_number`` for each patient opting out, in string
         format
+
+    PRESUMPTION: that if some "un-opts out", their row here is deleted. There
+    is a DateEvent column, but no codes for reversing the decision.
+
+    .. code-block:: sql
+
+        SELECT DISTINCT SNOMEDCode, SNOMEDText, CTV3Code, CTV3Text
+        FROM S1_ClinicalOutcome_ConsentResearch_OptOutCheck
     """
-    # *** S1_ClinicalOutcome_ConsentResearch_OptOutCheck
-    raise NotImplementedError("todo: ***")
+    cursor = connections[ClinicalDatabaseType.CPFT_SYSTMONE].cursor()
+    opt_out_tab = cpft_s1_tablename(CPFTTable.CPFTRD_OPT_OUT)
+    patient_tab = cpft_s1_tablename(S1Table.PATIENT)
+    cursor.execute(
+        f"""
+        SELECT
+            o.IDPatient,  -- BIGINT, NULL (though probably not in the original)
+            p.NHSNumber
+        FROM {opt_out_tab} AS o
+        INNER JOIN {patient_tab} AS p
+            ON p.IDPatient = o.IDPatient
+        WHERE
+            o.IDPatient IS NOT NULL  -- unlikely in practice!
+            AND o.SNOMEDCode = %s  -- likely a redundant check
+        """,
+        [ResearchSNOMED.OPT_OUT],
+    )
+    for row in genrows(cursor):
+        pid = row[0]  # SystmOne internal ID number, as text
+        mpid = row[1]  # NHS number, as text
+        yield pid, mpid

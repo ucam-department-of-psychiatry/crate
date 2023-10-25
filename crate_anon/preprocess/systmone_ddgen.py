@@ -648,6 +648,13 @@ class CPFTTable:
     INPATIENT_CONSULTANT_EPISODE = "InpatientSpells_ConsultantEpisode"
     CARE_COORDINATOR = "CPACareCoordinator"
 
+    # These created as custom tables (quasi-views) by CPFT, with no direct
+    # equivalent in the original (the data probably coming from SRCode or
+    # similar):
+    CPFTRD_PREFS = "ClinicalOutcome_ConsentResearch"
+    CPFTRD_EMAIL = "ClinicalOutcome_ConsentResearch_EmailCheck"
+    CPFTRD_OPT_OUT = "ClinicalOutcome_ConsentResearch_OptOutCheck"
+
 
 class CrateView:
     """
