@@ -1633,13 +1633,13 @@ Changes
 
 - No change in functionality. Updates Django to 3.2.21 to fix CVE-2023-41164.
 
-
 **0.20.4, in progress**
 
 - ``crate_researcher_report`` command.
 - ``crate_subset_db`` command.
 
 - Supported SQLAlchemy version now 1.4
+- Consent-for-contact lookup via SystmOne SRE database.
 
 
 To do

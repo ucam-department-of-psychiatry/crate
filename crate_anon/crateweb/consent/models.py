@@ -639,8 +639,8 @@ class ClinicianInfoHolder:
         email: str,
         signatory_title: str,
         is_consultant: bool,
-        start_date: Union[datetime.date, datetime.datetime],
-        end_date: Optional[Union[datetime.date, datetime.datetime]],
+        start_date: Union[datetime.date, datetime.datetime] = None,
+        end_date: Union[datetime.date, datetime.datetime] = None,
         address_components: List[str] = None,
     ) -> None:
         """

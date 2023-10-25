@@ -30,7 +30,6 @@ RiO clinical database.**
 
 """
 
-from operator import attrgetter
 from typing import Generator, List, Optional, Tuple
 
 from cardinal_pythonlib.dbfunc import (
@@ -38,16 +37,19 @@ from cardinal_pythonlib.dbfunc import (
     dictfetchone,
     genrows,
 )
-from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import connections
 
+from crate_anon.crateweb.consent.lookup_common import (
+    get_team_details,
+    pick_best_clinician,
+    SignatoryTitles,
+)
 from crate_anon.crateweb.consent.models import (
     ClinicianInfoHolder,
     ConsentMode,
     PatientLookup,
-    TeamRep,
 )
-from crate_anon.crateweb.consent.utils import latest_date, to_date
+from crate_anon.crateweb.consent.utils import to_date
 from crate_anon.preprocess.rio_constants import (
     CRATE_COL_RIO_NUMBER,
     RCEP_COL_PATIENT_ID,
@@ -472,7 +474,7 @@ def lookup_cpft_rio_generic(
                 AND (Address_To_Date IS NULL
                      OR Address_To_Date > GETDATE())
             ORDER BY CASE WHEN Address_Type_Code = 'PRIMARY' THEN '1'
-                          ELSE Address_Type_Code END ASC
+                          ELSE Address_Type_Code END
         """,
         [rio_client_id],
     )
@@ -501,7 +503,7 @@ def lookup_cpft_rio_generic(
                 AND Valid_From <= GETDATE()
                 AND (Valid_To IS NULL
                      OR Valid_To > GETDATE())
-            ORDER BY Context_Code ASC
+            ORDER BY Context_Code
                 -- 1 = Communication address at home
                 -- 2 = Primary home (after business hours)
                 -- 3 = Vacation home (when person on holiday)
@@ -591,7 +593,6 @@ def lookup_cpft_rio_generic(
     # -------------------------------------------------------------------------
     # RiO/RCEP: 5. Clinician, active v. discharged
     # -------------------------------------------------------------------------
-    # This bit is complicated! We do it last, so we can return upon success.
     clinicians = []  # type: List[ClinicianInfoHolder]
     #
     # (a) Care coordinator?
@@ -635,7 +636,7 @@ def lookup_cpft_rio_generic(
                 first_name=row[care_co_forename_field] or "",
                 surname=row[care_co_surname_field] or "",
                 email=row[care_co_email_field] or "",
-                signatory_title="Care coordinator",
+                signatory_title=SignatoryTitles.CARE_COORDINATOR,
                 is_consultant=bool(row[care_co_consultant_flag_field]),
                 start_date=row["Start_Date"],
                 end_date=row["End_Date"],
@@ -683,7 +684,7 @@ def lookup_cpft_rio_generic(
                 first_name=row[cons_forename_field] or "",
                 surname=row[cons_surname_field] or "",
                 email=row[cons_email_field] or "",
-                signatory_title="Consultant psychiatrist",
+                signatory_title=SignatoryTitles.CONS_PSYCHIATRIST,
                 is_consultant=bool(row[cons_consultant_flag_field]),
                 # ... would be odd if this were not true!
                 start_date=row["Referral_Received_Date"],
@@ -730,7 +731,7 @@ def lookup_cpft_rio_generic(
                 first_name=row[hcp_forename_field] or "",
                 surname=row[hcp_surname_field] or "",
                 email=row[hcp_email_field] or "",
-                signatory_title="Clinician",
+                signatory_title=SignatoryTitles.CLINICIAN,
                 is_consultant=bool(row[hcp_consultant_flag_field]),
                 start_date=row["Start_Date"],
                 end_date=row["End_Date"],
@@ -753,41 +754,12 @@ def lookup_cpft_rio_generic(
         [rio_client_id],
     )
     for row in dictfetchall(cursor):
-        team_info = ClinicianInfoHolder(
-            clinician_type=ClinicianInfoHolder.TEAM,
-            title="",
-            first_name="",
-            surname="",
-            email="",
-            signatory_title="Clinical team member",
-            is_consultant=False,
+        team_info = get_team_details(
+            team_name=row["Team_Description"],
             start_date=row["Start_Date"],
             end_date=row["End_Date"],
+            decisions=decisions,
         )
-        # We know a team - do we have a team representative?
-        team_description = row["Team_Description"]
-        team_summary = "{status} team {desc}".format(
-            status="active" if team_info.end_date is None else "previous",
-            desc=repr(team_description),
-        )
-        try:
-            teamrep = TeamRep.objects.get(team=team_description)
-            decisions.append("Clinical team representative found.")
-            profile = teamrep.user.profile
-            team_info.title = profile.title
-            team_info.first_name = teamrep.user.first_name
-            team_info.surname = teamrep.user.last_name
-            team_info.email = teamrep.user.email
-            team_info.signatory_title = profile.signatory_title
-            team_info.is_consultant = profile.is_consultant
-        except ObjectDoesNotExist:
-            decisions.append(
-                f"No team representative found for {team_summary}."
-            )
-        except MultipleObjectsReturned:
-            decisions.append(
-                f"Confused: >1 team representative found for {team_summary}."
-            )
         clinicians.append(team_info)
         # We append it even if we can't find a representative, because it still
         # carries information about whether the patient is discharged or not.
@@ -812,74 +784,10 @@ def lookup_cpft_rio_generic(
     # to the RDBM's address.
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # OK.
-    # Now we know all relevant recent clinicians, including (potentially) ones
-    # from which the patient has been discharged, and ones that are active.
+    # Now pick a clinician.
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    decisions.append(
-        f"{len(clinicians)} total past/present "
-        f"clinician(s)/team(s) found: {clinicians!r}."
-    )
-    current_clinicians = [c for c in clinicians if c.current()]
-    if current_clinicians:
-        lookup.pt_discharged = False
-        lookup.pt_discharge_date = None
-        decisions.append("Patient not discharged.")
-        contactable_curr_clin = [
-            c for c in current_clinicians if c.contactable()
-        ]
-        # Sorting by two keys: https://stackoverflow.com/questions/11206884
-        # LOW priority: most recent clinician. (Goes first in sort.)
-        # HIGH priority: preferred type of clinician. (Goes last in sort.)
-        # Sort order is: most preferred first.
-        contactable_curr_clin.sort(key=attrgetter("start_date"), reverse=True)
-        contactable_curr_clin.sort(
-            key=attrgetter("clinician_preference_order")
-        )
-        decisions.append(
-            f"{len(contactable_curr_clin)} contactable active "
-            f"clinician(s) found."
-        )
-        if contactable_curr_clin:
-            chosen_clinician = contactable_curr_clin[0]
-            lookup.set_from_clinician_info_holder(chosen_clinician)
-            decisions.append(
-                f"Found active clinician of type: "
-                f"{chosen_clinician.clinician_type}"
-            )
-            return  # All done!
-        # If we get here, the patient is not discharged, but we haven't found
-        # a contactable active clinician.
-        # We'll fall through and check older clinicians for contactability.
-    else:
-        end_dates = [c.end_date for c in clinicians]
-        lookup.pt_discharged = True
-        lookup.pt_discharge_date = latest_date(*end_dates)
-        decisions.append("Patient discharged.")
-
-    # We get here either if the patient is discharged, or they're current but
-    # we can't contact a current clinician.
-    contactable_old_clin = [c for c in clinicians if c.contactable()]
-    # LOW priority: preferred type of clinician. (Goes first in sort.)
-    # HIGH priority: most recent end date. (Goes last in sort.)
-    # Sort order is: most preferred first.
-    contactable_old_clin.sort(key=attrgetter("clinician_preference_order"))
-    contactable_old_clin.sort(key=attrgetter("end_date"), reverse=True)
-    decisions.append(
-        f"{len(contactable_old_clin)} contactable previous "
-        f"clinician(s) found."
-    )
-    if contactable_old_clin:
-        chosen_clinician = contactable_old_clin[0]
-        lookup.set_from_clinician_info_holder(chosen_clinician)
-        decisions.append(
-            f"Found previous clinician of type: "
-            f"{chosen_clinician.clinician_type}"
-        )
-
-    if not lookup.clinician_found:
-        decisions.append("Failed to establish contactable clinician.")
+    pick_best_clinician(lookup, clinicians, decisions)
 
 
 # =============================================================================
