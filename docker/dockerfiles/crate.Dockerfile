@@ -144,8 +144,6 @@ RUN echo "======================================================================
     && apt-get update \
     && echo "- Installing operating system packages..." \
     && mkdir -p /usr/share/man/man1 /usr/share/man/man2 \
-    && rmdir /etc/ssl/certs/java \
-    && mkdir /etc/ssl/certs/java \
     && apt-get install -y --no-install-recommends \
         ant \
         curl \
