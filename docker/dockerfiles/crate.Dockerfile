@@ -158,6 +158,7 @@ RUN echo "======================================================================
         wait-for-it \
         \
         antiword \
+        ca-certificates-java \
         freetds-bin \
         freetds-dev \
         graphviz \
