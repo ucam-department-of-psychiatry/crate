@@ -148,7 +148,6 @@ DATABASES = {
     # Optional: 'cpft_rio_datamart'
     # Optional: 'cpft_rio_raw'
     # Optional: 'cpft_rio_rcep'
-    # Optional: 'cpft_systmone'
     # ... see ClinicalDatabaseType in crate_anon/crateweb/config/constants.py
 }
 
