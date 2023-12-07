@@ -145,9 +145,8 @@ RUN echo "======================================================================
     && echo "- Installing operating system packages..." \
     && mkdir -p /usr/share/man/man1 /usr/share/man/man2 \
     && apt-get install -y --no-install-recommends \
-        ca-certificates-java \
-    && apt-get install -y --no-install-recommends \
         ant \
+        ca-certificates-java \
         curl \
         g++ \
         gcc \
