@@ -86,6 +86,8 @@ class CratePath:
             os.pardir,  # parent, crate_anon
         )
     )
+    CRATEWEB_DIR = os.path.join(CRATE_ANON_DIR, "crateweb")
+    STATIC_SRC_DIR = os.path.join(CRATEWEB_DIR, "static")
     NLP_MANAGER_DIR = os.path.join(CRATE_ANON_DIR, "nlp_manager")
     JAVA_CLASSES_DIR = os.path.join(NLP_MANAGER_DIR, "compiled_nlp_classes")
     NLPRP_DIR = os.path.join(CRATE_ANON_DIR, "nlprp")

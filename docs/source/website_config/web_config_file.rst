@@ -854,6 +854,9 @@ For a recent version of ``wkhtmltopdf``, fetch one from
 http://wkhtmltopdf.org/, e.g. v0.12.4 for your OS. Make sure you use one for
 "patched Qt".
 
+Note that using headers/footers also requires a version of wkhtmltopdf built
+using "patched Qt"; see above.
+
 
 WKHTMLTOPDF_OPTIONS
 ###################
@@ -947,100 +950,33 @@ response (regardless of the clinician's decision). Units are your local
 currency (e.g. GBP).
 
 
-.. _PDF_LETTER_HEADER_HTML:
-
-PDF_LETTER_HEADER_HTML
-######################
+PDF_LETTER_FOOTER_ADDRESS_HTML
+##############################
 
 ``type: str``
 
-HTML (which may be an empty string) to use as the header for wkhtmltopdf_.
+Raw HTML to be used as an address line in the footer of letters (e.g.
+institutional address and contact details). Can be a blank string.
 
-Note that using headers/footers requires a version of wkhtmltopdf built using
-"patched Qt"; see above.
-
-Examples:
+Example:
 
 .. code-block:: python
 
-    PDF_LETTER_HEADER_HTML = ''
-
-.. code-block:: python
-
-    PDF_LETTER_HEADER_HTML = '''
-    <!DOCTYPE html>
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    </head>
-    <html>
-        <body>
-            <div>boo! header</div>
-        </body>
-    </html>
+    PDF_LETTER_FOOTER_ADDRESS_HTML = '''
+        CPFT
+        &bull; HQ: Elizabeth House, Fulbourn Hospital, Fulbourn,
+          Cambridge CB21 5EF
+        &bull; www.cpft.nhs.uk
     '''
 
 
-PDF_LETTER_FOOTER_HTML
-######################
+ETHICS_INFO
+###########
 
-``type: str``
+``type: instance of class crate_anon.crateweb.consent.EthicsInfo``
 
-See PDF_LETTER_HEADER_HTML_.
-
-Examples:
-
-.. code-block:: python
-
-    PDF_LETTER_FOOTER_HTML = ''
-
-.. code-block:: python
-
-    # https://stackoverflow.com/questions/11948158/wkhtmltopdf-how-to-disable-header-on-the-first-page  # noqa
-    PDF_LETTER_FOOTER_HTML = '''
-    <!DOCTYPE html>
-    <html>
-        <head>
-            <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-            <script>
-    function restrict_page_display() {
-        var vars = {},
-            kvp_list = document.location.search.substring(1).split('&'),
-            key_value_pair,
-            debug_element = document.getElementById("debug"),
-            i;
-        for (i = 0; i < kvp_list.length; ++i) {
-            key_value_pair = kvp_list[i].split('=', 2);
-            vars[key_value_pair[0]] = unescape(key_value_pair[1]);
-        }
-        // debug_element.textContent = kvp_list;
-
-        // Turn off footer except on first page
-        if (vars['page'] != 1) {
-            document.getElementById("footer").style.display = 'none';
-        }
-    }
-            </script>
-            <style>
-    body {
-        color: #005EB8;  /* NHS Blue */
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: small;
-        text-align: right;
-    }
-            </style>
-        </head>
-        <!-- <body onload="restrict_page_display()"> -->
-        <body>
-            <div id="footer">
-                CPFT
-                | HQ: Elizabeth House, Fulbourn Hospital, Fulbourn,
-                  Cambridge CB21 5EF
-                | www.cpft.nhs.uk
-            </div>
-            <div id="debug"></div>
-        </body>
-    </html>
-    '''
+Information class instance providing ethics reference information. Can be
+``None``.
 
 
 Local information links

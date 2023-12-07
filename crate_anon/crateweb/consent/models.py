@@ -71,6 +71,7 @@ from crate_anon.crateweb.config.constants import (
     SOURCE_DB_NAME_MAX_LENGTH,
     UrlNames,
 )
+from crate_anon.crateweb.consent.constants import EthicsInfo
 from crate_anon.crateweb.core.constants import (
     LEN_ADDRESS,
     LEN_FIELD_DESCRIPTION,
@@ -639,8 +640,8 @@ class ClinicianInfoHolder:
         email: str,
         signatory_title: str,
         is_consultant: bool,
-        start_date: Union[datetime.date, datetime.datetime],
-        end_date: Optional[Union[datetime.date, datetime.datetime]],
+        start_date: Union[datetime.date, datetime.datetime] = None,
+        end_date: Union[datetime.date, datetime.datetime] = None,
         address_components: List[str] = None,
     ) -> None:
         """
@@ -2745,7 +2746,9 @@ class ContactRequest(models.Model):
         # Letter to patient from clinician
         pdf_plans = [
             CratePdfPlan(
-                is_html=True, html=self.get_letter_clinician_to_pt_re_study()
+                is_html=True,
+                html=self.get_letter_clinician_to_pt_re_study(),
+                ethics_doccode=EthicsInfo.LTR_C_P_STUDY,
             )
         ]
         # Study details
@@ -2760,7 +2763,9 @@ class ContactRequest(models.Model):
         # Decision form about this study
         pdf_plans.append(
             CratePdfPlan(
-                is_html=True, html=self.get_decision_form_to_pt_re_study()
+                is_html=True,
+                html=self.get_decision_form_to_pt_re_study(),
+                ethics_doccode=EthicsInfo.FORM_STUDY,
             )
         )
         # Additional form for this study
@@ -2797,6 +2802,7 @@ class ContactRequest(models.Model):
                 CratePdfPlan(
                     is_html=True,
                     html=self.patient_lookup.get_traffic_light_decision_form(),
+                    ethics_doccode=EthicsInfo.FORM_TRAFFIC_PERSONALIZED,
                 )
             )
         # General info leaflet

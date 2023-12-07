@@ -84,6 +84,7 @@ class ClinicalDatabaseType:
     CPFT_RIO_DATAMART = "cpft_rio_datamart"
     CPFT_RIO_RAW = "cpft_rio_raw"
     CPFT_RIO_RCEP = "cpft_rio_rcep"
+    CPFT_SYSTMONE = "cpft_systmone"
 
     # For Django fields, using the above:
     DATABASE_CHOICES = (
@@ -102,6 +103,7 @@ class ClinicalDatabaseType:
             CPFT_RIO_DATAMART,
             "CPFT RiO 2013- (data warehouse processed version)",
         ),
+        (CPFT_SYSTMONE, "SystmOne (CPFT Data Warehouse format)"),
     )
 
 

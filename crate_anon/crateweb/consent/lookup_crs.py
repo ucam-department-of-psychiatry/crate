@@ -35,6 +35,7 @@ from typing import List
 from cardinal_pythonlib.dbfunc import dictfetchall, dictfetchone
 from django.db import connections
 
+from crate_anon.crateweb.consent.lookup_common import SignatoryTitles
 from crate_anon.crateweb.consent.models import PatientLookup
 from crate_anon.crateweb.consent.utils import make_cpft_email_address
 
@@ -248,7 +249,7 @@ def lookup_cpft_crs(
             lookup.clinician_first_name = row["carecoordinatorfirstname"] or ""
             lookup.clinician_last_name = row["carecoordinatorlastname"] or ""
             lookup.clinician_email = careco_email
-            lookup.clinician_signatory_title = "Care coordinator"
+            lookup.clinician_signatory_title = SignatoryTitles.CARE_COORDINATOR
             decisions.append("Clinician found: care coordinator (CDL).")
         elif cons_email:
             # Use consultant information
@@ -257,7 +258,9 @@ def lookup_cpft_crs(
             lookup.clinician_first_name = row["consultantfirstname"] or ""
             lookup.clinician_last_name = row["consultantlastname"] or ""
             lookup.clinician_email = cons_email
-            lookup.clinician_signatory_title = "Consultant psychiatrist"
+            lookup.clinician_signatory_title = (
+                SignatoryTitles.CONS_PSYCHIATRIST
+            )
             lookup.clinician_is_consultant = True
             decisions.append("Clinician found: consultant psychiatrist (CDL).")
         else:

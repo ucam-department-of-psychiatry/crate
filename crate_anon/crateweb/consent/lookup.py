@@ -53,6 +53,11 @@ from crate_anon.crateweb.consent.lookup_rio import (
     lookup_cpft_rio_crate_preprocessed,
     lookup_cpft_rio_rcep,
 )
+from crate_anon.crateweb.consent.lookup_systmone import (
+    gen_opt_out_pids_mpids_cpft_systmone,
+    get_latest_consent_mode_from_cpft_systmone,
+    lookup_cpft_systmone,
+)
 from crate_anon.crateweb.consent.models import ConsentMode, PatientLookup
 
 log = BraceStyleAdapter(logging.getLogger(__name__))
@@ -116,6 +121,8 @@ def lookup_patient(
             "Not enough information in RiO Data Warehouse "
             "copy yet to look up patient ID"
         )
+    elif source_db == ClinicalDatabaseType.CPFT_SYSTMONE:
+        lookup_cpft_systmone(lookup, decisions, secret_decisions)
     else:
         raise ValueError(f"Bad source_db for ID lookup: {source_db}")
     lookup.decisions = " ".join(decisions)
@@ -159,6 +166,10 @@ def lookup_consent(
         return get_latest_consent_mode_from_rio_raw(
             nhs_number=nhs_number, source_db=source_db, decisions=decisions
         )
+    elif source_db == ClinicalDatabaseType.CPFT_SYSTMONE:
+        return get_latest_consent_mode_from_cpft_systmone(
+            nhs_number=nhs_number, decisions=decisions
+        )
     else:
         # Don't know how to look up consent modes from other sources
         errmsg = f"Don't know how to look up consent modes from {source_db}"
@@ -189,6 +200,8 @@ def gen_opt_out_pids_mpids(
         ClinicalDatabaseType.CPFT_RIO_CRATE_PREPROCESSED,
     ]:
         generator = gen_opt_out_pids_mpids_rio_raw(source_db)
+    elif source_db == ClinicalDatabaseType.CPFT_SYSTMONE:
+        generator = gen_opt_out_pids_mpids_cpft_systmone()
     else:
         # Don't know how to look up consent modes from other sources
         log.error(f"Don't know how to look up opt-outs from {source_db}")

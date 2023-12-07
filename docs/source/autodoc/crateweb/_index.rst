@@ -44,11 +44,14 @@ crate_anon/crateweb
     config/wsgi.py.rst
     consent/__init__.py.rst
     consent/celery.py.rst
+    consent/constants.py.rst
     consent/forms.py.rst
     consent/lookup.py.rst
+    consent/lookup_common.py.rst
     consent/lookup_crs.py.rst
     consent/lookup_dummy.py.rst
     consent/lookup_rio.py.rst
+    consent/lookup_systmone.py.rst
     consent/management/__init__.py.rst
     consent/management/commands/__init__.py.rst
     consent/management/commands/email_rdbm.py.rst
@@ -83,6 +86,7 @@ crate_anon/crateweb
     consent/teamlookup.py.rst
     consent/teamlookup_dummy.py.rst
     consent/teamlookup_rio.py.rst
+    consent/teamlookup_systmone.py.rst
     consent/templates/charity_report.html.rst
     consent/templates/clinician_already_responded.html.rst
     consent/templates/clinician_confirm_response.html.rst
@@ -280,6 +284,8 @@ crate_anon/crateweb
     templates/page_nav.html.rst
     templates/password_change.html.rst
     templates/pdf.css.rst
+    templates/pdf_footer.html.rst
+    templates/pdf_header.html.rst
     templates/shortlist_studies.html.rst
     templates/show_form_errors.html.rst
     templates/show_hide_buttons.html.rst

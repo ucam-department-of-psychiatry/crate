@@ -595,6 +595,19 @@ class S1Table:
     SAFEGUARDING_INCIDENT_DETAILS = "SafeguardingIncidentDetails"
     TASK = "Task"
 
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Not used here, but used for the consent-for-contact system
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    CLINICAL_CODE = "ClinicalCode"
+    GP_PRACTICE_HISTORY = "GPPracticeHistory"
+    HOSPITAL_CONSULTANT_EVENT = "HospitalConsultantEvent"
+    ORGANISATION = "Organisation"
+    REFERRAL_ALLOCATION = "ReferralAllocation"
+    REFERRAL_ALLOCATION_STAFF = "ReferralAllocationStaff"
+    RESPONSIBLE_PARTY = "ResponsibleParty"
+    TEAM = "Team"
+
 
 class CPFTTable:
     """
@@ -625,6 +638,22 @@ class CPFTTable:
     CONTACTS_ARCHIVE_CLIENT_SEQUENCE = "ContactsArchive_ClientSequence"
     MENTAL_HEALTH_ACT_APPEAL = "MentalHealthAct_SectionAppeal"
     MENTAL_HEALTH_ACT_AWOL = "MentalHealthAct_Awol"
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Not used here, but used for the consent-for-contact system
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    DIAGNOSIS = "Diagnosis"
+    GP_PRACTICE = "PatientGPPractice"
+    INPATIENT_CONSULTANT_EPISODE = "InpatientSpells_ConsultantEpisode"
+    CARE_COORDINATOR = "CPACareCoordinator"
+
+    # These created as custom tables (quasi-views) by CPFT, with no direct
+    # equivalent in the original (the data probably coming from SRCode or
+    # similar):
+    CPFTRD_PREFS = "ClinicalOutcome_ConsentResearch"
+    CPFTRD_EMAIL = "ClinicalOutcome_ConsentResearch_EmailCheck"
+    CPFTRD_OPT_OUT = "ClinicalOutcome_ConsentResearch_OptOutCheck"
 
 
 class CrateView:
@@ -740,9 +769,13 @@ _S1_TO_CPFT_TABLE_TRANSLATION = {
     S1Table.ADDRESS_HISTORY: CPFTTable.ADDRESS,
     # ... i.e. CPFT have renamed SRPatientAddressHistory to S1_PatientAddress.
     S1Table.BED_CLOSURE: CPFTTable.BED_CLOSURE,
+    S1Table.CLINICAL_CODE: CPFTTable.DIAGNOSIS,
     S1Table.CONTACT_DETAILS: CPFTTable.CONTACT_DETAILS,
+    S1Table.HOSPITAL_CONSULTANT_EVENT: CPFTTable.INPATIENT_CONSULTANT_EPISODE,
     S1Table.MENTAL_HEALTH_ACT_APPEAL: CPFTTable.MENTAL_HEALTH_ACT_APPEAL,
     S1Table.MENTAL_HEALTH_ACT_AWOL: CPFTTable.MENTAL_HEALTH_ACT_AWOL,
+    S1Table.GP_PRACTICE_HISTORY: CPFTTable.GP_PRACTICE,
+    S1Table.RESPONSIBLE_PARTY: CPFTTable.CARE_COORDINATOR,
 }
 CORE_TO_CONTEXT_TABLE_TRANSLATIONS = {
     # Key: destination context.
@@ -1699,6 +1732,36 @@ def contextual_tablename(
     translated = xlate.get(tablename_core)
     tablename = translated if translated else tablename_core
     return f"{prefix}{tablename}"
+
+
+def translate_tablename(
+    from_tablename: str,
+    from_context: SystmOneContext,
+    to_context: SystmOneContext,
+):
+    """
+    Translates a table name from one S1 context to another.
+    """
+    coretab = core_tablename(from_tablename, from_context=from_context)
+    return contextual_tablename(coretab, to_context=to_context)
+
+
+def cpft_s1_tablename(core_tablename: str) -> str:
+    """
+    Helper function for the consent-for-contact system, but conceptually it
+    sits reasonably well here.
+
+    Args:
+        core_tablename:
+            Table name in S1 "core" format (devoid of any prefix).
+
+    Returns:
+        Returns the local CPFT table name.
+    """
+    return contextual_tablename(
+        core_tablename,
+        to_context=SystmOneContext.CPFT_DW,
+    )
 
 
 def core_columnname(

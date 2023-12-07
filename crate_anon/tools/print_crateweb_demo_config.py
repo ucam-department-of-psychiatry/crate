@@ -51,6 +51,7 @@ DEMO_CONFIG = r"""
 
 import logging
 import os
+import shutil
 from typing import List, TYPE_CHECKING
 
 # Include the following if you want to use it in CELERYBEAT_SCHEDULE
@@ -58,6 +59,7 @@ from typing import List, TYPE_CHECKING
 
 from crate_anon.common.constants import mebibytes
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
+from crate_anon.crateweb.consent.constants import CPFTEthics2022
 
 if TYPE_CHECKING:
     from django.http.request import HttpRequest
@@ -189,6 +191,7 @@ DATABASES = {
     # Optional: 'cpft_rio_datamart'
     # Optional: 'cpft_rio_raw'
     # Optional: 'cpft_rio_rcep'
+    # Optional: 'cpft_systmone'
     # ... see ClinicalDatabaseType in crate_anon/crateweb/config/constants.py
 }
 
@@ -438,19 +441,25 @@ ADMINS = [
 # PDF creation
 # =============================================================================
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# Note that using headers/footers requires a version of wkhtmltopdf built using
+# "patched Qt". See above.
+# Fetch one from http://wkhtmltopdf.org/, e.g. v0.12.4 for your OS.
 
-WKHTMLTOPDF_FILENAME = ""
-# WKHTMLTOPDF_FILENAME = "/home/rudolf/dev/wkhtmltopdf/wkhtmltox/bin/wkhtmltopdf"  # noqa
-# WKHTMLTOPDF_FILENAME = "/usr/bin/wkhtmltopdf"
+WKHTMLTOPDF_FILENAME = shutil.which("wkhtmltopdf")
 
 WKHTMLTOPDF_OPTIONS = {  # dict for pdfkit
-    "page-size": "A4",
+    "disable-smart-shrinking": "",  # --disable-smart-shrinking
+    "dpi": "300",
+    "enable-local-file-access": "",  # --enable-local-file-access
+    "encoding": "UTF-8",
+    "footer-spacing": "3",  # mm, from content down to top of footer
+    "header-spacing": "3",  # mm, from content up to bottom of header
+    "margin-bottom": "24mm",  # from paper edge up to bottom of content?
     "margin-left": "20mm",
     "margin-right": "20mm",
     "margin-top": "21mm",  # from paper edge down to top of content?
-    "margin-bottom": "24mm",  # from paper edge up to bottom of content?
-    "header-spacing": "3",  # mm, from content up to bottom of header
-    "footer-spacing": "3",  # mm, from content down to top of footer
+    "orientation": "portrait",
+    "page-size": "A4",
 }
 
 PDF_LOGO_ABS_URL = "@@pdf_logo_abs_url@@"
@@ -489,11 +498,11 @@ PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS = 3 * 365
 # Donation to charity for clinician response (regardless of the decision):
 CHARITY_AMOUNT_CLINICIAN_RESPONSE = 1.0  # in local currency, e.g. GBP
 
-# Note that using headers/footers requires a version of wkhtmltopdf built using
-# "patched Qt". See above.
-# Fetch one from http://wkhtmltopdf.org/, e.g. v0.12.4 for your OS.
-PDF_LETTER_HEADER_HTML = ""
-PDF_LETTER_FOOTER_HTML = ""
+# Address HTML for letter footers.
+PDF_LETTER_FOOTER_ADDRESS_HTML = ""
+
+# Ethics info for letter footers.
+ETHICS_INFO = CPFTEthics2022()
 
 
 # =============================================================================
