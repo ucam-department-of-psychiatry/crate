@@ -148,7 +148,6 @@ RUN echo "======================================================================
         ca-certificates-java \
     && apt-get install -y --no-install-recommends \
         ant \
-        ca-certificates-java \
         curl \
         g++ \
         gcc \
