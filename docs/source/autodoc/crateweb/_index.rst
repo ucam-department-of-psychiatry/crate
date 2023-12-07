@@ -44,6 +44,7 @@ crate_anon/crateweb
     config/wsgi.py.rst
     consent/__init__.py.rst
     consent/celery.py.rst
+    consent/constants.py.rst
     consent/forms.py.rst
     consent/lookup.py.rst
     consent/lookup_common.py.rst
@@ -283,6 +284,8 @@ crate_anon/crateweb
     templates/page_nav.html.rst
     templates/password_change.html.rst
     templates/pdf.css.rst
+    templates/pdf_footer.html.rst
+    templates/pdf_header.html.rst
     templates/shortlist_studies.html.rst
     templates/show_form_errors.html.rst
     templates/show_hide_buttons.html.rst

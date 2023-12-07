@@ -1,0 +1,95 @@
+{# crate_anon/crateweb/templates/pdf_footer.html #}
+{% comment %}
+    template parameters:
+        ethics (class EthicsInfo)
+        title -- for ethics info
+        version -- for ethics info
+        date -- for ethics info
+
+        address (str) -- for address in footer
+{% endcomment %}
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>[PDF footer]</title>
+        <meta charset="UTF-8">
+        <script>
+
+var pdf_info = {};  /* global */
+
+function setupPdfInfo() {
+    var kvp_list = document.location.search.substring(1).split('&'),  // list of strings
+        // ... location.search.substring(1) is the part of the URL after the ?
+        // ... e.g. "prop1=val1,prop2=val2"
+        key_value_pair,
+        i;
+    for (i = 0; i < kvp_list.length; ++i) {
+        key_value_pair = kvp_list[i].split('=', 2);
+        pdf_info[key_value_pair[0]] = decodeURIComponent(key_value_pair[1]);
+    }
+}
+
+function debugPdfInfo() {
+    var debug_element = document.getElementById("debug");
+    debug_element.textContent = pdf_info;
+}
+
+function restrictAddressFooterToFirstPage() {
+    if (Number(pdf_info['page']) !== 1) {
+        document.getElementById("ethicsref").style.display = 'none';
+        document.getElementById("address").style.display = 'none';
+    }
+}
+
+function setPageNumbers() {
+    var page = pdf_info.page || 1,  /* don't fix to "let" or "const"; wkhtmltopdf fails */
+        page_count = pdf_info.topage || 1;
+    document.getElementById('page_number').textContent = page;
+    document.getElementById('page_count').textContent = page_count;
+}
+
+function onload() {
+    setupPdfInfo();
+    // debugPdfInfo();
+    restrictAddressFooterToFirstPage();
+    setPageNumbers();
+}
+        </script>
+        <style>
+body {
+    color: #005EB8;  /* NHS Blue */
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: x-small;
+    border: none;
+    margin: none;
+    padding: none;
+    text-align: right;
+}
+#ethicsref {
+    font-size: xx-small;
+}
+        </style>
+    </head>
+    <body onload="onload()">
+        <div>
+            <br>
+            Page <span id="page_number"></span> of <span id="page_count"></span>
+        </div>
+        <div id="address">
+            {{ address | safe }}
+        </div>
+        <div id="ethicsref">
+            {% if ethics %}
+                [NHS Research Ethics details:
+                IRAS# {{ ethics.IRAS_NUMBER }};
+                REC# {{ ethics.REC_REFERENCE }};
+                <i>{{ title }}</i>;
+                version {{ version }},
+                {{ date }}.]
+            {% endif %}
+
+        </div>
+        <div id="debug"></div>
+    </body>
+</html>

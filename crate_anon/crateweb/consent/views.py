@@ -49,6 +49,7 @@ from django.http.response import HttpResponseBase
 from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, render
 
+from crate_anon.crateweb.consent.constants import EthicsInfo
 from crate_anon.crateweb.consent.forms import (
     ClinicianResponseForm,
     SingleNhsNumberForm,
@@ -87,7 +88,7 @@ from crate_anon.crateweb.core.utils import (
 from crate_anon.crateweb.extra.pdf import serve_html_or_pdf
 from crate_anon.crateweb.research.research_db_info import (
     research_database_info,
-)  # noqa
+)
 from crate_anon.crateweb.research.models import PidLookup, get_mpid
 from crate_anon.crateweb.userprofile.models import UserProfile
 
@@ -993,7 +994,9 @@ def draft_approval_letter(
     """
     contact_request = get_contact_request(request, contact_request_id)
     html = contact_request.get_approval_letter_html()
-    return serve_html_or_pdf(html, viewtype)
+    return serve_html_or_pdf(
+        html, viewtype, ethics_doccode=EthicsInfo.LTR_D_R_APPROVAL
+    )
 
 
 @user_passes_test(is_developer)
@@ -1011,7 +1014,9 @@ def draft_withdrawal_letter(
     """
     contact_request = get_contact_request(request, contact_request_id)
     html = contact_request.get_withdrawal_letter_html()
-    return serve_html_or_pdf(html, viewtype)
+    return serve_html_or_pdf(
+        html, viewtype, ethics_doccode=EthicsInfo.LTR_D_R_WITHDRAWAL
+    )
 
 
 @user_passes_test(is_developer)
@@ -1029,7 +1034,11 @@ def draft_first_traffic_light_letter(
     """
     patient_lookup = get_patient_lookup(request, patient_lookup_id)
     html = patient_lookup.get_first_traffic_light_letter_html()
-    return serve_html_or_pdf(html, viewtype)
+    return serve_html_or_pdf(
+        html,
+        viewtype,
+        ethics_doccode=EthicsInfo.LTR_PT_FIRST_TRAFFIC_LIGHT,
+    )
 
 
 @user_passes_test(is_developer)
@@ -1054,7 +1063,9 @@ def draft_confirm_traffic_light_letter(
     html = consent_mode.get_confirm_traffic_to_patient_letter_html(
         patient_lookup_override=patient_lookup_override
     )
-    return serve_html_or_pdf(html, viewtype)
+    return serve_html_or_pdf(
+        html, viewtype, ethics_doccode=EthicsInfo.LTR_D_P_CONFIRM_TRAFFIC
+    )
 
 
 @user_passes_test(is_developer)
@@ -1072,7 +1083,9 @@ def draft_traffic_light_decision_form(
     """
     patient_lookup = get_patient_lookup(request, patient_lookup_id)
     html = patient_lookup.get_traffic_light_decision_form()
-    return serve_html_or_pdf(html, viewtype)
+    return serve_html_or_pdf(
+        html, viewtype, ethics_doccode=EthicsInfo.FORM_TRAFFIC_PERSONALIZED
+    )
 
 
 @user_passes_test(is_developer)
@@ -1089,7 +1102,9 @@ def draft_traffic_light_decision_form_generic(
     """
     patient_lookup = PatientLookup()
     html = patient_lookup.get_traffic_light_decision_form(generic=True)
-    return serve_html_or_pdf(html, viewtype)
+    return serve_html_or_pdf(
+        html, viewtype, ethics_doccode=EthicsInfo.FORM_TRAFFIC_GENERIC
+    )
 
 
 @user_passes_test(is_developer)
@@ -1107,7 +1122,9 @@ def draft_letter_clinician_to_pt_re_study(
     """
     contact_request = get_contact_request(request, contact_request_id)
     html = contact_request.get_letter_clinician_to_pt_re_study()
-    return serve_html_or_pdf(html, viewtype)
+    return serve_html_or_pdf(
+        html, viewtype, ethics_doccode=EthicsInfo.LTR_C_P_STUDY
+    )
 
 
 @user_passes_test(is_developer)
@@ -1125,7 +1142,9 @@ def decision_form_to_pt_re_study(
     """
     contact_request = get_contact_request(request, contact_request_id)
     html = contact_request.get_decision_form_to_pt_re_study()
-    return serve_html_or_pdf(html, viewtype)
+    return serve_html_or_pdf(
+        html, viewtype, ethics_doccode=EthicsInfo.FORM_STUDY
+    )
 
 
 @user_passes_test(is_developer)
@@ -1148,7 +1167,11 @@ def draft_researcher_cover_letter(
         context,
         patient=True,
     )
-    return serve_html_or_pdf(html, viewtype)
+    return serve_html_or_pdf(
+        html,
+        viewtype,
+        ethics_doccode=EthicsInfo.LTR_R_P_STUDY_TEMPLATE,
+    )
 
 
 # -----------------------------------------------------------------------------
