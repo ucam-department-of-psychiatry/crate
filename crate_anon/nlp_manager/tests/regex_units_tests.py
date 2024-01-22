@@ -144,7 +144,7 @@ from crate_anon.nlp_manager.tests.regex_test_helperfunc import (
 # =============================================================================
 
 
-class TestUnitRegexes(unittest.TestCase):
+class UnitRegexesTests(unittest.TestCase):
     @staticmethod
     def test_unit_regexes() -> None:
         """

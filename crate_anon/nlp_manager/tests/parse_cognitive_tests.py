@@ -44,7 +44,7 @@ from crate_anon.nlp_manager.tests.regex_test_helperfunc import (
 # =============================================================================
 
 
-class TestCognitive(unittest.TestCase):
+class CognitiveTests(unittest.TestCase):
     @staticmethod
     def test_all_cognitive() -> None:
         """

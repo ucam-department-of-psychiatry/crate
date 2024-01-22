@@ -44,7 +44,7 @@ from crate_anon.nlp_manager.tests.regex_test_helperfunc import (
 # =============================================================================
 
 
-class TestClinical(unittest.TestCase):
+class ClinicalTests(unittest.TestCase):
     @staticmethod
     def test_all_clinical() -> None:
         """

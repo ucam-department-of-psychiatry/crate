@@ -47,7 +47,7 @@ from crate_anon.nlp_manager.tests.regex_test_helperfunc import (
 # =============================================================================
 
 
-class TestParserRegexes(unittest.TestCase):
+class ParserRegexesTests(unittest.TestCase):
     @staticmethod
     def test_parser_regexes() -> None:
         verbose = True
