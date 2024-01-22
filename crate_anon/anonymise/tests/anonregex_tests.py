@@ -70,7 +70,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 
-class TestAnonRegexes(TestCase):
+class AnonRegexTests(TestCase):
     """
     Unit tests.
     """
@@ -557,7 +557,7 @@ def examples_for_paper() -> None:
         print(r)
 
 
-class AnonRegexTests2(TestCase):
+class MoreAnonRegexTests(TestCase):
     """
     More tests of regular expressions for anonymisation.
     """
