@@ -1794,6 +1794,7 @@ def gen_opt_out_pids_from_database(
         )
         sqla_table = table(src_table)
         optout_defining_col = column(optout_colname)
+
         idcol = column(id_colname)
         query = (
             select([idcol])
