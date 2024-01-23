@@ -28,6 +28,7 @@ crate_anon/conftest.py
 pytest configuration
 
 """
+
 import os
 
 from crate_anon.common.constants import EnvVar
