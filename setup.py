@@ -153,6 +153,11 @@ INSTALL_REQUIRES = [
     # when resolving crate_anon.anonymise.patient.Patient in
     # crate_anon.anonymise.altermethod.py
     "sphinx==4.2.0",  # documentation
+    "sphinxcontrib-applehelp==1.0.4",  # development only
+    "sphinxcontrib-devhelp==1.0.2",  # development only
+    "sphinxcontrib-htmlhelp==2.0.1",  # development only
+    "sphinxcontrib-serializinghtml==1.1.5",  # development only
+    "sphinxcontrib-qthelp==1.0.3",  # development only
     "sphinx_rtd_theme==1.0.0",  # documentation
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
