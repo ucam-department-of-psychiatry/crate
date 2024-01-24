@@ -104,7 +104,7 @@ INSTALL_REQUIRES = [
     "openpyxl==3.0.7",  # read Excel
     "ordered-set==4.1.0",  # ordered sets; search for ordered_set
     "pendulum==2.1.2",  # dates/times
-    "Pillow==10.0.1",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
+    "Pillow==10.2.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==3.2.0",  # pretty formating of text-based tables
     "psutil==5.7.2",  # process management
@@ -124,9 +124,11 @@ INSTALL_REQUIRES = [
     "SQLAlchemy==1.4.49",  # database access
     "sqlparse==0.4.4",  # [pin exact version from cardinal_pythonlib]
     "unidecode==1.1.1",  # for removing accents
+    # -------------------------------------------------------------------------
     # Packages for cloud NLP:
+    # -------------------------------------------------------------------------
     "bcrypt==3.1.7",  # bcrypt encryption
-    "cryptography==41.0.4",  # cryptography library
+    "cryptography==41.0.6",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework
@@ -138,7 +140,9 @@ INSTALL_REQUIRES = [
     "urllib3==1.26.18",  # used by requests
     "waitress==2.1.2",  # pure-Python WSGI server
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
+    # -------------------------------------------------------------------------
     # For development only:
+    # -------------------------------------------------------------------------
     "black==22.3.0",  # auto code formatter
     "faker==13.3.1",  # test data creation
     "flake8==3.8.4",  # code checks
