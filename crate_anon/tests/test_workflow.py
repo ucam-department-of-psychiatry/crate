@@ -76,6 +76,7 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.dbholder import DatabaseHolder
+from crate_anon.anonymise.make_demo_database import mk_demo_database
 from crate_anon.anonymise.researcher_report import (
     mk_researcher_report_pdf,
     ResearcherReportConfig,
@@ -130,6 +131,9 @@ DB_PRIVUSER_USER: str = "administrator"
 DB_PRIVUSER_PASSWORD: str = "8z31I84qmvBX"
 DB_RESEARCHER_USER: str = "researcher"
 DB_RESEARCHER_PASSWORD: str = "G6f0V31oc3Yb"
+# Postgres has an additional layer... database/schema/table.
+PG_DB_IDENT = "identdb"
+PG_DB_DEIDENT = "deidentdb"
 
 DOCKER_BUILD_ARGS = {
     # Corresponding to ARG variables in the Dockerfile(s).
@@ -137,6 +141,8 @@ DOCKER_BUILD_ARGS = {
     "DB_SRC": DB_SRC,
     "DB_ANON": DB_ANON,
     "DB_NLP": DB_NLP,
+    "PG_DB_IDENT": PG_DB_IDENT,
+    "PG_DB_DEIDENT": PG_DB_DEIDENT,
     # Usernames/passwords
     "DB_ROOT_PASSWORD": DB_ROOT_PASSWORD,
     "DB_PRIVUSER_USER": DB_PRIVUSER_USER,
@@ -162,9 +168,11 @@ class EngineInfo:
     docker_port: int
     sqla_dialect: str
     python_driver: str = None
-    dbshellcmd: List[str] = None
     envvars: Dict[str, str] = None
+    dbshellcmd: List[str] = None
+    dbshellenv: Dict[str, str] = None
     sqla_url_option_suffix: str = ""
+    both_db_schema: bool = False
 
     def sqlalchemy_url(
         self,
@@ -197,8 +205,9 @@ class EngineInfo:
         ip: str = LOCAL_IP_ADDRESS,
     ) -> str:
         user, password = self._user_pw(privileged=True)
+        dbname = PG_DB_IDENT if self.both_db_schema else DB_SRC
         return self.sqlalchemy_url(
-            dbname=DB_SRC,
+            dbname=dbname,
             user=user,
             password=password,
             ip_addr=ip,
@@ -212,8 +221,9 @@ class EngineInfo:
         privileged: bool = False,
     ) -> str:
         user, password = self._user_pw(privileged)
+        dbname = PG_DB_DEIDENT if self.both_db_schema else DB_ANON
         return self.sqlalchemy_url(
-            dbname=DB_ANON,
+            dbname=dbname,
             user=user,
             password=password,
             ip_addr=ip,
@@ -227,8 +237,9 @@ class EngineInfo:
         privileged: bool = False,
     ) -> str:
         user, password = self._user_pw(privileged)
+        dbname = PG_DB_DEIDENT if self.both_db_schema else DB_NLP
         return self.sqlalchemy_url(
-            dbname=DB_NLP,
+            dbname=dbname,
             user=user,
             password=password,
             ip_addr=ip,
@@ -285,12 +296,14 @@ ENGINEINFO = {
         docker_port=DEFAULT_POSTGRES_PORT,
         sqla_dialect="postgresql",
         # Python driver usually psycopg2, but it doesn't need specifying.
+        dbshellenv={"PGPASSWORD": DB_ROOT_PASSWORD},
         dbshellcmd=[
             "psql",
             f"--host={CONTAINER_ENGINE}",
             f"--port={DEFAULT_POSTGRES_PORT}",
             "--username=postgres",  # PostgreSQL root user
         ],
+        both_db_schema=True,
     ),
 }
 
@@ -367,10 +380,13 @@ def start_dbshell(engine_info: EngineInfo) -> None:
     """
     Start a database shell within the Docker container.
     """
+    envvars = engine_info.envvars.copy() if engine_info.envvars else {}
+    if engine_info.dbshellenv:
+        envvars.update(engine_info.dbshellenv)
     docker_run(
         image=engine_info.tag,
         cmd=engine_info.dbshellcmd,
-        envvars=engine_info.envvars,
+        envvars=envvars,
         network=DOCKER_NETWORK,
         name=CONTAINER_DBSHELL,
     )
@@ -381,13 +397,17 @@ def start_dbshell(engine_info: EngineInfo) -> None:
 # =============================================================================
 
 
-def test_researcher_report(anonconfig: Config, tempdir: str) -> None:
+def test_researcher_report(
+    tempdir: str, db_url: str, db_name: str, anonconfig: Config = None
+) -> None:
     """
     Test researcher reports.
     """
     rrc = ResearcherReportConfig(
         anonconfig=anonconfig,
         output_filename=join(tempdir, "researcher_report.pdf"),
+        db_url=db_url,
+        db_name=db_name,
     )
     mk_researcher_report_pdf(rrc)
 
@@ -434,12 +454,30 @@ def test_crate_workflow(
     log.info("Successfully opened databases.")
 
     # -------------------------------------------------------------------------
+    # Create databases
+    # -------------------------------------------------------------------------
+
+    log.info("Building source database.")
+    mk_demo_database(
+        url=url_src, n_patients=100, notes_per_patient=20, words_per_note=100
+    )
+
+    # -------------------------------------------------------------------------
+    # Not yet done
+    # -------------------------------------------------------------------------
+
+    log.warning("Not yet implemented: anonymisation tests")
+    log.warning("Not yet implemented: NLP tests")
+
+    # -------------------------------------------------------------------------
     # Researcher reports
     # -------------------------------------------------------------------------
 
-    raise NotImplementedError()
-    anonconfig = Config()  # ***
-    test_researcher_report(anonconfig, tempdir)
+    log.info("Running researcher reports.")
+    anonconfig = None  # basic report only; todo: could improve
+    test_researcher_report(
+        tempdir=tempdir, db_url=url_src, db_name=DB_SRC, anonconfig=anonconfig
+    )
 
 
 # =============================================================================

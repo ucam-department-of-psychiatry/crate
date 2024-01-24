@@ -342,77 +342,20 @@ class FilenameDoc(Base):
     patient = relationship("Patient")
 
 
-# noinspection PyPep8Naming
-def main() -> None:
-    """
-    Command-line processor. See command-line help.
-    """
+# =============================================================================
+# Make demo database
+# =============================================================================
+
+
+def mk_demo_database(
+    url: str,
+    n_patients: int,
+    notes_per_patient: int,
+    words_per_note: int,
+    echo: bool = False,
+) -> None:
     fake = Faker("en_GB")
     us_fake = Faker("en_US")  # For text. You get Lorem ipsum with en_GB.
-    default_size = 0
-    # noinspection PyTypeChecker
-    parser = argparse.ArgumentParser(
-        formatter_class=ArgumentDefaultsRichHelpFormatter
-    )
-    parser.add_argument(
-        "url",
-        help=(
-            "SQLAlchemy database URL. Append ?charset=utf8, e.g. "
-            "mysql+mysqldb://root:password@127.0.0.1:3306/test?charset=utf8 ."
-            " WARNING: If you get the error 'MySQL has gone away', increase "
-            "the max_allowed_packet parameter in my.cnf (e.g. to 32M)."
-        ),
-    )
-    parser.add_argument(
-        "--size",
-        type=int,
-        default=default_size,
-        choices=[0, 1, 2, 3],
-        help="Make tiny (0), small (1), medium (2), or large (3) database",
-    )
-    parser.add_argument(
-        "--verbose", "-v", action="store_true", help="Be verbose"
-    )
-    parser.add_argument("--echo", action="store_true", help="Echo SQL")
-    parser.add_argument(
-        "--doctest_doc", default=DEFAULT_DOCTEST_DOC, help="Test file for .DOC"
-    )
-    parser.add_argument(
-        "--doctest_docx",
-        default=DEFAULT_DOCTEST_DOCX,
-        help="Test file for .DOCX",
-    )
-    parser.add_argument(
-        "--doctest_odt", default=DEFAULT_DOCTEST_ODT, help="Test file for .ODT"
-    )
-    parser.add_argument(
-        "--doctest_pdf", default=DEFAULT_DOCTEST_PDF, help="Test file for .PDF"
-    )
-    args = parser.parse_args()
-
-    if args.size == 0:
-        n_patients = 20
-        notes_per_patient = 1
-        words_per_note = 100
-    elif args.size == 1:
-        n_patients = 100
-        notes_per_patient = 5
-        words_per_note = 100
-    elif args.size == 2:
-        n_patients = 100
-        notes_per_patient = 100
-        words_per_note = 1000
-    elif args.size == 3:
-        # about 1.4 Gb
-        n_patients = 1000
-        notes_per_patient = 100
-        words_per_note = 1000
-    else:
-        assert False, "Bad size parameter"
-    loglevel = logging.DEBUG if args.verbose else logging.INFO
-    rootlogger = logging.getLogger()
-    configure_logger_for_colour(rootlogger, level=loglevel)
-
     # 0. Announce intentions
 
     log.info(
@@ -424,13 +367,13 @@ def main() -> None:
     # 1. Open database
 
     log.info("Opening database.")
-    log.debug(f"URL: {args.url}")
-    engine = create_engine(args.url, echo=args.echo, encoding=CHARSET)
+    log.debug(f"URL: {url}")
+    engine = create_engine(url, echo=echo, encoding=CHARSET)
     session = sessionmaker(bind=engine)()
 
     # 2. Create tables
 
-    log.info("Creating tables.")
+    log.info("Creating tables (dropping them first if required).")
     metadata.drop_all(engine, checkfirst=True)
     metadata.create_all(engine, checkfirst=True)
 
@@ -633,6 +576,93 @@ def main() -> None:
             )
 
     log.info(f"Total words in all notes: {total_words}")
+
+
+# =============================================================================
+# Command-line entry point
+# =============================================================================
+
+
+def main() -> None:
+    """
+    Command-line processor. See command-line help.
+    """
+    default_size = 0
+    parser = argparse.ArgumentParser(
+        formatter_class=ArgumentDefaultsRichHelpFormatter
+    )
+    parser.add_argument(
+        "url",
+        help=(
+            "SQLAlchemy database URL. Append ?charset=utf8, e.g. "
+            "mysql+mysqldb://root:password@127.0.0.1:3306/test?charset=utf8 ."
+            " WARNING: If you get the error 'MySQL has gone away', increase "
+            "the max_allowed_packet parameter in my.cnf (e.g. to 32M)."
+        ),
+    )
+    parser.add_argument(
+        "--size",
+        type=int,
+        default=default_size,
+        choices=[0, 1, 2, 3],
+        help="Make tiny (0), small (1), medium (2), or large (3) database",
+    )
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Be verbose"
+    )
+    # Not currently used -- todo: add back binaries to demo database?
+    # parser.add_argument(
+    #     "--doctest_doc", default=DEFAULT_DOCTEST_DOC,
+    #     help="Test file for .DOC"
+    # )
+    # parser.add_argument(
+    #     "--doctest_docx",
+    #     default=DEFAULT_DOCTEST_DOCX,
+    #     help="Test file for .DOCX",
+    # )
+    # parser.add_argument(
+    #     "--doctest_odt", default=DEFAULT_DOCTEST_ODT,
+    #     help="Test file for .ODT"
+    # )
+    # parser.add_argument(
+    #     "--doctest_pdf", default=DEFAULT_DOCTEST_PDF,
+    #     help="Test file for .PDF"
+    # )
+    parser.add_argument("--echo", action="store_true", help="Echo SQL")
+
+    args = parser.parse_args()
+
+    loglevel = logging.DEBUG if args.verbose else logging.INFO
+    rootlogger = logging.getLogger()
+    configure_logger_for_colour(rootlogger, level=loglevel)
+
+    if args.size == 0:
+        n_patients = 20
+        notes_per_patient = 1
+        words_per_note = 100
+    elif args.size == 1:
+        n_patients = 100
+        notes_per_patient = 5
+        words_per_note = 100
+    elif args.size == 2:
+        n_patients = 100
+        notes_per_patient = 100
+        words_per_note = 1000
+    elif args.size == 3:
+        # about 1.4 Gb
+        n_patients = 1000
+        notes_per_patient = 100
+        words_per_note = 1000
+    else:
+        assert False, "Bad size parameter"
+
+    mk_demo_database(
+        url=args.url,
+        n_patients=n_patients,
+        notes_per_patient=notes_per_patient,
+        words_per_note=words_per_note,
+        echo=args.echo,
+    )
 
 
 if __name__ == "__main__":

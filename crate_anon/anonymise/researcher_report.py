@@ -133,8 +133,8 @@ TICK = "✓"
 
 @dataclass
 class ResearcherReportConfig:
-    anonconfig: Config
     output_filename: str
+    anonconfig: Config = None
 
     base_font_size: str = Default.BASE_FONT_SIZE
     db_name: str = None  # overrides that in config
@@ -156,23 +156,26 @@ class ResearcherReportConfig:
     def __post_init__(self) -> None:
         # Set up lookups.
         anonconfig = self.anonconfig
-        self.annotation_from_colname = {
-            anonconfig.trid_fieldname: DDRLabels.TRID,
-            anonconfig.master_research_id_fieldname: DDRLabels.MRID,
-            anonconfig.research_id_fieldname: DDRLabels.RID,
-            anonconfig.source_hash_fieldname: DDRLabels.SOURCE_HASH,
-        }
+        if anonconfig:
+            self.annotation_from_colname = {
+                anonconfig.trid_fieldname: DDRLabels.TRID,
+                anonconfig.master_research_id_fieldname: DDRLabels.MRID,
+                anonconfig.research_id_fieldname: DDRLabels.RID,
+                anonconfig.source_hash_fieldname: DDRLabels.SOURCE_HASH,
+            }
 
-        # Set up DD
-        if self.use_dd:
-            anonconfig.load_dd(check_against_source_db=False)
+            # Set up DD
+            if self.use_dd:
+                anonconfig.load_dd(check_against_source_db=False)
+        else:
+            self.use_dd = False
 
         # Set up database
         if self.db_url:
             # Use a custom database
             if not self.db_name:
                 raise ValueError(
-                    "Should specify database name if passing a custom URL"
+                    "Must specify database name if passing a custom URL"
                 )
             self.db = DatabaseHolder(
                 self.db_name,
@@ -182,11 +185,17 @@ class ResearcherReportConfig:
             )
         else:
             # Use destination database from the config
+            if not anonconfig:
+                raise ValueError(
+                    "Must specify a CRATE anonymisation config file if you "
+                    "do not specify a database by URL/name"
+                )
             self.db = anonconfig.destdb
             self.db.enable_reflect()
             self.db.create_session()
             self.db_name = self.db_name or anonconfig.destdb.name
             self.db_url = self.db.engine.url
+
         self.db_session = self.db.session
 
     def safe_db_url_if_selected(self) -> str:
@@ -642,8 +651,13 @@ setting e.g. "ulimit -n 2048" is one solution.
     grp_db = parser.add_argument_group("DATABASE")
     grp_db.add_argument(
         "--config",
-        help=f"Config file, overriding environment variable "
-        f"{ANON_CONFIG_ENV_VAR}",
+        help=f"CRATE anonymisation config file, overriding environment "
+        f"variable {ANON_CONFIG_ENV_VAR}",
+    )
+    grp_db.add_argument(
+        "--noconfig",
+        action="store_true",
+        help="Do not use a config file (unusual)",
     )
     grp_db.add_argument(
         "--db_url",
@@ -796,7 +810,13 @@ setting e.g. "ulimit -n 2048" is one solution.
 
     if args.config:
         os.environ[ANON_CONFIG_ENV_VAR] = args.config
-    from crate_anon.anonymise.config_singleton import config  # delayed import
+    if args.noconfig:
+        log.info("Not using a CRATE anonymisation config file")
+        config = None
+    else:
+        from crate_anon.anonymise.config_singleton import (
+            config,
+        )
 
     reportcfg = ResearcherReportConfig(
         anonconfig=config,
