@@ -25,7 +25,8 @@ crate_anon/tests/test_workflow.py
 
 ===============================================================================
 
-Test workflows including database access across several database engines.
+Test workflows including database access across several database engines. For
+development purposes.
 
 Network inspection:
 
@@ -398,7 +399,11 @@ def start_dbshell(engine_info: EngineInfo) -> None:
 
 
 def test_researcher_report(
-    tempdir: str, db_url: str, db_name: str, anonconfig: Config = None
+    tempdir: str,
+    db_url: str,
+    db_name: str,
+    anonconfig: Config = None,
+    echo: bool = False,
 ) -> None:
     """
     Test researcher reports.
@@ -408,12 +413,13 @@ def test_researcher_report(
         output_filename=join(tempdir, "researcher_report.pdf"),
         db_url=db_url,
         db_name=db_name,
+        echo=echo,
     )
     mk_researcher_report_pdf(rrc)
 
 
 def test_crate_workflow(
-    engine_info: EngineInfo, port: int, tempdir: str
+    engine_info: EngineInfo, port: int, tempdir: str, echo: bool = False
 ) -> None:
     log.info(f"Temporary directory: {tempdir}")
     url_src = engine_info.sqlalchemy_url_src(port=port)
@@ -476,7 +482,11 @@ def test_crate_workflow(
     log.info("Running researcher reports.")
     anonconfig = None  # basic report only; todo: could improve
     test_researcher_report(
-        tempdir=tempdir, db_url=url_src, db_name=DB_SRC, anonconfig=anonconfig
+        tempdir=tempdir,
+        db_url=url_src,
+        db_name=DB_SRC,
+        anonconfig=anonconfig,
+        echo=echo,
     )
 
 
@@ -586,6 +596,7 @@ engine container is ALREADY RUNNING in a separate process (see
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Be verbose"
     )
+    parser.add_argument("--echo", action="store_true", help="Echo some SQL")
     args = parser.parse_args()
 
     loglevel = logging.DEBUG if args.verbose else logging.INFO
@@ -609,7 +620,10 @@ engine container is ALREADY RUNNING in a separate process (see
                 raise NotImplementedError
             elif args.action == cmd_testcrate:
                 test_crate_workflow(
-                    engine_info, port=host_port, tempdir=tempdir
+                    engine_info,
+                    port=host_port,
+                    tempdir=tempdir,
+                    echo=args.echo,
                 )
             else:
                 raise RuntimeError("bug")

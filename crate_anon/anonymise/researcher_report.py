@@ -152,6 +152,7 @@ class ResearcherReportConfig:
     show_values: bool = True  # include specimen values/ranges
     skip_values_if_too_many: bool = False
     use_dd: bool = True  # include info from the data dictionary
+    echo: bool = False  # echo SQL
 
     def __post_init__(self) -> None:
         # Set up lookups.
@@ -182,6 +183,7 @@ class ResearcherReportConfig:
                 self.db_url,
                 with_session=True,
                 reflect=True,
+                echo=self.echo,
             )
         else:
             # Use destination database from the config
@@ -191,6 +193,7 @@ class ResearcherReportConfig:
                     "do not specify a database by URL/name"
                 )
             self.db = anonconfig.destdb
+            self.db.engine.echo = self.echo
             self.db.enable_reflect()
             self.db.create_session()
             self.db_name = self.db_name or anonconfig.destdb.name
@@ -418,7 +421,8 @@ def get_values_summary(
 
     if show_distinct:
         dv_rows = session.execute(
-            select([func.distinct(column)])
+            select([column])
+            .distinct()
             .order_by(column)
             .limit(reportcfg.max_value_length + 1)
         ).fetchall()
