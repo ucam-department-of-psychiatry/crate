@@ -144,6 +144,7 @@ INSTALL_REQUIRES = [
     # For development only:
     # -------------------------------------------------------------------------
     "black==22.3.0",  # auto code formatter
+    "factory_boy==3.3.0",  # easier test data creation
     "faker==13.3.1",  # test data creation
     "flake8==3.8.4",  # code checks
     "docutils==0.17",  # documentation, 0.18 not compatible with Sphinx
