@@ -1780,6 +1780,19 @@ def gen_opt_out_pids_from_database(
         each PID (or MPID)
 
     """
+
+    def filter_bools(value: Any) -> bool:
+        if value in [None, True, False]:
+            return True
+
+        coltype = type(value).__name__
+        log.info(
+            f"... ignoring non-boolean value ({value}), "
+            f"type '{coltype}' for boolean column '{optout_colname}'"
+        )
+
+        return False
+
     txt = "MPID" if mpid else "PID"
     found_one = False
     defining_fields = config.dd.get_optout_defining_fields()
@@ -1823,15 +1836,6 @@ def gen_opt_out_pids_from_database(
             yield pid
     if not found_one:
         log.info(f"... no opt-out-defining {txt} fields in data dictionary")
-
-
-def filter_bools(value: Any) -> bool:
-    if value in [None, True, False]:
-        return True
-
-    log.info(f"... ignoring non-boolean value ({value}) for boolean column")
-
-    return False
 
 
 def setup_opt_out(incremental: bool = False) -> None:
