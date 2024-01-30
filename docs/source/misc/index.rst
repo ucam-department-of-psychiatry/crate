@@ -25,6 +25,7 @@ Additional notes
 ..  toctree::
     :maxdepth: 2
 
+    testing.rst
     technical_notes.rst
     tcpip_ports.rst
     external_dependencies.rst
