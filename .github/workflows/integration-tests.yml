@@ -1,0 +1,27 @@
+---
+# yamllint disable rule:line-length
+name: Integration tests
+# yamllint disable-line rule:truthy
+on:
+    push:
+        paths:
+            - '**.py'
+            - .github/workflows/integration-tests.yml
+            - github_action_scripts/python_setup.sh
+jobs:
+    pip-install-and-tests:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                engine: ["mysql", "sqlserver", "postgres"]
+        steps:
+            - uses: actions/checkout@v3
+            - uses: actions/setup-python@v4
+              with:
+                  python-version: 3.10
+            - name: Run integration tests
+              run: |
+                set -euxo pipefail
+                ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh
+                source "${HOME}/venv/bin/activate"
+                ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --engine {{ matrix.engine }}
