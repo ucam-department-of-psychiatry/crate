@@ -279,8 +279,8 @@ def setup(
 ) -> None:
     # Pytest prefers function-based tests over unittest.TestCase subclasses and
     # methods, but it still supports the latter perfectly well.
-    # We use this fixture in cc_unittest.py to store these values into
-    # DemoRequestTestCase and its descendants.
+    # We use this fixture in testing/classes.py to store these values into
+    # DatabaseTestCase and its descendants.
     request.cls.engine = engine
     request.cls.database_on_disk = database_on_disk
     request.cls.dbsession = dbsession
