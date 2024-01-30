@@ -53,8 +53,8 @@ class TestBoolOptOutFactory(BaseFactory):
     class Meta:
         model = TestBoolOptOut
 
-    pid = factory.Sequence(lambda n: n)
-    mpid = factory.Sequence(lambda n: n)
+    pid = factory.Sequence(lambda n: n + 1)
+    mpid = factory.Sequence(lambda n: n + 1)
 
 
 class TestStringOptOut(Base):
@@ -62,15 +62,15 @@ class TestStringOptOut(Base):
 
     pid = Column(Integer, primary_key=True, comment="Patient ID")
     mpid = Column(Integer, comment="Master patient ID")
-    opt_out = Column(String, comment="Opt out?")
+    opt_out = Column(String(4), comment="Opt out?")
 
 
 class TestStringOptOutFactory(BaseFactory):
     class Meta:
         model = TestStringOptOut
 
-    pid = factory.Sequence(lambda n: n)
-    mpid = factory.Sequence(lambda n: n)
+    pid = factory.Sequence(lambda n: n + 1)
+    mpid = factory.Sequence(lambda n: n + 1)
 
 
 class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
