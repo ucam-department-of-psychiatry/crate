@@ -242,7 +242,7 @@ def docker_build(
 def docker_run(
     image: str,
     cmd: Union[str, List[str]] = None,
-    interactive: bool = True,
+    interactive: bool = False,
     rm: bool = True,
     mounts: List[VolumeMount] = None,
     envvars: Dict[str, str] = None,
