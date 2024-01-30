@@ -49,6 +49,7 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 from sortedcontainers import SortedSet
 from sqlalchemy.schema import Column, Index, MetaData, Table
 from sqlalchemy.sql import column, func, or_, select, table, text
+from sqlalchemy.types import Boolean
 
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
@@ -1788,20 +1789,33 @@ def gen_opt_out_pids_from_database(
         if not id_colname:
             continue
         found_one = True
-        session = config.sources[src_db].session
+        db_holder = config.sources[src_db]
+        session = db_holder.session
         log.info(
             f"... {src_db}.{src_table}.{optout_colname} ({txt}={id_colname})"
         )
-        sqla_table = table(src_table)
-        optout_defining_col = column(optout_colname)
+        sqla_table = db_holder.metadata.tables[src_table]
+        optout_defining_col = sqla_table.columns[optout_colname]
 
-        idcol = column(id_colname)
-        query = (
-            select([idcol])
-            .select_from(sqla_table)
-            .where(optout_defining_col.in_(config.optout_col_values))
-            .distinct()
-        )
+        idcol = sqla_table.columns[id_colname]
+
+        optout_col_values = config.optout_col_values
+
+        # SQL Alchemy will raise a TypeError if optout_col_values includes a
+        # string value such as "1" and the opt-out field is boolean. The
+        # rationale behind this is explained at:
+        # https://docs.sqlalchemy.org/en/14/changelog/migration_12.html#boolean-datatype-now-enforces-strict-true-false-none-values  # noqa: E501
+        # As optout_col_values could potentially include values for both
+        # boolean and string opt-out fields, we just filter out invalid values
+        # for boolean opt-out fields.
+        if isinstance(optout_defining_col.type, Boolean):
+            optout_col_values = list(filter(filter_bools, optout_col_values))
+
+        query = select([idcol]).select_from(sqla_table).distinct()
+
+        if optout_col_values:
+            query = query.where(optout_defining_col.in_(optout_col_values))
+
         # no need for an order_by clause
         result = session.execute(query)
         for row in result:
@@ -1809,6 +1823,15 @@ def gen_opt_out_pids_from_database(
             yield pid
     if not found_one:
         log.info(f"... no opt-out-defining {txt} fields in data dictionary")
+
+
+def filter_bools(value: Any) -> bool:
+    if value in [None, True, False]:
+        return True
+
+    log.info(f"... ignoring non-boolean value ({value}) for boolean column")
+
+    return False
 
 
 def setup_opt_out(incremental: bool = False) -> None:
