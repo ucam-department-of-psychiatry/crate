@@ -9,7 +9,7 @@ on:
             - .github/workflows/integration-tests.yml
             - github_action_scripts/python_setup.sh
 jobs:
-    pip-install-and-tests:
+    run-integration-tests:
         runs-on: ubuntu-latest
         strategy:
             matrix:
