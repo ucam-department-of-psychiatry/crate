@@ -14,6 +14,13 @@ jobs:
         strategy:
             matrix:
                 engine: ["mysql", "sqlserver", "postgres"]
+                include:
+                  - engine: mysql
+                    port: 3306
+                  - engine: sqlserver
+                    port: 1433
+                  - engine: postgres
+                    port: 5432
         steps:
             - uses: actions/checkout@v3
             - uses: actions/setup-python@v4
@@ -23,8 +30,11 @@ jobs:
               run: |
                 set -euxo pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh
+                sudo apt -y install wait-for-it
                 source "${HOME}/venv/bin/activate"
                 # Same versions as in docker/dockerfiles/crate.Dockerfile
                 python -m pip install mssql-django==1.2 mysqlclient==1.4.6 psycopg2==2.8.5 pyodbc==4.0.30
                 ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --engine ${{ matrix.engine }} startengine
+                ENGINE_IP=$(docker inspect crate_test_container_engine --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+                wait-for-it "${ENGINE_IP}:$${{ matrix.port }}" --timeout=300
                 ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --engine ${{ matrix.engine }} testcrate
