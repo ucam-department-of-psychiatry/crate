@@ -31,5 +31,9 @@ ${PYTHON} ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --en
 ENGINE_IP=$(docker inspect crate_test_container_engine --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
 wait-for-it "${ENGINE_IP}:${PORT}" --timeout=300
 
-sqlcmd -S ${ENGINE_IP} -U administrator -P 8z31I84qmvBX -Q "SELECT 1"
+# This works
+# sqlcmd -S ${ENGINE_IP} -U administrator -P 8z31I84qmvBX -Q "SELECT 1"
+
+${PYTHON} -c "import pymssql; conn = pymssql.connect(server='${ENGINE_IP}', user='administrator', password='8z31I84qmvBX', database='sourcedb'); cursor = conn.cursor(); cursor.execute('SELECT 1'); print([r for r in cursor.fetchall()])"
+
 # ${PYTHON} ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --engine ${ENGINE} testcrate
