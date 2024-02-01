@@ -22,6 +22,8 @@ wget --retry-on-http-error=429 --waitretry=300 --tries=20 https://github.com/wkh
 sudo apt-get -y install fontconfig libxrender1 xfonts-75dpi xfonts-base
 sudo dpkg -i wkhtmltox_0.12.6-1.bionic_amd64.deb
 
+# Needed for pymssql from source
+sudo apt-get -y install libkrb5-dev
 PYTHON="${HOME}/venv/bin/python"
 # Same versions as in docker/dockerfiles/crate.Dockerfile
 ${PYTHON} -m pip install --no-binary pymssql mssql-django==1.2 mysqlclient==1.4.6 psycopg2==2.8.5 pyodbc==4.0.30 pymssql==2.2.11
