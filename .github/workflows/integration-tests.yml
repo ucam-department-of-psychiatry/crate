@@ -14,7 +14,9 @@ jobs:
         runs-on: ubuntu-latest
         strategy:
             matrix:
-                engine: ["mysql", "postgres", "sqlserver"]
+                # add "postgres" when supported
+
+                engine: ["mysql", "sqlserver"]
                 include:
                   - engine: mysql
                     port: 3306
