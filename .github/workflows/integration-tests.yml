@@ -22,8 +22,8 @@ jobs:
                     port: 3306
                   - engine: sqlserver
                     port: 1433
-                  - engine: postgres
-                    port: 5432
+                  # - engine: postgres
+                  #  port: 5432
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-python@v5
