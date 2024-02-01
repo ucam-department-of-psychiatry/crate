@@ -10,8 +10,8 @@ if [ "$#" != "2" ]; then
    exit 1
 fi
 
-$ENGINE=$0
-$PORT=$1
+ENGINE=$0
+PORT=$1
 
 sudo apt -y install wait-for-it
 PYTHON="${HOME}/venv/bin/python"
