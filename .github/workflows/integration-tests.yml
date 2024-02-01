@@ -24,5 +24,7 @@ jobs:
                 set -euxo pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh
                 source "${HOME}/venv/bin/activate"
+                # Same versions as in docker/dockerfiles/crate.Dockerfile
+                python -m pip install mssql-django==1.2 mysqlclient==1.4.6 psycopg2==2.8.5 pyodbc==4.0.30
                 ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --engine ${{ matrix.engine }} startengine
                 ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --engine ${{ matrix.engine }} testcrate
