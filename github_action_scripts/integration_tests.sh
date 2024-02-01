@@ -31,5 +31,5 @@ ${PYTHON} ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --en
 ENGINE_IP=$(docker inspect crate_test_container_engine --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
 wait-for-it "${ENGINE_IP}:${PORT}" --timeout=300
 
-sqlcmd -S ${ENGINE_IP} -U administrator -P 8z31I84qmvBX
+sqlcmd -S ${ENGINE_IP} -U administrator -P 8z31I84qmvBX -Q "SELECT 1"
 # ${PYTHON} ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --engine ${ENGINE} testcrate
