@@ -374,6 +374,7 @@ def start_engine(engine_info: EngineInfo, host_port: int) -> None:
         ports_docker_to_host={engine_info.docker_port: host_port},
         network=DOCKER_NETWORK,
         name=CONTAINER_ENGINE,
+        daemon=True,
     )
 
 
