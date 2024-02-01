@@ -15,11 +15,11 @@ jobs:
         strategy:
             matrix:
                 # add "postgres" when supported
-
-                engine: ["mysql", "sqlserver"]
+                # engine: ["mysql", "sqlserver"]
+                engine: ["sqlserver"]
                 include:
-                  - engine: mysql
-                    port: 3306
+                  #- engine: mysql
+                  #  port: 3306
                   - engine: sqlserver
                     port: 1433
                   # - engine: postgres

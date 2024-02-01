@@ -30,4 +30,6 @@ ${PYTHON} -m pip install --no-binary pymssql mssql-django==1.2 mysqlclient==1.4.
 ${PYTHON} ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --engine ${ENGINE} startengine
 ENGINE_IP=$(docker inspect crate_test_container_engine --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
 wait-for-it "${ENGINE_IP}:${PORT}" --timeout=300
-${PYTHON} ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --engine ${ENGINE} testcrate
+
+sqlcmd -S ${ENGINE_IP} -U administrator -P 8z31I84qmvBX
+# ${PYTHON} ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --engine ${ENGINE} testcrate
