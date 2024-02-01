@@ -31,11 +31,25 @@ ${PYTHON} ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --en
 ENGINE_IP=$(docker inspect crate_test_container_engine --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
 wait-for-it "${ENGINE_IP}:${PORT}" --timeout=300
 
-# This works
-sqlcmd -S ${ENGINE_IP} -U administrator -P 8z31I84qmvBX -Q "USE sourcedb; SELECT 1;"
+if [ "$ENGINE" == "sqlserver" ]; then
 
-# This doesn't work
-${PYTHON} -c "import pymssql; conn = pymssql.connect(server='${ENGINE_IP}', user='administrator', password='8z31I84qmvBX', database='sourcedb'); cursor = conn.cursor(); cursor.execute('SELECT 1'); print([r for r in cursor.fetchall()])"
+    # For some baffling reason, this line is necessary to avoid:
 
-# Neither does this
+    # Traceback (most recent call last):
+    # File "<string>", line 1, in <module>
+    # File "src/pymssql/_pymssql.pyx", line 653, in pymssql._pymssql.connect
+    # pymssql._pymssql.OperationalError: (18456, b"Login failed for user 'administrator'.DB-Lib error message 20018, severity 14:
+    #     General SQL Server error: Check messages from the SQL Server
+    #     DB-Lib error message 20002, severity 9:
+    #     Adaptive Server connection failed (172.18.0.2)
+    #     DB-Lib error message 20002, severity 9:
+    #     Adaptive Server connection failed (172.18.0.2)")
+    PASSWORD=8z31I84qmvBX
+
+    sqlcmd -S ${ENGINE_IP} -U administrator -P ${PASSWORD} -Q "USE sourcedb; SELECT 1;"
+
+    # Basic pymssql test without SQLAlchemy:
+    # ${PYTHON} -c "import pymssql; conn = pymssql.connect(server='${ENGINE_IP}', user='administrator', password='${PASSWORD}', database='sourcedb'); cursor = conn.cursor(); cursor.execute('SELECT 1'); print([r for r in cursor.fetchall()])"
+fi
+
 ${PYTHON} ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --engine ${ENGINE} testcrate
