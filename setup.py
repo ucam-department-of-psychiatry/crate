@@ -152,6 +152,7 @@ INSTALL_REQUIRES = [
     "pre-commit==2.20.0",  # development only, various sanity checks on code
     "pytest==7.1.1",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
+    "python-on-whales==0.68.0",  # python wrappers for testing with Docker
     # Sphinx 4.4.0 gives "more than one target for cross-reference" warning
     # when resolving crate_anon.anonymise.patient.Patient in
     # crate_anon.anonymise.altermethod.py

@@ -32,7 +32,6 @@ crate_anon/common
     argparse_assist.py.rst
     bugfix_flashtext.py.rst
     constants.py.rst
-    dockerfunc.py.rst
     exceptions.py.rst
     extendedconfigparser.py.rst
     file_io.py.rst

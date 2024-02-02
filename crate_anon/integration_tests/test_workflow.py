@@ -67,13 +67,13 @@ from contextlib import AbstractContextManager, nullcontext
 from dataclasses import dataclass
 import logging
 from os.path import abspath, dirname, join
-import subprocess
-import sys
 import tempfile
 from typing import Dict, List, Tuple
 
 from cardinal_pythonlib.fileops import mkdir_p
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+
+from python_on_whales import docker
 
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.dbholder import DatabaseHolder
@@ -84,12 +84,6 @@ from crate_anon.anonymise.researcher_report import (
 )
 from crate_anon.common.argparse_assist import (
     RawDescriptionArgumentDefaultsRichHelpFormatter,
-)
-from crate_anon.common.dockerfunc import (
-    docker_build,
-    docker_run,
-    DEFAULT_DOCKER_CMD as DOCKER_CMD,
-    run_subprocess,
 )
 from crate_anon.version import CRATE_VERSION_PRETTY
 
@@ -318,20 +312,12 @@ def makenet() -> None:
     """
     Set up a Docker network for all our containers.
     """
-    results = (
-        subprocess.check_output([DOCKER_CMD, "network", "ls"])
-        .decode(sys.getdefaultencoding())
-        .splitlines()
-    )
-    for line in results:
-        for word in line.split():
-            if word == DOCKER_NETWORK:
-                log.info(f"Docker network already exists: {DOCKER_NETWORK}")
-                return
+    if docker.network.list(filters={"name": DOCKER_NETWORK}):
+        log.info(f"Docker network already exists: {DOCKER_NETWORK}")
+        return
+
     log.info(f"Creating Docker network: {DOCKER_NETWORK}")
-    run_subprocess(
-        [DOCKER_CMD, "network", "create", "--driver", "bridge", DOCKER_NETWORK]
-    )
+    docker.network.create(DOCKER_NETWORK, driver="bridge")
 
 
 def build(engine_info: EngineInfo) -> None:
@@ -339,12 +325,11 @@ def build(engine_info: EngineInfo) -> None:
     Build a database engine's Docker container.
     """
     log.info(f"Building Docker container for engine: {engine_info.name}")
-    docker_build(
-        dockerfile=engine_info.dockerfile,
-        tag=engine_info.tag,
-        context=CONTEXT,
+    docker.build(
+        file=engine_info.dockerfile,
+        tags=[engine_info.tag],
+        context_path=CONTEXT,
         build_args=DOCKER_BUILD_ARGS,
-        docker_cmd=DOCKER_CMD,
     )
 
 
@@ -353,12 +338,14 @@ def launch_bash(engine_info: EngineInfo) -> None:
     Run Bash in a database engine's container.
     """
     log.info(f"Launching Bash for Docker container: {engine_info.name}")
-    docker_run(
-        image=engine_info.tag,
-        cmd="bash",
+    docker.run(
+        engine_info.tag,
+        command=["bash"],
         interactive=True,
-        network=DOCKER_NETWORK,
         name=CONTAINER_BASH,
+        networks=[DOCKER_NETWORK],
+        remove=True,
+        tty=True,
     )
 
 
@@ -366,15 +353,15 @@ def start_engine(engine_info: EngineInfo, host_port: int) -> None:
     """
     Start the database engine's container, so it provides database services.
     """
+    envvars = engine_info.envvars.copy() if engine_info.envvars else {}
     log.info(f"Starting database engine, via host port {host_port}")
-    docker_run(
-        image=engine_info.tag,
-        cmd=None,
-        envvars=engine_info.envvars,
-        ports_docker_to_host={engine_info.docker_port: host_port},
-        network=DOCKER_NETWORK,
+    docker.run(
+        engine_info.tag,
+        envs=envvars,
+        publish=[(host_port, engine_info.docker_port)],
+        networks=[DOCKER_NETWORK],
         name=CONTAINER_ENGINE,
-        daemon=True,
+        detach=True,
     )
 
 
@@ -385,12 +372,15 @@ def start_dbshell(engine_info: EngineInfo) -> None:
     envvars = engine_info.envvars.copy() if engine_info.envvars else {}
     if engine_info.dbshellenv:
         envvars.update(engine_info.dbshellenv)
-    docker_run(
-        image=engine_info.tag,
-        cmd=engine_info.dbshellcmd,
-        envvars=envvars,
-        network=DOCKER_NETWORK,
+    docker.run(
+        engine_info.tag,
+        command=engine_info.dbshellcmd,
+        envs=envvars,
+        interactive=True,
+        networks=[DOCKER_NETWORK],
         name=CONTAINER_DBSHELL,
+        remove=True,
+        tty=True,
     )
 
 
