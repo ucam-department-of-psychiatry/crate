@@ -33,19 +33,15 @@ Test classes for more complex tests e.g. where a database session is required.
 from typing import TYPE_CHECKING
 from unittest import TestCase
 
-from cardinal_pythonlib.classes import all_subclasses
 import pytest
-from sqlalchemy import MetaData
 from sqlalchemy.engine.base import Engine
-from sqlalchemy.orm import declarative_base
 
-from crate_anon.testing.factories import BaseFactory
+from crate_anon.testing.factories import (
+    set_sqlalchemy_session_on_all_factories,
+)
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
-
-metadata = MetaData()
-Base = declarative_base(metadata=metadata)
 
 
 @pytest.mark.usefixtures("setup")
@@ -56,11 +52,15 @@ class DatabaseTestCase(TestCase):
     db_filename: str
 
     def setUp(self) -> None:
-        for factory in all_subclasses(BaseFactory):
-            factory._meta.sqlalchemy_session = self.dbsession
+        set_sqlalchemy_session_on_all_factories(self.dbsession)
 
     def set_echo(self, echo: bool) -> None:
         """
         Changes the database echo status.
         """
         self.engine.echo = echo
+
+
+class DemoDatabaseTestCase(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
