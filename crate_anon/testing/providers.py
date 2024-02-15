@@ -32,6 +32,7 @@ from typing import Any, List
 
 from cardinal_pythonlib.datetimefunc import pendulum_to_datetime
 from faker.providers import BaseProvider
+import pendulum
 from pendulum import DateTime as Pendulum
 
 
@@ -84,8 +85,8 @@ class FormattedDateOfBirthProvider(BaseProvider):
 
 
 # No one is born after this
-first_datetime = Pendulum(year=2000, month=1, day=1, hour=9)
-_datetime = first_datetime
+_max_birth_datetime = Pendulum(year=2000, month=1, day=1, hour=9)
+_datetime = _max_birth_datetime
 
 
 class IncrementingDateProvider(BaseProvider):
@@ -111,6 +112,24 @@ class FormattedIncrementingDateProvider(BaseProvider):
         format = self.generator.date_format()
 
         return date.strftime(format)
+
+
+class ConsistentDateOfBirthProvider(BaseProvider):
+
+    """
+    Returns a date of birth no greater than 1st January 2000. All patient notes
+    are created after this date.
+
+    Faker date_of_birth calculates from the current time so gives different
+    results on different days. In our case we don't want the date of birth to
+    be greater than the date stamp on the note.
+    """
+
+    def consistent_date_of_birth(self) -> datetime.datetime:
+        return self.generator.date_between_dates(
+            date_start=pendulum.date(1900, 1, 1),
+            date_end=_max_birth_datetime,
+        )
 
 
 class RelationshipProvider(ChoiceProvider):

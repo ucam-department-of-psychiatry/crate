@@ -74,6 +74,7 @@ from crate_anon.testing.models import (
 from crate_anon.testing.providers import (
     AlcoholProvider,
     ChoiceProvider,
+    ConsistentDateOfBirthProvider,
     DateFormatProvider,
     FormattedDateOfBirthProvider,
     FormattedIncrementingDateProvider,
@@ -174,6 +175,7 @@ def mk_demo_database(
     with factory.Faker.override_default_locale("en_GB"):
         factory.Faker.add_provider(AlcoholProvider)
         factory.Faker.add_provider(ChoiceProvider)
+        factory.Faker.add_provider(ConsistentDateOfBirthProvider)
         factory.Faker.add_provider(DateFormatProvider)
         factory.Faker.add_provider(FormattedDateOfBirthProvider)
         factory.Faker.add_provider(FormattedIncrementingDateProvider)

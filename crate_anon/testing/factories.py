@@ -36,10 +36,8 @@ from cardinal_pythonlib.classes import all_subclasses
 from cardinal_pythonlib.nhs import generate_random_nhs_number
 import factory
 import factory.random
-import pendulum
 
 from crate_anon.testing.models import EnumColours, Note, Patient
-from crate_anon.testing.providers import first_datetime
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -96,14 +94,7 @@ class DemoPatientFactory(DemoFactory):
         return obj.first_name[:1]
 
     surname = factory.Faker("last_name")
-    # Faker date_of_birth calculates from the current time so gives
-    # different results on different days. In our case we don't want
-    # the date of birth to be greater than the date stamp on the note.
-    dob = factory.Faker(
-        "date_between_dates",
-        date_start=pendulum.date(1900, 1, 1),
-        date_end=first_datetime,
-    )
+    dob = factory.Faker("consistent_date_of_birth")
 
     @factory.lazy_attribute
     def nhsnum(obj) -> int:
