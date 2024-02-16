@@ -36,6 +36,7 @@ from cardinal_pythonlib.classes import all_subclasses
 from cardinal_pythonlib.nhs import generate_random_nhs_number
 import factory
 import factory.random
+from faker import Faker
 
 from crate_anon.testing.models import EnumColours, Note, Patient
 
@@ -64,6 +65,10 @@ def coin(p: float = 0.5) -> bool:
     Biased coin toss. Returns ``True`` with probability ``p``.
     """
     return random.random() < p
+
+
+class Fake:
+    en = Faker("en")
 
 
 class DemoFactory(BaseFactory):
@@ -143,7 +148,6 @@ class DemoNoteFactory(DemoFactory):
         dob_format = factory.Faker("date_format")
         note_date_format = factory.Faker("date_format")
         alcohol = factory.Faker("alcohol")
-        other_note_index = factory.Faker("pyint", max_value=8)
         pad_paragraph = factory.Faker(
             "paragraph",
             locale="en_US",  # You get Lorem ipsum with en_GB.
@@ -154,7 +158,7 @@ class DemoNoteFactory(DemoFactory):
 
     @factory.lazy_attribute
     def note(obj) -> str:
-        other_note = [
+        other_notes = [
             "Start aspirin 75mg od. Remains on Lipitor 40mg nocte",
             "For haloperidol 2mg po prn max qds",
             "Start amoxicillin 500 mg b.i.d. for 7 days",
@@ -176,7 +180,9 @@ class DemoNoteFactory(DemoFactory):
                 f"{obj.patient.forename} took venlafaxine 375 M/R od, "
                 "and is due to start clozapine 75mg bd"
             ),
-        ][obj.other_note_index]
+        ]
+
+        other_note = Fake.en.word(other_notes)
 
         relation_name = obj.patient.related_patient_name
         formatted_dob = obj.patient.dob.strftime(obj.dob_format)
