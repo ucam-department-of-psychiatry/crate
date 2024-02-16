@@ -32,6 +32,7 @@ from typing import Any, List
 
 from cardinal_pythonlib.datetimefunc import pendulum_to_datetime
 from faker.providers import BaseProvider
+import factory
 import pendulum
 from pendulum import DateTime as Pendulum
 
@@ -165,3 +166,15 @@ class AlcoholProvider(ChoiceProvider):
         )
 
         return alcohol
+
+
+def register_all_providers():
+    factory.Faker.add_provider(AlcoholProvider)
+    factory.Faker.add_provider(ChoiceProvider)
+    factory.Faker.add_provider(ConsistentDateOfBirthProvider)
+    factory.Faker.add_provider(DateFormatProvider)
+    factory.Faker.add_provider(FormattedDateOfBirthProvider)
+    factory.Faker.add_provider(FormattedIncrementingDateProvider)
+    factory.Faker.add_provider(IncrementingDateProvider)
+    factory.Faker.add_provider(RelationshipProvider)
+    factory.Faker.add_provider(SexProvider)
