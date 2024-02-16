@@ -45,7 +45,7 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import Session
 
 from crate_anon.common.constants import EnvVar
-from crate_anon.testing.classes import Base
+from crate_anon.testing import Base
 
 os.environ[EnvVar.RUNNING_TESTS] = "True"
 
