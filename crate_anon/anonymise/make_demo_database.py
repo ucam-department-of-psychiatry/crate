@@ -71,17 +71,7 @@ from crate_anon.testing.factories import (
 from crate_anon.testing.models import (
     Note,
 )
-from crate_anon.testing.providers import (
-    AlcoholProvider,
-    ChoiceProvider,
-    ConsistentDateOfBirthProvider,
-    DateFormatProvider,
-    FormattedDateOfBirthProvider,
-    FormattedIncrementingDateProvider,
-    IncrementingDateProvider,
-    RelationshipProvider,
-    SexProvider,
-)
+from crate_anon.testing.providers import register_all_providers
 
 log = logging.getLogger(__name__)
 
@@ -173,16 +163,7 @@ def mk_demo_database(
 
     set_sqlalchemy_session_on_all_factories(session)
     with factory.Faker.override_default_locale("en_GB"):
-        factory.Faker.add_provider(AlcoholProvider)
-        factory.Faker.add_provider(ChoiceProvider)
-        factory.Faker.add_provider(ConsistentDateOfBirthProvider)
-        factory.Faker.add_provider(DateFormatProvider)
-        factory.Faker.add_provider(FormattedDateOfBirthProvider)
-        factory.Faker.add_provider(FormattedIncrementingDateProvider)
-        factory.Faker.add_provider(IncrementingDateProvider)
-        factory.Faker.add_provider(RelationshipProvider)
-        factory.Faker.add_provider(SexProvider)
-
+        register_all_providers()
         log.info("Inserting data.")
 
         total_words = 0
