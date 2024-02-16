@@ -358,7 +358,7 @@ def get_values_summary(
         column:
             SQLAlchemy Column object to summarize. (It knows its own Table.)
         reportcfg:
-            ResearcherReportOptions object, governing the report.
+            ResearcherReportConfig object, governing the report.
         ddr:
             Corresponding CRATE DataDictionaryRow, if there is one.
     """
@@ -453,7 +453,7 @@ def mk_table_html(table_name: str, reportcfg: ResearcherReportConfig) -> str:
         table_name:
             Table to process.
         reportcfg:
-            ResearcherReportOptions object, governing the report.
+            ResearcherReportConfig object, governing the report.
 
     Returns:
         HTML as a string.
@@ -530,7 +530,7 @@ def mk_researcher_report_html(
 
     Args:
         reportcfg:
-            ResearcherReportOptions object, governing the report.
+            ResearcherReportConfig object, governing the report.
 
     Returns:
         tuple: header_html, html, footer_html
@@ -607,7 +607,7 @@ def mk_researcher_report_pdf(
 
     Args:
         reportcfg:
-            ResearcherReportOptions object, governing the report.
+            ResearcherReportConfig object, governing the report.
 
     Returns:
         success
