@@ -539,15 +539,19 @@ def mk_researcher_report_html(
     # 1. Set up Django for templates.
     # -------------------------------------------------------------------------
     # https://stackoverflow.com/questions/28123603
-    settings.configure(
-        TEMPLATES=[
-            {
-                "BACKEND": "django.template.backends.django.DjangoTemplates",
-                "DIRS": [TEMPLATE_DIR],
-            }
-        ]
-    )
-    django.setup()
+    if not settings.configured:
+        # Settings will already be configured when testing with pytest
+        settings.configure(
+            TEMPLATES=[
+                {
+                    "BACKEND": (
+                        "django.template.backends.django.DjangoTemplates"
+                    ),
+                    "DIRS": [TEMPLATE_DIR],
+                }
+            ]
+        )
+        django.setup()
 
     # -------------------------------------------------------------------------
     # 2. Core variables
