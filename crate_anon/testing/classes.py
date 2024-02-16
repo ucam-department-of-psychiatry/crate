@@ -29,13 +29,13 @@ Test classes for more complex tests e.g. where a database session is required.
 
 """
 
-
 from typing import TYPE_CHECKING
 from unittest import TestCase
 
 import pytest
 from sqlalchemy.engine.base import Engine
 
+from crate_anon.testing.providers import register_all_providers
 from crate_anon.testing.factories import (
     set_sqlalchemy_session_on_all_factories,
 )
@@ -61,6 +61,13 @@ class DatabaseTestCase(TestCase):
         self.engine.echo = echo
 
 
-class DemoDatabaseTestCase(TestCase):
+class DemoDatabaseTestCase(DatabaseTestCase):
+    """
+    Base class for use with test factories such as
+    DemoPatientFactory
+    """
+
     def setUp(self) -> None:
         super().setUp()
+
+        register_all_providers()
