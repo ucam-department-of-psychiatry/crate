@@ -33,6 +33,7 @@ import argparse
 from dataclasses import dataclass
 import datetime
 import decimal
+import enum
 import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple
@@ -326,6 +327,8 @@ def literal(
         return f"<binary_length_{len(value)}>"
     elif isinstance(value, datetime.timedelta):
         return strfdelta(value, fmt=DateFormat.TIMEDELTA)
+    elif isinstance(value, enum.Enum):
+        return f"{value.name} ({value.value})"
     else:
         raise NotImplementedError(
             f"Don't know how to represent value {value!r}"
