@@ -7,12 +7,10 @@ on:
         paths:
             - '**.py'
             - .github/workflows/python-checks.yml
-            - github_action_scripts/install_wkhtmltopdf.sh
             - github_action_scripts/python_checks.sh
             - github_action_scripts/python_setup.sh
-            - github_action_scripts/setup_redis.sh
 jobs:
-    pip-install-and-tests:
+    python-checks:
         runs-on: ubuntu-latest
         strategy:
             matrix:
@@ -22,15 +20,7 @@ jobs:
             - uses: actions/setup-python@v5
               with:
                   python-version: ${{ matrix.python-version }}
-            - name: Install wkhtmltopdf
-              run: |
-                set -euxo pipefail
-                ${GITHUB_WORKSPACE}/github_action_scripts/install_wkhtmltopdf.sh
-            - name: Redis setup
-              run: |
-                set -euxo pipefail
-                ${GITHUB_WORKSPACE}/github_action_scripts/setup_redis.sh
-            - name: Pip install and tests
+            - name: Python checks
               run: |
                 set -euxo pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh

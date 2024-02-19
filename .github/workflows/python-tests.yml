@@ -1,0 +1,37 @@
+---
+# yamllint disable rule:line-length
+name: Python tests
+# yamllint disable-line rule:truthy
+on:
+    push:
+        paths:
+            - '**.py'
+            - .github/workflows/python-tests.yml
+            - github_action_scripts/install_wkhtmltopdf.sh
+            - github_action_scripts/python_setup.sh
+            - github_action_scripts/python_tests.sh
+            - github_action_scripts/setup_redis.sh
+jobs:
+    python-tests:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                python-version: ["3.8", "3.9", "3.10"]
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ matrix.python-version }}
+            - name: Install wkhtmltopdf
+              run: |
+                set -euxo pipefail
+                ${GITHUB_WORKSPACE}/github_action_scripts/install_wkhtmltopdf.sh
+            - name: Redis setup
+              run: |
+                set -euxo pipefail
+                ${GITHUB_WORKSPACE}/github_action_scripts/setup_redis.sh
+            - name: Python tests
+              run: |
+                set -euxo pipefail
+                ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh
+                ${GITHUB_WORKSPACE}/github_action_scripts/python_tests.sh
