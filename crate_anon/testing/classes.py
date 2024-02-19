@@ -32,6 +32,7 @@ Test classes for more complex tests e.g. where a database session is required.
 from typing import TYPE_CHECKING
 from unittest import TestCase
 
+from faker import Faker
 import pytest
 from sqlalchemy.engine.base import Engine
 
@@ -70,4 +71,5 @@ class DemoDatabaseTestCase(DatabaseTestCase):
     def setUp(self) -> None:
         super().setUp()
 
-        register_all_providers()
+        self.fake = Faker("en_GB")
+        register_all_providers(self.fake)

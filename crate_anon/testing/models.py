@@ -189,16 +189,6 @@ class Patient(Base):
     )  # new in v0.18.41
 
     @property
-    def possessive_pronoun(self) -> str:
-        possessive_pronouns = {
-            "M": "his",
-            "F": "her",
-            "X": "their",
-        }
-
-        return possessive_pronouns[self.sex]
-
-    @property
     def related_patient_name(self) -> str:
         if self.related_patient is None:
             return ""

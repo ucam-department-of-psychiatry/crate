@@ -71,7 +71,6 @@ from crate_anon.testing.factories import (
 from crate_anon.testing.models import (
     Note,
 )
-from crate_anon.testing.providers import register_all_providers
 
 log = logging.getLogger(__name__)
 
@@ -162,27 +161,25 @@ def mk_demo_database(
     )
 
     set_sqlalchemy_session_on_all_factories(session)
-    with factory.Faker.override_default_locale("en_GB"):
-        register_all_providers()
-        log.info("Inserting data.")
+    log.info("Inserting data.")
 
-        total_words = 0
+    total_words = 0
 
-        for p in range(1, n_patients + 1):
-            # Seed both the global python RNG and Faker's RNG
-            # as we don't use Faker for everything
-            random.seed(p)
-            factory.random.reseed_random(p)
-            if p % REPORT_EVERY == 0:
-                log.info(f"patient {p}")
+    for p in range(1, n_patients + 1):
+        # Seed both the global python RNG and Faker's RNG
+        # as we don't use Faker for everything
+        random.seed(p)
+        factory.random.reseed_random(p)
+        if p % REPORT_EVERY == 0:
+            log.info(f"patient {p}")
 
-            patient = DemoPatientFactory(notes=notes_per_patient)
-            session.flush()
-            for note in session.query(Note).filter(
-                Note.patient_id == patient.patient_id
-            ):
-                num_words = len(note.note.split())
-                total_words += num_words
+        patient = DemoPatientFactory(notes=notes_per_patient)
+        session.flush()
+        for note in session.query(Note).filter(
+            Note.patient_id == patient.patient_id
+        ):
+            num_words = len(note.note.split())
+            total_words += num_words
 
     session.commit()
     # 5. Report size

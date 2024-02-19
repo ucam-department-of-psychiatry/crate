@@ -25,14 +25,20 @@ crate_anon/testing/providers.py
 
 **Faker test data providers.**
 
+There may be some interest in a Faker Medical community provider if we felt it
+was worth the effort.
+
+https://github.com/joke2k/faker/issues/1142
+
 """
 
 import datetime
 from typing import Any, List
 
 from cardinal_pythonlib.datetimefunc import pendulum_to_datetime
+from cardinal_pythonlib.nhs import generate_random_nhs_number
+from faker import Faker
 from faker.providers import BaseProvider
-import factory
 import pendulum
 from pendulum import DateTime as Pendulum
 
@@ -71,6 +77,21 @@ class SexProvider(ChoiceProvider):
 
     def sex(self) -> str:
         return self.random_choice(["M", "F", "X"], weights=[49.8, 49.8, 0.4])
+
+
+class ForenameProvider(BaseProvider):
+    """
+    Return a forename given the sex of the person
+    """
+
+    def forename(self, sex: str) -> str:
+        if sex == "M":
+            return self.generator.first_name_male()
+
+        if sex == "F":
+            return self.generator.first_name_female()
+
+        return self.generator.first_name()[:1]
 
 
 class FormattedDateOfBirthProvider(BaseProvider):
@@ -168,13 +189,131 @@ class AlcoholProvider(ChoiceProvider):
         return alcohol
 
 
-def register_all_providers():
-    factory.Faker.add_provider(AlcoholProvider)
-    factory.Faker.add_provider(ChoiceProvider)
-    factory.Faker.add_provider(ConsistentDateOfBirthProvider)
-    factory.Faker.add_provider(DateFormatProvider)
-    factory.Faker.add_provider(FormattedDateOfBirthProvider)
-    factory.Faker.add_provider(FormattedIncrementingDateProvider)
-    factory.Faker.add_provider(IncrementingDateProvider)
-    factory.Faker.add_provider(RelationshipProvider)
-    factory.Faker.add_provider(SexProvider)
+class PatientNoteProvider(BaseProvider):
+    @staticmethod
+    def _possessive_pronoun(sex: str) -> str:
+        possessive_pronouns = {
+            "M": "his",
+            "F": "her",
+            "X": "their",
+        }
+
+        return possessive_pronouns[sex]
+
+    def patient_note(
+        self,
+        forename: str = None,
+        surname: str = None,
+        sex: str = None,
+        dob: datetime.datetime = None,
+        nhs_number: int = None,
+        patient_id: int = None,
+        note_datetime: datetime.datetime = None,
+        relation_name: str = None,
+        relation_relationship: str = None,
+        words_per_note: int = 1000,
+        pad_paragraph: str = None,
+    ) -> str:
+
+        if sex is None:
+            sex = self.generator.sex()
+
+        if forename is None:
+            forename = self.generator.forename(sex)
+
+        if surname is None:
+            surname = self.generator.last_name()
+
+        if dob is None:
+            dob = self.generator.consistent_date_of_birth()
+
+        if nhs_number is None:
+            nhs_number = self.generator.nhs_number()
+
+        if patient_id is None:
+            patient_id = self.generator.pyint(min_value=1, max_value=100000)
+
+        if note_datetime is None:
+            note_datetime = self.generator.incrementing_date()
+
+        if relation_name is None:
+            relation_name = f"{self.generator.name()}"
+
+        if relation_relationship is None:
+            relation_relationship = self.generator.relationship()
+
+        if pad_paragraph is None:
+            pad_paragraph = self.generator.paragraph(
+                nb_sentences=words_per_note / 2,  # way more than we need
+            )
+
+        possessive_pronoun = self._possessive_pronoun(sex)
+
+        other_notes = [
+            "Start aspirin 75mg od. Remains on Lipitor 40mg nocte",
+            "For haloperidol 2mg po prn max qds",
+            "Start amoxicillin 500 mg b.i.d. for 7 days",
+            f"{possessive_pronoun.capitalize()} CRP is 10",
+            (
+                f"{possessive_pronoun.capitalize()} "
+                "previous CRP was <13 mg/dl"
+            ),
+            "Sodium 140",
+            "TSH 3.5; urea normal",
+            "Height 1.82m, weight 75kg, BMI 22.6. BP 135/82",
+            "MMSE 28/30. ACE-R 72, ACE-II 73, ACE 73",
+            "ESR 16 (H) mm/h",
+            (
+                "WBC 9.2; neutrophils 4.3; lymphocytes 2.6; "
+                "eosinophils 0.4; monocytes 1.2; basophils 0.6"
+            ),
+            (
+                f"{forename} took venlafaxine 375 M/R od, "
+                "and is due to start clozapine 75mg bd"
+            ),
+        ]
+
+        other_note = self.generator.word(other_notes)
+
+        formatted_dob = dob.strftime(self.generator.date_format())
+        note_date_formatted = note_datetime.strftime(
+            self.generator.date_format()
+        )
+        another_date_formatted = self.generator.formatted_date_of_birth()
+        alcohol = self.generator.alcohol()
+
+        note_text = (
+            f"I saw {forename} {surname} on "
+            f"{note_date_formatted} "
+            f"(DOB: {formatted_dob}, NHS {nhs_number}, "
+            f"Patient id: {patient_id}), "
+            f"accompanied by {possessive_pronoun} "
+            f"{relation_relationship} {relation_name}. "
+            f"{alcohol}. "
+            f"Another date: {another_date_formatted}. "
+            f"{other_note}."
+        )
+
+        num_pad_words = words_per_note - len(note_text.split())
+        pad_words = " ".join(pad_paragraph.split()[:num_pad_words])
+        return f"{note_text} {pad_words}"
+
+
+class NhsNumberProvider(BaseProvider):
+    def nhs_number(self) -> str:
+        return generate_random_nhs_number()
+
+
+def register_all_providers(fake: Faker):
+    fake.add_provider(AlcoholProvider)
+    fake.add_provider(ChoiceProvider)
+    fake.add_provider(ConsistentDateOfBirthProvider)
+    fake.add_provider(DateFormatProvider)
+    fake.add_provider(ForenameProvider)
+    fake.add_provider(FormattedDateOfBirthProvider)
+    fake.add_provider(FormattedIncrementingDateProvider)
+    fake.add_provider(IncrementingDateProvider)
+    fake.add_provider(NhsNumberProvider)
+    fake.add_provider(PatientNoteProvider)
+    fake.add_provider(RelationshipProvider)
+    fake.add_provider(SexProvider)
