@@ -8,6 +8,7 @@ on:
             - '**.py'
             - github_action_scripts/python_setup.sh
             - .github/workflows/precommit.yml
+            - .pre-commit-config.yaml
 jobs:
     precommit-checks:
         runs-on: ubuntu-20.04
