@@ -7,6 +7,7 @@ on:
         paths:
             - '**.py'
             - .github/workflows/integration-tests.yml
+            - github_action_scripts/docker_db_setup.sh
             - github_action_scripts/install_wkhtmltopdf.sh
             - github_action_scripts/integration_tests.sh
             - github_action_scripts/python_setup.sh
@@ -37,4 +38,5 @@ jobs:
               run: |
                 set -euxo pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh
-                ${GITHUB_WORKSPACE}/github_action_scripts/integration_tests.sh ${{ matrix.engine }} ${{ matrix.port }}
+                ${GITHUB_WORKSPACE}/github_action_scripts/docker_db_setup.sh ${{ matrix.engine }} ${{ matrix.port }}
+                ${GITHUB_WORKSPACE}/github_action_scripts/integration_tests.sh ${{ matrix.engine }}
