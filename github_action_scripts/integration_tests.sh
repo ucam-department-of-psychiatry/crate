@@ -12,4 +12,5 @@ fi
 
 ENGINE=$1
 
+PYTHON="${HOME}/venv/bin/python"
 ${PYTHON} ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --engine ${ENGINE} testcrate
