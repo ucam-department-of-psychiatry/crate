@@ -16,15 +16,20 @@ jobs:
         runs-on: ubuntu-latest
         strategy:
             matrix:
+                # Run tests with sqlite for all python versions
                 python-version: ["3.8", "3.9", "3.10"]
+                engine: ["sqlite"]
                 include:
-                  - engine: sqlite
+                  # Just one python version for the other DB engines
                   - engine: mysql
                     port: 3306
+                    python-version: "3.10"
                   - engine: sqlserver
                     port: 1433
+                    python-version: "3.10"
                   # - engine: postgres
                   #   port: 5432
+                  # python-version: "3.10"
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-python@v5
