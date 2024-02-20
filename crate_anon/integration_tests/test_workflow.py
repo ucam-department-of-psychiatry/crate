@@ -123,11 +123,14 @@ CONTAINER_BASH = "crate_test_container_bash"
 DB_SRC: str = "sourcedb"
 DB_ANON: str = "anondb"
 DB_NLP: str = "nlpdb"
+DB_TEST: str = "testdb"
 DB_ROOT_PASSWORD = "90dVM7Uv5U4q"  # random, e.g. https://www.lastpass.com
 DB_PRIVUSER_USER: str = "administrator"
 DB_PRIVUSER_PASSWORD: str = "8z31I84qmvBX"
 DB_RESEARCHER_USER: str = "researcher"
 DB_RESEARCHER_PASSWORD: str = "G6f0V31oc3Yb"
+DB_TEST_USER: str = "tester"
+DB_TEST_PASSWORD: str = "QcigecuWimyo"
 # Postgres has an additional layer... database/schema/table.
 PG_DB_IDENT = "identdb"
 PG_DB_DEIDENT = "deidentdb"
@@ -138,6 +141,7 @@ DOCKER_BUILD_ARGS = {
     "DB_SRC": DB_SRC,
     "DB_ANON": DB_ANON,
     "DB_NLP": DB_NLP,
+    "DB_TEST": DB_TEST,
     "PG_DB_IDENT": PG_DB_IDENT,
     "PG_DB_DEIDENT": PG_DB_DEIDENT,
     # Usernames/passwords
@@ -145,7 +149,9 @@ DOCKER_BUILD_ARGS = {
     "DB_PRIVUSER_USER": DB_PRIVUSER_USER,
     "DB_PRIVUSER_PASSWORD": DB_PRIVUSER_PASSWORD,
     "DB_RESEARCHER_USER": DB_RESEARCHER_USER,
-    "DB_RESEARCHER_PASSWORD": DB_RESEARCHER_PASSWORD
+    "DB_RESEARCHER_PASSWORD": DB_RESEARCHER_PASSWORD,
+    "DB_TEST_USER": DB_TEST_USER,
+    "DB_TEST_PASSWORD": DB_TEST_PASSWORD
     # NB this is an INSECURE method; see
     # https://docs.docker.com/engine/reference/builder/#arg. But this is just
     # a quick demo with no actual sensitive information.
