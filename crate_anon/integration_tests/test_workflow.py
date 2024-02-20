@@ -130,7 +130,7 @@ DB_PRIVUSER_PASSWORD: str = "8z31I84qmvBX"
 DB_RESEARCHER_USER: str = "researcher"
 DB_RESEARCHER_PASSWORD: str = "G6f0V31oc3Yb"
 DB_TEST_USER: str = "tester"
-DB_TEST_PASSWORD: str = "QcigecuWimyo"
+DB_TEST_PASSWORD: str = "QcigecuW1myo"
 # Postgres has an additional layer... database/schema/table.
 PG_DB_IDENT = "identdb"
 PG_DB_DEIDENT = "deidentdb"

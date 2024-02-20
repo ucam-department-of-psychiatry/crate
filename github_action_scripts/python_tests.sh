@@ -25,7 +25,7 @@ export CRATE_NLP_WEB_CONFIG=${GITHUB_WORKSPACE}/github_action_scripts/test_nlp_w
 
 ENGINE_IP=$(docker inspect crate_test_container_engine --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
 TEST_USER=tester
-TEST_PASSWORD=QcigecuWimyo
+TEST_PASSWORD=QcigecuW1myo
 TEST_DB=testdb
 
 QUERY=""
