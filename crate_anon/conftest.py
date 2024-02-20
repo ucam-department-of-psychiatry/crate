@@ -80,21 +80,9 @@ def pytest_addoption(parser: "Parser"):
     )
 
     parser.addoption(
-        "--mysql",
-        action="store_true",
-        dest="mysql",
-        default=False,
-        help="Use MySQL database instead of SQLite",
-    )
-
-    parser.addoption(
         "--db-url",
         dest="db_url",
-        default=(
-            "mysql+mysqldb://crate:crate@localhost:3306/test_crate"
-            "?charset=utf8"
-        ),
-        help="SQLAlchemy test database URL (MySQL only)",
+        help="SQLAlchemy test database URL (not applicable to SQLite)",
     )
 
     parser.addoption(
@@ -134,12 +122,6 @@ def echo(request: "FixtureRequest") -> bool:
     return request.config.getvalue("echo")
 
 
-# noinspection PyUnusedLocal
-@pytest.fixture(scope="session")
-def mysql(request: "FixtureRequest") -> bool:
-    return request.config.getvalue("mysql")
-
-
 @pytest.fixture(scope="session")
 def db_url(request: "FixtureRequest") -> bool:
     return request.config.getvalue("db_url")
@@ -165,12 +147,11 @@ def engine(
     create_test_db: bool,
     database_on_disk: bool,
     echo: bool,
-    mysql: bool,
     db_url: str,
 ) -> Generator["Engine", None, None]:
 
-    if mysql:
-        engine = create_engine_mysql(db_url, create_test_db, echo)
+    if db_url:
+        engine = create_engine_from_url(db_url, create_test_db, echo)
     else:
         engine = create_engine_sqlite(create_test_db, echo, database_on_disk)
 
@@ -178,10 +159,11 @@ def engine(
     engine.dispose()
 
 
-def create_engine_mysql(db_url: str, create_test_db: bool, echo: bool):
+def create_engine_from_url(db_url: str, create_test_db: bool, echo: bool):
 
     # The database and the user with the given password from db_url
     # need to exist.
+    # MySQL example:
     # mysql> CREATE DATABASE <db_name>;
     # mysql> GRANT ALL PRIVILEGES ON <db_name>.*
     #        TO <db_user>@localhost IDENTIFIED BY '<db_password>';
@@ -276,7 +258,6 @@ def setup(
     request: "FixtureRequest",
     engine: "Engine",
     database_on_disk: bool,
-    mysql: bool,
     dbsession: Session,
     tmpdir_obj: tempfile.TemporaryDirectory,
 ) -> None:
@@ -289,4 +270,3 @@ def setup(
     request.cls.dbsession = dbsession
     request.cls.tmpdir_obj = tmpdir_obj
     request.cls.db_filename = TEST_DATABASE_FILENAME
-    request.cls.mysql = mysql
