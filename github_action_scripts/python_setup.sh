@@ -13,5 +13,4 @@ python -m pip freeze
 echo installing pip packages
 python -m pip install -e .
 echo installing database backends
-# Same versions as in docker/dockerfiles/crate.Dockerfile
-python -m pip install mssql-django==1.2 mysqlclient==1.4.6 psycopg2==2.8.5 pyodbc==4.0.36 pymssql==2.2.11
+python -m pip install mssql-django mysqlclient psycopg2 pyodbc pymssql
