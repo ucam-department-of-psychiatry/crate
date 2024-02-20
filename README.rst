@@ -17,8 +17,17 @@ Clinical Records Anonymisation and Text Extraction (CRATE)
 .. image:: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/installer.yml/badge.svg
     :target: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/installer.yml/
 
+.. image:: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/integration-tests.yml/badge.svg
+    :target: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/integration-tests.yml/
+
+.. image:: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/precommit.yml/badge.svg
+    :target: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/precommit.yml/
+
 .. image:: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/python-checks.yml/badge.svg
     :target: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/python-checks.yml/
+
+.. image:: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/python-tests.yml/badge.svg
+    :target: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/python-tests.yml/
 
 .. image:: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/release.yml/badge.svg
     :target: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/release.yml/
