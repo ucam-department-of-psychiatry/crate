@@ -56,8 +56,7 @@ Custom CRATE pytest options:
 
 --database-in-memory  Store the database in memory instead of on disk (SQLite only).
 --echo                Log all SQL statements to the default log handler
---mysql               Use MySQL instead of the default SQLite
---db-url              SQLAlchemy test database URL (MySQL only, default: mysql+mysqldb://crate:crate@localhost:3306/test_crate?charset=utf8
+--db-url              SQLAlchemy test database URL (Not applicable to SQLite).
 
 
 Some common standard pytest options:
