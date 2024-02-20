@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/conftest.py
 
@@ -39,7 +37,7 @@ from cardinal_pythonlib.sqlalchemy.session import (
     SQLITE_MEMORY_URL,
 )
 import pytest
-from sqlalchemy import event
+from sqlalchemy import event, inspect
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import Session
@@ -233,7 +231,12 @@ def create_engine_sqlite(
 def tables(
     request: "FixtureRequest", engine: "Engine", create_test_db: bool
 ) -> Generator[None, None, None]:
-    if create_test_db:
+
+    # Not foolproof. Will still need to pass create-test-db if the
+    # schema has changed.
+    database_is_empty = not inspect(engine).get_table_names()
+
+    if create_test_db or database_is_empty:
         Base.metadata.create_all(engine)
     yield
 
