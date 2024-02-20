@@ -41,7 +41,7 @@ case ${ENGINE} in
         ;;
 
     sqlserver)
-        SCHEME="mssql+pymsssql"
+        SCHEME="mssql+pymssql"
         ;;
 esac
 
