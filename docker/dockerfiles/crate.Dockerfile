@@ -254,7 +254,7 @@ RUN echo "======================================================================
         mssql-django==1.2 \
         mysqlclient==1.4.6 \
         psycopg2==2.8.5 \
-        pyodbc==4.0.30 \
+        pyodbc==4.0.36 \
     && echo "- Installing remote debugger..." \
     && "$CRATE_VENV_BIN/python3" -m pip install remote-pdb \
     && echo "- Compiling CRATE Java interfaces..." \
