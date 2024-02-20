@@ -38,6 +38,10 @@ jobs:
               run: |
                 set -euxo pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/redis_setup.sh
+            - name: Python setup
+              run: |
+                set -euxo pipefail
+                ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh
             - name: Docker DB setup
               if: matrix.engine != 'sqlite'
               run: |
@@ -46,5 +50,4 @@ jobs:
             - name: Python tests
               run: |
                 set -euxo pipefail
-                ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh
                 ${GITHUB_WORKSPACE}/github_action_scripts/python_tests.sh ${{ matrix.engine }} ${{ matrix.port }}
