@@ -146,16 +146,13 @@ INSTALL_REQUIRES = [
     "black==22.3.0",  # auto code formatter
     "faker==13.3.1",  # test data creation
     "flake8==3.8.4",  # code checks
-    "docutils==0.17",  # documentation, 0.18 not compatible with Sphinx
+    "docutils==0.19",
     "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
     "pre-commit==2.20.0",  # development only, various sanity checks on code
     "pytest==7.1.1",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
-    # Sphinx 4.4.0 gives "more than one target for cross-reference" warning
-    # when resolving crate_anon.anonymise.patient.Patient in
-    # crate_anon.anonymise.altermethod.py
-    "sphinx==4.2.0",  # documentation
-    "sphinx_rtd_theme==1.0.0",  # documentation
+    "sphinx==6.2.1",  # documentation
+    "sphinx_rtd_theme==2.0.0",  # documentation
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
     # ---------------------------------------------------------------------
