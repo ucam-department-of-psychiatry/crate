@@ -165,6 +165,19 @@ Index of CRATE commands
         f.write(full_content)
 
 
+def copy_file_wth_permissions(source: str, dest: str) -> None:
+    """
+    Copy a file and set the permissions to be the same on the destination.
+
+    https://docs.python.org/3/library/shutil.html
+    Warning: Even the higher-level file copying functions (shutil.copy(),
+    shutil.copy2()) cannot copy all file metadata.
+    """
+    shutil.copy(source, dest)
+    st = os.stat(source)
+    os.chmod(dest, st.st_mode)
+
+
 # =============================================================================
 # main
 # =============================================================================
@@ -450,7 +463,7 @@ SOLUTION:
             [CrateCommand.SHOW_CRATE_MEDEX_PIPELINE_OPTIONS],
             join(DevPath.DOCS_NLP_DIR, "_CrateMedexPipeline_help.txt"),
         )
-    shutil.copy(
+    copy_file_wth_permissions(
         join(CratePath.NLP_MANAGER_DIR, "specimen_gate_plugin_file.ini"),
         join(DevPath.DOCS_NLP_DIR, "_specimen_gate_plugin_file.ini"),
     )
@@ -599,11 +612,11 @@ SOLUTION:
         join(DevPath.DOCS_NLP_DIR, "_crate_nlp_webserver_pserve_help.txt"),
     )
 
-    shutil.copy(
+    copy_file_wth_permissions(
         join(CratePath.NLPRP_DIR, "nlprp_test_client.py"),
         join(DevPath.DOCS_NLP_DIR, "_nlprp_test_client.py"),
     )
-    shutil.copy(
+    copy_file_wth_permissions(
         join(CratePath.NLPRP_DIR, "nlprp_test_server.py"),
         join(DevPath.DOCS_NLP_DIR, "_nlprp_test_server.py"),
     )
