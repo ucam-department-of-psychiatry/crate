@@ -151,7 +151,7 @@ INSTALL_REQUIRES = [
     "pre-commit==2.20.0",  # development only, various sanity checks on code
     "pytest==7.1.1",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
-    "sphinx==6.2.1",  # documentation
+    "sphinx==7.1.2",  # documentation
     "sphinx_rtd_theme==2.0.0",  # documentation
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
