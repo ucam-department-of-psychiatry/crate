@@ -114,8 +114,11 @@ if __name__ == "__main__":
     # -------------------------------------------------------------------------
 
     cmdargs = ["make", "html"]
+    sphinxopts = ["-T"]  # Show full traceback on error
     if args.warnings_as_errors:
-        cmdargs.append('SPHINXOPTS="-W"')
+        sphinxopts.append("-W")
+
+    cmdargs.append(f'SPHINXOPTS={" ".join(sphinxopts)}')
 
     try:
         subprocess.check_call(cmdargs)
