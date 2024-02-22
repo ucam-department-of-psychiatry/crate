@@ -2,12 +2,13 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+    rev: v4.5.0
     hooks:
     -   id: check-added-large-files
     -   id: check-json
-    -   id: check-yaml
+    -   id: check-shebang-scripts-are-executable
     -   id: check-xml
+    -   id: check-yaml
 -   repo: https://github.com/psf/black
     rev: 22.8.0
     hooks:
