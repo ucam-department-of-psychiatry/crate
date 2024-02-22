@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/ancillary/timely_project/timely_filter_systmone.py
 

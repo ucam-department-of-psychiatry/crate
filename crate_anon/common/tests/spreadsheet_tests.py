@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/common/tests/spreadsheet_tests.py
 

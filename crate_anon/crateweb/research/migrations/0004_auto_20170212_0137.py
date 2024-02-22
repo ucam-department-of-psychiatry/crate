@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/crateweb/research/migrations/0004_auto_20170212_0137.py
 

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/preprocess/rio_pk.py
 

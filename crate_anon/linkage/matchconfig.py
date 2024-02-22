@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 r"""
 crate_anon/linkage/matchconfig.py
 

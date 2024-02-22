@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/testdocs_for_text_extraction/__init__.py
 

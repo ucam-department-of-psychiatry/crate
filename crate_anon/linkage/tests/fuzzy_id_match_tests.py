@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/linkage/tests/fuzzy_id_match_tests.py
 

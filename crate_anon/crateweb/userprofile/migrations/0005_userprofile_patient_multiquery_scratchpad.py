@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/crateweb/userprofile/migrations/0005_userprofile_patient_multiquery_scratchpad.py
 
