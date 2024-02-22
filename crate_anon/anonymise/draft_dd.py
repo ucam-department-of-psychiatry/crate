@@ -302,3 +302,7 @@ def main() -> None:
         systmone_alter_loaded_rows=args.systmone_alter_loaded_rows,
         systmone_table_info_in_comments=args.systmone_table_info_in_comments,
     )
+
+
+if __name__ == "__main__":
+    main()

@@ -202,3 +202,7 @@ def main() -> None:
             change_password(username, new_password)
         else:
             log.info("Password change aborted.")
+
+
+if __name__ == "__main__":
+    main()

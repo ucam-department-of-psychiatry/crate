@@ -133,3 +133,7 @@ def main() -> None:
     from crate_anon.anonymise.config_singleton import config  # delayed import
 
     show_record_counts(config)
+
+
+if __name__ == "__main__":
+    main()
