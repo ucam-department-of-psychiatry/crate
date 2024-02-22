@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 r"""
 crate_anon/preprocess/systmone_ddgen.py
 

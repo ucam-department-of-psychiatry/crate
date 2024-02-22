@@ -851,3 +851,7 @@ setting e.g. "ulimit -n 2048" is one solution.
     )
 
     mk_researcher_report_pdf(reportcfg)
+
+
+if __name__ == "__main__":
+    main()

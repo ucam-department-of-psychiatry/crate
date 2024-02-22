@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/tools/make_ethics_pack.py
 

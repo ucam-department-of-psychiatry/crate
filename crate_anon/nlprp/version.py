@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 r"""
 crate_anon/nlprp/version.py
 

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 r"""
 crate_anon/nlp_webserver/server_processor.py
 

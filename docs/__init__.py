@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 docs/__init__.py
 
