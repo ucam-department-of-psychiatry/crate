@@ -143,9 +143,9 @@ INSTALL_REQUIRES = [
     # -------------------------------------------------------------------------
     # For development only:
     # -------------------------------------------------------------------------
-    "black==22.3.0",  # auto code formatter
+    "black==22.8.0",  # auto code formatter
     "faker==13.3.1",  # test data creation
-    "flake8==3.8.4",  # code checks
+    "flake8==5.0.4",  # code checks
     "docutils==0.17",  # documentation, 0.18 not compatible with Sphinx
     "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
     "pre-commit==2.20.0",  # development only, various sanity checks on code
