@@ -67,7 +67,6 @@ from contextlib import AbstractContextManager, nullcontext
 from dataclasses import dataclass
 import logging
 from os.path import abspath, dirname, join
-import socket
 import tempfile
 import time
 from typing import Dict, List, Tuple
@@ -373,26 +372,10 @@ def start_engine(engine_info: EngineInfo, host_port: int) -> None:
     )
 
     ip_address = get_crate_container_engine_ip_address()
-    wait_for_port(ip_address, engine_info.docker_port, 60)
     wait_for_databases_to_be_created(60)
     log.info(
         f"Database engine started on {ip_address}:{engine_info.docker_port}"
     )
-
-
-def wait_for_port(ip_address: str, port: int, timeout_s: float) -> None:
-    start_time = time.time()
-
-    while time.time() - start_time < timeout_s:
-        try:
-            with socket.create_connection((ip_address, port), timeout_s):
-                return
-
-        except OSError:
-            time.sleep(1)
-
-    log.error(docker.logs(CONTAINER_ENGINE))
-    raise TimeoutError("Gave up waiting for port {port} on {ip_address}.")
 
 
 def wait_for_databases_to_be_created(timeout_s: float) -> None:
