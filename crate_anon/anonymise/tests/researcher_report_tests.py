@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/anonymise/tests/researcher_report_tests.py
 

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/testing/models.py
 
