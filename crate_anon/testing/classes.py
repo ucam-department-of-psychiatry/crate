@@ -45,6 +45,10 @@ if TYPE_CHECKING:
 
 @pytest.mark.usefixtures("setup")
 class DatabaseTestCase(TestCase):
+    """
+    Base class for testing with a database.
+    """
+
     dbsession: "Session"
     engine: Engine
     database_on_disk: bool
