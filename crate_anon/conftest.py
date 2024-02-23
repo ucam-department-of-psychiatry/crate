@@ -48,11 +48,13 @@ from crate_anon.testing import Base
 os.environ[EnvVar.RUNNING_TESTS] = "True"
 
 if TYPE_CHECKING:
+    from sqlite3 import Connection
 
     # Should not need to import from _pytest in later versions of pytest
     # https://github.com/pytest-dev/pytest/issues/7469
     from _pytest.config.argparsing import Parser
     from _pytest.fixtures import FixtureRequest
+    from sqlalchemy.pool.base import _ConnectionRecord
 
 _this_directory = dirname(abspath(__file__))
 CRATE_DIRECTORY = abspath(join(_this_directory, pardir))
@@ -61,7 +63,7 @@ CRATE_DIRECTORY = abspath(join(_this_directory, pardir))
 TEST_DATABASE_FILENAME = os.path.join(CRATE_DIRECTORY, "crate_test.sqlite")
 
 
-def pytest_addoption(parser: "Parser"):
+def pytest_addoption(parser: "Parser") -> None:
     parser.addoption(
         "--database-in-memory",
         action="store_false",
@@ -95,7 +97,10 @@ def pytest_addoption(parser: "Parser"):
 
 
 # noinspection PyUnusedLocal
-def set_sqlite_pragma(dbapi_connection, connection_record):
+def set_sqlite_pragma(
+    dbapi_connection: "Connection",
+    connection_record: "_ConnectionRecord",
+) -> None:
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()
@@ -107,7 +112,7 @@ def database_on_disk(request: "FixtureRequest") -> bool:
 
 
 @pytest.fixture(scope="session")
-def create_test_db(request: "FixtureRequest", database_on_disk) -> bool:
+def create_test_db(request: "FixtureRequest", database_on_disk: bool) -> bool:
     if not database_on_disk:
         return True
 
@@ -159,7 +164,9 @@ def engine(
     engine.dispose()
 
 
-def create_engine_from_url(db_url: str, create_test_db: bool, echo: bool):
+def create_engine_from_url(
+    db_url: str, create_test_db: bool, echo: bool
+) -> Engine:
 
     # The database and the user with the given password from db_url
     # need to exist.
@@ -191,7 +198,7 @@ def make_file_sqlite_engine(filename: str, echo: bool = False) -> Engine:
 
 def create_engine_sqlite(
     create_test_db: bool, echo: bool, database_on_disk: bool
-):
+) -> Engine:
     if create_test_db and database_on_disk:
         try:
             os.remove(TEST_DATABASE_FILENAME)

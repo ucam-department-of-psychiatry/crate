@@ -304,7 +304,7 @@ class NhsNumberProvider(BaseProvider):
         return generate_random_nhs_number()
 
 
-def register_all_providers(fake: Faker):
+def register_all_providers(fake: Faker) -> None:
     fake.add_provider(AlcoholProvider)
     fake.add_provider(ChoiceProvider)
     fake.add_provider(ConsistentDateOfBirthProvider)

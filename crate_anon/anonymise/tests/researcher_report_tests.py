@@ -29,7 +29,7 @@ Researcher report tests.
 
 import random
 from tempfile import NamedTemporaryFile
-from typing import List
+from typing import List, TYPE_CHECKING
 from unittest import mock
 
 import factory
@@ -45,9 +45,12 @@ from crate_anon.testing import metadata
 from crate_anon.testing.classes import DemoDatabaseTestCase
 from crate_anon.testing.factories import DemoPatientFactory
 
+if TYPE_CHECKING:
+    from django.conf import LazySettings
+
 
 @pytest.fixture
-def django_test_settings(settings) -> None:
+def django_test_settings(settings: "LazySettings") -> None:
     settings.TEMPLATES = [
         {
             "BACKEND": "django.template.backends.django.DjangoTemplates",

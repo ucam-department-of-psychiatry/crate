@@ -39,6 +39,7 @@ from crate_anon.testing.models import EnumColours, Note, Patient
 from crate_anon.testing.providers import register_all_providers
 
 if TYPE_CHECKING:
+    from factory.builder import Resolver
     from sqlalchemy.orm import Session
 
 
@@ -48,7 +49,7 @@ class BaseFactory(factory.alchemy.SQLAlchemyModelFactory):
     pass
 
 
-def set_sqlalchemy_session_on_all_factories(dbsession: "Session"):
+def set_sqlalchemy_session_on_all_factories(dbsession: "Session") -> None:
     for factory_class in all_subclasses(BaseFactory):
         factory_class._meta.sqlalchemy_session = dbsession
 
@@ -95,7 +96,7 @@ class DemoPatientFactory(DemoFactory):
     sex = factory.LazyFunction(Fake.en_gb.sex)
 
     @factory.lazy_attribute
-    def forename(obj):
+    def forename(obj: "Resolver") -> str:
         return Fake.en_gb.forename(obj.sex)
 
     surname = factory.LazyFunction(Fake.en_gb.last_name)
@@ -106,7 +107,7 @@ class DemoPatientFactory(DemoFactory):
     postcode = factory.LazyFunction(Fake.en_gb.postcode)
 
     @factory.lazy_attribute
-    def related_patient(obj) -> int:
+    def related_patient(obj: "Resolver") -> int:
         if obj.patient_id == 1:
             return None
 
@@ -125,11 +126,11 @@ class DemoPatientFactory(DemoFactory):
     )
 
     @factory.lazy_attribute
-    def colour(obj) -> EnumColours:
+    def colour(obj: "Resolver") -> EnumColours:
         return EnumColours.blue if coin() else None
 
     @factory.post_generation
-    def notes(obj, create, extracted: int, **kwargs):
+    def notes(obj: "Resolver", create: bool, extracted: int, **kwargs) -> None:
         if not create:
             return
 
@@ -147,7 +148,7 @@ class DemoNoteFactory(DemoFactory):
     note_datetime = factory.LazyFunction(Fake.en_gb.incrementing_date)
 
     @factory.lazy_attribute
-    def note(obj) -> str:
+    def note(obj: "Resolver") -> str:
         # You get Lorem ipsum with en_GB.
         pad_paragraph = Fake.en_us.paragraph(
             nb_sentences=obj.words_per_note / 2,  # way more than we need
