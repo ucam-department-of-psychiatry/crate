@@ -26,7 +26,6 @@ crate_anon/testing/factories.py
 **Factory Boy SQL Alchemy test factories.**
 
 """
-
 import random
 from typing import TYPE_CHECKING
 
@@ -45,6 +44,7 @@ if TYPE_CHECKING:
 
 # When running with pytest sqlalchemy_session gets poked in by
 # DatabaseTestCase.setUp(). Otherwise call
+# set_sqlalchemy_session_on_all_factories()
 class BaseFactory(factory.alchemy.SQLAlchemyModelFactory):
     pass
 

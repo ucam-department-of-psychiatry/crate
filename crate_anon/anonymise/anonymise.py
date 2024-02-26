@@ -47,6 +47,7 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 from sortedcontainers import SortedSet
 from sqlalchemy.schema import Column, Index, MetaData, Table
 from sqlalchemy.sql import column, func, or_, select, table, text
+from sqlalchemy.types import Boolean
 
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
@@ -1764,6 +1765,30 @@ def gen_opt_out_pids_from_file(
                     yield pid
 
 
+def remove_invalid_bools_from_optout_values(
+    optout_colname: str, values: List[Any]
+) -> List[Any]:
+    """
+    Called when the column that defines opt-outs is of boolean type. Removes
+    any values from ``values`` that is not a valid boolean value (or
+    None/NULL), announcing it, and return the values that pass the test.
+    """
+    returned_values = []  # type: List[Any]
+
+    for value in values:
+        if value not in [None, True, False]:
+            coltype = type(value).__name__
+            log.info(
+                f"... ignoring non-boolean value ({value}), "
+                f"type '{coltype}' for boolean column '{optout_colname}'"
+            )
+            continue
+
+        returned_values.append(value)
+
+    return returned_values
+
+
 def gen_opt_out_pids_from_database(
     mpid: bool = False,
 ) -> Generator[Any, None, None]:
@@ -1777,6 +1802,7 @@ def gen_opt_out_pids_from_database(
         each PID (or MPID)
 
     """
+
     txt = "MPID" if mpid else "PID"
     found_one = False
     defining_fields = config.dd.get_optout_defining_fields()
@@ -1786,19 +1812,41 @@ def gen_opt_out_pids_from_database(
         if not id_colname:
             continue
         found_one = True
-        session = config.sources[src_db].session
+        db_holder = config.sources[src_db]
+        session = db_holder.session
         log.info(
             f"... {src_db}.{src_table}.{optout_colname} ({txt}={id_colname})"
         )
-        sqla_table = table(src_table)
-        optout_defining_col = column(optout_colname)
-        idcol = column(id_colname)
-        query = (
-            select([idcol])
-            .select_from(sqla_table)
-            .where(optout_defining_col.in_(config.optout_col_values))
-            .distinct()
-        )
+        sqla_table = db_holder.metadata.tables[src_table]
+        optout_defining_col = sqla_table.columns[optout_colname]
+
+        idcol = sqla_table.columns[id_colname]
+
+        optout_col_values = config.optout_col_values
+
+        # SQL Alchemy will raise a TypeError if optout_col_values includes a
+        # string value such as "1" and the opt-out field is boolean. The
+        # rationale behind this is explained at:
+        # https://docs.sqlalchemy.org/en/14/changelog/migration_12.html#boolean-datatype-now-enforces-strict-true-false-none-values  # noqa: E501
+        # As optout_col_values could potentially include values for both
+        # boolean and string opt-out fields, we just filter out invalid values
+        # for boolean opt-out fields.
+        if isinstance(optout_defining_col.type, Boolean):
+            optout_col_values = remove_invalid_bools_from_optout_values(
+                optout_colname, optout_col_values
+            )
+
+        query = select([idcol]).select_from(sqla_table).distinct()
+
+        if optout_col_values:
+            # Note that if optout_col_values does not contain valid values,
+            # this function plays it safe -- ALL PIDs from this table are
+            # returned, i.e. everyone is opted out. (This is unlikely to happen
+            # for Boolean columns, because validate_optouts() will have
+            # pre-validated optout_col_values, but it is legitimate for other
+            # types.)
+            query = query.where(optout_defining_col.in_(optout_col_values))
+
         # no need for an order_by clause
         result = session.execute(query)
         for row in result:
@@ -1981,6 +2029,29 @@ def process_patient_tables(
     commit_destdb()
 
 
+def validate_optouts():
+    """
+    Check that our opt-out definitions are valid, or raise ValueError.
+    """
+    defining_fields = config.dd.get_optout_defining_fields()
+    for t in defining_fields:
+        src_db, src_table, optout_colname, pid_colname, mpid_colname = t
+        db_holder = config.sources[src_db]
+        sqla_table = db_holder.metadata.tables[src_table]
+        optout_defining_col = sqla_table.columns[optout_colname]
+
+        optout_col_values = config.optout_col_values
+
+        if isinstance(optout_defining_col.type, Boolean):
+            optout_col_values = remove_invalid_bools_from_optout_values(
+                optout_colname, optout_col_values
+            )
+            if not optout_col_values:
+                raise ValueError(
+                    f"No valid opt-out values for column '{optout_colname}'"
+                )
+
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -2101,6 +2172,9 @@ def anonymise(
     config.load_dd(check_against_source_db=not skip_dd_check)
     # The config must be valid:
     config.check_valid()
+
+    if optout or everything:
+        validate_optouts()
 
     # -------------------------------------------------------------------------
     # Setup
