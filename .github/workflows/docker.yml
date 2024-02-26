@@ -6,6 +6,7 @@ on:
     push:
         paths:
             - 'crate_anon/**'
+            - '!crate_anon/integration_tests'
             - .github/workflows/docker.yml
             - github_action_scripts/docker.sh
             - 'docker/**'
@@ -14,7 +15,7 @@ jobs:
     docker:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
 
             - name: Build
               run: |

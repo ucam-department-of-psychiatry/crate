@@ -249,7 +249,7 @@ class AlcoholUnits(NumericalResultParser):
     # Regex building for "no alcohol" statements
     # -------------------------------------------------------------------------
 
-    ABSTINENT = r"\b abstinent \b"
+    ABSTINENT = r"\b abstin[ae]nt \b"  # "abstinent", or typo "abstinant"
     NONE = noncapture_group(
         WORD_BOUNDARY
         + noncapture_group(
@@ -476,7 +476,7 @@ class AlcoholUnits(NumericalResultParser):
     def test(self, verbose: bool = False) -> None:
         # docstring in parent class
         # Test via e.g.:
-        #   pytest -k TestSubstanceMisuse  # self-tests
+        #   pytest -k SubstanceMisuseTests  # self-tests
         #   crate_run_crate_nlp_demo - --processors AlcoholUnits  # interactive
         no_results = []
         six_no_tense = [{self.target_unit: 6, FN_TENSE: None}]
@@ -586,6 +586,7 @@ class AlcoholUnits(NumericalResultParser):
                 ("Teetotaler", no_alcohol_no_tense),  # typo
                 ("Abstinent from alcohol", no_alcohol_no_tense),
                 ("Alcohol: abstinent", no_alcohol_no_tense),
+                ("Alcohol: abstinant", no_alcohol_no_tense),  # typo
                 ("Alcohol: zero", no_alcohol_no_tense),
                 ("Alcohol: 0", no_alcohol_no_tense),
                 ("Alcohol: no", no_alcohol_no_tense),

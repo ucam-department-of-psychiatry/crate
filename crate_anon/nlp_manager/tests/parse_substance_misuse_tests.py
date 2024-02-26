@@ -42,7 +42,7 @@ from crate_anon.nlp_manager.tests.regex_test_helperfunc import (
 # =============================================================================
 
 
-class TestSubstanceMisuse(unittest.TestCase):
+class SubstanceMisuseTests(unittest.TestCase):
     @staticmethod
     def test_all_substance_misuse() -> None:
         """

@@ -39,3 +39,6 @@ celerybeat.pid
 
 # Emacs
 .dir-locals.el
+
+# Test database
+crate_test.sqlite

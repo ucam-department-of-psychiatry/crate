@@ -1,6 +1,6 @@
-USAGE: crate_researcher_report [-h] [--config CONFIG] [--db_url DB_URL]
-                               [--db_name DB_NAME] [--show_url]
-                               [--no_show_url] [--show_counts]
+USAGE: crate_researcher_report [-h] [--config CONFIG] [--noconfig]
+                               [--db_url DB_URL] [--db_name DB_NAME]
+                               [--show_url] [--no_show_url] [--show_counts]
                                [--no_show_counts] [--use_dd] [--no_use_dd]
                                [--show_values] [--no_show_values]
                                [--max_distinct_values MAX_DISTINCT_VALUES]
@@ -30,8 +30,9 @@ OPTIONS:
   -h, --help            show this help message and exit
 
 DATABASE:
-  --config CONFIG       Config file, overriding environment variable
-                        CRATE_ANON_CONFIG (default: None)
+  --config CONFIG       CRATE anonymisation config file, overriding
+                        environment variable CRATE_ANON_CONFIG (default: None)
+  --noconfig            Do not use a config file (unusual) (default: False)
   --db_url DB_URL       Database URL, overriding that in the config file
                         (default: None)
   --db_name DB_NAME     Database name, overriding that in the config file;

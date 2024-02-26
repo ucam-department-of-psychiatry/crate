@@ -44,7 +44,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 
-class TestReadCodeRegexes(unittest.TestCase):
+class ReadCodeRegexesTests(unittest.TestCase):
     def test_read_code_regexes(self) -> None:
         spacer = "    "
         for name, rc in ReadCodes.__dict__.items():

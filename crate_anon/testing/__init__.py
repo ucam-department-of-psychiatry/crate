@@ -1,5 +1,5 @@
 """
-crate_anon/nlp_manager/tests/parse_haematology_tests.py
+crate_anon/testing/__init__.py
 
 ===============================================================================
 
@@ -23,29 +23,11 @@ crate_anon/nlp_manager/tests/parse_haematology_tests.py
 
 ===============================================================================
 
-Unit tests.
-
 """
 
-import unittest
-
-from crate_anon.nlp_manager.parse_haematology import (
-    ALL_HAEMATOLOGY_NLP_AND_VALIDATORS,
-)
-from crate_anon.nlp_manager.tests.regex_test_helperfunc import (
-    run_tests_nlp_and_validator_classes,
-)
+from sqlalchemy import MetaData
+from sqlalchemy.orm import declarative_base
 
 
-# =============================================================================
-# Unit tests
-# =============================================================================
-
-
-class HaematologyTests(unittest.TestCase):
-    @staticmethod
-    def test_all_haematology() -> None:
-        """
-        Test all parsers in this module.
-        """
-        run_tests_nlp_and_validator_classes(ALL_HAEMATOLOGY_NLP_AND_VALIDATORS)
+metadata = MetaData()
+Base = declarative_base(metadata=metadata)

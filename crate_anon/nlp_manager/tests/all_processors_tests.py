@@ -42,7 +42,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 
-class TestNlpProcessors(unittest.TestCase):
+class NlpProcessorsTests(unittest.TestCase):
     @staticmethod
     def test_all_processors() -> None:
         """

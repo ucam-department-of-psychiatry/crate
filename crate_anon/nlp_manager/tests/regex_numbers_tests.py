@@ -60,7 +60,7 @@ from crate_anon.nlp_manager.tests.regex_test_helperfunc import (
 # =============================================================================
 
 
-class TestNumberRegexes(unittest.TestCase):
+class NumberRegexesTests(unittest.TestCase):
     @staticmethod
     def test_number_regexes() -> None:
         verbose = True
