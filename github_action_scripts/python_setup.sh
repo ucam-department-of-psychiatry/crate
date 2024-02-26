@@ -12,3 +12,5 @@ echo dumping pre-installed packages
 python -m pip freeze
 echo installing pip packages
 python -m pip install -e .
+echo installing database backends
+python -m pip install mssql-django mysqlclient psycopg2 pyodbc pymssql

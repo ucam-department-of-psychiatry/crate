@@ -23,8 +23,8 @@ crate_anon/common/dockerfunc.py
 
 ===============================================================================
 
-crate_anon/crateweb/config/settings.py
 **Docker assistance functions.**
+
 """
 
 import logging

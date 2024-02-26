@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 
 # Run from .github/workflows/python-checks.yml
-# Install CRATE python packages and run various tests
+# Install CRATE python packages and run various checks
 
 set -eux -o pipefail
 
-cd "${GITHUB_WORKSPACE}"
-source "${HOME}/venv/bin/activate"
-python -m pip install mysqlclient
+VENV_BIN="${HOME}/venv/bin"
+PYTHON="${VENV_BIN}/python"
+SAFETY="${VENV_BIN}/safety"
+
+${PYTHON} -m pip install mysqlclient
 echo checking packages for conflicts
-python -m pip check
+${PYTHON} -m pip check
 echo installing vulnerability checker
-python -m pip install safety
+${PYTHON} -m pip install safety
 echo checking packages for vulnerabilities
 # All of these vulnerabilities look either harmless or very low risk
 # 51457 py no fix yet
@@ -20,8 +22,4 @@ echo checking packages for vulnerabilities
 #       https://github.com/sqlalchemy/sqlalchemy/issues/8567
 # 52495 setuptools fix in 65.5.1, we'll be careful not to
 #       install malicious packages.
-safety check --full-report --ignore=51457 --ignore=51668 --ignore=52495
-echo running tests
-export CRATE_RUN_WITHOUT_LOCAL_SETTINGS=True
-export CRATE_NLP_WEB_CONFIG=${GITHUB_WORKSPACE}/github_action_scripts/test_nlp_web_config.ini
-pytest -v
+${SAFETY} check --full-report --ignore=51457 --ignore=51668 --ignore=52495

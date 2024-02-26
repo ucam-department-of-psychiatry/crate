@@ -1,32 +1,16 @@
 USAGE: crate_make_demo_database [-h] [--size {0,1,2,3}] [--verbose] [--echo]
-                                [--doctest_doc DOCTEST_DOC]
-                                [--doctest_docx DOCTEST_DOCX]
-                                [--doctest_odt DOCTEST_ODT]
-                                [--doctest_pdf DOCTEST_PDF]
                                 url
 
 POSITIONAL ARGUMENTS:
-  url                   SQLAlchemy database URL. Append ?charset=utf8, e.g.
-                        mysql+mysqldb://root:password@127.0.0.1:3306/test?char
-                        set=utf8 . WARNING: If you get the error 'MySQL has
-                        gone away', increase the max_allowed_packet parameter
-                        in my.cnf (e.g. to 32M).
+  url               SQLAlchemy database URL. Append ?charset=utf8, e.g.
+                    mysql+mysqldb://root:password@127.0.0.1:3306/test?charset=
+                    utf8 . WARNING: If you get the error 'MySQL has gone
+                    away', increase the max_allowed_packet parameter in my.cnf
+                    (e.g. to 32M).
 
 OPTIONS:
-  -h, --help            show this help message and exit
-  --size {0,1,2,3}      Make tiny (0), small (1), medium (2), or large (3)
-                        database (default: 0)
-  --verbose, -v         Be verbose (default: False)
-  --echo                Echo SQL (default: False)
-  --doctest_doc DOCTEST_DOC
-                        Test file for .DOC (default:
-                        /path/to/test_docs/doctest.doc)
-  --doctest_docx DOCTEST_DOCX
-                        Test file for .DOCX (default:
-                        /path/to/test_docs/doctest.docx)
-  --doctest_odt DOCTEST_ODT
-                        Test file for .ODT (default:
-                        /path/to/test_docs/doctest.odt)
-  --doctest_pdf DOCTEST_PDF
-                        Test file for .PDF (default:
-                        /path/to/test_docs/doctest.pdf)
+  -h, --help        show this help message and exit
+  --size {0,1,2,3}  Make tiny (0), small (1), medium (2), or large (3)
+                    database (default: 0)
+  --verbose, -v     Be verbose (default: False)
+  --echo            Echo SQL (default: False)

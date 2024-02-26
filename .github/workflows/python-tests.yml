@@ -1,0 +1,58 @@
+---
+# yamllint disable rule:line-length
+name: Python tests
+# yamllint disable-line rule:truthy
+on:
+    push:
+        paths:
+            - '**.py'
+            - .github/workflows/python-tests.yml
+            - github_action_scripts/install_wkhtmltopdf.sh
+            - github_action_scripts/python_setup.sh
+            - github_action_scripts/python_tests.sh
+            - github_action_scripts/redis_setup.sh
+jobs:
+    python-tests:
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                # Run tests with sqlite for all python versions
+                python-version: ["3.8", "3.9", "3.10"]
+                engine: ["sqlite"]
+                include:
+                  # Just one python version for the other DB engines
+                  - engine: mysql
+                    port: 3306
+                    python-version: "3.10"
+                  - engine: sqlserver
+                    port: 1433
+                    python-version: "3.10"
+                  # - engine: postgres
+                  #   port: 5432
+                  # python-version: "3.10"
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: ${{ matrix.python-version }}
+            - name: Install wkhtmltopdf
+              run: |
+                set -euxo pipefail
+                ${GITHUB_WORKSPACE}/github_action_scripts/install_wkhtmltopdf.sh
+            - name: Redis setup
+              run: |
+                set -euxo pipefail
+                ${GITHUB_WORKSPACE}/github_action_scripts/redis_setup.sh
+            - name: Python setup
+              run: |
+                set -euxo pipefail
+                ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh
+            - name: Docker DB setup
+              if: matrix.engine != 'sqlite'
+              run: |
+                set -euxo pipefail
+                ${GITHUB_WORKSPACE}/github_action_scripts/docker_db_setup.sh ${{ matrix.engine }} ${{ matrix.port }}
+            - name: Python tests
+              run: |
+                set -euxo pipefail
+                ${GITHUB_WORKSPACE}/github_action_scripts/python_tests.sh ${{ matrix.engine }} ${{ matrix.port }}

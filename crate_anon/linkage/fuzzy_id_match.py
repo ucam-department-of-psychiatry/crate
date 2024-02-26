@@ -27,7 +27,7 @@ crate_anon/linkage/fuzzy_id_match.py
 
 **Fuzzy matching with hashed identifiers.**
 
-See draft paper.
+See paper: Cardinal et al. (2023), https://pubmed.ncbi.nlm.nih.gov/37147600/.
 
 """
 

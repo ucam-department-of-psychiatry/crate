@@ -37,22 +37,24 @@ from cardinal_pythonlib.sqlalchemy.session import (
     SQLITE_MEMORY_URL,
 )
 import pytest
-from sqlalchemy import event
+from sqlalchemy import event, inspect
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import Session
 
 from crate_anon.common.constants import EnvVar
-from crate_anon.testing.classes import Base
+from crate_anon.testing import Base
 
 os.environ[EnvVar.RUNNING_TESTS] = "True"
 
 if TYPE_CHECKING:
+    from sqlite3 import Connection
 
     # Should not need to import from _pytest in later versions of pytest
     # https://github.com/pytest-dev/pytest/issues/7469
     from _pytest.config.argparsing import Parser
     from _pytest.fixtures import FixtureRequest
+    from sqlalchemy.pool.base import _ConnectionRecord
 
 _this_directory = dirname(abspath(__file__))
 CRATE_DIRECTORY = abspath(join(_this_directory, pardir))
@@ -61,7 +63,7 @@ CRATE_DIRECTORY = abspath(join(_this_directory, pardir))
 TEST_DATABASE_FILENAME = os.path.join(CRATE_DIRECTORY, "crate_test.sqlite")
 
 
-def pytest_addoption(parser: "Parser"):
+def pytest_addoption(parser: "Parser") -> None:
     parser.addoption(
         "--database-in-memory",
         action="store_false",
@@ -80,21 +82,9 @@ def pytest_addoption(parser: "Parser"):
     )
 
     parser.addoption(
-        "--mysql",
-        action="store_true",
-        dest="mysql",
-        default=False,
-        help="Use MySQL database instead of SQLite",
-    )
-
-    parser.addoption(
         "--db-url",
         dest="db_url",
-        default=(
-            "mysql+mysqldb://crate:crate@localhost:3306/test_crate"
-            "?charset=utf8"
-        ),
-        help="SQLAlchemy test database URL (MySQL only)",
+        help="SQLAlchemy test database URL (not applicable to SQLite)",
     )
 
     parser.addoption(
@@ -107,7 +97,10 @@ def pytest_addoption(parser: "Parser"):
 
 
 # noinspection PyUnusedLocal
-def set_sqlite_pragma(dbapi_connection, connection_record):
+def set_sqlite_pragma(
+    dbapi_connection: "Connection",
+    connection_record: "_ConnectionRecord",
+) -> None:
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()
@@ -119,7 +112,7 @@ def database_on_disk(request: "FixtureRequest") -> bool:
 
 
 @pytest.fixture(scope="session")
-def create_test_db(request: "FixtureRequest", database_on_disk) -> bool:
+def create_test_db(request: "FixtureRequest", database_on_disk: bool) -> bool:
     if not database_on_disk:
         return True
 
@@ -132,12 +125,6 @@ def create_test_db(request: "FixtureRequest", database_on_disk) -> bool:
 @pytest.fixture(scope="session")
 def echo(request: "FixtureRequest") -> bool:
     return request.config.getvalue("echo")
-
-
-# noinspection PyUnusedLocal
-@pytest.fixture(scope="session")
-def mysql(request: "FixtureRequest") -> bool:
-    return request.config.getvalue("mysql")
 
 
 @pytest.fixture(scope="session")
@@ -165,12 +152,11 @@ def engine(
     create_test_db: bool,
     database_on_disk: bool,
     echo: bool,
-    mysql: bool,
     db_url: str,
 ) -> Generator["Engine", None, None]:
 
-    if mysql:
-        engine = create_engine_mysql(db_url, create_test_db, echo)
+    if db_url:
+        engine = create_engine_from_url(db_url, create_test_db, echo)
     else:
         engine = create_engine_sqlite(create_test_db, echo, database_on_disk)
 
@@ -178,10 +164,13 @@ def engine(
     engine.dispose()
 
 
-def create_engine_mysql(db_url: str, create_test_db: bool, echo: bool):
+def create_engine_from_url(
+    db_url: str, create_test_db: bool, echo: bool
+) -> Engine:
 
     # The database and the user with the given password from db_url
     # need to exist.
+    # MySQL example:
     # mysql> CREATE DATABASE <db_name>;
     # mysql> GRANT ALL PRIVILEGES ON <db_name>.*
     #        TO <db_user>@localhost IDENTIFIED BY '<db_password>';
@@ -209,7 +198,7 @@ def make_file_sqlite_engine(filename: str, echo: bool = False) -> Engine:
 
 def create_engine_sqlite(
     create_test_db: bool, echo: bool, database_on_disk: bool
-):
+) -> Engine:
     if create_test_db and database_on_disk:
         try:
             os.remove(TEST_DATABASE_FILENAME)
@@ -231,7 +220,12 @@ def create_engine_sqlite(
 def tables(
     request: "FixtureRequest", engine: "Engine", create_test_db: bool
 ) -> Generator[None, None, None]:
-    if create_test_db:
+
+    # Not foolproof. Will still need to pass create-test-db if the
+    # schema has changed.
+    database_is_empty = not inspect(engine).get_table_names()
+
+    if create_test_db or database_is_empty:
         Base.metadata.create_all(engine)
     yield
 
@@ -271,7 +265,6 @@ def setup(
     request: "FixtureRequest",
     engine: "Engine",
     database_on_disk: bool,
-    mysql: bool,
     dbsession: Session,
     tmpdir_obj: tempfile.TemporaryDirectory,
 ) -> None:
@@ -284,4 +277,3 @@ def setup(
     request.cls.dbsession = dbsession
     request.cls.tmpdir_obj = tmpdir_obj
     request.cls.db_filename = TEST_DATABASE_FILENAME
-    request.cls.mysql = mysql
