@@ -297,3 +297,7 @@ def main() -> None:
         print(demo_processors().strip())
     else:
         log.error("One option required: '--config' or '--processors'.")
+
+
+if __name__ == "__main__":
+    main()

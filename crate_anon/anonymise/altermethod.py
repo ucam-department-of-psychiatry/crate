@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/anonymise/altermethod.py
 
@@ -53,7 +51,9 @@ if TYPE_CHECKING:
     from cardinal_pythonlib.hash import GenericHasher
     from crate_anon.anonymise.config import Config
     from crate_anon.anonymise.ddr import DataDictionaryRow
-    from crate_anon.anonymise.patient import Patient
+
+    # import patient to avoid circular import when generating docs
+    from crate_anon.anonymise import patient
 
 log = logging.getLogger(__name__)
 
@@ -318,7 +318,7 @@ class AlterMethod:
         ddr: "DataDictionaryRow",  # corresponding DataDictionaryRow
         row: List[Any],  # all values in row
         ddrows: List["DataDictionaryRow"],  # all of them
-        patient: "Patient" = None,
+        patient: "patient.Patient" = None,
     ) -> Tuple[Any, bool]:
         """
         Performs the alteration.
@@ -392,7 +392,7 @@ class AlterMethod:
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def _scrub_func(value: Any, patient: "Patient") -> Optional[str]:
+    def _scrub_func(value: Any, patient: "patient.Patient") -> Optional[str]:
         """
         Takes a source value and scrubs it.
 

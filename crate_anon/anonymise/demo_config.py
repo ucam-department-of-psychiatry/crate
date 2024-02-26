@@ -127,3 +127,7 @@ def main() -> None:
         else:
             contents = get_demo_config()
         print(contents, file=f)
+
+
+if __name__ == "__main__":
+    main()

@@ -69,3 +69,7 @@ def main() -> None:
             ext = None
         available = is_text_extractor_available(ext)
         print(f"Text extractor for extension {ext} present: {available}")
+
+
+if __name__ == "__main__":
+    main()

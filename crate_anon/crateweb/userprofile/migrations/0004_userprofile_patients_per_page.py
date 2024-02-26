@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/crateweb/userprofile/migrations/0004_userprofile_patients_per_page.py
 

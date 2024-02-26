@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 setup.py
 
@@ -124,9 +122,11 @@ INSTALL_REQUIRES = [
     "SQLAlchemy==1.4.49",  # database access
     "sqlparse==0.4.4",  # [pin exact version from cardinal_pythonlib]
     "unidecode==1.1.1",  # for removing accents
+    # -------------------------------------------------------------------------
     # Packages for cloud NLP:
+    # -------------------------------------------------------------------------
     "bcrypt==3.1.7",  # bcrypt encryption
-    "cryptography==41.0.6",  # cryptography library
+    "cryptography==42.0.4",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework
@@ -138,26 +138,19 @@ INSTALL_REQUIRES = [
     "urllib3==1.26.18",  # used by requests
     "waitress==2.1.2",  # pure-Python WSGI server
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
+    # -------------------------------------------------------------------------
     # For development only:
-    "black==22.3.0",  # auto code formatter
+    "black==22.8.0",  # auto code formatter
     "factory_boy==3.3.0",  # easier test data creation
     "faker==13.3.1",  # test data creation
-    "flake8==3.8.4",  # code checks
-    "docutils==0.17",  # documentation, 0.18 not compatible with Sphinx
+    "flake8==5.0.4",  # code checks
+    "docutils==0.19",
     "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
     "pre-commit==2.20.0",  # development only, various sanity checks on code
     "pytest==7.1.1",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
-    # Sphinx 4.4.0 gives "more than one target for cross-reference" warning
-    # when resolving crate_anon.anonymise.patient.Patient in
-    # crate_anon.anonymise.altermethod.py
-    "sphinx==4.2.0",  # documentation
-    "sphinxcontrib-applehelp==1.0.4",  # development only
-    "sphinxcontrib-devhelp==1.0.2",  # development only
-    "sphinxcontrib-htmlhelp==2.0.1",  # development only
-    "sphinxcontrib-serializinghtml==1.1.5",  # development only
-    "sphinxcontrib-qthelp==1.0.3",  # development only
-    "sphinx_rtd_theme==1.0.0",  # documentation
+    "sphinx==7.1.2",  # documentation
+    "sphinx_rtd_theme==2.0.0",  # documentation
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
     # ---------------------------------------------------------------------
