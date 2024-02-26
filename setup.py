@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 setup.py
 
@@ -128,7 +126,7 @@ INSTALL_REQUIRES = [
     # Packages for cloud NLP:
     # -------------------------------------------------------------------------
     "bcrypt==3.1.7",  # bcrypt encryption
-    "cryptography==41.0.6",  # cryptography library
+    "cryptography==42.0.4",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework
@@ -143,9 +141,9 @@ INSTALL_REQUIRES = [
     # -------------------------------------------------------------------------
     # For development only:
     # -------------------------------------------------------------------------
-    "black==22.3.0",  # auto code formatter
+    "black==22.8.0",  # auto code formatter
     "faker==13.3.1",  # test data creation
-    "flake8==3.8.4",  # code checks
+    "flake8==5.0.4",  # code checks
     "docutils==0.17",  # documentation, 0.18 not compatible with Sphinx
     "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
     "pre-commit==2.20.0",  # development only, various sanity checks on code
@@ -155,6 +153,11 @@ INSTALL_REQUIRES = [
     # when resolving crate_anon.anonymise.patient.Patient in
     # crate_anon.anonymise.altermethod.py
     "sphinx==4.2.0",  # documentation
+    "sphinxcontrib-applehelp==1.0.4",  # development only
+    "sphinxcontrib-devhelp==1.0.2",  # development only
+    "sphinxcontrib-htmlhelp==2.0.1",  # development only
+    "sphinxcontrib-serializinghtml==1.1.5",  # development only
+    "sphinxcontrib-qthelp==1.0.3",  # development only
     "sphinx_rtd_theme==1.0.0",  # documentation
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually

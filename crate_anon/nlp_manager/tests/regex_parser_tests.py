@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/nlp_manager/tests/regex_parser_tests.py
 

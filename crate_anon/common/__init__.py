@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/common/__init__.py
 

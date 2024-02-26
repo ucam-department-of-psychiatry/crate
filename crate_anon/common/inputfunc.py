@@ -1,7 +1,5 @@
-#!/usr/bin/env python
-
 """
-crate_anon/nlp_manager/run_crate_nlp_demo.py
+crate_anon/common/inputfunc.py
 
 ===============================================================================
 

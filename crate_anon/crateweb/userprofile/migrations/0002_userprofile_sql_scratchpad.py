@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/crateweb/userprofile/migrations/0002_userprofile_sql_scratchpad.py
 

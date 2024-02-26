@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/common/regex_helpers.py
 

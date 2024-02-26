@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/crateweb/research/migrations/0006_patientexplorer_pmq_hash.py
 

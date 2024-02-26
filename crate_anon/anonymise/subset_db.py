@@ -613,3 +613,7 @@ def main() -> None:
     )
     subsetter = Subsetter(subsetcfg)
     subsetter.subset_db()
+
+
+if __name__ == "__main__":
+    main()
