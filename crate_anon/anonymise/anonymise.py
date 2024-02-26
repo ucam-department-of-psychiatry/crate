@@ -1843,9 +1843,10 @@ def gen_opt_out_pids_from_database(
         if optout_col_values:
             # Note that if optout_col_values does not contain valid values,
             # this function plays it safe -- ALL PIDs from this table are
-            # returned, i.e. everyone is opted out. However, this is unlikely
-            # to happen, because validate_optouts() will have pre-validated
-            # optout_col_values.
+            # returned, i.e. everyone is opted out. (This is unlikely to happen
+            # for Boolean columns, because validate_optouts() will have
+            # pre-validated optout_col_values, but it is legitimate for other
+            # types.)
             query = query.where(optout_defining_col.in_(optout_col_values))
 
         # no need for an order_by clause
