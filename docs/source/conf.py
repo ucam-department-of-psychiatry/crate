@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 docs/source/conf.py
 

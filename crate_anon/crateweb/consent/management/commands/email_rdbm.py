@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/crateweb/consent/management/commands/email_rdbm.py
 

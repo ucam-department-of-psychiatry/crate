@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """
 crate_anon/crateweb/research/__init__.py
 

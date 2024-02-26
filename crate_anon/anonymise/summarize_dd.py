@@ -119,3 +119,7 @@ def main() -> None:
     from crate_anon.anonymise.config_singleton import config  # delayed import
 
     summarize_dd(config, args.output)
+
+
+if __name__ == "__main__":
+    main()
