@@ -1770,7 +1770,12 @@ def gen_opt_out_pids_from_file(
 def remove_invalid_bools_from_optout_values(
     optout_colname: str, values: List[Any]
 ) -> List[Any]:
-    returned_values = []
+    """
+    Called when the column that defines opt-outs is of boolean type. Removes
+    any values from ``values`` that is not a valid boolean value (or
+    None/NULL), announcing it, and return the values that pass the test.
+    """
+    returned_values = []  # type: List[Any]
 
     for value in values:
         if value not in [None, True, False]:
@@ -1836,6 +1841,11 @@ def gen_opt_out_pids_from_database(
         query = select([idcol]).select_from(sqla_table).distinct()
 
         if optout_col_values:
+            # Note that if optout_col_values does not contain valid values,
+            # this function plays it safe -- ALL PIDs from this table are
+            # returned, i.e. everyone is opted out. However, this is unlikely
+            # to happen, because validate_optouts() will have pre-validated
+            # optout_col_values.
             query = query.where(optout_defining_col.in_(optout_col_values))
 
         # no need for an order_by clause
@@ -2021,6 +2031,9 @@ def process_patient_tables(
 
 
 def validate_optouts():
+    """
+    Check that our opt-out definitions are valid, or raise ValueError.
+    """
     defining_fields = config.dd.get_optout_defining_fields()
     for t in defining_fields:
         src_db, src_table, optout_colname, pid_colname, mpid_colname = t
