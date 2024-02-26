@@ -36,7 +36,9 @@ from sqlalchemy import (
     String,
 )
 
-from crate_anon.testing.classes import Base, BaseFactory, DatabaseTestCase
+from crate_anon.testing import Base
+from crate_anon.testing.classes import DatabaseTestCase
+from crate_anon.testing.factories import BaseFactory
 from crate_anon.anonymise.anonymise import (
     gen_opt_out_pids_from_database,
     validate_optouts,
