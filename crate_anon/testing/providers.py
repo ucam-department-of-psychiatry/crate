@@ -181,7 +181,7 @@ class AlcoholProvider(ChoiceProvider):
                 f"Was previously drinking {units} u/w",
                 "teetotal",
                 "Alcohol: no",
-                "Abstinant from alcohol",
+                "Abstinent from alcohol",
                 f"Alcohol: presently less than {units} u/w",
             ]
         )
