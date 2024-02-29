@@ -96,6 +96,15 @@ def pytest_addoption(parser: "Parser") -> None:
     )
 
 
+def pytest_configure(config: pytest.Config) -> None:
+    if config.option.create_db:
+        message = (
+            "--create-db is a pytest-django option which is not "
+            "currently necessary. Did you mean --create-test-db?"
+        )
+        pytest.exit(message)
+
+
 # noinspection PyUnusedLocal
 def set_sqlite_pragma(
     dbapi_connection: "Connection",
