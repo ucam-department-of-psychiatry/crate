@@ -41,7 +41,7 @@ from crate_anon.anonymise.researcher_report import (
     ResearcherReportConfig,
     TEMPLATE_DIR,
 )
-from crate_anon.testing import metadata
+from crate_anon.testing import Base
 from crate_anon.testing.classes import DemoDatabaseTestCase
 from crate_anon.testing.factories import DemoPatientFactory
 
@@ -95,7 +95,7 @@ class ResearcherReportTests(DemoDatabaseTestCase):
         with NamedTemporaryFile(delete=False, mode="w") as f:
             mock_db = mock.Mock(
                 table_names=["patient", "note"],
-                metadata=metadata,
+                metadata=Base.metadata,
             )
 
             with mock.patch.multiple(
