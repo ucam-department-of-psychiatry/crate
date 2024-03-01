@@ -105,8 +105,9 @@ USE [${DB_TEST}];\n\
 CREATE USER [${DB_TEST_USER}] FOR LOGIN [${DB_TEST_USER}];\n\
 EXEC sp_addrolemember 'db_owner', '${DB_TEST_USER}';\n\
 GO\n\
-\n\
+CREATE FULLTEXT CATALOG test_catalog AS DEFAULT;\n\
 GO\n\
+\n\
 "
 
 ARG STARTUP_SCRIPT_CONTENTS="#!bin/bash\n\
