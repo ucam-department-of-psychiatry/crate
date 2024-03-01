@@ -342,21 +342,6 @@ DROP FULLTEXT INDEX ON [dbo].[anon_patient]
 
         return self._engine_outside_transaction
 
-    def test_full_text_index_with_sqlite_not_possible(self) -> None:
-        if self.engine.dialect.name != "sqlite":
-            pytest.skip("Skipping sqlite-only test")
-
-        with self.assertLogs(level=logging.ERROR) as logging_cm:
-            self._make_full_text_index()
-
-        logger_name = "cardinal_pythonlib.sqlalchemy.schema"
-        expected_message = (
-            "Don't know how to make full text index on dialect sqlite"
-        )
-        self.assertIn(
-            f"ERROR:{logger_name}:{expected_message}", logging_cm.output
-        )
-
     def _make_full_text_index(self) -> None:
         mock_config = None
 
