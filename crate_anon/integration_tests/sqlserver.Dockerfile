@@ -89,6 +89,8 @@ EXEC sp_addrolemember 'db_owner', '${DB_PRIVUSER_USER}';\n\
 CREATE USER [${DB_RESEARCHER_USER}] FOR LOGIN [${DB_RESEARCHER_USER}];\n\
 EXEC sp_addrolemember 'db_datareader', '${DB_RESEARCHER_USER}';\n\
 GO\n\
+CREATE FULLTEXT CATALOG anon_catalog AS DEFAULT;\n\
+GO\n\
 \n\
 CREATE DATABASE [${DB_NLP}];\n\
 GO\n\
