@@ -160,9 +160,10 @@ RUN apt-get update \
         iputils-ping \
         netcat \
     && curl https://packages.microsoft.com/keys/microsoft.asc | tee /etc/apt/trusted.gpg.d/microsoft.asc \
+    && curl https://packages.microsoft.com/config/ubuntu/22.04/mssql-server-2022.list | tee /etc/apt/sources.list.d/mssql-server.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-        mssql-tools18 unixodbc-dev \
+        mssql-tools18 mssql-server-fts unixodbc-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/ \
     \
