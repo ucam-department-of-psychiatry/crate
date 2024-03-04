@@ -89,6 +89,8 @@ EXEC sp_addrolemember 'db_owner', '${DB_PRIVUSER_USER}';\n\
 CREATE USER [${DB_RESEARCHER_USER}] FOR LOGIN [${DB_RESEARCHER_USER}];\n\
 EXEC sp_addrolemember 'db_datareader', '${DB_RESEARCHER_USER}';\n\
 GO\n\
+CREATE FULLTEXT CATALOG anon_catalog AS DEFAULT;\n\
+GO\n\
 \n\
 CREATE DATABASE [${DB_NLP}];\n\
 GO\n\
@@ -105,8 +107,9 @@ USE [${DB_TEST}];\n\
 CREATE USER [${DB_TEST_USER}] FOR LOGIN [${DB_TEST_USER}];\n\
 EXEC sp_addrolemember 'db_owner', '${DB_TEST_USER}';\n\
 GO\n\
-\n\
+CREATE FULLTEXT CATALOG test_catalog AS DEFAULT;\n\
 GO\n\
+\n\
 "
 
 ARG STARTUP_SCRIPT_CONTENTS="#!bin/bash\n\
@@ -159,9 +162,10 @@ RUN apt-get update \
         iputils-ping \
         netcat \
     && curl https://packages.microsoft.com/keys/microsoft.asc | tee /etc/apt/trusted.gpg.d/microsoft.asc \
+    && curl https://packages.microsoft.com/config/ubuntu/22.04/mssql-server-2022.list | tee /etc/apt/sources.list.d/mssql-server.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-        mssql-tools18 unixodbc-dev \
+        mssql-tools18 mssql-server-fts unixodbc-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/ \
     \
