@@ -1048,8 +1048,8 @@ class Installer:
 # [put_name_of_dsn_here]
 # Driver = ODBC Driver 17 for SQL Server
 # Description  = Put description here
-# SERVER = host.docker.internal
-# USER = username
+# Server = host.docker.internal
+# User = username
 # Password = password
 # Database = name_of_database
 # For multiple result sets:
