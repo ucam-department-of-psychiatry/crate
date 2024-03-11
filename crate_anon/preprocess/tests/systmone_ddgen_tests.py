@@ -31,17 +31,27 @@ Unit testing.
 # Imports
 # =============================================================================
 
-from unittest import TestCase
+import csv
+from tempfile import NamedTemporaryFile
+from typing import List, TYPE_CHECKING
+from unittest import mock, TestCase
 
+from crate_anon.anonymise.dd import DataDictionary
+from crate_anon.anonymise.ddr import DataDictionaryRow
 from crate_anon.preprocess.systmone_ddgen import (
     core_tablename,
     eq,
     eq_re,
     is_free_text,
     is_in_re,
+    modify_dd_for_systmone,
     OMIT_AND_IGNORE_TABLES_REGEX,
     SystmOneContext,
+    SystmOneSRESpecRow,
 )
+
+if TYPE_CHECKING:
+    from crate_anon.anonymise.config import Config
 
 
 # =============================================================================
@@ -89,4 +99,226 @@ class SystmOneDDGenTests(TestCase):
         # Not even in CPFT:
         self.assertFalse(
             is_free_text("FreeText_Honos_Scoring_Answers", "FreeText", cpft)
+        )
+
+
+class SystmOneDDGenTestCase(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.src_spec_row_dict = dict(
+            TableName="",
+            TableDescription="",
+            ColumnName="",
+            ColumnDescription="",
+            ColumnDataType="",
+            ColumnLength=0,
+            DateDefining="Yes",
+            ColumnOrdinal=0,
+            LinkedTable="",
+            LinkedColumn1="",
+            LinkedColumn2="",
+        )
+
+        self.context = SystmOneContext.CPFT_DW
+
+
+class SystmOneSRESpecRowTests(SystmOneDDGenTestCase):
+    def test_comment_has_table_and_column_descriptions(self) -> None:
+        self.src_spec_row_dict.update(
+            TableName="SRPatient",
+            ColumnName="IDPatient",
+            TableDescription="SRPatient description from spec",
+            ColumnDescription="IDPatient description from spec",
+        )
+        row = SystmOneSRESpecRow(self.src_spec_row_dict)
+
+        self.assertEqual(
+            row.comment(self.context),
+            (
+                "TABLE: SRPatient description from spec // "
+                "COLUMN: IDPatient description from spec"
+            ),
+        )
+
+    def test_description_has_translated_table_column_and_spec_descriptions(
+        self,
+    ) -> None:
+        self.src_spec_row_dict.update(
+            TableName="SRPatient",
+            ColumnName="IDPatient",
+            TableDescription="SRPatient description from spec",
+            ColumnDescription="IDPatient description from spec",
+        )
+
+        row = SystmOneSRESpecRow(self.src_spec_row_dict)
+
+        description = row.description(self.context)
+        self.assertEqual(
+            description,
+            (
+                "S1_Patient.IDPatient // "
+                "TABLE: SRPatient description from spec // "
+                "COLUMN: IDPatient description from spec"
+            ),
+        )
+
+
+class TestDataDictionary(DataDictionary):
+    def __init__(
+        self, config: "Config", rows: List[DataDictionaryRow]
+    ) -> None:
+        super().__init__(config)
+
+        self.rows = rows
+
+
+class ModifyDDForSystmOneTests(SystmOneDDGenTestCase):
+    def test_table_comments_from_spec_added_to_data_dictionary(self) -> None:
+        mock_config = mock.Mock()
+
+        dd_row_1 = DataDictionaryRow(mock_config)
+        dd_row_1.src_db = "Source"
+        dd_row_1.src_table = "S1_Patient"
+        dd_row_1.src_field = "IDPatient"
+        dd_row_1.comment = "IDPatient comment"
+
+        dd_row_2 = DataDictionaryRow(mock_config)
+        dd_row_2.src_db = "Source"
+        dd_row_2.src_table = "S1_Patient"
+        dd_row_2.src_field = "NHSNumber"
+        dd_row_2.comment = "NHSNumber comment"
+
+        dd = TestDataDictionary(mock_config, [dd_row_1, dd_row_2])
+
+        context = SystmOneContext.CPFT_DW
+        with NamedTemporaryFile(delete=False, mode="w") as f:
+            fieldnames = self.src_spec_row_dict.keys()
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+
+            spec_row_1 = self.src_spec_row_dict.copy()
+            spec_row_1.update(
+                TableName="SRPatient",
+                ColumnName="IDPatient",
+                TableDescription="SRPatient description from spec",
+                ColumnDescription="IDPatient description from spec",
+            )
+
+            spec_row_2 = self.src_spec_row_dict.copy()
+            spec_row_2.update(
+                TableName="SRPatient",
+                ColumnName="NHSNumber",
+                TableDescription="SRPatient description from spec",
+                ColumnDescription="NHSNumber description from spec",
+            )
+
+            writer.writerow(spec_row_1)
+            writer.writerow(spec_row_2)
+
+        with open(f.name, mode="r") as f:
+            modify_dd_for_systmone(
+                dd, context, sre_spec_csv_filename=f.name, append_comments=True
+            )
+
+        self.assertEqual(len(dd.rows), 3)
+
+        # Comment row is sorted to the top
+        self.assertEqual(dd.rows[0].comment, "SRPatient description from spec")
+        self.assertEqual(
+            dd.rows[1].comment,
+            (
+                "IDPatient comment // "
+                "TABLE: SRPatient description from spec // "
+                "COLUMN: IDPatient description from spec"
+            ),
+        )
+
+        self.assertEqual(
+            dd.rows[2].comment,
+            (
+                "NHSNumber comment // "
+                "TABLE: SRPatient description from spec // "
+                "COLUMN: NHSNumber description from spec"
+            ),
+        )
+
+    def test_ddr_existing_table_comment_appended_with_spec_description(
+        self,
+    ) -> None:
+        mock_config = mock.Mock()
+
+        dd_row_1 = DataDictionaryRow(mock_config)
+        dd_row_1.src_db = "Source"
+        dd_row_1.src_table = "S1_Patient"
+        dd_row_1.src_field = "IDPatient"
+        dd_row_1.comment = "IDPatient comment"
+
+        dd_row_2 = DataDictionaryRow(mock_config)
+        dd_row_2.src_db = "Source"
+        dd_row_2.src_table = "S1_Patient"
+        dd_row_2.src_field = "NHSNumber"
+        dd_row_2.comment = "NHSNumber comment"
+
+        dd_row_3 = DataDictionaryRow(mock_config)
+        dd_row_3.src_db = "Source"
+        dd_row_3.src_table = "S1_Patient"
+        dd_row_3.src_field = ""
+        dd_row_3.comment = "Existing table comment"
+
+        dd = TestDataDictionary(mock_config, [dd_row_1, dd_row_2, dd_row_3])
+
+        context = SystmOneContext.CPFT_DW
+        with NamedTemporaryFile(delete=False, mode="w") as f:
+            fieldnames = self.src_spec_row_dict.keys()
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+
+            spec_row_1 = self.src_spec_row_dict.copy()
+            spec_row_1.update(
+                TableName="SRPatient",
+                ColumnName="IDPatient",
+                TableDescription="SRPatient description from spec",
+                ColumnDescription="IDPatient description from spec",
+            )
+
+            spec_row_2 = self.src_spec_row_dict.copy()
+            spec_row_2.update(
+                TableName="SRPatient",
+                ColumnName="NHSNumber",
+                TableDescription="SRPatient description from spec",
+                ColumnDescription="NHSNumber description from spec",
+            )
+
+            writer.writerow(spec_row_1)
+            writer.writerow(spec_row_2)
+
+        with open(f.name, mode="r") as f:
+            modify_dd_for_systmone(
+                dd, context, sre_spec_csv_filename=f.name, append_comments=True
+            )
+
+        self.assertEqual(len(dd.rows), 3)
+
+        # Comment row is sorted to the top
+        self.assertEqual(
+            dd.rows[0].comment,
+            "Existing table comment // SRPatient description from spec",
+        )
+        self.assertEqual(
+            dd.rows[1].comment,
+            (
+                "IDPatient comment // "
+                "TABLE: SRPatient description from spec // "
+                "COLUMN: IDPatient description from spec"
+            ),
+        )
+
+        self.assertEqual(
+            dd.rows[2].comment,
+            (
+                "NHSNumber comment // "
+                "TABLE: SRPatient description from spec // "
+                "COLUMN: NHSNumber description from spec"
+            ),
         )

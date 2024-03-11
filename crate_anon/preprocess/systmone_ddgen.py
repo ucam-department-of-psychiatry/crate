@@ -1776,13 +1776,13 @@ def core_columnname(
 
 
 def contextual_columnname(
-    tablename_core: str, columname_core: str, to_context: SystmOneContext
+    tablename_core: str, columnname_core: str, to_context: SystmOneContext
 ) -> str:
     """
     Translates a "core" column name to its contextual variant, if applicable.
     """
     xlate = CORE_TO_CONTEXT_COLUMN_TRANSLATIONS[to_context]
-    return xlate.get((tablename_core, columname_core)) or columname_core
+    return xlate.get((tablename_core, columnname_core)) or columnname_core
 
 
 # =============================================================================
@@ -1790,7 +1790,7 @@ def contextual_columnname(
 # =============================================================================
 
 
-def join_comments(*comments) -> str:
+def join_comments(comments: List[str]) -> str:
     """
     Joins comment elements, skipping any blanks.
     """
@@ -2624,7 +2624,9 @@ class TableCommentWorking:
             if ddr.is_table_comment:
                 # This DDR is itself the table comment. Modify it.
                 if self.append_comments:
-                    ddr.comment = join_comments(ddr.comment, s1_table_comment)
+                    ddr.comment = join_comments(
+                        [ddr.comment, s1_table_comment]
+                    )
                 else:
                     ddr.comment = s1_table_comment
             return
@@ -2725,7 +2727,7 @@ def annotate_systmone_dd_row(
         # If we have no new comment, leave the old one alone.
         if spec_comment:
             if append_comments:
-                ddr.comment = join_comments(ddr.comment, spec_comment)
+                ddr.comment = join_comments([ddr.comment, spec_comment])
             else:
                 ddr.comment = spec_comment
 
@@ -2788,6 +2790,7 @@ def modify_dd_for_systmone(
     table_comment_working = TableCommentWorking(
         dd=dd,
         specifications=specs,
+        append_comments=append_comments,
         allow_unprefixed_tables=allow_unprefixed_tables,
     )
     for ddr in dd.rows:
