@@ -1776,13 +1776,13 @@ def core_columnname(
 
 
 def contextual_columnname(
-    tablename_core: str, columname_core: str, to_context: SystmOneContext
+    tablename_core: str, columnname_core: str, to_context: SystmOneContext
 ) -> str:
     """
     Translates a "core" column name to its contextual variant, if applicable.
     """
     xlate = CORE_TO_CONTEXT_COLUMN_TRANSLATIONS[to_context]
-    return xlate.get((tablename_core, columname_core)) or columname_core
+    return xlate.get((tablename_core, columnname_core)) or columnname_core
 
 
 # =============================================================================
