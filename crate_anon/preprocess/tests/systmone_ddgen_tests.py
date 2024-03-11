@@ -125,23 +125,31 @@ class SystmOneDDGenTestCase(TestCase):
 
 class SystmOneSRESpecRowTests(SystmOneDDGenTestCase):
     def test_comment_has_table_and_column_descriptions(self) -> None:
-        self.src_spec_row_dict["TableDescription"] = "table_description"
-        self.src_spec_row_dict["ColumnDescription"] = "column_description"
-
+        self.src_spec_row_dict.update(
+            TableName="SRPatient",
+            ColumnName="IDPatient",
+            TableDescription="SRPatient description from spec",
+            ColumnDescription="IDPatient description from spec",
+        )
         row = SystmOneSRESpecRow(self.src_spec_row_dict)
 
         self.assertEqual(
             row.comment(self.context),
-            "TABLE: table_description // COLUMN: column_description",
+            (
+                "TABLE: SRPatient description from spec // "
+                "COLUMN: IDPatient description from spec"
+            ),
         )
 
-    def test_description_has_translated_table_name_column_name_and_comments(
+    def test_description_has_translated_table_column_and_spec_descriptions(
         self,
     ) -> None:
-        self.src_spec_row_dict["TableName"] = "SRPatient"
-        self.src_spec_row_dict["ColumnName"] = "IDPatient"
-        self.src_spec_row_dict["TableDescription"] = "table_description"
-        self.src_spec_row_dict["ColumnDescription"] = "column_description"
+        self.src_spec_row_dict.update(
+            TableName="SRPatient",
+            ColumnName="IDPatient",
+            TableDescription="SRPatient description from spec",
+            ColumnDescription="IDPatient description from spec",
+        )
 
         row = SystmOneSRESpecRow(self.src_spec_row_dict)
 
@@ -150,8 +158,8 @@ class SystmOneSRESpecRowTests(SystmOneDDGenTestCase):
             description,
             (
                 "S1_Patient.IDPatient // "
-                "TABLE: table_description // "
-                "COLUMN: column_description"
+                "TABLE: SRPatient description from spec // "
+                "COLUMN: IDPatient description from spec"
             ),
         )
 
