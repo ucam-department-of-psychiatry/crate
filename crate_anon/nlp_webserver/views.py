@@ -766,9 +766,9 @@ class NlpWebViews:
                 {
                     NKeys.QUEUE_ID: queue_id,
                     NKeys.CLIENT_JOB_ID: client_job_id,
-                    NKeys.STATUS: NlprpValues.BUSY
-                    if busy
-                    else NlprpValues.READY,
+                    NKeys.STATUS: (
+                        NlprpValues.BUSY if busy else NlprpValues.READY
+                    ),
                     NKeys.DATETIME_SUBMITTED: pendulum_to_nlprp_datetime(
                         dt_submitted, to_utc=True
                     ),

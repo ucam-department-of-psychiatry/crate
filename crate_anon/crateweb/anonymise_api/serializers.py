@@ -27,7 +27,6 @@ Django REST Framework serializer to anonymise the data.
 
 """
 
-
 from collections import OrderedDict
 from typing import Dict, List, Optional
 

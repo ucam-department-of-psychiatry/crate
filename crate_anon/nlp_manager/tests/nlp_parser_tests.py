@@ -24,6 +24,7 @@ crate_anon/nlp_manager/tests/nlp_parser_tests.py
 ===============================================================================
 
 """
+
 import logging
 import sys
 from typing import Any, Dict, Generator, List, Tuple

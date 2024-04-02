@@ -71,6 +71,7 @@ def get_response(
         username: username for basic HTTP authentication
         password: password for basic HTTP authentication
     """
+
     # -------------------------------------------------------------------------
     # How we fail
     # -------------------------------------------------------------------------
@@ -117,7 +118,9 @@ def get_response(
     try:
         response = NlprpResponse(data=r.text)
         # "r.text" automatically does gzip decode
-    except ValueError:  # includes simplejson.errors.JSONDecodeError, json.decoder.JSONDecodeError  # noqa
+    except (
+        ValueError
+    ):  # includes simplejson.errors.JSONDecodeError, json.decoder.JSONDecodeError  # noqa
         fail("Reply was not JSON")
         response = None  # for type checker
     log.debug(f"Response JSON decoded to: {response.dict!r}")

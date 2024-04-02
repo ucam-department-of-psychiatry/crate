@@ -569,7 +569,7 @@ class Creatinine(SimpleNumericalResultParser):
         MICROEQ_PER_L: 1,
         MG_PER_DL: factor_micromolar_from_mg_per_dl(
             CREATININE_MOLECULAR_MASS_G_PER_MOL
-        )
+        ),
         # but not MG
     }
 

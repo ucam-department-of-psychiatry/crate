@@ -1104,9 +1104,9 @@ def gen_nonpatient_tables_without_int_pk(
         yield pair  # will be a (dbname, table) tuple
 
 
-def gen_nonpatient_tables_with_int_pk() -> Generator[
-    Tuple[str, str, str], None, None
-]:
+def gen_nonpatient_tables_with_int_pk() -> (
+    Generator[Tuple[str, str, str], None, None]
+):
     """
     Generate ``source_db_name, source_table, pk_name`` tuples for all tables
     that
@@ -1428,7 +1428,7 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
     engine = config.get_destdb_engine_outside_transaction()
     mssql = engine.dialect.name == "mssql"
     mssql_fulltext_columns_by_table = []  # type: List[List[Column]]
-    for (tablename, tablerows) in gen_index_row_sets_by_table(
+    for tablename, tablerows in gen_index_row_sets_by_table(
         tasknum=tasknum, ntasks=ntasks
     ):
         sqla_table = config.dd.get_dest_sqla_table(tablename)
@@ -1923,7 +1923,7 @@ def process_nonpatient_tables(
 
     """
     log.info(SEP + "Non-patient tables: (a) with integer PK")
-    for (d, t, pkname) in gen_nonpatient_tables_with_int_pk():
+    for d, t, pkname in gen_nonpatient_tables_with_int_pk():
         log.info(
             f"Processing non-patient table {d}.{t} (PK: {pkname}) "
             f"({config.overall_progress()})..."
@@ -1946,7 +1946,7 @@ def process_nonpatient_tables(
             raise
         commit_destdb()
     log.info(SEP + "Non-patient tables: (b) without integer PK")
-    for (d, t) in gen_nonpatient_tables_without_int_pk(
+    for d, t in gen_nonpatient_tables_without_int_pk(
         tasknum=tasknum, ntasks=ntasks
     ):
         log.info(

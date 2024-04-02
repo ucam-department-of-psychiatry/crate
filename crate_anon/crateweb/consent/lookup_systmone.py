@@ -705,9 +705,9 @@ def get_latest_consent_mode_from_cpft_systmone(
     )
 
 
-def gen_opt_out_pids_mpids_cpft_systmone() -> Generator[
-    Tuple[str, str], None, None
-]:
+def gen_opt_out_pids_mpids_cpft_systmone() -> (
+    Generator[Tuple[str, str], None, None]
+):
     """
     Generates PID/MPID pairs from all patients opting out entirely from the
     CPFT Research Database, from a CPFT SystmOne database.

@@ -137,6 +137,7 @@ class UrlNames:
     ... so probably best not to (there is also no PyCharm checking of the
     Django context).
     """
+
     # Login, auth
     LOGIN = "login"
     LOGOUT = "logout"

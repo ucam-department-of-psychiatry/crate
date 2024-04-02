@@ -1173,9 +1173,11 @@ class PersonalizedScrubber(ScrubberBase):
             ),
             (
                 "nonspecific_scrubber_hash",
-                self.nonspecific_scrubber.get_hash()
-                if self.nonspecific_scrubber
-                else None,
+                (
+                    self.nonspecific_scrubber.get_hash()
+                    if self.nonspecific_scrubber
+                    else None
+                ),
             ),
             ("elements", self.elements_tuplelist),
         )

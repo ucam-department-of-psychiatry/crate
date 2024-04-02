@@ -236,6 +236,7 @@ def get_consent_mode(
 # Views
 # =============================================================================
 
+
 # noinspection PyUnusedLocal
 def study_details(request: HttpRequest, study_id: str) -> HttpResponseBase:
     """
@@ -302,9 +303,11 @@ def study_pack(request: HttpRequest, study_id: str) -> HttpResponseBase:
         None,
         [
             study.study_details_pdf.path if study.study_details_pdf else None,
-            study.subject_form_template_pdf.path
-            if study.subject_form_template_pdf
-            else None,
+            (
+                study.subject_form_template_pdf.path
+                if study.subject_form_template_pdf
+                else None
+            ),
         ],
     )
     if not filenames:

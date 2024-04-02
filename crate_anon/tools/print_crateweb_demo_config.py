@@ -616,7 +616,7 @@ def main() -> None:
 
 
 def search_replace_text(text: str, replace_dict: Dict[str, str]) -> str:
-    for (search, replace) in replace_dict.items():
+    for search, replace in replace_dict.items():
         if replace is None:
             print(f"Can't replace '{search}' with None")
             sys.exit(EXIT_FAILURE)

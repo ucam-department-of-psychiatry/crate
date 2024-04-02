@@ -237,6 +237,7 @@ def start_task_session() -> None:
 # NLP server processing functions
 # =============================================================================
 
+
 # noinspection PyUnusedLocal
 @celery_app.task(bind=True, name="tasks.process_nlp_text")
 def process_nlp_text(

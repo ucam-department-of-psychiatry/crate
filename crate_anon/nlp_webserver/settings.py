@@ -48,9 +48,9 @@ _DOCGEN_DUMMY_SETTINGS = {
 }
 _DOCGEN_DUMMY_SETTINGS[NlpServerConfigKeys.SQLALCHEMY_URL] = "sqlite://"
 _DOCGEN_DUMMY_SETTINGS[NlpServerConfigKeys.SQLALCHEMY_ECHO] = "false"
-_DOCGEN_DUMMY_SETTINGS[
-    NlpServerConfigKeys.ENCRYPTION_KEY
-] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="
+_DOCGEN_DUMMY_SETTINGS[NlpServerConfigKeys.ENCRYPTION_KEY] = (
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="
+)
 
 if EnvVar.GENERATING_CRATE_DOCS in os.environ:
     # Prevent errors whilst building docs, using dummy settings.
