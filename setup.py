@@ -148,7 +148,7 @@ INSTALL_REQUIRES = [
     "docutils==0.19",
     "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
     "pre-commit==2.20.0",  # development only, various sanity checks on code
-    "pytest==7.1.1",  # automatic testing
+    "pytest==8.1.1",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
     "python-on-whales==0.68.0",  # python wrappers for testing with Docker
     "sphinx==7.1.2",  # documentation
