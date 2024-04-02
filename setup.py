@@ -141,7 +141,7 @@ INSTALL_REQUIRES = [
     # -------------------------------------------------------------------------
     # For development only:
     # -------------------------------------------------------------------------
-    "black==22.8.0",  # auto code formatter, keep in sync with .pre-commit-config.yaml  # noqa: E501
+    "black==24.3.0",  # auto code formatter, keep in sync with .pre-commit-config.yaml  # noqa: E501
     "factory_boy==3.3.0",  # easier test data creation
     "faker==13.3.1",  # test data creation
     "flake8==5.0.4",  # code checks, keep in sync with .pre-commit-config.yaml
