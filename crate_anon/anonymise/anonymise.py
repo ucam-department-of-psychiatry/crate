@@ -1461,7 +1461,7 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
                         engine,
                         sqla_table.columns[
                             config.master_research_id_fieldname
-                        ],  # noqa
+                        ],
                         unique=False,  # see docs
                     )
         if mssql_fulltext_columns:

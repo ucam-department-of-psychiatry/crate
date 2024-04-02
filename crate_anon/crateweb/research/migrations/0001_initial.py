@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
                         primary_key=True,
                         db_column="patient_id",
                     ),
-                ),  # noqa
+                ),
                 ("mpid", models.PositiveIntegerField(db_column="nhsnum")),
                 ("rid", models.CharField(max_length=255, db_column="brcid")),
                 (
@@ -76,20 +76,20 @@ class Migration(migrations.Migration):
                     models.PositiveSmallIntegerField(
                         verbose_name="Colour number"
                     ),
-                ),  # noqa
+                ),
                 (
                     "text",
                     models.CharField(
                         max_length=255, verbose_name="Text to highlight"
                     ),
-                ),  # noqa
+                ),
                 ("active", models.BooleanField(default=True)),
                 (
                     "user",
                     models.ForeignKey(
                         to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE
                     ),
-                ),  # noqa
+                ),
             ],
         ),
         migrations.CreateModel(
@@ -104,14 +104,14 @@ class Migration(migrations.Migration):
                         null=True,
                         editable=False,
                     ),
-                ),  # noqa
+                ),
                 (
                     "raw",
                     models.BooleanField(
                         verbose_name="SQL is raw, not parameter-substituted",
                         default=False,
                     ),
-                ),  # noqa
+                ),
                 (
                     "qmark",
                     models.BooleanField(
@@ -121,7 +121,7 @@ class Migration(migrations.Migration):
                         ),
                         default=True,
                     ),
-                ),  # noqa
+                ),
                 ("active", models.BooleanField(default=True)),
                 ("created", models.DateTimeField(auto_now_add=True)),
                 (
@@ -133,14 +133,14 @@ class Migration(migrations.Migration):
                         ),
                         default=False,
                     ),
-                ),  # noqa
+                ),
                 ("audited", models.BooleanField(default=False)),
                 (
                     "user",
                     models.ForeignKey(
                         to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE
                     ),
-                ),  # noqa
+                ),
             ],
         ),
         migrations.CreateModel(
@@ -157,7 +157,7 @@ class Migration(migrations.Migration):
                     models.ForeignKey(
                         to="research.Query", on_delete=models.PROTECT
                     ),
-                ),  # noqa
+                ),
             ],
         ),
     ]

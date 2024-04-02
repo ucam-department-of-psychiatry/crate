@@ -207,7 +207,7 @@ class CrateCommand:
 
     # NLP web server
     NLP_WEBSERVER_GENERATE_ENCRYPTION_KEY = (
-        "crate_nlp_webserver_generate_encryption_key"  # noqa: E501
+        "crate_nlp_webserver_generate_encryption_key"
     )
     NLP_WEBSERVER_INITIALIZE_DB = "crate_nlp_webserver_initialize_db"
     NLP_WEBSERVER_LAUNCH_CELERY = "crate_nlp_webserver_launch_celery"
@@ -247,7 +247,7 @@ class HelpUrl:
     ... "If a variable resolves to a callable, the template system will call it
     with no arguments and use its result instead of the callable."
 
-    """  # noqa
+    """
 
     @staticmethod
     def make_url(

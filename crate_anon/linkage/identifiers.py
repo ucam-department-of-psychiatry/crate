@@ -1291,7 +1291,7 @@ class BasicName(IdentifierFourState, ABC):
 
     Since names can change, we also support optional start/end dates. If none
     are supplied, it simply becomes a non-temporal identifier.
-    """  # noqa
+    """
 
     KEY_NAME = "name"
     KEY_METAPHONE = "metaphone"

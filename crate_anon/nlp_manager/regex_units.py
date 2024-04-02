@@ -192,7 +192,7 @@ INCHES = r"""(?: in(?:ch(?:e)?)?s? | \" | ” | ″)"""
 
 MCG = r"(?: mcg | microgram(?:me)?s? | [μu]g )"  # you won't stop people using ug...  # noqa
 MG = r"(?: mg | milligram(?:me)?s? )"  # mg, milligram, milligrams, milligramme, milligrammes  # noqa
-G = r"(?: gram(?:me)?s? | g )"  # g, gram, grams, gramme, grammes  # noqa
+G = r"(?: gram(?:me)?s? | g )"  # g, gram, grams, gramme, grammes
 KG = r"(?: kgs? | kilo(?:gram(?:me)?)?s? )"  # kg, kgs, kilos ... kilogrammes etc.  # noqa
 LB = r"(?: pounds? | lbs? )"  # pound(s), lb(s)
 STONES = r"(?: stones? | st\.? )"  # stone(s), st, st.
@@ -208,7 +208,7 @@ MICROLITRE = rf"(?: micro{L} | [μu]L )"  # 10^-6: microL, microliter(s), microl
 NANOLITRE = rf"(?: nano{L} | nL )"  # 10^-9: nanoL, nanoliter(s), nanolitre(s), nL  # noqa
 PICOLITRE = rf"(?: pico{L} | pL )"  # 10^-12: picoL, picoliter(s), picolitre(s), pL  # noqa
 FEMTOLITRE = rf"(?: femto{L} | fL )"  # 10^-15: femtoL, femtoliter(s), femtolitre(s), fL  # noqa
-# CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} )""".format(  # noqa
+# CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} )""".format(
 CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} | (?: \b cmm \b ) )""".format(  # noqa
     mm=MM, mm_cubed=power(MM, 3, allow_no_operator=True)
 )

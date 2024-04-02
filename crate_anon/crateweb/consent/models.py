@@ -38,7 +38,7 @@ from cardinal_pythonlib.django.admin import admin_view_url
 from cardinal_pythonlib.django.fields.helpers import choice_explanation
 from cardinal_pythonlib.django.fields.restrictedcontentfile import (
     ContentTypeRestrictedFileField,
-)  # noqa
+)
 from cardinal_pythonlib.django.files import (
     auto_delete_files_on_instance_change,
     auto_delete_files_on_instance_delete,
@@ -112,7 +112,7 @@ from crate_anon.crateweb.consent.utils import (
 from crate_anon.crateweb.research.models import get_mpid
 from crate_anon.crateweb.research.research_db_info import (
     research_database_info,
-)  # noqa
+)
 from crate_anon.crateweb.userprofile.models import UserProfile
 
 log = BraceStyleAdapter(logging.getLogger(__name__))
@@ -1491,7 +1491,7 @@ class ConsentMode(Decision):
 
     skip_letter_to_patient = models.BooleanField(
         default=False
-    )  # added 2018-06-29  # noqa
+    )  # added 2018-06-29
     needs_processing = models.BooleanField(default=False)  # added 2018-06-29
     processed = models.BooleanField(default=False)  # added 2018-06-29
     processed_at = models.DateTimeField(null=True)  # added 2018-06-29
@@ -1511,7 +1511,7 @@ class ConsentMode(Decision):
 
         See
         https://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django
-        """  # noqa
+        """
         if self.current:
             ConsentMode.objects.filter(
                 nhs_number=self.nhs_number, current=True
@@ -1600,7 +1600,7 @@ class ConsentMode(Decision):
         """
         from crate_anon.crateweb.consent.lookup import (
             lookup_consent,
-        )  # delayed import  # noqa
+        )  # delayed import
 
         decisions = []  # type: List[str]
         source_db = source_db or settings.CLINICAL_LOOKUP_CONSENT_DB
@@ -1690,7 +1690,7 @@ class ConsentMode(Decision):
         """
         from crate_anon.crateweb.consent.lookup import (
             lookup_patient,
-        )  # delayed import  # noqa
+        )  # delayed import
 
         # noinspection PyTypeChecker
         return lookup_patient(self.nhs_number, existing_ok=True)
@@ -2035,7 +2035,7 @@ class ContactRequest(models.Model):
         """
         from crate_anon.crateweb.consent.lookup import (
             lookup_patient,
-        )  # delayed import  # noqa
+        )  # delayed import
 
         # Translate to an NHS number
         dbinfo = research_database_info.dbinfo_for_contact_lookup
@@ -2353,7 +2353,7 @@ class ContactRequest(models.Model):
                         clinician_response__response=ClinicianResponse.RESPONSE_R  # noqa: E501
                     )
                 )
-            ),  # noqa
+            ),
             nhs_number=self.nhs_number,
             created_at__gte=one_year_ago,
         ).count()
@@ -2827,7 +2827,7 @@ class ContactRequest(models.Model):
         """
         from crate_anon.crateweb.core.admin import (
             mgr_admin_site,
-        )  # delayed import  # noqa
+        )  # delayed import
 
         return admin_view_url(mgr_admin_site, self)
 
@@ -3482,7 +3482,7 @@ def _get_default_email_sender() -> str:
 
     See
     https://docs.djangoproject.com/en/2.1/ref/models/fields/#django.db.models.Field.default
-    """  # noqa
+    """
     return settings.EMAIL_SENDER
 
 

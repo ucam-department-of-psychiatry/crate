@@ -49,7 +49,7 @@ class Migration(migrations.Migration):
                     "64-bit non-cryptographic hash of JSON of"
                     " patient_multiquery"
                 ),
-            ),  # noqa
+            ),
             preserve_default=False,
         ),
     ]

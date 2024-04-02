@@ -46,7 +46,7 @@ class Migration(migrations.Migration):
             field=models.BigIntegerField(
                 default=0,
                 verbose_name="64-bit non-cryptographic hash of SQL query",
-            ),  # noqa
+            ),
             preserve_default=False,
         ),
     ]

@@ -124,7 +124,7 @@ def patient_template_html(
     """
     get_patient_template_url = context[
         ArchiveContextKeys.get_patient_template_url
-    ]  # noqa
+    ]
     url = get_patient_template_url(template_name)
     final_url = url_with_querystring(url, **qparams)
     return f'<iframe class="{iframe_class}" src="{final_url}"></iframe>'

@@ -1066,7 +1066,7 @@ def sitewide_query_delete(request: HttpRequest, query_id: str) -> HttpResponse:
     validate_blank_form(request)
     query = get_object_or_404(
         SitewideQuery, id=query_id
-    )  # type: SitewideQuery  # noqa
+    )  # type: SitewideQuery
     query.delete()
     return redirect(UrlNames.SITEWIDE_QUERIES)
 
@@ -1234,7 +1234,7 @@ def get_source_results(
         # noinspection PyTypeChecker
         cursor = get_executed_researchdb_cursor(
             sql
-        )  # type: Pep249DatabaseCursorType  # noqa
+        )  # type: Pep249DatabaseCursorType
     except ProgrammingError:
         return NlpSourceResult(
             error=f"Table or fieldname incorrect in: {srctable}.{srcfield}"
@@ -2273,7 +2273,7 @@ def pid_rid_lookup_with_db(
         return generic_error(request, f"No research database named {dbname!r}")
     form = formclass(
         request.POST or None, dbinfo=dbinfo
-    )  # type: Union[PidLookupForm, RidLookupForm]  # noqa
+    )  # type: Union[PidLookupForm, RidLookupForm]
     if form.is_valid():
         pids = form.cleaned_data.get("pids") or []  # type: List[int]
         mpids = form.cleaned_data.get("mpids") or []  # type: List[int]
@@ -2714,7 +2714,7 @@ def textfinder_sql(
 
     Raises:
         :exc:`ValueError` if no tables match the request
-    """  # noqa
+    """
     if not fragment and not drug_type:
         raise ValueError(
             "Must supply either 'fragment' or 'drug_type' to 'textfinder_sql'"
@@ -3362,7 +3362,7 @@ def pe_build(request: HttpRequest) -> HttpResponse:
                 )
 
                 if "submit_select" in request.POST:
-                    pmq.add_output_column(column_id)  # noqa
+                    pmq.add_output_column(column_id)
 
                 elif "submit_select_star" in request.POST:
                     table_id = column_id.table_id
@@ -3429,7 +3429,7 @@ def pe_build(request: HttpRequest) -> HttpResponse:
 
     if manual_query:
         pmq_patient_conditions = (
-            "<div><i>Overridden by manual query.</i></div>"  # noqa
+            "<div><i>Overridden by manual query.</i></div>"
         )
         pmq_manual_patient_query = prettify_sql_html(
             pmq.manual_patient_id_query
@@ -3865,7 +3865,7 @@ def pe_data_finder_results(request: HttpRequest, pe_id: str) -> HttpResponse:
                         fieldnames = get_fieldnames_from_cursor(cursor)
                     rows = cursor.fetchall()
                     query_html += (
-                        element_counter.visibility_div_with_divbutton(  # noqa
+                        element_counter.visibility_div_with_divbutton(
                             contents=prettify_sql_and_args(sql, args),
                             title_html=f"SQL for {table_identifier}",
                         )
@@ -4205,7 +4205,7 @@ def archive_template(request: HttpRequest) -> HttpResponse:
       https://doconix.github.io/django-mako-plus/topics_variables.html.
       (We won't use DMP.)
 
-    """  # noqa
+    """
     if not ARCHIVE_IS_CONFIGURED:
         return archive_misconfigured_response()
 
@@ -4285,7 +4285,7 @@ def archive_attachment(request: HttpRequest) -> HttpResponseBase:
     Args:
         request:
             the Django :class:`HttpRequest` object
-    """  # noqa
+    """
     if not ARCHIVE_IS_CONFIGURED:
         return archive_misconfigured_response()
 
@@ -4362,7 +4362,7 @@ def archive_static(request: HttpRequest) -> HttpResponseBase:
     Args:
         request:
             the Django :class:`HttpRequest` object
-    """  # noqa
+    """
     if not ARCHIVE_IS_CONFIGURED:
         return archive_misconfigured_response()
 

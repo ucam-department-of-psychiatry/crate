@@ -179,7 +179,7 @@ restart_supervisord()
     service_supervisord_command restart
 }
 
-"""  # noqa
+"""
 
 
 # =============================================================================
@@ -241,9 +241,7 @@ DEST_PYTHON_CACHE = join(DEST_ROOT, ".cache")
 # Working/Debian
 WORK_DIR = tempfile.mkdtemp()
 print("Using working directory: " + WORK_DIR)
-DEB_DIR = workpath(
-    "DEBIAN"
-)  # where Debian package control information lives  # noqa
+DEB_DIR = workpath("DEBIAN")  # where Debian package control information lives
 DEB_OVERRIDE_DIR = workpath("/usr/share/lintian/overrides")
 
 WORK_ROOT = workpath(DEST_ROOT)
@@ -346,7 +344,7 @@ if MAKE_USER:
     #     f"adduser --system --ingroup {CRATE_GROUP} "
     #     f"--home /home/{CRATE_USER} {CRATE_USER}")
     MAKE_USER_COMMAND_2 = (
-        f"adduser --system --ingroup {CRATE_GROUP} {CRATE_USER}"  # noqa
+        f"adduser --system --ingroup {CRATE_GROUP} {CRATE_USER}"
     )
     # MAKE_USER_COMMAND_2 = f"adduser --ingroup {CRATE_GROUP} {CRATE_USER}"
     # https://lintian.debian.org/tags/maintainer-script-should-not-use-adduser-system-without-home.html  # noqa

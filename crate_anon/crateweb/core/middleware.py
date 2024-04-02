@@ -59,14 +59,14 @@ class RestrictAdminMiddleware(MiddlewareMixin):
             )
         if request.path.startswith(
             reverse(f"{AdminSiteNames.DEVADMIN}:index")
-        ):  # noqa
+        ):
             if not is_developer(request.user):
                 return HttpResponseForbidden(
                     "Non-developers cannot access the devadmin"
                 )
         if request.path.startswith(
             reverse(f"{AdminSiteNames.MGRADMIN}:index")
-        ):  # noqa
+        ):
             if not request.user.is_superuser:
                 return HttpResponseForbidden(
                     "Non-superusers cannot access the mgradmin"

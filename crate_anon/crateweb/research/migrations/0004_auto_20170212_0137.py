@@ -46,13 +46,13 @@ class Migration(migrations.Migration):
             name="patient_multiquery",
             field=JsonClassField(
                 null=True, verbose_name="PatientMultiQuery as JSON"
-            ),  # noqa
+            ),
         ),
         migrations.AlterField(
             model_name="query",
             name="args",
             field=JsonClassField(
                 null=True, verbose_name="SQL arguments (as JSON)"
-            ),  # noqa
+            ),
         ),
     ]

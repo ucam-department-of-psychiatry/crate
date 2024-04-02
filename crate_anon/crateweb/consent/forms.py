@@ -46,7 +46,7 @@ from crate_anon.crateweb.consent.models import (
 )
 from crate_anon.crateweb.research.research_db_info import (
     SingleResearchDatabase,
-)  # noqa
+)
 
 log = logging.getLogger(__name__)
 

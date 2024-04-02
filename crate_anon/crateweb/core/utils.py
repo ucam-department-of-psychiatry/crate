@@ -156,7 +156,7 @@ def url_with_querystring(
         "path?a=1&b=2" is treated as identical to "path?b=2&a=1". However, it
         is legal for servers to treat them as ordered. See
         https://stackoverflow.com/questions/43893853/http-cache-control-and-params-order.
-    """  # noqa
+    """
     # Get initial query parameters, if any.
     # log.debug(f"IN: path={path!r}, querydict={querydict!r}, "
     #           f"kwargs={kwargs!r}")

@@ -57,7 +57,7 @@ class Migration(migrations.Migration):
                         null=True,
                         verbose_name="Pickled PatientMultiQuery",
                     ),
-                ),  # noqa
+                ),
                 ("active", models.BooleanField(default=True)),
                 ("created", models.DateTimeField(auto_now_add=True)),
                 (
@@ -69,7 +69,7 @@ class Migration(migrations.Migration):
                             " queries are never properly deleted."
                         ),
                     ),
-                ),  # noqa
+                ),
                 ("audited", models.BooleanField(default=False)),
                 (
                     "user",
@@ -77,7 +77,7 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.CASCADE,
                         to=settings.AUTH_USER_MODEL,
                     ),
-                ),  # noqa
+                ),
             ],
         ),
         migrations.CreateModel(
@@ -95,7 +95,7 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.PROTECT,
                         to="research.PatientExplorer",
                     ),
-                ),  # noqa
+                ),
             ],
         ),
     ]

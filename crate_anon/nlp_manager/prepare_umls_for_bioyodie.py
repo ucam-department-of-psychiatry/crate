@@ -113,7 +113,7 @@ moves things around. Final output from the Bio-YODIE preprocessor:
                 labelinfo.h2.db     -- 1.8 GB
                 labelinfo.trace.db
 
-"""  # noqa
+"""
 
 import argparse
 import logging
@@ -664,7 +664,7 @@ def prepare_umls_for_bioyodie(cfg: UmlsBioyodieConversionConfig) -> None:
     boot_config = join(umls_mmsys_home, "etc", "subset.boot.properties")
     log4j_config = join(
         umls_mmsys_home, "etc", "rudolf.log4j.properties"
-    )  # new  # noqa
+    )  # new
 
     system_java_home = cfg.java_home
     umls_java_home = join(umls_mmsys_home, "jre", "linux")  # it brings its own
@@ -755,19 +755,19 @@ def prepare_umls_for_bioyodie(cfg: UmlsBioyodieConversionConfig) -> None:
             # https://en.wikipedia.org/wiki/Classpath
             join(
                 umls_plugins_dir, "gov.nih.nlm.umls.meta", "lib", "*"
-            ),  # RNC extra  # noqa
+            ),  # RNC extra
             join(
                 umls_plugins_dir, "gov.nih.nlm.umls.mmsys", "lib", "*"
-            ),  # RNC extra  # noqa
+            ),  # RNC extra
             join(
                 umls_plugins_dir, "gov.nih.nlm.umls.mmsys.gui", "lib", "*"
-            ),  # RNC extra  # noqa
+            ),  # RNC extra
             join(
                 umls_plugins_dir, "gov.nih.nlm.umls.mmsys.io", "lib", "*"
-            ),  # RNC extra  # noqa
+            ),  # RNC extra
             join(
                 umls_plugins_dir, "gov.nih.nlm.umls.util", "lib", "*"
-            ),  # RNC extra  # noqa
+            ),  # RNC extra
         ]
     )
     write_text(

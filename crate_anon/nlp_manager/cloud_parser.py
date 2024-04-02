@@ -281,7 +281,7 @@ class Cloud(TableMaker):
         for table, columns in self.schema.items():
             column_objects = (
                 self._standard_columns_if_gate()
-            )  # type: List[Column]  # noqa
+            )  # type: List[Column]
             if self.tablename:
                 tablename = self.tablename
             else:

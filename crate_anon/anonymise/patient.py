@@ -279,7 +279,7 @@ class Patient:
 
         See also
         :meth:`crate_anon.anonymise.dd.DataDictionary.get_mandatory_scrubber_sigs`.
-        """  # noqa
+        """
         return self._mandatory_scrubbers_unfulfilled
 
     @property

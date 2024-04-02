@@ -45,7 +45,7 @@ class Migration(migrations.Migration):
             name="sql_scratchpad",
             field=models.TextField(
                 default="", verbose_name="SQL scratchpad for query builder"
-            ),  # noqa
+            ),
             preserve_default=False,
         ),
     ]

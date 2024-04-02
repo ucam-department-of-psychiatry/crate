@@ -1261,7 +1261,7 @@ class ValidatorBase(BaseNlpParser):
         (
             validated_variable,
             regex_str_list,
-        ) = self.get_variablename_regexstrlist()  # noqa
+        ) = self.get_variablename_regexstrlist()
         vname = f"{validated_variable}_validator"
         super().__init__(
             nlpdef=nlpdef,

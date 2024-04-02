@@ -376,7 +376,7 @@ def archive_attachment_url(
         guess_content_type:
             if no content_type is specified, should we guess? Pass
             ``None`` for the default, :data:`DEFAULT_GUESS_CONTENT_TYPE`.
-    """  # noqa
+    """
     qparams = {
         UrlKeys.PATIENT_ID: patient_id,
         UrlKeys.FILENAME: filename,
@@ -401,7 +401,7 @@ def archive_static_url(filename: str) -> str:
     Args:
         filename:
             filename on disk, within the archive's static directory
-    """  # noqa
+    """
     qparams = {UrlKeys.FILENAME: filename}
     filepath = get_archive_static_filepath(filename)
     add_file_timestamp_to_url_query(filepath, qparams)

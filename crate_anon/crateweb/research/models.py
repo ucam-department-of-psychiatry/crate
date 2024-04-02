@@ -161,7 +161,7 @@ def hack_django_pyodbc_azure_cursorwrapper() -> None:
             "fetchone to disable automatic call to cursor.nextset()"
         )
         CursorWrapper.fetchone = (
-            replacement_sqlserver_pyodbc_cursorwrapper_fetchone  # noqa
+            replacement_sqlserver_pyodbc_cursorwrapper_fetchone
         )
     except ImportError:
         return
@@ -283,7 +283,7 @@ def get_executed_researchdb_cursor(
     args = args or []
     cursor = connections[
         RESEARCH_DB_CONNECTION_NAME
-    ].cursor()  # type: CursorWrapper  # noqa
+    ].cursor()  # type: CursorWrapper
     try:
         cursor.execute(sql, args or None)
     except DatabaseError as exception:
@@ -1337,7 +1337,7 @@ def get_pid_lookup(
     Raises:
         :exc:`ValueError` if none of the IDs was specified
 
-    """  # noqa
+    """
     dbalias = dbinfo.secret_lookup_db
     assert dbalias
     q = PidLookup.objects.using(dbalias)
@@ -1377,7 +1377,7 @@ def get_mpid(
 
     Raises:
         :exc:`ValueError` if none of the IDs was specified
-    """  # noqa
+    """
     lookup = get_pid_lookup(dbinfo=dbinfo, trid=trid, rid=rid, mrid=mrid)
     # noinspection PyTypeChecker
     return lookup.mpid
@@ -1404,7 +1404,7 @@ def get_pid(
 
     Raises:
         :exc:`ValueError` if none of the IDs was specified
-    """  # noqa
+    """
     lookup = get_pid_lookup(dbinfo=dbinfo, trid=trid, rid=rid, mrid=mrid)
     # noinspection PyTypeChecker
     return lookup.pid
@@ -1551,7 +1551,7 @@ class PatientMultiQuery:
         self._output_columns = output_columns or []  # type: List[ColumnId]
         self._patient_conditions = (
             patient_conditions or []
-        )  # type: List[WhereCondition]  # noqa
+        )  # type: List[WhereCondition]
         self._manual_patient_id_query = manual_patient_id_query or ""
 
     def __repr__(self) -> str:
@@ -1969,7 +1969,7 @@ class PatientMultiQuery:
         Returns:
             str: HTML
 
-        """  # noqa
+        """
 
         def collapser(x: str) -> str:
             return element_counter.overflow_div(contents=x)
@@ -2029,7 +2029,7 @@ class PatientMultiQuery:
         max_date_alias = "max_date"
         for (
             table_id
-        ) in research_database_info.get_mrid_linkable_patient_tables():  # noqa
+        ) in research_database_info.get_mrid_linkable_patient_tables():
             mrid_col = research_database_info.get_mrid_column_from_table(
                 table=table_id
             )
@@ -2110,7 +2110,7 @@ class PatientMultiQuery:
         grammar = research_database_info.grammar
         for (
             table_id
-        ) in research_database_info.get_mrid_linkable_patient_tables():  # noqa
+        ) in research_database_info.get_mrid_linkable_patient_tables():
             mrid_col = research_database_info.get_mrid_column_from_table(
                 table=table_id
             )
@@ -2419,7 +2419,7 @@ class PatientExplorer(models.Model):
           and the "auto_size" / "bestFit" options don't really do the job,
           according to the interweb.
 
-        """  # noqa
+        """
         wb = Workbook()
         wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
         sqlsheet_rows = [["Table", "SQL", "Args", "Executed_at"]]

@@ -388,7 +388,7 @@ def view_email_attachment(
     """
     attachment = get_object_or_404(
         EmailAttachment, pk=attachment_id
-    )  # type: EmailAttachment  # noqa
+    )  # type: EmailAttachment
     # noinspection PyTypeChecker
     validate_email_request(request.user, attachment.email)
     if not attachment.file:
@@ -899,7 +899,7 @@ def clinician_pack(
     else:
         clinician_response = get_object_or_404(
             ClinicianResponse, pk=clinician_response_id
-        )  # type: ClinicianResponse  # noqa
+        )  # type: ClinicianResponse
         contact_request = clinician_response.contact_request
     # Check token authentication
     if token != clinician_response.token:

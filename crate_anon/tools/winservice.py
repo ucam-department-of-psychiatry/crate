@@ -29,7 +29,7 @@ crate_anon/tools/winservice.py
 
 See notes in ``cardinal_pythonlib/winservice.py``.
 
-"""  # noqa
+"""
 
 import os
 import logging

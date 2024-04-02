@@ -249,24 +249,24 @@ class SingleResearchDatabase:
             self.name = infodict[ResearchDbInfoKeys.NAME]  # type: str
             self.description = infodict[
                 ResearchDbInfoKeys.DESCRIPTION
-            ]  # type: str  # noqa
+            ]  # type: str
             self.database = infodict[ResearchDbInfoKeys.DATABASE]  # type: str
             self.schema_name = infodict[ResearchDbInfoKeys.SCHEMA]  # type: str
             self.trid_field = infodict[
                 ResearchDbInfoKeys.TRID_FIELD
-            ]  # type: str  # noqa
+            ]  # type: str
             self.rid_field = infodict[
                 ResearchDbInfoKeys.RID_FIELD
-            ]  # type: str  # noqa
+            ]  # type: str
             self.rid_family = infodict[
                 ResearchDbInfoKeys.RID_FAMILY
-            ]  # type: int  # noqa
+            ]  # type: int
             self.mrid_table = infodict[
                 ResearchDbInfoKeys.MRID_TABLE
-            ]  # type: str  # noqa
+            ]  # type: str
             self.mrid_field = infodict[
                 ResearchDbInfoKeys.MRID_FIELD
-            ]  # type: str  # noqa
+            ]  # type: str
         except KeyError as e:
             raise KeyError(
                 f"Key {e} is missing from settings.RESEARCH_DB_INFO "
@@ -280,12 +280,12 @@ class SingleResearchDatabase:
         )
         assert (
             isinstance(self.description, str) and self.description
-        )  # no blanks  # noqa
+        )  # no blanks
 
         assert isinstance(self.database, str)  # may be blank
         assert (
             isinstance(self.schema_name, str) and self.schema_name
-        )  # no blanks  # noqa
+        )  # no blanks
 
         assert isinstance(self.trid_field, str)  # may be blank
         assert isinstance(self.rid_field, str) and self.rid_field  # no blanks
@@ -302,10 +302,10 @@ class SingleResearchDatabase:
         )  # type: str
         assert isinstance(
             self.pid_pseudo_field, str
-        )  # may be blank unless it's a lookup DB  # noqa
+        )  # may be blank unless it's a lookup DB
         assert isinstance(
             self.mpid_pseudo_field, str
-        )  # may be blank unless it's a lookup DB  # noqa
+        )  # may be blank unless it's a lookup DB
 
         self.pid_description = infodict.get(
             ResearchDbInfoKeys.PID_DESCRIPTION,
@@ -389,8 +389,8 @@ class SingleResearchDatabase:
         # Now discover the schema
         self._schema_infodictlist = (
             None
-        )  # type: Optional[List[Dict[str, Any]]]  # noqa
-        self._colinfolist = None  # type: Optional[List[ColumnInfo]]  # noqa
+        )  # type: Optional[List[Dict[str, Any]]]
+        self._colinfolist = None  # type: Optional[List[ColumnInfo]]
 
     @property
     def schema_infodictlist(self) -> List[Dict[str, Any]]:
@@ -776,7 +776,7 @@ ORDER BY
         - PostgreSQL ``INFORMATION_SCHEMA.COLUMNS``: see
           https://www.postgresql.org/docs/9.1/static/infoschema-columns.html
 
-        """  # noqa
+        """
         if not schema_names:
             raise ValueError(
                 "No schema_names specified (for PostgreSQL " "database)"
@@ -960,7 +960,7 @@ class ResearchDatabaseInfo:
             self.grammar = None  # type: Optional[SqlGrammar]
             self.dbinfo_for_contact_lookup = (
                 None
-            )  # type: Optional[SingleResearchDatabase]  # noqa
+            )  # type: Optional[SingleResearchDatabase]
 
         else:
             self.dialect = settings.RESEARCH_DB_DIALECT  # type: str
@@ -1010,7 +1010,7 @@ class ResearchDatabaseInfo:
 
             self.nlp_sourcedb_map = getattr(
                 settings, SettingsKeys.NLP_SOURCEDB_MAP, {}
-            )  # type: Dict[str, str]  # noqa
+            )  # type: Dict[str, str]
             try:
                 assert isinstance(self.nlp_sourcedb_map, dict)
                 for k, v in self.nlp_sourcedb_map.items():

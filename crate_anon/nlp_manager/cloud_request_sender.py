@@ -305,7 +305,7 @@ class CloudRequestSender:
         if (
             self._report_every
             and self._global_recnum % self._report_every == 0
-        ):  # noqa
+        ):
             # total number of records in table
             totalcount = self._ifconfig.get_count()
             log.info(

@@ -250,7 +250,7 @@ class UrlNames:
     DRAFT_CONFIRM_TRAFFIC_LIGHT_LETTER = "draft_confirm_traffic_light_letter"
     DRAFT_FIRST_TRAFFIC_LIGHT_LETTER = "draft_first_traffic_light_letter"
     DRAFT_LETTER_CLINICIAN_TO_PT_RE_STUDY = (
-        "draft_letter_clinician_to_pt_re_study"  # noqa
+        "draft_letter_clinician_to_pt_re_study"
     )
     DRAFT_RESEARCHER_COVER_LETTER = "draft_researcher_cover_letter"
     DRAFT_TRAFFIC_LIGHT_DECISION_FORM = "draft_traffic_light_decision_form"

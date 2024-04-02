@@ -52,6 +52,6 @@ class Migration(migrations.Migration):
                 verbose_name=(
                     "PatientMultiQuery scratchpad (pickled) for builder"
                 ),
-            ),  # noqa
+            ),
         ),
     ]

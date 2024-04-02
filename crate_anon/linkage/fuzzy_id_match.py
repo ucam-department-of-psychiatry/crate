@@ -149,7 +149,7 @@ block, and then compare the sequence of mini-hashes for similarity.
 covers SSDEEP, TLSH, sdhash, and others.
 
 
-"""  # noqa
+"""
 
 
 # =============================================================================
@@ -945,7 +945,7 @@ def add_subparsers(
         description="Valid commands are as follows.",
         help="Specify one command.",
         dest="command",  # sorts out the help for the command being mandatory
-    )  # type: _SubParsersAction  # noqa
+    )  # type: _SubParsersAction
     subparsers.required = True  # requires a command
     return subparsers
 

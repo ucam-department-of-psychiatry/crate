@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
                 default=None,
                 null=True,
                 verbose_name="SQL with highlighting and formatting",
-            ),  # noqa
+            ),
         ),
         migrations.AddField(
             model_name="sitewidequery",
@@ -26,6 +26,6 @@ class Migration(migrations.Migration):
                 default=None,
                 null=True,
                 verbose_name="SQL with highlighting and formatting",
-            ),  # noqa
+            ),
         ),
     ]

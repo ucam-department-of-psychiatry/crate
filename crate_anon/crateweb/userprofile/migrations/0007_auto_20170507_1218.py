@@ -49,7 +49,7 @@ class Migration(migrations.Migration):
                     "User is a clinician (with implied permission to look up"
                     " RIDs)"
                 ),
-            ),  # noqa
+            ),
         ),
         migrations.AlterField(
             model_name="userprofile",
@@ -59,6 +59,6 @@ class Migration(migrations.Migration):
                 verbose_name=(
                     "User is an NHS consultant (relevant for clinical trials)"
                 ),
-            ),  # noqa
+            ),
         ),
     ]

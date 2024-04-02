@@ -50,7 +50,7 @@ from django.forms import (
 from crate_anon.crateweb.research.models import Highlight, Query
 from crate_anon.crateweb.research.research_db_info import (
     SingleResearchDatabase,
-)  # noqa
+)
 from crate_anon.common.sql import (
     SQL_OPS_MULTIPLE_VALUES,
     SQL_OPS_VALUE_UNNECESSARY,
@@ -123,7 +123,7 @@ class DatabasePickerForm(forms.Form):
             dbinfolist:
                 list of all
                 :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase`.
-        """  # noqa
+        """
         super().__init__(*args, **kwargs)
         f = self.fields["database"]  # type: ChoiceField
         f.choices = [(d.name, d.description) for d in dbinfolist]
@@ -148,7 +148,7 @@ class PidLookupForm(forms.Form):
             dbinfo:
                 research database to look up descriptions from, as a
                 :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase`
-        """  # noqa
+        """
         super().__init__(*args, **kwargs)
         rids = self.fields["rids"]  # type: MultipleIntAreaField
         mrids = self.fields["mrids"]  # type: MultipleIntAreaField
@@ -176,7 +176,7 @@ class RidLookupForm(forms.Form):
             dbinfo:
                 research database to look up descriptions from, as a
                 :class:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase`
-        """  # noqa
+        """
         super().__init__(*args, **kwargs)
         pids = self.fields["pids"]  # type: MultipleIntAreaField
         mpids = self.fields["mpids"]  # type: MultipleIntAreaField

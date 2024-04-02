@@ -502,7 +502,7 @@ class InputFieldConfig:
                 column(self._srcdatetimefield)
                 if self._srcdatetimefield
                 else null()
-            ),  # noqa
+            ),
         ]
         # User-specified extra columns
         for extracol in self._copyfields:

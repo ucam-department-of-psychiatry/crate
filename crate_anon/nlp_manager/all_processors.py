@@ -124,7 +124,7 @@ def all_local_parser_classes() -> List[Type[BaseNlpParser]]:
     # noinspection PyTypeChecker
     classes = get_all_subclasses(
         BaseNlpParser
-    )  # type: List[Type[BaseNlpParser]]  # noqa
+    )  # type: List[Type[BaseNlpParser]]
     lower_case_short_names = set()  # type: Set[str]
     lower_case_full_names = set()  # type: Set[str]
     for cls in classes:

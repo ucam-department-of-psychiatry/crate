@@ -1139,7 +1139,7 @@ class Medex(BaseNlpParser):
                     "generic_name",
                     Text,
                     comment="Generic drug name (associated with RxCUI code)",
-                ),  # noqa
+                ),
             ]
         }
 

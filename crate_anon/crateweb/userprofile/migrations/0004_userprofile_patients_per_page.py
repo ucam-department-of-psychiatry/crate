@@ -57,6 +57,6 @@ class Migration(migrations.Migration):
                     "Number of patients to show per page (for Patient Explorer"
                     " view)"
                 ),
-            ),  # noqa
+            ),
         ),
     ]

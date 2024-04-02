@@ -54,6 +54,6 @@ class Migration(migrations.Migration):
                     "Number of lines beyond which result/query field starts"
                     " collapsed (0 for none)"
                 ),
-            ),  # noqa
+            ),
         ),
     ]

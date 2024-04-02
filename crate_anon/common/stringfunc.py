@@ -114,7 +114,7 @@ def uprint(
     - Linux, Python 3.6.8 console: ``sys.stdout.encoding == "UTF-8"``
     - Windows, Python 3.7.4 console: ``sys.stdout.encoding == "utf-8"``
     - Windows, Python 3.7.4, from script: ``sys.stdout.encoding == "cp1252"``
-    """  # noqa
+    """
     enc = file.encoding.lower()
     if enc == "utf-8":
         print(*objects, sep=sep, end=end, file=file)

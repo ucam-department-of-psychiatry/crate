@@ -52,7 +52,7 @@ class Migration(migrations.Migration):
                         serialize=False,
                         primary_key=True,
                     ),
-                ),  # noqa
+                ),
                 (
                     "per_page",
                     models.PositiveSmallIntegerField(
@@ -68,7 +68,7 @@ class Migration(migrations.Migration):
                         ],
                         verbose_name="Number of items to show per page",
                     ),
-                ),  # noqa
+                ),
                 (
                     "line_length",
                     models.PositiveSmallIntegerField(
@@ -78,7 +78,7 @@ class Migration(migrations.Migration):
                             " display (0 for no wrap)"
                         ),
                     ),
-                ),  # noqa
+                ),
                 (
                     "collapse_at",
                     models.PositiveSmallIntegerField(
@@ -88,14 +88,14 @@ class Migration(migrations.Migration):
                             " starts collapsed (0 for none)"
                         ),
                     ),
-                ),  # noqa
+                ),
                 (
                     "is_developer",
                     models.BooleanField(
                         default=False,
                         verbose_name="Enable developer functions?",
                     ),
-                ),  # noqa
+                ),
                 ("title", models.CharField(max_length=20, blank=True)),
                 (
                     "address_1",
@@ -104,7 +104,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         verbose_name="Address line 1",
                     ),
-                ),  # noqa
+                ),
                 (
                     "address_2",
                     models.CharField(
@@ -112,7 +112,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         verbose_name="Address line 2",
                     ),
-                ),  # noqa
+                ),
                 (
                     "address_3",
                     models.CharField(
@@ -120,7 +120,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         verbose_name="Address line 3",
                     ),
-                ),  # noqa
+                ),
                 (
                     "address_4",
                     models.CharField(
@@ -128,7 +128,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         verbose_name="Address line 4",
                     ),
-                ),  # noqa
+                ),
                 (
                     "address_5",
                     models.CharField(
@@ -136,7 +136,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         verbose_name="Address line 5 (county)",
                     ),
-                ),  # noqa
+                ),
                 (
                     "address_6",
                     models.CharField(
@@ -144,7 +144,7 @@ class Migration(migrations.Migration):
                         blank=True,
                         verbose_name="Address line 6 (postcode)",
                     ),
-                ),  # noqa
+                ),
                 (
                     "address_7",
                     models.CharField(
@@ -152,14 +152,14 @@ class Migration(migrations.Migration):
                         blank=True,
                         verbose_name="Address line 7 (country)",
                     ),
-                ),  # noqa
+                ),
                 ("telephone", models.CharField(max_length=20, blank=True)),
                 (
                     "is_consultant",
                     models.BooleanField(
                         default=False, verbose_name="User is an NHS consultant"
                     ),
-                ),  # noqa
+                ),
                 (
                     "signatory_title",
                     models.CharField(
@@ -169,7 +169,7 @@ class Migration(migrations.Migration):
                             ' psychiatrist")'
                         ),
                     ),
-                ),  # noqa
+                ),
             ],
         ),
     ]

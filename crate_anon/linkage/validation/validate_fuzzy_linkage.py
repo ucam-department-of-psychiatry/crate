@@ -1956,7 +1956,7 @@ def validate_2_fetch_systmone(
         WHERE p.NHSNumber LIKE '% %'
         -- returns 0
 
-    """  # noqa
+    """
     sql = text(
         """
         SELECT

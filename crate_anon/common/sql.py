@@ -844,7 +844,7 @@ def parser_add_from_tables(
             ji.join_type, parseAll=True
         )[
             0
-        ]  # e.g. INNER JOIN  # noqa
+        ]  # e.g. INNER JOIN
         parsed_table = grammar.get_table_spec().parseString(
             ji.table, parseAll=True
         )[0]
@@ -2016,7 +2016,7 @@ def sql_fragment_cast_to_int(
     - Otherwise if we're using SQL Server, use a CASE/CAST construct.
     - Otherwise, raise :exc:`ValueError` as we don't know what to do.
 
-    """  # noqa
+    """
     inttype = "BIGINT" if big else "INTEGER"
     if dialect is None and viewmaker is not None:
         dialect = viewmaker.engine.dialect

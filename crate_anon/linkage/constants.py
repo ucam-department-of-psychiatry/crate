@@ -342,7 +342,7 @@ class FuzzyDefaults:
 
     However, empirically in SystmOne, ZZ993 / ZZ993VZ = 1.83 (see paper).
 
-    """  # noqa
+    """
 
     P_UNKNOWN_OR_PSEUDO_POSTCODE = 0.00201  # (E)
     K_PSEUDOPOSTCODE = 1.83  # (E)
