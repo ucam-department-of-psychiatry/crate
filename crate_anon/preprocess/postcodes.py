@@ -504,7 +504,7 @@ class Postcode(Base):
         comment="2011 Census Lower Layer Super Output Area (LSOA) [England & "
         "Wales, ~1,500 population] / Data Zone (DZ) [Scotland] / "
         "Super Output Area (SOA) [N. Ireland] [FK to one of: "
-        "lsoa_lower_layer_super_output_area_2011.lsoa_code; "  # noqa
+        "lsoa_lower_layer_super_output_area_2011.lsoa_code; "
         " (defunct) dz_datazone_scotland_2011.dz_code]",
     )
     msoa11 = Column(
@@ -512,7 +512,7 @@ class Postcode(Base):
         comment="2011 Census Middle Layer Super Output Area (MSOA) [England & "
         "Wales, ~7,200 population] / "
         "Intermediate Zone (IZ) [Scotland] [FK to one of: "
-        "msoa_middle_layer_super_output_area_2011.msoa_code; "  # noqa
+        "msoa_middle_layer_super_output_area_2011.msoa_code; "
         "iz_intermediate_zone_scotland_2011.iz_code]",
     )
     parish = Column(

@@ -150,7 +150,7 @@ DOCKER_BUILD_ARGS = {
     "DB_RESEARCHER_USER": DB_RESEARCHER_USER,
     "DB_RESEARCHER_PASSWORD": DB_RESEARCHER_PASSWORD,
     "DB_TEST_USER": DB_TEST_USER,
-    "DB_TEST_PASSWORD": DB_TEST_PASSWORD
+    "DB_TEST_PASSWORD": DB_TEST_PASSWORD,
     # NB this is an INSECURE method; see
     # https://docs.docker.com/engine/reference/builder/#arg. But this is just
     # a quick demo with no actual sensitive information.

@@ -169,13 +169,13 @@ def process_contact_request(contact_request_id: int) -> None:
     """
     from crate_anon.crateweb.consent.models import (
         ContactRequest,
-    )  # delayed import  # noqa
+    )  # delayed import
 
     log.debug("process_contact_request")
     set_script_prefix(settings.FORCE_SCRIPT_NAME)  # see site_absolute_url
     contact_request = ContactRequest.objects.get(
         pk=contact_request_id
-    )  # type: ContactRequest  # noqa
+    )  # type: ContactRequest
     contact_request.process_request()
 
 
@@ -198,7 +198,7 @@ def finalize_clinician_response(clinician_response_id: int) -> None:
     """  # noqa
     from crate_anon.crateweb.consent.models import (
         ClinicianResponse,
-    )  # delayed import  # noqa
+    )  # delayed import
 
     log.debug("finalize_clinician_response")
     clinician_response = ClinicianResponse.objects.get(
@@ -217,7 +217,7 @@ def refresh_all_consent_modes() -> None:
     """
     from crate_anon.crateweb.consent.models import (
         ConsentMode,
-    )  # delayed import  # noqa
+    )  # delayed import
     from django.contrib.auth.models import User  # delayed import
 
     log.debug("refresh_all_consent_modes")
@@ -254,7 +254,7 @@ def process_consent_change(consent_mode_id: int) -> None:
     """
     from crate_anon.crateweb.consent.models import (
         ConsentMode,
-    )  # delayed import  # noqa
+    )  # delayed import
 
     log.debug("process_consent_change")
     consent_mode = ConsentMode.objects.get(pk=consent_mode_id)
@@ -276,7 +276,7 @@ def process_patient_response(patient_response_id: int) -> None:
     """
     from crate_anon.crateweb.consent.models import (
         PatientResponse,
-    )  # delayed import  # noqa
+    )  # delayed import
 
     log.debug("process_patient_response")
     patient_response = PatientResponse.objects.get(pk=patient_response_id)
@@ -344,16 +344,16 @@ def resubmit_unprocessed_tasks_task() -> None:
     """
     from crate_anon.crateweb.consent.models import (
         ClinicianResponse,
-    )  # delayed import  # noqa
+    )  # delayed import
     from crate_anon.crateweb.consent.models import (
         ConsentMode,
-    )  # delayed import  # noqa
+    )  # delayed import
     from crate_anon.crateweb.consent.models import (
         ContactRequest,
-    )  # delayed import  # noqa
+    )  # delayed import
     from crate_anon.crateweb.consent.models import (
         PatientResponse,
-    )  # delayed import  # noqa
+    )  # delayed import
 
     log.debug("resubmit_unprocessed_tasks_task")
 

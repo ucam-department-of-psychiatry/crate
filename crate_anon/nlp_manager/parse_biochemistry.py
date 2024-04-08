@@ -569,7 +569,7 @@ class Creatinine(SimpleNumericalResultParser):
         MICROEQ_PER_L: 1,
         MG_PER_DL: factor_micromolar_from_mg_per_dl(
             CREATININE_MOLECULAR_MASS_G_PER_MOL
-        )
+        ),
         # but not MG
     }
 
@@ -1186,7 +1186,7 @@ class Bilirubin(SimpleNumericalResultParser):
                 (
                     "Total   bilirubin \t  level \n (XE2qu) 17",
                     [17],
-                ),  # test whitespace  # noqa
+                ),  # test whitespace
                 (
                     "xTotal bilirubin level (XE2qu) 17",
                     [],
@@ -1352,7 +1352,7 @@ class Glucose(SimpleNumericalResultParser):
         MILLIMOLES_PER_L: 1,
         MG_PER_DL: factor_millimolar_from_mg_per_dl(
             GLUCOSE_MOLECULAR_MASS_G_PER_MOL
-        ),  # noqa
+        ),
     }
 
     def __init__(

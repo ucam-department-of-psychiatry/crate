@@ -1711,7 +1711,7 @@ def core_tablename(
                 return tablename
             else:
                 return ""
-    rest = tablename[len(prefix) :]  # noqa: E203
+    rest = tablename[len(prefix) :]
     if not rest:
         raise ValueError(f"Table name {tablename!r} only contains its prefix")
     xlate = CONTEXT_TO_CORE_TABLE_TRANSLATIONS[from_context]

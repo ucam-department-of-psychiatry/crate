@@ -471,7 +471,7 @@ class CloudRequestProcess(CloudRequest):
         #     {(procname, version): 'Cloud' object}
         self.requested_processors = (
             self._cloudcfg.remote_processors
-        )  # type: Dict[Tuple[str, Optional[str]], Cloud]  # noqa
+        )  # type: Dict[Tuple[str, Optional[str]], Cloud]
 
         if crinfo:
             self._add_all_processors_to_request()  # may raise
@@ -668,7 +668,7 @@ class CloudRequestProcess(CloudRequest):
         self._request_process[NKeys.ARGS][NKeys.QUEUE] = queue
         self._request_process[NKeys.ARGS][
             NKeys.INCLUDE_TEXT
-        ] = include_text_in_reply  # noqa
+        ] = include_text_in_reply
         request_json = to_json_str(self._request_process)
 
         # Send request; get response

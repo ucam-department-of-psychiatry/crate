@@ -452,9 +452,11 @@ class DataDictionaryRow:
                 SrcFlag.NOT_NULL if self._not_null else "",
                 SrcFlag.ADD_SRC_HASH if self._add_src_hash else "",
                 SrcFlag.PRIMARY_PID if self._primary_pid else "",
-                SrcFlag.DEFINES_PRIMARY_PIDS
-                if self._defines_primary_pids
-                else "",
+                (
+                    SrcFlag.DEFINES_PRIMARY_PIDS
+                    if self._defines_primary_pids
+                    else ""
+                ),
                 SrcFlag.MASTER_PID if self._master_pid else "",
                 SrcFlag.CONSTANT if self._constant else "",
                 SrcFlag.ADDITION_ONLY if self._addition_only else "",

@@ -356,7 +356,7 @@ class NonspecificScrubberTests(ScrubberTestCase):
             replacement_text_all_dates="%b %Y",
         )
 
-        for (text, expected) in tests:
+        for text, expected in tests:
             self.assertEqual(
                 scrubber.scrub(text), expected, msg=f"test: {text}"
             )
@@ -385,7 +385,7 @@ class NonspecificScrubberTests(ScrubberTestCase):
             ("[%b %Y]", "[Feb 2022]"),
         ]
 
-        for (replacement, expected) in custom_placeholder_tests:
+        for replacement, expected in custom_placeholder_tests:
             scrubber = NonspecificScrubber(
                 self.hasher,
                 scrub_all_dates=True,

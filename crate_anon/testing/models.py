@@ -66,6 +66,7 @@ PATIENT_ID_COMMENT = "Patient ID"
 # BLOB type
 # =============================================================================
 
+
 # http://docs.sqlalchemy.org/en/latest/core/custom_types.html
 # noinspection PyUnusedLocal
 @compiles(LargeBinary, "mysql")

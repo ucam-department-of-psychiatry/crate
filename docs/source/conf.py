@@ -66,7 +66,7 @@ Less helpful:
 - noting that ``sphinx/parsers.py`` does everything via
   ``docutils.parsers.rst.states.RSTStateMachine``, ... oh, never mind
 
-"""  # noqa
+"""
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -297,6 +297,7 @@ todo_include_todos = True
 # -----------------------------------------------------------------------------
 # RNC extras
 # -----------------------------------------------------------------------------
+
 
 # noinspection PyUnusedLocal
 def skip(

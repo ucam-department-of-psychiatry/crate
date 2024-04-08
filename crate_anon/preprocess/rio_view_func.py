@@ -211,7 +211,7 @@ def lookup_from_fragment_first_row(
 
     Note that SQL Server uses "SELECT TOP 1 ..." not "SELECT ... LIMIT 1".
 
-    """  # noqa
+    """
     return (
         f"LEFT JOIN {lookup_table} {aliased_lookup_table} "
         f"ON {aliased_lookup_table}.{lookup_unique_field} = ("
@@ -1232,7 +1232,7 @@ def rio_add_location_lookup(
             INNER JOIN GenLocationType {ap}_loctype
                 ON {ap}_loctype.Code = {ap}_loc.LocationType
         ) ON {ap}_loc.Code = {basetable}.{basecolumn}
-    """.format(  # noqa
+    """.format(
             ap=internal_alias_prefix,
             basetable=viewmaker.basetable,
             basecolumn=basecolumn,

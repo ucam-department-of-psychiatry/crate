@@ -30,7 +30,6 @@ compared between two people.
 
 """
 
-
 # =============================================================================
 # Imports
 # =============================================================================
@@ -1292,7 +1291,7 @@ class BasicName(IdentifierFourState, ABC):
 
     Since names can change, we also support optional start/end dates. If none
     are supplied, it simply becomes a non-temporal identifier.
-    """  # noqa
+    """
 
     KEY_NAME = "name"
     KEY_METAPHONE = "metaphone"
@@ -1960,9 +1959,9 @@ class PerfectID(IdentifierTwoState):
     def _set_identifiers(self, identifiers: Dict[str, str] = None) -> None:
         identifiers = identifiers or {}
         for k, v in identifiers.items():
-            self.identifiers[
-                standardize_perfect_id_key(k)
-            ] = standardize_perfect_id_value(v)
+            self.identifiers[standardize_perfect_id_key(k)] = (
+                standardize_perfect_id_value(v)
+            )
         self.key_set = set(self.identifiers.keys())
 
     @classmethod

@@ -42,6 +42,7 @@ from crate_anon.crateweb.consent.models import (
 # Dummy clinical database (part of CRATE)
 # =============================================================================
 
+
 # noinspection PyUnusedLocal
 def lookup_dummy_clinical(
     lookup: PatientLookup, decisions: List[str], secret_decisions: List[str]

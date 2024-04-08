@@ -1180,7 +1180,7 @@ def gen_opt_out_pids_mpids_rio_generic(
                 cr.OptOut = 1
             ORDER BY
                 cr.ClientID
-        """  # noqa
+        """
     else:
         assert False, "Internal bug"  # makes type checker happy
 

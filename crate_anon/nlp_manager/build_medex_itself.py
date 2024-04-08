@@ -512,7 +512,7 @@ Exception in thread "main" java.lang.StringIndexOutOfBoundsException: String ind
     at CrateMedexPipeline.main(CrateMedexPipeline.java:320)
                     """,  # noqa
                     "wrong": r"while(cur_pos<llen & (txt.charAt(cur_pos)==' ' || txt.charAt(cur_pos)=='\n' || txt.charAt(cur_pos)=='\r') ){",  # noqa
-                    "right": r"while(cur_pos<llen && (txt.charAt(cur_pos)==' ' || txt.charAt(cur_pos)=='\n' || txt.charAt(cur_pos)=='\r') ){"  # noqa
+                    "right": r"while(cur_pos<llen && (txt.charAt(cur_pos)==' ' || txt.charAt(cur_pos)=='\n' || txt.charAt(cur_pos)=='\r') ){",  # noqa
                     # -----------------------------^
                 },
             ],
@@ -555,7 +555,7 @@ The bug may relate to what's in SA[i]... but as a simple fix:
 
                     """,  # noqa
                     "wrong": r"if (this.otext.charAt(pos) != ' ' && this.otext.charAt(pos) != '\n' && this.otext.charAt(pos) != this.end_char && (pos == 0 || (this.otext.charAt(pos-1) == ' ' || this.otext.charAt(pos-1) == '\n'))){",  # noqa
-                    "right": r"if (pos < this.otext.length() && this.otext.charAt(pos) != ' ' && this.otext.charAt(pos) != '\n' && this.otext.charAt(pos) != this.end_char && (pos == 0 || (this.otext.charAt(pos-1) == ' ' || this.otext.charAt(pos-1) == '\n'))){"  # noqa
+                    "right": r"if (pos < this.otext.length() && this.otext.charAt(pos) != ' ' && this.otext.charAt(pos) != '\n' && this.otext.charAt(pos) != this.end_char && (pos == 0 || (this.otext.charAt(pos-1) == ' ' || this.otext.charAt(pos-1) == '\n'))){",  # noqa
                     # -------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
                 },
             ],

@@ -16,10 +16,8 @@ echo installing vulnerability checker
 ${PYTHON} -m pip install safety
 echo checking packages for vulnerabilities
 # All of these vulnerabilities look either harmless or very low risk
-# 51457 py no fix yet
-#       https://github.com/pytest-dev/py/issues/287
 # 51668 sqlalchemy fix in 2.0 beta, we don't log Engine.URL()
 #       https://github.com/sqlalchemy/sqlalchemy/issues/8567
 # 52495 setuptools fix in 65.5.1, we'll be careful not to
 #       install malicious packages.
-${SAFETY} check --full-report --ignore=51457 --ignore=51668 --ignore=52495
+${SAFETY} check --full-report --ignore=51668 --ignore=52495

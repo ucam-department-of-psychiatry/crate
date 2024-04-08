@@ -84,7 +84,7 @@ class NlpRecord(ProgressBase):
             #   due to hash collisions, if we're using a string
             #   ... but ?should be last because we may not use it in
             #   queries (for tables with integer PK)
-            unique=True
+            unique=True,
             # Despite having a NULL field in a UNIQUE index, this is OK for
             # SQL Server 2008+ (https://stackoverflow.com/questions/767657) and
             # MySQL also seems happy.
@@ -104,13 +104,13 @@ class NlpRecord(ProgressBase):
     srcdb = Column(
         "srcdb",
         SqlTypeDbIdentifier,
-        comment="Source database"
+        comment="Source database",
         # primary_key=True
     )
     srctable = Column(
         "srctable",
         SqlTypeDbIdentifier,
-        comment="Source table name"
+        comment="Source table name",
         # primary_key=True
     )
     srcpkfield = Column(
@@ -121,7 +121,9 @@ class NlpRecord(ProgressBase):
     srcpkval = Column(
         "srcpkval",
         BigInteger,
-        comment="Primary key value in source table (or hash if PK is a string)"
+        comment=(
+            "Primary key value in source table (or hash if PK is a string)"
+        ),
         # primary_key=True
     )
     srcpkstr = Column(
@@ -129,20 +131,20 @@ class NlpRecord(ProgressBase):
         String(MAX_STRING_PK_LENGTH),
         comment=f"Original string PK, used when the table has a string PK, to "
         f"deal with hash collisions. Max length: "
-        f"{MAX_STRING_PK_LENGTH}"
+        f"{MAX_STRING_PK_LENGTH}",
         # primary_key=True, default=''  # can't have a NULL in a composite PK
     )
     srcfield = Column(
         "srcfield",
         SqlTypeDbIdentifier,
-        comment="Name of column in source field containing actual data"
+        comment="Name of column in source field containing actual data",
         # primary_key=True
     )
     nlpdef = Column(
         "nlpdef",
         SqlTypeDbIdentifier,
         comment="Name of natural language processing definition that source "
-        "was processed for"
+        "was processed for",
         # primary_key=True
     )
     whenprocessedutc = Column(

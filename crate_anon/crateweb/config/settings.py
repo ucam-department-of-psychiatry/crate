@@ -515,7 +515,7 @@ SPECTACULAR_SETTINGS = {
 # Import from a site-specific file
 # =============================================================================
 # First attempt: import file with a fixed name from the PYTHONPATH.
-#       from crate_local_settings import *  # noqa
+#       from crate_local_settings import *
 # Better: import a file named in an environment variable.
 
 if RUNNING_WITHOUT_CONFIG:

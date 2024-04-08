@@ -56,7 +56,7 @@ or for a production environment:
         {script} /usr/share/crate/virtualenv
 """.format(
     script=os.path.basename(__file__)
-)  # noqa
+)
 
 PYTHON = sys.executable  # Windows needs this before Python executables
 PYTHONBASE = os.path.basename(PYTHON)

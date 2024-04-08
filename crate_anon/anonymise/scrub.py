@@ -572,7 +572,7 @@ class NonspecificScrubber(ScrubberBase):
                 Scrub all e-mail addresses?
             extra_regexes:
                 List of user-defined extra regexes to scrub.
-        """  # noqa
+        """
         scrub_all_numbers_of_n_digits = scrub_all_numbers_of_n_digits or []
 
         super().__init__(hasher)
@@ -808,22 +808,22 @@ class PersonalizedScrubber(ScrubberBase):
         self.replacement_text_patient = replacement_text_patient
         self.replacement_text_third_party = replacement_text_third_party
         self.anonymise_codes_at_word_boundaries_only = (
-            anonymise_codes_at_word_boundaries_only  # noqa
+            anonymise_codes_at_word_boundaries_only
         )
         self.anonymise_codes_at_numeric_boundaries_only = (
-            anonymise_codes_at_numeric_boundaries_only  # noqa
+            anonymise_codes_at_numeric_boundaries_only
         )
         self.anonymise_dates_at_word_boundaries_only = (
-            anonymise_dates_at_word_boundaries_only  # noqa
+            anonymise_dates_at_word_boundaries_only
         )
         self.anonymise_numbers_at_word_boundaries_only = (
-            anonymise_numbers_at_word_boundaries_only  # noqa
+            anonymise_numbers_at_word_boundaries_only
         )
         self.anonymise_numbers_at_numeric_boundaries_only = (
-            anonymise_numbers_at_numeric_boundaries_only  # noqa
+            anonymise_numbers_at_numeric_boundaries_only
         )
         self.anonymise_strings_at_word_boundaries_only = (
-            anonymise_strings_at_word_boundaries_only  # noqa
+            anonymise_strings_at_word_boundaries_only
         )
         self.min_string_length_for_errors = min_string_length_for_errors
         self.min_string_length_to_scrub_with = min_string_length_to_scrub_with
@@ -845,7 +845,7 @@ class PersonalizedScrubber(ScrubberBase):
         #     potential importance of scrubber order
         self.elements_tuplelist = (
             []
-        )  # type: List[Tuple[bool, ScrubMethod, str]]  # noqa
+        )  # type: List[Tuple[bool, ScrubMethod, str]]
         # ... list of tuples: (patient?, type, value)
         # ... used for get_raw_info(); since we've made the order important,
         #     we should detect changes in order here as well
@@ -1173,9 +1173,11 @@ class PersonalizedScrubber(ScrubberBase):
             ),
             (
                 "nonspecific_scrubber_hash",
-                self.nonspecific_scrubber.get_hash()
-                if self.nonspecific_scrubber
-                else None,
+                (
+                    self.nonspecific_scrubber.get_hash()
+                    if self.nonspecific_scrubber
+                    else None
+                ),
             ),
             ("elements", self.elements_tuplelist),
         )

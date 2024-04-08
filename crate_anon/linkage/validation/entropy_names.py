@@ -371,7 +371,7 @@ def inf_bits_from_p(p: float) -> float:
     """
     The information value (surprisal, self-information) of an event from its
     probability, p; see equation [5] above.
-    """  # noqa
+    """
     return -log2(p)
 
 
@@ -380,7 +380,7 @@ def p_from_inf(inf_bits: float) -> float:
     """
     The information value (surprisal, self-information) of an event from its
     probability, p; see equation [5] above.
-    """  # noqa
+    """
     return power(2, -inf_bits)
 
 

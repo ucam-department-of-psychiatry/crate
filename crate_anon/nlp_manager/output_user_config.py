@@ -95,7 +95,7 @@ class OutputUserConfig:
                destfields and a desttable? - Should be true for Gate, False
                for Cloud as the remote processors may have their own schema
                definition.
-        """  # noqa
+        """
 
         sectionname = full_sectionname(
             NlpConfigPrefixes.OUTPUT, cfg_output_name

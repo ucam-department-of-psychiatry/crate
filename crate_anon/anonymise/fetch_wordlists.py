@@ -1575,7 +1575,7 @@ def main() -> None:
             url=args.us_forenames_url,
             filename=args.us_forenames_output,
             freq_csv_filename=args.us_forenames_freq_output,
-            freq_sex_csv_filename=args.us_forenames_sex_freq_output,  # noqa
+            freq_sex_csv_filename=args.us_forenames_sex_freq_output,
             min_cumfreq_pct=args.us_forenames_min_cumfreq_pct,
             max_cumfreq_pct=args.us_forenames_max_cumfreq_pct,
             min_name_length=args.min_word_length,

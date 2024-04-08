@@ -216,7 +216,7 @@ class TimelyCPFTRiOFilter(TimelyDDFilter):
                 (
                     "SNOMED_Client",
                     "SC_WrapperXML",
-                ),  # unlikely to be free text but unsure  # noqa
+                ),  # unlikely to be free text but unsure
                 # More generally, anything that says "Comment" should be
                 # filtered:
                 (".+", ".*Comment"),

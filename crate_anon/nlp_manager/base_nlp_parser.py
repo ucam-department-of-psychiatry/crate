@@ -411,7 +411,7 @@ class TableMaker(ABC):
                 GateFN.ID,
                 Integer,
                 comment="GATE annotation ID (not clear this is very useful)",
-            ),  # noqa
+            ),
             Column(
                 GateFN.STARTPOS,
                 Integer,

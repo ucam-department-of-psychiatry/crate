@@ -664,7 +664,7 @@ class NlpWebViews:
             except KeyError:
                 _processor = ServerProcessor.get_processor_from_id(
                     _processor_id
-                )  # may raise  # noqa
+                )  # may raise
                 processor_cache[_processor_id] = _processor
                 return _processor
 
@@ -732,7 +732,7 @@ class NlpWebViews:
         # Queue IDs that are of interest
         queue_id_wheres = [
             Document.username == self.username
-        ]  # type: List[ClauseElement]  # noqa: E501
+        ]  # type: List[ClauseElement]
         if client_job_id:
             queue_id_wheres.append(Document.client_job_id == client_job_id)
         # noinspection PyUnresolvedReferences
@@ -766,9 +766,9 @@ class NlpWebViews:
                 {
                     NKeys.QUEUE_ID: queue_id,
                     NKeys.CLIENT_JOB_ID: client_job_id,
-                    NKeys.STATUS: NlprpValues.BUSY
-                    if busy
-                    else NlprpValues.READY,
+                    NKeys.STATUS: (
+                        NlprpValues.BUSY if busy else NlprpValues.READY
+                    ),
                     NKeys.DATETIME_SUBMITTED: pendulum_to_nlprp_datetime(
                         dt_submitted, to_utc=True
                     ),

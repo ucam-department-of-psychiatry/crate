@@ -236,6 +236,7 @@ def get_consent_mode(
 # Views
 # =============================================================================
 
+
 # noinspection PyUnusedLocal
 def study_details(request: HttpRequest, study_id: str) -> HttpResponseBase:
     """
@@ -302,9 +303,11 @@ def study_pack(request: HttpRequest, study_id: str) -> HttpResponseBase:
         None,
         [
             study.study_details_pdf.path if study.study_details_pdf else None,
-            study.subject_form_template_pdf.path
-            if study.subject_form_template_pdf
-            else None,
+            (
+                study.subject_form_template_pdf.path
+                if study.subject_form_template_pdf
+                else None
+            ),
         ],
     )
     if not filenames:
@@ -385,7 +388,7 @@ def view_email_attachment(
     """
     attachment = get_object_or_404(
         EmailAttachment, pk=attachment_id
-    )  # type: EmailAttachment  # noqa
+    )  # type: EmailAttachment
     # noinspection PyTypeChecker
     validate_email_request(request.user, attachment.email)
     if not attachment.file:
@@ -896,7 +899,7 @@ def clinician_pack(
     else:
         clinician_response = get_object_or_404(
             ClinicianResponse, pk=clinician_response_id
-        )  # type: ClinicianResponse  # noqa
+        )  # type: ClinicianResponse
         contact_request = clinician_response.contact_request
     # Check token authentication
     if token != clinician_response.token:

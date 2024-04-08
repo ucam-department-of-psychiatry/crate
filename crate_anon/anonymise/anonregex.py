@@ -434,7 +434,7 @@ def get_code_regex_elements(
         return []
     chars = escape_literal_for_regex_giving_charlist(
         s
-    )  # escape any decimal points, etc.  # noqa
+    )  # escape any decimal points, etc.
     if very_liberal:
         separators = OPTIONAL_NONWORD
     elif liberal:

@@ -67,7 +67,7 @@ Thoughts on configuration method
 -   See also
     https://stackoverflow.com/questions/7443366/argument-passing-strategy-environment-variables-vs-command-line
 
-"""  # noqa
+"""
 
 # =============================================================================
 # Imports
@@ -385,7 +385,7 @@ class DatabaseSafeConfig:
         for (
             if_field,
             then_field,
-        ) in self.ddgen_table_require_field_conditional.items():  # noqa
+        ) in self.ddgen_table_require_field_conditional.items():
             if if_field in colnames and then_field not in colnames:
                 log.debug(
                     f"Table fails minimum field requirements: "
@@ -470,7 +470,7 @@ def get_word_alternatives(filenames: List[str]) -> List[List[str]]:
                 equivalent_words = [w.strip().upper() for w in line.split(",")]
                 equivalent_words = [
                     w for w in equivalent_words if w
-                ]  # remove empties  # noqa
+                ]  # remove empties
                 if len(equivalent_words) < 2:
                     continue
                 for w in equivalent_words:
@@ -1004,7 +1004,7 @@ class Config:
 
         Returns:
             the Engine
-        """  # noqa
+        """
         url = self._destination_database_url
         return create_engine(
             url,

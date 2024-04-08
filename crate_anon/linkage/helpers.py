@@ -29,7 +29,6 @@ Avoid using pickle for caching; it is insecure (arbitrary code execution).
 
 """
 
-
 # =============================================================================
 # Imports
 # =============================================================================
@@ -547,9 +546,7 @@ def mutate_name(name: str) -> str:
         replacement_ord = random.randint(a, z)
         if replacement_ord != start_ord:
             break
-    return (
-        name[:which] + chr(replacement_ord) + name[which + 1 :]  # noqa: E203
-    )
+    return name[:which] + chr(replacement_ord) + name[which + 1 :]
 
 
 def mutate_postcode(postcode: str, cfg: "MatchConfig") -> str:
@@ -580,9 +577,7 @@ def mutate_postcode(postcode: str, cfg: "MatchConfig") -> str:
             while replacement_ord == start_ord:
                 replacement_ord = random.randint(a, z)
         mutated = (
-            postcode[:which]
-            + chr(replacement_ord)
-            + postcode[which + 1 :]  # noqa: E203
+            postcode[:which] + chr(replacement_ord) + postcode[which + 1 :]
         )
         if cfg.is_valid_postcode(mutated):
             return mutated

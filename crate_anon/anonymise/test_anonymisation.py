@@ -261,7 +261,7 @@ def process_doc(
 
     Returns:
         the patient ID number (PID)
-    """  # noqa
+    """
     # Get stuff
     pid, rawtext = get_patientnum_rawtext(docid, fieldinfo)
     rid, anontext = get_patientnum_anontext(docid, fieldinfo)

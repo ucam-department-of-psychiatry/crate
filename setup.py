@@ -76,7 +76,7 @@ INSTALL_REQUIRES = [
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==3.2.24",  # for main CRATE research database web server
+    "django==3.2.25",  # for main CRATE research database web server
     "django-debug-toolbar==3.0a2",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
@@ -126,7 +126,7 @@ INSTALL_REQUIRES = [
     # Packages for cloud NLP:
     # -------------------------------------------------------------------------
     "bcrypt==3.1.7",  # bcrypt encryption
-    "cryptography==42.0.4",  # cryptography library
+    "cryptography==42.0.5",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework
@@ -141,14 +141,14 @@ INSTALL_REQUIRES = [
     # -------------------------------------------------------------------------
     # For development only:
     # -------------------------------------------------------------------------
-    "black==22.8.0",  # auto code formatter, keep in sync with .pre-commit-config.yaml  # noqa: E501
+    "black==24.3.0",  # auto code formatter, keep in sync with .pre-commit-config.yaml  # noqa: E501
     "factory_boy==3.3.0",  # easier test data creation
     "faker==13.3.1",  # test data creation
     "flake8==5.0.4",  # code checks, keep in sync with .pre-commit-config.yaml
     "docutils==0.19",
     "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
     "pre-commit==2.20.0",  # development only, various sanity checks on code
-    "pytest==7.1.1",  # automatic testing
+    "pytest==8.1.1",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
     "python-on-whales==0.68.0",  # python wrappers for testing with Docker
     "sphinx==7.1.2",  # documentation

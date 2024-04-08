@@ -26,6 +26,7 @@ crate_anon/testing/factories.py
 **Factory Boy SQL Alchemy test factories.**
 
 """
+
 import random
 from typing import TYPE_CHECKING
 

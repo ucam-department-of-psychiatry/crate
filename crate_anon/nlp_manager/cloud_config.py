@@ -77,7 +77,7 @@ class CloudConfig:
         """
         from crate_anon.nlp_manager.cloud_parser import (
             Cloud,
-        )  # delayed import  # noqa
+        )  # delayed import
 
         self._nlpdef = nlpdef
         self.req_data_dir = req_data_dir

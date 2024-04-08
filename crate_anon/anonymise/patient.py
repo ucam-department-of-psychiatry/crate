@@ -198,7 +198,7 @@ class Patient:
         # ---------------------------------------------------------------------
         # For all source tables with scrub-source information...
         # ---------------------------------------------------------------------
-        for (src_db, src_table) in self._db_table_pair_list:
+        for src_db, src_table in self._db_table_pair_list:
             session = config.sources[src_db].session
             # -----------------------------------------------------------------
             # Build a list of scrub-from fields for this table.
@@ -279,7 +279,7 @@ class Patient:
 
         See also
         :meth:`crate_anon.anonymise.dd.DataDictionary.get_mandatory_scrubber_sigs`.
-        """  # noqa
+        """
         return self._mandatory_scrubbers_unfulfilled
 
     @property

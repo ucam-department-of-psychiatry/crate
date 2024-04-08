@@ -58,7 +58,7 @@ DOCS_DIR = abspath(join(THIS_DIR, pardir, "docs"))  # .../crate/docs/
 
 CRATE_ROOT_DIR = abspath(
     join(THIS_DIR, pardir, "crate_anon")
-)  # .../crate/crate_anon/  # noqa
+)  # .../crate/crate_anon/
 CRATEWEB_STATIC_DIR = join(CRATE_ROOT_DIR, "crateweb", "static")
 
 DOCS_SOURCE_IMAGES_DIR = join(DOCS_DIR, "source", "images")

@@ -137,7 +137,6 @@ class FormattedIncrementingDateProvider(BaseProvider):
 
 
 class ConsistentDateOfBirthProvider(BaseProvider):
-
     """
     Returns a date of birth no greater than 1st January 2000. All patient notes
     are created after this date.

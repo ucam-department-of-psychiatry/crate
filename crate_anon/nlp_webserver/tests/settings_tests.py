@@ -46,7 +46,7 @@ class NlprpDocgenSettingsTests(unittest.TestCase):
         os.environ[EnvVar.GENERATING_CRATE_DOCS] = "True"
         from crate_anon.nlp_webserver.settings import (
             SETTINGS,
-        )  # delayed import  # noqa
+        )  # delayed import
 
         _ = engine_from_config(
             SETTINGS,
