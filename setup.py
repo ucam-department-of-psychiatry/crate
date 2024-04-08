@@ -256,6 +256,7 @@ setup(
             f"{CrateCommand.NLP_BUILD_MEDEX_JAVA_INTERFACE}=crate_anon.nlp_manager.build_medex_java_interface:main",  # noqa: E501
             f"{CrateCommand.NLP_MULTIPROCESS}=crate_anon.nlp_manager.launch_multiprocess_nlp:main",  # noqa: E501
             f"{CrateCommand.NLP_PREPARE_YMLS_FOR_BIOYODIE}=crate_anon.nlp_manager.prepare_umls_for_bioyodie:main",  # noqa: E501
+            f"{CrateCommand.NLP_WRITE_GATE_AUTO_INSTALL_XML}=crate_anon.nlp_manager.write_gate_auto_install_xml:main",  # noqa: E501
             f"{CrateCommand.RUN_CRATE_NLP_DEMO}=crate_anon.nlp_manager.run_crate_nlp_demo:main",  # noqa: E501
             f"{CrateCommand.RUN_GATE_ANNIE_DEMO}=crate_anon.nlp_manager.run_gate_annie_demo:main",  # noqa: E501
             f"{CrateCommand.RUN_GATE_KCL_KCONNECT_DEMO}=crate_anon.nlp_manager.run_gate_kcl_kconnect_demo:main",  # noqa: E501
