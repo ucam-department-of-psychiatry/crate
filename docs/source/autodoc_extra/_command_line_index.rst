@@ -87,6 +87,8 @@ Index of CRATE commands
 
 :ref:`crate_nlp_webserver_pserve <crate_nlp_webserver_pserve>`
 
+:ref:`crate_nlp_write_gate_auto_install_xml <crate_nlp_write_gate_auto_install_xml>`
+
 :ref:`crate_postcodes <crate_postcodes>`
 
 :ref:`crate_preprocess_pcmis <crate_preprocess_pcmis>`
