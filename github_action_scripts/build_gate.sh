@@ -21,6 +21,8 @@ GATE_HOME=${HOME}/gate
 KCL_PHARMACOTHERAPY_PARENT_DIR=${HOME}/kcl_pharmacotherapy
 KCL_PHARMACOTHERAPY_DIR=${KCL_PHARMACOTHERAPY_PARENT_DIR}/brc-gate-pharmacotherapy
 
+CRATE_GATE_PLUGIN_FILE=${GITHUB_WORKSPACE}/crate_anon/nlp_manager/specimen_gate_plugin_file.ini
+
 ${CRATE_VENV_BIN}/crate_nlp_write_gate_auto_install_xml --filename ${GATE_XML_FILENAME} --version ${GATE_VERSION} --gatedir "${GATE_HOME}"
 wget -O "${TMPDIR}/gate-installer.jar" https://github.com/GateNLP/gate-core/releases/download/v${GATE_VERSION}/gate-developer-${GATE_VERSION}-installer.jar
 
