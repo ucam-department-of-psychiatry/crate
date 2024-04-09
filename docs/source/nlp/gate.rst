@@ -99,6 +99,17 @@ Options:
     :language: none
 
 
+.. _crate_nlp_write_gate_auto_install_xml:
+
+crate_nlp_write_gate_auto_install_xml
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This program writes a GATE automatic installation XML script.
+
+..  literalinclude:: _crate_nlp_write_gate_auto_install_xml_help.txt
+    :language: none
+
+
 CrateGatePipeline
 ~~~~~~~~~~~~~~~~~
 
