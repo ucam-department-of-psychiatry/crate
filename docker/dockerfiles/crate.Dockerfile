@@ -212,7 +212,7 @@ RUN echo "======================================================================
     && wget \
         --progress=dot:giga \
         -O "$TMPDIR/gate-installer.jar" \
-        https://github.com/GateNLP/gate-core/releases/download/v8.6.1/gate-developer-8.6.1-installer.jar \
+        https://github.com/GateNLP/gate-core/releases/download/v$GATE_VERSION/gate-developer-$GATE_VERSION-installer.jar \
     && java -jar "$TMPDIR/gate-installer.jar" \
         "$CRATE_SRC/docker/dockerfiles/gate_auto_install.xml" \
     \
