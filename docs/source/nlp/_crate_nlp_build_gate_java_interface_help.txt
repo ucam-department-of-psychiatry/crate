@@ -1,5 +1,6 @@
 USAGE: crate_nlp_build_gate_java_interface [-h] [--builddir BUILDDIR]
                                            [--gatedir GATEDIR]
+                                           [--logconfigdir LOGCONFIGDIR]
                                            [--gate_exec GATE_EXEC]
                                            [--java JAVA] [--javac JAVAC]
                                            [--verbose] [--launch]
@@ -13,6 +14,9 @@ OPTIONS:
                         sses)
   --gatedir GATEDIR     Root directory of GATE installation (default:
                         /path/to/GATE/installation)
+  --logconfigdir LOGCONFIGDIR
+                        Directory containing GATE log config files (default:
+                        /path/to/crate/crate_anon/nlp_manager/gate_log_config)
   --gate_exec GATE_EXEC
                         Path to GATE executable (JAR file). Temporary (future
                         releases may handle this differently). If not
