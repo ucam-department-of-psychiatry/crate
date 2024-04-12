@@ -204,7 +204,31 @@ RUN echo "- wkhtmltopdf: Fetching wkhtmltopdf with patched Qt (~14 Mb)..." \
     && echo "- wkhtmltopdf: Installing wkhtmltopdf..." \
     && gdebi --non-interactive "$TMPDIR/wkhtmltopdf.deb"
 
-FROM crate-build-6-wkhtmltopdf AS crate-build-7-nlp-tools
+FROM crate-build-6-wkhtmltopdf AS crate-build-7-python-packages
+
+RUN echo "===============================================================================" \
+    && echo "CRATE" \
+    && echo "===============================================================================" \
+    && echo "- Creating Python 3 virtual environment..." \
+    && python3 -m venv /crate/venv \
+    && echo "- Upgrading pip within virtual environment..." \
+    && "$CRATE_VENV_BIN/python3" -m pip install --upgrade pip \
+    && echo "- Installing wheel within virtual environment..." \
+    && "$CRATE_VENV_BIN/pip" install wheel==0.35.1 \
+    && echo "- Installing CRATE (crate_anon, from source) and Python database drivers..." \
+    && echo "  * MySQL [mysqlclient]" \
+    && echo "  * PostgreSQL [psycopg2]" \
+    && echo "  * SQL Server [mssql-django, pyodbc, Microsoft ODBC Driver for SQL Server (Linux) as above]" \
+    && "$CRATE_VENV_BIN/python3" -m pip install \
+        "$CRATE_SRC" \
+        mssql-django==1.2 \
+        mysqlclient==1.4.6 \
+        psycopg2==2.8.5 \
+        pyodbc==4.0.35 \
+    && echo "- Installing remote debugger..." \
+    && "$CRATE_VENV_BIN/python3" -m pip install remote-pdb
+
+FROM crate-build-7-python-packages AS crate-build-8-nlp-tools
 
 RUN echo "===============================================================================" \
     && echo "Third-party NLP tools" \
@@ -234,36 +258,12 @@ RUN echo "======================================================================
     \
     && echo "- KCL BRC GATE Lewy body dementia app..." \
     && git clone https://github.com/KHP-Informatics/brc-gate-LBD "$TMPDIR/kcl_lewy" \
-    && unzip "$TMPDIR/kcl_lewy/Lewy_Body_Diagnosis.zip" -d "$KCL_LEWY_BODY_DIAGNOSIS_DIR"
-
-FROM crate-build-7-nlp-tools AS crate-build-8-python-packages
-
-RUN echo "===============================================================================" \
-    && echo "CRATE" \
-    && echo "===============================================================================" \
-    && echo "- Creating Python 3 virtual environment..." \
-    && python3 -m venv /crate/venv \
-    && echo "- Upgrading pip within virtual environment..." \
-    && "$CRATE_VENV_BIN/python3" -m pip install --upgrade pip \
-    && echo "- Installing wheel within virtual environment..." \
-    && "$CRATE_VENV_BIN/pip" install wheel==0.35.1 \
-    && echo "- Installing CRATE (crate_anon, from source) and Python database drivers..." \
-    && echo "  * MySQL [mysqlclient]" \
-    && echo "  * PostgreSQL [psycopg2]" \
-    && echo "  * SQL Server [mssql-django, pyodbc, Microsoft ODBC Driver for SQL Server (Linux) as above]" \
-    && "$CRATE_VENV_BIN/python3" -m pip install \
-        "$CRATE_SRC" \
-        mssql-django==1.2 \
-        mysqlclient==1.4.6 \
-        psycopg2==2.8.5 \
-        pyodbc==4.0.35 \
-    && echo "- Installing remote debugger..." \
-    && "$CRATE_VENV_BIN/python3" -m pip install remote-pdb \
+    && unzip "$TMPDIR/kcl_lewy/Lewy_Body_Diagnosis.zip" -d "$KCL_LEWY_BODY_DIAGNOSIS_DIR" \
     && echo "- Compiling CRATE Java interfaces..." \
     && "$CRATE_VENV_BIN/crate_nlp_build_gate_java_interface" \
         --gatedir "$GATE_HOME"
 
-FROM crate-build-8-python-packages AS crate-build-9-extra-nlp
+FROM crate-build-8-nlp-tools AS crate-build-9-extra-nlp
 
 RUN echo "===============================================================================" \
     && echo "Extra NLP steps" \
