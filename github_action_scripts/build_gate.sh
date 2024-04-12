@@ -31,12 +31,5 @@ wget -O "${TMPDIR}/brc-gate-pharmacotherapy.zip" https://github.com/KHP-Informat
 unzip "${TMPDIR}/brc-gate-pharmacotherapy.zip" -d "${KCL_PHARMACOTHERAPY_PARENT_DIR}"
 
 ${CRATE_VENV_BIN}/crate_nlp_build_gate_java_interface --gatedir "${GATE_HOME}"
-java \
-    -classpath "${GITHUB_WORKSPACE}/crate_anon/nlp_manager/compiled_nlp_classes:${GATE_HOME}/lib/*" \
-    -Dgate.home="${GATE_HOME}" \
-    CrateGatePipeline \
-    --gate_app "${KCL_PHARMACOTHERAPY_DIR}/application.xgapp" \
-    --pluginfile "${CRATE_GATE_PLUGIN_FILE}" \
-    --suppress_gate_stdout \
-    --verbose \
-    --launch_then_stop
+NLP_MANAGER_DIR=${GITHUB_WORKSPACE}/crate_anon/nlp_manager
+echo -e "Katherine Johnson\nEND" | java -classpath "${NLP_MANAGER_DIR}/gate_log_config/:${NLP_MANAGER_DIR}/compiled_nlp_classes:${GATE_HOME}/bin/gate.jar:${GATE_HOME}/lib/*" CrateGatePipeline -a Person -a Location -it END -ot END --demo --loglevel debug --log_tag TEST --gateloglevel error | grep -P '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \[DEBUG\|CrateGatePipeline\|TEST\] _content:Katherine Johnson'

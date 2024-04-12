@@ -101,10 +101,9 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
+import org.apache.log4j.MDC;
 
 import gate.Annotation;
 import gate.AnnotationSet;
@@ -197,6 +196,9 @@ public class CrateGatePipeline {
     /** Process command-line arguments and execute the pipeline. */
 
     public CrateGatePipeline(String args[]) throws GateException, IOException {
+        // Debug where Logger is being picked up from. Should be log4j-1.x for
+        // GATE 8.x and sl4fj for GATE 9.x
+        // System.out.println(Logger.class.getResource("Logger.class"));
         // --------------------------------------------------------------------
         // Arguments
         // --------------------------------------------------------------------
@@ -240,20 +242,19 @@ public class CrateGatePipeline {
         if (!m_extra_log_prefix.isEmpty()) {
             tag += "|" + escapePercent(m_extra_log_prefix);
         }
-        String log_pattern = "%d{yyyy-MM-dd HH:mm:ss.SSS} [%p|%c" + tag + "] %m%n";
-        PatternLayout log_layout = new PatternLayout(log_pattern);
-        ConsoleAppender log_appender = new ConsoleAppender(log_layout, "System.err");
+        MDC.put("tag", tag);
         Logger rootlog = Logger.getRootLogger();
-        rootlog.addAppender(log_appender);
 
         rootlog.setLevel(gate_level);
         m_log.setLevel(main_level);
 
         /*
         // Test:
+        rootlog.error("rootlog error");
         rootlog.debug("rootlog debug");
         rootlog.info("rootlog info");
         rootlog.warn("rootlog warn");
+        m_log.error("m_log error");
         m_log.debug("m_log debug");
         m_log.info("m_log info");
         m_log.warn("m_log warn");
