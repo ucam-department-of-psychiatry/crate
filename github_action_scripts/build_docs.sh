@@ -20,7 +20,7 @@ export CRATE_WEB_LOCAL_SETTINGS=${HOME}/crateweb_local_settings.py
 GATE_VERSION=9.0.1
 wget -O "${HOME}/gate-installer.jar" https://github.com/GateNLP/gate-core/releases/download/v${GATE_VERSION}/gate-developer-${GATE_VERSION}-installer.jar
 cd "${HOME}"
-crate_nlp_write_gate_auto_install_xml --filename /tmp/gate_auto_install.xml
+crate_nlp_write_gate_auto_install_xml --filename /tmp/gate_auto_install.xml --version $GATE_VERSION
 java -jar "${HOME}/gate-installer.jar" "/tmp/gate_auto_install.xml"
 export GATE_HOME=${HOME}/GATE_Developer_${GATE_VERSION}
 crate_anon_demo_config > "${CRATE_ANON_CONFIG}"
