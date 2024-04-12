@@ -8,6 +8,7 @@ on:
           - .github/workflows/gate.yml
           - crate_anon/nlp_manager/build_gate_java_interface.py
           - crate_anon/nlp_manager/CrateGatePipeline.java
+          - crate_anon/nlp_manager/gate_log_config/*
           - crate_anon/nlp_manager/write_gate_auto_install_xml.py
           - github_action_scripts/build_gate.sh
           - github_action_scripts/python_setup.sh
