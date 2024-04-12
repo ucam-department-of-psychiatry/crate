@@ -210,7 +210,7 @@ RUN echo "======================================================================
     && echo "Third-party NLP tools" \
     && echo "===============================================================================" \
     && echo "- GATE..." \
-    && $CRATE_VENV_BIN/crate_nlp_build_gate_java_interface --filename $TMPDIR/gate_auto_install.xml --version $GATE_VERSION \
+    && $CRATE_VENV_BIN/crate_nlp_write_gate_auto_install_xml --filename $TMPDIR/gate_auto_install.xml --version $GATE_VERSION \
     && wget \
         --progress=dot:giga \
         -O "$TMPDIR/gate-installer.jar" \
