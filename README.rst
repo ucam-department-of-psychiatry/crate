@@ -14,6 +14,9 @@ Clinical Records Anonymisation and Text Extraction (CRATE)
 .. image:: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/docs.yml/badge.svg
     :target: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/docs.yml/
 
+.. image:: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/gate.yml/badge.svg
+    :target: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/gate.yml/
+
 .. image:: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/installer.yml/badge.svg
     :target: https://github.com/ucam-department-of-psychiatry/crate/actions/workflows/installer.yml/
 
