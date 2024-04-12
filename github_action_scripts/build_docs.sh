@@ -24,8 +24,7 @@ export GATE_HOME=${HOME}/GATE_Developer_${GATE_VERSION}
 crate_nlp_write_gate_auto_install_xml --filename /tmp/gate_auto_install.xml --version $GATE_VERSION --gatedir $GATE_HOME
 java -jar "${HOME}/gate-installer.jar" "/tmp/gate_auto_install.xml"
 crate_anon_demo_config > "${CRATE_ANON_CONFIG}"
-cd "${GITHUB_WORKSPACE}/crate_anon/nlp_manager"
-python ./build_gate_java_interface.py
+crate_nlp_build_gate_java_interface
 crate_print_demo_crateweb_config > "${CRATE_WEB_LOCAL_SETTINGS}"
 ########################################################################################
 cd "${GITHUB_WORKSPACE}/docs"
