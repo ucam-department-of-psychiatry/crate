@@ -555,7 +555,7 @@ class Medex(BaseNlpParser):
                 self._env = os.environ.copy()
             self._env["NLPLOGTAG"] = nlpdef.logtag or "."
             # ... because passing a "-lt" switch with no parameter will make
-            # CrateGatePipeline.java complain and stop
+            # CrateMedexPipeline.java complain and stop
 
             progargs = self._cfgsection.opt_str(
                 ProcessorConfigKeys.PROGARGS, required=True
