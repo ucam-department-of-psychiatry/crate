@@ -157,6 +157,7 @@ services:
 
             args:
                 - USER_ID=${CRATE_DOCKER_INSTALL_USER_ID}
+                - GATE_VERSION=${CRATE_DOCKER_GATE_VERSION}
 
         # If you specify "image" as well as "build", Compose names the built
         # image. Syntax is "IMAGE[:TAG]".
@@ -195,7 +196,6 @@ services:
             DJANGO_SUPERUSER_PASSWORD: "${CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD}"
             DJANGO_SUPERUSER_EMAIL: "${CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL}"
             GATE_HOME: "/crate/gate"
-            GATE_VERSION: ${CRATE_DOCKER_GATE_VERSION}
             KCL_LEWY_BODY_DIAGNOSIS_DIR: "/crate/kcl_lewy_body_dementia"
             KCL_PHARMACOTHERAPY_DIR: "/crate/kcl_pharmacotherapy/brc-gate-pharmacotherapy"
             KCL_KCONNECT_DIR: "/crate/bioyodie"
