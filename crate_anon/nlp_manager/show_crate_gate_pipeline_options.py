@@ -55,8 +55,6 @@ def main() -> None:
             f"-Dgate.home={gate_home}",
             "CrateGatePipeline",
             "--help",
-            "-v",
-            "-v",
         ]
     )
 

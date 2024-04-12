@@ -101,7 +101,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.MDC;
 
@@ -147,9 +146,6 @@ public class CrateGatePipeline {
     private String m_output_terminator = m_default_output_terminator;
     private File m_gapp_file = null;
     private String m_file_encoding = null;  // null: use system default
-    private int m_verbose = 0;
-    private String m_loglevel = null;  // null so we know if user has specified
-    private String m_gateloglevel = null;
     private String m_annotxml_filename_stem = null;
     private String m_gatexml_filename_stem = null;
     private String m_tsv_filename_stem = null;
@@ -175,7 +171,7 @@ public class CrateGatePipeline {
     private String m_current_contents_for_crash_debugging = null;
     private boolean m_output_terminator_pending = false;
     // Logger:
-    private static final Logger m_log = Logger.getLogger(CrateGatePipeline.class);
+    private static final Logger m_log = Logger.getLogger("CrateGatePipeline");
 
     // GATE things
     private CorpusController m_controller = null;
@@ -208,48 +204,23 @@ public class CrateGatePipeline {
         // --------------------------------------------------------------------
         // Logging
         // --------------------------------------------------------------------
-        // http://stackoverflow.com/questions/8965946/configuring-log4j-loggers-programmatically
-        // https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PatternLayout.html
-        Level main_level;
-        if (m_loglevel == null) {
-            main_level = m_verbose >= 2 ? Level.DEBUG
-                                        : (m_verbose >= 1 ? Level.INFO
-                                                          : Level.WARN);
-        } else if (m_loglevel.equals("debug")) {
-            main_level = Level.DEBUG;
-        } else if (m_loglevel.equals("info")) {
-            main_level = Level.INFO;
-        } else if (m_loglevel.equals("warn")) {
-            main_level = Level.WARN;
-        } else {
-            main_level = Level.ERROR;
-        }
-        Level gate_level;
-        if (m_gateloglevel == null) {
-            gate_level = m_verbose >= 3 ? Level.DEBUG
-                                        : (m_verbose >= 2 ? Level.INFO
-                                                          : Level.WARN);
-        } else if (m_gateloglevel.equals("debug")) {
-            gate_level = Level.DEBUG;
-        } else if (m_gateloglevel.equals("info")) {
-            gate_level = Level.INFO;
-        } else if (m_gateloglevel.equals("warn")) {
-            gate_level = Level.WARN;
-        } else {
-            gate_level = Level.ERROR;
-        }
+        //
+        // GATE 8.x ships with log4j 1.x, which will look for log4j.xml on the
+        // classpath.
+        // GATE 9.x includes the compatibility layer log4j-over-slf4j, which
+        // will look for logback.xml on the classpath
+        // log4j-over-slf4j silently ignores Logger.setLevel() so the logging
+        // configuration (pattern, level etc) should go in the XML files.
+        // Examples are in the gate_log_config directory.
         String tag = "";
         if (!m_extra_log_prefix.isEmpty()) {
             tag += "|" + escapePercent(m_extra_log_prefix);
         }
         MDC.put("tag", tag);
-        Logger rootlog = Logger.getRootLogger();
-
-        rootlog.setLevel(gate_level);
-        m_log.setLevel(main_level);
-
         /*
         // Test:
+        Logger rootlog = Logger.getRootLogger();
+
         rootlog.error("rootlog error");
         rootlog.debug("rootlog debug");
         rootlog.info("rootlog info");
@@ -489,8 +460,6 @@ public class CrateGatePipeline {
 "                         [--suppress_gate_stdout]\n" +
 "                         [--show_contents_on_crash]\n" +
 "                         [-h] [-v [-v [-v]]]\n" +
-"                         [--loglevel <debug|info|warn|error>]\n" +
-"                         [--gateloglevel <debug|info|warn|error>]\n" +
 "                         [--pluginfile PLUGINFILE]\n" +
 "                         [--launch_then_stop]\n" +
 "                         [--demo]\n" +
@@ -586,18 +555,6 @@ public class CrateGatePipeline {
 "  --help\n" +
 "  -h\n" +
 "                   Show this help message and exit.\n" +
-"\n" +
-"  --verbose\n" +
-"  -v\n" +
-"                   Verbose (use up to 3 times to be more verbose).\n" +
-"\n" +
-"  --loglevel LEVEL\n" +
-"                   Main log level. Overrides verbose. Options are:\n" +
-"                   debug, info, warn, error\n" +
-"\n" +
-"  --gateloglevel LEVEL\n" +
-"                   GATE log level. Overrides verbose. Options are:\n" +
-"                   debug, info, warn, error\n" +
 "\n" +
 "  --pluginfile PLUGINFILE\n" +
 "                   INI file specifying GATE plugins, including name,\n" +
@@ -708,31 +665,6 @@ public class CrateGatePipeline {
                 case "--log_tag":
                     if (nleft < 1) argfail(insufficient + arg);
                     m_extra_log_prefix = m_args[i++];
-                    break;
-
-                case "-v":
-                case "--verbose":
-                    m_verbose++;
-                    break;
-
-                case "--loglevel":
-                    if (nleft < 1) argfail(insufficient + arg);
-                    m_loglevel = m_args[i++];
-                    if (!Arrays.asList(
-                            "debug", "info", "warn", "error").contains(m_loglevel)) {
-                        usage();
-                        exit();
-                    }
-                    break;
-
-                case "--gateloglevel":
-                    if (nleft < 1) argfail(insufficient + arg);
-                    m_gateloglevel = m_args[i++];
-                    if (!Arrays.asList(
-                            "debug", "info", "warn", "error").contains(m_gateloglevel)) {
-                        usage();
-                        exit();
-                    }
                     break;
 
                 case "-wa":
