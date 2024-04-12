@@ -210,12 +210,13 @@ RUN echo "======================================================================
     && echo "Third-party NLP tools" \
     && echo "===============================================================================" \
     && echo "- GATE..." \
+    && $CRATE_VENV_BIN/crate_nlp_build_gate_java_interface --filename $TMPDIR/gate_auto_install.xml --version $GATE_VERSION \
     && wget \
         --progress=dot:giga \
         -O "$TMPDIR/gate-installer.jar" \
         https://github.com/GateNLP/gate-core/releases/download/v$GATE_VERSION/gate-developer-$GATE_VERSION-installer.jar \
     && java -jar "$TMPDIR/gate-installer.jar" \
-        "$CRATE_SRC/docker/dockerfiles/gate_auto_install.xml" \
+        "$TMPDIR/gate_auto_install.xml" \
     \
     && echo "- KCL BRC GATE Pharmacotherapy app..." \
     && wget \
