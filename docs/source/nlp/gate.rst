@@ -153,7 +153,7 @@ KConnect (Bio-YODIE)
 This GATE application finds diseases. Bio-YODIE is part of the KConnect
 project.
 
-- See https://gate.ac.uk/applications/bio-yodie.html; http://www.kconnect.eu/.
+- See https://gate.ac.uk/applications/bio-yodie.html; https://web.archive.org/web/20210805175524/http://kconnect.eu/.
 
 - The main application is called `main-bio.xgapp`.
 
