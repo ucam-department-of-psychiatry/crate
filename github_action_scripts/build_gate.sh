@@ -32,4 +32,7 @@ unzip "${TMPDIR}/brc-gate-pharmacotherapy.zip" -d "${KCL_PHARMACOTHERAPY_PARENT_
 
 ${CRATE_VENV_BIN}/crate_nlp_build_gate_java_interface --gatedir "${GATE_HOME}"
 NLP_MANAGER_DIR=${GITHUB_WORKSPACE}/crate_anon/nlp_manager
-echo -e "Katherine Johnson\nEND" | java -classpath "${NLP_MANAGER_DIR}/gate_log_config/:${NLP_MANAGER_DIR}/compiled_nlp_classes:${GATE_HOME}/bin/gate.jar:${GATE_HOME}/lib/*" CrateGatePipeline -a Person -a Location -it END -ot END --demo --log_tag TEST | grep -P '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \[DEBUG\|CrateGatePipeline\|TEST\] _content:Katherine Johnson'
+
+# grep failure will cause this to script to exit non-zero in a not very helpful
+# way
+echo -e "Katherine Johnson\nEND" | java -classpath "${NLP_MANAGER_DIR}/gate_log_config/:${NLP_MANAGER_DIR}/compiled_nlp_classes:${GATE_HOME}/bin/gate.jar:${GATE_HOME}/lib/*" CrateGatePipeline -a Person -a Location -it END -ot END --demo --log_tag TEST 2>&1 | grep -P '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \[DEBUG\|CrateGatePipeline\|TEST\] _content:Katherine Johnson'
