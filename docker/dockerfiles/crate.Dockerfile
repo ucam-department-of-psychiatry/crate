@@ -268,13 +268,12 @@ RUN echo "======================================================================
     && echo "===============================================================================" \
     && echo "- Running a GATE application to pre-download plugins..." \
     && java \
-        -classpath "$CRATE_PACKAGE_ROOT/nlp_manager/compiled_nlp_classes:$GATE_HOME/lib/*" \
+        -classpath "$CRATE_PACKAGE_ROOT/nlp_manager/gate_log_config:$CRATE_PACKAGE_ROOT/nlp_manager/compiled_nlp_classes:$GATE_HOME/lib/*" \
         -Dgate.home="$GATE_HOME" \
         CrateGatePipeline \
         --gate_app "$KCL_PHARMACOTHERAPY_DIR/application.xgapp" \
         --pluginfile "$CRATE_GATE_PLUGIN_FILE" \
         --suppress_gate_stdout \
-        --verbose \
         --launch_then_stop
 
 FROM crate-build-9-extra-nlp AS crate-build-10-static-files
