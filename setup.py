@@ -87,7 +87,7 @@ INSTALL_REQUIRES = [
     "drf-spectacular==0.22.0",  # Open API Schema and documentation
     "drf-spectacular-sidecar==2022.3.21",  # Static files for drf-spectacular
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
-    "flower==1.2.0",  # debug Celery; web server; only runs explicitly
+    "flower==2.0.1",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
     "gunicorn==20.0.4",  # UNIX only, though will install under Windows
     "gutenbergpy==0.3.4",  # Project Gutenberg API
