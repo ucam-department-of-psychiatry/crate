@@ -62,7 +62,7 @@ from prompt_toolkit.document import Document
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import Validator, ValidationError
 
-# noinspection PyUnresolvedReferences
+# noinspection PyUnresolvedReferences,PyProtectedMember
 from python_on_whales import docker, DockerClient, DockerException
 from python_on_whales.components.container.cli_wrapper import Container
 
@@ -402,7 +402,8 @@ class Installer:
 
         return self._engines
 
-    def get_database_engines(self) -> Dict[str, DatabaseEngine]:
+    @staticmethod
+    def get_database_engines() -> Dict[str, DatabaseEngine]:
         return {
             "mssql": DatabaseEngine(
                 "Microsoft SQL Server",
@@ -610,7 +611,7 @@ class Installer:
             raw_version = docker.compose.version().split()[-1]
             # Sometimes this has a leading 'v'; sometimes it looks like
             # '2.20.2+ds1-0ubuntu1~22.04.1', so also split on "+" or "~":
-            version_string = re.split(r"\+|~", raw_version.lstrip("v"))[0]
+            version_string = re.split(r"[+~]", raw_version.lstrip("v"))[0]
         except DockerException:
             self.fail(
                 "It looks like you don't have Docker Compose installed. "
@@ -664,7 +665,8 @@ class Installer:
 
         return self._env_dict
 
-    def read_env_file(self) -> Dict[str, str]:
+    @staticmethod
+    def read_env_file() -> Dict[str, str]:
         env_file = os.path.join(HostPath.DOCKERFILES_DIR, ".env")
 
         env_dict = {}
@@ -1436,7 +1438,7 @@ class Installer:
     def get_crateweb_ssl_private_key(self) -> str:
         return self.get_user_file("Select the SSL private key file:")
 
-    def get_create_crate_db_container(self) -> bool:
+    def get_create_crate_db_container(self) -> str:
         return self.get_user_boolean(
             "Create a MySQL database for the CRATE web application? "
             "Answer 'n' to use an external database (y/n)"
@@ -1463,7 +1465,7 @@ class Installer:
             default=Ports.CRATE_DB_HOST,
         )
 
-    def get_create_demo_containers(self) -> bool:
+    def get_create_demo_containers(self) -> str:
         return self.get_user_boolean(
             "Create demo databases for anonymisation? "
             "Answer 'n' to set up external databases (y/n)?"
@@ -1534,7 +1536,6 @@ class Installer:
         return os.path.expanduser(file)
 
     def get_user_password(self, text: str) -> str:
-
         while True:
             first = self.prompt(
                 text, is_password=True, validator=NotEmptyValidator()
@@ -1569,10 +1570,7 @@ class Installer:
     def get_user_optional_input(self, text: str, default: str = "") -> str:
         return self.prompt(text, default=default)
 
-    def get_user_choice(
-        self, text: str, choice_dict: Dict, *args, **kwargs
-    ) -> str:
-
+    def get_user_choice(self, text: str, choice_dict: Dict) -> str:
         definitions_html = "".join(
             [
                 f"<name>{name}</name> for <desc>{description}</desc>\n"
@@ -1580,6 +1578,7 @@ class Installer:
             ]
         )
 
+        # noinspection PyTypeChecker
         completer = WordCompleter(choice_dict.keys())
 
         return self.prompt_html(
@@ -1600,7 +1599,8 @@ class Installer:
             style=self.prompt_style,
         )
 
-    def prompt_html(self, html: str, *args, **kwargs) -> str:
+    @staticmethod
+    def prompt_html(html: Union[str, HTML], *args, **kwargs) -> str:
         return prompt(
             html,
             *args,
