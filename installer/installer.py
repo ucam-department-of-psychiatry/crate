@@ -607,10 +607,10 @@ class Installer:
         try:
             # python_on_whales doesn't support --short or --format so we do
             # some parsing
-            raw_version_string = docker.compose.version().split()[-1]
+            raw_version = docker.compose.version().split()[-1]
             # Sometimes this has a leading 'v'; sometimes it looks like
-            # '2.20.2+ds1-0ubuntu1~22.04.1'
-            version_string = raw_version_string.lstrip("v").split("+")[0]
+            # '2.20.2+ds1-0ubuntu1~22.04.1', so also split on "+" or "~":
+            version_string = re.split(r"\+|~", raw_version.lstrip("v"))[0]
         except DockerException:
             self.fail(
                 "It looks like you don't have Docker Compose installed. "
