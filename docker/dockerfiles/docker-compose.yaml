@@ -252,9 +252,17 @@ services:
 
         environment:
             CRATE_ANON_CONFIG: "/crate/cfg/${CRATE_DOCKER_CRATE_ANON_CONFIG}"
+            CRATE_GATE_PLUGIN_FILE: "/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini"
             CRATE_WAIT_FOR: ${CRATE_DOCKER_CRATE_WAIT_FOR}
             CRATE_WEB_LOCAL_SETTINGS: "/crate/cfg/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}"
             CRATE_WEB_STATIC_ROOT: "/crate/static"
+            DJANGO_SUPERUSER_USERNAME: "${CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME}"
+            DJANGO_SUPERUSER_PASSWORD: "${CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD}"
+            DJANGO_SUPERUSER_EMAIL: "${CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL}"
+            GATE_HOME: "/crate/gate"
+            KCL_LEWY_BODY_DIAGNOSIS_DIR: "/crate/kcl_lewy_body_dementia"
+            KCL_PHARMACOTHERAPY_DIR: "/crate/kcl_pharmacotherapy/brc-gate-pharmacotherapy"
+            KCL_KCONNECT_DIR: "/crate/bioyodie"
             ODBCINI: "/crate/cfg/${CRATE_DOCKER_ODBC_USER_CONFIG}"
             PYTHONBREAKPOINT: "remote_pdb.set_trace"
             REMOTE_PDB_HOST: "0.0.0.0"
