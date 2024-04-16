@@ -138,8 +138,6 @@ if [ ${PRODUCTION} -eq 1 ]; then
     tar xzf "${CRATE_TAR_FILE}" --strip-components=1
 fi
 
-
-# Create virtual environment
 # Create virtual environment
 if [ ${RECREATE_VIRTUALENV} -eq 1 ]; then
     rm -rf "${CRATE_INSTALLER_VENV}"
