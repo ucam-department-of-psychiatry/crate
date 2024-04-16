@@ -254,6 +254,8 @@ class InstallerEnvVar(EnvVar):
 # =============================================================================
 # Ports
 # =============================================================================
+
+
 class Ports:
     # In numeric order
     MYSQL = "3306"
@@ -268,6 +270,8 @@ class Ports:
 # =============================================================================
 # Database Engines
 # =============================================================================
+
+
 class DatabaseEngine(
     collections.namedtuple(
         "DatabaseEngine", ["description", "sqlalchemy", "django"]
@@ -326,6 +330,8 @@ class ChoiceValidator(Validator):
 # =============================================================================
 # Colours
 # =============================================================================
+
+
 class Colours:
     # https://en.wikipedia.org/wiki/Solarized
     # Background tones (dark theme)
@@ -538,7 +544,10 @@ class Installer:
     ) -> Union[str, Container, Iterable[Tuple[str, bytes]]]:
         # Run a command in a new instance of the crate_workers container.
         # This goes through docker-entrypoint.sh so no need to source the
-        # virtualenv or call /bin/bash
+        # virtualenv or call /bin/bash.
+        # "Run" here means "without a terminal".
+        if not crate_command:
+            sys.exit("Error: no command specified")
         os.chdir(HostPath.DOCKERFILES_DIR)
         return self.docker.compose.run(
             DockerComposeServices.CRATE_WORKERS,
@@ -550,9 +559,10 @@ class Installer:
     def exec_crate_command(
         self, crate_command: str, as_root: bool = False
     ) -> None:
-        # Run a command in the existing instance of the crate_server
-        # container. This does not go through entrypoint.sh so we have to
+        # Execute a command in the existing instance of the crate_server
+        # container. This does not go through entrypoint.sh, so we have to
         # source the virtualenv and call /bin/bash
+        # "Execute" here means "with a terminal".
         venv_command = f'""source /crate/venv/bin/activate; {crate_command}""'
 
         user = "root" if as_root else None
@@ -1789,16 +1799,14 @@ def get_installer_class() -> Type[Installer]:
         return MacOsInstaller
 
     if sys_info.system == "Windows":
-        print(
+        sys.exit(
             "The installer cannot be run under native Windows. Please "
             "install Windows Subsystem for Linux 2 (WSL2) and run the "
             "installer from there. Alternatively follow the instructions "
             "to install CRATE manually."
         )
-        sys.exit(EXIT_FAILURE)
 
-    print(f"Sorry, the installer can't be run under {sys_info.system}.")
-    sys.exit(EXIT_FAILURE)
+    sys.exit(f"Sorry, the installer can't be run under {sys_info.system}.")
 
 
 # =============================================================================
@@ -1832,28 +1840,31 @@ def main() -> None:
     subparsers.required = True
 
     subparsers.add_parser(
-        Command.INSTALL, help="Install CRATE into a Docker Compose environment"
+        Command.INSTALL,
+        help="Install CRATE into a Docker Compose environment.",
     )
 
     subparsers.add_parser(
-        Command.START, help="Start the Docker Compose application"
+        Command.START, help="Start the Docker Compose application."
     )
 
     subparsers.add_parser(
-        Command.STOP, help="Stop the Docker Compose application"
+        Command.STOP, help="Stop the Docker Compose application."
     )
 
     run_crate_command = subparsers.add_parser(
         Command.RUN_COMMAND,
         help=f"Run a command within the CRATE Docker environment, in the "
-        f"{DockerComposeServices.CRATE_WORKERS!r} service/container",
+        f"{DockerComposeServices.CRATE_WORKERS!r} service/container (without "
+        f"a terminal, so output will not be visible).",
     )
     run_crate_command.add_argument("crate_command", type=str)
 
     exec_crate_command = subparsers.add_parser(
         Command.EXEC_COMMAND,
         help=f"Execute a command within the CRATE Docker environment, in the "
-        f"existing {DockerComposeServices.CRATE_SERVER!r} service/container",
+        f"existing {DockerComposeServices.CRATE_SERVER!r} service/container "
+        f"(with a terminal, so output is visible).",
     )
     exec_crate_command.add_argument("crate_command", type=str)
     exec_crate_command.add_argument(
@@ -1867,7 +1878,7 @@ def main() -> None:
         Command.SHELL,
         help=f"Start a shell (command prompt) within a already-running CRATE "
         f"Docker environment, in the "
-        f"{DockerComposeServices.CRATE_SERVER!r} container",
+        f"{DockerComposeServices.CRATE_SERVER!r} container.",
     )
     shell.add_argument(
         "--as_root",
