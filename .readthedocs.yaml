@@ -19,6 +19,5 @@ python:
   install:
     - method: pip
       path: .
-  system_packages: true
 
 formats: []
