@@ -1,6 +1,4 @@
-#!/bin/bash
-
-# installer/enter_crate_container.sh
+# installer/restore_crate_envvars.sh
 
 # ==============================================================================
 #
@@ -24,18 +22,22 @@
 #
 # ==============================================================================
 
-# Run a bash shell in the CRATE container
+# When the installer first runs, it stores a copy of the relevant environment
+# variables. To run other Docker commands, it's helpful to "source" them back,
+# if found. Likewise, this file itself should be "sourced", not executed.
 
-set -euo pipefail
+# The default is $HOME/crate/set_crate_docker_host_envvars (per HostPath in
+# installer.py). We allow the user to pre-override this with environment
+# variables.
+CRATE_DIR=${CRATE_DIR:=$HOME/crate}
+CRATE_CONFIG_DIR=${CRATE_CONFIG_DIR:=$CRATE_DIR/config}
+CRATE_ENVVAR_FILE=${CRATE_CONFIG_DIR}/set_crate_docker_host_envvars
+# ... filename itself not configurable, and written by installer.py
 
-# Activate Python virtual environment
-CRATE_INSTALLER_VENV=${HOME}/.virtualenvs/crate-installer
-source "${CRATE_INSTALLER_VENV}/bin/activate"
-
-# Restore user's environment variables, if found
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-source "${SCRIPT_DIR}/restore_crate_envvars.sh"
-
-# Run Python installer script with a command
-INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
-python "${INSTALLER_HOME}/installer.py" shell "$@"
+if [ -f "${CRATE_ENVVAR_FILE}" ]; then
+    echo "- Restoring user-supplied environment variables from: ${CRATE_ENVVAR_FILE}"
+    # shellcheck disable=SC1090
+    source "${CRATE_ENVVAR_FILE}"
+else
+    echo "- No previous environment variable file found at: ${CRATE_ENVVAR_FILE}"
+fi

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration>
+
+<!--
+    Default CrateGatePipeline log configuration for GATE 9.x
+
+    Levels are: TRACE, DEBUG, INFO, WARN, ERROR and OFF.
+-->
+<configuration>
+  <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+    <target>System.err</target>
+    <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%p|%c%X{tag}] %m%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger name="CrateGatePipeline" level="DEBUG" />
+  <root level="ERROR">
+    <appender-ref ref="STDERR"/>
+  </root>
+</configuration>

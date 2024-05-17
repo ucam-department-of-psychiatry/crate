@@ -181,6 +181,7 @@ class CrateCommand:
     NLP_BUILD_MEDEX_JAVA_INTERFACE = "crate_nlp_build_medex_java_interface"
     NLP_MULTIPROCESS = "crate_nlp_multiprocess"
     NLP_PREPARE_YMLS_FOR_BIOYODIE = "crate_nlp_prepare_ymls_for_bioyodie"
+    NLP_WRITE_GATE_AUTO_INSTALL_XML = "crate_nlp_write_gate_auto_install_xml"
     RUN_CRATE_NLP_DEMO = "crate_run_crate_nlp_demo"
     RUN_GATE_ANNIE_DEMO = "crate_run_gate_annie_demo"
     RUN_GATE_KCL_KCONNECT_DEMO = "crate_run_gate_kcl_kconnect_demo"

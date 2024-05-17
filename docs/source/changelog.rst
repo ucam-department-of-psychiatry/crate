@@ -1646,6 +1646,9 @@ Changes
   settings; add ``PDF_LETTER_FOOTER_ADDRESS_HTML`` instead (as a subset), and
   ``ETHICS_INFO``.
 
+- The GATE interface ``CrateGatePipeline.java`` now builds with GATE 9.x as well as GATE 8.x.
+  The version of GATE used in the Docker image is configurable, defaulting to 9.0.1.
+  https://github.com/ucam-department-of-psychiatry/crate/issues/149
 
 To do
 -----

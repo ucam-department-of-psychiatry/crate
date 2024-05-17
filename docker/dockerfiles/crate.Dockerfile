@@ -127,6 +127,7 @@ ARG CRATE_PACKAGE_ROOT=$CRATE_VENV/lib/python3.8/site-packages/crate_anon
 ARG CRATE_GATE_PLUGIN_FILE=$CRATE_PACKAGE_ROOT/nlp_manager/specimen_gate_plugin_file.ini
 ARG BIOYODIE_DIR=$CRATE_ROOT/bioyodie
 ARG GATE_HOME=$CRATE_ROOT/gate
+ARG GATE_VERSION
 ARG KCL_LEWY_BODY_DIAGNOSIS_DIR=$CRATE_ROOT/kcl_lewy_body_dementia
 ARG KCL_PHARMACOTHERAPY_PARENT_DIR=$CRATE_ROOT/kcl_pharmacotherapy
 ARG KCL_PHARMACOTHERAPY_DIR=$KCL_PHARMACOTHERAPY_PARENT_DIR/brc-gate-pharmacotherapy
@@ -203,38 +204,7 @@ RUN echo "- wkhtmltopdf: Fetching wkhtmltopdf with patched Qt (~14 Mb)..." \
     && echo "- wkhtmltopdf: Installing wkhtmltopdf..." \
     && gdebi --non-interactive "$TMPDIR/wkhtmltopdf.deb"
 
-FROM crate-build-6-wkhtmltopdf AS crate-build-7-nlp-tools
-
-RUN echo "===============================================================================" \
-    && echo "Third-party NLP tools" \
-    && echo "===============================================================================" \
-    && echo "- GATE..." \
-    && wget \
-        --progress=dot:giga \
-        -O "$TMPDIR/gate-installer.jar" \
-        https://github.com/GateNLP/gate-core/releases/download/v8.6.1/gate-developer-8.6.1-installer.jar \
-    && java -jar "$TMPDIR/gate-installer.jar" \
-        "$CRATE_SRC/docker/dockerfiles/gate_auto_install.xml" \
-    \
-    && echo "- KCL BRC GATE Pharmacotherapy app..." \
-    && wget \
-        --progress=dot:giga \
-        -O "$TMPDIR/brc-gate-pharmacotherapy.zip" \
-        https://github.com/KHP-Informatics/brc-gate-pharmacotherapy/releases/download/1.1/brc-gate-pharmacotherapy.zip \
-    && unzip "$TMPDIR/brc-gate-pharmacotherapy.zip" -d "$KCL_PHARMACOTHERAPY_PARENT_DIR" \
-    \
-    && echo "- Bio-YODIE..." \
-    && git clone https://github.com/GateNLP/Bio-YODIE "$BIOYODIE_DIR" \
-    && cd "$BIOYODIE_DIR" \
-    && git pull --recurse-submodules=on-demand \
-    && git submodule update --init --recursive \
-    && plugins/compilePlugins.sh \
-    \
-    && echo "- KCL BRC GATE Lewy body dementia app..." \
-    && git clone https://github.com/KHP-Informatics/brc-gate-LBD "$TMPDIR/kcl_lewy" \
-    && unzip "$TMPDIR/kcl_lewy/Lewy_Body_Diagnosis.zip" -d "$KCL_LEWY_BODY_DIAGNOSIS_DIR"
-
-FROM crate-build-7-nlp-tools AS crate-build-8-python-packages
+FROM crate-build-6-wkhtmltopdf AS crate-build-7-python-packages
 
 RUN echo "===============================================================================" \
     && echo "CRATE" \
@@ -256,25 +226,56 @@ RUN echo "======================================================================
         psycopg2==2.8.5 \
         pyodbc==4.0.35 \
     && echo "- Installing remote debugger..." \
-    && "$CRATE_VENV_BIN/python3" -m pip install remote-pdb \
+    && "$CRATE_VENV_BIN/python3" -m pip install remote-pdb
+
+FROM crate-build-7-python-packages AS crate-build-8-nlp-tools
+
+RUN echo "===============================================================================" \
+    && echo "Third-party NLP tools" \
+    && echo "===============================================================================" \
+    && echo "- GATE..." \
+    && $CRATE_VENV_BIN/crate_nlp_write_gate_auto_install_xml --filename $TMPDIR/gate_auto_install.xml --version $GATE_VERSION \
+    && wget \
+        --progress=dot:giga \
+        -O "$TMPDIR/gate-installer.jar" \
+        https://github.com/GateNLP/gate-core/releases/download/v$GATE_VERSION/gate-developer-$GATE_VERSION-installer.jar \
+    && java -jar "$TMPDIR/gate-installer.jar" \
+        "$TMPDIR/gate_auto_install.xml" \
+    \
+    && echo "- KCL BRC GATE Pharmacotherapy app..." \
+    && wget \
+        --progress=dot:giga \
+        -O "$TMPDIR/brc-gate-pharmacotherapy.zip" \
+        https://github.com/KHP-Informatics/brc-gate-pharmacotherapy/releases/download/1.1/brc-gate-pharmacotherapy.zip \
+    && unzip "$TMPDIR/brc-gate-pharmacotherapy.zip" -d "$KCL_PHARMACOTHERAPY_PARENT_DIR" \
+    \
+    && echo "- Bio-YODIE..." \
+    && git clone https://github.com/GateNLP/Bio-YODIE "$BIOYODIE_DIR" \
+    && cd "$BIOYODIE_DIR" \
+    && git pull --recurse-submodules=on-demand \
+    && git submodule update --init --recursive \
+    && plugins/compilePlugins.sh \
+    \
+    && echo "- KCL BRC GATE Lewy body dementia app..." \
+    && git clone https://github.com/KHP-Informatics/brc-gate-LBD "$TMPDIR/kcl_lewy" \
+    && unzip "$TMPDIR/kcl_lewy/Lewy_Body_Diagnosis.zip" -d "$KCL_LEWY_BODY_DIAGNOSIS_DIR" \
     && echo "- Compiling CRATE Java interfaces..." \
     && "$CRATE_VENV_BIN/crate_nlp_build_gate_java_interface" \
         --gatedir "$GATE_HOME"
 
-FROM crate-build-8-python-packages AS crate-build-9-extra-nlp
+FROM crate-build-8-nlp-tools AS crate-build-9-extra-nlp
 
 RUN echo "===============================================================================" \
     && echo "Extra NLP steps" \
     && echo "===============================================================================" \
     && echo "- Running a GATE application to pre-download plugins..." \
     && java \
-        -classpath "$CRATE_PACKAGE_ROOT/nlp_manager/compiled_nlp_classes:$GATE_HOME/lib/*" \
+        -classpath "$CRATE_PACKAGE_ROOT/nlp_manager/gate_log_config:$CRATE_PACKAGE_ROOT/nlp_manager/compiled_nlp_classes:$GATE_HOME/lib/*" \
         -Dgate.home="$GATE_HOME" \
         CrateGatePipeline \
         --gate_app "$KCL_PHARMACOTHERAPY_DIR/application.xgapp" \
         --pluginfile "$CRATE_GATE_PLUGIN_FILE" \
         --suppress_gate_stdout \
-        --verbose \
         --launch_then_stop
 
 FROM crate-build-9-extra-nlp AS crate-build-10-static-files
@@ -311,6 +312,12 @@ RUN echo "======================================================================
     && rm -rf "$TMPDIR" \
     && rm -rf /var/lib/apt/lists/* \
     && echo "- Done."
+
+# -----------------------------------------------------------------------------
+# ENV: set environment variables image-wide.
+# -----------------------------------------------------------------------------
+
+ENV PATH="${PATH}:/crate/venv/bin"
 
 # -----------------------------------------------------------------------------
 # EXPOSE: expose a port.

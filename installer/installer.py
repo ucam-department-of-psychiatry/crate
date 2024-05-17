@@ -62,7 +62,7 @@ from prompt_toolkit.document import Document
 from prompt_toolkit.styles import Style
 from prompt_toolkit.validation import Validator, ValidationError
 
-# noinspection PyUnresolvedReferences
+# noinspection PyUnresolvedReferences,PyProtectedMember
 from python_on_whales import docker, DockerClient, DockerException
 from python_on_whales.components.container.cli_wrapper import Container
 
@@ -254,6 +254,8 @@ class InstallerEnvVar(EnvVar):
 # =============================================================================
 # Ports
 # =============================================================================
+
+
 class Ports:
     # In numeric order
     MYSQL = "3306"
@@ -268,6 +270,8 @@ class Ports:
 # =============================================================================
 # Database Engines
 # =============================================================================
+
+
 class DatabaseEngine(
     collections.namedtuple(
         "DatabaseEngine", ["description", "sqlalchemy", "django"]
@@ -326,6 +330,8 @@ class ChoiceValidator(Validator):
 # =============================================================================
 # Colours
 # =============================================================================
+
+
 class Colours:
     # https://en.wikipedia.org/wiki/Solarized
     # Background tones (dark theme)
@@ -402,7 +408,8 @@ class Installer:
 
         return self._engines
 
-    def get_database_engines(self) -> Dict[str, DatabaseEngine]:
+    @staticmethod
+    def get_database_engines() -> Dict[str, DatabaseEngine]:
         return {
             "mssql": DatabaseEngine(
                 "Microsoft SQL Server",
@@ -537,7 +544,10 @@ class Installer:
     ) -> Union[str, Container, Iterable[Tuple[str, bytes]]]:
         # Run a command in a new instance of the crate_workers container.
         # This goes through docker-entrypoint.sh so no need to source the
-        # virtualenv or call /bin/bash
+        # virtualenv or call /bin/bash.
+        # "Run" here means "without a terminal".
+        if not crate_command:
+            sys.exit("Error: no command specified")
         os.chdir(HostPath.DOCKERFILES_DIR)
         return self.docker.compose.run(
             DockerComposeServices.CRATE_WORKERS,
@@ -549,9 +559,10 @@ class Installer:
     def exec_crate_command(
         self, crate_command: str, as_root: bool = False
     ) -> None:
-        # Run a command in the existing instance of the crate_server
-        # container. This does not go through entrypoint.sh so we have to
+        # Execute a command in the existing instance of the crate_server
+        # container. This does not go through entrypoint.sh, so we have to
         # source the virtualenv and call /bin/bash
+        # "Execute" here means "with a terminal".
         venv_command = f'""source /crate/venv/bin/activate; {crate_command}""'
 
         user = "root" if as_root else None
@@ -607,7 +618,10 @@ class Installer:
         try:
             # python_on_whales doesn't support --short or --format so we do
             # some parsing
-            version_string = docker.compose.version().split()[-1].lstrip("v")
+            raw_version = docker.compose.version().split()[-1]
+            # Sometimes this has a leading 'v'; sometimes it looks like
+            # '2.20.2+ds1-0ubuntu1~22.04.1', so also split on "+" or "~":
+            version_string = re.split(r"[+~]", raw_version.lstrip("v"))[0]
         except DockerException:
             self.fail(
                 "It looks like you don't have Docker Compose installed. "
@@ -661,7 +675,8 @@ class Installer:
 
         return self._env_dict
 
-    def read_env_file(self) -> Dict[str, str]:
+    @staticmethod
+    def read_env_file() -> Dict[str, str]:
         env_file = os.path.join(HostPath.DOCKERFILES_DIR, ".env")
 
         env_dict = {}
@@ -1433,7 +1448,7 @@ class Installer:
     def get_crateweb_ssl_private_key(self) -> str:
         return self.get_user_file("Select the SSL private key file:")
 
-    def get_create_crate_db_container(self) -> bool:
+    def get_create_crate_db_container(self) -> str:
         return self.get_user_boolean(
             "Create a MySQL database for the CRATE web application? "
             "Answer 'n' to use an external database (y/n)"
@@ -1460,7 +1475,7 @@ class Installer:
             default=Ports.CRATE_DB_HOST,
         )
 
-    def get_create_demo_containers(self) -> bool:
+    def get_create_demo_containers(self) -> str:
         return self.get_user_boolean(
             "Create demo databases for anonymisation? "
             "Answer 'n' to set up external databases (y/n)?"
@@ -1531,7 +1546,6 @@ class Installer:
         return os.path.expanduser(file)
 
     def get_user_password(self, text: str) -> str:
-
         while True:
             first = self.prompt(
                 text, is_password=True, validator=NotEmptyValidator()
@@ -1566,10 +1580,7 @@ class Installer:
     def get_user_optional_input(self, text: str, default: str = "") -> str:
         return self.prompt(text, default=default)
 
-    def get_user_choice(
-        self, text: str, choice_dict: Dict, *args, **kwargs
-    ) -> str:
-
+    def get_user_choice(self, text: str, choice_dict: Dict) -> str:
         definitions_html = "".join(
             [
                 f"<name>{name}</name> for <desc>{description}</desc>\n"
@@ -1577,6 +1588,7 @@ class Installer:
             ]
         )
 
+        # noinspection PyTypeChecker
         completer = WordCompleter(choice_dict.keys())
 
         return self.prompt_html(
@@ -1597,7 +1609,8 @@ class Installer:
             style=self.prompt_style,
         )
 
-    def prompt_html(self, html: str, *args, **kwargs) -> str:
+    @staticmethod
+    def prompt_html(html: Union[str, HTML], *args, **kwargs) -> str:
         return prompt(
             html,
             *args,
@@ -1786,16 +1799,14 @@ def get_installer_class() -> Type[Installer]:
         return MacOsInstaller
 
     if sys_info.system == "Windows":
-        print(
+        sys.exit(
             "The installer cannot be run under native Windows. Please "
             "install Windows Subsystem for Linux 2 (WSL2) and run the "
             "installer from there. Alternatively follow the instructions "
             "to install CRATE manually."
         )
-        sys.exit(EXIT_FAILURE)
 
-    print(f"Sorry, the installer can't be run under {sys_info.system}.")
-    sys.exit(EXIT_FAILURE)
+    sys.exit(f"Sorry, the installer can't be run under {sys_info.system}.")
 
 
 # =============================================================================
@@ -1829,28 +1840,31 @@ def main() -> None:
     subparsers.required = True
 
     subparsers.add_parser(
-        Command.INSTALL, help="Install CRATE into a Docker Compose environment"
+        Command.INSTALL,
+        help="Install CRATE into a Docker Compose environment.",
     )
 
     subparsers.add_parser(
-        Command.START, help="Start the Docker Compose application"
+        Command.START, help="Start the Docker Compose application."
     )
 
     subparsers.add_parser(
-        Command.STOP, help="Stop the Docker Compose application"
+        Command.STOP, help="Stop the Docker Compose application."
     )
 
     run_crate_command = subparsers.add_parser(
         Command.RUN_COMMAND,
         help=f"Run a command within the CRATE Docker environment, in the "
-        f"{DockerComposeServices.CRATE_WORKERS!r} service/container",
+        f"{DockerComposeServices.CRATE_WORKERS!r} service/container (without "
+        f"a terminal, so output will not be visible).",
     )
     run_crate_command.add_argument("crate_command", type=str)
 
     exec_crate_command = subparsers.add_parser(
         Command.EXEC_COMMAND,
         help=f"Execute a command within the CRATE Docker environment, in the "
-        f"existing {DockerComposeServices.CRATE_SERVER!r} service/container",
+        f"existing {DockerComposeServices.CRATE_SERVER!r} service/container "
+        f"(with a terminal, so output is visible).",
     )
     exec_crate_command.add_argument("crate_command", type=str)
     exec_crate_command.add_argument(
@@ -1864,7 +1878,7 @@ def main() -> None:
         Command.SHELL,
         help=f"Start a shell (command prompt) within a already-running CRATE "
         f"Docker environment, in the "
-        f"{DockerComposeServices.CRATE_SERVER!r} container",
+        f"{DockerComposeServices.CRATE_SERVER!r} container.",
     )
     shell.add_argument(
         "--as_root",

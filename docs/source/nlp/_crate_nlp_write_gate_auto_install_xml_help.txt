@@ -1,0 +1,12 @@
+USAGE: crate_nlp_write_gate_auto_install_xml [-h] [--filename FILENAME]
+                                             [--version VERSION]
+                                             [--gatedir GATEDIR]
+
+Write a GATE automatic XML installation script
+
+OPTIONS:
+  -h, --help           show this help message and exit
+  --filename FILENAME  Output XML filename (default:
+                       /tmp/gate_auto_install.xml)
+  --version VERSION    Gate version number (default: 9.0.1)
+  --gatedir GATEDIR    Where to install GATE (default: /crate/gate)

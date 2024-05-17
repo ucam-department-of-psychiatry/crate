@@ -17,13 +17,14 @@ python -m pip install -e .
 python -m pip install mysqlclient
 export CRATE_ANON_CONFIG=${HOME}/crate_anon_config.ini
 export CRATE_WEB_LOCAL_SETTINGS=${HOME}/crateweb_local_settings.py
-wget --progress=dot:giga -O "${HOME}/gate-installer.jar" https://github.com/GateNLP/gate-core/releases/download/v8.6.1/gate-developer-8.6.1-installer.jar
+GATE_VERSION=9.0.1
+wget -O "${HOME}/gate-installer.jar" https://github.com/GateNLP/gate-core/releases/download/v${GATE_VERSION}/gate-developer-${GATE_VERSION}-installer.jar
 cd "${HOME}"
-java -jar "${HOME}/gate-installer.jar" "${GITHUB_WORKSPACE}/docs/gate_auto_install.xml"
-export GATE_HOME=${HOME}/GATE_Developer_8.6.1
+export GATE_HOME=${HOME}/GATE_Developer_${GATE_VERSION}
+crate_nlp_write_gate_auto_install_xml --filename /tmp/gate_auto_install.xml --version $GATE_VERSION --gatedir $GATE_HOME
+java -jar "${HOME}/gate-installer.jar" "/tmp/gate_auto_install.xml"
 crate_anon_demo_config > "${CRATE_ANON_CONFIG}"
-cd "${GITHUB_WORKSPACE}/crate_anon/nlp_manager"
-python ./build_gate_java_interface.py
+crate_nlp_build_gate_java_interface
 crate_print_demo_crateweb_config > "${CRATE_WEB_LOCAL_SETTINGS}"
 ########################################################################################
 cd "${GITHUB_WORKSPACE}/docs"
