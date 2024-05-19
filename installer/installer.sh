@@ -125,6 +125,7 @@ if [ ${PRODUCTION} -eq 1 ]; then
     # and upload the tar file so that it can be accessed as "latest".
     CRATE_DOWNLOAD_URL=${CRATE_GITHUB_REPOSITORY}/releases/latest/download/${CRATE_TAR_FILE}
 
+    # Save/rename old copy?
     if [ -d "${CRATE_SRC_DIR}" ]; then
         mv "${CRATE_SRC_DIR}" "${CRATE_SRC_DIR}.renamed.$(date +%Y%m%d%H%M%S)"
     fi
@@ -138,13 +139,12 @@ if [ ${PRODUCTION} -eq 1 ]; then
     tar xzf "${CRATE_TAR_FILE}" --strip-components=1
 fi
 
-
-# Create virtual environment
-# Create virtual environment
+# Remove old virtual environment?
 if [ ${RECREATE_VIRTUALENV} -eq 1 ]; then
     rm -rf "${CRATE_INSTALLER_VENV}"
 fi
 
+# Create virtual environment
 if [ ! -d "${CRATE_INSTALLER_VENV}" ]; then
     "${CRATE_INSTALLER_PYTHON}" -m venv "${CRATE_INSTALLER_VENV}"
 fi

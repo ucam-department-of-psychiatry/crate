@@ -87,7 +87,7 @@ INSTALL_REQUIRES = [
     "drf-spectacular==0.22.0",  # Open API Schema and documentation
     "drf-spectacular-sidecar==2022.3.21",  # Static files for drf-spectacular
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
-    "flower==1.2.0",  # debug Celery; web server; only runs explicitly
+    "flower==2.0.1",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
     "gunicorn==22.0.0",  # UNIX only, though will install under Windows
     "gutenbergpy==0.3.4",  # Project Gutenberg API
@@ -102,7 +102,7 @@ INSTALL_REQUIRES = [
     "openpyxl==3.0.7",  # read Excel
     "ordered-set==4.1.0",  # ordered sets; search for ordered_set
     "pendulum==2.1.2",  # dates/times
-    "Pillow==10.2.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
+    "Pillow==10.3.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==3.2.0",  # pretty formating of text-based tables
     "psutil==5.7.2",  # process management
@@ -256,6 +256,7 @@ setup(
             f"{CrateCommand.NLP_BUILD_MEDEX_JAVA_INTERFACE}=crate_anon.nlp_manager.build_medex_java_interface:main",  # noqa: E501
             f"{CrateCommand.NLP_MULTIPROCESS}=crate_anon.nlp_manager.launch_multiprocess_nlp:main",  # noqa: E501
             f"{CrateCommand.NLP_PREPARE_YMLS_FOR_BIOYODIE}=crate_anon.nlp_manager.prepare_umls_for_bioyodie:main",  # noqa: E501
+            f"{CrateCommand.NLP_WRITE_GATE_AUTO_INSTALL_XML}=crate_anon.nlp_manager.write_gate_auto_install_xml:main",  # noqa: E501
             f"{CrateCommand.RUN_CRATE_NLP_DEMO}=crate_anon.nlp_manager.run_crate_nlp_demo:main",  # noqa: E501
             f"{CrateCommand.RUN_GATE_ANNIE_DEMO}=crate_anon.nlp_manager.run_gate_annie_demo:main",  # noqa: E501
             f"{CrateCommand.RUN_GATE_KCL_KCONNECT_DEMO}=crate_anon.nlp_manager.run_gate_kcl_kconnect_demo:main",  # noqa: E501

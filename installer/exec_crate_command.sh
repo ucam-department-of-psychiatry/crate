@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# installer/enter_crate_container.sh
+# installer/exec_crate_command.sh
 
 # ==============================================================================
 #
@@ -24,7 +24,7 @@
 #
 # ==============================================================================
 
-# Run a bash shell in the CRATE container
+# Runs a command in the CRATE container
 
 set -euo pipefail
 
@@ -38,4 +38,4 @@ source "${SCRIPT_DIR}/restore_crate_envvars.sh"
 
 # Run Python installer script with a command
 INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
-python "${INSTALLER_HOME}/installer.py" shell "$@"
+python "${INSTALLER_HOME}/installer.py" exec "$*"

@@ -84,3 +84,4 @@ crate_anon/nlp_manager
     tests/regex_read_codes_tests.py.rst
     tests/regex_test_helperfunc.py.rst
     tests/regex_units_tests.py.rst
+    write_gate_auto_install_xml.py.rst

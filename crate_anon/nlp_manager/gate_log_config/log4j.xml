@@ -1,0 +1,21 @@
+<!DOCTYPE log4j:configuration PUBLIC "-//APACHE//DTD LOG4J 1.2//EN" "log4j.dtd">
+<!--
+    Default CrateGatePipeline log configuration for GATE 8.x
+
+    Levels are: ALL, TRACE, DEBUG, INFO, WARN, ERROR, FATAL and OFF.
+-->
+<log4j:configuration xmlns:log4j='http://jakarta.apache.org/log4j/'>
+  <appender name="STDERR" class="org.apache.log4j.ConsoleAppender">
+    <param name="target" value="System.err" />
+    <layout class="org.apache.log4j.PatternLayout">
+      <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%p|%c%X{tag}] %m%n" />
+    </layout>
+  </appender>
+  <root>
+    <priority value="ERROR" />
+    <appender-ref ref="STDERR" />
+  </root>
+  <logger name="CrateGatePipeline">
+    <level value="DEBUG" />
+  </logger>
+</log4j:configuration>

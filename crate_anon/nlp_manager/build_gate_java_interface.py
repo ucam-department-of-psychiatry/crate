@@ -55,6 +55,7 @@ else:
     DEFAULT_GATE_DIR = os.environ.get("GATE_HOME", "/")
 
 DEFAULT_BUILD_DIR = os.path.join(THIS_DIR, "compiled_nlp_classes")
+DEFAULT_GATE_LOG_CONFIG_DIR = os.path.join(THIS_DIR, "gate_log_config")
 SOURCE_FILE = os.path.join(THIS_DIR, GATE_PIPELINE_CLASSNAME + ".java")
 
 DEFAULT_JAVA = "java"
@@ -79,6 +80,11 @@ def main() -> None:
         "--gatedir",
         default=DEFAULT_GATE_DIR,
         help="Root directory of GATE installation",
+    )
+    parser.add_argument(
+        "--logconfigdir",
+        default=DEFAULT_GATE_LOG_CONFIG_DIR,
+        help="Directory containing GATE log config files",
     )
     parser.add_argument(
         "--gate_exec",
@@ -121,7 +127,9 @@ def main() -> None:
         gatejar = args.gate_exec
 
     gatelibjars = os.path.join(args.gatedir, "lib", "*")
-    classpath = os.pathsep.join([args.builddir, gatejar, gatelibjars])
+    classpath = os.pathsep.join(
+        [args.builddir, gatejar, gatelibjars, args.logconfigdir]
+    )
     classpath_options = ["-classpath", classpath]
 
     if args.launch:

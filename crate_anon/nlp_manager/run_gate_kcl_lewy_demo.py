@@ -43,6 +43,9 @@ from crate_anon.common.constants import (
 from cardinal_pythonlib.subproc import check_call_verbose
 from cardinal_pythonlib.sysops import get_envvar_or_die
 
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+GATE_LOG_CONFIG_DIR = os.path.join(THIS_DIR, "gate_log_config")
+
 
 def main() -> None:
     """
@@ -52,11 +55,14 @@ def main() -> None:
     gate_home = get_envvar_or_die(EnvVar.GATE_HOME)
     plugin_file = get_envvar_or_die(EnvVar.CRATE_GATE_PLUGIN_FILE)
     kcl_lewy_dir = get_envvar_or_die(EnvVar.KCL_LEWY_BODY_DIAGNOSIS_DIR)
+    classpath = os.pathsep.join(
+        [CratePath.JAVA_CLASSES_DIR, f"{gate_home}/lib/*", GATE_LOG_CONFIG_DIR]
+    )
     check_call_verbose(
         [
             "java",
             "-classpath",
-            f"{CratePath.JAVA_CLASSES_DIR}:{gate_home}/lib/*",
+            classpath,
             f"-Dgate.home={gate_home}",
             "CrateGatePipeline",
             "--pluginfile",
@@ -75,8 +81,6 @@ def main() -> None:
             DEMO_NLP_OUTPUT_TERMINATOR,
             "--suppress_gate_stdout",
             "--show_contents_on_crash",
-            "-v",
-            "-v",
         ]
     )
 

@@ -99,12 +99,29 @@ Options:
     :language: none
 
 
+.. _crate_nlp_write_gate_auto_install_xml:
+
+crate_nlp_write_gate_auto_install_xml
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This program writes a GATE automatic installation XML script.
+
+..  literalinclude:: _crate_nlp_write_gate_auto_install_xml_help.txt
+    :language: none
+
+
 CrateGatePipeline
 ~~~~~~~~~~~~~~~~~
 
 The following specimen scripts presuppose that you have set the environment
 variable `GATE_HOME`, and assume specific locations for the compiled Java (e.g.
 files like `CrateGatePipeline.class`); edit them as required.
+
+You can configure logging either with `log4j.xml` (GATE 8.x) or `logback.xml`
+(GATE 9.x). The configuration file must be on the Java classpath when running
+`CrateGatePipeline`. You can find examples of these files in
+``crate_anon/nlp_manager/gate_log_config``.
+
 
 .. _crate_show_crate_gate_pipeline_options:
 
@@ -142,7 +159,7 @@ KConnect (Bio-YODIE)
 This GATE application finds diseases. Bio-YODIE is part of the KConnect
 project.
 
-- See https://gate.ac.uk/applications/bio-yodie.html; http://www.kconnect.eu/.
+- See https://gate.ac.uk/applications/bio-yodie.html; https://web.archive.org/web/20210805175524/http://kconnect.eu/.
 
 - The main application is called `main-bio.xgapp`.
 

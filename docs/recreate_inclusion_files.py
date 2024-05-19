@@ -420,6 +420,13 @@ SOLUTION:
             "_crate_nlp_build_gate_java_interface_help.txt",
         ),
     )
+    run_cmd(
+        [CrateCommand.NLP_WRITE_GATE_AUTO_INSTALL_XML, helpflag],
+        join(
+            DevPath.DOCS_NLP_DIR,
+            "_crate_nlp_write_gate_auto_install_xml_help.txt",
+        ),
+    )
     if not args.skip_medex:
         # When running from the GitHub action, it isn't possible to
         # download and build Medex automatically, so we just skip this

@@ -30,6 +30,7 @@ crate_anon/nlp_manager/run_gate_annie_demo.py
 """
 
 import logging
+import os
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
@@ -44,6 +45,9 @@ from cardinal_pythonlib.sysops import get_envvar_or_die
 
 log = logging.getLogger(__name__)
 
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+GATE_LOG_CONFIG_DIR = os.path.join(THIS_DIR, "gate_log_config")
+
 
 def main() -> None:
     """
@@ -55,11 +59,14 @@ def main() -> None:
         f"Note the unrealistic use of {DEMO_NLP_INPUT_TERMINATOR!r} as "
         f"an end-of-input marker. Don't use that for real!"
     )
+    classpath = os.pathsep.join(
+        [CratePath.JAVA_CLASSES_DIR, f"{gate_home}/lib/*", GATE_LOG_CONFIG_DIR]
+    )
     check_call_verbose(
         [
             "java",
             "-classpath",
-            f"{CratePath.JAVA_CLASSES_DIR}:{gate_home}/lib/*",
+            classpath,
             f"-Dgate.home={gate_home}",
             "CrateGatePipeline",
             "--annotation",
@@ -72,8 +79,6 @@ def main() -> None:
             DEMO_NLP_OUTPUT_TERMINATOR,
             "--log_tag",
             ".",
-            "-v",
-            "-v",
             "--demo",
         ]
     )

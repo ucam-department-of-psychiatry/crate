@@ -13,8 +13,6 @@ usage: CrateGatePipeline --gate_app GATEAPP
                          [--suppress_gate_stdout]
                          [--show_contents_on_crash]
                          [-h] [-v [-v [-v]]]
-                         [--loglevel <debug|info|warn|error>]
-                         [--gateloglevel <debug|info|warn|error>]
                          [--pluginfile PLUGINFILE]
                          [--launch_then_stop]
                          [--demo]
@@ -110,18 +108,6 @@ Optional arguments:
   --help
   -h
                    Show this help message and exit.
-
-  --verbose
-  -v
-                   Verbose (use up to 3 times to be more verbose).
-
-  --loglevel LEVEL
-                   Main log level. Overrides verbose. Options are:
-                   debug, info, warn, error
-
-  --gateloglevel LEVEL
-                   GATE log level. Overrides verbose. Options are:
-                   debug, info, warn, error
 
   --pluginfile PLUGINFILE
                    INI file specifying GATE plugins, including name,
