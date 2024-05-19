@@ -20,4 +20,6 @@ echo checking packages for vulnerabilities
 #       https://github.com/sqlalchemy/sqlalchemy/issues/8567
 # 52495 setuptools fix in 65.5.1, we'll be careful not to
 #       install malicious packages.
-${SAFETY} check --full-report --ignore=51668 --ignore=52495
+# 67599 pip. Disputed and only relevant if using --extra-index-url,
+#       which we're not.
+${SAFETY} check --full-report --ignore=51668 --ignore=52495 --ignore=67599
