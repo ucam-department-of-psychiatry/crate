@@ -89,7 +89,7 @@ INSTALL_REQUIRES = [
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==2.0.1",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
-    "gunicorn==20.0.4",  # UNIX only, though will install under Windows
+    "gunicorn==22.0.0",  # UNIX only, though will install under Windows
     "gutenbergpy==0.3.4",  # Project Gutenberg API
     "jsonlines==3.0.0",  # JSON Lines format
     "kombu==5.2.3",  # AMQP library for Celery; requires VC++ under Windows
