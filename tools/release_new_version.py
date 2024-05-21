@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-tools/make_favicon.py
+tools/release_new_version.py
 
 ===============================================================================
 

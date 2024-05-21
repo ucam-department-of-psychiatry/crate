@@ -47,6 +47,7 @@ Quick links:
 - :ref:`2021 <changelog_2021>`
 - :ref:`2022 <changelog_2022>`
 - :ref:`2023 <changelog_2023>`
+- :ref:`2024 <changelog_2024>`
 
 
 Changes
@@ -1633,7 +1634,12 @@ Changes
 
 - No change in functionality. Updates Django to 3.2.21 to fix CVE-2023-41164.
 
-**0.20.4, in progress**
+.. _changelog_2024:
+
+2024
+~~~~
+
+**0.20.4, 2024-05-21**
 
 - ``crate_researcher_report`` command.
 - ``crate_subset_db`` command.
@@ -1649,6 +1655,9 @@ Changes
 - The GATE interface ``CrateGatePipeline.java`` now builds with GATE 9.x as well as GATE 8.x.
   The version of GATE used in the Docker image is configurable, defaulting to 9.0.1.
   https://github.com/ucam-department-of-psychiatry/crate/issues/149
+
+**0.20.5, in progress**
+
 
 To do
 -----
