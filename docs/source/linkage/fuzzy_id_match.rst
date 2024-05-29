@@ -30,11 +30,15 @@ address information. This is a probability-based ("fuzzy") matching technique.
 It can operate using either identifiable information or in de-identified
 fashion.
 
-**More detail will follow when the validation paper is published.**
+This tool is described in:
 
-.. todo:: fuzzy_id_match: expand on method
-
-.. todo:: fuzzy_id_match: cite paper when published
+- Cardinal RN, Moore A, Burchell M, Lewis JR (2023).
+  De-identified Bayesian personal identity matching for privacy-preserving
+  record linkage despite errors: development and validation.
+  *BMC Medical Informatics and Decision Making* 23: 85.
+  `PubMed ID 37147600 <http://www.pubmed.gov/37147600>`_;
+  `DOI 10.1186/s12911-023-02176-6 <https://doi.org/10.1186/s12911-023-02176-6>`_;
+  `PDF <https://bmcmedinformdecismak.biomedcentral.com/counter/pdf/10.1186/s12911-023-02176-6.pdf>`_.
 
 .. literalinclude:: _crate_fuzzy_id_match_help.txt
     :language: none
