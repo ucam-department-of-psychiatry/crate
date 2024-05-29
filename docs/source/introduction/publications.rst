@@ -27,9 +27,9 @@ The primary reference publication is:
   Clinical records anonymisation and text extraction (CRATE): an open-source
   software system.
   *BMC Medical Informatics and Decision Making* 17: 50.
-  `PubMed ID 28441940 <http://www.pubmed.gov/28441940>`_;
-  `DOI 10.1186/s12911-017-0437-1 <https://doi.org/10.1186/s12911-017-0437-1>`_;
-  `PDF <https://bmcmedinformdecismak.biomedcentral.com/counter/pdf/10.1186/s12911-017-0437-1.pdf>`_.
+  `PubMed ID 28441940 <http://www.pubmed.gov/28441940>`__;
+  `DOI 10.1186/s12911-017-0437-1 <https://doi.org/10.1186/s12911-017-0437-1>`__;
+  `PDF <https://bmcmedinformdecismak.biomedcentral.com/counter/pdf/10.1186/s12911-017-0437-1.pdf>`__.
 
   Please cite this one if you use CRATE, or databases built with it. Thank you!
 
@@ -39,9 +39,9 @@ Developments to CRATE have also been reported in:
   De-identified Bayesian personal identity matching for privacy-preserving
   record linkage despite errors: development and validation.
   *BMC Medical Informatics and Decision Making* 23: 85.
-  `PubMed ID 37147600 <http://www.pubmed.gov/37147600>`_;
-  `DOI 10.1186/s12911-023-02176-6 <https://doi.org/10.1186/s12911-023-02176-6>`_;
-  `PDF <https://bmcmedinformdecismak.biomedcentral.com/counter/pdf/10.1186/s12911-023-02176-6.pdf>`_.
+  `PubMed ID 37147600 <http://www.pubmed.gov/37147600>`__;
+  `DOI 10.1186/s12911-023-02176-6 <https://doi.org/10.1186/s12911-023-02176-6>`__;
+  `PDF <https://bmcmedinformdecismak.biomedcentral.com/counter/pdf/10.1186/s12911-023-02176-6.pdf>`__.
 
   This one is the appropriate citation for CRATE's de-identified linkage
   system.

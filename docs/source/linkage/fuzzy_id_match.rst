@@ -36,9 +36,9 @@ This tool is described in:
   De-identified Bayesian personal identity matching for privacy-preserving
   record linkage despite errors: development and validation.
   *BMC Medical Informatics and Decision Making* 23: 85.
-  `PubMed ID 37147600 <http://www.pubmed.gov/37147600>`_;
-  `DOI 10.1186/s12911-023-02176-6 <https://doi.org/10.1186/s12911-023-02176-6>`_;
-  `PDF <https://bmcmedinformdecismak.biomedcentral.com/counter/pdf/10.1186/s12911-023-02176-6.pdf>`_.
+  `PubMed ID 37147600 <http://www.pubmed.gov/37147600>`__;
+  `DOI 10.1186/s12911-023-02176-6 <https://doi.org/10.1186/s12911-023-02176-6>`__;
+  `PDF <https://bmcmedinformdecismak.biomedcentral.com/counter/pdf/10.1186/s12911-023-02176-6.pdf>`__.
 
 .. literalinclude:: _crate_fuzzy_id_match_help.txt
     :language: none
