@@ -33,6 +33,7 @@ available.
 
 from argparse import ArgumentParser
 import collections
+import grp
 import os
 from pathlib import Path
 from platform import uname
@@ -184,6 +185,7 @@ class DockerEnvVar(EnvVar):
         f"{PREFIX}_GATE_BIOYODIE_RESOURCES_HOST_DIR"
     )
     IMAGE_TAG = f"{PREFIX}_IMAGE_TAG"
+    INSTALL_GROUP_ID = f"{PREFIX}_INSTALL_GROUP_ID"
     INSTALL_USER_ID = f"{PREFIX}_INSTALL_USER_ID"
 
     CRATE_DB_DATABASE_NAME = f"{PREFIX}_CRATE_DB_DATABASE_NAME"
@@ -640,6 +642,7 @@ class Installer:
     def configure(self) -> None:
         try:
             self.configure_user()
+            self.configure_group()
             self.configure_tag()
             self.configure_config_files()
             self.configure_files_dir()
@@ -661,6 +664,11 @@ class Installer:
     def configure_user(self) -> None:
         self.setenv(
             DockerEnvVar.INSTALL_USER_ID, self.get_docker_install_user_id
+        )
+
+    def configure_group(self) -> None:
+        self.setenv(
+            DockerEnvVar.INSTALL_GROUP_ID, self.get_docker_install_group_id
         )
 
     def configure_tag(self) -> None:
@@ -1270,9 +1278,37 @@ class Installer:
     # Fetching information from environment variables or statically
     # -------------------------------------------------------------------------
 
+    def get_docker_install_user_id(self) -> str:
+        return str(self._get_user_id())
+
+    def get_docker_install_group_id(self) -> str:
+        choice_dict = {}
+
+        # https://stackoverflow.com/questions/9323834/python-how-to-get-group-ids-of-one-username-like-id-gn
+        # Reported to work with sssd. Maybe not everything else.
+        for group_id in os.getgroups():
+            # Ignore any groups created by the OS so we don't clash when we try
+            # to create the group on the server
+            if group_id >= 1000:
+                try:
+                    choice_dict[str(group_id)] = grp.getgrgid(group_id).gr_name
+                except KeyError:
+                    # One poster reported that this happens for some reason
+                    pass
+
+        if len(choice_dict) == 1:
+            # No choice
+            return next(iter(choice_dict))
+
+        return self.get_user_choice(
+            "The CRATE container will be created with your user's "
+            "permissions. Select the group to use:",
+            choice_dict,
+        )
+
     @staticmethod
-    def get_docker_install_user_id() -> str:
-        return str(os.geteuid())
+    def _get_user_id() -> int:
+        return os.geteuid()
 
     @staticmethod
     def get_hmac_md5_key() -> str:

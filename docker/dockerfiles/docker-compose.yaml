@@ -157,6 +157,7 @@ services:
 
             args:
                 - USER_ID=${CRATE_DOCKER_INSTALL_USER_ID}
+                - GROUP_ID=${CRATE_DOCKER_INSTALL_GROUP_ID}
                 - GATE_VERSION=${CRATE_DOCKER_GATE_VERSION}
 
         # If you specify "image" as well as "build", Compose names the built
