@@ -10,6 +10,7 @@ export CRATE_DOCKER_CRATE_DB_ROOT_PASSWORD=shoobydoobydoo
 export CRATE_DOCKER_CRATE_DB_USER_PASSWORD=ramalamadingdong
 export CRATE_DOCKER_FILES_HOST_DIR=${HOME}/crate_files
 export CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR=${HOME}/bioyodie_resources
+export CRATE_DOCKER_INSTALL_GROUP_ID=$(id -g)
 export CRATE_DOCKER_INSTALL_USER_ID=$(id -u)
 export CRATE_DOCKER_ODBC_USER_CONFIG="odbc_user.ini"
 export CRATE_DOCKER_STATIC_HOST_DIR=${HOME}/crate_static
