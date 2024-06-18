@@ -22,4 +22,8 @@ echo checking packages for vulnerabilities
 #       install malicious packages.
 # 67599 pip. Disputed and only relevant if using --extra-index-url,
 #       which we're not.
-${SAFETY} check --full-report --ignore=51668 --ignore=52495 --ignore=67599
+# 70612 jinja2. The maintainer and multiple third parties
+#       believe that this vulnerability isn't valid because
+#       users shouldn't use untrusted templates without
+#       sandboxing.
+${SAFETY} check --full-report --ignore=51668 --ignore=52495 --ignore=67599 --ignore=70612
