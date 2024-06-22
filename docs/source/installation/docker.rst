@@ -322,8 +322,8 @@ Version of GATE to be installed.
 CRATE_DOCKER_INSTALL_GROUP_ID
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**No default. Must be set to the ID of a group on the host so that file systems
- can be shared.** See :ref:`CRATE_DOCKER_INSTALL_USER_ID <CRATE_DOCKER_INSTALL_USER_ID>`
+**No default. Must be set to the ID of a group on the host so that file systems can be shared.**
+See :ref:`CRATE_DOCKER_INSTALL_USER_ID <CRATE_DOCKER_INSTALL_USER_ID>`
 
 
 .. _CRATE_DOCKER_INSTALL_USER_ID:
@@ -331,8 +331,8 @@ CRATE_DOCKER_INSTALL_GROUP_ID
 CRATE_DOCKER_INSTALL_USER_ID
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-**No default. Must be set to the ID of a user on the host so that file systems
- can be shared.** See :ref:`CRATE_DOCKER_INSTALL_GROUP_ID <CRATE_DOCKER_INSTALL_GROUP_ID>`
+**No default. Must be set to the ID of a user on the host so that file systems can be shared.**
+See :ref:`CRATE_DOCKER_INSTALL_GROUP_ID <CRATE_DOCKER_INSTALL_GROUP_ID>`
 
 
 .. _CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME:
