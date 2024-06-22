@@ -1658,6 +1658,8 @@ Changes
 
 **0.20.5, in progress**
 
+- When the Docker image is built, it is now possible to specify both a user ID and a group ID
+  so that file systems shared between the host and the container have the correct permissions.
 
 To do
 -----
