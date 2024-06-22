@@ -1282,13 +1282,21 @@ class Installer:
         return str(self._get_user_id())
 
     def get_docker_install_group_id(self) -> str:
+        self.info(
+            "The CRATE Docker image will be created with your user ID and one "
+            "of your user's group IDs so that file permissions will be "
+            "correct for any file systems shared between the host and "
+            "container."
+        )
+        # This is a bit slow with sssd
+        self.info("Fetching groups...")
         choice_dict = {}
 
         # https://stackoverflow.com/questions/9323834/python-how-to-get-group-ids-of-one-username-like-id-gn
-        # Reported to work with sssd. Maybe not everything else.
+        # Works with sssd. Maybe not everything else.
         for group_id in os.getgroups():
             # Ignore any groups created by the OS so we don't clash when we try
-            # to create the group on the server
+            # to create a group with the same ID on the server
             if group_id >= 1000:
                 try:
                     choice_dict[str(group_id)] = grp.getgrgid(group_id).gr_name
@@ -1297,12 +1305,13 @@ class Installer:
                     pass
 
         if len(choice_dict) == 1:
-            # No choice
+            self.info("Only one group found for this user. Using that.")
             return next(iter(choice_dict))
 
         return self.get_user_choice(
-            "The CRATE container will be created with your user's "
-            "permissions. Select the group to use:",
+            "Select the group to use. If a mounted file system needs to "
+            "be shared between multiple users, choose a group that includes "
+            "all of those users.",
             choice_dict,
         )
 
