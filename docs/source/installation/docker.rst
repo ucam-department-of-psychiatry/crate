@@ -306,8 +306,8 @@ GATE). (You need to download UMLS data and use the
 directory used with that command is the directory you should specify here.)
 On Windows, ensure this is within the Windows (not WSL2) file system.
 
-.. _CRATE_DOCKER_GATE_VERSION:
 
+.. _CRATE_DOCKER_GATE_VERSION:
 
 CRATE_DOCKER_GATE_VERSION
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -315,6 +315,24 @@ CRATE_DOCKER_GATE_VERSION
 *Default: 9.0.1*
 
 Version of GATE to be installed.
+
+
+.. _CRATE_DOCKER_INSTALL_GROUP_ID:
+
+CRATE_DOCKER_INSTALL_GROUP_ID
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**No default. Must be set to the ID of a group on the host so that file systems can be shared.**
+See :ref:`CRATE_DOCKER_INSTALL_USER_ID <CRATE_DOCKER_INSTALL_USER_ID>`
+
+
+.. _CRATE_DOCKER_INSTALL_USER_ID:
+
+CRATE_DOCKER_INSTALL_USER_ID
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**No default. Must be set to the ID of a user on the host so that file systems can be shared.**
+See :ref:`CRATE_DOCKER_INSTALL_GROUP_ID <CRATE_DOCKER_INSTALL_GROUP_ID>`
 
 
 .. _CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME:

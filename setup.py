@@ -132,10 +132,10 @@ INSTALL_REQUIRES = [
     "pyramid==1.10.4",  # Pyramid web framework
     "pyramid_tm==2.4",  # Pyramid transaction management
     "redis==4.5.4",  # interface to Redis in-memory key-value database
-    "requests==2.32.0",  # HTTP requests
-    "tornado==6.3.3",  # web framework
+    "requests==2.32.2",  # HTTP requests
+    "tornado==6.4.1",  # web framework
     "transaction==3.0.0",  # generic transaction management
-    "urllib3==1.26.18",  # used by requests
+    "urllib3==1.26.19",  # used by requests
     "waitress==2.1.2",  # pure-Python WSGI server
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
     # -------------------------------------------------------------------------
