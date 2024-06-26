@@ -1656,10 +1656,13 @@ Changes
   The version of GATE used in the Docker image is configurable, defaulting to 9.0.1.
   https://github.com/ucam-department-of-psychiatry/crate/issues/149
 
-**0.20.5, in progress**
+**0.20.5, 2024-06-26**
 
 - When the Docker image is built, it is now possible to specify both a user ID and a group ID
   so that file systems shared between the host and the container have the correct permissions.
+
+**0.20.6, in progress**
+
 
 To do
 -----
