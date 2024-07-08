@@ -82,7 +82,7 @@ INSTALL_REQUIRES = [
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
     "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa: E501
     # "django-silk==4.0.1",  # Django profiler
-    "djangorestframework==3.15.2",  # Anonymisation API support
+    "djangorestframework==3.13.1",  # Anonymisation API support
     "django-sslserver==0.22",  # SSL development server for Django
     "drf-spectacular==0.22.0",  # Open API Schema and documentation
     "drf-spectacular-sidecar==2022.3.21",  # Static files for drf-spectacular
