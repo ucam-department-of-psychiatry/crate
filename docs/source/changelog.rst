@@ -1663,6 +1663,7 @@ Changes
 
 **0.20.6, in progress**
 
+- Give the code documentation lower weighting when searching on readthedocs.org.
 
 To do
 -----
