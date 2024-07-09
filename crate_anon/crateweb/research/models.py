@@ -33,7 +33,6 @@ from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
 import weakref
 import zipfile
 import json
-import pytz
 
 from cardinal_pythonlib.dbfunc import dictfetchall, get_fieldnames_from_cursor
 from cardinal_pythonlib.django.fields.jsonclassfield import JsonClassField
@@ -824,7 +823,7 @@ class Query(QueryBase):
             return False
         else:
             # Make last_updated_all timezone aware so they can be compared
-            last_updated_all = pytz.utc.localize(last_updated_all)
+            last_updated_all.replace(datetime.timezone.utc)
             return self.last_run > last_updated_all
 
     # -------------------------------------------------------------------------
