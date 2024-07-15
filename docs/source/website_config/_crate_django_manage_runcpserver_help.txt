@@ -34,7 +34,7 @@ OPTIONS:
   --root_path ROOT_PATH
                         Root path to serve CRATE at. Default:
                         /crate/root/path/
-  --version             show program's version number and exit
+  --version             Show program's version number and exit.
   -v, --verbosity {0,1,2,3}
                         Verbosity level; 0=minimal output, 1=normal output,
                         2=verbose output, 3=very verbose output
@@ -45,7 +45,7 @@ OPTIONS:
   --pythonpath PYTHONPATH
                         A directory to add to the Python path, e.g.
                         "/home/djangoprojects/myproject".
-  --traceback           Raise on CommandError exceptions
+  --traceback           Raise on CommandError exceptions.
   --no-color            Don't colorize the command output.
   --force-color         Force colorization of the command output.
   --skip-checks         Skip system checks.
