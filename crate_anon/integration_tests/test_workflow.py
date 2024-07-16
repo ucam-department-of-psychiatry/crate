@@ -112,7 +112,9 @@ DEFAULT_SQLSERVER_PORT = 1433
 DEFAULT_MYSQL_PORT = 3306
 DEFAULT_POSTGRES_PORT = 5432
 
-DOCKER_NETWORK = "crate_test_net"
+# Same name as for the CRATE Docker containers
+# See docker/dockerfiles/docker-compose.yaml
+DOCKER_NETWORK = "crateanon_network"
 
 CONTAINER_ENGINE = "crate_test_container_engine"
 CONTAINER_DBSHELL = "crate_test_container_dbshell"
