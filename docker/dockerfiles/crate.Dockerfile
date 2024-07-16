@@ -168,7 +168,7 @@ RUN echo "======================================================================
         freetds-dev \
         graphviz \
         libgraphviz-dev \
-        libmariadbclient-dev \
+        libmariadb-dev \
         libpq-dev \
         libxml2-dev \
         libxslt1-dev \
