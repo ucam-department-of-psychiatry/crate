@@ -114,7 +114,7 @@ DEFAULT_POSTGRES_PORT = 5432
 
 # Same name as for the CRATE Docker containers
 # See docker/dockerfiles/docker-compose.yaml
-DOCKER_NETWORK = "crateanon_network"
+DOCKER_NETWORK = "crate_crateanon_network"
 
 CONTAINER_ENGINE_PREFIX = "crate_test_container_engine"
 CONTAINER_DBSHELL = "crate_test_container_dbshell"
