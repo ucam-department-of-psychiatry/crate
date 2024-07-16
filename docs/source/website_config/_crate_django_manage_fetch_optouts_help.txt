@@ -13,7 +13,7 @@ OPTIONS:
   -h, --help            show this help message and exit
   --pidfile PIDFILE     Filename to store PIDs in (one line per PID)
   --mpidfile MPIDFILE   Filename to store MPIDs in (one line per PID)
-  --version             show program's version number and exit
+  --version             Show program's version number and exit.
   -v, --verbosity {0,1,2,3}
                         Verbosity level; 0=minimal output, 1=normal output,
                         2=verbose output, 3=very verbose output
@@ -24,7 +24,7 @@ OPTIONS:
   --pythonpath PYTHONPATH
                         A directory to add to the Python path, e.g.
                         "/home/djangoprojects/myproject".
-  --traceback           Raise on CommandError exceptions
+  --traceback           Raise on CommandError exceptions.
   --no-color            Don't colorize the command output.
   --force-color         Force colorization of the command output.
   --skip-checks         Skip system checks.
