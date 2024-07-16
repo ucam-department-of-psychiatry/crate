@@ -35,8 +35,8 @@ from django.contrib.admin.views.main import ChangeList
 from django.forms import ModelForm
 from django.http import HttpResponse
 from django.http.request import HttpRequest
-from django.utils.encoding import force_text
-from django.utils.translation import ugettext
+from django.utils.encoding import force_str
+from django.utils.translation import gettext
 
 log = logging.getLogger(__name__)
 
@@ -55,10 +55,10 @@ class ReadOnlyChangeList(ChangeList):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         if self.is_popup:
-            title = ugettext("Select %s")
+            title = gettext("Select %s")
         else:
-            title = ugettext("Select %s to view")
-        self.title = title % force_text(self.opts.verbose_name)
+            title = gettext("Select %s to view")
+        self.title = title % force_str(self.opts.verbose_name)
 
 
 class ReadOnlyModelAdmin(ModelAdmin):
@@ -123,7 +123,7 @@ class ReadOnlyModelAdmin(ModelAdmin):
     ) -> HttpResponse:
         extra_context = extra_context or {}
         # noinspection PyProtectedMember
-        extra_context["title"] = "View %s" % force_text(
+        extra_context["title"] = "View %s" % force_str(
             self.model._meta.verbose_name
         )
         return super().change_view(
@@ -187,7 +187,7 @@ class AddOnlyModelAdmin(ModelAdmin):
     ) -> HttpResponse:
         extra_context = extra_context or {}
         # noinspection PyProtectedMember
-        extra_context["title"] = "View %s" % force_text(
+        extra_context["title"] = "View %s" % force_str(
             self.model._meta.verbose_name
         )
         return super().change_view(

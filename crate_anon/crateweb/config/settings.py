@@ -239,8 +239,7 @@ TIME_ZONE = "UTC"
 
 USE_I18N = True
 
-# USE_L10N = True
-USE_L10N = False
+# USE_L10N default now True and deprecated
 
 # https://docs.djangoproject.com/en/1.8/topics/i18n/timezones/
 USE_TZ = True

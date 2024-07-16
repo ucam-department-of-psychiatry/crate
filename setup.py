@@ -69,23 +69,23 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==1.1.26",  # RNC libraries
+    "cardinal_pythonlib==1.1.27",  # RNC libraries
     "cairosvg==2.7.0",  # work with SVG files
     "celery==5.2.3",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==3.2.25",  # for main CRATE research database web server
+    "django==4.2.13",  # for main CRATE research database web server
     "django-debug-toolbar==3.0a2",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
     "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa: E501
     # "django-silk==4.0.1",  # Django profiler
-    "djangorestframework==3.13.1",  # Anonymisation API support
+    "djangorestframework==3.15.2",  # Anonymisation API support
     "django-sslserver==0.22",  # SSL development server for Django
-    "drf-spectacular==0.22.0",  # Open API Schema and documentation
-    "drf-spectacular-sidecar==2022.3.21",  # Static files for drf-spectacular
+    "drf-spectacular==0.27.2",  # Open API Schema and documentation
+    "drf-spectacular-sidecar==2024.7.1",  # Static files for drf-spectacular
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==2.0.1",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
@@ -111,7 +111,6 @@ INSTALL_REQUIRES = [
     "pygments==2.15.0",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
     "pypdf==3.17.1",  # create PDF files
-    "pytz==2021.3",  # timezones
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html
