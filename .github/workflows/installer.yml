@@ -46,6 +46,7 @@ jobs:
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_mysql_environment
                 ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh
                 ${GITHUB_WORKSPACE}/github_action_scripts/docker_db_setup.sh mysql 3306
+                docker ps
                 env
                 ./installer.sh -d -v
                 ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh
