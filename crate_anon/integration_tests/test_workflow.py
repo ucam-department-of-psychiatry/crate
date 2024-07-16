@@ -259,7 +259,7 @@ class EngineInfo:
 ENGINEINFO = {
     SQLSERVER: EngineInfo(
         name="Microsoft SQL Server",
-        docker_container_name=f"{CONTAINER_ENGINE_PREFIX}_mssql",
+        docker_container_name=f"{CONTAINER_ENGINE_PREFIX}_sqlserver",
         dockerfile=join(THIS_SCRIPT_DIR, "sqlserver.Dockerfile"),
         tag="crate_test_sqlserver",
         docker_port=DEFAULT_SQLSERVER_PORT,
@@ -270,7 +270,7 @@ ENGINEINFO = {
             # https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-connect-database-engine?view=sql-server-ver16  # noqa: E501
             "sqlcmd",
             "-S",
-            f"{CONTAINER_ENGINE_PREFIX}_mssql,{DEFAULT_SQLSERVER_PORT}",
+            f"{CONTAINER_ENGINE_PREFIX}_sqlserver,{DEFAULT_SQLSERVER_PORT}",
             "-U",
             "sa",  # SQLServer root user
             "-P",
