@@ -116,7 +116,7 @@ DEFAULT_POSTGRES_PORT = 5432
 # See docker/dockerfiles/docker-compose.yaml
 DOCKER_NETWORK = "crateanon_network"
 
-CONTAINER_ENGINE = "crate_test_container_engine"
+CONTAINER_ENGINE_PREFIX = "crate_test_container_engine"
 CONTAINER_DBSHELL = "crate_test_container_dbshell"
 CONTAINER_BASH = "crate_test_container_bash"
 
@@ -167,6 +167,7 @@ DOCKER_BUILD_ARGS = {
 @dataclass
 class EngineInfo:
     name: str
+    docker_container_name: str
     dockerfile: str
     tag: str
     docker_port: int
@@ -258,6 +259,7 @@ class EngineInfo:
 ENGINEINFO = {
     SQLSERVER: EngineInfo(
         name="Microsoft SQL Server",
+        docker_container_name=f"{CONTAINER_ENGINE_PREFIX}_mssql",
         dockerfile=join(THIS_SCRIPT_DIR, "sqlserver.Dockerfile"),
         tag="crate_test_sqlserver",
         docker_port=DEFAULT_SQLSERVER_PORT,
@@ -268,7 +270,7 @@ ENGINEINFO = {
             # https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-connect-database-engine?view=sql-server-ver16  # noqa: E501
             "sqlcmd",
             "-S",
-            f"{CONTAINER_ENGINE},{DEFAULT_SQLSERVER_PORT}",
+            f"{CONTAINER_ENGINE_PREFIX}_mssql,{DEFAULT_SQLSERVER_PORT}",
             "-U",
             "sa",  # SQLServer root user
             "-P",
@@ -279,6 +281,7 @@ ENGINEINFO = {
     ),
     MYSQL: EngineInfo(
         name="MySQL (MariaDB)",
+        docker_container_name=f"{CONTAINER_ENGINE_PREFIX}_mysql",
         dockerfile=join(THIS_SCRIPT_DIR, "mysql.Dockerfile"),
         tag="crate_test_mysql",
         docker_port=DEFAULT_MYSQL_PORT,
@@ -287,7 +290,7 @@ ENGINEINFO = {
         sqla_url_option_suffix="?charset=utf8",
         dbshellcmd=[
             "mysql",
-            f"--host={CONTAINER_ENGINE}",
+            f"--host={CONTAINER_ENGINE_PREFIX}_mysql",
             f"--port={DEFAULT_MYSQL_PORT}",
             "--user=root",  # MySQL root user
             f"--password={DB_ROOT_PASSWORD}",
@@ -295,6 +298,7 @@ ENGINEINFO = {
     ),
     POSTGRESQL: EngineInfo(
         name="PostgreSQL (Postgres)",
+        docker_container_name=f"{CONTAINER_ENGINE_PREFIX}_postgresql",
         dockerfile=join(THIS_SCRIPT_DIR, "postgres.Dockerfile"),
         tag="crate_test_postgres",
         docker_port=DEFAULT_POSTGRES_PORT,
@@ -303,7 +307,7 @@ ENGINEINFO = {
         dbshellenv={"PGPASSWORD": DB_ROOT_PASSWORD},
         dbshellcmd=[
             "psql",
-            f"--host={CONTAINER_ENGINE}",
+            f"--host={CONTAINER_ENGINE_PREFIX}_postgresql",
             f"--port={DEFAULT_POSTGRES_PORT}",
             "--username=postgres",  # PostgreSQL root user
         ],
@@ -369,33 +373,35 @@ def start_engine(engine_info: EngineInfo, host_port: int) -> None:
         envs=envvars,
         publish=[(host_port, engine_info.docker_port)],
         networks=[DOCKER_NETWORK],
-        name=CONTAINER_ENGINE,
+        name=engine_info.docker_container_name,
         detach=True,
     )
 
-    ip_address = get_crate_container_engine_ip_address()
-    wait_for_databases_to_be_created(60)
+    ip_address = get_crate_container_engine_ip_address(engine_info)
+    wait_for_databases_to_be_created(engine_info, 60)
     log.info(
         f"Database engine started on {ip_address}:{engine_info.docker_port}"
     )
 
 
-def wait_for_databases_to_be_created(timeout_s: float) -> None:
+def wait_for_databases_to_be_created(
+    engine_info: EngineInfo, timeout_s: float
+) -> None:
     start_time = time.time()
 
     while time.time() - start_time < timeout_s:
-        logs = docker.logs(CONTAINER_ENGINE)
+        logs = docker.logs(engine_info.docker_container_name)
         if ">>> Databases created. READY." in logs:
             return
 
         time.sleep(1)
 
-    log.error(docker.logs(CONTAINER_ENGINE))
+    log.error(docker.logs(engine_info.docker_container_name))
     raise TimeoutError("Gave up waiting for the databases to be created.")
 
 
-def get_crate_container_engine_ip_address() -> str:
-    container = docker.container.inspect(CONTAINER_ENGINE)
+def get_crate_container_engine_ip_address(engine_info: EngineInfo) -> str:
+    container = docker.container.inspect(engine_info.docker_container_name)
     network_settings = container.network_settings
 
     return network_settings.networks[DOCKER_NETWORK].ip_address
