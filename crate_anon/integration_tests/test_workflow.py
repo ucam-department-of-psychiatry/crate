@@ -298,7 +298,7 @@ ENGINEINFO = {
     ),
     POSTGRESQL: EngineInfo(
         name="PostgreSQL (Postgres)",
-        docker_container_name=f"{CONTAINER_ENGINE_PREFIX}_postgresql",
+        docker_container_name=f"{CONTAINER_ENGINE_PREFIX}_postgres",
         dockerfile=join(THIS_SCRIPT_DIR, "postgres.Dockerfile"),
         tag="crate_test_postgres",
         docker_port=DEFAULT_POSTGRES_PORT,
@@ -307,7 +307,7 @@ ENGINEINFO = {
         dbshellenv={"PGPASSWORD": DB_ROOT_PASSWORD},
         dbshellcmd=[
             "psql",
-            f"--host={CONTAINER_ENGINE_PREFIX}_postgresql",
+            f"--host={CONTAINER_ENGINE_PREFIX}_postgres",
             f"--port={DEFAULT_POSTGRES_PORT}",
             "--username=postgres",  # PostgreSQL root user
         ],
