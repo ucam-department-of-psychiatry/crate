@@ -1663,6 +1663,9 @@ Changes
 
 **0.20.6, in progress**
 
+- Update Django to 4.2 LTS. The minimum version of MySQL supported by Django 4.2 is 8.0.
+
+- Update the Docker image to use Debian 11. Debian 10 has now reached end-of-life.
 
 To do
 -----
