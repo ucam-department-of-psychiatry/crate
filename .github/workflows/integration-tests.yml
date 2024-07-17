@@ -6,6 +6,7 @@ on:
     push:
         paths:
             - '**.py'
+            - 'crate_anon/integration_tests/**'
             - .github/workflows/integration-tests.yml
             - github_action_scripts/docker_db_setup.sh
             - github_action_scripts/install_wkhtmltopdf.sh
