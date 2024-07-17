@@ -114,7 +114,7 @@ DEFAULT_POSTGRES_PORT = 5432
 
 # Same name as for the CRATE Docker containers
 # See docker/dockerfiles/docker-compose.yaml
-DOCKER_NETWORK = "crate_crateanon_network"
+DOCKER_NETWORK = "crate_test_net"
 
 CONTAINER_ENGINE_PREFIX = "crate_test_container_engine"
 CONTAINER_DBSHELL = "crate_test_container_dbshell"
@@ -123,9 +123,11 @@ CONTAINER_BASH = "crate_test_container_bash"
 # The following defaults should match the Dockerfile(s):
 DB_SRC: str = "sourcedb"
 DB_ANON: str = "anondb"
+DB_SECRET: str = "secretdb"
 DB_NLP: str = "nlpdb"
+DB_CRATE: str = "cratedb"
 DB_TEST: str = "testdb"
-DB_ROOT_PASSWORD = "90dVM7Uv5U4q"  # random, e.g. https://www.lastpass.com
+DB_ROOT_PASSWORD: str = "90dVM7Uv5U4q"  # random, e.g. https://www.lastpass.com
 DB_PRIVUSER_USER: str = "administrator"
 DB_PRIVUSER_PASSWORD: str = "8z31I84qmvBX"
 DB_RESEARCHER_USER: str = "researcher"
@@ -141,7 +143,9 @@ DOCKER_BUILD_ARGS = {
     # Database names
     "DB_SRC": DB_SRC,
     "DB_ANON": DB_ANON,
+    "DB_SECRET": DB_SECRET,
     "DB_NLP": DB_NLP,
+    "DB_CRATE": DB_CRATE,
     "DB_TEST": DB_TEST,
     "PG_DB_IDENT": PG_DB_IDENT,
     "PG_DB_DEIDENT": PG_DB_DEIDENT,
