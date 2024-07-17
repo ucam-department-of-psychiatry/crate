@@ -125,7 +125,7 @@ WORKDIR /
 RUN apt-get update --allow-insecure-repositories \
     && apt-get install -y  \
         iputils-ping \
-        netcat \
+        netcat-openbsd \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/ \
     \
