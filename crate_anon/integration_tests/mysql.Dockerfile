@@ -9,7 +9,7 @@
 # Not this one:
 #   FROM mysql/mysql-server:latest
 # because apt-get is missing; see https://stackoverflow.com/questions/72946649.
-FROM mysql:5.7-debian
+FROM mysql:8.0-debian
 
 # -----------------------------------------------------------------------------
 # Variable setup
