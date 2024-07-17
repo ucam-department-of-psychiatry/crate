@@ -11,12 +11,12 @@ if [ $# -lt 1 ]; then
 fi
 
 ENGINE=$1
-HOST_PORT=$2
 
-if [ "$HOST_PORT" != "" ]; then
+PORTARGS=""
+
+if [ $# -eq 2 ]; then
+    HOST_PORT=$2
     PORTARGS="--hostport ${HOST_PORT}"
-else
-    PORTARGS=""
 fi
 
 PYTHON="${HOME}/venv/bin/python"
