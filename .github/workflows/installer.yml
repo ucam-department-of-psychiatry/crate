@@ -47,6 +47,6 @@ jobs:
                 ${GITHUB_WORKSPACE}/github_action_scripts/docker_db_setup.sh mysql 43306
                 docker ps
                 env
-                cat ${GITHUB_WORKSPACE}/github_action_scripts/source_database.sql | mysql -h ${CRATE_INSTALLER_SOURCE_DATABASE_HOST} -P ${CRATE_INSTALLER_SOURCE_DATABASE_PORT} -u ${CRATE_DOCKER_SOURCE_DATABASE_USER_NAME} -p${CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD} ${CRATE_DOCKER_SOURCE_DATABASE_NAME}
+                cat ${GITHUB_WORKSPACE}/github_action_scripts/source_database.sql | mysql -h localhost -P ${CRATE_INSTALLER_SOURCE_DATABASE_PORT} -u ${CRATE_DOCKER_SOURCE_DATABASE_USER_NAME} -p${CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD} ${CRATE_DOCKER_SOURCE_DATABASE_NAME}
                 ./installer.sh -d -v
                 ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh
