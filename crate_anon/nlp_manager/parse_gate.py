@@ -320,7 +320,12 @@ class Gate(BaseNlpParser):
                 try:
                     annottype = d[GateFN.TYPE].lower()
                 except KeyError:
-                    raise ValueError("_type information not in data received")
+                    # The absence of _type may be because the Java process
+                    # returned an error log e.g. OutOfMemoryError
+                    # so carry on...
+                    log.error("_type information not in data received")
+                    log.error(f"Line: {line}")
+                    raise TextProcessingFailed()
                 if annottype not in self._type_to_tablename:
                     log.warning(
                         f"Unknown annotation type, skipping: {annottype}"
