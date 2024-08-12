@@ -125,7 +125,7 @@ INSTALL_REQUIRES = [
     # Packages for cloud NLP:
     # -------------------------------------------------------------------------
     "bcrypt==3.1.7",  # bcrypt encryption
-    "cryptography==42.0.5",  # cryptography library
+    "cryptography==42.0.6",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework
