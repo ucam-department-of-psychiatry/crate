@@ -207,7 +207,7 @@ RUN apt-get update \
 
 USER "${UNIX_DB_USER}"
 
-ENV PATH="${PATH}:/opt/mssql-tools/bin/"
+ENV PATH="${PATH}:/opt/mssql-tools18/bin/"
 ENV SA_PASSWORD=${DB_ROOT_PASSWORD}
 # ... this environment variable name is fixed and picked up by SQL Server when
 # it starts
