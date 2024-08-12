@@ -145,7 +145,7 @@ until grep 'Recovery is complete' '${SQLSERVER_LOG}' >/dev/null 2>/dev/null; do\
 done\n\
 \n\
 echo '>>> SQL Server is ready. Creating databases'\n\
-sqlcmd -S localhost -U '${DB_ROOT_USER}' -P '${DB_ROOT_PASSWORD}' -i '${SQLFILE}'\n\
+sqlcmd -C -S localhost -U '${DB_ROOT_USER}' -P '${DB_ROOT_PASSWORD}' -i '${SQLFILE}'\n\
 # In a non-demo environment one would delete this sensitive script:\n\
 # rm '${SQLFILE}'\n\
 echo '>>> Databases created. READY.'\n\
