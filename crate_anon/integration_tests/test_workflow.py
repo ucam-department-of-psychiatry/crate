@@ -112,7 +112,9 @@ DEFAULT_SQLSERVER_PORT = 1433
 DEFAULT_MYSQL_PORT = 3306
 DEFAULT_POSTGRES_PORT = 5432
 
-# Same name as for the CRATE Docker containers
+DEFAULT_TIMEOUT_S = 120
+
+# Different network to the CRATE Docker containers
 # See docker/dockerfiles/docker-compose.yaml
 DOCKER_NETWORK = "crate_test_net"
 
@@ -366,7 +368,9 @@ def launch_bash(engine_info: EngineInfo) -> None:
     )
 
 
-def start_engine(engine_info: EngineInfo, host_port: int) -> None:
+def start_engine(
+    engine_info: EngineInfo, host_port: int, timeout_s=DEFAULT_TIMEOUT_S
+) -> None:
     """
     Start the database engine's container, so it provides database services.
     """
@@ -616,6 +620,12 @@ engine container is ALREADY RUNNING in a separate process (see
         help="Database engine to test",
     )
     parser.add_argument(
+        "--timeout",
+        type=float,
+        default=DEFAULT_TIMEOUT_S,
+        help="Number of seconds to wait for the database engine to be created",
+    )
+    parser.add_argument(
         "--hostport",
         type=int,
         default=None,
@@ -650,7 +660,9 @@ engine container is ALREADY RUNNING in a separate process (see
                 launch_bash(engine_info)
             elif args.action == cmd_startengine:
                 build(engine_info)
-                start_engine(engine_info, host_port=host_port)
+                start_engine(
+                    engine_info, host_port=host_port, timeout_s=args.timeout
+                )
             elif args.action == cmd_dbshell:
                 start_dbshell(engine_info)
             elif args.action == cmd_makedb:
