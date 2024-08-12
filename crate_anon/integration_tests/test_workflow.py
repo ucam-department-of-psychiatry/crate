@@ -112,7 +112,7 @@ DEFAULT_SQLSERVER_PORT = 1433
 DEFAULT_MYSQL_PORT = 3306
 DEFAULT_POSTGRES_PORT = 5432
 
-DEFAULT_TIMEOUT_S = 120
+DEFAULT_TIMEOUT_S = 60
 
 # Different network to the CRATE Docker containers
 # See docker/dockerfiles/docker-compose.yaml
