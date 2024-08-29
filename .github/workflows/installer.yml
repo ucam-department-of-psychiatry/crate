@@ -64,3 +64,9 @@ jobs:
                 cat ${GITHUB_WORKSPACE}/github_action_scripts/source_database.sql | mysql -h localhost -P ${CRATE_INSTALLER_SOURCE_DATABASE_PORT} -u ${CRATE_DOCKER_SOURCE_DATABASE_USER_NAME} -p${CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD} --protocol=tcp ${CRATE_DOCKER_SOURCE_DATABASE_NAME}
                 ./installer.sh -d -v
                 ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh
+
+            - name: Dump stuff on failure
+              if: failure()
+              run: |
+                set -eux -o pipefail
+                cat ${CRATE_DOCKER_CONFIG_HOST_DIR}/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}
