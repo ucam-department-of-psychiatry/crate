@@ -13,6 +13,7 @@ on:
             - github_action_scripts/post_installation_checks.sh
             - github_action_scripts/python_setup.sh
             - github_action_scripts/set_crate_docker_environment
+            - github_action_scripts/set_crate_docker_mssql_environment
             - github_action_scripts/set_crate_docker_mysql_environment
             - github_action_scripts/source_database.sql
             - 'docker/**'
@@ -48,5 +49,18 @@ jobs:
                 docker ps
                 env
                 cat ${GITHUB_WORKSPACE}/github_action_scripts/source_database.sql | mysql -h localhost -P ${CRATE_INSTALLER_SOURCE_DATABASE_PORT} -u ${CRATE_DOCKER_SOURCE_DATABASE_USER_NAME} -p${CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD} --protocol=tcp ${CRATE_DOCKER_SOURCE_DATABASE_NAME}
+                ./installer.sh -d -v
+                ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh
+                # Now do it again with external MSSQL / ODBC databases
+                # docker-compose down --volumes with relevant docker-compose files
+                ./installer.sh -d -p
+                rm ${CRATE_DOCKER_CONFIG_HOST_DIR}/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}
+                rm ${CRATE_DOCKER_CONFIG_HOST_DIR}/${CRATE_DOCKER_CRATE_ANON_CONFIG}
+                cp ${GITHUB_WORKSPACE}/github_action_scripts/odbc_user.ini ${CRATE_DOCKER_CONFIG_HOST_DIR}
+                source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_mssql_environment
+                ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh
+                ${GITHUB_WORKSPACE}/github_action_scripts/docker_db_setup.sh sqlserver
+                docker ps
+                env
                 ./installer.sh -d -v
                 ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh
