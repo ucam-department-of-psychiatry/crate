@@ -27,8 +27,6 @@ jobs:
             - name: Run with demo MySQL databases
               run: |
                 set -eux -o pipefail
-                DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
-                mkdir -p ${DOCKER_CONFIG}/cli-plugins
                 docker version
                 docker compose version
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
