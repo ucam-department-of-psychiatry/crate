@@ -15,7 +15,7 @@ on:
             - github_action_scripts/set_crate_docker_environment
             - github_action_scripts/set_crate_docker_mssql_environment
             - github_action_scripts/set_crate_docker_mysql_environment
-            - github_action_scripts/source_database.sql
+            - github_action_scripts/source_database_mysql.sql
             - 'docker/**'
             - 'installer/**'
             - setup.py
@@ -68,7 +68,7 @@ jobs:
                 ${GITHUB_WORKSPACE}/github_action_scripts/docker_db_setup.sh mysql 43306
                 docker ps
                 env
-                cat ${GITHUB_WORKSPACE}/github_action_scripts/source_database.sql | mysql -h localhost -P ${CRATE_INSTALLER_SOURCE_DATABASE_PORT} -u ${CRATE_DOCKER_SOURCE_DATABASE_USER_NAME} -p${CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD} --protocol=tcp ${CRATE_DOCKER_SOURCE_DATABASE_NAME}
+                cat ${GITHUB_WORKSPACE}/github_action_scripts/source_database_mysql.sql | mysql -h localhost -P ${CRATE_INSTALLER_SOURCE_DATABASE_PORT} -u ${CRATE_DOCKER_SOURCE_DATABASE_USER_NAME} -p${CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD} --protocol=tcp ${CRATE_DOCKER_SOURCE_DATABASE_NAME}
                 ./installer.sh -d -v
                 ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh
             - name: Dump stuff on failure
