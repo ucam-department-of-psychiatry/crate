@@ -75,4 +75,5 @@ jobs:
               if: failure()
               run: |
                 set -eux -o pipefail
+                source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
                 cat ${CRATE_DOCKER_CONFIG_HOST_DIR}/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}
