@@ -275,6 +275,7 @@ ENGINEINFO = {
         dbshellcmd=[
             # https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-connect-database-engine?view=sql-server-ver16  # noqa: E501
             "sqlcmd",
+            "-C",  # Allow self-signed certificate
             "-S",
             f"{CONTAINER_ENGINE_PREFIX}_sqlserver,{DEFAULT_SQLSERVER_PORT}",
             "-U",
