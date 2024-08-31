@@ -15,6 +15,7 @@ on:
             - github_action_scripts/set_crate_docker_environment
             - github_action_scripts/set_crate_docker_mssql_environment
             - github_action_scripts/set_crate_docker_mysql_environment
+            - github_action_scripts/source_database_mssql.sql
             - github_action_scripts/source_database_mysql.sql
             - 'docker/**'
             - 'installer/**'
@@ -52,6 +53,7 @@ jobs:
                 ${GITHUB_WORKSPACE}/github_action_scripts/docker_db_setup.sh sqlserver
                 docker ps
                 env
+                sqlcmd -S localhost -U ${CRATE_DOCKER_SOURCE_DATABASE_USER_NAME} -P ${CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD} -i ${GITHUB_WORKSPACE}/github_action_scripts/source_database_mssql.sql
                 ./installer.sh -d -v
                 ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh
             - name: Run with external MySQL databases
