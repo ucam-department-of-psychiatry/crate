@@ -35,6 +35,8 @@ jobs:
                 set -eux -o pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/docker_db_setup.sh sqlserver
                 docker ps
+                source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
+                source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_mssql_environment
                 sqlcmd -S localhost -U ${CRATE_DOCKER_SOURCE_DATABASE_USER_NAME} -P ${CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD} -i ${GITHUB_WORKSPACE}/github_action_scripts/source_database_mssql.sql
 
             - name: Set up external MySQL databases
@@ -43,6 +45,8 @@ jobs:
                 ${GITHUB_WORKSPACE}/github_action_scripts/docker_db_setup.sh mysql 43306
                 docker ps
                 env
+                source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
+                source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_mysql_environment
                 cat ${GITHUB_WORKSPACE}/github_action_scripts/source_database_mysql.sql | mysql -h localhost -P ${CRATE_INSTALLER_SOURCE_DATABASE_PORT} -u ${CRATE_DOCKER_SOURCE_DATABASE_USER_NAME} -p${CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD} --protocol=tcp ${CRATE_DOCKER_SOURCE_DATABASE_NAME}
 
             - name: Run installer with demo MySQL databases
