@@ -25,6 +25,11 @@ jobs:
         runs-on: ubuntu-22.04
         steps:
             - uses: actions/checkout@v4
+            - name: Common setup
+              run: |
+                set -eux -o pipefail
+                ${GITHUB_WORKSPACE}/github_action_scripts/installer_setup.sh
+
             - name: Set up python virtualenv
               run: |
                 set -eux -o pipefail
@@ -53,8 +58,6 @@ jobs:
                 set -eux -o pipefail
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_mssql_environment
-                mkdir -p ${CRATE_DOCKER_CONFIG_HOST_DIR}
-                cp ${GITHUB_WORKSPACE}/github_action_scripts/odbc_user.ini ${CRATE_DOCKER_CONFIG_HOST_DIR}
                 cd ${GITHUB_WORKSPACE}/installer
                 ./installer.sh -d
                 export CRATE_HOME=${GITHUB_WORKSPACE}
@@ -83,7 +86,6 @@ jobs:
                 docker version
                 docker compose version
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
-                ${GITHUB_WORKSPACE}/github_action_scripts/installer_setup.sh
                 cd ${GITHUB_WORKSPACE}/installer
                 ./installer.sh -d
                 export CRATE_HOME=${GITHUB_WORKSPACE}
