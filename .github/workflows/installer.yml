@@ -44,7 +44,6 @@ jobs:
                 set -eux -o pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/docker_db_setup.sh mysql 43306
                 docker ps
-                env
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_mysql_environment
                 cat ${GITHUB_WORKSPACE}/github_action_scripts/source_database_mysql.sql | mysql -h localhost -P ${CRATE_INSTALLER_SOURCE_DATABASE_PORT} -u ${CRATE_DOCKER_SOURCE_DATABASE_USER_NAME} -p${CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD} --protocol=tcp ${CRATE_DOCKER_SOURCE_DATABASE_NAME}
@@ -53,8 +52,9 @@ jobs:
               run: |
                 set -eux -o pipefail
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
-                cp ${GITHUB_WORKSPACE}/github_action_scripts/odbc_user.ini ${CRATE_DOCKER_CONFIG_HOST_DIR}
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_mssql_environment
+                mkdir -p ${CRATE_DOCKER_CONFIG_HOST_DIR}
+                cp ${GITHUB_WORKSPACE}/github_action_scripts/odbc_user.ini ${CRATE_DOCKER_CONFIG_HOST_DIR}
                 cd ${GITHUB_WORKSPACE}/installer
                 ./installer.sh -d
                 export CRATE_HOME=${GITHUB_WORKSPACE}
