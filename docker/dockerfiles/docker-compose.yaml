@@ -302,6 +302,8 @@ services:
         # Mount config file directory
         volumes:
             - crate_config_volume:/crate/cfg
+            - crate_files_volume:/crate/files
+            - crate_static_volume:/crate/static
             - crate_tmp_volume:/crate/tmp
 
         environment:
