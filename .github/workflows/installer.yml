@@ -28,6 +28,7 @@ jobs:
             - name: Common setup
               run: |
                 set -eux -o pipefail
+                source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
                 ${GITHUB_WORKSPACE}/github_action_scripts/installer_setup.sh
 
             - name: Set up python virtualenv
