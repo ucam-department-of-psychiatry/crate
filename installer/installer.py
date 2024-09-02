@@ -1100,6 +1100,43 @@ class Installer:
         self.configure_local_settings()
 
     def configure_local_settings(self) -> None:
+        crate_database_name = os.getenv(DockerEnvVar.CRATE_DB_DATABASE_NAME)
+        research_database_name = os.getenv(DockerEnvVar.RESEARCH_DATABASE_NAME)
+        secret_database_name = os.getenv(DockerEnvVar.SECRET_DATABASE_NAME)
+
+        crate_database_options = "{}"
+        research_database_options = "{}"
+        secret_database_options = "{}"
+
+        if self.use_dsn_for_crate_db():
+            crate_database_options = f'{{"dsn": "{crate_database_name}"}}'
+
+        if self.use_dsn_for_research_db():
+            research_database_options = (
+                f'{{"dsn": "{research_database_name}"}}'
+            )
+
+        if self.use_dsn_for_secret_db():
+            secret_database_options = f'{{"dsn": "{secret_database_name}"}}'
+
+        research_engine_name = os.getenv(
+            InstallerEnvVar.RESEARCH_DATABASE_ENGINE
+        )
+
+        rdikeys_database = ""
+        rdikeys_schema = ""
+
+        if research_engine_name == "mssql":
+            rdikeys_database = research_database_name
+            rdikeys_schema = "dbo"
+
+        if research_engine_name == "mysql":
+            rdikeys_schema = research_database_name
+
+        if research_engine_name == "postgresql":
+            # untested
+            rdikeys_schema = "public"
+
         replace_dict = {
             "archive_attachment_dir": DockerPath.ARCHIVE_ATTACHMENT_DIR,
             "archive_static_dir": DockerPath.ARCHIVE_STATIC_DIR,
@@ -1109,8 +1146,9 @@ class Installer:
             "crate_db_engine": self.engines[
                 os.getenv(InstallerEnvVar.CRATE_DB_ENGINE)
             ].django,
-            "crate_db_name": os.getenv(DockerEnvVar.CRATE_DB_DATABASE_NAME),
+            "crate_db_name": crate_database_name,
             "crate_db_host": os.getenv(InstallerEnvVar.CRATE_DB_SERVER),
+            "crate_db_options": crate_database_options,
             "crate_db_password": os.getenv(
                 DockerEnvVar.CRATE_DB_USER_PASSWORD
             ),
@@ -1118,12 +1156,11 @@ class Installer:
             "crate_db_user": os.getenv(DockerEnvVar.CRATE_DB_USER_NAME),
             "crate_https": str(self.use_https()),
             "crate_install_dir": DockerPath.CRATE_INSTALL_DIR,
-            "dest_db_engine": self.engines[
-                os.getenv(InstallerEnvVar.RESEARCH_DATABASE_ENGINE)
-            ].django,
+            "dest_db_engine": self.engines[research_engine_name].django,
             "dest_db_host": os.getenv(InstallerEnvVar.RESEARCH_DATABASE_HOST),
+            "dest_db_options": research_database_options,
             "dest_db_port": os.getenv(InstallerEnvVar.RESEARCH_DATABASE_PORT),
-            "dest_db_name": os.getenv(DockerEnvVar.RESEARCH_DATABASE_NAME),
+            "dest_db_name": research_database_name,
             "dest_db_user": os.getenv(
                 DockerEnvVar.RESEARCH_DATABASE_USER_NAME
             ),
@@ -1135,9 +1172,9 @@ class Installer:
             "pdf_logo_abs_url": "file:///crate/cfg/crate_logo.png",
             "private_file_storage_root": DockerPath.PRIVATE_FILE_STORAGE_ROOT,
             "rdi1_name": "research",
-            "rdi1_description": "Demo research database",
-            "rdi1_database": "",
-            "rdi1_schema": "research",
+            "rdi1_description": "Research database",
+            "rdi1_database": rdikeys_database,
+            "rdi1_schema": rdikeys_schema,
             "rdi1_pid_psuedo_field": "pid",
             "rdi1_mpid_pseudo_field": "mpid",
             "rdi1_trid_field": "trid",
@@ -1162,6 +1199,7 @@ class Installer:
             "secret_db1_host": os.getenv(InstallerEnvVar.SECRET_DATABASE_HOST),
             "secret_db1_port": os.getenv(InstallerEnvVar.SECRET_DATABASE_PORT),
             "secret_db1_name": os.getenv(DockerEnvVar.SECRET_DATABASE_NAME),
+            "secret_db1_options": secret_database_options,
             "secret_db1_user": os.getenv(
                 DockerEnvVar.SECRET_DATABASE_USER_NAME
             ),
@@ -1439,6 +1477,27 @@ class Installer:
     @staticmethod
     def get_crate_server_port_from_host() -> str:
         return os.getenv(DockerEnvVar.CRATEWEB_HOST_PORT)
+
+    @staticmethod
+    def use_dsn_for_crate_db() -> bool:
+        return (
+            os.getenv(InstallerEnvVar.CRATE_DB_ENGINE) == "mssql"
+            and os.getenv(InstallerEnvVar.CRATE_DB_SERVER) == ""
+        )
+
+    @staticmethod
+    def use_dsn_for_research_db() -> bool:
+        return (
+            os.getenv(InstallerEnvVar.RESEARCH_DATABASE_ENGINE) == "mssql"
+            and os.getenv(InstallerEnvVar.RESEARCH_DATABASE_HOST) == ""
+        )
+
+    @staticmethod
+    def use_dsn_for_secret_db() -> bool:
+        return (
+            os.getenv(InstallerEnvVar.SECRET_DATABASE_ENGINE) == "mssql"
+            and os.getenv(InstallerEnvVar.SECRET_DATABASE_HOST) == ""
+        )
 
     # -------------------------------------------------------------------------
     # Fetching information from the user

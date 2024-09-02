@@ -6,7 +6,7 @@ on:
     push:
         paths:
             - 'crate_anon/**'
-            - '!crate_anon/integration_tests'
+            - '!crate_anon/integration_tests/**'
             - .github/workflows/docker.yml
             - github_action_scripts/docker.sh
             - 'docker/**'

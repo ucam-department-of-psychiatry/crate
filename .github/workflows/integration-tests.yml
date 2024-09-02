@@ -6,6 +6,7 @@ on:
     push:
         paths:
             - '**.py'
+            - 'crate_anon/integration_tests/**'
             - .github/workflows/integration-tests.yml
             - github_action_scripts/docker_db_setup.sh
             - github_action_scripts/install_wkhtmltopdf.sh
@@ -20,11 +21,8 @@ jobs:
                 engine: ["mysql", "sqlserver"]
                 include:
                   - engine: mysql
-                    port: 3306
                   - engine: sqlserver
-                    port: 1433
                   # - engine: postgres
-                  #  port: 5432
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-python@v5
@@ -38,5 +36,5 @@ jobs:
               run: |
                 set -euxo pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh
-                ${GITHUB_WORKSPACE}/github_action_scripts/docker_db_setup.sh ${{ matrix.engine }} ${{ matrix.port }}
+                ${GITHUB_WORKSPACE}/github_action_scripts/docker_db_setup.sh ${{ matrix.engine }}
                 ${GITHUB_WORKSPACE}/github_action_scripts/integration_tests.sh ${{ matrix.engine }}

@@ -112,18 +112,24 @@ DEFAULT_SQLSERVER_PORT = 1433
 DEFAULT_MYSQL_PORT = 3306
 DEFAULT_POSTGRES_PORT = 5432
 
+DEFAULT_TIMEOUT_S = 60
+
+# Different network to the CRATE Docker containers
+# See docker/dockerfiles/docker-compose.yaml
 DOCKER_NETWORK = "crate_test_net"
 
-CONTAINER_ENGINE = "crate_test_container_engine"
+CONTAINER_ENGINE_PREFIX = "crate_test_container_engine"
 CONTAINER_DBSHELL = "crate_test_container_dbshell"
 CONTAINER_BASH = "crate_test_container_bash"
 
 # The following defaults should match the Dockerfile(s):
 DB_SRC: str = "sourcedb"
 DB_ANON: str = "anondb"
+DB_SECRET: str = "secretdb"
 DB_NLP: str = "nlpdb"
+DB_CRATE: str = "cratedb"
 DB_TEST: str = "testdb"
-DB_ROOT_PASSWORD = "90dVM7Uv5U4q"  # random, e.g. https://www.lastpass.com
+DB_ROOT_PASSWORD: str = "90dVM7Uv5U4q"  # random, e.g. https://www.lastpass.com
 DB_PRIVUSER_USER: str = "administrator"
 DB_PRIVUSER_PASSWORD: str = "8z31I84qmvBX"
 DB_RESEARCHER_USER: str = "researcher"
@@ -139,7 +145,9 @@ DOCKER_BUILD_ARGS = {
     # Database names
     "DB_SRC": DB_SRC,
     "DB_ANON": DB_ANON,
+    "DB_SECRET": DB_SECRET,
     "DB_NLP": DB_NLP,
+    "DB_CRATE": DB_CRATE,
     "DB_TEST": DB_TEST,
     "PG_DB_IDENT": PG_DB_IDENT,
     "PG_DB_DEIDENT": PG_DB_DEIDENT,
@@ -165,6 +173,7 @@ DOCKER_BUILD_ARGS = {
 @dataclass
 class EngineInfo:
     name: str
+    docker_container_name: str
     dockerfile: str
     tag: str
     docker_port: int
@@ -256,6 +265,7 @@ class EngineInfo:
 ENGINEINFO = {
     SQLSERVER: EngineInfo(
         name="Microsoft SQL Server",
+        docker_container_name=f"{CONTAINER_ENGINE_PREFIX}_sqlserver",
         dockerfile=join(THIS_SCRIPT_DIR, "sqlserver.Dockerfile"),
         tag="crate_test_sqlserver",
         docker_port=DEFAULT_SQLSERVER_PORT,
@@ -265,8 +275,9 @@ ENGINEINFO = {
         dbshellcmd=[
             # https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-connect-database-engine?view=sql-server-ver16  # noqa: E501
             "sqlcmd",
+            "-C",  # Allow self-signed certificate
             "-S",
-            f"{CONTAINER_ENGINE},{DEFAULT_SQLSERVER_PORT}",
+            f"{CONTAINER_ENGINE_PREFIX}_sqlserver,{DEFAULT_SQLSERVER_PORT}",
             "-U",
             "sa",  # SQLServer root user
             "-P",
@@ -277,6 +288,7 @@ ENGINEINFO = {
     ),
     MYSQL: EngineInfo(
         name="MySQL (MariaDB)",
+        docker_container_name=f"{CONTAINER_ENGINE_PREFIX}_mysql",
         dockerfile=join(THIS_SCRIPT_DIR, "mysql.Dockerfile"),
         tag="crate_test_mysql",
         docker_port=DEFAULT_MYSQL_PORT,
@@ -285,7 +297,7 @@ ENGINEINFO = {
         sqla_url_option_suffix="?charset=utf8",
         dbshellcmd=[
             "mysql",
-            f"--host={CONTAINER_ENGINE}",
+            f"--host={CONTAINER_ENGINE_PREFIX}_mysql",
             f"--port={DEFAULT_MYSQL_PORT}",
             "--user=root",  # MySQL root user
             f"--password={DB_ROOT_PASSWORD}",
@@ -293,6 +305,7 @@ ENGINEINFO = {
     ),
     POSTGRESQL: EngineInfo(
         name="PostgreSQL (Postgres)",
+        docker_container_name=f"{CONTAINER_ENGINE_PREFIX}_postgres",
         dockerfile=join(THIS_SCRIPT_DIR, "postgres.Dockerfile"),
         tag="crate_test_postgres",
         docker_port=DEFAULT_POSTGRES_PORT,
@@ -301,7 +314,7 @@ ENGINEINFO = {
         dbshellenv={"PGPASSWORD": DB_ROOT_PASSWORD},
         dbshellcmd=[
             "psql",
-            f"--host={CONTAINER_ENGINE}",
+            f"--host={CONTAINER_ENGINE_PREFIX}_postgres",
             f"--port={DEFAULT_POSTGRES_PORT}",
             "--username=postgres",  # PostgreSQL root user
         ],
@@ -356,7 +369,9 @@ def launch_bash(engine_info: EngineInfo) -> None:
     )
 
 
-def start_engine(engine_info: EngineInfo, host_port: int) -> None:
+def start_engine(
+    engine_info: EngineInfo, host_port: int, timeout_s=DEFAULT_TIMEOUT_S
+) -> None:
     """
     Start the database engine's container, so it provides database services.
     """
@@ -367,33 +382,35 @@ def start_engine(engine_info: EngineInfo, host_port: int) -> None:
         envs=envvars,
         publish=[(host_port, engine_info.docker_port)],
         networks=[DOCKER_NETWORK],
-        name=CONTAINER_ENGINE,
+        name=engine_info.docker_container_name,
         detach=True,
     )
 
-    ip_address = get_crate_container_engine_ip_address()
-    wait_for_databases_to_be_created(60)
+    ip_address = get_crate_container_engine_ip_address(engine_info)
+    wait_for_databases_to_be_created(engine_info, 60)
     log.info(
         f"Database engine started on {ip_address}:{engine_info.docker_port}"
     )
 
 
-def wait_for_databases_to_be_created(timeout_s: float) -> None:
+def wait_for_databases_to_be_created(
+    engine_info: EngineInfo, timeout_s: float
+) -> None:
     start_time = time.time()
 
     while time.time() - start_time < timeout_s:
-        logs = docker.logs(CONTAINER_ENGINE)
+        logs = docker.logs(engine_info.docker_container_name)
         if ">>> Databases created. READY." in logs:
             return
 
         time.sleep(1)
 
-    log.error(docker.logs(CONTAINER_ENGINE))
+    log.error(docker.logs(engine_info.docker_container_name))
     raise TimeoutError("Gave up waiting for the databases to be created.")
 
 
-def get_crate_container_engine_ip_address() -> str:
-    container = docker.container.inspect(CONTAINER_ENGINE)
+def get_crate_container_engine_ip_address(engine_info: EngineInfo) -> str:
+    container = docker.container.inspect(engine_info.docker_container_name)
     network_settings = container.network_settings
 
     return network_settings.networks[DOCKER_NETWORK].ip_address
@@ -604,6 +621,12 @@ engine container is ALREADY RUNNING in a separate process (see
         help="Database engine to test",
     )
     parser.add_argument(
+        "--timeout",
+        type=float,
+        default=DEFAULT_TIMEOUT_S,
+        help="Number of seconds to wait for the database engine to be created",
+    )
+    parser.add_argument(
         "--hostport",
         type=int,
         default=None,
@@ -638,7 +661,9 @@ engine container is ALREADY RUNNING in a separate process (see
                 launch_bash(engine_info)
             elif args.action == cmd_startengine:
                 build(engine_info)
-                start_engine(engine_info, host_port=host_port)
+                start_engine(
+                    engine_info, host_port=host_port, timeout_s=args.timeout
+                )
             elif args.action == cmd_dbshell:
                 start_dbshell(engine_info)
             elif args.action == cmd_makedb:

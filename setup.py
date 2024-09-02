@@ -76,7 +76,7 @@ INSTALL_REQUIRES = [
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==4.2.13",  # for main CRATE research database web server
+    "django==4.2.15",  # for main CRATE research database web server
     "django-debug-toolbar==3.0a2",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
@@ -89,7 +89,7 @@ INSTALL_REQUIRES = [
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==2.0.1",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
-    "gunicorn==22.0.0",  # UNIX only, though will install under Windows
+    "gunicorn==23.0.0",  # UNIX only, though will install under Windows
     "gutenbergpy==0.3.4",  # Project Gutenberg API
     "jsonlines==3.0.0",  # JSON Lines format
     "kombu==5.2.3",  # AMQP library for Celery; requires VC++ under Windows
@@ -125,7 +125,7 @@ INSTALL_REQUIRES = [
     # Packages for cloud NLP:
     # -------------------------------------------------------------------------
     "bcrypt==3.1.7",  # bcrypt encryption
-    "cryptography==42.0.5",  # cryptography library
+    "cryptography==42.0.6",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework

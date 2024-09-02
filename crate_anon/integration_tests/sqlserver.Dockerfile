@@ -38,7 +38,9 @@ ARG DB_TEST_PASSWORD
 # Database names:
 ARG DB_SRC
 ARG DB_ANON
+ARG DB_SECRET
 ARG DB_NLP
+ARG DB_CRATE
 ARG DB_TEST
 
 # Used internally:
@@ -92,6 +94,13 @@ GO\n\
 CREATE FULLTEXT CATALOG anon_catalog AS DEFAULT;\n\
 GO\n\
 \n\
+CREATE DATABASE [${DB_SECRET}];\n\
+GO\n\
+USE [${DB_SECRET}];\n\
+CREATE USER [${DB_PRIVUSER_USER}] FOR LOGIN [${DB_PRIVUSER_USER}];\n\
+EXEC sp_addrolemember 'db_owner', '${DB_PRIVUSER_USER}';\n\
+GO\n\
+\n\
 CREATE DATABASE [${DB_NLP}];\n\
 GO\n\
 USE [${DB_NLP}];\n\
@@ -99,6 +108,13 @@ CREATE USER [${DB_PRIVUSER_USER}] FOR LOGIN [${DB_PRIVUSER_USER}];\n\
 EXEC sp_addrolemember 'db_owner', '${DB_PRIVUSER_USER}';\n\
 CREATE USER [${DB_RESEARCHER_USER}] FOR LOGIN [${DB_RESEARCHER_USER}];\n\
 EXEC sp_addrolemember 'db_datareader', '${DB_RESEARCHER_USER}';\n\
+GO\n\
+\n\
+CREATE DATABASE [${DB_CRATE}];\n\
+GO\n\
+USE [${DB_CRATE}];\n\
+CREATE USER [${DB_PRIVUSER_USER}] FOR LOGIN [${DB_PRIVUSER_USER}];\n\
+EXEC sp_addrolemember 'db_owner', '${DB_PRIVUSER_USER}';\n\
 GO\n\
 \n\
 CREATE DATABASE [${DB_TEST}];\n\
@@ -129,7 +145,7 @@ until grep 'Recovery is complete' '${SQLSERVER_LOG}' >/dev/null 2>/dev/null; do\
 done\n\
 \n\
 echo '>>> SQL Server is ready. Creating databases'\n\
-sqlcmd -S localhost -U '${DB_ROOT_USER}' -P '${DB_ROOT_PASSWORD}' -i '${SQLFILE}'\n\
+sqlcmd -C -S localhost -U '${DB_ROOT_USER}' -P '${DB_ROOT_PASSWORD}' -i '${SQLFILE}'\n\
 # In a non-demo environment one would delete this sensitive script:\n\
 # rm '${SQLFILE}'\n\
 echo '>>> Databases created. READY.'\n\
@@ -191,7 +207,7 @@ RUN apt-get update \
 
 USER "${UNIX_DB_USER}"
 
-ENV PATH="${PATH}:/opt/mssql-tools/bin/"
+ENV PATH="${PATH}:/opt/mssql-tools18/bin/"
 ENV SA_PASSWORD=${DB_ROOT_PASSWORD}
 # ... this environment variable name is fixed and picked up by SQL Server when
 # it starts
