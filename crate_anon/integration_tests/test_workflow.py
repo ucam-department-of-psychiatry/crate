@@ -70,6 +70,7 @@ from os.path import abspath, dirname, join
 import tempfile
 import time
 from typing import Dict, List, Tuple
+import urllib.parse
 
 from cardinal_pythonlib.fileops import mkdir_p
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
@@ -199,8 +200,10 @@ class EngineInfo:
         dialect = self.sqla_dialect
         if self.python_driver:
             dialect += "+" + self.python_driver
+
+        url_encoded_password = urllib.parse.quote_plus(password)
         return (
-            f"{dialect}://{user}:{password}@{ip_addr}:{port}/"
+            f"{dialect}://{user}:{url_encoded_password}@{ip_addr}:{port}/"
             f"{dbname}{self.sqla_url_option_suffix}"
         )
 
