@@ -129,13 +129,13 @@ DB_SECRET: str = "secretdb"
 DB_NLP: str = "nlpdb"
 DB_CRATE: str = "cratedb"
 DB_TEST: str = "testdb"
-DB_ROOT_PASSWORD: str = "9@dVM7!v5U4q"  # random, e.g. https://www.lastpass.com
+DB_ROOT_PASSWORD: str = "9@dVM7?v5U4q"  # random, e.g. https://www.lastpass.com
 DB_PRIVUSER_USER: str = "administrator"
-DB_PRIVUSER_PASSWORD: str = "8z3!I84@mvBX"
+DB_PRIVUSER_PASSWORD: str = "8z3?I84@mvBX"
 DB_RESEARCHER_USER: str = "researcher"
-DB_RESEARCHER_PASSWORD: str = "G6f@V3!oc3Yb"
+DB_RESEARCHER_PASSWORD: str = "G6f@V3?oc3Yb"
 DB_TEST_USER: str = "tester"
-DB_TEST_PASSWORD: str = "Qcig@cuW!myo"
+DB_TEST_PASSWORD: str = "Qcig@cuW?myo"
 # Postgres has an additional layer... database/schema/table.
 PG_DB_IDENT = "identdb"
 PG_DB_DEIDENT = "deidentdb"
