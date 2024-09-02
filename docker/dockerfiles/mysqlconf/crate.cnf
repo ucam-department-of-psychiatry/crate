@@ -1,3 +1,4 @@
 [mysqld]
 explicit_defaults_for_timestamp=1
 max_allowed_packet=32M
+default_authentication_plugin=mysql_native_password
