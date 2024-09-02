@@ -6,10 +6,9 @@ set -euxo pipefail
 
 sudo apt-get update
 sudo apt -y install python3-virtualenv python3-venv wait-for-it
-docker --version
-docker compose version
-mkdir "${CRATE_DOCKER_CONFIG_HOST_DIR}"
-mkdir "${CRATE_DOCKER_STATIC_HOST_DIR}"
+mkdir -p "${CRATE_DOCKER_CONFIG_HOST_DIR}"
+mkdir -p "${CRATE_DOCKER_STATIC_HOST_DIR}"
+cp ${GITHUB_WORKSPACE}/github_action_scripts/odbc_user.ini ${CRATE_DOCKER_CONFIG_HOST_DIR}
 
 SSL_CSR=${HOME}/crate.csr
 
