@@ -1300,12 +1300,14 @@ class Installer:
         self.run_crate_command(f"crate_make_demo_database {url}")
 
     def create_data_dictionary(self) -> None:
+        self.info("Creating data dictionary...")
         data_dictionary = self.get_data_dictionary_host_filename()
         self.run_crate_command_and_output_to_file(
             "crate_anon_draft_dd", data_dictionary
         )
 
     def anonymise_demo_data(self) -> None:
+        self.info("Anonymising demo data...")
         self.run_crate_command("crate_anonymise --full")
 
     def report_status(self) -> None:
@@ -1405,7 +1407,8 @@ class Installer:
         path = ""
         query = ""
         scheme = self.engines[engine].sqlalchemy
-        netloc = f"{user}:{password}@"
+        url_encoded_password = urllib.parse.quote_plus(password)
+        netloc = f"{user}:{url_encoded_password}@"
         if host:
             netloc = f"{netloc}{host}"
             if port:

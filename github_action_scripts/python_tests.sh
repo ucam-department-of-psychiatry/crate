@@ -39,7 +39,7 @@ else
 
     ENGINE_IP=$(docker inspect crate_test_container_engine_${ENGINE} --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
     TEST_USER=tester
-    TEST_PASSWORD=QcigecuW1myo
+    TEST_PASSWORD=Qcig%40cuW%3Fmyo
     TEST_DB=testdb
     DB_OPTION="--db-url ${SCHEME}://${TEST_USER}:${TEST_PASSWORD}@${ENGINE_IP}:${PORT}/${TEST_DB}${QUERY}"
 fi
