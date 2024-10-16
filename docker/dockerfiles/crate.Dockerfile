@@ -21,7 +21,7 @@
 # FROM: Base image
 # -----------------------------------------------------------------------------
 
-FROM python:3.8-slim-bullseye AS crate-build-1-user
+FROM python:3.9-slim-bullseye AS crate-build-1-user
 # This is a version of Debian 11 (see "cat /etc/debian_version").
 
 
@@ -109,7 +109,7 @@ WORKDIR /crate
 #
 # - Testing KCL pharmacotherapy app:
 #
-#   export NLPPROGDIR=/crate/venv/lib/python3.8/site-packages/crate_anon/nlp_manager/compiled_nlp_classes/
+#   export NLPPROGDIR=/crate/venv/lib/python3.9/site-packages/crate_anon/nlp_manager/compiled_nlp_classes/
 #   export GATEDIR=/crate/gate
 #   export GATE_PHARMACOTHERAPY_DIR=/crate/brc-gate-pharmacotherapy
 #   export PLUGINFILE=/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini
@@ -126,7 +126,7 @@ ARG CRATE_ROOT=/crate
 ARG CRATE_SRC=$CRATE_ROOT/src
 ARG CRATE_VENV=$CRATE_ROOT/venv
 ARG CRATE_VENV_BIN=$CRATE_VENV/bin
-ARG CRATE_PACKAGE_ROOT=$CRATE_VENV/lib/python3.8/site-packages/crate_anon
+ARG CRATE_PACKAGE_ROOT=$CRATE_VENV/lib/python3.9/site-packages/crate_anon
 ARG CRATE_GATE_PLUGIN_FILE=$CRATE_PACKAGE_ROOT/nlp_manager/specimen_gate_plugin_file.ini
 ARG BIOYODIE_DIR=$CRATE_ROOT/bioyodie
 ARG GATE_HOME=$CRATE_ROOT/gate
