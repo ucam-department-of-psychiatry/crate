@@ -76,8 +76,8 @@ INSTALL_REQUIRES = [
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==4.2.15",  # for main CRATE research database web server
-    "django-debug-toolbar==3.0a2",  # Django debug toolbar
+    "django==4.2.16",  # for main CRATE research database web server
+    "django-debug-toolbar==3.2.1",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
     "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa: E501
@@ -97,8 +97,8 @@ INSTALL_REQUIRES = [
     "MarkupSafe==2.0.1",  # for HTML escaping
     # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa: E501
-    "numba==0.55.2",  # just-in-time compilation of functions
-    "numpy==1.22.4",  # numerical work
+    "numba==0.60.0",  # just-in-time compilation of functions
+    "numpy==1.26.4",  # numerical work
     "openpyxl==3.0.7",  # read Excel
     "ordered-set==4.1.0",  # ordered sets; search for ordered_set
     "pendulum==2.1.2",  # dates/times
@@ -125,7 +125,7 @@ INSTALL_REQUIRES = [
     # Packages for cloud NLP:
     # -------------------------------------------------------------------------
     "bcrypt==3.1.7",  # bcrypt encryption
-    "cryptography==42.0.6",  # cryptography library
+    "cryptography==43.0.1",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework
@@ -207,9 +207,9 @@ setup(
         "Natural Language :: English",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3 :: Only",
         "Topic :: System :: Hardware",
         "Topic :: System :: Networking",

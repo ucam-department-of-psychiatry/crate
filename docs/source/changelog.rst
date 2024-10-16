@@ -1679,6 +1679,9 @@ Changes
   in wrong credentials being used.
   https://github.com/ucam-department-of-psychiatry/crate/issues/161
 
+- Minimum Python version is now 3.9. Python 3.8 has now reached end-of-life.
+  Python 3.11 is now supported.
+
 
 To do
 -----

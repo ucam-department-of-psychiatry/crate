@@ -153,10 +153,10 @@ fi
 source "${CRATE_INSTALLER_VENV}/bin/activate"
 
 # Check virtual environment
-PYTHON_VERSION_OK=$(python -c 'import sys; print(sys.version_info.major >=3 and sys.version_info.minor >= 7)')
+PYTHON_VERSION_OK=$(python -c 'import sys; print(sys.version_info.major >=3 and sys.version_info.minor >= 9)')
 if [ "${PYTHON_VERSION_OK}" == "False" ]; then
     python --version
-    echo "You need at least Python 3.7 to run the installer."
+    echo "You need at least Python 3.9 to run the installer."
     exit 1
 fi
 
