@@ -8,7 +8,7 @@ PYTHON=${HOME}/venv/bin/python
 ${PYTHON} -VV
 ${PYTHON} -m site
 ${PYTHON} -m ensurepip --upgrade
-${PYTHON} -m pip install -U setuptools
+${PYTHON} -m pip install -U pip setuptools
 echo dumping pre-installed packages
 ${PYTHON} -m pip freeze
 echo installing pip packages
