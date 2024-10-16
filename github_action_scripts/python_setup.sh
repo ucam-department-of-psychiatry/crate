@@ -4,14 +4,14 @@ set -eux -o pipefail
 
 cd "${GITHUB_WORKSPACE}"
 python -m venv "${HOME}/venv"
-source "${HOME}/venv/bin/activate"
-python -VV
-python -m site
-python -m ensurepip --upgrade
-python -m pip install -U setuptools
+PYTHON=${HOME}/venv/bin/python
+${PYTHON} -VV
+${PYTHON} -m site
+${PYTHON} -m ensurepip --upgrade
+${PYTHON} -m pip install -U setuptools
 echo dumping pre-installed packages
-python -m pip freeze
+${PYTHON} -m pip freeze
 echo installing pip packages
-python -m pip install -e .
+${PYTHON} -m pip install -e .
 echo installing database backends
-python -m pip install mssql-django mysqlclient psycopg2 pyodbc pymssql
+${PYTHON} -m pip install mssql-django mysqlclient psycopg2 pyodbc pymssql
