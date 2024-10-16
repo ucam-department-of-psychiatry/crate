@@ -97,7 +97,7 @@ INSTALL_REQUIRES = [
     "MarkupSafe==2.0.1",  # for HTML escaping
     # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa: E501
-    "numba==0.55.2",  # just-in-time compilation of functions
+    "numba==0.60.0",  # just-in-time compilation of functions
     "numpy==1.22.4",  # numerical work
     "openpyxl==3.0.7",  # read Excel
     "ordered-set==4.1.0",  # ordered sets; search for ordered_set
