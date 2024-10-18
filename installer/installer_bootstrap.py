@@ -76,9 +76,8 @@ class InstallerBoot:
 
     def __post_init__(self) -> None:
         self.this_dir = os.path.dirname(os.path.realpath(__file__))
-        self.release_url = (
-            f"{self.github_repository}/releases/{self.release_version}"
-        )
+        path = f"releases/download/{self.release_version}"
+        self.release_url = f"{self.github_repository}/{path}"
         self.venv_python = os.path.join(self.venv_dir, "bin", "python")
 
     def boot(self) -> None:
