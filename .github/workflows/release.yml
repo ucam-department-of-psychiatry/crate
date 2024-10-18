@@ -26,7 +26,7 @@ jobs:
             - name: Create release with artifacts
               uses: ncipollo/release-action@v1
               with:
-                  artifacts: "installer/installer.sh,/tmp/crate.tar.gz"
+                  artifacts: "installer/installer_bootstrap.py,installer/installer_requirements.txt,installer/installer.py,/tmp/crate.tar.gz"
                   token: ${{ secrets.GITHUB_TOKEN }}
             - name: Test installer
               run: |
