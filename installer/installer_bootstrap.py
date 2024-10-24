@@ -81,6 +81,8 @@ class InstallerBoot:
         self.venv_python = os.path.join(self.venv_dir, "bin", "python")
 
     def boot(self) -> None:
+        os.makedirs(self.installer_root_dir, exist_ok=True)
+
         if not self.no_fetch:
             self.download_release_file("installer.py")
             self.download_release_file("installer_requirements.txt")
@@ -92,10 +94,11 @@ class InstallerBoot:
         self.run_installer()
 
     def create_virtual_environment(self) -> None:
-        builder = EnvBuilder(clear=self.recreate_venv, with_pip=True)
+        builder = EnvBuilder(
+            clear=self.recreate_venv, with_pip=True, upgrade_deps=True
+        )
 
         builder.create(self.venv_dir)
-        builder.upgrade_dependencies()
 
     def delete_virtualenv(self) -> None:
         shutil.rmtree(self.venv_dir, ignore_errors=True)
@@ -130,9 +133,18 @@ class InstallerBoot:
         installer_args = [
             self.venv_python,
             f"{self.installer_root_dir}/installer.py",
-        ] + [self.command]
+        ]
 
-        subprocess.run(installer_args, check=True)
+        installer_args.append(self.command)
+
+        if self.command == Command.INSTALL and not self.no_fetch:
+            installer_args += [
+                "--download",
+                "--release_version",
+                self.release_version,
+            ]
+
+        subprocess.run(installer_args)
 
 
 def main() -> None:
@@ -163,14 +175,14 @@ def main() -> None:
         help="Do not fetch files from GitHub. Use local installation",
     )
     parser.add_argument(
-        "--release_version",
-        help="Install this release of CRATE",
-        default="latest",
-    )
-    parser.add_argument(
         "--recreate_venv",
         action="store_true",
         help="Recreate the CRATE installer virtual environment",
+    )
+    parser.add_argument(
+        "--release_version",
+        default="latest",
+        help="Install this release of CRATE",
     )
     parser.add_argument(
         "--update",
