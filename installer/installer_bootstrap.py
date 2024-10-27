@@ -51,7 +51,6 @@ import getpass
 import json
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 from typing import Optional
@@ -157,9 +156,6 @@ class InstallerBoot:
         )
 
         builder.create(self.venv_dir)
-
-    def delete_virtualenv(self) -> None:
-        shutil.rmtree(self.venv_dir, ignore_errors=True)
 
     def install_requirements(self) -> None:
         subprocess.run(

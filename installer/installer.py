@@ -452,15 +452,10 @@ class Installer:
     # Commands
     # -------------------------------------------------------------------------
 
-    def install(
-        self, download: bool = False, release_version: str = "latest"
-    ) -> None:
+    def install(self) -> None:
         self.start_message()
         self.check_setup()
 
-        self.configure_download_prerequisites()
-        if download:
-            self.download_crate_source(release_version)
         self.configure()
         self.write_environment_variables()
 
@@ -638,13 +633,6 @@ class Installer:
                 f"The version of Docker Compose ({version}) is too old. "
                 f"Please install v{MINIMUM_DOCKER_COMPOSE_VERSION} or greater."
             )
-
-    def configure_download_prerequisites(self) -> None:
-        try:
-            self.configure_crate_root_host_dir()
-        except (KeyboardInterrupt, EOFError):
-            # The user pressed CTRL-C or CTRL-D
-            self.abort_installation()
 
     def configure(self) -> None:
         try:
@@ -2035,9 +2023,7 @@ def main() -> None:
     )
 
     if args.command == Command.INSTALL:
-        installer.install(
-            download=args.download, release_version=args.release_version
-        )
+        installer.install()
 
     elif args.command == Command.START:
         installer.start()
