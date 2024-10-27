@@ -54,6 +54,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+from typing import Optional
 import urllib.request
 from venv import EnvBuilder
 
@@ -72,7 +73,7 @@ class InstallerBoot:
     crate_root_dir: str
     run_locally: bool
     recreate_venv: bool
-    version: str = None
+    version: Optional[str]
     update: bool
     verbose: bool
 
@@ -232,6 +233,7 @@ def main() -> None:
             "Use this commit/tag/branch of CRATE. If unset, use the latest "
             "stable release."
         ),
+        default=None,
     )
     parser.add_argument(
         "--update",
