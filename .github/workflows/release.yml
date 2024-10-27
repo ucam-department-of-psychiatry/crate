@@ -31,6 +31,6 @@ jobs:
                 cd ${HOME}
                 curl -L --retry 10 --fail https://github.com/ucam-department-of-psychiatry/crate/releases/${{ steps.vars.outputs.tag }}/download/installer_bootstrap.py --output installer_bootstrap.py
                 chmod u+x installer_bootstrap.py
-                python3 installer_bootstrap.py --crate_root_dir /crate
+                python3 installer_bootstrap.py --crate_root_dir /crate --version ${{ steps.vars.outputs.tag }}
                 export CRATE_HOME=/crate/src
                 ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh
