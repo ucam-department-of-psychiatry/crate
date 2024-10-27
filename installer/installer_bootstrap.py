@@ -78,7 +78,7 @@ class InstallerBoot:
     verbose: bool
 
     def __post_init__(self) -> None:
-        self.repository_url = "https://github.com/{self.github_repository}"
+        self.repository_url = f"https://github.com/{self.github_repository}"
         self.src_dir = os.path.join(self.crate_root_dir, "src")
         self.venv_dir = os.path.join(self.crate_root_dir, "venv")
         self.venv_python = os.path.join(self.venv_dir, "bin", "python")
@@ -129,16 +129,16 @@ class InstallerBoot:
         if not os.path.exists(self.src_dir):
             os.chdir(self.crate_root_dir)
             subprocess.run(
-                "git", "clone", self.repository_url, self.src_dir, check=True
+                ["git", "clone", self.repository_url, self.src_dir], check=True
             )
 
         os.chdir(self.src_dir)
-        subprocess.run("git", "fetch", check=True)
+        subprocess.run(["git", "fetch"], check=True)
 
         if self.version is None:
             self.version = self.get_commit_of_latest_release()
 
-        subprocess.run("git", "checkout", self.version, check=True)
+        subprocess.run(["git", "checkout", self.version], check=True)
 
     def get_commit_of_latest_release(self) -> str:
         api_url = (
