@@ -1954,7 +1954,6 @@ def main() -> None:
     parser.add_argument("--verbose", action="store_true", help="Be verbose")
     parser.add_argument(
         "--crate_root_dir",
-        action="store_true",
         default=os.getenv(InstallerEnvVar.CRATE_ROOT_HOST_DIR),
         help=(
             "Top level CRATE directory containing config files and source "
