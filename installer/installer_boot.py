@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# installer/installer_bootstrap.py
+# installer/installer_boot.py
 
 # ==============================================================================
 #
