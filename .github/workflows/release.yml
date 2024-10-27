@@ -29,7 +29,7 @@ jobs:
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_installer_environment
                 ${GITHUB_WORKSPACE}/github_action_scripts/installer_setup.sh
                 cd ${HOME}
-                curl -L --retry 10 --fail https://github.com/ucam-department-of-psychiatry/crate/releases/${{ steps.vars.outputs.tag }}/download/installer_boot.py --output installer_boot.py
+                curl -L --retry 10 --fail https://github.com/ucam-department-of-psychiatry/crate/releases/download/${{ steps.vars.outputs.tag }}/installer_boot.py --output installer_boot.py
                 chmod u+x installer_boot.py
                 python3 installer_boot.py --crate_root_dir /crate --version ${{ steps.vars.outputs.tag }}
                 export CRATE_HOME=/crate/src
