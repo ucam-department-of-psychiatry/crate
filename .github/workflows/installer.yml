@@ -60,11 +60,11 @@ jobs:
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_installer_environment
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_installer_mssql_environment
                 cd ${GITHUB_WORKSPACE}/installer
-                python3 installer_bootstrap.py --installer_root_dir ${GITHUB_WORKSPACE}/installer --no_fetch
+                python3 installer_bootstrap.py --crate_root_dir /crate --run_locally
                 export CRATE_HOME=${GITHUB_WORKSPACE}
                 ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh
                 # docker-compose down --volumes with relevant docker-compose files
-                python3 installer_bootstrap.py --installer_root_dir ${GITHUB_WORKSPACE}/installer --no_fetch stop
+                python3 installer_bootstrap.py --crate_root_dir /crate --run_locally stop
                 rm ${CRATE_INSTALLER_CRATE_ROOT_HOST_DIR}/config/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}
                 rm ${CRATE_INSTALLER_CRATE_ROOT_HOST_DIR}/config/${CRATE_DOCKER_CRATE_ANON_CONFIG}
 
@@ -74,10 +74,10 @@ jobs:
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_installer_environment
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_installer_mysql_environment
                 cd ${GITHUB_WORKSPACE}/installer
-                python3 installer_bootstrap.py --installer_root_dir ${GITHUB_WORKSPACE}/installer --no_fetch
+                python3 installer_bootstrap.py --crate_root_dir /crate --run_locally
                 export CRATE_HOME=${GITHUB_WORKSPACE}
                 ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh
-                python3 installer_bootstrap.py --installer_root_dir ${GITHUB_WORKSPACE}/installer --no_fetch stop
+                python3 installer_bootstrap.py --crate_root_dir /crate --run_locally stop
                 rm ${CRATE_INSTALLER_CRATE_ROOT_HOST_DIR}/config/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}
                 rm ${CRATE_INSTALLER_CRATE_ROOT_HOST_DIR}/config/${CRATE_DOCKER_CRATE_ANON_CONFIG}
 
@@ -88,12 +88,12 @@ jobs:
                 docker compose version
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_installer_environment
                 cd ${GITHUB_WORKSPACE}/installer
-                python3 installer_bootstrap.py --installer_root_dir ${GITHUB_WORKSPACE}/installer --no_fetch
+                python3 installer_bootstrap.py --crate_root_dir /crate --run_locally
                 export CRATE_HOME=${GITHUB_WORKSPACE}
                 ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh
                 ${GITHUB_WORKSPACE}/github_action_scripts/anonymisation_checks.sh
                 # docker-compose down --volumes with relevant docker-compose files
-                python3 installer_bootstrap.py --installer_root_dir ${GITHUB_WORKSPACE}/installer --no_fetch stop
+                python3 installer_bootstrap.py --crate_root_dir /crate --run_locally stop
                 rm ${CRATE_INSTALLER_CRATE_ROOT_HOST_DIR}/config/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}
                 rm ${CRATE_INSTALLER_CRATE_ROOT_HOST_DIR}/config/${CRATE_DOCKER_CRATE_ANON_CONFIG}
 

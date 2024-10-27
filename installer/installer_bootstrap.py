@@ -47,7 +47,10 @@
 
 from argparse import ArgumentParser
 from dataclasses import dataclass
+import getpass
+import json
 import os
+from pathlib import Path
 import shutil
 import subprocess
 import sys
@@ -66,32 +69,86 @@ class Command:
 class InstallerBoot:
     command: str
     github_repository: str
-    installer_root_dir: str
-    no_fetch: bool
+    crate_root_dir: str
+    run_locally: bool
     recreate_venv: bool
-    release_version: str
+    version: str = None
     update: bool
-    venv_dir: str
     verbose: bool
 
     def __post_init__(self) -> None:
-        self.this_dir = os.path.dirname(os.path.realpath(__file__))
-        path = f"releases/download/{self.release_version}"
-        self.release_url = f"{self.github_repository}/{path}"
+        self.repository_url = "https://github.com/{self.github_repository}"
+        self.src_dir = os.path.join(self.crate_root_dir, "src")
+        self.venv_dir = os.path.join(self.crate_root_dir, "venv")
         self.venv_python = os.path.join(self.venv_dir, "bin", "python")
+        self.installer_dir = self.get_installer_dir()
+
+    def get_installer_dir(self) -> str:
+        if self.run_locally:
+            return os.path.dirname(os.path.realpath(__file__))
+
+        return os.path.join(self.src_dir, "installer")
 
     def boot(self) -> None:
-        os.makedirs(self.installer_root_dir, exist_ok=True)
-
-        if not self.no_fetch:
-            self.download_release_file("installer.py")
-            self.download_release_file("installer_requirements.txt")
+        self.ensure_root_dir_exists()
+        if not self.run_locally:
+            self.checkout_code()
 
         if self.recreate_venv or not os.path.exists(self.venv_dir):
             self.create_virtual_environment()
             self.install_requirements()
 
         self.run_installer()
+
+    def ensure_root_dir_exists(self) -> None:
+        try:
+            Path(self.crate_root_dir).mkdir(parents=True, exist_ok=True)
+        except OSError:
+            username = getpass.getuser()
+
+            print(
+                f"Failed to create the directory {self.crate_root_dir}. This "
+                "may be because the user '{username}' does not have write "
+                "access to it. If this is the case, this might also be a good "
+                "opportunity to create a common group for all CRATE users.\n\n"
+                "For example (Ubuntu):\n"
+                "sudo groupadd crate\n"
+                f"sudo usermod -aG crate {username}\n"
+                "sudo usermod -aG crate anotheruser\n"
+                "sudo mkdir {self.crate_root_dir}\n"
+                f"sudo chown -R {username}:crate {self.crate_root_dir}\n\n"
+                "Then logout and log back in again or:\n"
+                "su -u {username}\n"
+                "for the installer to pick up the new group."
+            )
+
+            raise
+
+    def checkout_code(self) -> None:
+        if not os.path.exists(self.src_dir):
+            os.chdir(self.crate_root_dir)
+            subprocess.run(
+                "git", "clone", self.repository_url, self.src_dir, check=True
+            )
+
+        os.chdir(self.src_dir)
+        subprocess.run("git", "fetch", check=True)
+
+        if self.version is None:
+            self.version = self.get_commit_of_latest_release()
+
+        subprocess.run("git", "checkout", self.version, check=True)
+
+    def get_commit_of_latest_release(self) -> str:
+        api_url = (
+            "https://api.github.com/"
+            f"repos/{self.github_repository}/releases/latest"
+        )
+
+        with urllib.request.urlopen(api_url) as response:
+            latest_release = json.loads(response.read().decode("utf-8"))
+
+        return latest_release["tag_name"]
 
     def create_virtual_environment(self) -> None:
         builder = EnvBuilder(
@@ -103,19 +160,6 @@ class InstallerBoot:
     def delete_virtualenv(self) -> None:
         shutil.rmtree(self.venv_dir, ignore_errors=True)
 
-    def download_release_file(self, filename: str) -> None:
-        self.download(
-            f"{self.release_url}/{filename}",
-            f"{self.installer_root_dir}/{filename}",
-        )
-
-    def download(self, url: str, filename: str) -> None:
-        print(f"Downloading {url} to {filename}...")
-        with urllib.request.urlopen(url) as response, open(
-            filename, "wb"
-        ) as out_file:
-            shutil.copyfileobj(response, out_file)
-
     def install_requirements(self) -> None:
         subprocess.run(
             [
@@ -124,7 +168,7 @@ class InstallerBoot:
                 "pip",
                 "install",
                 "-r",
-                f"{self.installer_root_dir}/installer_requirements.txt",
+                f"{self.installer_dir}/installer_requirements.txt",
             ],
             check=True,
         )
@@ -132,18 +176,14 @@ class InstallerBoot:
     def run_installer(self) -> None:
         installer_args = [
             self.venv_python,
-            f"{self.installer_root_dir}/installer.py",
+            f"{self.installer_dir}/installer.py",
+            "--crate_root_dir",
+            self.crate_root_dir,
         ]
 
         installer_args.append(self.command)
 
-        if self.command == Command.INSTALL and not self.no_fetch:
-            installer_args += [
-                "--download",
-                "--release_version",
-                self.release_version,
-            ]
-
+        # check=False for non-error exit codes such as incorrect usage
         subprocess.run(installer_args)
 
 
@@ -156,23 +196,30 @@ def main() -> None:
         )
         sys.exit(EXIT_FAILURE)
 
-    home_dir = os.path.expanduser("~")
-
     parser = ArgumentParser()
     parser.add_argument(
         "--github_repository",
-        default="https://github.com/ucam-department-of-psychiatry/crate",
+        default="ucam-department-of-psychiatry/crate",
         help="Install CRATE from this GitHub repository",
     )
     parser.add_argument(
-        "--installer_root_dir",
-        default=os.path.join(home_dir, "crate_installer"),
-        help="Directory in which to download the installer scripts",
+        "--crate_root_dir",
+        help=(
+            "Directory in which to place the files required by CRATE and, "
+            "unless the --run_locally argument is specified, download the "
+            "CRATE source."
+        ),
+        default=os.getenv("CRATE_INSTALLER_CRATE_ROOT_HOST_DIR"),
     )
     parser.add_argument(
-        "--no_fetch",
+        "--run_locally",
         action="store_true",
-        help="Do not fetch files from GitHub. Use local installation",
+        default=False,
+        help=(
+            "Do not fetch the CRATE source from GitHub. Assume this "
+            "script is run from an existing checkout of CRATE "
+            "and the CRATE source can be found relative to this file."
+        ),
     )
     parser.add_argument(
         "--recreate_venv",
@@ -180,19 +227,17 @@ def main() -> None:
         help="Recreate the CRATE installer virtual environment",
     )
     parser.add_argument(
-        "--release_version",
-        default="latest",
-        help="Install this release of CRATE",
+        "--version",
+        help=(
+            "Use this commit/tag/branch of CRATE. If unset, use the latest "
+            "stable release."
+        ),
     )
     parser.add_argument(
         "--update",
         action="store_true",
-        help="Update the existing CRATE installation",
+        help="Rebuild the CRATE Docker image",
         default=False,
-    )
-    parser.add_argument(
-        "--venv_dir",
-        default=os.path.join(home_dir, ".virtualenvs", "crate_installer"),
     )
     parser.add_argument(
         "-v",
@@ -209,7 +254,10 @@ def main() -> None:
     )
     subparsers.add_parser(
         Command.INSTALL,
-        help="Install CRATE into a Docker Compose environment.",
+        help=(
+            "Install CRATE into a Docker Compose environment. Default if not "
+            "specified."
+        ),
     )
     subparsers.add_parser(
         Command.STOP, help="Stop the Docker Compose application."
@@ -217,6 +265,14 @@ def main() -> None:
     parser.set_defaults(command=Command.INSTALL)
 
     args = parser.parse_args()
+
+    if args.crate_root_dir is None:
+        print(
+            "You must specify --crate_root_dir or set the environment "
+            "variable CRATE_INSTALLER_CRATE_ROOT_DIR"
+        )
+
+        sys.exit(EXIT_FAILURE)
 
     boot = InstallerBoot(**vars(args))
     boot.boot()

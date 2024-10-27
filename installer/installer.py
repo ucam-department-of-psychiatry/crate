@@ -33,7 +33,6 @@ available.
 
 from argparse import ArgumentParser
 import collections
-import getpass
 import grp
 import os
 from pathlib import Path
@@ -43,7 +42,6 @@ import secrets
 import shutil
 import string
 import sys
-import tarfile
 from tempfile import NamedTemporaryFile
 import textwrap
 from typing import (
@@ -487,31 +485,6 @@ class Installer:
 
         self.report_status()
 
-    def download_crate_source(self, release_version: str) -> None:
-        self.ensure_crate_dir_exists()
-
-        self.info("Downloading the CRATE source code...")
-
-        url = self.get_crate_source_download_url(release_version)
-
-        with urllib.request.urlopen(url) as fileobj:
-            with tarfile.open(fileobj=fileobj, mode="r:gz") as tar:
-                crate_root = self.crate_root_host_dir()
-
-                os.chdir(crate_root)
-                tar.extractall()
-
-                Path("crate").rename("src")
-
-    def get_crate_source_download_url(self, release_version: str) -> str:
-        repo = "https://github.com/ucam-department-of-psychiatry/crate"
-        tar_file = "crate.tar.gz"
-
-        return f"{repo}/releases/download/{release_version}/{tar_file}"
-
-    def ensure_crate_dir_exists(self) -> None:
-        Path(self.crate_root_host_dir()).mkdir(parents=True, exist_ok=True)
-
     def build_crate_image(self) -> None:
         # Only build the crate image if the tag has changed
         # or the update flag was set explicitly
@@ -706,12 +679,6 @@ class Installer:
     def configure_group(self) -> None:
         self.setenv(
             DockerEnvVar.INSTALL_GROUP_ID, self.get_docker_install_group_id
-        )
-
-    def configure_crate_root_host_dir(self) -> None:
-        self.setenv(
-            InstallerEnvVar.CRATE_ROOT_HOST_DIR,
-            self.get_crate_root_host_dir,
         )
 
     def configure_tag(self) -> None:
@@ -1550,10 +1517,9 @@ class Installer:
         return os.path.join(self.docker_host_dir(), "dockerfiles")
 
     def docker_host_dir(self) -> str:
-        return os.path.join(self.crate_source_dir(), "docker")
+        installer_dir = os.path.dirname(os.path.realpath(__file__))
 
-    def crate_source_dir(self) -> str:
-        return os.path.join(self.crate_root_host_dir(), "src")
+        return os.path.join(installer_dir, os.pardir, "docker")
 
     def default_config_host_dir(self) -> str:
         return os.path.join(self.crate_root_host_dir(), "config")
@@ -1573,31 +1539,6 @@ class Installer:
     # -------------------------------------------------------------------------
     # Fetching information from the user
     # -------------------------------------------------------------------------
-
-    def get_crate_root_host_dir(self) -> str:
-        username = getpass.getuser()
-
-        self.info(
-            "Select the top-level directory where CRATE will be installed.\n\n"
-            "If this directory does not exist, the installer will try to "
-            f"create it, but this will fail if the user '{username}' does not "
-            "have write access to it. This might also be a good opportunity "
-            "to create a common group for all CRATE users.\n\n"
-            "For example (Ubuntu):\n"
-            "sudo groupadd crate\n"
-            f"sudo usermod -aG crate {username}\n"
-            "sudo usermod -aG crate anotheruser\n"
-            "sudo mkdir /crate\n"
-            f"sudo chown -R {username}:crate /crate\n\n"
-            "Then logout and log back in again or:\n"
-            "su -u {username}\n"
-            "to pick up the new group."
-        )
-
-        return self.get_user_dir(
-            "Directory: ",
-            default=HostPath.DEFAULT_CRATE_ROOT_DIR,
-        )
 
     def get_docker_crateweb_host_port(self) -> str:
         return self.get_user_input(
@@ -2012,6 +1953,15 @@ def main() -> None:
     parser = ArgumentParser()
     parser.add_argument("--verbose", action="store_true", help="Be verbose")
     parser.add_argument(
+        "--crate_root_dir",
+        action="store_true",
+        default=os.getenv(InstallerEnvVar.CRATE_ROOT_HOST_DIR),
+        help=(
+            "Top level CRATE directory containing config files and source "
+            "code (if not running the installer locally)"
+        ),
+    )
+    parser.add_argument(
         "--update",
         action="store_true",
         help="Rebuild the CRATE Docker image.",
@@ -2024,20 +1974,9 @@ def main() -> None:
     )
     subparsers.required = True
 
-    install = subparsers.add_parser(
+    subparsers.add_parser(
         Command.INSTALL,
         help="Install CRATE into a Docker Compose environment.",
-    )
-    install.add_argument(
-        "--download",
-        action="store_true",
-        help="Download the CRATE source tarball from GitHub.",
-        default=False,
-    )
-    install.add_argument(
-        "--release_version",
-        help="Install this release of CRATE",
-        default="latest",
     )
     subparsers.add_parser(
         Command.START, help="Start the Docker Compose application."
@@ -2083,6 +2022,13 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+    if args.crate_root_dir is None:
+        print(
+            "You must specify --crate_root_dir or set the environment "
+            "variable CRATE_INSTALLER_CRATE_ROOT_DIR"
+        )
+
+        sys.exit(EXIT_FAILURE)
 
     installer = get_installer_class()(
         update=args.update,

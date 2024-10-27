@@ -18,15 +18,10 @@ jobs:
             - name: Work out tag
               id: vars
               run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
-            - name: Create tar file
-              run: |
-                set -eux -o pipefail
-                cd ${GITHUB_WORKSPACE}
-                git archive --format=tar.gz -o /tmp/crate.tar.gz --prefix=crate/ ${{ steps.vars.outputs.tag }}
             - name: Create release with artifacts
               uses: ncipollo/release-action@v1
               with:
-                  artifacts: "installer/installer_bootstrap.py,installer/installer_requirements.txt,installer/installer.py,/tmp/crate.tar.gz"
+                  artifacts: "installer/installer_bootstrap.py"
                   token: ${{ secrets.GITHUB_TOKEN }}
             - name: Test installer
               run: |
@@ -36,6 +31,6 @@ jobs:
                 cd ${HOME}
                 curl -L --retry 10 --fail https://github.com/ucam-department-of-psychiatry/crate/releases/${{ steps.vars.outputs.tag }}/download/installer_bootstrap.py --output installer_bootstrap.py
                 chmod u+x installer_bootstrap.py
-                python3 installer_bootstrap.py
+                python3 installer_bootstrap.py --crate_root_dir /crate
                 export CRATE_HOME=/crate/src
                 ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh
