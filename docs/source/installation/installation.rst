@@ -80,7 +80,7 @@ Choose your own directory names.
 
 .. code-block:: bash
 
-    python3.7 -m venv ~/venvs/crate
+    python3.9 -m venv ~/venvs/crate
     source ~/venvs/crate/bin/activate
     python -m pip install --upgrade pip
     pip install crate-anon
@@ -89,10 +89,10 @@ Choose your own directory names.
 
 .. code-block:: bat
 
-    C:\Python37\python.exe -m ensurepip
-    C:\Python37\python.exe -m venv C:\venvs\crate
+    C:\Python39\python.exe -m ensurepip
+    C:\Python39\python.exe -m venv C:\venvs\crate
     C:\venvs\crate\Scripts\activate
-    C:\Python37\python.exe -m pip install --upgrade pip
+    C:\Python39\python.exe -m pip install --upgrade pip
     pip install crate-anon
 
 
