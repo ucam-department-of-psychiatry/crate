@@ -221,11 +221,12 @@ class DockerEnvVar(EnvVar):
 class InstallerEnvVar(EnvVar):
     PREFIX = "CRATE_INSTALLER"
 
-    CRATE_ROOT_HOST_DIR = f"{PREFIX}_CRATE_ROOT_HOST_DIR"
-
     CRATE_DB_ENGINE = f"{PREFIX}_CRATE_DB_ENGINE"
     CRATE_DB_SERVER = f"{PREFIX}_CRATE_DB_SERVER"
     CRATE_DB_PORT = f"{PREFIX}_CRATE_DB_PORT"
+
+    CRATE_ROOT_HOST_DIR = f"{PREFIX}_CRATE_ROOT_HOST_DIR"
+
     CRATEWEB_SSL_CERTIFICATE = f"{PREFIX}_CRATEWEB_SSL_CERTIFICATE"
     CRATEWEB_SSL_PRIVATE_KEY = f"{PREFIX}_CRATEWEB_SSL_PRIVATE_KEY"
     CRATEWEB_USE_HTTPS = f"{PREFIX}_CRATEWEB_USE_HTTPS"
@@ -535,7 +536,9 @@ class Installer:
             f.write(stdout)
 
     def run_crate_command(
-        self, crate_command: str
+        self,
+        crate_command: str,
+        tty: bool = False,
     ) -> Union[str, Container, Iterable[Tuple[str, bytes]]]:
         # Run a command in a new instance of the crate_workers container.
         # This goes through docker-entrypoint.sh so no need to source the
@@ -547,7 +550,7 @@ class Installer:
         return self.docker.compose.run(
             DockerComposeServices.CRATE_WORKERS,
             remove=True,
-            tty=False,
+            tty=tty,
             command=[crate_command],
         )
 
@@ -2032,7 +2035,7 @@ def main() -> None:
         installer.stop()
 
     elif args.command == Command.RUN_COMMAND:
-        installer.run_crate_command(args.crate_command)
+        installer.run_crate_command(args.crate_command, tty=True)
 
     elif args.command == Command.EXEC_COMMAND:
         installer.exec_crate_command(args.crate_command, as_root=args.as_root)
