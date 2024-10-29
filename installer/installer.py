@@ -55,7 +55,6 @@ from typing import (
     Union,
 )
 import urllib.parse
-import urllib.request
 
 # See installer-requirements.txt
 from prompt_toolkit import HTML, print_formatted_text, prompt
