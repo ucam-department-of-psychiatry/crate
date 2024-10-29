@@ -171,7 +171,7 @@ Here is an example settings file. See :ref:`environment_variables
         export CRATE_INSTALLER_SOURCE_DATABASE_PORT="3306"
 
 To start the installer on all platforms, run the below command, replacing
-``/path/to/top/level/crate/dir`` below with the top-level directory where CRATE
+``/path/to/top/level/crate/dir`` with the top-level directory where CRATE
 should be installed. The installer will create this if it doesn't exist but it
 will need to be writeable by the user running the installer.
 
