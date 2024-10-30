@@ -1682,6 +1682,9 @@ Changes
 - Minimum Python version is now 3.9. Python 3.8 has now reached end-of-life.
   Python 3.11 is now supported.
 
+- Change the default installer file hierarchy on the host so that it can more
+  easily be shared between several users.
+
 
 To do
 -----
