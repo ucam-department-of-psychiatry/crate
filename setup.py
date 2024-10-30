@@ -135,7 +135,7 @@ INSTALL_REQUIRES = [
     "tornado==6.4.1",  # web framework
     "transaction==3.0.0",  # generic transaction management
     "urllib3==1.26.19",  # used by requests
-    "waitress==2.1.2",  # pure-Python WSGI server
+    "waitress==3.0.1",  # pure-Python WSGI server
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
     # -------------------------------------------------------------------------
     # For development only:
