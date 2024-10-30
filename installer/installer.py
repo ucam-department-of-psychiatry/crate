@@ -358,6 +358,7 @@ class Colours:
 class Installer:
     def __init__(
         self,
+        crate_root_dir: str = None,
         update: bool = False,
         verbose: bool = False,
     ) -> None:
@@ -366,6 +367,19 @@ class Installer:
         self._env_dict = None
         self.update = update
         self.verbose = verbose
+
+        crate_root_dir = crate_root_dir or os.getenv(
+            InstallerEnvVar.CRATE_ROOT_HOST_DIR
+        )
+        if crate_root_dir is None:
+            print(
+                "You must specify --crate_root_dir or set the environment "
+                "variable CRATE_INSTALLER_CRATE_ROOT_HOST_DIR"
+            )
+
+            sys.exit(EXIT_FAILURE)
+
+        self.setenv(InstallerEnvVar.CRATE_ROOT_HOST_DIR, crate_root_dir)
 
         self.title = "CRATE Setup"
         self.intro_style = Style.from_dict(
@@ -1944,7 +1958,6 @@ def main() -> None:
     parser.add_argument("--verbose", action="store_true", help="Be verbose")
     parser.add_argument(
         "--crate_root_dir",
-        default=os.getenv(InstallerEnvVar.CRATE_ROOT_HOST_DIR),
         help=(
             "Top level CRATE directory containing config files and source "
             "code (if not running the installer locally)"
@@ -2011,15 +2024,9 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    if args.crate_root_dir is None:
-        print(
-            "You must specify --crate_root_dir or set the environment "
-            "variable CRATE_INSTALLER_CRATE_ROOT_DIR"
-        )
-
-        sys.exit(EXIT_FAILURE)
 
     installer = get_installer_class()(
+        crate_root_dir=args.crate_root_dir,
         update=args.update,
         verbose=args.verbose,
     )
