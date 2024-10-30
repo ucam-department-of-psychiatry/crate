@@ -18,24 +18,19 @@ jobs:
             - name: Work out tag
               id: vars
               run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
-            - name: Create tar file
-              run: |
-                set -eux -o pipefail
-                cd ${GITHUB_WORKSPACE}
-                git archive --format=tar.gz -o /tmp/crate.tar.gz --prefix=crate/ ${{ steps.vars.outputs.tag }}
             - name: Create release with artifacts
               uses: ncipollo/release-action@v1
               with:
-                  artifacts: "installer/installer.sh,/tmp/crate.tar.gz"
+                  artifacts: "installer/installer_boot.py"
                   token: ${{ secrets.GITHUB_TOKEN }}
             - name: Test installer
               run: |
                 set -eux -o pipefail
-                source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_docker_environment
+                source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_installer_environment
                 ${GITHUB_WORKSPACE}/github_action_scripts/installer_setup.sh
                 cd ${HOME}
-                curl -L --retry 10 --fail https://github.com/ucam-department-of-psychiatry/crate/releases/latest/download/installer.sh --output crate_docker_installer.sh
-                chmod u+x crate_docker_installer.sh
-                ./crate_docker_installer.sh
-                export CRATE_HOME=${HOME}/crate/src
+                curl -L --retry 10 --fail https://github.com/ucam-department-of-psychiatry/crate/releases/download/${{ steps.vars.outputs.tag }}/installer_boot.py --output installer_boot.py
+                chmod u+x installer_boot.py
+                python3 installer_boot.py --crate_root_dir /crate --version ${{ steps.vars.outputs.tag }}
+                export CRATE_HOME=/crate/src
                 ${GITHUB_WORKSPACE}/github_action_scripts/post_installation_checks.sh

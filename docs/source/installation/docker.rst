@@ -28,6 +28,7 @@
 .. _MySQL: https://www.mysql.com/
 .. _mysqlclient: https://pypi.org/project/mysqlclient/
 .. _RabbitMQ: https://www.rabbitmq.com/
+.. _Start containers automatically: https://docs.docker.com/engine/containers/start-containers-automatically/
 
 
 .. _crate_docker:
@@ -64,7 +65,7 @@ The script uses Docker Compose to set up several containers, specifically:
 - a background task monitor, using Flower_ (``crate_monitor``).
 - demonstration source and destination MySQL databases for anonymisation
 
-Additionally, you can run a number of important one-off command using the
+Additionally, you can run a number of important one-off commands using the
 ``crate`` Docker image. Apart from CRATE itself, this image also includes:
 
 - Database drivers:
@@ -86,6 +87,11 @@ Quick start
 
 Windows
 ^^^^^^^
+
+Note that whilst CRATE will run under Docker Desktop and WSL2 on Windows, this
+is not well-suited to an environment where several Windows users can access the
+same instance of CRATE. To work around this you could designate a single Windows
+account to be shared by multiple users.
 
 - Install Windows Subsystem for Linux 2 (WSL2):
   https://docs.microsoft.com/en-us/windows/wsl/install. CRATE under WSL2 has
@@ -122,49 +128,76 @@ All platforms
 ^^^^^^^^^^^^^
 
 The installer can be run interactively, where you will be prompted to enter
-settings specific to your CRATE installation. Alternatively you can supply this
-information by setting environment variables. This is best done by putting the
-settings in a file and executing them before running the installer (e.g.
-``source ~/my_crate_settings``).
+settings specific to your CRATE installation. The installer will save these
+settings as environment variables and will also write these to a file, which you
+can execute before the next time you run the installer (e.g. ``source
+/crate/config/set_crate_docker_host_envvars``). If you prefer, you can
+create this file yourself and execute it before running the installer.
 
 Here is an example settings file. See :ref:`environment_variables
-<docker_environment_variables>` for a description of each setting.
+<docker_environment_variables>` and :ref:`environment_variables
+<installer_environment_variables>` for a description of each setting.
 
     .. code-block:: bash
 
-        export CRATE_DOCKER_CONFIG_HOST_DIR=${HOME}/crate_config
-        export CRATE_DOCKER_FILES_HOST_DIR=${HOME}/crate_files
-        export CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR=${HOME}/bioyodie_resources
-        export CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD=mysqluserpassword
-        export CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD=mysqlrootpassword
-        export CRATE_DOCKER_MYSQL_CRATE_HOST_PORT=43306
-        export CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME=admin
-        export CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD=adminpassword
-        export CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL=admin@example.com
-        export CRATE_DOCKER_CRATEWEB_USE_HTTPS=1
+        export CRATE_DOCKER_CONFIG_HOST_DIR=/crate/config
         export CRATE_DOCKER_CRATEWEB_HOST_PORT=8100
-        export CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE=${HOME}/certs/crate.localhost.crt
-        export CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY=${HOME}/certs/crate.localhost.key
+        export CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL=admin@example.com
+        export CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD=adminpassword
+        export CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME=admin
+        export CRATE_DOCKER_CRATE_DB_DATABASE_NAME="crate_web_db"
+        export CRATE_DOCKER_FILES_HOST_DIR=/crate/files
+        export CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR=/crate/bioyodie_resource
+        export CRATE_DOCKER_RESEARCH_DATABASE_NAME="research"
+        export CRATE_DOCKER_SECRET_DATABASE_NAME="secret"
+        export CRATE_DOCKER_SOURCE_DATABASE_NAME="source"
+        export CRATE_DOCKER_STATIC_HOST_DIR="/crate/static"
 
+        export CRATE_INSTALLER_CRATEWEB_USE_HTTPS="0"
+        export CRATE_INSTALLER_CRATE_DB_ENGINE="mysql"
+        export CRATE_INSTALLER_CRATE_DB_PORT="3306"
+        export CRATE_INSTALLER_CRATE_DB_SERVER="crate_db"
+        export CRATE_INSTALLER_CRATE_ROOT_HOST_DIR="/crate"
+        export CRATE_INSTALLER_CREATE_CRATE_DB_CONTAINER="0"
+        export CRATE_INSTALLER_CREATE_DEMO_DB_CONTAINERS="0"
+        export CRATE_INSTALLER_RESEARCH_DATABASE_ENGINE="mysql"
+        export CRATE_INSTALLER_RESEARCH_DATABASE_HOST="research_db_host"
+        export CRATE_INSTALLER_RESEARCH_DATABASE_PORT="3306"
+        export CRATE_INSTALLER_SECRET_DATABASE_ENGINE="mysql"
+        export CRATE_INSTALLER_SECRET_DATABASE_HOST="secret_db_host"
+        export CRATE_INSTALLER_SECRET_DATABASE_PORT="3306"
+        export CRATE_INSTALLER_SOURCE_DATABASE_ENGINE="mysql"
+        export CRATE_INSTALLER_SOURCE_DATABASE_HOST="source_db_host"
+        export CRATE_INSTALLER_SOURCE_DATABASE_PORT="3306"
 
-To start the installer on all platforms:
+To start the installer on all platforms, run the below command, replacing
+``/path/to/top/level/crate/dir`` with the top-level directory where CRATE
+should be installed. The installer will create this if it doesn't exist but it
+will need to be writeable by the user running the installer.
 
     .. code-block:: bash
 
-        curl --location https://github.com/ucam-department-of-psychiatry/crate/releases/latest/download/installer.sh --fail --output crate_docker_installer.sh && chmod u+x crate_docker_installer.sh && ./crate_docker_installer.sh
+        curl --location https://github.com/ucam-department-of-psychiatry/crate/releases/download/latest/installer_boot.py --fail --output installer_boot.py && chmod u+x installer_boot.py && python3 installer_boot.py --crate_root_dir /path/to/top/level/crate/dir
 
 
 .. _docker_environment_variables:
 
-Environment variables
----------------------
+Docker Environment variables
+----------------------------
+
+The Docker environment variables with prefix ``CRATE_DOCKER`` are used by both
+the CRATE installer and the running Docker instance. For some of these settings,
+where it would be unusual to change them from their defaults, they can only be
+overridden if set explicitly before running the installer. For other settings,
+the installer will prompt you to enter them if not already set.
+
 
 .. _CRATE_DOCKER_CONFIG_HOST_DIR:
 
 CRATE_DOCKER_CONFIG_HOST_DIR
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**No default. Must be set.**
+*Required by Docker. The installer will set this to* ``${CRATE_INSTALLER_CRATE_ROOT_HOST_DIR}/config``.
 
 Path to a directory on the host that contains key configuration files. Don't
 use a trailing slash.
@@ -177,16 +210,82 @@ use a trailing slash.
     Windows (not WSL2) file system.
 
 
-.. _CRATE_DOCKER_FILEs_HOST_DIR:
+CRATE_DOCKER_CRATE_ANON_CONFIG
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: crate_anon_config.ini*
+
+Base name of the CRATE anonymisation config file (see CRATE_DOCKER_CONFIG_HOST_DIR_).
 
 
-CRATE_DOCKER_FILES_HOST_DIR
+CRATE_DOCKER_CRATE_CHERRYPY_ARGS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: --host 0.0.0.0 --port 8000*
+
+Arguments to pass to the CherryPy web server, which hosts the CRATE Django web
+application.
+
+
+CRATE_DOCKER_CRATE_DB_DATABASE_NAME
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: crate_web_db*
+
+Name of the database used by the CRATE web application, either the one provided
+running in a MySQL Docker container or your own.
+
+
+.. _CRATE_DOCKER_CRATE_DB_USER_NAME:
+
+CRATE_DOCKER_CRATE_DB_USER_NAME
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: crate_web_user*
+
+The name of the database user used to access the CRATE web application database.
+
+
+.. _CRATE_DOCKER_CRATE_DB_USER_PASSWORD:
+
+CRATE_DOCKER_CRATE_DB_USER_PASSWORD
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**No default. Must be set during MySQL container creation.**
+
+Password for the CRATE database user (whose name is set by
+CRATE_DOCKER_CRATE_DB_USER_NAME_).
+
+.. note::
+    This only needs to be set when Docker Compose is creating the MySQL
+    container for the first time. After that, it doesn't have to be set (and is
+    probably best not set for security reasons!).
+
+
+CRATE_DOCKER_CRATE_DB_HOST_PORT
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: 3306*
+
+When using the provided MySQL CRATE web application database running under
+Docker, this is the port on the host where this database can be accessed.
+
+The default MySQL port is 3306. If you run MySQL on your host computer for
+other reasons, this port will be taken, and you should change it to something
+else.
+
+You should **not** expose this port to the "outside", beyond your host.
+
+
+CRATE_DOCKER_CRATE_WAIT_FOR
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**No default. Must be set.**
+*Default: rabbitmq:5672*
 
-Path to a directory on the host for general file storage e.g. binary files
-uploaded to CRATE, such as PDFs.
+A space separated list of host:port entries of Docker containers that the CRATE
+server should wait for before starting up. If needed, the installer will append
+to this the provided MySQL CRATE web application database
+and any demonstration databases running under Docker.
 
 
 .. _CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME:
@@ -196,8 +295,7 @@ CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME
 
 *Default: crateweb_local_settings.py*
 
-Base name of the CRATE web server config file (see
-CRATE_DOCKER_CONFIG_HOST_DIR_).
+Base name of the CRATE web server config file (see CRATE_DOCKER_CONFIG_HOST_DIR_).
 
 
 .. _CRATE_DOCKER_CRATEWEB_HOST_PORT:
@@ -205,7 +303,7 @@ CRATE_DOCKER_CONFIG_HOST_DIR_).
 CRATE_DOCKER_CRATEWEB_HOST_PORT
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**No default: Must be set**
+*Default: 8000*
 
 The TCP/IP port number on the host computer that CRATE should provide an
 HTTP or HTTPS (SSL) connection on.
@@ -227,51 +325,18 @@ The two ways of doing this are:
     use the next option...
 
 - Have CRATE run HTTPS directly, by specifying the
-  :ref:`CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE
-  <CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE>` and
-  :ref:`CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY
-  <CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY>` options.
+  CRATE_INSTALLER_CRATEWEB_SSL_CERTIFICATE_ and
+  CRATE_INSTALLER_CRATEWEB_SSL_PRIVATE_KEY_ options.
 
   - This is simpler if CRATE is the only web service you are running on this
     machine. Use the standard HTTPS port, 443, and expose it to the outside
     through your server's firewall. (You are running a firewall, right?)
 
 
-.. _CRATE_DOCKER_CRATEWEB_USE_HTTPS:
-
-CRATE_DOCKER_CRATEWEB_USE_HTTPS
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Access the CRATE web app over HTTPS? (0 = no, 1 = yes)
-See CRATE_DOCKER_CRATEWEB_HOST_PORT_ above.
-
-
-.. _CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE:
-
-CRATE_DOCKER_CRATEWEB_SSL_CERTIFICATE
+CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-*Default is blank.*
-
-Filename for an SSL public certificate for HTTPS.
-See CRATE_DOCKER_CRATEWEB_HOST_PORT_ above.
-
-
-.. _CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY:
-
-CRATE_DOCKER_CRATEWEB_SSL_PRIVATE_KEY
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-*Default is blank.*
-
-Filename for an SSL private key file for HTTPS.
-See CRATE_DOCKER_CRATEWEB_HOST_PORT_ above.
-
-
-CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-User name for the CRATE administrator, via CRATE's web application.
+Email address for the CRATE administrator.
 
 
 CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD
@@ -280,10 +345,21 @@ CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD
 Password for the CRATE administrator, via CRATE's web application.
 
 
-CRATE_DOCKER_CRATEWEB_SUPERUSER_EMAIL
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Email address for the CRATE administrator.
+User name for the CRATE administrator, via CRATE's web application.
+
+
+.. _CRATE_DOCKER_FILES_HOST_DIR:
+
+CRATE_DOCKER_FILES_HOST_DIR
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Required by Docker. The installer will set this to* ``${CRATE_INSTALLER_CRATE_ROOT_HOST_DIR}/files``.
+
+Path to a directory on the host for general file storage e.g. binary files
+uploaded to CRATE, such as PDFs.
 
 
 CRATE_DOCKER_FLOWER_HOST_PORT
@@ -317,94 +393,216 @@ CRATE_DOCKER_GATE_VERSION
 Version of GATE to be installed.
 
 
+.. _CRATE_DOCKER_IMAGE_TAG:
+
+CRATE_DOCKER_IMAGE_TAG
+^^^^^^^^^^^^^^^^^^^^^^
+
+*Defaults to the current CRATE version.*
+
+Used to identify the version of the CRATE docker image.
+
+
+CRATE_DOCKER_ODBC_USER_CONFIG
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: odbc_user.ini*
+
+When using external databases with ODBC, this is the basename of the config file
+that contains definitions of those databases. The ``ODBCINI`` environment variable
+is set in the ``crate_server`` Docker container to point to this file. See (see
+CRATE_DOCKER_CONFIG_HOST_DIR_)
+
+
 .. _CRATE_DOCKER_INSTALL_GROUP_ID:
 
 CRATE_DOCKER_INSTALL_GROUP_ID
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **No default. Must be set to the ID of a group on the host so that file systems can be shared.**
-See :ref:`CRATE_DOCKER_INSTALL_USER_ID <CRATE_DOCKER_INSTALL_USER_ID>`
+See CRATE_DOCKER_INSTALL_USER_ID_.
 
 
 .. _CRATE_DOCKER_INSTALL_USER_ID:
 
 CRATE_DOCKER_INSTALL_USER_ID
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **No default. Must be set to the ID of a user on the host so that file systems can be shared.**
-See :ref:`CRATE_DOCKER_INSTALL_GROUP_ID <CRATE_DOCKER_INSTALL_GROUP_ID>`
+See CRATE_DOCKER_INSTALL_GROUP_ID_
 
 
-.. _CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME:
+.. _CRATE_DOCKER_MY_CRATE_USER_NAME:
 
-CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME
+CRATE_DOCKER_REMOTE_PDB_CRATE_SERVER_HOST_PORT
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: 44444*
+
+Used in development to debug the Python code in the ``crate_server`` Docker
+container. Use ``breakpoint()`` in the code and then connect to this port on the
+host: e.g. ``telnet 127.0.0.1 44444``.
+
+
+CRATE_DOCKER_REMOTE_PDB_CRATE_WORKERS_HOST_PORT
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: 44445*
+
+Used in development to debug the Python code in the ``crate_workers`` Docker
+container. Use ``breakpoint()`` in the code and then connect to this port on the
+host: e.g. ``telnet 127.0.0.1 44445``.
+
+
+CRATE_DOCKER_REMOTE_PDB_CRATE_FLOWER_HOST_PORT
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: 44446*
+
+Used in development to debug the Python code in the ``crate_flower`` Docker
+container. Use ``breakpoint()`` in the code and then connect to this port on the
+host: e.g. ``telnet 127.0.0.1 44446``.
+
+
+CRATE_DOCKER_REMOTE_PDB_PORT
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: 44444*
+
+Used in development to debug the Python code in the CRATE Docker
+containers. This is the port used in the container itself.
+
+
+CRATE_DOCKER_RESEARCH_DATABASE_NAME
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: research*
+
+Name of the anonymised research database, either the demo one provided running
+in a MySQL Docker container or your own.
+
+
+CRATE_DOCKER_RESEARCH_DATABASE_USER_NAME
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: research*
+
+Name of the database user used to access the anonymised research database,
+either the demo one provided running in a MySQL Docker container or your own.
+
+
+CRATE_DOCKER_RESEARCH_DATABASE_USER_PASSWORD
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: research*
+
+Password of the database user used to access the anonymised research database,
+either the demo one provided running in a MySQL Docker container or your own.
+
+
+CRATE_DOCKER_RESEARCH_DATABASE_ROOT_PASSWORD
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: research*
+
+This is the MySQL root password used only when creating the demo research
+database.
+
+
+CRATE_DOCKER_RESTART_POLICY
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: always*
+
+Determines how the CRATE Docker containers should handle an exit. See `Start
+containers automatically`_ in the Docker Documentation for possible settings.
+
+
+CRATE_DOCKER_SECRET_DATABASE_NAME
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: secret*
+
+Name of the secret administrative database used by CRATE, either the demo
+one provided running in a MySQL Docker container or your own.
+
+
+CRATE_DOCKER_SECRET_DATABASE_USER_NAME
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-*Default: crate_web_db*
+*Default: secret*
 
-Name of the MySQL database to be used for CRATE web site data.
+Name of the database user used to access CRATE's secret administrative database,
+either the demo one provided running in a MySQL Docker container or your own.
 
 
-.. _CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD:
 
-CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
+CRATE_DOCKER_SECRET_DATABASE_USER_PASSWORD
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: secret*
+
+Password of the database user used to access CRATE's secret administrative
+database, either the demo one provided running in a MySQL Docker container or
+your own.
+
+
+
+CRATE_DOCKER_SECRET_DATABASE_ROOT_PASSWORD
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: secret*
+
+This is the MySQL root password used only when creating the demo secret
+administrative database.
+
+
+
+CRATE_DOCKER_SOURCE_DATABASE_NAME
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default: source*
+
+Name of the source database to be anonymised by CRATE, either the demo one
+provided running in a MySQL Docker container or your own.
+
+
+CRATE_DOCKER_SOURCE_DATABASE_USER_NAME
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**No default. Must be set during MySQL container creation.**
+*Default: source*
 
-MySQL password for the CRATE database user (whose name is set by
-CRATE_DOCKER_MYSQL_CRATE_USER_NAME_).
-
-.. note::
-    This only needs to be set when Docker Compose is creating the MySQL
-    container for the first time. After that, it doesn't have to be set (and is
-    probably best not set for security reasons!).
+Name of the database user used to access the source database to be anonymised by
+CRATE, either the demo one provided running in a MySQL Docker container or your
+own.
 
 
-.. _CRATE_DOCKER_MYSQL_CRATE_USER_NAME:
+CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-CRATE_DOCKER_MYSQL_CRATE_USER_NAME
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+*Default: source*
 
-*Default: crate_web_user*
-
-MySQL username for the main CRATE web user. This user is given full control over
-the database named in CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME_. See also
-CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD_.
+Password of the database user used to access the source database to be
+anonymised by CRATE, either the demo one provided running in a MySQL Docker
+container or your own.
 
 
-CRATE_DOCKER_MYSQL_CRATE_HOST_PORT
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-*Default: 3306*
+CRATE_DOCKER_SOURCE_DATABASE_ROOT_PASSWORD
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Port published to the host, giving access to the CRATE MySQL installation.
-You can use this to allow other software to connect to the CRATE database
-directly.
+*Default: source*
 
-This might include using MySQL tools from the host to perform database backups
-(though Docker volumes can also be backed up in their own right).
-
-The default MySQL port is 3306. If you run MySQL on your host computer for
-other reasons, this port will be taken, and you should change it to something
-else.
-
-You should **not** expose this port to the "outside", beyond your host.
+This is the MySQL root password used only when creating the demo source database
+to be anonymised by CRATE.
 
 
-.. _CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD:
+CRATE_DOCKER_STATIC_HOST_DIR
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+*Required by Docker. The installer will set this to* ``${CRATE_INSTALLER_CRATE_ROOT_HOST_DIR}/static``.
 
-**No default. Must be set during MySQL container creation.**
-
-MySQL password for the ``root`` user.
-
-.. note::
-    This only needs to be set when Docker Compose is creating the MySQL
-    container for the first time. After that, it doesn't have to be set (and is
-    probably best not set for security reasons!).
+Space to collect files served statically by the CRATE web application (Django ``STATIC_ROOT``)
 
 
 COMPOSE_PROJECT_NAME
@@ -414,6 +612,162 @@ COMPOSE_PROJECT_NAME
 
 This is the Docker Compose project name. It's used as a prefix for all the
 containers in this project.
+
+
+.. _installer_environment_variables:
+
+Installer Environment variables
+-------------------------------
+
+The Installer environment variables with prefix ``CRATE_INSTALLER`` are used by
+the CRATE installer to write the various config files written by CRATE but not
+needed by the running Docker instance. The installer will only prompt you for
+information not set in these variables.
+
+
+CRATE_INSTALLER_CRATE_DB_ENGINE
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The database engine used for the CRATE web application. This should be one of
+``mssql``, ``mysql``, ``oracle`` or ``postgresql``.
+
+
+CRATE_INSTALLER_CRATE_DB_PORT
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The port on the server hosting the CRATE web application database.
+
+
+CRATE_INSTALLER_CRATE_DB_SERVER
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The name of the server hosting the CRATE web application database.
+
+
+
+CRATE_INSTALLER_CRATE_ROOT_HOST_DIR
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The root directory under which all of the other CRATE files appear on the
+host. For the hierarchy below, the root directory is ``/crate`` and the installer
+will create the other directories underneath it if they are not already
+present. This should be set either before running the installer or as
+the ``--crate_root_dir`` argument to ``installer_boot.py``. The directory does not
+have to exist but the user running the installer must have the correct
+permissions for the installer to create both it and its subdirectories.
+
+::
+
+    /crate
+    ├── bioyodie_resources
+    ├── config
+    ├── files
+    ├── src
+    ├── static
+    └── venv
+
+.. _CRATE_INSTALLER_CRATEWEB_SSL_CERTIFICATE:
+
+CRATE_INSTALLER_CRATEWEB_SSL_CERTIFICATE
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default is blank.*
+
+Filename for an SSL public certificate for accessing the CRATE web application
+over HTTPS. See CRATE_DOCKER_CRATEWEB_HOST_PORT_ above.
+
+
+.. _CRATE_INSTALLER_CRATEWEB_SSL_PRIVATE_KEY:
+
+CRATE_INSTALLER_CRATEWEB_SSL_PRIVATE_KEY
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Default is blank.*
+
+Filename for an SSL private key file for accessing the CRATE web application
+over HTTPS. See CRATE_DOCKER_CRATEWEB_HOST_PORT_ above.
+
+
+.. _CRATE_INSTALLER_CRATEWEB_USE_HTTPS:
+
+CRATE_INSTALLER_CRATEWEB_USE_HTTPS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Access the CRATE web app over HTTPS? (0 = no, 1 = yes)
+See CRATE_DOCKER_CRATEWEB_HOST_PORT_ above.
+
+
+CRATE_INSTALLER_CREATE_CRATE_DB_CONTAINER
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use the provided MySQL database running under Docker for the CRATE web
+application? (0 = no, 1 = yes).
+
+
+CRATE_INSTALLER_CREATE_DEMO_DB_CONTAINERS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use the provided MySQL databases running under Docker, with fictitious data, to
+demonstrate anonymisation? (0 = no, 1 = yes).
+
+
+CRATE_INSTALLER_RESEARCH_DATABASE_ENGINE
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The database engine used for the anonymised research database. This should be one of
+``mssql``, ``mysql``, ``oracle`` or ``postgresql``.
+
+
+CRATE_INSTALLER_RESEARCH_DATABASE_HOST
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The name of the server hosting the anonymised research database.
+
+
+CRATE_INSTALLER_RESEARCH_DATABASE_PORT
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The port on the server hosting the anonymised research database.
+
+
+
+CRATE_INSTALLER_SECRET_DATABASE_ENGINE
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The database engine used for the CRATE's secret administrative database. This should be one of
+``mssql``, ``mysql``, ``oracle`` or ``postgresql``.
+
+
+CRATE_INSTALLER_SECRET_DATABASE_HOST
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The name of the server hosting CRATE's secret administrative database.
+
+
+CRATE_INSTALLER_SECRET_DATABASE_PORT
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The port on the server hosting CRATE's secret administrative database.
+
+
+CRATE_INSTALLER_SOURCE_DATABASE_ENGINE
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The database engine used for the source database to be anonymised by CRATE. This
+should be one of ``mssql``, ``mysql``, ``oracle`` or ``postgresql``.
+
+
+CRATE_INSTALLER_SOURCE_DATABASE_HOST
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The name of the server hosting the source database to be anonymised by CRATE.
+
+
+CRATE_INSTALLER_SOURCE_DATABASE_PORT
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The port on the server hosting the source database to be anonymised by CRATE.
+
 
 
 .. todo:: fix below here; see CamCOPS help
@@ -441,7 +795,7 @@ Starts a container with the CRATE image and runs a Bash shell within it.
 start_crate.sh
 ^^^^^^^^^^^^^^
 
-Shortcut for ``docker compose up -d``. The ``-d`` switch is short for
+Shortcut for ``docker compose up -d`` with the relevant ``docker-compose-*.yaml`` files. The ``-d`` switch is short for
 ``--detach`` (or daemon mode).
 
 
@@ -465,6 +819,12 @@ container, you can do
 
 ... which is equivalent to the ``enter_docker_container`` script (see above and
 note the warning).
+
+
+exec_crate_command
+^^^^^^^^^^^^^^^^^^
+
+Runs a command in the existing ``crate_server`` container.
 
 
 Development notes
