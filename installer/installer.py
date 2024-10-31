@@ -34,6 +34,7 @@ available.
 from argparse import ArgumentParser
 import collections
 import grp
+from html import escape
 import os
 from pathlib import Path
 from platform import uname
@@ -593,10 +594,13 @@ class Installer:
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def report(text: str, style: Style) -> None:
-        lines = text.split("\n")
-        wrapped = "\n".join([textwrap.fill(line, width=80) for line in lines])
-        print_formatted_text(HTML(f"<span>{wrapped}</span>"), style=style)
+    def report(text: str, style: Style, split_lines: bool = True) -> None:
+        if split_lines:
+            lines = text.split("\n")
+            text = "\n".join([textwrap.fill(line, width=80) for line in lines])
+
+        escaped = escape(text)
+        print_formatted_text(HTML(f"<span>{escaped}</span>"), style=style)
 
     def start_message(self) -> None:
         self.report("CRATE Installer", self.intro_style)
@@ -609,8 +613,8 @@ class Installer:
             return
         self.report(text, self.envvar_style)
 
-    def error(self, text: str) -> None:
-        self.report(text, self.error_style)
+    def error(self, text: str, split_lines: bool = True) -> None:
+        self.report(text, self.error_style, split_lines=split_lines)
 
     def fail(self, text: str) -> NoReturn:
         self.error(text)
@@ -1713,8 +1717,10 @@ class Installer:
         # noinspection PyTypeChecker
         completer = WordCompleter(choice_dict.keys())
 
+        escaped = escape(text)
+
         return self.prompt_html(
-            HTML(f"<span>{text}</span>\nEnter:\n{definitions_html}\n"),
+            HTML(f"<span>{escaped}</span>\nEnter:\n{definitions_html}\n"),
             validator=ChoiceValidator(choice_dict.keys()),
             completer=completer,
             style=self.choice_style,
@@ -1724,8 +1730,9 @@ class Installer:
         """
         Shows a prompt and returns user input.
         """
+        escaped = escape(text)
         return self.prompt_html(
-            HTML(f"\n<span>{text}</span> "),
+            HTML(f"\n<span>{escaped}</span> "),
             *args,
             **kwargs,
             style=self.prompt_style,
