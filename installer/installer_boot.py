@@ -70,6 +70,7 @@ class InstallerBoot:
     command: str
     github_repository: str
     crate_root_dir: str
+    light_mode: bool
     run_locally: bool
     recreate_venv: bool
     version: Optional[str]
@@ -179,10 +180,13 @@ class InstallerBoot:
         ]
 
         if self.update:
-            installer_args += ["--update"]
+            installer_args.append("--update")
 
         if self.verbose:
-            installer_args += ["--verbose"]
+            installer_args.append("--verbose")
+
+        if self.light_mode:
+            installer_args.append("--light_mode")
 
         installer_args.append(self.command)
 
@@ -213,6 +217,12 @@ def main() -> None:
             "CRATE source."
         ),
         default=os.getenv("CRATE_INSTALLER_CRATE_ROOT_HOST_DIR"),
+    )
+    parser.add_argument(
+        "--light_mode",
+        action="store_true",
+        default=False,
+        help="Use this if your terminal has a light background",
     )
     parser.add_argument(
         "--run_locally",

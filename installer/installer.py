@@ -35,6 +35,7 @@ from argparse import ArgumentParser
 import collections
 import grp
 from html import escape
+import inspect
 import io
 import os
 from pathlib import Path
@@ -362,12 +363,14 @@ class Installer:
     def __init__(
         self,
         crate_root_dir: str = None,
+        light_mode: bool = False,
         update: bool = False,
         verbose: bool = False,
     ) -> None:
         self._docker = None
         self._engines = None
         self._env_dict = None
+        self.light_mode = light_mode
         self.update = update
         self.verbose = verbose
 
@@ -383,33 +386,42 @@ class Installer:
             sys.exit(EXIT_FAILURE)
 
         self.title = "CRATE Setup"
-        self.intro_style = Style.from_dict(
-            {
-                "span": f"{Colours.BLUE}",
-            }
-        )
-        prompt_dict = {"span": f"{Colours.CYAN}"}
+        self.choice_style = self.get_choice_style(Colours.CYAN, Colours.ORANGE)
+        self.envvar_style = self.get_body_style()
+        self.error_style = self.get_text_style(Colours.RED)
+        self.info_style = self.get_body_style()
+        self.intro_style = self.get_highlight_style()
+        self.prompt_style = self.get_text_style(Colours.CYAN)
+        self.success_style = self.get_text_style(Colours.GREEN)
 
-        self.prompt_style = Style.from_dict(prompt_dict)
-        self.info_style = Style.from_dict(
-            {
-                "span": f"{Colours.VIOLET}",
-            }
-        )
-        self.error_style = Style.from_dict(
-            {
-                "span": f"{Colours.RED}",
-            }
-        )
-        self.envvar_style = Style.from_dict(
-            {
-                "span": f"{Colours.GREEN}",
-            }
-        )
-        choice_dict = prompt_dict.copy()
-        choice_dict.update(name=f"{Colours.ORANGE}")
-        self.choice_style = Style.from_dict(choice_dict)
         self.setenv(InstallerEnvVar.CRATE_ROOT_HOST_DIR, crate_root_dir)
+
+    def get_body_style(self) -> Style:
+        if self.light_mode:
+            return self.get_text_style(Colours.BASE00)
+
+        return self.get_text_style(Colours.BASE0)
+
+    def get_highlight_style(self) -> Style:
+        if self.light_mode:
+            return self.get_text_style(
+                f"bg:{Colours.BASE2} fg:{Colours.BASE01}"
+            )
+
+        return self.get_text_style(f"bg:{Colours.BASE02} fg:{Colours.BASE1}")
+
+    @staticmethod
+    def get_text_style(style_string: str) -> Style:
+        return Style.from_dict({"span": style_string})
+
+    @staticmethod
+    def get_choice_style(foreground_colour: str, choice_colour: str) -> Style:
+        return Style.from_dict(
+            {
+                "span": foreground_colour,
+                "name": choice_colour,
+            }
+        )
 
     @property
     def engines(self) -> Dict[str, DatabaseEngine]:
@@ -549,7 +561,7 @@ class Installer:
             )
 
     def test_database_connection(self, label: str, url: str) -> None:
-        self.info(f"Testing connection to '{label}'...")
+        self.info(f"\nTesting connection to '{label}'...")
         os.chdir(self.dockerfiles_host_dir())
 
         error = io.StringIO()
@@ -572,7 +584,7 @@ class Installer:
                 elif stream_type == "stderr":
                     error.write(decoded)
         except DockerException:
-            self.info(output.getvalue())
+            self.error(output.getvalue())
 
             if self.verbose:
                 self.error(error.getvalue(), split_lines=False)
@@ -592,7 +604,7 @@ class Installer:
             )
 
         self.info(output.getvalue())
-        self.info("OK")
+        self.success("OK")
 
     def start(self) -> None:
         os.chdir(self.dockerfiles_host_dir())
@@ -674,9 +686,24 @@ class Installer:
 
     def start_message(self) -> None:
         self.report("CRATE Installer", self.intro_style)
+        if self.light_mode:
+            return self.report(
+                "Running in light mode. "
+                "Remove the --light_mode option to run in dark mode.",
+                self.get_highlight_style(),
+            )
+
+        self.report(
+            "Running in dark mode. "
+            "Use the --light_mode option to run in light mode.",
+            self.get_highlight_style(),
+        )
 
     def info(self, text: str) -> None:
         self.report(text, self.info_style)
+
+    def success(self, text: str) -> None:
+        self.report(text, self.success_style)
 
     def envvar_info(self, text: str) -> None:
         if not self.verbose:
@@ -689,6 +716,50 @@ class Installer:
     def fail(self, text: str) -> NoReturn:
         self.error(text)
         sys.exit(EXIT_FAILURE)
+
+    def dump_colours(self) -> None:
+        # Development only
+        colour_attrs = inspect.getmembers(
+            Colours, lambda attr: not inspect.isroutine(attr)
+        )
+
+        for name, value in colour_attrs:
+            if name.startswith("__"):
+                continue
+
+            style = Style.from_dict(
+                {
+                    "span": value,
+                }
+            )
+
+            self.report(name, style)
+
+        self.report(
+            "Dark body",
+            Style.from_dict(
+                {"span": f"bg:{Colours.BASE03} fg:{Colours.BASE0}"}
+            ),
+        )
+        self.report(
+            "Dark highlights",
+            Style.from_dict(
+                {"span": f"bg:{Colours.BASE02} fg:{Colours.BASE1}"}
+            ),
+        )
+
+        self.report(
+            "Light body",
+            Style.from_dict(
+                {"span": f"bg:{Colours.BASE3} fg:{Colours.BASE00}"}
+            ),
+        )
+        self.report(
+            "Light highlights",
+            Style.from_dict(
+                {"span": f"bg:{Colours.BASE2} fg:{Colours.BASE01}"}
+            ),
+        )
 
     # -------------------------------------------------------------------------
     # Installation
@@ -1383,7 +1454,7 @@ class Installer:
 
     def report_status(self) -> None:
         localhost_url = self.get_crate_server_localhost_url()
-        self.info(f"The CRATE application is running at {localhost_url}")
+        self.success(f"The CRATE application is running at {localhost_url}")
 
     # -------------------------------------------------------------------------
     # Fetching information from environment variables or statically
@@ -1984,7 +2055,7 @@ class NativeLinuxInstaller(Installer):
     def report_status(self) -> None:
         server_url = self.get_crate_server_url()
         localhost_url = self.get_crate_server_localhost_url()
-        self.info(
+        self.success(
             f"The CRATE application is running at {server_url} "
             f"or {localhost_url}"
         )
@@ -2062,6 +2133,12 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--light_mode",
+        action="store_true",
+        default=False,
+        help="Use this if your terminal has a light background",
+    )
+    parser.add_argument(
         "--update",
         action="store_true",
         help="Rebuild the CRATE Docker image.",
@@ -2125,6 +2202,7 @@ def main() -> None:
 
     installer = get_installer_class()(
         crate_root_dir=args.crate_root_dir,
+        light_mode=args.light_mode,
         update=args.update,
         verbose=args.verbose,
     )
