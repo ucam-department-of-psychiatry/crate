@@ -592,7 +592,6 @@ class Installer:
             )
 
         self.info(output.getvalue())
-        self.error(error.getvalue())
         self.info("OK")
 
     def start(self) -> None:
