@@ -382,8 +382,6 @@ class Installer:
 
             sys.exit(EXIT_FAILURE)
 
-        self.setenv(InstallerEnvVar.CRATE_ROOT_HOST_DIR, crate_root_dir)
-
         self.title = "CRATE Setup"
         self.intro_style = Style.from_dict(
             {
@@ -411,6 +409,7 @@ class Installer:
         choice_dict = prompt_dict.copy()
         choice_dict.update(name=f"{Colours.ORANGE}")
         self.choice_style = Style.from_dict(choice_dict)
+        self.setenv(InstallerEnvVar.CRATE_ROOT_HOST_DIR, crate_root_dir)
 
     @property
     def engines(self) -> Dict[str, DatabaseEngine]:
