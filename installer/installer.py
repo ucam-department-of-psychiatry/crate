@@ -1605,9 +1605,13 @@ class Installer:
         return os.path.join(self.docker_host_dir(), "dockerfiles")
 
     def docker_host_dir(self) -> str:
-        installer_dir = os.path.dirname(os.path.realpath(__file__))
+        return os.path.join(self.src_host_dir(), "docker")
 
-        return os.path.join(installer_dir, os.pardir, "docker")
+    def src_host_dir(self) -> str:
+        return os.path.join(self.installer_host_dir(), os.pardir)
+
+    def installer_host_dir(self) -> str:
+        return os.path.dirname(os.path.realpath(__file__))
 
     def default_config_host_dir(self) -> str:
         return os.path.join(self.crate_root_host_dir(), "config")
