@@ -44,6 +44,17 @@ Options:
     :language: none
 
 
+.. _crate_test_database_connection:
+
+crate_test_database_connection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Options:
+
+..  literalinclude:: _crate_test_database_connection_help.txt
+    :language: none
+
+
 .. _crate_test_extract_text:
 
 crate_test_extract_text

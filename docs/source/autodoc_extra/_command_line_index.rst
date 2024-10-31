@@ -119,6 +119,8 @@ Index of CRATE commands
 
 :ref:`crate_test_anonymisation <crate_test_anonymisation>`
 
+:ref:`crate_test_database_connection <crate_test_database_connection>`
+
 :ref:`crate_test_extract_text <crate_test_extract_text>`
 
 :ref:`crate_windows_service <crate_windows_service>`
