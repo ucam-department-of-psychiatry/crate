@@ -549,7 +549,7 @@ class Installer:
             )
 
     def test_database_connection(self, label: str, url: str) -> None:
-        self.info(f"Testing connection for {label}...")
+        self.info(f"Testing connection to '{label}'...")
         os.chdir(self.dockerfiles_host_dir())
 
         error = io.StringIO()
