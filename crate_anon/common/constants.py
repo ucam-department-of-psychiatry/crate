@@ -218,6 +218,9 @@ class CrateCommand:
     NLP_WEBSERVER_PRINT_DEMO = "crate_nlp_webserver_print_demo"
     NLP_WEBSERVER_PSERVE = "crate_nlp_webserver_pserve"
 
+    # Testing
+    TEST_DATABASE_CONNECTION = "crate_test_database_connection"
+
 
 # =============================================================================
 # HelpUrl
