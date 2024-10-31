@@ -35,6 +35,7 @@ from argparse import ArgumentParser
 import collections
 import grp
 from html import escape
+import io
 import os
 from pathlib import Path
 from platform import uname
@@ -476,6 +477,7 @@ class Installer:
         self.write_environment_variables()
 
         self.build_crate_image()
+        self.maybe_test_database_connections()
 
         # At this point the containers get created
         self.create_local_settings()
@@ -523,6 +525,68 @@ class Installer:
         images = self.docker.image.list(filters=filters)
 
         return len(images) == 0
+
+    def maybe_test_database_connections(self) -> None:
+        # Only test external database connections, not those provided by the
+        # installer under Docker. Those won't exist yet.
+        if not self.should_create_crate_db_container():
+            self.test_database_connection(
+                "CRATE web application database",
+                self.get_crate_db_url(),
+            )
+
+        if not self.should_create_demo_containers():
+            self.test_database_connection(
+                "Research (anonymised) database",
+                self.get_research_db_url(),
+            )
+            self.test_database_connection(
+                "Secret administrative database",
+                self.get_secret_db_url(),
+            )
+            self.test_database_connection(
+                "Source database containing idenitifiable data",
+                self.get_source_db_url(),
+            )
+
+    def test_database_connection(self, label: str, url: str) -> None:
+        self.info(f"Testing connection for {label}...")
+        os.chdir(self.dockerfiles_host_dir())
+
+        error = io.StringIO()
+        output = io.StringIO()
+
+        try:
+            crate_command = ["crate_test_database_connection", url]
+            output_generator = self.docker.compose.run(
+                DockerComposeServices.CRATE_WORKERS,
+                remove=True,
+                stream=True,
+                tty=False,
+                command=crate_command,
+            )
+            for stream_type, stream_content in output_generator:
+                decoded = stream_content.decode("utf-8")
+
+                if stream_type == "stdout":
+                    output.write(decoded)
+                elif stream_type == "stderr":
+                    error.write(decoded)
+        except DockerException:
+            self.info(output.getvalue())
+
+            if self.verbose:
+                self.error(error.getvalue(), split_lines=False)
+
+                self.fail("Failed to connect.")
+
+            self.fail(
+                "Failed to connect. Run with --verbose to see more detail."
+            )
+
+        self.info(output.getvalue())
+        self.error(error.getvalue())
+        self.info("OK")
 
     def start(self) -> None:
         os.chdir(self.dockerfiles_host_dir())
@@ -1256,30 +1320,9 @@ class Installer:
             "per_table_patient_id_encryption_phrase": self.get_hmac_md5_key(),
             "master_patient_id_encryption_phrase": self.get_hmac_md5_key(),
             "change_detection_encryption_phrase": self.get_hmac_md5_key(),
-            "dest_db_url": self.get_sqlalchemy_url(
-                self.getenv(InstallerEnvVar.RESEARCH_DATABASE_ENGINE),
-                self.getenv(DockerEnvVar.RESEARCH_DATABASE_USER_NAME),
-                self.getenv(DockerEnvVar.RESEARCH_DATABASE_USER_PASSWORD),
-                self.getenv(InstallerEnvVar.RESEARCH_DATABASE_HOST),
-                self.getenv(InstallerEnvVar.RESEARCH_DATABASE_PORT),
-                self.getenv(DockerEnvVar.RESEARCH_DATABASE_NAME),
-            ),
-            "admin_db_url": self.get_sqlalchemy_url(
-                self.getenv(InstallerEnvVar.SECRET_DATABASE_ENGINE),
-                self.getenv(DockerEnvVar.SECRET_DATABASE_USER_NAME),
-                self.getenv(DockerEnvVar.SECRET_DATABASE_USER_PASSWORD),
-                self.getenv(InstallerEnvVar.SECRET_DATABASE_HOST),
-                self.getenv(InstallerEnvVar.SECRET_DATABASE_PORT),
-                self.getenv(DockerEnvVar.SECRET_DATABASE_NAME),
-            ),
-            "source_db1_url": self.get_sqlalchemy_url(
-                self.getenv(InstallerEnvVar.SOURCE_DATABASE_ENGINE),
-                self.getenv(DockerEnvVar.SOURCE_DATABASE_USER_NAME),
-                self.getenv(DockerEnvVar.SOURCE_DATABASE_USER_PASSWORD),
-                self.getenv(InstallerEnvVar.SOURCE_DATABASE_HOST),
-                self.getenv(InstallerEnvVar.SOURCE_DATABASE_PORT),
-                self.getenv(DockerEnvVar.SOURCE_DATABASE_NAME),
-            ),
+            "dest_db_url": self.get_research_db_url(),
+            "admin_db_url": self.get_secret_db_url(),
+            "source_db1_url": self.get_source_db_url(),
             "source_db1_ddgen_include_fields": "Note.note",
             "source_db1_ddgen_scrubsrc_patient_fields": self.format_multiline(
                 ("forename", "surname")
@@ -1318,13 +1361,7 @@ class Installer:
         self.run_crate_command(["crate_django_manage", "ensuresuperuser"])
 
     def create_demo_data(self) -> None:
-        engine = self.getenv(InstallerEnvVar.SOURCE_DATABASE_ENGINE)
-        user = self.getenv(DockerEnvVar.SOURCE_DATABASE_USER_NAME)
-        password = self.getenv(DockerEnvVar.SOURCE_DATABASE_USER_PASSWORD)
-        host = self.getenv(InstallerEnvVar.SOURCE_DATABASE_HOST)
-        port = self.getenv(InstallerEnvVar.SOURCE_DATABASE_PORT)
-        name = self.getenv(DockerEnvVar.SOURCE_DATABASE_NAME)
-        url = self.get_sqlalchemy_url(engine, user, password, host, port, name)
+        url = self.get_source_db_url()
         self.run_crate_command(["crate_make_demo_database", url])
 
     def create_data_dictionary(self) -> None:
@@ -1422,6 +1459,46 @@ class Installer:
     @staticmethod
     def get_data_dictionary_docker_filename() -> str:
         return os.path.join(DockerPath.CONFIG_DIR, "data_dictionary.tsv")
+
+    def get_crate_db_url(self) -> str:
+        return self.get_sqlalchemy_url(
+            self.getenv(InstallerEnvVar.CRATE_DB_ENGINE),
+            self.getenv(DockerEnvVar.CRATE_DB_USER_NAME),
+            self.getenv(DockerEnvVar.CRATE_DB_USER_PASSWORD),
+            self.getenv(InstallerEnvVar.CRATE_DB_SERVER),
+            self.getenv(InstallerEnvVar.CRATE_DB_PORT),
+            self.getenv(DockerEnvVar.CRATE_DB_DATABASE_NAME),
+        )
+
+    def get_research_db_url(self) -> str:
+        return self.get_sqlalchemy_url(
+            self.getenv(InstallerEnvVar.RESEARCH_DATABASE_ENGINE),
+            self.getenv(DockerEnvVar.RESEARCH_DATABASE_USER_NAME),
+            self.getenv(DockerEnvVar.RESEARCH_DATABASE_USER_PASSWORD),
+            self.getenv(InstallerEnvVar.RESEARCH_DATABASE_HOST),
+            self.getenv(InstallerEnvVar.RESEARCH_DATABASE_PORT),
+            self.getenv(DockerEnvVar.RESEARCH_DATABASE_NAME),
+        )
+
+    def get_secret_db_url(self) -> str:
+        return self.get_sqlalchemy_url(
+            self.getenv(InstallerEnvVar.SECRET_DATABASE_ENGINE),
+            self.getenv(DockerEnvVar.SECRET_DATABASE_USER_NAME),
+            self.getenv(DockerEnvVar.SECRET_DATABASE_USER_PASSWORD),
+            self.getenv(InstallerEnvVar.SECRET_DATABASE_HOST),
+            self.getenv(InstallerEnvVar.SECRET_DATABASE_PORT),
+            self.getenv(DockerEnvVar.SECRET_DATABASE_NAME),
+        )
+
+    def get_source_db_url(self) -> str:
+        return self.get_sqlalchemy_url(
+            self.getenv(InstallerEnvVar.SOURCE_DATABASE_ENGINE),
+            self.getenv(DockerEnvVar.SOURCE_DATABASE_USER_NAME),
+            self.getenv(DockerEnvVar.SOURCE_DATABASE_USER_PASSWORD),
+            self.getenv(InstallerEnvVar.SOURCE_DATABASE_HOST),
+            self.getenv(InstallerEnvVar.SOURCE_DATABASE_PORT),
+            self.getenv(DockerEnvVar.SOURCE_DATABASE_NAME),
+        )
 
     def get_sqlalchemy_url(
         self,
