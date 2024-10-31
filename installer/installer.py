@@ -48,6 +48,7 @@ from typing import (
     Callable,
     Dict,
     Iterable,
+    List,
     NoReturn,
     TextIO,
     Tuple,
@@ -542,7 +543,7 @@ class Installer:
         )
 
     def run_crate_command_and_output_to_file(
-        self, crate_command: str, filename: str
+        self, crate_command: List[str], filename: str
     ) -> None:
         stdout = self.run_crate_command(crate_command)
         with open(filename, "w") as f:
@@ -550,7 +551,7 @@ class Installer:
 
     def run_crate_command(
         self,
-        crate_command: str,
+        crate_command: List[str],
         tty: bool = False,
     ) -> Union[str, Container, Iterable[Tuple[str, bytes]]]:
         # Run a command in a new instance of the crate_workers container.
@@ -560,11 +561,12 @@ class Installer:
         if not crate_command:
             sys.exit("Error: no command specified")
         os.chdir(self.dockerfiles_host_dir())
+
         return self.docker.compose.run(
             DockerComposeServices.CRATE_WORKERS,
             remove=True,
             tty=tty,
-            command=[crate_command],
+            command=crate_command,
         )
 
     def exec_crate_command(
@@ -1105,7 +1107,7 @@ class Installer:
             self.info(f"Creating {settings}")
             Path(settings).touch()
             self.run_crate_command_and_output_to_file(
-                "crate_print_demo_crateweb_config --leave_placeholders",
+                ["crate_print_demo_crateweb_config", "--leave_placeholders"],
                 settings,
             )
         self.configure_local_settings()
@@ -1240,7 +1242,7 @@ class Installer:
             self.info(f"Creating {config}")
             Path(config).touch()
             self.run_crate_command_and_output_to_file(
-                "crate_anon_demo_config --leave_placeholders", config
+                ["crate_anon_demo_config", "--leave_placeholders"], config
             )
         self.configure_anon_config()
 
@@ -1296,18 +1298,20 @@ class Installer:
         )
 
     def create_or_update_crate_database(self) -> None:
-        self.run_crate_command("crate_django_manage migrate")
+        self.run_crate_command(["crate_django_manage", "migrate"])
 
     def collect_static(self) -> None:
-        self.run_crate_command("crate_django_manage collectstatic --no-input")
+        self.run_crate_command(
+            ["crate_django_manage", "collectstatic", "--no-input"]
+        )
 
     def populate(self) -> None:
-        self.run_crate_command("crate_django_manage populate")
+        self.run_crate_command(["crate_django_manage", "populate"])
 
     def create_superuser(self) -> None:
         # Will either create a superuser or update an existing one
         # with the given username
-        self.run_crate_command("crate_django_manage ensuresuperuser")
+        self.run_crate_command(["crate_django_manage", "ensuresuperuser"])
 
     def create_demo_data(self) -> None:
         engine = self.getenv(InstallerEnvVar.SOURCE_DATABASE_ENGINE)
@@ -1317,18 +1321,18 @@ class Installer:
         port = self.getenv(InstallerEnvVar.SOURCE_DATABASE_PORT)
         name = self.getenv(DockerEnvVar.SOURCE_DATABASE_NAME)
         url = self.get_sqlalchemy_url(engine, user, password, host, port, name)
-        self.run_crate_command(f"crate_make_demo_database {url}")
+        self.run_crate_command(["crate_make_demo_database", url])
 
     def create_data_dictionary(self) -> None:
         self.info("Creating data dictionary...")
         data_dictionary = self.get_data_dictionary_host_filename()
         self.run_crate_command_and_output_to_file(
-            "crate_anon_draft_dd", data_dictionary
+            ["crate_anon_draft_dd"], data_dictionary
         )
 
     def anonymise_demo_data(self) -> None:
         self.info("Anonymising demo data...")
-        self.run_crate_command("crate_anonymise --full")
+        self.run_crate_command(["crate_anonymise", "--full"])
 
     def report_status(self) -> None:
         localhost_url = self.get_crate_server_localhost_url()
