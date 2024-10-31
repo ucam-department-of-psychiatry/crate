@@ -577,10 +577,18 @@ class Installer:
             if self.verbose:
                 self.error(error.getvalue(), split_lines=False)
 
-                self.fail("Failed to connect.")
+                self.fail(
+                    "Failed to connect.\n"
+                    "Troubleshooting:\n"
+                    "----------------\n"
+                    "'Login timeout expired': Problem with server host name "
+                    "or firewall?\n"
+                    "'Login failed': Problem with username/password?\n\n"
+                )
 
             self.fail(
-                "Failed to connect. Run with --verbose to see more detail."
+                "Failed to connect. "
+                "Run the installer again with --verbose to see more detail."
             )
 
         self.info(output.getvalue())
