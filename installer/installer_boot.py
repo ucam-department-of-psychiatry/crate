@@ -178,6 +178,12 @@ class InstallerBoot:
             self.crate_root_dir,
         ]
 
+        if self.update:
+            installer_args += ["--update"]
+
+        if self.verbose:
+            installer_args += ["--verbose"]
+
         installer_args.append(self.command)
 
         # check=False for non-error exit codes such as incorrect usage
