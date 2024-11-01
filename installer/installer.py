@@ -659,16 +659,11 @@ class Installer:
         output = io.StringIO()
 
         try:
-            crate_command = [
-                "crate_test_database_connection",
-                self.get_db_url(db),
-            ]
-            output_generator = self.docker.compose.run(
-                DockerComposeServices.CRATE_WORKERS,
-                remove=True,
-                stream=True,
-                tty=False,
-                command=crate_command,
+            output_generator = self.run_crate_command(
+                [
+                    "crate_test_database_connection",
+                    self.get_db_url(db),
+                ]
             )
             for stream_type, stream_content in output_generator:
                 decoded = stream_content.decode("utf-8")
@@ -722,9 +717,13 @@ class Installer:
     def run_crate_command_and_output_to_file(
         self, crate_command: List[str], filename: str
     ) -> None:
-        stdout = self.run_crate_command(crate_command)
         with open(filename, "w") as f:
-            f.write(stdout)
+            output_generator = self.run_crate_command(crate_command)
+            for stream_type, stream_content in output_generator:
+                decoded = stream_content.decode("utf-8")
+
+                if stream_type == "stdout":
+                    f.write(decoded)
 
     def run_crate_command(
         self,
@@ -742,6 +741,7 @@ class Installer:
         return self.docker.compose.run(
             DockerComposeServices.CRATE_WORKERS,
             remove=True,
+            stream=not tty,
             tty=tty,
             command=crate_command,
         )
