@@ -508,7 +508,7 @@ class Installer:
                 DockerEnvVar.CRATE_DB_HOST_PORT,
             ),
             "research": Database(
-                "research  database",
+                "research database",
                 (
                     "This is where the anonymised data will be stored. More "
                     "research databases can be added by manually editing the "
