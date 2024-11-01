@@ -684,7 +684,9 @@ class Installer:
                     "----------------\n"
                     "'Login timeout expired': Problem with server host name "
                     "or firewall?\n"
-                    "'Login failed': Problem with username/password?\n\n"
+                    "'Login failed': Problem with username/password?\n"
+                    "'Data source name not found...': Incorrect DSN name or "
+                    "entry?\n\n"
                 )
 
             self.fail(
