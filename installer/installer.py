@@ -727,7 +727,7 @@ class Installer:
                     f.write(stream_content)
                 elif stream_type == "stderr":
                     decoded = stream_content.decode("utf-8")
-                    self.error(decoded, split_lines=False)
+                    print(decoded, file=sys.stderr, end="")
 
     def run_crate_command(
         self,

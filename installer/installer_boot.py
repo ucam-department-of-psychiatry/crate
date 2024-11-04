@@ -193,10 +193,10 @@ class InstallerBoot:
         installer_args.append(self.command)
 
         returned_value = subprocess.run(installer_args)
-        if returned_value.return_code in (EXIT_SUCCESS, EXIT_USER):
+        if returned_value.returncode in (EXIT_SUCCESS, EXIT_USER):
             return
 
-        sys.exit(returned_value.return_code)
+        sys.exit(returned_value.returncode)
 
 
 def main() -> None:
