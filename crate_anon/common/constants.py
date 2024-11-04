@@ -104,6 +104,8 @@ class DockerConstants:
     # Directories
     DOCKER_CRATE_ROOT_DIR = "/crate"
     CONFIG_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "cfg")
+    FILES_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "files")
+    STATIC_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "static")
     TMP_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "tmp")
     VENV_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "venv")
 
