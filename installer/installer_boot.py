@@ -57,7 +57,9 @@ from typing import Optional
 import urllib.request
 from venv import EnvBuilder
 
-EXIT_FAILURE = 1
+EXIT_SUCCESS = 0  # No error
+EXIT_FAILURE = 1  # Unexpected error
+EXIT_USER = 2  # User error e.g bad command, misconfiguration, CTRL-C
 
 
 class Command:
@@ -190,8 +192,11 @@ class InstallerBoot:
 
         installer_args.append(self.command)
 
-        # check=False for non-error exit codes such as incorrect usage
-        subprocess.run(installer_args)
+        returned_value = subprocess.run(installer_args)
+        if returned_value.return_code in (EXIT_SUCCESS, EXIT_USER):
+            return
+
+        sys.exit(returned_value.return_code)
 
 
 def main() -> None:
@@ -286,7 +291,7 @@ def main() -> None:
             "variable CRATE_INSTALLER_CRATE_ROOT_DIR"
         )
 
-        sys.exit(EXIT_FAILURE)
+        sys.exit(EXIT_USER)
 
     boot = InstallerBoot(**vars(args))
     boot.boot()
