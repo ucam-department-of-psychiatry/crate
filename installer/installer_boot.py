@@ -201,7 +201,7 @@ class InstallerBoot:
 
 def main() -> None:
     if not (sys.version_info.major >= 3 and sys.version_info.minor >= 9):
-        print(sys.version_info)
+        print(f"Script called with Python: {sys.version}")
         print(
             "You need at least Python 3.9 to run the installer.",
             file=sys.stderr,
