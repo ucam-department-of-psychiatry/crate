@@ -664,7 +664,8 @@ class Installer:
                 [
                     "crate_test_database_connection",
                     self.get_db_url(db),
-                ]
+                ],
+                stream=True,
             )
             for stream_type, stream_content in output_generator:
                 decoded = stream_content.decode("utf-8")
@@ -721,7 +722,9 @@ class Installer:
         self, crate_command: List[str], filename: str
     ) -> None:
         with open(filename, "wb") as f:
-            output_generator = self.run_crate_command(crate_command)
+            output_generator = self.run_crate_command(
+                crate_command, stream=True
+            )
             for stream_type, stream_content in output_generator:
                 if stream_type == "stdout":
                     f.write(stream_content)
@@ -732,6 +735,7 @@ class Installer:
     def run_crate_command(
         self,
         crate_command: List[str],
+        stream: bool = False,
         tty: bool = False,
     ) -> Union[str, Container, Iterable[Tuple[str, bytes]]]:
         # Run a command in a new instance of the crate_workers container.
@@ -741,12 +745,20 @@ class Installer:
         if not crate_command:
             self.error("Error: no command specified")
             sys.exit(EXIT_USER)
+
+        if tty and stream:
+            # Mirror behaviour of docker.compose.run in Python on Whales
+            raise ValueError(
+                "You can't set tty=True and stream=True at the same"
+                "time. Their purpose are not compatible."
+            )
+
         os.chdir(self.dockerfiles_host_dir())
 
         return self.docker.compose.run(
             DockerComposeServices.CRATE_WORKERS,
             remove=True,
-            stream=not tty,
+            stream=stream,
             tty=tty,
             command=crate_command,
         )
