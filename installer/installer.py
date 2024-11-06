@@ -1418,24 +1418,26 @@ class Installer:
         )
 
     def create_or_update_crate_database(self) -> None:
-        self.run_crate_command(["crate_django_manage", "migrate"])
+        self.run_crate_command(["crate_django_manage", "migrate"], tty=True)
 
     def collect_static(self) -> None:
         self.run_crate_command(
-            ["crate_django_manage", "collectstatic", "--no-input"]
+            ["crate_django_manage", "collectstatic", "--no-input"], tty=True
         )
 
     def populate(self) -> None:
-        self.run_crate_command(["crate_django_manage", "populate"])
+        self.run_crate_command(["crate_django_manage", "populate"], tty=True)
 
     def create_superuser(self) -> None:
         # Will either create a superuser or update an existing one
         # with the given username
-        self.run_crate_command(["crate_django_manage", "ensuresuperuser"])
+        self.run_crate_command(
+            ["crate_django_manage", "ensuresuperuser"], tty=True
+        )
 
     def create_demo_data(self) -> None:
         url = self.get_db_url(self.databases["source"])
-        self.run_crate_command(["crate_make_demo_database", url])
+        self.run_crate_command(["crate_make_demo_database", url], tty=True)
 
     def create_data_dictionary(self) -> None:
         self.info("Creating data dictionary...")
@@ -1446,7 +1448,7 @@ class Installer:
 
     def anonymise_demo_data(self) -> None:
         self.info("Anonymising demo data...")
-        self.run_crate_command(["crate_anonymise", "--full"])
+        self.run_crate_command(["crate_anonymise", "--full"], tty=True)
 
     def report_status(self) -> None:
         localhost_url = self.get_crate_server_localhost_url()
