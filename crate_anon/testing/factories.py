@@ -35,7 +35,7 @@ import factory
 import factory.random
 from faker import Faker
 
-from crate_anon.testing.models import EnumColours, Note, Patient
+from crate_anon.testing.models import EnumColours, FilenameDoc, Note, Patient
 from crate_anon.testing.providers import register_all_providers
 
 if TYPE_CHECKING:
@@ -150,7 +150,7 @@ class DemoNoteFactory(DemoFactory):
 
     @factory.lazy_attribute
     def note(obj: "Resolver") -> str:
-        # You get Lorem ipsum with en_GB.
+        # Use en_US because you get Lorem ipsum with en_GB.
         pad_paragraph = Fake.en_us.paragraph(
             nb_sentences=obj.words_per_note / 2,  # way more than we need
         )
@@ -163,6 +163,37 @@ class DemoNoteFactory(DemoFactory):
             nhs_number=obj.patient.nhsnum,
             patient_id=obj.patient.patient_id,
             note_datetime=obj.note_datetime,
+            relation_name=obj.patient.related_patient_name,
+            relation_relationship=obj.patient.related_patient_relationship,
+            words_per_note=obj.words_per_note,
+            pad_paragraph=pad_paragraph,
+        )
+
+
+class DemoFilenameDocFactory(DemoFactory):
+    class Meta:
+        model = FilenameDoc
+
+    class Params:
+        words_per_note = 100
+
+    file_datetime = factory.LazyFunction(Fake.en_gb.incrementing_date)
+
+    @factory.lazy_attribute
+    def filename(obj: "Resolver") -> str:
+        # Use en_US because you get Lorem ipsum with en_GB.
+        pad_paragraph = Fake.en_us.paragraph(
+            nb_sentences=obj.words_per_note / 2,  # way more than we need
+        )
+
+        return Fake.en_gb.patient_filename(
+            forename=obj.patient.forename,
+            surname=obj.patient.surname,
+            sex=obj.patient.sex,
+            dob=obj.patient.dob,
+            nhs_number=obj.patient.nhsnum,
+            patient_id=obj.patient.patient_id,
+            note_datetime=obj.file_datetime,
             relation_name=obj.patient.related_patient_name,
             relation_relationship=obj.patient.related_patient_relationship,
             words_per_note=obj.words_per_note,

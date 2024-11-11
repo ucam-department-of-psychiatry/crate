@@ -65,6 +65,7 @@ from crate_anon.anonymise.constants import CHARSET
 from crate_anon.common.constants import EnvVar
 from crate_anon.testing import Base
 from crate_anon.testing.factories import (
+    DemoFilenameDocFactory,
     DemoPatientFactory,
     set_sqlalchemy_session_on_all_factories,
 )
@@ -129,6 +130,7 @@ def mk_demo_database(
     n_patients: int,
     notes_per_patient: int,
     words_per_note: int,
+    with_files: bool = False,
     echo: bool = False,
 ) -> None:
     # 0. Announce intentions
@@ -136,7 +138,8 @@ def mk_demo_database(
     log.info(
         f"n_patients={n_patients}, "
         f"notes_per_patient={notes_per_patient}, "
-        f"words_per_note={words_per_note}"
+        f"words_per_note={words_per_note}, "
+        f"with_files={with_files}"
     )
 
     # 1. Open database
@@ -180,6 +183,9 @@ def mk_demo_database(
         ):
             num_words = len(note.note.split())
             total_words += num_words
+
+        if with_files:
+            DemoFilenameDocFactory(patient=patient)
 
     session.commit()
     # 5. Report size
@@ -241,24 +247,12 @@ def main() -> None:
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Be verbose"
     )
-    # Not currently used -- todo: add back binaries to demo database?
-    # parser.add_argument(
-    #     "--doctest_doc", default=DEFAULT_DOCTEST_DOC,
-    #     help="Test file for .DOC"
-    # )
-    # parser.add_argument(
-    #     "--doctest_docx",
-    #     default=DEFAULT_DOCTEST_DOCX,
-    #     help="Test file for .DOCX",
-    # )
-    # parser.add_argument(
-    #     "--doctest_odt", default=DEFAULT_DOCTEST_ODT,
-    #     help="Test file for .ODT"
-    # )
-    # parser.add_argument(
-    #     "--doctest_pdf", default=DEFAULT_DOCTEST_PDF,
-    #     help="Test file for .PDF"
-    # )
+    parser.add_argument(
+        "--with_files",
+        action="store_true",
+        default=False,
+        help="Include demo files (doc, pdf etc)",
+    )
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
 
     args = parser.parse_args()
@@ -292,6 +286,7 @@ def main() -> None:
         n_patients=n_patients,
         notes_per_patient=notes_per_patient,
         words_per_note=words_per_note,
+        with_files=args.with_files,
         echo=args.echo,
     )
 

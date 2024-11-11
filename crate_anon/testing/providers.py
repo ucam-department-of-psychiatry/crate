@@ -39,6 +39,13 @@ from cardinal_pythonlib.datetimefunc import pendulum_to_datetime
 from cardinal_pythonlib.nhs import generate_random_nhs_number
 from faker import Faker
 from faker.providers import BaseProvider
+from faker_file.base import StringValue
+from faker_file.providers.docx_file import DocxFileProvider
+from faker_file.providers.odt_file import OdtFileProvider
+from faker_file.providers.pdf_file import PdfFileProvider
+from faker_file.providers.pdf_file.generators.reportlab_generator import (
+    ReportlabPdfGenerator,
+)
 import pendulum
 from pendulum import DateTime as Pendulum
 
@@ -298,12 +305,34 @@ class PatientNoteProvider(BaseProvider):
         return f"{note_text} {pad_words}"
 
 
+class PatientFileProvider(PatientNoteProvider):
+    def patient_filename(self, *args, **kwargs) -> str:
+        note = self.patient_note(*args, **kwargs)
+        file_ext = self.generator.random_choice(["docx", "odt", "pdf"])
+        file_obj = self.generate_file(file_ext, note)
+
+        return file_obj.data["filename"]
+
+    def generate_file(self, file_ext: str, content: str) -> StringValue:
+        if file_ext == "docx":
+            return self.generator.docx_file(content=content)
+
+        if file_ext == "odt":
+            return self.generator.odt_file(content=content)
+
+        return self.generator.pdf_file(
+            content=content,
+            pdf_generator_cls=ReportlabPdfGenerator,
+        )
+
+
 class NhsNumberProvider(BaseProvider):
     def nhs_number(self) -> str:
         return generate_random_nhs_number()
 
 
 def register_all_providers(fake: Faker) -> None:
+    # Our own
     fake.add_provider(AlcoholProvider)
     fake.add_provider(ChoiceProvider)
     fake.add_provider(ConsistentDateOfBirthProvider)
@@ -313,6 +342,13 @@ def register_all_providers(fake: Faker) -> None:
     fake.add_provider(FormattedIncrementingDateProvider)
     fake.add_provider(IncrementingDateProvider)
     fake.add_provider(NhsNumberProvider)
+    fake.add_provider(PatientFileProvider)
     fake.add_provider(PatientNoteProvider)
     fake.add_provider(RelationshipProvider)
     fake.add_provider(SexProvider)
+
+    # Third party:
+    # faker-file
+    fake.add_provider(DocxFileProvider)
+    fake.add_provider(OdtFileProvider)
+    fake.add_provider(PdfFileProvider)
