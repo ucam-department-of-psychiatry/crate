@@ -174,17 +174,12 @@ class DemoFilenameDocFactory(DemoFactory):
     class Meta:
         model = FilenameDoc
 
-    class Params:
-        words_per_note = 100
-
     file_datetime = factory.LazyFunction(Fake.en_gb.incrementing_date)
 
     @factory.lazy_attribute
     def filename(obj: "Resolver") -> str:
         # Use en_US because you get Lorem ipsum with en_GB.
-        pad_paragraph = Fake.en_us.paragraph(
-            nb_sentences=obj.words_per_note / 2,  # way more than we need
-        )
+        pad_paragraph = Fake.en_us.paragraph(nb_sentences=50)
 
         return Fake.en_gb.patient_filename(
             forename=obj.patient.forename,
@@ -193,9 +188,5 @@ class DemoFilenameDocFactory(DemoFactory):
             dob=obj.patient.dob,
             nhs_number=obj.patient.nhsnum,
             patient_id=obj.patient.patient_id,
-            note_datetime=obj.file_datetime,
-            relation_name=obj.patient.related_patient_name,
-            relation_relationship=obj.patient.related_patient_relationship,
-            words_per_note=obj.words_per_note,
             pad_paragraph=pad_paragraph,
         )
