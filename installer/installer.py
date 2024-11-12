@@ -1106,7 +1106,7 @@ class Installer:
             return
 
         self.report(
-            f"\nEnter the details of the {db.short_desc}. {db.long_desc}.",
+            f"\nEnter the details of the {db.short_desc}. {db.long_desc}",
             self.prompt_style,
         )
         self.external_db_instructions()
