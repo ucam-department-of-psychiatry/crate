@@ -1,5 +1,8 @@
 usage: crate_test_database_connection [-h] url
 
+Test a database can be accessed by opening and closing the connection non-
+destructively, via a SQLAlchemy URL.
+
 positional arguments:
   url         SQLAlchemy URL to test
 

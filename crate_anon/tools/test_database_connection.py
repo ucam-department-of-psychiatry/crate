@@ -49,7 +49,12 @@ def test_connection(url: str) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description=(
+            "Test a database can be accessed by opening and closing the "
+            "connection non-destructively, via a SQLAlchemy URL."
+        )
+    )
     parser.add_argument(
         "url",
         type=str,
