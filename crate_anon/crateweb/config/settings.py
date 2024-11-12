@@ -586,7 +586,7 @@ else:
     )
 
     if RUNNING_UNDER_DOCKER:
-        # /crate/cfg or /crate/venv
+        # /crate/cfg, /crate/venv or /crate/files
         paramname_filespec_pairs = [
             ("ARCHIVE_TEMPLATE_DIR", ARCHIVE_TEMPLATE_DIR),
             ("ARCHIVE_STATIC_DIR", ARCHIVE_STATIC_DIR),
@@ -597,9 +597,10 @@ else:
                 param_name=param_name,
                 filespec=filespec,
                 permit_cfg=True,
+                permit_files=True,
                 permit_venv=True,
             )
-        # /crate/cfg
+        # /crate/cfg or /crate/files
         paramname_filespec_pairs = [
             ("ARCHIVE_ATTACHMENT_DIR", ARCHIVE_ATTACHMENT_DIR),
         ]
@@ -608,8 +609,9 @@ else:
                 param_name=param_name,
                 filespec=filespec,
                 permit_cfg=True,
+                permit_files=True,
             )
-        # /crate/cfg or /crate/tmp
+        # /crate/cfg, /crate/files or /crate/tmp
         paramname_filespec_pairs = [
             ("PRIVATE_FILE_STORAGE_ROOT", PRIVATE_FILE_STORAGE_ROOT),
         ]
@@ -618,9 +620,10 @@ else:
                 param_name=param_name,
                 filespec=filespec,
                 permit_cfg=True,
+                permit_files=True,
                 permit_tmp=True,
             )
-        # /crate/tmp
+        # /crate/tmp or /crate/files
         paramname_filespec_pairs = [
             ("ARCHIVE_TEMPLATE_CACHE_DIR", ARCHIVE_TEMPLATE_CACHE_DIR),
         ]
@@ -628,9 +631,10 @@ else:
             warn_if_not_within_docker_dir(
                 param_name=param_name,
                 filespec=filespec,
+                permit_files=True,
                 permit_tmp=True,
             )
-        # /crate/cfg or /crate/venv, as file: URLs
+        # /crate/cfg, /crate/files, /crate/venv, as file: URLs
         paramname_filespec_pairs = [
             ("PDF_LOGO_ABS_URL", PDF_LOGO_ABS_URL),
             ("TRAFFIC_LIGHT_RED_ABS_URL", TRAFFIC_LIGHT_RED_ABS_URL),
@@ -642,6 +646,7 @@ else:
                 param_name=param_name,
                 filespec=filespec,
                 permit_cfg=True,
+                permit_files=True,
                 permit_venv=True,
                 as_file_url=True,
             )

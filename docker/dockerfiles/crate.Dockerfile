@@ -11,8 +11,10 @@
 #
 #   /crate              All CRATE code/binaries.
 #       /cfg            Config files are mounted here.
+#       /files          General file storage mounted here.
 #       /gate           GATE program
 #       /src            Source code for CRATE.
+#       /static         Static files (Django STATIC_ROOT) mounted here.
 #       /venv           Python 3 virtual environment.
 #           /bin        Main CRATE executables live here.
 

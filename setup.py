@@ -271,6 +271,7 @@ setup(
             f"{CrateCommand.LAUNCH_CELERY}=crate_anon.tools.launch_celery:main",  # noqa: E501
             f"{CrateCommand.LAUNCH_FLOWER}=crate_anon.tools.launch_flower:main",  # noqa: E501
             f"{CrateCommand.PRINT_DEMO_CRATEWEB_CONFIG}=crate_anon.tools.print_crateweb_demo_config:main",  # noqa: E501
+            f"{CrateCommand.TEST_DATABASE_CONNECTION}=crate_anon.tools.test_database_connection:main",  # noqa: E501
             f"{CrateCommand.WINDOWS_SERVICE}=crate_anon.tools.winservice:main",
             # Indirect shortcuts to "crate_django_manage" commands:
             f"{CrateCommand.LAUNCH_CHERRYPY_SERVER}=crate_anon.tools.launch_cherrypy_server:main",  # noqa: E501

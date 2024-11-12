@@ -104,6 +104,8 @@ class DockerConstants:
     # Directories
     DOCKER_CRATE_ROOT_DIR = "/crate"
     CONFIG_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "cfg")
+    FILES_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "files")
+    STATIC_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "static")
     TMP_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "tmp")
     VENV_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "venv")
 
@@ -217,6 +219,9 @@ class CrateCommand:
     NLP_WEBSERVER_MANAGE_USERS = "crate_nlp_webserver_manage_users"
     NLP_WEBSERVER_PRINT_DEMO = "crate_nlp_webserver_print_demo"
     NLP_WEBSERVER_PSERVE = "crate_nlp_webserver_pserve"
+
+    # Testing
+    TEST_DATABASE_CONNECTION = "crate_test_database_connection"
 
 
 # =============================================================================

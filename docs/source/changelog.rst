@@ -1685,6 +1685,9 @@ Changes
 - Change the default installer file hierarchy on the host so that it can more
   easily be shared between several users.
 
+- Change the installer to test external database connections early and give
+  better feedback to the user regarding failures.
+
 
 To do
 -----

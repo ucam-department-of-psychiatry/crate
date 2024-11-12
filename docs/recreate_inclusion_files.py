@@ -299,6 +299,13 @@ def main():
         join(DevPath.DOCS_ANCILLARY_DIR, "_crate_test_anonymisation_help.txt"),
     )
     run_cmd(
+        [CrateCommand.TEST_DATABASE_CONNECTION, helpflag],
+        join(
+            DevPath.DOCS_ANCILLARY_DIR,
+            "_crate_test_database_connection_help.txt",
+        ),
+    )
+    run_cmd(
         [CrateCommand.TEST_EXTRACT_TEXT, helpflag],
         join(DevPath.DOCS_ANCILLARY_DIR, "_crate_test_extract_text_help.txt"),
     )

@@ -57,7 +57,9 @@ from typing import Optional
 import urllib.request
 from venv import EnvBuilder
 
-EXIT_FAILURE = 1
+EXIT_SUCCESS = 0  # No error
+EXIT_FAILURE = 1  # Unexpected error
+EXIT_USER = 2  # User error e.g bad command, misconfiguration, CTRL-C
 
 
 class Command:
@@ -70,6 +72,7 @@ class InstallerBoot:
     command: str
     github_repository: str
     crate_root_dir: str
+    light_mode: bool
     run_locally: bool
     recreate_venv: bool
     version: Optional[str]
@@ -178,15 +181,24 @@ class InstallerBoot:
             self.crate_root_dir,
         ]
 
+        if self.update:
+            installer_args.append("--update")
+
+        if self.verbose:
+            installer_args.append("--verbose")
+
+        if self.light_mode:
+            installer_args.append("--light_mode")
+
         installer_args.append(self.command)
 
-        # check=False for non-error exit codes such as incorrect usage
-        subprocess.run(installer_args)
+        returned_value = subprocess.run(installer_args)
+        sys.exit(returned_value.returncode)
 
 
 def main() -> None:
     if not (sys.version_info.major >= 3 and sys.version_info.minor >= 9):
-        print(sys.version_info)
+        print(f"Script called with Python: {sys.version}")
         print(
             "You need at least Python 3.9 to run the installer.",
             file=sys.stderr,
@@ -207,6 +219,12 @@ def main() -> None:
             "CRATE source."
         ),
         default=os.getenv("CRATE_INSTALLER_CRATE_ROOT_HOST_DIR"),
+    )
+    parser.add_argument(
+        "--light_mode",
+        action="store_true",
+        default=False,
+        help="Use this if your terminal has a light background",
     )
     parser.add_argument(
         "--run_locally",
@@ -270,7 +288,7 @@ def main() -> None:
             "variable CRATE_INSTALLER_CRATE_ROOT_DIR"
         )
 
-        sys.exit(EXIT_FAILURE)
+        sys.exit(EXIT_USER)
 
     boot = InstallerBoot(**vars(args))
     boot.boot()
