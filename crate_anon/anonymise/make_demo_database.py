@@ -107,10 +107,8 @@ def mk_demo_database(
     # 0. Announce intentions
 
     log.info(
-        f"n_patients={n_patients}, "
-        f"notes_per_patient={notes_per_patient}, "
-        f"words_per_note={words_per_note}, "
-        f"with_files={with_files}"
+        f"{n_patients=}, {notes_per_patient=}, {words_per_note=}, "
+        f"{with_files=}"
     )
 
     # 1. Open database
