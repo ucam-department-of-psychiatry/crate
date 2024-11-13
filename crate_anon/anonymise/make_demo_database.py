@@ -47,7 +47,6 @@ After anonymisation, check with:
 
 import argparse
 import logging
-import os
 import random
 
 from cardinal_pythonlib.logs import configure_logger_for_colour
@@ -62,7 +61,6 @@ from sqlalchemy.sql import text
 
 from crate_anon.anonymise.constants import CHARSET
 
-from crate_anon.common.constants import EnvVar
 from crate_anon.testing import Base
 from crate_anon.testing.factories import (
     DemoFilenameDocFactory,
@@ -79,34 +77,7 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
-CONSOLE_ENCODING = "utf8"
 REPORT_EVERY = 50
-DATE_FORMATS = [
-    "%d %b %Y",  # e.g. 24 Jul 2013
-    "%d %B %Y",  # e.g. 24 July 2013
-    "%Y-%m-%d",  # e.g. 2013-07-24
-    "%Y-%m-%d",  # e.g. 20130724
-    "%Y%m%d",  # e.g. 20130724
-]
-
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-if EnvVar.GENERATING_CRATE_DOCS in os.environ:
-    DEFAULT_DOCDIR = "/path/to/test_docs"
-else:
-    DEFAULT_DOCDIR = os.path.abspath(
-        os.path.join(CURRENT_DIR, os.pardir, "testdocs_for_text_extraction")
-    )
-
-DEFAULT_DOCTEST_DOC = os.path.join(DEFAULT_DOCDIR, "doctest.doc")
-DEFAULT_DOCTEST_DOCX = os.path.join(DEFAULT_DOCDIR, "doctest.docx")
-DEFAULT_DOCTEST_ODT = os.path.join(DEFAULT_DOCDIR, "doctest.odt")
-DEFAULT_DOCTEST_PDF = os.path.join(DEFAULT_DOCDIR, "doctest.pdf")
-
-MAX_EXT_LENGTH_WITH_DOT = 10
-
-PATIENT_ID_COMMENT = "Patient ID"
-
 
 # =============================================================================
 # Randomness
