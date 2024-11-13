@@ -1,4 +1,5 @@
-USAGE: crate_make_demo_database [-h] [--size {0,1,2,3}] [--verbose] [--echo]
+USAGE: crate_make_demo_database [-h] [--size {0,1,2,3}] [--verbose]
+                                [--with_files] [--echo]
                                 url
 
 POSITIONAL ARGUMENTS:
@@ -13,4 +14,5 @@ OPTIONS:
   --size {0,1,2,3}  Make tiny (0), small (1), medium (2), or large (3)
                     database (default: 0)
   --verbose, -v     Be verbose (default: False)
+  --with_files      Include demo files (doc, pdf etc) (default: False)
   --echo            Echo SQL (default: False)
