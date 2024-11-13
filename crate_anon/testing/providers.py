@@ -381,10 +381,10 @@ Yours sincerely,
         if file_ext == "docx":
             return self.generate_docx_file(content)
 
-        if file_ext == "odt":
+        elif file_ext == "odt":
             return self.generate_odt_file(content)
 
-        if file_ext == "pdf":
+        else:
             return self.generate_pdf_file(content)
 
     def generate_docx_file(self, content: str) -> StringValue:
