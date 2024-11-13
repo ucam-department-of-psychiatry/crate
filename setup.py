@@ -105,7 +105,7 @@ INSTALL_REQUIRES = [
     "Pillow==10.3.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==3.2.0",  # pretty formating of text-based tables
-    "psutil==5.7.2",  # process management
+    "psutil==6.0.0",  # process management
     "pyexcel-ods==0.6.0",  # for reading/writing ODS files
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.15.0",  # syntax highlighting
