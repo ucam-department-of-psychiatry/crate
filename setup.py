@@ -71,7 +71,7 @@ INSTALL_REQUIRES = [
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
     "cardinal_pythonlib==1.1.27",  # RNC libraries
     "cairosvg==2.7.0",  # work with SVG files
-    "celery==5.2.3",  # back-end scheduling
+    "celery==5.2.7",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
@@ -105,7 +105,7 @@ INSTALL_REQUIRES = [
     "Pillow==10.3.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==3.2.0",  # pretty formating of text-based tables
-    "psutil==5.7.2",  # process management
+    "psutil==6.0.0",  # process management
     "pyexcel-ods==0.6.0",  # for reading/writing ODS files
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.15.0",  # syntax highlighting
@@ -124,7 +124,7 @@ INSTALL_REQUIRES = [
     # -------------------------------------------------------------------------
     # Packages for cloud NLP:
     # -------------------------------------------------------------------------
-    "bcrypt==3.1.7",  # bcrypt encryption
+    "bcrypt==3.2.2",  # bcrypt encryption
     "cryptography==43.0.1",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
@@ -143,9 +143,11 @@ INSTALL_REQUIRES = [
     "black==24.3.0",  # auto code formatter, keep in sync with .pre-commit-config.yaml  # noqa: E501
     "factory_boy==3.3.0",  # easier test data creation
     "faker==13.3.1",  # test data creation
+    "faker-file[common]==0.17.13",  # test file creation
     "flake8==5.0.4",  # code checks, keep in sync with .pre-commit-config.yaml
     "docutils==0.19",
     "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
+    "paramiko==3.4.1",  # Python implementation of the SSHv2 protocol, required by faker-file  # noqa: E501
     "pre-commit==2.20.0",  # development only, various sanity checks on code
     "pytest==8.1.1",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
