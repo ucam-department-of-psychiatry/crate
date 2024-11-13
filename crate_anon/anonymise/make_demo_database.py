@@ -251,7 +251,7 @@ def main() -> None:
         "--with_files",
         action="store_true",
         default=False,
-        help="Include demo files (doc, pdf etc)",
+        help="Create a random docx, odt or pdf file for each patient",
     )
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
 
