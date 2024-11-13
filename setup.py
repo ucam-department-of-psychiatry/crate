@@ -124,7 +124,7 @@ INSTALL_REQUIRES = [
     # -------------------------------------------------------------------------
     # Packages for cloud NLP:
     # -------------------------------------------------------------------------
-    "bcrypt==3.1.7",  # bcrypt encryption
+    "bcrypt==3.2.2",  # bcrypt encryption
     "cryptography==43.0.1",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
@@ -147,6 +147,7 @@ INSTALL_REQUIRES = [
     "flake8==5.0.4",  # code checks, keep in sync with .pre-commit-config.yaml
     "docutils==0.19",
     "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
+    "paramiko==3.4.1",  # Python implementation of the SSHv2 protocol, required by faker-file  # noqa: E501
     "pre-commit==2.20.0",  # development only, various sanity checks on code
     "pytest==8.1.1",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
