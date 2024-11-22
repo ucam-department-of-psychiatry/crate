@@ -1253,7 +1253,6 @@ class DataDictionaryRow:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Check other source field information
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        ensure_valid_field_name(self.src_field)
         assert self.src_datatype, "Need src_datatype"
 
         # REMOVED 2016-06-04; fails with complex SQL Server types, which can
