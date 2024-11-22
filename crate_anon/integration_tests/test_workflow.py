@@ -396,6 +396,12 @@ def start_engine(
     )
 
 
+def stop_engine(engine_info: EngineInfo) -> None:
+    log.info("Stopping database engine")
+    docker.stop([engine_info.docker_container_name])
+    docker.remove([engine_info.docker_container_name])
+
+
 def wait_for_databases_to_be_created(
     engine_info: EngineInfo, timeout_s: float
 ) -> None:
@@ -580,6 +586,7 @@ def main() -> None:
     cmd_dbshell = "dbshell"
     cmd_makedb = "makedb"
     cmd_testcrate = "testcrate"
+    cmd_stopengine = "stopengine"
 
     parser = argparse.ArgumentParser(
         description=f"Test CRATE workflows including across different "
@@ -597,6 +604,7 @@ def main() -> None:
             cmd_dbshell,
             cmd_makedb,
             cmd_testcrate,
+            cmd_stopengine,
         ],
         help=f"""Command to perform.
 (1) {cmd_bash!r}: Run a Bash shell in the Docker container for a given
@@ -614,6 +622,8 @@ process (see {cmd_startengine!r}).
 (5) {cmd_testcrate!r}: Test CRATE against the database engine. Assumes the
 engine container is ALREADY RUNNING in a separate process (see
 {cmd_startengine!r}).
+
+(6) {cmd_stopengine!r}: Stop the database engine.
 """,
     )
     parser.add_argument(
@@ -678,6 +688,8 @@ engine container is ALREADY RUNNING in a separate process (see
                     tempdir=tempdir,
                     echo=args.echo,
                 )
+            elif args.action == cmd_stopengine:
+                stop_engine(engine_info)
             else:
                 raise RuntimeError("bug")
 
