@@ -83,7 +83,7 @@ from typing import (
 )
 
 from cardinal_pythonlib.dicts import rename_key
-from cardinal_pythonlib.fileops import find_first
+from cardinal_pythonlib.fileops import find, find_first
 from cardinal_pythonlib.logs import configure_logger_for_colour
 import openpyxl
 from openpyxl.cell.cell import Cell
@@ -109,6 +109,11 @@ from crate_anon.common.stringfunc import make_twocol_table
 
 log = logging.getLogger(__name__)
 
+# find_first() logs a critical error if a file is not found. For our purposes,
+# this is expected behaviour so we don't want to alarm the user. Maybe it
+# shouldn't do that and instead leave it to the caller to decide how serious
+# that is.
+logging.getLogger("cardinal_pythonlib.fileops").disabled = True
 
 # =============================================================================
 # Constants
@@ -1266,7 +1271,7 @@ def populate_generic_lookup_table(
     replace: bool = False,
     commit: bool = True,
     commitevery: int = DEFAULT_COMMIT_EVERY,
-) -> None:
+) -> bool:
     """
     Populates one of many generic lookup tables with ONSPD data.
 
@@ -1281,6 +1286,8 @@ def populate_generic_lookup_table(
     If the headings parameter is passed, those headings are used. Otherwise,
     the first row is used for headings.
 
+    Returns False if the file could not be found, otherwise True.
+
     Args:
         sa_class: SQLAlchemy ORM class
         datadir: root directory of ONSPD data
@@ -1291,7 +1298,13 @@ def populate_generic_lookup_table(
         commitevery: if committing: commit every *n* rows inserted
     """
     tablename = sa_class.__tablename__
-    filename = find_first(sa_class.__filename__, datadir)
+
+    try:
+        filename = find_first(sa_class.__filename__, datadir)
+    except IndexError:
+        log.info(f"Could not find match for {sa_class.__filename__}; skipping")
+        return False
+
     headings = getattr(sa_class, "__headings__", [])
     debug = getattr(sa_class, "__debug_content__", False)
     n = 0
@@ -1300,7 +1313,7 @@ def populate_generic_lookup_table(
         engine = session.bind
         if engine.has_table(tablename):
             log.info(f"Table {tablename} exists; skipping")
-            return
+            return True
 
     log.info(f"Dropping/recreating table: {tablename}")
     sa_class.__table__.drop(checkfirst=True)
@@ -1553,6 +1566,10 @@ def main() -> None:
     datadir = args.dir
 
     if not args.skiplookup:
+        all_files = [os.path.basename(f) for f in find("*.xlsx", datadir)]
+        found_files = []
+        missing_files = []
+
         for sa_class in classlist:
             if (
                 args.specific_lookup_tables
@@ -1563,14 +1580,27 @@ def main() -> None:
             #         "ccg_clinical_commissioning_group_uk_2019"):
             #     log.warning("Ignore warning 'Discarded range with reserved "
             #                 "name' below; it works regardless")
-            populate_generic_lookup_table(
+            if populate_generic_lookup_table(
                 sa_class=sa_class,
                 datadir=lookupdir,
                 session=session,
                 replace=args.replace,
                 commit=True,
                 commitevery=args.commitevery,
+            ):
+                found_files.append(sa_class.__filename__)
+            else:
+                missing_files.append(sa_class.__filename__)
+
+            extra_files = sorted(set(all_files) - set(found_files))
+        if extra_files:
+            log.warning(
+                f"Files ignored because they aren't handled: {extra_files}"
             )
+
+        if missing_files:
+            log.info(f"Files not found under {datadir}: {missing_files}")
+
     if not args.skippostcodes:
         populate_postcode_table(
             filename=find_first("ONSPD_*.csv", datadir),
