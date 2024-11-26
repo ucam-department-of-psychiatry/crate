@@ -611,13 +611,42 @@ class Postcode(Base):
 # =============================================================================
 
 
-class OAClassification(Base):
+class OAClassification2001(Base):
+    """
+    Represents 2001 Census Output Area (OA) classification names/codes.
+    """
+
+    __filename__ = (
+        "2001 Census Output Area Classification Names and Codes UK.xlsx"
+    )
+    __tablename__ = "output_area_classification_2001"
+
+    oac01 = Column(String(3), primary_key=True)
+    supergroup_code = Column(String(1))
+    supergroup_desc = Column(String(35))
+    group_code = Column(String(2))
+    group_desc = Column(String(40))
+    subgroup_code = Column(String(3))
+    subgroup_desc = Column(String(60))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "OAC01", "oac01")
+        rename_key(kwargs, "Supergroup", "supergroup_desc")
+        rename_key(kwargs, "Group", "group_desc")
+        rename_key(kwargs, "Subgroup", "subgroup_desc")
+        kwargs["supergroup_code"] = kwargs["oac01"][0:1]
+        kwargs["group_code"] = kwargs["oac01"][0:2]
+        kwargs["subgroup_code"] = kwargs["oac01"]
+        super().__init__(**kwargs)
+
+
+class OAClassification2011(Base):
     """
     Represents 2011 Census Output Area (OA) classification names/codes.
     """
 
     __filename__ = (
-        "2011 Census Output Area Classification Names and Codes " "UK.xlsx"
+        "2011 Census Output Area Classification Names and Codes UK.xlsx"
     )
     __tablename__ = "output_area_classification_2011"
 
@@ -1510,7 +1539,8 @@ def main() -> None:
     classlist = [
         # Core lookup tables:
         # In alphabetical order of filename:
-        OAClassification,
+        OAClassification2001,
+        OAClassification2011,
         BUA,
         BUASD,
         CASWard,
