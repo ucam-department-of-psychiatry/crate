@@ -669,9 +669,9 @@ class OAClassification2011(Base):
         super().__init__(**kwargs)
 
 
-class BUA(Base):
+class BUA13(Base):
     """
-    Represents England & Wales 2013 build-up area (BUA) codes/names.
+    Represents England & Wales 2013 built-up area (BUA) codes/names.
     """
 
     __filename__ = "BUA_names and codes UK as at 12_13.xlsx"
@@ -683,6 +683,25 @@ class BUA(Base):
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, "BUA13CD", "bua_code")
         rename_key(kwargs, "BUA13NM", "bua_name")
+        super().__init__(**kwargs)
+
+
+class BUA22(Base):
+    """
+    Represents England & Wales 2022 built-up area (BUA) codes/names.
+    """
+
+    __filename__ = "BUA22_names and codes EW as at 12_22.xlsx"
+    __tablename__ = "bua_built_up_area_uk_2022"
+
+    bua_code = Column(String(CODE_LEN), primary_key=True)
+    bua_name = Column(String(NAME_LEN))
+    bua_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "BUA22CD", "bua_code")
+        rename_key(kwargs, "BUA22NM", "bua_name")
+        rename_key(kwargs, "BUA22NMW", "bua_name_welsh")
         super().__init__(**kwargs)
 
 
@@ -1541,7 +1560,8 @@ def main() -> None:
         # In alphabetical order of filename:
         OAClassification2001,
         OAClassification2011,
-        BUA,
+        BUA13,
+        BUA22,
         BUASD,
         CASWard,
         CCG,
