@@ -44,7 +44,7 @@ from sqlalchemy import (
     String,
 )
 
-from crate_anon.preprocess.autoimportdb import (
+from crate_anon.preprocess.autoimport_db import (
     ColumnTypeDetector,
     is_date_like_not_datetime_like,
     is_datetime_or_date_like,
