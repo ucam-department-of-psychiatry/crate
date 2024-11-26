@@ -1465,7 +1465,12 @@ def populate_generic_lookup_table(
         # when they're fine if opened in non-read-only mode.
         # May be related to this:
         # https://bitbucket.org/openpyxl/openpyxl/issues/601/read_only-cell-row-column-attributes-are  # noqa
-        sheet = workbook.active
+
+        # Assume the first sheet is the one with the data in it.
+        # Choosing the active sheet is unreliable for some files.
+        # If this proves to be a wrong assumption, support an optional named
+        # sheet to load for each class.
+        sheet = workbook.worksheets[0]
         dict_iterator = dict_from_rows(sheet.iter_rows())
     elif type_csv:
         file = open(filename, "r")
