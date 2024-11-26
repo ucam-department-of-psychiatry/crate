@@ -873,6 +873,27 @@ class EER(Base):
         super().__init__(**kwargs)
 
 
+class HealthArea2019(Base):
+    """
+    Represents Health Area, 2019.
+    """
+
+    __filename__ = "HLTHAU names and codes UK as at 04_19 (OSHLTHAU).xlsx"
+    __tablename__ = "health_area_2019"
+
+    health_area_code = Column(String(CODE_LEN), primary_key=True)
+    health_area_code_old = Column(String(CODE_LEN))
+    health_area_name = Column(String(NAME_LEN))
+    health_area_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "HLTHAUCD", "health_area_code")
+        rename_key(kwargs, "HLTHAUCDO", "health_area_code_old")
+        rename_key(kwargs, "HLTHAUNM", "health_area_name")
+        rename_key(kwargs, "HLTHAUNMW", "health_area_name_welsh")
+        super().__init__(**kwargs)
+
+
 class IMDLookupEN(Base):
     """
     Represents the Index of Multiple Deprivation (IMD), England 2015.
@@ -1625,6 +1646,7 @@ def main() -> None:
         County2019,
         County2023,
         EER,
+        HealthArea2019,
         IMDLookupEN,
         IMDLookupSC,
         IMDLookupWA,
