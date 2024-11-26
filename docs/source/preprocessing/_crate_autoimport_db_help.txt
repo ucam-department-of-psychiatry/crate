@@ -1,0 +1,36 @@
+USAGE: crate_autoimport_db [-h] --url URL [--echo] [--use_spreadsheet_names]
+                           [--drop_tables] [--create_tables] [--skip_data]
+                           [--chunksize CHUNKSIZE]
+                           [--skip_tables [SKIP_TABLES ...]] [--verbose]
+                           filename [filename ...]
+
+Import data from one or several tabular files (e.g. CSV, TSV, ODS, XLSX), or
+ZIP files containing these, to a database. Use the filename as the table name.
+
+POSITIONAL ARGUMENTS:
+  filename              Filename(s) to read. These can be tabular files (CSV,
+                        ODS, TSV, XLSX), or ZIP file(s) containing these.
+                        (Recursive ZIPs are not supported.)
+
+OPTIONS:
+  -h, --help            show this help message and exit
+  --url URL             SQLAlchemy database URL, to write to. (default: None)
+  --echo                Echo SQL (default: False)
+  --use_spreadsheet_names
+                        Use spreadsheet names (where relevant) as table names,
+                        rather than filenames. (If False, only the first sheet
+                        in each spreadsheet file will be used.) (default:
+                        False)
+  --drop_tables         Drop tables first if these exist. (default: False)
+  --create_tables       Creates tables if these do not exist. Table creation
+                        may be IMPERFECT as it attempts to infer column types
+                        from the data. (default: False)
+  --skip_data           Skip the data import itself. (default: False)
+  --chunksize CHUNKSIZE
+                        When inserting rows into the database, insert this
+                        many at a time. (default: 100000)
+  --skip_tables [SKIP_TABLES ...]
+                        Named tables to skip. (default: None)
+  --verbose, -v         Be verbose. WARNING: not suitable for production use
+                        (may show actual data values). Use for testing only.
+                        (default: False)
