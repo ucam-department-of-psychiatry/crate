@@ -544,7 +544,7 @@ def is_multisheet_filetype(ext_lower: str) -> bool:
     return ext_lower in [".ods", ".xlsx"]
 
 
-def ods_row_to_list(row: List[Cell]) -> List[Any]:
+def ods_row_to_list(row: List[Any]) -> List[Any]:
     """
     Convert an OpenOffice ODS row to a list of values, translating the empty
     string (used for empty cells) to None.
