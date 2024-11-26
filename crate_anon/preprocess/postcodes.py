@@ -669,7 +669,7 @@ class OAClassification2011(Base):
         super().__init__(**kwargs)
 
 
-class BUA13(Base):
+class BUA2013(Base):
     """
     Represents England & Wales 2013 built-up area (BUA) codes/names.
     """
@@ -686,7 +686,7 @@ class BUA13(Base):
         super().__init__(**kwargs)
 
 
-class BUA22(Base):
+class BUA2022(Base):
     """
     Represents England & Wales 2022 built-up area (BUA) codes/names.
     """
@@ -1560,8 +1560,8 @@ def main() -> None:
         # In alphabetical order of filename:
         OAClassification2001,
         OAClassification2011,
-        BUA13,
-        BUA22,
+        BUA2013,
+        BUA2022,
         BUASD,
         CASWard,
         CCG,
