@@ -1642,7 +1642,7 @@ def main() -> None:
             else:
                 missing_files.append(sa_class.__filename__)
 
-            extra_files = sorted(set(all_files) - set(found_files))
+        extra_files = sorted(set(all_files) - set(found_files))
         if extra_files:
             log.warning(
                 f"Files ignored because they aren't handled: {extra_files}"
