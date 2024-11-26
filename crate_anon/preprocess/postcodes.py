@@ -1439,6 +1439,8 @@ def populate_generic_lookup_table(
     if file:
         file.close()
 
+    return True
+
 
 # =============================================================================
 # Docs
