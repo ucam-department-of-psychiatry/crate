@@ -803,6 +803,23 @@ class Country(Base):
         super().__init__(**kwargs)
 
 
+class CountyED2023(Base):
+    """
+    Represents county electoral divisions in England 2023.
+    """
+
+    __filename__ = "County Electoral Division names and codes EN as at 05_23.xlsx"  # noqa: E501
+    __tablename__ = "county_ed_2023"
+
+    county_ed_code = Column(String(CODE_LEN), primary_key=True)
+    county_ed_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "CED23CD", "county_ed_code")
+        rename_key(kwargs, "CED23NM", "county_ed_name")
+        super().__init__(**kwargs)
+
+
 class County2019(Base):
     """
     Represents counties, UK 2019.
@@ -1587,6 +1604,7 @@ def main() -> None:
         CASWard,
         CCG,
         Country,
+        CountyED2023,
         County2019,
         EER,
         IMDLookupEN,
