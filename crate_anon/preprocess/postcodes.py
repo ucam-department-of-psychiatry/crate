@@ -894,6 +894,25 @@ class HealthArea2019(Base):
         super().__init__(**kwargs)
 
 
+class ICB2023(Base):
+    """
+    Represents Integrated Care Boards, 2023.
+    """
+
+    __filename__ = "ICB names and codes UK as at 04_23.xlsx"
+    __tablename__ = "icb_2023"
+
+    icb_code = Column(String(CODE_LEN), primary_key=True)
+    icb_code_h = Column(String(3))  # Don't know what this is. Has Q prefix.
+    icb_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "ICB23CD", "icb_code")
+        rename_key(kwargs, "ICB23CDH", "icb_code_h")
+        rename_key(kwargs, "ICB23NM", "icb_name")
+        super().__init__(**kwargs)
+
+
 class IMDLookupEN(Base):
     """
     Represents the Index of Multiple Deprivation (IMD), England 2015.
@@ -1652,6 +1671,7 @@ def main() -> None:
         County2023,
         EER,
         HealthArea2019,
+        ICB2023,
         IMDLookupEN,
         IMDLookupSC,
         IMDLookupWA,
