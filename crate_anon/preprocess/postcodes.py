@@ -837,6 +837,23 @@ class County2019(Base):
         super().__init__(**kwargs)
 
 
+class County2023(Base):
+    """
+    Represents counties, UK 2023.
+    """
+
+    __filename__ = "County names and codes UK as at 12_23.xlsx"
+    __tablename__ = "county_england_2023"
+
+    county_code = Column(String(CODE_LEN), primary_key=True)
+    county_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "CTY23CD", "county_code")
+        rename_key(kwargs, "CTY23NM", "county_name")
+        super().__init__(**kwargs)
+
+
 class EER(Base):
     """
     Represents European electoral regions (EERs), UK 2010.
@@ -1606,6 +1623,7 @@ def main() -> None:
         Country,
         CountyED2023,
         County2019,
+        County2023,
         EER,
         IMDLookupEN,
         IMDLookupSC,
