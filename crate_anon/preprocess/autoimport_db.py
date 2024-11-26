@@ -832,7 +832,7 @@ def drop_table(
     t = ti.table(metadata)  # doesn't need columns
     t.drop(engine, checkfirst=True)
     # No COMMIT required after DDL.
-    metadata.remove(t)
+    metadata.remove(t)  # otherwise we may struggle to re-create it
 
 
 def create_table(
