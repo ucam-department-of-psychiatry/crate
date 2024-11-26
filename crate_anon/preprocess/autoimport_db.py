@@ -91,6 +91,10 @@ DEFAULT_COL_TYPE = String(1)
 FIRST_SHEET_ONLY_MSG = (
     "Only reading the first sheet of this file. See --use_spreadsheet_names."
 )
+WARNING_VALUES_VISIBLE = (
+    "WARNING: not suitable for production use (may show actual data values). "
+    "Use for testing only."
+)
 
 
 # =============================================================================
@@ -726,8 +730,7 @@ def gen_filename_fileobj(
     for filename in filenames:
         p = Path(filename)
         if not p.is_file():
-            log.warning(f"Not a file: {p}")
-            continue
+            raise ValueError(f"Not a file: {p}")
         log.info(f">>> Processing file: {p}")
         ext = p.suffix.lower()
         if ext == ".zip":
@@ -950,8 +953,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         formatter_class=ArgumentDefaultsRichHelpFormatter,
         description="""
-Import data from one or several tabular files (e.g. CSV, TSV, ODS, XLSX), or
-ZIP files containing these, to a database. Use the filename as the table name.
+Take data from one or several tabular files (e.g. CSV, ODS, TSV, XLSX), or ZIP
+files containing these. Import that data to a database, if necessary creating
+the tables required. Use the filename as the table name (or, with
+use_spreadsheet_names, use the names of sheets within multi-sheet spreadsheet
+files). The assumption is that within each tabular set of data, the first row
+contains column names. The program will attempt to autodetect column types from
+the data.
 """,
     )
     parser.add_argument(
@@ -961,7 +969,6 @@ ZIP files containing these, to a database. Use the filename as the table name.
     )
     # For testing, remember e.g.
     #       sqlite:////home/rudolf/temp.sqlite
-    parser.add_argument("--echo", action="store_true", help="Echo SQL")
     parser.add_argument(
         "--use_spreadsheet_names",
         action="store_true",
@@ -990,17 +997,21 @@ ZIP files containing these, to a database. Use the filename as the table name.
         type=int,
         default=DEFAULT_CHUNKSIZE,
         help="When inserting rows into the database, insert this many "
-        "at a time.",
+        "at a time. (A COMMIT is requested after each complete table.)",
     )
     parser.add_argument(
         "--skip_tables", type=str, nargs="*", help="Named tables to skip."
     )
     parser.add_argument(
+        "--echo",
+        action="store_true",
+        help="Echo SQL. " + WARNING_VALUES_VISIBLE,
+    )
+    parser.add_argument(
         "--verbose",
         "-v",
         action="store_true",
-        help="Be verbose. WARNING: not suitable for production use (may show "
-        "actual data values). Use for testing only.",
+        help="Be verbose. " + WARNING_VALUES_VISIBLE,
     )
     parser.add_argument(
         "filename",

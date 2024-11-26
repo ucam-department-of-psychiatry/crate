@@ -1,11 +1,17 @@
-USAGE: crate_autoimport_db [-h] --url URL [--echo] [--use_spreadsheet_names]
+USAGE: crate_autoimport_db [-h] --url URL [--use_spreadsheet_names]
                            [--drop_tables] [--create_tables] [--skip_data]
                            [--chunksize CHUNKSIZE]
-                           [--skip_tables [SKIP_TABLES ...]] [--verbose]
+                           [--skip_tables [SKIP_TABLES ...]] [--echo]
+                           [--verbose]
                            filename [filename ...]
 
-Import data from one or several tabular files (e.g. CSV, TSV, ODS, XLSX), or
-ZIP files containing these, to a database. Use the filename as the table name.
+Take data from one or several tabular files (e.g. CSV, ODS, TSV, XLSX), or ZIP
+files containing these. Import that data to a database, if necessary creating
+the tables required. Use the filename as the table name (or, with
+use_spreadsheet_names, use the names of sheets within multi-sheet spreadsheet
+files). The assumption is that within each tabular set of data, the first row
+contains column names. The program will attempt to autodetect column types
+from the data.
 
 POSITIONAL ARGUMENTS:
   filename              Filename(s) to read. These can be tabular files (CSV,
@@ -15,7 +21,6 @@ POSITIONAL ARGUMENTS:
 OPTIONS:
   -h, --help            show this help message and exit
   --url URL             SQLAlchemy database URL, to write to. (default: None)
-  --echo                Echo SQL (default: False)
   --use_spreadsheet_names
                         Use spreadsheet names (where relevant) as table names,
                         rather than filenames. (If False, only the first sheet
@@ -28,9 +33,13 @@ OPTIONS:
   --skip_data           Skip the data import itself. (default: False)
   --chunksize CHUNKSIZE
                         When inserting rows into the database, insert this
-                        many at a time. (default: 100000)
+                        many at a time. (A COMMIT is requested after each
+                        complete table.) (default: 100000)
   --skip_tables [SKIP_TABLES ...]
                         Named tables to skip. (default: None)
+  --echo                Echo SQL. WARNING: not suitable for production use
+                        (may show actual data values). Use for testing only.
+                        (default: False)
   --verbose, -v         Be verbose. WARNING: not suitable for production use
                         (may show actual data values). Use for testing only.
                         (default: False)

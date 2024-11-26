@@ -173,23 +173,9 @@ Specimen usage:
 crate_autoimport_db
 ~~~~~~~~~~~~~~~~~~~
 
-This tool reads tabular data from files, which may be the following types:
+This tool reads tabular data from files, and imports it into a database.
 
-- CSV (comma-separated value)
-- ODS (OpenOffice Spreadsheet)
-- TSV (tab-separated value)
-- XLSX (Microsoft Excel/OpenXML, Excel 2007+)
-
-or archive files of the following formats containing those files:
-
-- ZIP
-
-It stores the data in a database, via SQLAlchemy.
-
-The filename of each tabular data file is taken to be the name of the
-destination table.
-
-Options:
+Help:
 
 ..  literalinclude:: _crate_fetch_wordlists_help.txt
     :language: none
