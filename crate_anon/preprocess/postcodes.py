@@ -722,6 +722,24 @@ class BUASD(Base):
         super().__init__(**kwargs)
 
 
+class CALNCV2023(Base):
+    """
+    Represents Cancer Alliance / National Cancer Vanguard codes for each
+    postcode 2023.
+    """
+
+    __filename__ = "CALNCV names and codes EN as at 07_23.xlsx"
+    __tablename__ = "cal_ncv_2023"
+
+    cal_ncv_code = Column(String(CODE_LEN), primary_key=True)
+    cal_ncv_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "CAL23CD", "cal_ncv_code")
+        rename_key(kwargs, "CAL23NM", "cal_ncv_name")
+        super().__init__(**kwargs)
+
+
 class CASWard(Base):
     """
     Represents censua area statistics (CAS) wards in the UK, 2003.
@@ -1563,6 +1581,7 @@ def main() -> None:
         BUA2013,
         BUA2022,
         BUASD,
+        CALNCV2023,
         CASWard,
         CCG,
         Country,
