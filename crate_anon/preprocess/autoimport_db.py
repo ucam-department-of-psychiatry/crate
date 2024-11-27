@@ -56,6 +56,7 @@ import zipfile
 
 from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+from cardinal_pythonlib.sqlalchemy.session import get_safe_url_from_engine
 from rich_argparse import ArgumentDefaultsRichHelpFormatter
 import openpyxl  # xlrd might be faster...
 from openpyxl.cell.cell import Cell
@@ -917,8 +918,18 @@ def auto_import_db(
             Be verbose?
     """
     engine = create_engine(url, echo=echo, encoding=CHARSET)
+    safe_url = get_safe_url_from_engine(engine)
+    log.info(f"Connected to database: {safe_url}")
     session = sessionmaker(bind=engine)()  # type: Session
     metadata = MetaData(bind=engine)
+
+    # Reflection:
+    # - dropping doesn't need reflection
+    # - creation doesn't need reflection
+    # - insertion needs Table objects, either from creation or reflection
+    # ... so if we're inserting and not creating, we need reflection.
+    if import_data and not create_tables:
+        metadata.reflect()  # views not required, though
 
     log.info("Processing...")
     for ti in gen_tablename_info(
