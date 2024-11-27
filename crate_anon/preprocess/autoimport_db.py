@@ -54,7 +54,6 @@ from typing import (
 )
 import zipfile
 
-from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.sqlalchemy.session import get_safe_url_from_engine
 from rich_argparse import ArgumentDefaultsRichHelpFormatter
@@ -64,6 +63,7 @@ import pendulum
 import pendulum.parsing.exceptions
 import pyexcel_ods
 from sqlalchemy.engine import create_engine, Engine
+from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm.session import sessionmaker, Session
 from sqlalchemy.sql.expression import insert
 from sqlalchemy.sql.schema import Column, MetaData, Table
@@ -78,6 +78,7 @@ from sqlalchemy.sql.sqltypes import (
 from sqlalchemy.sql.type_api import TypeEngine
 
 from crate_anon.anonymise.constants import CHARSET
+from crate_anon.common.future import batched
 
 log = logging.getLogger(__name__)
 
@@ -98,6 +99,67 @@ WARNING_VALUES_VISIBLE = (
     "WARNING: not suitable for production use (may show actual data values). "
     "Use for testing only."
 )
+
+
+class SheetFiletypes:
+    CSV = ".csv"
+    ODS = ".ods"
+    TSV = ".tsv"
+    XLSX = ".xlsx"
+    ZIP = ".zip"
+
+    @staticmethod
+    def get_ext_lower(path: Path) -> str:
+        """
+        Returns the extension.
+        """
+        return path.suffix.lower()
+
+    @classmethod
+    def is_single_sheet_filetype(cls, path: Path) -> bool:
+        """
+        Does this file extension indicate a file type containing just a single
+        sheet/table of values?
+        """
+        ext = path.suffix.lower()
+        return ext in (cls.CSV, cls.TSV)
+
+    @classmethod
+    def is_multisheet_filetype(cls, path: Path) -> bool:
+        """
+        Does this file extension indicate a file type containing just multiple
+        sheets/tables of values?
+        """
+        ext = path.suffix.lower()
+        return ext in (cls.ODS, cls.XLSX)
+
+    @classmethod
+    def get_read_mode(cls, path: Path) -> str:
+        """
+        What file reading mode to use, i.e. is it binary or text?
+        """
+        ext = path.suffix.lower()
+        return "r" if ext in (cls.CSV, cls.TSV) else "rb"
+
+    @classmethod
+    def is_csv(cls, path: Path) -> bool:
+        return path.suffix.lower() == cls.CSV
+
+    @classmethod
+    def is_ods(cls, path: Path) -> bool:
+        return path.suffix.lower() == cls.ODS
+
+    @classmethod
+    def is_tsv(cls, path: Path) -> bool:
+        return path.suffix.lower() == cls.TSV
+
+    @classmethod
+    def is_xlsx(cls, path: Path) -> bool:
+        return path.suffix.lower() == cls.XLSX
+
+    @classmethod
+    def is_zip(cls, path: Path) -> bool:
+        return path.suffix.lower() == cls.ZIP
 
 
 # =============================================================================
@@ -215,8 +277,11 @@ class TabularFileInfo:
     def __init__(
         self,
         tablename: str,
+        metadata: MetaData,
+        engine: Engine,
         datagen: Iterable[SPREADSHEET_DICT_ROW_TYPE] = None,
-        with_columns: bool = False,
+        with_columns_from_data: bool = False,
+        with_columns_from_reflection: bool = False,
         with_data: bool = False,
         verbose: bool = False,
     ) -> None:
@@ -224,20 +289,23 @@ class TabularFileInfo:
         Args:
             tablename:
                 Name of the table.
+            metadata:
+                Database MetaData object.
+            engine:
+                SQLAlchemy engine.
             datagen:
                 Optional iterable to provide data. (Must be supplied if
                 with_columns or with_data is True.)
-            with_columns:
-                Provide column information, for creating tables?
+            with_columns_from_data:
+                Read/autodetect column information from data, for creating
+                tables?
+            with_columns_from_reflection:
+                Should columns be read from the metadata?
             with_data:
                 Provide data?
             verbose:
                 Be verbose if the process fails? WARNING: will report values.
         """
-        self.tablename = tablename
-        self.with_columns = with_columns
-        self.with_data = with_data
-
         # If requested, a list of SQLAlchemy columns to create:
         self.columns = None  # type: Optional[List[Column]]
         # If requested, a generator for data (with each dictionary mapping
@@ -246,22 +314,44 @@ class TabularFileInfo:
             None
         )  # type: Optional[Iterable[SPREADSHEET_DICT_ROW_TYPE]]
 
-        if with_columns or with_data:
+        # Internal cached SQLAlchemy table:
+        self._table = None  # type: Optional[Table]
+        self.table_exists_in_database = False
+        if with_columns_from_reflection:
+            try:
+                self._table = metadata.tables[tablename]
+                log.info(f"Read table from database: {tablename}")
+                self.table_exists_in_database = True
+                with_columns_from_data = False
+                self.columns = self._table.columns
+            except KeyError:
+                log.info(f"Table not found in database: {tablename}")
+                if not with_columns_from_data:
+                    raise ValueError(
+                        f"Table {tablename!r} not found in the database. "
+                        f"Did you mean to turn on table creation?"
+                    )
+
+        if with_columns_from_data or with_data:
             assert datagen is not None
         # Don't use a generator twice:
-        if with_columns and with_data:
+        if with_columns_from_data and with_data:
             data = list(datagen)  # consumes the generator
             self.columns = mk_columns(data, verbose=verbose)
             self.data_generator = data
-        elif with_columns:
+        elif with_columns_from_data:
             self.columns = mk_columns(datagen, verbose=verbose)
             # ... consumes the generator
         elif with_data:
             self.data_generator = datagen
             # generator unused, ready for use
 
-        # Internal cached SQLAlchemy table:
-        self._table = None  # type: Optional[Table]
+        self.tablename = tablename
+        self.metadata = metadata
+        self.engine = engine
+        self.with_columns_from_reflection = with_columns_from_reflection
+        self.with_data = with_data
+        self.with_columns_from_data = with_columns_from_data
 
     def has_columns(self) -> bool:
         """
@@ -295,7 +385,7 @@ class TabularFileInfo:
             )
         return "\n".join(f"- {c!r}" for c in self.columns)
 
-    def table(self, metadata: MetaData) -> Table:
+    def table(self) -> Table:
         """
         Returns an SQLAlchemy table object. Caches this across requests (or
         SQLAlchemy will complain that we re-assign columns to a table). Assumes
@@ -303,9 +393,39 @@ class TabularFileInfo:
         """
         if self._table is None:
             self._table = Table(
-                self.tablename, metadata, *(self.columns or ())
+                self.tablename, self.metadata, *(self.columns or ())
             )
         return self._table
+
+    def drop_table(self) -> None:
+        """
+        Drop a database table, if it exists.
+        """
+        log.info(f"Dropping table (if it exists): {self.tablename}")
+        # See also crate_anon.anonymise.subset_db.drop_dst_table_if_exists().
+        t = self.table()  # doesn't need columns
+        t.drop(self.engine, checkfirst=True)
+        # No COMMIT required after DDL.
+        self.metadata.remove(t)  # otherwise we may struggle to re-create it
+        self.table_exists_in_database = False
+
+    def create_table(self) -> None:
+        """
+        Create a database table, if it doesn't already exist.
+        """
+        if self.table_exists_in_database:
+            log.info(f"Table already exists, not creating: {self.tablename}")
+            return
+        log.info(f"Creating table: {self.tablename}\n{self.colreport()}")
+        t = self.table()
+        try:
+            t.create(self.engine, checkfirst=True)
+        except InvalidRequestError:
+            log.warning(
+                "Table already exists, unexpectedly; not re-creating: "
+                f"{self.tablename}"
+            )
+        # No COMMIT required after DDL.
 
 
 class ColumnTypeDetector:
@@ -531,22 +651,6 @@ class ColumnTypeDetector:
 # =============================================================================
 
 
-def is_single_sheet_filetype(ext_lower: str) -> bool:
-    """
-    Does this file extension indicate a file type containing just a single
-    sheet/table of values?
-    """
-    return ext_lower in [".csv", ".tsv"]
-
-
-def is_multisheet_filetype(ext_lower: str) -> bool:
-    """
-    Does this file extension indicate a file type containing just multiple
-    sheets/tables of values?
-    """
-    return ext_lower in [".ods", ".xlsx"]
-
-
 def ods_row_to_list(row: List[Any]) -> List[Any]:
     """
     Convert an OpenOffice ODS row to a list of values, translating the empty
@@ -675,14 +779,6 @@ def gen_sheets_from_xlsx(
 # =============================================================================
 
 
-def get_read_mode(path: Path) -> str:
-    """
-    What file reading mode to use, i.e. is it binary or text?
-    """
-    ext = path.suffix.lower()
-    return "r" if ext in (".csv", ".tsv") else "rb"
-
-
 def gen_files_from_zipfile(
     zipfilename: Union[Path, str]
 ) -> Generator[Tuple[Path, BinaryIO], None, None]:
@@ -709,9 +805,9 @@ def gen_files_from_zipfile(
             )
             with tempfile.TemporaryDirectory() as tmpdir:
                 zf.extract(zipinfo.filename, tmpdir)
-                diskfilename = Path(tmpdir) / zipinfo.filename
+                diskpath = Path(tmpdir) / zipinfo.filename
                 with open(
-                    diskfilename, get_read_mode(diskfilename)
+                    diskpath, SheetFiletypes.get_read_mode(diskpath)
                 ) as subfile:
                     yield Path(zipinfo.filename), subfile
 
@@ -735,18 +831,20 @@ def gen_filename_fileobj(
         if not p.is_file():
             raise ValueError(f"Not a file: {p}")
         log.info(f">>> Processing file: {p}")
-        ext = p.suffix.lower()
-        if ext == ".zip":
+        if SheetFiletypes.is_zip(p):
             yield from gen_files_from_zipfile(p)
         else:
-            with open(p, get_read_mode(p)) as f:
+            with open(p, SheetFiletypes.get_read_mode(p)) as f:
                 yield p, f
 
 
 def gen_tablename_info(
     filenames: List[str],
+    metadata: MetaData,
+    engine: Engine,
     use_spreadsheet_names: bool = True,
-    with_columns: bool = False,
+    with_columns_from_data: bool = False,
+    with_columns_from_reflection: bool = False,
     with_data: bool = False,
     skip_tables: List[str] = None,
     verbose: bool = False,
@@ -755,12 +853,19 @@ def gen_tablename_info(
     Args:
         filenames:
             Filenames to iterate through.
+        metadata:
+            Database MetaData object.
+        engine:
+            SQLAlchemy engine.
         use_spreadsheet_names:
             Use spreadsheet names (where relevant) as table names, rather than
             filenames. (If False, only the first sheet in each spreadsheet
             file will be used.)
-        with_columns:
-            Provide column information, for creating tables?
+        with_columns_from_data:
+            Read/autodetect column information from data, for creating
+            tables?
+        with_columns_from_reflection:
+            Should columns be read from the metadata?
         with_data:
             Provide data?
         skip_tables:
@@ -773,29 +878,31 @@ def gen_tablename_info(
     """
     skip_tables = skip_tables or []
     for path, fileobj in gen_filename_fileobj(filenames):
-        ext = path.suffix.lower()
-        if is_single_sheet_filetype(ext):
+        if SheetFiletypes.is_single_sheet_filetype(path):
             tablename = path.stem
             if tablename in skip_tables:
                 log.warning(f"Skipping table: {tablename}")
                 continue
-            if ext == ".csv":
+            if SheetFiletypes.is_csv(path):
                 dictgen = gen_dicts_from_csv(fileobj)
-            elif ext == ".tsv":
+            elif SheetFiletypes.is_tsv(path):
                 dictgen = gen_dicts_from_tsv(fileobj)
             else:
                 raise AssertionError("Bug")
             yield TabularFileInfo(
                 tablename=tablename,
+                metadata=metadata,
+                engine=engine,
                 datagen=dictgen,
-                with_columns=with_columns,
+                with_columns_from_data=with_columns_from_data,
+                with_columns_from_reflection=with_columns_from_reflection,
                 with_data=with_data,
                 verbose=verbose,
             )
-        elif is_multisheet_filetype(ext):
-            if ext == ".ods":
+        elif SheetFiletypes.is_multisheet_filetype(path):
+            if SheetFiletypes.is_ods(path):
                 sheetgen = gen_sheets_from_ods
-            elif ext == ".xlsx":
+            elif SheetFiletypes.is_xlsx(path):
                 sheetgen = gen_sheets_from_xlsx
             else:
                 raise AssertionError("Bug")
@@ -809,8 +916,11 @@ def gen_tablename_info(
                     continue
                 yield TabularFileInfo(
                     tablename=tablename,
+                    metadata=metadata,
+                    engine=engine,
                     datagen=sheetdatagen,
-                    with_columns=with_columns,
+                    with_columns_from_data=with_columns_from_data,
+                    with_columns_from_reflection=with_columns_from_reflection,
                     with_data=with_data,
                     verbose=verbose,
                 )
@@ -824,50 +934,18 @@ def gen_tablename_info(
 # =============================================================================
 
 
-def drop_table(
-    ti: TabularFileInfo, engine: Engine, metadata: MetaData
-) -> None:
-    """
-    Drop a database table, if it exists.
-    """
-    log.info(f"Dropping table (if it exists): {ti.tablename}")
-    # See also crate_anon.anonymise.subset_db.drop_dst_table_if_exists().
-    t = ti.table(metadata)  # doesn't need columns
-    t.drop(engine, checkfirst=True)
-    # No COMMIT required after DDL.
-    metadata.remove(t)  # otherwise we may struggle to re-create it
-
-
-def create_table(
-    ti: TabularFileInfo,
-    engine: Engine,
-    metadata: MetaData,
-) -> None:
-    """
-    Create a database table, if it doesn't already exist.
-    """
-    log.info(
-        "Creating table (if it doesn't exist): "
-        f"{ti.tablename}\n{ti.colreport()}"
-    )
-    t = ti.table(metadata)
-    t.create(engine, checkfirst=True)
-    # No COMMIT required after DDL.
-
-
 def import_table(
     ti: TabularFileInfo,
     session: Session,
-    metadata: MetaData,
     chunksize: int = DEFAULT_CHUNKSIZE,
 ) -> None:
     """
     Import a database table.
     """
     log.info(f"Importing to table: {ti.tablename}")
-    t = ti.table(metadata)
+    t = ti.table()
     data = list(ti.data_generator)
-    for datachunk in chunks(data, chunksize):
+    for datachunk in batched(data, chunksize):
         log.debug(f"Inserting {len(datachunk)} rows...")
         session.execute(insert(t), datachunk)
     session.commit()
@@ -917,6 +995,12 @@ def auto_import_db(
         verbose:
             Be verbose?
     """
+    if drop_tables and not create_tables and import_data:
+        raise ValueError(
+            "You can't drop tables, not create them, and then hope to import "
+            "data"
+        )
+
     engine = create_engine(url, echo=echo, encoding=CHARSET)
     safe_url = get_safe_url_from_engine(engine)
     log.info(f"Connected to database: {safe_url}")
@@ -928,21 +1012,28 @@ def auto_import_db(
     # - creation doesn't need reflection
     # - insertion needs Table objects, either from creation or reflection
     # ... so if we're inserting and not creating, we need reflection.
-    if import_data and not create_tables:
+    # But if we create without reflecting, you can get exceptions when creating
+    # Table objects on the metadata. So we should reflect for creation too.
+    reflect = create_tables or import_data
+    if reflect:
+        log.info("Reading table structure from database...")
         metadata.reflect()  # views not required, though
 
     log.info("Processing...")
     for ti in gen_tablename_info(
-        filenames,
+        filenames=filenames,
+        metadata=metadata,
+        engine=engine,
         use_spreadsheet_names=use_spreadsheet_names,
-        with_columns=create_tables,
+        with_columns_from_data=create_tables,
+        with_columns_from_reflection=reflect,
         with_data=import_data,
         skip_tables=skip_tables,
         verbose=verbose,
     ):
         if drop_tables:
-            drop_table(ti, engine, metadata)
-        if create_tables or import_data:
+            ti.drop_table()
+        if create_tables:
             if not ti.has_columns():
                 log.warning(
                     f"Skipping creation/import for table {ti.tablename!r}, "
@@ -950,10 +1041,9 @@ def auto_import_db(
                 )
                 continue
             ti.validate_columns()
-        if create_tables:
-            create_table(ti, engine, metadata)
+            ti.create_table()
         if import_data:
-            import_table(ti, session, metadata, chunksize=chunksize)
+            import_table(ti, session, chunksize=chunksize)
     log.info("Finished.")
 
 
@@ -1049,6 +1139,7 @@ types from the data.
     main_only_quicksetup_rootlogger(
         level=logging.DEBUG if args.verbose else logging.INFO
     )
+
     auto_import_db(
         url=args.url,
         filenames=args.filename,
