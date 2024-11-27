@@ -36,6 +36,7 @@ paths:
           - br
           - bs
           - ca
+          - ckb
           - cs
           - cy
           - da
@@ -88,6 +89,7 @@ paths:
           - ml
           - mn
           - mr
+          - ms
           - my
           - nb
           - ne
@@ -330,9 +332,9 @@ components:
           type: object
           additionalProperties:
             type: string
-          readOnly: true
           description: The anonymised text, keyed on the unique IDs supplied by the
             caller in the 'text' parameter of the request.
+          readOnly: true
       required:
       - anonymised
       - text

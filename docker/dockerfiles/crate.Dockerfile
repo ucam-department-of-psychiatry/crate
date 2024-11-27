@@ -11,8 +11,10 @@
 #
 #   /crate              All CRATE code/binaries.
 #       /cfg            Config files are mounted here.
+#       /files          General file storage mounted here.
 #       /gate           GATE program
 #       /src            Source code for CRATE.
+#       /static         Static files (Django STATIC_ROOT) mounted here.
 #       /venv           Python 3 virtual environment.
 #           /bin        Main CRATE executables live here.
 
@@ -21,8 +23,8 @@
 # FROM: Base image
 # -----------------------------------------------------------------------------
 
-FROM python:3.8-slim-buster AS crate-build-1-user
-# This is a version of Debian 10 (see "cat /etc/debian_version").
+FROM python:3.9-slim-bullseye AS crate-build-1-user
+# This is a version of Debian 11 (see "cat /etc/debian_version").
 
 
 # -----------------------------------------------------------------------------
@@ -109,7 +111,7 @@ WORKDIR /crate
 #
 # - Testing KCL pharmacotherapy app:
 #
-#   export NLPPROGDIR=/crate/venv/lib/python3.8/site-packages/crate_anon/nlp_manager/compiled_nlp_classes/
+#   export NLPPROGDIR=/crate/venv/lib/python3.9/site-packages/crate_anon/nlp_manager/compiled_nlp_classes/
 #   export GATEDIR=/crate/gate
 #   export GATE_PHARMACOTHERAPY_DIR=/crate/brc-gate-pharmacotherapy
 #   export PLUGINFILE=/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini
@@ -126,7 +128,7 @@ ARG CRATE_ROOT=/crate
 ARG CRATE_SRC=$CRATE_ROOT/src
 ARG CRATE_VENV=$CRATE_ROOT/venv
 ARG CRATE_VENV_BIN=$CRATE_VENV/bin
-ARG CRATE_PACKAGE_ROOT=$CRATE_VENV/lib/python3.8/site-packages/crate_anon
+ARG CRATE_PACKAGE_ROOT=$CRATE_VENV/lib/python3.9/site-packages/crate_anon
 ARG CRATE_GATE_PLUGIN_FILE=$CRATE_PACKAGE_ROOT/nlp_manager/specimen_gate_plugin_file.ini
 ARG BIOYODIE_DIR=$CRATE_ROOT/bioyodie
 ARG GATE_HOME=$CRATE_ROOT/gate
@@ -168,7 +170,7 @@ RUN echo "======================================================================
         freetds-dev \
         graphviz \
         libgraphviz-dev \
-        libmariadbclient-dev \
+        libmariadb-dev \
         libpq-dev \
         libxml2-dev \
         libxslt1-dev \
@@ -184,7 +186,7 @@ FROM crate-build-4-os-packages AS crate-build-5-odbc-packages
 RUN echo "- Adding repositories..." \
     && echo "  * Microsoft ODBC driver for SQL Server" \
     && curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
-    && curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list \
+    && curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list \
     && echo "- Updating package information again..." \
     && apt-get update \
     \
@@ -224,7 +226,7 @@ RUN echo "======================================================================
     && echo "  * SQL Server [mssql-django, pyodbc, Microsoft ODBC Driver for SQL Server (Linux) as above]" \
     && "$CRATE_VENV_BIN/python3" -m pip install \
         "$CRATE_SRC" \
-        mssql-django==1.2 \
+        mssql-django==1.5 \
         mysqlclient==1.4.6 \
         psycopg2==2.8.5 \
         pyodbc==4.0.35 \

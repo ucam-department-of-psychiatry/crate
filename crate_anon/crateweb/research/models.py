@@ -33,7 +33,6 @@ from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
 import weakref
 import zipfile
 import json
-import pytz
 
 from cardinal_pythonlib.dbfunc import dictfetchall, get_fieldnames_from_cursor
 from cardinal_pythonlib.django.fields.jsonclassfield import JsonClassField
@@ -617,7 +616,7 @@ class Query(QueryBase):
             ],
         )
 
-    def save(self, *args, **kwargs) -> None:
+    def save(self, *args, update_fields=None, **kwargs) -> None:
         """
         Custom save method. Ensures that only one :class:`Query` has ``active
         == True`` for a given user. Also sets the hash.
@@ -627,9 +626,14 @@ class Query(QueryBase):
             Query.objects.filter(user=self.user, active=True).update(
                 active=False
             )
-        self.set_formatted_sql()
-        self.sql_hash = hash64(self.sql)
-        super().save(*args, **kwargs)
+        if update_fields is None or "sql" in update_fields:
+            self.set_formatted_sql()
+            self.sql_hash = hash64(self.sql)
+            if update_fields is not None:
+                update_fields = {"formatted_sql", "sql_hash"}.union(
+                    update_fields
+                )
+        super().save(*args, update_fields=update_fields, **kwargs)
 
     # -------------------------------------------------------------------------
     # SQL queries
@@ -824,7 +828,7 @@ class Query(QueryBase):
             return False
         else:
             # Make last_updated_all timezone aware so they can be compared
-            last_updated_all = pytz.utc.localize(last_updated_all)
+            last_updated_all.replace(datetime.timezone.utc)
             return self.last_run > last_updated_all
 
     # -------------------------------------------------------------------------
@@ -1202,13 +1206,18 @@ class SitewideQuery(QueryBase):
             prettified_chunks.append(chunk)
         return prettified_chunks
 
-    def save(self, *args, **kwargs) -> None:
+    def save(self, *args, update_fields=None, **kwargs) -> None:
         """
         Custom save method. Sets the hash.
         """
-        self.set_formatted_sql()
-        self.sql_hash = hash64(self.sql)
-        super().save(*args, **kwargs)
+        if update_fields is None or "sql" in update_fields:
+            self.set_formatted_sql()
+            self.sql_hash = hash64(self.sql)
+            if update_fields is not None:
+                update_fields = {"formatted_sql", "sql_hash"}.union(
+                    update_fields
+                )
+        super().save(*args, update_fields=update_fields, **kwargs)
 
 
 # =============================================================================
@@ -2186,7 +2195,7 @@ class PatientExplorer(models.Model):
     def __str__(self) -> str:
         return f"<PatientExplorer id={self.id}>"
 
-    def save(self, *args, **kwargs) -> None:
+    def save(self, *args, update_fields=None, **kwargs) -> None:
         """
         Custom save method. Ensures that only one :class:`PatientExplorer` has
         ``active == True`` for a given user. Also sets the hash.
@@ -2195,10 +2204,15 @@ class PatientExplorer(models.Model):
             PatientExplorer.objects.filter(user=self.user, active=True).update(
                 active=False
             )
-        self.pmq_hash = self.patient_multiquery.hash64
+
+        if update_fields is None or "patient_multiquery" in update_fields:
+            self.pmq_hash = self.patient_multiquery.hash64
+            if update_fields is not None:
+                update_fields = {"pmq_hash"}.union(update_fields)
+
         # Beware: Python's hash() function will downconvert to 32 bits on
         # 32-bit machines; use pmq.hash64() directly, not hash(pmq).
-        super().save(*args, **kwargs)
+        super().save(*args, update_fields=update_fields, **kwargs)
 
     # -------------------------------------------------------------------------
     # Fetching

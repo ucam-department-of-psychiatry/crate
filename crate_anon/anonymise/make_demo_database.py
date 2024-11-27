@@ -47,7 +47,6 @@ After anonymisation, check with:
 
 import argparse
 import logging
-import os
 import random
 
 from cardinal_pythonlib.logs import configure_logger_for_colour
@@ -62,9 +61,9 @@ from sqlalchemy.sql import text
 
 from crate_anon.anonymise.constants import CHARSET
 
-from crate_anon.common.constants import EnvVar
 from crate_anon.testing import Base
 from crate_anon.testing.factories import (
+    DemoFilenameDocFactory,
     DemoPatientFactory,
     set_sqlalchemy_session_on_all_factories,
 )
@@ -78,34 +77,7 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
-CONSOLE_ENCODING = "utf8"
 REPORT_EVERY = 50
-DATE_FORMATS = [
-    "%d %b %Y",  # e.g. 24 Jul 2013
-    "%d %B %Y",  # e.g. 24 July 2013
-    "%Y-%m-%d",  # e.g. 2013-07-24
-    "%Y-%m-%d",  # e.g. 20130724
-    "%Y%m%d",  # e.g. 20130724
-]
-
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-if EnvVar.GENERATING_CRATE_DOCS in os.environ:
-    DEFAULT_DOCDIR = "/path/to/test_docs"
-else:
-    DEFAULT_DOCDIR = os.path.abspath(
-        os.path.join(CURRENT_DIR, os.pardir, "testdocs_for_text_extraction")
-    )
-
-DEFAULT_DOCTEST_DOC = os.path.join(DEFAULT_DOCDIR, "doctest.doc")
-DEFAULT_DOCTEST_DOCX = os.path.join(DEFAULT_DOCDIR, "doctest.docx")
-DEFAULT_DOCTEST_ODT = os.path.join(DEFAULT_DOCDIR, "doctest.odt")
-DEFAULT_DOCTEST_PDF = os.path.join(DEFAULT_DOCDIR, "doctest.pdf")
-
-MAX_EXT_LENGTH_WITH_DOT = 10
-
-PATIENT_ID_COMMENT = "Patient ID"
-
 
 # =============================================================================
 # Randomness
@@ -129,14 +101,14 @@ def mk_demo_database(
     n_patients: int,
     notes_per_patient: int,
     words_per_note: int,
+    with_files: bool = False,
     echo: bool = False,
 ) -> None:
     # 0. Announce intentions
 
     log.info(
-        f"n_patients={n_patients}, "
-        f"notes_per_patient={notes_per_patient}, "
-        f"words_per_note={words_per_note}"
+        f"{n_patients=}, {notes_per_patient=}, {words_per_note=}, "
+        f"{with_files=}"
     )
 
     # 1. Open database
@@ -180,6 +152,9 @@ def mk_demo_database(
         ):
             num_words = len(note.note.split())
             total_words += num_words
+
+        if with_files:
+            DemoFilenameDocFactory(patient=patient)
 
     session.commit()
     # 5. Report size
@@ -241,24 +216,12 @@ def main() -> None:
     parser.add_argument(
         "--verbose", "-v", action="store_true", help="Be verbose"
     )
-    # Not currently used -- todo: add back binaries to demo database?
-    # parser.add_argument(
-    #     "--doctest_doc", default=DEFAULT_DOCTEST_DOC,
-    #     help="Test file for .DOC"
-    # )
-    # parser.add_argument(
-    #     "--doctest_docx",
-    #     default=DEFAULT_DOCTEST_DOCX,
-    #     help="Test file for .DOCX",
-    # )
-    # parser.add_argument(
-    #     "--doctest_odt", default=DEFAULT_DOCTEST_ODT,
-    #     help="Test file for .ODT"
-    # )
-    # parser.add_argument(
-    #     "--doctest_pdf", default=DEFAULT_DOCTEST_PDF,
-    #     help="Test file for .PDF"
-    # )
+    parser.add_argument(
+        "--with_files",
+        action="store_true",
+        default=False,
+        help="Create a random docx, odt or pdf file for each patient",
+    )
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
 
     args = parser.parse_args()
@@ -292,6 +255,7 @@ def main() -> None:
         n_patients=n_patients,
         notes_per_patient=notes_per_patient,
         words_per_note=words_per_note,
+        with_files=args.with_files,
         echo=args.echo,
     )
 

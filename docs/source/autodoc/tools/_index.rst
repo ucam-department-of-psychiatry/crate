@@ -39,5 +39,6 @@ crate_anon/tools
     launch_nlp_webserver_flower.py.rst
     launch_nlp_webserver_gunicorn.py.rst
     print_crateweb_demo_config.py.rst
+    test_database_connection.py.rst
     to_base64.py.rst
     winservice.py.rst

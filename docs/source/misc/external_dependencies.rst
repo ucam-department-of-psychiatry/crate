@@ -23,6 +23,9 @@ External dependencies
 
 CRATE uses:
 
+Python packages
+~~~~~~~~~~~~~~~
+
 - ``amqp``: https://amqp.readthedocs.io/
 - ``arrow``: https://arrow.readthedocs.io/
 - ``beautifulsoup4``: https://www.crummy.com/software/BeautifulSoup/bs4/doc/
@@ -59,3 +62,28 @@ CRATE uses:
 - ``unidecode``: https://pypi.org/project/Unidecode/
 - ``Werkzeug``: http://werkzeug.pocoo.org/
 - ``xlrd``: https://xlrd.readthedocs.io/
+
+
+Versions of software etc. used by CRATE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++----------------+---------+------------------------------------------------------------+
+| Name           | Version | Supported until                                            |
++================+=========+============================================================+
+| Debian         |      11 | 2026-08-31;                                                |
+| (Docker image) |         | https://wiki.debian.org/LTS                                |
++----------------+---------+------------------------------------------------------------+
+| Django         |   4.2.x | 2026-04-30 (LTS);                                          |
+|                |         | https://www.djangoproject.com/download/#supported-versions |
++----------------+---------+------------------------------------------------------------+
+| Python         |     3.9 | 2025-10-31                                                 |
++----------------+---------+------------------------------------------------------------+
+|                |    3.10 | 2026-10-31                                                 |
++----------------+---------+------------------------------------------------------------+
+|                |    3.11 | 2027-10-31                                                 |
+|                |         | https://devguide.python.org/versions/                      |
++----------------+---------+------------------------------------------------------------+
+| SQLAlchemy     |     1.4 | Still maintained but will reach EOL when 2.1 becomes the   |
+|                |         | next major release. Upgrade to 2.0 is encouraged.          |
+|                |         | https://www.sqlalchemy.org/download.html                   |
++----------------+---------+------------------------------------------------------------+

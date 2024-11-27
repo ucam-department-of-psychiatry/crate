@@ -145,6 +145,7 @@ DATABASES = {
         "HOST": "@@crate_db_host@@",  # e.g. 127.0.0.1
         "PORT": "@@crate_db_port@@",  # local e.g. 3306
         "NAME": "@@crate_db_name@@",
+        "OPTIONS": @@crate_db_options@@,
         "USER": "@@crate_db_user@@",
         "PASSWORD": "@@crate_db_password@@",
     },
@@ -168,6 +169,7 @@ DATABASES = {
         "HOST": "@@dest_db_host@@",  # e.g. 127.0.0.1
         "PORT": "@@dest_db_port@@",  # local, e.g. 3306
         "NAME": "@@dest_db_name@@",  # will be the default database; use None for no default database  # noqa
+        "OPTIONS": @@dest_db_options@@,
         "USER": "@@dest_db_user@@",
         "PASSWORD": "@@dest_db_password@@",
     },
@@ -179,6 +181,7 @@ DATABASES = {
         "HOST": "@@secret_db1_host@@",  # e.g. 127.0.0.1
         "PORT": "@@secret_db1_port@@",
         "NAME": "@@secret_db1_name@@",
+        "OPTIONS": @@secret_db1_options@@,
         "USER": "@@secret_db1_user@@",
         "PASSWORD": "@@secret_db1_password@@",
     },
@@ -553,6 +556,7 @@ def main() -> None:
         "dest_db_engine": "django.db.backends.mysql",
         "dest_db_host": "127.0.0.1",
         "dest_db_name": "anonymous_output",
+        "dest_db_options": "{}",
         "dest_db_password": "somepassword",
         "dest_db_port": "3306",
         "dest_db_user": "researcher",
@@ -562,6 +566,7 @@ def main() -> None:
         "crate_db_engine": "django.db.backends.mysql",
         "crate_db_name": "crate_db",
         "crate_db_host": "127.0.0.1",
+        "crate_db_options": "{}",
         "crate_db_password": "somepassword",
         "crate_db_port": "3306",
         "crate_db_user": "someuser",
@@ -591,6 +596,7 @@ def main() -> None:
         "secret_db1_engine": "django.db.backends.mysql",
         "secret_db1_host": "127.0.0.1",
         "secret_db1_name": "anonymous_mapping",
+        "secret_db1_options": "{}",
         "secret_db1_password": "somepassword",
         "secret_db1_port": "3306",
         "secret_db1_user": "anonymiser_system",

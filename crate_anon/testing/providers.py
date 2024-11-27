@@ -39,6 +39,13 @@ from cardinal_pythonlib.datetimefunc import pendulum_to_datetime
 from cardinal_pythonlib.nhs import generate_random_nhs_number
 from faker import Faker
 from faker.providers import BaseProvider
+from faker_file.base import StringValue
+from faker_file.providers.docx_file import DocxFileProvider
+from faker_file.providers.odt_file import OdtFileProvider
+from faker_file.providers.pdf_file import PdfFileProvider
+from faker_file.providers.pdf_file.generators.reportlab_generator import (
+    ReportlabPdfGenerator,
+)
 import pendulum
 from pendulum import DateTime as Pendulum
 
@@ -298,12 +305,108 @@ class PatientNoteProvider(BaseProvider):
         return f"{note_text} {pad_words}"
 
 
+class PatientFileProvider(BaseProvider):
+    def patient_filename(
+        self,
+        forename: str = None,
+        surname: str = None,
+        sex: str = None,
+        dob: datetime.datetime = None,
+        nhs_number: int = None,
+        patient_id: int = None,
+        pad_paragraph: str = None,
+    ) -> str:
+        if sex is None:
+            sex = self.generator.sex()
+
+        if forename is None:
+            forename = self.generator.forename(sex)
+
+        if surname is None:
+            surname = self.generator.last_name()
+
+        if dob is None:
+            dob = self.generator.consistent_date_of_birth()
+
+        if nhs_number is None:
+            nhs_number = self.generator.nhs_number()
+
+        if patient_id is None:
+            patient_id = self.generator.pyint(min_value=1, max_value=100000)
+
+        if pad_paragraph is None:
+            pad_paragraph = self.generator.paragraph(nb_sentences=50)
+
+        file_ext = self.generator.random_choice(["docx", "odt", "pdf"])
+        file_obj = self.generate_file(
+            file_ext,
+            forename=forename,
+            surname=surname,
+            dob=dob,
+            nhs_number=nhs_number,
+            pad_paragraph=pad_paragraph,
+        )
+
+        return file_obj.data["filename"]
+
+    def generate_file(
+        self,
+        file_ext: str,
+        forename: str,
+        surname: str,
+        dob: datetime.datetime,
+        nhs_number: int,
+        pad_paragraph: str,
+    ) -> StringValue:
+        other_name = self.generator.name()
+        formatted_dob = dob.strftime(self.generator.date_format())
+
+        content = f"""
+Dear {forename} {surname},\n
+\n
+NHS Number: {nhs_number}.\n
+Date of Birth: {formatted_dob},\n
+\n
+{pad_paragraph}
+\n
+\n
+Yours sincerely,
+\n
+\n
+{other_name}
+
+\n
+"""
+
+        if file_ext == "docx":
+            return self.generate_docx_file(content)
+
+        elif file_ext == "odt":
+            return self.generate_odt_file(content)
+
+        else:
+            return self.generate_pdf_file(content)
+
+    def generate_docx_file(self, content: str) -> StringValue:
+        return self.generator.docx_file(content=content)
+
+    def generate_odt_file(self, content: str) -> StringValue:
+        return self.generator.odt_file(content=content)
+
+    def generate_pdf_file(self, content: str) -> StringValue:
+        return self.generator.pdf_file(
+            content=content,
+            pdf_generator_cls=ReportlabPdfGenerator,
+        )
+
+
 class NhsNumberProvider(BaseProvider):
     def nhs_number(self) -> str:
         return generate_random_nhs_number()
 
 
 def register_all_providers(fake: Faker) -> None:
+    # Our own
     fake.add_provider(AlcoholProvider)
     fake.add_provider(ChoiceProvider)
     fake.add_provider(ConsistentDateOfBirthProvider)
@@ -313,6 +416,13 @@ def register_all_providers(fake: Faker) -> None:
     fake.add_provider(FormattedIncrementingDateProvider)
     fake.add_provider(IncrementingDateProvider)
     fake.add_provider(NhsNumberProvider)
+    fake.add_provider(PatientFileProvider)
     fake.add_provider(PatientNoteProvider)
     fake.add_provider(RelationshipProvider)
     fake.add_provider(SexProvider)
+
+    # Third party:
+    # faker-file
+    fake.add_provider(DocxFileProvider)
+    fake.add_provider(OdtFileProvider)
+    fake.add_provider(PdfFileProvider)

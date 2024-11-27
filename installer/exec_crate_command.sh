@@ -28,9 +28,7 @@
 
 set -euo pipefail
 
-# Activate Python virtual environment
-CRATE_INSTALLER_VENV=${HOME}/.virtualenvs/crate-installer
-source "${CRATE_INSTALLER_VENV}/bin/activate"
+PYTHON=${CRATE_INSTALLER_CRATE_ROOT_HOST_DIR}/venv/bin/python
 
 # Restore user's environment variables, if found
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
@@ -38,4 +36,4 @@ source "${SCRIPT_DIR}/restore_crate_envvars.sh"
 
 # Run Python installer script with a command
 INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
-python "${INSTALLER_HOME}/installer.py" exec "$*"
+${PYTHON} "${INSTALLER_HOME}/installer.py" exec "$*"

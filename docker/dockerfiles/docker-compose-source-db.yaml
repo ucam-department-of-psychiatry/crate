@@ -3,8 +3,24 @@
 # yamllint disable rule:comments-indentation
 # docker/dockerfiles/docker-compose-source-db.yaml
 #
-# See the help!
-# https://crateanon.readthedocs.io/en/latest/installation/docker.html
+# Overrides for CRATE demo MySQL source database
+#
+# =============================================================================
+# Environment variables used (see help)
+# =============================================================================
+#
+# Those with defaults in the .env file in this directory:
+#
+#   CRATE_DOCKER_RESTART_POLICY
+#   CRATE_DOCKER_SOURCE_DATABASE_NAME
+#   CRATE_DOCKER_SOURCE_DATABASE_USER_NAME
+#
+# Those without defaults:
+#
+#   CRATE_DOCKER_SOURCE_DATABASE_HOST_PORT
+#   CRATE_DOCKER_SOURCE_DATABASE_ROOT_PASSWORD
+#   CRATE_DOCKER_SOURCE_DATABASE_USER_PASSWORD
+
 
 # =============================================================================
 # Data volumes
@@ -26,7 +42,7 @@ volumes:
 
 services:
     source_db:
-        image: mysql:5.7
+        image: mysql:8.0
         container_name: crate_source_db
         restart: "${CRATE_DOCKER_RESTART_POLICY}"
 

@@ -6,9 +6,10 @@ on:
     push:
         paths:
             - 'crate_anon/**'
-            - '!crate_anon/integration_tests'
+            - '!crate_anon/integration_tests/**'
             - .github/workflows/docker.yml
             - github_action_scripts/docker.sh
+            - github_action_scripts/set_crate_docker_environment
             - 'docker/**'
             - setup.py
 jobs:

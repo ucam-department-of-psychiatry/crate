@@ -11,14 +11,15 @@
 #
 # Those with defaults in the .env file in this directory:
 #
-#   CRATE_DOCKER_MYSQL_CRATE_DATABASE_NAME
-#   CRATE_DOCKER_MYSQL_CRATE_HOST_PORT
-#   CRATE_DOCKER_MYSQL_CRATE_USER_NAME
+#   CRATE_DOCKER_CRATE_DB_DATABASE_NAME
+#   CRATE_DOCKER_CRATE_DB_HOST_PORT
+#   CRATE_DOCKER_CRATE_DB_USER_NAME
+#   CRATE_DOCKER_RESTART_POLICY
 #
 # Those without defaults:
 #
-#   CRATE_DOCKER_MYSQL_CRATE_USER_PASSWORD
-#   CRATE_DOCKER_MYSQL_CRATE_ROOT_PASSWORD
+#   CRATE_DOCKER_CRATE_DB_ROOT_PASSWORD
+#   CRATE_DOCKER_CRATE_DB_USER_PASSWORD
 
 
 # =============================================================================
@@ -49,7 +50,7 @@ services:
     crate_db:
         # Base Docker image. We use a standard MySQL image; see
         # https://hub.docker.com/_/mysql
-        image: mysql:5.7
+        image: mysql:8.0
         container_name: crate_crate_db
         # Restart policy.
         # - I am slightly confused between "when the computer reboots" and
