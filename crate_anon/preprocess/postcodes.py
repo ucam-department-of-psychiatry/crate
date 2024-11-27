@@ -91,6 +91,7 @@ from sqlalchemy import (
     Column,
     create_engine,
     Date,
+    Float,
     Integer,
     Numeric,
     String,
@@ -913,7 +914,7 @@ class ICB2023(Base):
         super().__init__(**kwargs)
 
 
-class IMDLookupEN(Base):
+class IMDLookupEN2015(Base):
     """
     Represents the Index of Multiple Deprivation (IMD), England 2015.
 
@@ -936,7 +937,63 @@ class IMDLookupEN(Base):
         super().__init__(**kwargs)
 
 
-class IMDLookupSC(Base):
+class IMDLookupEN2019(Base):
+    """
+    Represents the Index of Multiple Deprivation (IMD), England 2019.
+    """
+
+    __filename__ = "IMD lookup EN as at 12_19.xlsx"
+    __tablename__ = "imd_index_multiple_deprivation_england_2019"
+
+    fid = Column(Integer)  # MB: Don't know what this is
+    lsoa_code = Column(String(CODE_LEN), primary_key=True)
+    lsoa_name = Column(String(NAME_LEN))
+    lad_code = Column(String(CODE_LEN))
+    lad_name = Column(String(NAME_LEN))
+    imd_rank = Column(Integer)
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "FID", "fid")
+        rename_key(kwargs, "LSOA11CD", "lsoa_code")
+        rename_key(kwargs, "LSOA11NM", "lsoa_name")
+        rename_key(kwargs, "LAD19CD", "lad_code")
+        rename_key(kwargs, "LAD19NM", "lad_name")
+
+        rename_key(kwargs, "IMD19", "imd_rank")
+        convert_int(kwargs, "fid")
+        convert_int(kwargs, "imd_rank")
+        super().__init__(**kwargs)
+
+
+class IMDLookupNI2017(Base):
+    """
+    Represents the Index of Multiple Deprivation (IMD), Northern Ireland 2017.
+    """
+
+    __filename__ = "IMD lookup NI as at 12_17.xlsx"
+    __tablename__ = "imd_index_multiple_deprivation_northern_ireland_2017"
+
+    fid = Column(Integer)  # Don't know what this is
+    lgd_code = Column(String(CODE_LEN))  # Local government district
+    lgd_name = Column(String(NAME_LEN))
+    lsoa_code = Column(String(CODE_LEN), primary_key=True)
+    lsoa_name = Column(String(NAME_LEN))
+    imd_rank = Column(Integer)
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "FID", "fid")
+        rename_key(kwargs, "LGD14CD", "lgd_code")
+        rename_key(kwargs, "LGD14NM", "lgd_name")
+        rename_key(kwargs, "LSOA01CD", "lsoa_code")
+        rename_key(kwargs, "LSOA01NM", "lsoa_name")
+
+        rename_key(kwargs, "IMD17", "imd_rank")
+        convert_int(kwargs, "fid")
+        convert_int(kwargs, "imd_rank")
+        super().__init__(**kwargs)
+
+
+class IMDLookupSC2016(Base):
     """
     Represents the Index of Multiple Deprivation (IMD), Scotland 2016.
     """
@@ -954,7 +1011,104 @@ class IMDLookupSC(Base):
         super().__init__(**kwargs)
 
 
-class IMDLookupWA(Base):
+class IMDLookupSC2020(Base):
+    """
+    Represents the Index of Multiple Deprivation (IMD), Scotland 2020.
+    """
+
+    __filename__ = "IMD lookup SC as at 12_20.xlsx"
+    __tablename__ = "imd_index_multiple_deprivation_scotland_2020"
+
+    dz_code = Column(String(CODE_LEN), primary_key=True)
+    dz_name = Column(String(NAME_LEN))
+    imd_rank = Column(Integer)
+    vigintile = Column(Integer)
+    decile = Column(Integer)
+    quintile = Column(Integer)
+    # Some of these columns have multiple rows with the same rank that
+    # aren't integers e.g. SIMD2020v2_Income_Domain_Rank is 5955.5 for six
+    # rows.
+    income_domain_rank = Column(Float)
+    employment_domain_rank = Column(Float)
+    education_domain_rank = Column(Float)
+    health_domain_rank = Column(Float)
+    access_domain_rank = Column(Float)
+    crime_domain_rank = Column(Float)
+    housing_domain_rank = Column(Float)
+    population = Column(Integer)
+    working_age_population = Column(Integer)
+    urban_rural_class = Column(Integer)
+    urban_rural_name = Column(String(NAME_LEN))
+    intermediate_zone_code = Column(String(CODE_LEN))
+    intermediate_zone_name = Column(String(NAME_LEN))
+    local_authority_code = Column(String(CODE_LEN))
+    local_authority_name = Column(String(NAME_LEN))
+    health_board_code = Column(String(CODE_LEN))
+    health_board_name = Column(String(NAME_LEN))
+    multi_member_ward_code = Column(String(CODE_LEN))
+    multi_member_ward_name = Column(String(NAME_LEN))
+    scottish_parliamentary_constituency_code = Column(String(CODE_LEN))
+    scottish_parliamentary_constituency_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "DZ", "dz_code")
+        rename_key(kwargs, "DZname", "dz_name")
+        rename_key(kwargs, "SIMD2020v2_Rank", "imd_rank")
+        rename_key(kwargs, "SIMD2020v2_Vigintile", "vigintile")
+        rename_key(kwargs, "SIMD2020v2_Decile", "decile")
+        rename_key(kwargs, "SIMD2020v2_Quintile", "quintile")
+        rename_key(
+            kwargs, "SIMD2020v2_Income_Domain_Rank", "income_domain_rank"
+        )
+        rename_key(
+            kwargs, "SIMD2020_Employment_Domain_Rank", "employment_domain_rank"
+        )
+        rename_key(
+            kwargs, "SIMD2020_Education_Domain_Rank", "education_domain_rank"
+        )
+        rename_key(kwargs, "SIMD2020_Health_Domain_Rank", "health_domain_rank")
+        rename_key(kwargs, "SIMD2020_Access_Domain_Rank", "access_domain_rank")
+        rename_key(kwargs, "SIMD2020_Crime_Domain_Rank", "crime_domain_rank")
+        rename_key(
+            kwargs, "SIMD2020_Housing_Domain_Rank", "housing_domain_rank"
+        )
+        rename_key(kwargs, "Population", "population")
+        rename_key(kwargs, "Working_Age_Population", "working_age_population")
+        rename_key(kwargs, "URclass", "urban_rural_class")
+        rename_key(kwargs, "URname", "urban_rural_name")
+        rename_key(kwargs, "IZcode", "intermediate_zone_code")
+        rename_key(kwargs, "IZname", "intermediate_zone_name")
+        rename_key(kwargs, "LAcode", "local_authority_code")
+        rename_key(kwargs, "LAname", "local_authority_name")
+        rename_key(kwargs, "HBcode", "health_board_code")
+        rename_key(kwargs, "HBname", "health_board_name")
+        rename_key(kwargs, "MMWcode", "multi_member_ward_code")
+        rename_key(kwargs, "MMWname", "multi_member_ward_name")
+        rename_key(
+            kwargs, "SPCcode", "scottish_parliamentary_constituency_code"
+        )
+        rename_key(
+            kwargs, "SPCname", "scottish_parliamentary_constituency_name"
+        )
+
+        convert_int(kwargs, "imd_rank")
+        convert_int(kwargs, "vigintile")
+        convert_int(kwargs, "decile")
+        convert_int(kwargs, "quintile")
+        convert_float(kwargs, "income_domain_rank")
+        convert_float(kwargs, "employment_domain_rank")
+        convert_float(kwargs, "education_domain_rank")
+        convert_float(kwargs, "health_domain_rank")
+        convert_float(kwargs, "access_domain_rank")
+        convert_float(kwargs, "crime_domain_rank")
+        convert_float(kwargs, "housing_domain_rank")
+        convert_int(kwargs, "population")
+        convert_int(kwargs, "working_age_population")
+        convert_int(kwargs, "urban_rural_class")
+        super().__init__(**kwargs)
+
+
+class IMDLookupWA2014(Base):
     """
     Represents the Index of Multiple Deprivation (IMD), Wales 2014.
     """
@@ -970,6 +1124,35 @@ class IMDLookupWA(Base):
         rename_key(kwargs, "LSOA11CD", "lsoa_code")
         rename_key(kwargs, "LSOA11NM", "lsoa_name")
         rename_key(kwargs, "IMD14", "imd_rank")
+        convert_int(kwargs, "imd_rank")
+        super().__init__(**kwargs)
+
+
+class IMDLookupWA2019(Base):
+    """
+    Represents the Index of Multiple Deprivation (IMD), Wales 2019.
+    """
+
+    __filename__ = "IMD lookup WA as at 12_19.xlsx"
+    __tablename__ = "imd_index_multiple_deprivation_wales_2019"
+
+    fid = Column(Integer)  # MB: Don't know what this is
+    lsoa_code = Column(String(CODE_LEN), primary_key=True)
+    lsoa_name = Column(String(NAME_LEN))
+    lad_code = Column(String(CODE_LEN))
+    lad_name = Column(String(NAME_LEN))
+    lad_name_welsh = Column(String(NAME_LEN))
+
+    imd_rank = Column(Integer)
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "FID", "fid")
+        rename_key(kwargs, "lsoa11cd", "lsoa_code")
+        rename_key(kwargs, "lsoa11nm", "lsoa_name")
+        rename_key(kwargs, "ladcd", "lad_code")
+        rename_key(kwargs, "ladnm", "lad_name")
+        rename_key(kwargs, "ladnmw", "lad_name_welsh")
+        rename_key(kwargs, "wimd_2019", "imd_rank")
         convert_int(kwargs, "imd_rank")
         super().__init__(**kwargs)
 
@@ -1672,9 +1855,13 @@ def main() -> None:
         EER,
         HealthArea2019,
         ICB2023,
-        IMDLookupEN,
-        IMDLookupSC,
-        IMDLookupWA,
+        IMDLookupEN2015,
+        IMDLookupEN2019,
+        IMDLookupNI2017,
+        IMDLookupSC2016,
+        IMDLookupSC2020,
+        IMDLookupWA2014,
+        IMDLookupWA2019,
         LAU,
         LAD,
         LEP,
