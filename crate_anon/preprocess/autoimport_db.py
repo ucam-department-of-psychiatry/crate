@@ -1036,13 +1036,19 @@ def auto_import_db(
         if create_tables:
             if not ti.has_columns():
                 log.warning(
-                    f"Skipping creation/import for table {ti.tablename!r}, "
+                    f"Skipping creation for table {ti.tablename!r}, "
                     f"which has no columns"
                 )
                 continue
             ti.validate_columns()
             ti.create_table()
         if import_data:
+            if not ti.has_columns():
+                log.warning(
+                    f"Skipping import for table {ti.tablename!r}, "
+                    f"which has no columns"
+                )
+                continue
             import_table(ti, session, chunksize=chunksize)
     log.info("Finished.")
 
