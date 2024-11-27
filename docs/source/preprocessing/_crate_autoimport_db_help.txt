@@ -1,5 +1,6 @@
 USAGE: crate_autoimport_db [-h] --url URL [--use_spreadsheet_names]
-                           [--drop_tables] [--create_tables] [--skip_data]
+                           [--use_filenames_only] [--drop_tables]
+                           [--create_tables] [--skip_data]
                            [--chunksize CHUNKSIZE]
                            [--skip_tables [SKIP_TABLES ...]] [--echo]
                            [--verbose]
@@ -8,10 +9,10 @@ USAGE: crate_autoimport_db [-h] --url URL [--use_spreadsheet_names]
 Take data from one or several tabular files (e.g. CSV, ODS, TSV, XLSX), or ZIP
 files containing these. Import that data to a database, if necessary creating
 the tables required. Use the filename as the table name (or, with
-use_spreadsheet_names, use the names of sheets within multi-sheet spreadsheet
-files). The assumption is that within each tabular set of data, the first row
-contains column names. The program will attempt to autodetect column types
-from the data.
+--use_spreadsheet_names, use the names of sheets within multi-sheet
+spreadsheet files). The assumption is that within each tabular set of data,
+the first row contains column names. The program will attempt to autodetect
+column types from the data.
 
 POSITIONAL ARGUMENTS:
   filename              Filename(s) to read. These can be tabular files (CSV,
@@ -24,7 +25,11 @@ OPTIONS:
   --use_spreadsheet_names
                         Use spreadsheet names (where relevant) as table names,
                         rather than filenames. (If False, only the first sheet
-                        in each spreadsheet file will be used.) (default:
+                        in each spreadsheet file will be used.) This applies
+                        only to multi-sheet file formats such as XLSX; for
+                        file formats such as CSV, only filenames can be used.
+                        (default: True)
+  --use_filenames_only  The opposite of --use_spreadsheet_names. (default:
                         False)
   --drop_tables         Drop tables first if these exist. (default: False)
   --create_tables       Creates tables if these do not exist. Table creation

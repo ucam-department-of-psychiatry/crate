@@ -88,8 +88,10 @@ log = logging.getLogger(__name__)
 SPREADSHEET_DICT_ROW_TYPE = Dict[str, Any]
 DEFAULT_CHUNKSIZE = int(1e5)
 DEFAULT_COL_TYPE = String(1)
+USE_SPREADSHEET_NAMES = "use_spreadsheet_names"
 FIRST_SHEET_ONLY_MSG = (
-    "Only reading the first sheet of this file. See --use_spreadsheet_names."
+    "Only reading the first sheet of this file. See "
+    f"--{USE_SPREADSHEET_NAMES}."
 )
 WARNING_VALUES_VISIBLE = (
     "WARNING: not suitable for production use (may show actual data values). "
@@ -952,14 +954,14 @@ def auto_import_db(
 def main() -> None:
     parser = argparse.ArgumentParser(
         formatter_class=ArgumentDefaultsRichHelpFormatter,
-        description="""
+        description=f"""
 Take data from one or several tabular files (e.g. CSV, ODS, TSV, XLSX), or ZIP
 files containing these. Import that data to a database, if necessary creating
 the tables required. Use the filename as the table name (or, with
-use_spreadsheet_names, use the names of sheets within multi-sheet spreadsheet
-files). The assumption is that within each tabular set of data, the first row
-contains column names. The program will attempt to autodetect column types from
-the data.
+--{USE_SPREADSHEET_NAMES}, use the names of sheets within multi-sheet
+spreadsheet files). The assumption is that within each tabular set of data, the
+first row contains column names. The program will attempt to autodetect column
+types from the data.
 """,
     )
     parser.add_argument(
@@ -970,11 +972,22 @@ the data.
     # For testing, remember e.g.
     #       sqlite:////home/rudolf/temp.sqlite
     parser.add_argument(
-        "--use_spreadsheet_names",
+        f"--{USE_SPREADSHEET_NAMES}",
+        dest=USE_SPREADSHEET_NAMES,
         action="store_true",
+        default=True,
         help="Use spreadsheet names (where relevant) as table names, rather "
         "than filenames. (If False, only the first sheet in each spreadsheet "
-        "file will be used.)",
+        "file will be used.) This applies only to multi-sheet file formats "
+        "such as XLSX; for file formats such as CSV, only filenames can be "
+        "used.",
+    )
+    parser.add_argument(
+        "--use_filenames_only",
+        dest=USE_SPREADSHEET_NAMES,
+        action="store_false",
+        default=False,
+        help=f"The opposite of --{USE_SPREADSHEET_NAMES}.",
     )
     parser.add_argument(
         "--drop_tables",
