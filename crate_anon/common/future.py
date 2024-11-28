@@ -29,10 +29,13 @@ Python.**
 """
 
 from itertools import islice
+from typing import Any, Generator, Iterable, List
 import warnings
 
 
-def batched(iterable, n):
+def batched(
+    iterable: Iterable[Any], n: int
+) -> Generator[List[Any], None, None]:
     """
     Batch data into lists of length n. The last batch may be shorter.
 

@@ -47,8 +47,10 @@ from typing import (
     Dict,
     Generator,
     Iterable,
+    IO,
     List,
     Optional,
+    TextIO,
     Tuple,
     Union,
 )
@@ -651,7 +653,7 @@ class ColumnTypeDetector:
 # =============================================================================
 
 
-def ods_row_to_list(row: List[Any]) -> List[Any]:
+def ods_row_to_list(row: Iterable[Any]) -> List[Any]:
     """
     Convert an OpenOffice ODS row to a list of values, translating the empty
     string (used for empty cells) to None.
@@ -659,7 +661,7 @@ def ods_row_to_list(row: List[Any]) -> List[Any]:
     return [None if v == "" else v for v in row]
 
 
-def xlsx_row_to_list(row: List[Cell]) -> List[Any]:
+def xlsx_row_to_list(row: Iterable[Cell]) -> List[Any]:
     """
     Convert an OpenPyXL XLSX row to a list of values, translating the empty
     string (used for empty cells) to None.
@@ -668,7 +670,8 @@ def xlsx_row_to_list(row: List[Cell]) -> List[Any]:
 
 
 def dict_from_rows(
-    row_iterator: Iterable[List], row_to_list_fn: Callable[[List], List]
+    row_iterator: Iterable[Iterable],
+    row_to_list_fn: Callable[[Iterable], List],
 ) -> Generator[Dict, None, None]:
     """
     Iterate through rows (from row_iterator); apply row_to_list_fn() to each;
@@ -711,7 +714,7 @@ def translate_empty_str_to_none(
 
 
 def gen_dicts_from_csv(
-    fileobj: BinaryIO,
+    fileobj: TextIO,
 ) -> Generator[SPREADSHEET_DICT_ROW_TYPE, None, None]:
     """
     Generates value dictionaries from a CSV file.
@@ -721,7 +724,7 @@ def gen_dicts_from_csv(
 
 
 def gen_dicts_from_tsv(
-    fileobj: BinaryIO,
+    fileobj: TextIO,
 ) -> Generator[SPREADSHEET_DICT_ROW_TYPE, None, None]:
     """
     Generates value dictionaries from a TSV file.
@@ -781,7 +784,7 @@ def gen_sheets_from_xlsx(
 
 def gen_files_from_zipfile(
     zipfilename: Union[Path, str]
-) -> Generator[Tuple[Path, BinaryIO], None, None]:
+) -> Generator[Tuple[Path, IO], None, None]:
     """
     Iterates ZIP file(s), yielding filenames and corresponding file-like
     objects from within it/them.
@@ -814,7 +817,7 @@ def gen_files_from_zipfile(
 
 def gen_filename_fileobj(
     filenames: List[str],
-) -> Generator[Tuple[Path, BinaryIO], None, None]:
+) -> Generator[Tuple[Path, IO], None, None]:
     """
     Iterates files, yielding (filename, file-like object) tuples. If a file is
     a ZIP file, iterate within it similarly (but not recursively).
