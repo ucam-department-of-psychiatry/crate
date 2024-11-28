@@ -24,4 +24,4 @@ formats: []
 
 search:
   ranking:
-    "*/autodoc/*.html": -10
+    "autodoc/*.html": -10
