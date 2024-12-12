@@ -1174,7 +1174,7 @@ class LAU(Base):
         super().__init__(**kwargs)
 
 
-class LAD(Base):
+class LAD19(Base):
     """
     Represents local authority districts (LADs), UK 2019.
     """
@@ -1190,6 +1190,25 @@ class LAD(Base):
         rename_key(kwargs, "LAD19CD", "lad_code")
         rename_key(kwargs, "LAD19NM", "lad_name")
         rename_key(kwargs, "LAD19NMW", "lad_name_welsh")
+        super().__init__(**kwargs)
+
+
+class LAD23(Base):
+    """
+    Represents local authority districts (LADs), UK 2023.
+    """
+
+    __filename__ = "LA_UA names and codes UK as at 04_23.xlsx"
+    __tablename__ = "lad_local_authority_district_2023"
+
+    lad_code = Column(String(CODE_LEN), primary_key=True)
+    lad_name = Column(String(NAME_LEN))
+    lad_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "LAD23CD", "lad_code")
+        rename_key(kwargs, "LAD23NM", "lad_name")
+        rename_key(kwargs, "LAD23NMW", "lad_name_welsh")
         super().__init__(**kwargs)
 
 
@@ -1899,7 +1918,8 @@ def main() -> None:
         IMDLookupWA2014,
         IMDLookupWA2019,
         LAU,
-        LAD,
+        LAD19,
+        LAD23,
         LAD23LAU121ITL321ITL221ITL121,
         LEP,
         LSOA2011,
