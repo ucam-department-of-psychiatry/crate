@@ -1193,6 +1193,42 @@ class LAD(Base):
         super().__init__(**kwargs)
 
 
+class LAD23LAU121ITL321ITL221ITL121(Base):
+    """
+    Represents Local Authority Districts (LADs), Local Administrative Units
+    (LAUs) and (International Territorial Levels (ITLs). Following the UK's
+    departure from the EU, ITLs replace but mirror the former NUTS
+    classification.
+    """
+
+    __filename__ = "LAD23_LAU121_ITL321_ITL221_ITL121_UK_LU.xlsx"
+    __tablename__ = "lad23_lau121_itl321_itl221_itl121"
+
+    lad_code = Column(String(CODE_LEN), primary_key=True)
+    lad_name = Column(String(NAME_LEN))
+    lau1_code = Column(String(10))
+    lau1_name = Column(String(NAME_LEN))
+    itl3_code = Column(String(5))
+    itl3_name = Column(String(NAME_LEN))
+    itl2_code = Column(String(4))
+    itl2_name = Column(String(NAME_LEN))
+    itl1_code = Column(String(3))
+    itl1_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "LAD23CD", "lad_code")
+        rename_key(kwargs, "LAD23NM", "lad_name")
+        rename_key(kwargs, "LAU121CD", "lau1_code")
+        rename_key(kwargs, "LAU121NM", "lau1_name")
+        rename_key(kwargs, "ITL321CD", "itl3_code")
+        rename_key(kwargs, "ITL321NM", "itl3_name")
+        rename_key(kwargs, "ITL221CD", "itl2_code")
+        rename_key(kwargs, "ITL221NM", "itl2_name")
+        rename_key(kwargs, "ITL121CD", "itl1_code")
+        rename_key(kwargs, "ITL121NM", "itl1_name")
+        super().__init__(**kwargs)
+
+
 class LEP(Base):
     """
     Represents Local Enterprise Partnerships (LEPs), England 2017.
@@ -1864,6 +1900,7 @@ def main() -> None:
         IMDLookupWA2019,
         LAU,
         LAD,
+        LAD23LAU121ITL321ITL221ITL121,
         LEP,
         LSOA2011,
         MSOA2011,
