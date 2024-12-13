@@ -1343,6 +1343,23 @@ class LSOA2011(Base):
         super().__init__(**kwargs)
 
 
+class LSOA2021(Base):
+    """
+    Represents lower layer super output area (LSOAs), England and Wales 2021.
+    """
+
+    __filename__ = "LSOA (2021) names and codes EW as at 12_21.xlsx"
+    __tablename__ = "lsoa_lower_layer_super_output_area_2021"
+
+    lsoa_code = Column(String(CODE_LEN), primary_key=True)
+    lsoa_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "lsoa21cd", "lsoa_code")
+        rename_key(kwargs, "lsoa21nm", "lsoa_name")
+        super().__init__(**kwargs)
+
+
 class MSOA2011(Base):
     """
     Represents middle layer super output areas (MSOAs), UK 2011.
@@ -1983,6 +2000,7 @@ def main() -> None:
         LOC22,
         LSOA2001,
         LSOA2011,
+        LSOA2021,
         MSOA2011,
         NationalPark,
         Parish,
