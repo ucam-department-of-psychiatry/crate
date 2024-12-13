@@ -1284,6 +1284,28 @@ class LEP21(Base):
         super().__init__(**kwargs)
 
 
+class LOC22(Base):
+    """
+    Represents Sub-ICB Locations (LOCs), UK 2022.
+    Replaces CCGs following Health and Care Act 2022.
+    """
+
+    __filename__ = "LOC names and codes UK as at 07_22.xlsx"
+    __tablename__ = "loc_sub_icb_locations_2022"
+
+    loc_ons_code = Column(String(CODE_LEN), primary_key=True)
+    loc_ods_code = Column(String(9))
+    loc_name = Column(String(NAME_LEN))
+    loc_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "LOC22CD", "loc_ons_code")
+        rename_key(kwargs, "LOC22CDH", "loc_ods_code")
+        rename_key(kwargs, "LOC22NM", "loc_name")
+        rename_key(kwargs, "LOC22NMW", "loc_name_welsh")
+        super().__init__(**kwargs)
+
+
 class LSOA2011(Base):
     """
     Represents lower layer super output area (LSOAs), UK 2011.
@@ -1941,6 +1963,7 @@ def main() -> None:
         LAD23LAU121ITL321ITL221ITL121,
         LEP17,
         LEP21,
+        LOC22,
         LSOA2011,
         MSOA2011,
         NationalPark,
