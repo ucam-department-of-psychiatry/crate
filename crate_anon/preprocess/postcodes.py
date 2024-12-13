@@ -1428,6 +1428,25 @@ class NationalPark(Base):
         super().__init__(**kwargs)
 
 
+class NHSER2022(Base):
+    """
+    Represents NHS England (Region) Names and Codes 2022.
+    """
+
+    __filename__ = "NHSER names and codes EN as at 07_22.xlsx"
+    __tablename__ = "nhser_nhs_england_region_2022"
+
+    region_ons_code = Column(String(CODE_LEN), primary_key=True)
+    region_nhser_code = Column(String(3))
+    region_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "NHSER22CD", "region_code")
+        rename_key(kwargs, "NHSER22CDH", "region_nhser_code")
+        rename_key(kwargs, "NHSER22NM", "region_name")
+        super().__init__(**kwargs)
+
+
 class Parish(Base):
     """
     Represents parishes, England & Wales 2014.
@@ -2039,6 +2058,7 @@ def main() -> None:
         MSOA2011,
         MSOA2021,
         NationalPark,
+        NHSER2022,
         Parish,
         PCT2019,
         PFA,
