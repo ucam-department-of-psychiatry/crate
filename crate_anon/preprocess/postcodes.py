@@ -1585,6 +1585,23 @@ class RGN2020(Base):
         super().__init__(**kwargs)
 
 
+class RuralUrban2011(Base):
+    """
+    Represents Rural Urban indicators, GB 2011.
+    """
+
+    __filename__ = "Rural Urban (2011) Indicator names and codes GB as at 12_16.xlsx"  # noqa: E501
+    __tablename__ = "rural_urban_indicator_2011"
+
+    ru_code = Column(String(2), primary_key=True)
+    ru_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "RU11IND", "ru_code")
+        rename_key(kwargs, "RU11NM", "ru_name")
+        super().__init__(**kwargs)
+
+
 class SSR(Base):
     """
     Represents Standard Statistical Regions (SSRs), UK 2005.
@@ -2126,6 +2143,7 @@ def main() -> None:
         PFA,
         GOR,
         RGN2020,
+        RuralUrban2011,
         SSR,
         # Ward2005,
         TTWA,
