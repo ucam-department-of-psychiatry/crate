@@ -1394,6 +1394,23 @@ class MSOA2011(Base):
         super().__init__(**kwargs)
 
 
+class MSOA2021(Base):
+    """
+    Represents middle layer super output areas (MSOAs), UK 2021.
+    """
+
+    __filename__ = "MSOA (2021) names and codes EW as at 12_21.xlsx"
+    __tablename__ = "msoa_middle_layer_super_output_area_2021"
+
+    msoa_code = Column(String(CODE_LEN), primary_key=True)
+    msoa_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "MSOA21CD", "msoa_code")
+        rename_key(kwargs, "MSOA21NM", "msoa_name")
+        super().__init__(**kwargs)
+
+
 class NationalPark(Base):
     """
     Represents national parks, Great Britain 2016.
@@ -2020,6 +2037,7 @@ def main() -> None:
         LSOA2021,
         MSOA2001,
         MSOA2011,
+        MSOA2021,
         NationalPark,
         Parish,
         PCT2019,
