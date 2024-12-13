@@ -1561,6 +1561,27 @@ class GOR(Base):
         super().__init__(**kwargs)
 
 
+class RGN2020(Base):
+    """
+    Represents Regions (RGNs), England 2020.
+    """
+
+    __filename__ = "Region names and codes EN as at 12_20 (RGN).xlsx"
+    __tablename__ = "rgn_region_england_2020"
+
+    rgn_code = Column(String(CODE_LEN), primary_key=True)
+    rgn_code_old = Column(String(1))
+    rgn_name = Column(String(NAME_LEN))
+    rgn_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "RGN20CD", "rgn_code")
+        rename_key(kwargs, "RGN20CDO", "rgn_code_old")
+        rename_key(kwargs, "RGN20NM", "rgn_name")
+        rename_key(kwargs, "RGN20NMW", "rgn_name")
+        super().__init__(**kwargs)
+
+
 class SSR(Base):
     """
     Represents Standard Statistical Regions (SSRs), UK 2005.
@@ -2101,6 +2122,7 @@ def main() -> None:
         PCT2019,
         PFA,
         GOR,
+        RGN2020,
         SSR,
         # Ward2005,
         TTWA,
