@@ -1466,9 +1466,9 @@ class NHSER2022(Base):
         super().__init__(**kwargs)
 
 
-class Parish(Base):
+class Parish2018(Base):
     """
-    Represents parishes, England & Wales 2014.
+    Represents parishes, England & Wales 2018.
     """
 
     __filename__ = "Parish_NCP names and codes EW as at 12_18.xlsx"
@@ -1480,6 +1480,23 @@ class Parish(Base):
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, "PARNCP18CD", "parish_code")
         rename_key(kwargs, "PARNCP18NM", "parish_name")
+        super().__init__(**kwargs)
+
+
+class Parish2021(Base):
+    """
+    Represents parishes, England & Wales 2021.
+    """
+
+    __filename__ = "Parish_NCP names and codes EW as at 12_21.xlsx"
+    __tablename__ = "parish_ncp_england_wales_2021"
+
+    parish_code = Column(String(CODE_LEN), primary_key=True)
+    parish_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "PARNCP21CD", "parish_code")
+        rename_key(kwargs, "PARNCP21NM", "parish_name")
         super().__init__(**kwargs)
 
 
@@ -2079,7 +2096,8 @@ def main() -> None:
         NationalPark2016,
         NationalPark2022,
         NHSER2022,
-        Parish,
+        Parish2018,
+        Parish2021,
         PCT2019,
         PFA,
         GOR,
