@@ -1788,7 +1788,7 @@ class UrbanRural2001(Base):
         super().__init__(**kwargs)
 
 
-class WestminsterConstituency(Base):
+class WestminsterConstituency2014(Base):
     """
     Represents Westminster parliamentary constituencies, UK 2014.
     """
@@ -1805,6 +1805,28 @@ class WestminsterConstituency(Base):
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, "PCON14CD", "pcon_code")
         rename_key(kwargs, "PCON14NM", "pcon_name")
+        super().__init__(**kwargs)
+
+
+class WestminsterConstituency2024(Base):
+    """
+    Represents Westminster parliamentary constituencies, UK 2024.
+    """
+
+    __filename__ = (
+        "Westminster Parliamentary Constituency names and codes "
+        "UK as at 12_24.xlsx"
+    )
+    __tablename__ = "pcon_westminster_parliamentary_constituency_2024"
+
+    pcon_code = Column(String(CODE_LEN), primary_key=True)
+    pcon_name = Column(String(NAME_LEN))
+    pcon_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "PCON24CD", "pcon_code")
+        rename_key(kwargs, "PCON24NM", "pcon_name")
+        rename_key(kwargs, "PCON24NMW", "pcon_name_welsh")
         super().__init__(**kwargs)
 
 
@@ -2272,7 +2294,8 @@ def main() -> None:
         UrbanRural2001,
         Ward2019,
         Ward2024,
-        WestminsterConstituency,
+        WestminsterConstituency2014,
+        WestminsterConstituency2024,
         # Centroids:
         # PopWeightedCentroidsLsoa2011,
     ]
