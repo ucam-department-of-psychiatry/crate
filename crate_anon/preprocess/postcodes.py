@@ -1248,7 +1248,7 @@ class LAD23LAU121ITL321ITL221ITL121(Base):
         super().__init__(**kwargs)
 
 
-class LEP(Base):
+class LEP17(Base):
     """
     Represents Local Enterprise Partnerships (LEPs), England 2017.
     """
@@ -1263,6 +1263,24 @@ class LEP(Base):
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, "LEP17CD", "lep_code")
         rename_key(kwargs, "LEP17NM", "lep_name")
+        super().__init__(**kwargs)
+
+
+class LEP21(Base):
+    """
+    Represents Local Enterprise Partnerships (LEPs), England 2021.
+    """
+
+    __filename__ = "LEP names and codes EN as at 04_21 v2.xlsx"
+    __tablename__ = "lep_local_enterprise_partnership_england_2021"
+    # __debug_content__ = True
+
+    lep_code = Column(String(CODE_LEN), primary_key=True)
+    lep_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "LEP21CD", "lep_code")
+        rename_key(kwargs, "LEP21NM", "lep_name")
         super().__init__(**kwargs)
 
 
@@ -1921,7 +1939,8 @@ def main() -> None:
         LAD19,
         LAD23,
         LAD23LAU121ITL321ITL221ITL121,
-        LEP,
+        LEP17,
+        LEP21,
         LSOA2011,
         MSOA2011,
         NationalPark,
