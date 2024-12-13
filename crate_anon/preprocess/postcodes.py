@@ -1174,7 +1174,7 @@ class LAU(Base):
         super().__init__(**kwargs)
 
 
-class LAD19(Base):
+class LAD2019(Base):
     """
     Represents local authority districts (LADs), UK 2019.
     """
@@ -1193,7 +1193,7 @@ class LAD19(Base):
         super().__init__(**kwargs)
 
 
-class LAD23(Base):
+class LAD2023(Base):
     """
     Represents local authority districts (LADs), UK 2023.
     """
@@ -1248,7 +1248,7 @@ class LAD23LAU121ITL321ITL221ITL121(Base):
         super().__init__(**kwargs)
 
 
-class LEP17(Base):
+class LEP2017(Base):
     """
     Represents Local Enterprise Partnerships (LEPs), England 2017.
     """
@@ -1266,7 +1266,7 @@ class LEP17(Base):
         super().__init__(**kwargs)
 
 
-class LEP21(Base):
+class LEP2021(Base):
     """
     Represents Local Enterprise Partnerships (LEPs), England 2021.
     """
@@ -1284,7 +1284,7 @@ class LEP21(Base):
         super().__init__(**kwargs)
 
 
-class LOC22(Base):
+class LOC2022(Base):
     """
     Represents Sub-ICB Locations (LOCs), UK 2022.
     Replaces CCGs following Health and Care Act 2022.
@@ -2141,12 +2141,12 @@ def main() -> None:
         IMDLookupWA2014,
         IMDLookupWA2019,
         LAU,
-        LAD19,
-        LAD23,
+        LAD2019,
+        LAD2023,
         LAD23LAU121ITL321ITL221ITL121,
-        LEP17,
-        LEP21,
-        LOC22,
+        LEP2017,
+        LEP2021,
+        LOC2022,
         LSOA2001,
         LSOA2011,
         LSOA2021,
