@@ -1712,6 +1712,25 @@ class Ward2019(Base):
         super().__init__(**kwargs)
 
 
+class Ward2024(Base):
+    """
+    Represents electoral wards, UK 2024.
+    """
+
+    __filename__ = "Ward names and codes UK as at 05_24.xlsx"
+    __tablename__ = "electoral_ward_2024"
+
+    ward_code = Column(String(CODE_LEN), primary_key=True)
+    ward_name = Column(String(NAME_LEN))
+    ward_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "WD24CD", "ward_code")
+        rename_key(kwargs, "WD24NM", "ward_name")
+        rename_key(kwargs, "WD24NMW", "ward_name_welsh")
+        super().__init__(**kwargs)
+
+
 class TECLEC(Base):
     """
     Represents Local Learning and Skills Council (LLSC)
@@ -2252,6 +2271,7 @@ def main() -> None:
         TTWA,
         UrbanRural2001,
         Ward2019,
+        Ward2024,
         WestminsterConstituency,
         # Centroids:
         # PopWeightedCentroidsLsoa2011,
