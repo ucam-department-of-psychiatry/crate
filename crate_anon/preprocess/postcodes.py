@@ -1411,7 +1411,7 @@ class MSOA2021(Base):
         super().__init__(**kwargs)
 
 
-class NationalPark(Base):
+class NationalPark2016(Base):
     """
     Represents national parks, Great Britain 2016.
     """
@@ -1425,6 +1425,25 @@ class NationalPark(Base):
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, "NPARK16CD", "park_code")
         rename_key(kwargs, "NPARK16NM", "park_name")
+        super().__init__(**kwargs)
+
+
+class NationalPark2022(Base):
+    """
+    Represents national parks, Great Britain 2022.
+    """
+
+    __filename__ = "National Park names and codes GB as at 03_23.xlsx"
+    __tablename__ = "park_national_park_2022"
+
+    park_code = Column(String(CODE_LEN), primary_key=True)
+    park_name = Column(String(NAME_LEN))
+    park_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "NPARK22CD", "park_code")
+        rename_key(kwargs, "NPARK22NM", "park_name")
+        rename_key(kwargs, "NPARK22NMW", "park_name_welsh")
         super().__init__(**kwargs)
 
 
@@ -2057,7 +2076,8 @@ def main() -> None:
         MSOA2001,
         MSOA2011,
         MSOA2021,
-        NationalPark,
+        NationalPark2016,
+        NationalPark2022,
         NHSER2022,
         Parish,
         PCT2019,
