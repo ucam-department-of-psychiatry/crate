@@ -1360,6 +1360,23 @@ class LSOA2021(Base):
         super().__init__(**kwargs)
 
 
+class MSOA2001(Base):
+    """
+    Represents middle layer super output areas (MSOAs), UK 2001.
+    """
+
+    __filename__ = "MSOA (2001) names and codes GB as at 11_11.xlsx"
+    __tablename__ = "msoa_middle_layer_super_output_area_2001"
+
+    msoa_code = Column(String(CODE_LEN), primary_key=True)
+    msoa_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "MSOA01CD", "msoa_code")
+        rename_key(kwargs, "MSOA01NM", "msoa_name")
+        super().__init__(**kwargs)
+
+
 class MSOA2011(Base):
     """
     Represents middle layer super output areas (MSOAs), UK 2011.
@@ -2001,6 +2018,7 @@ def main() -> None:
         LSOA2001,
         LSOA2011,
         LSOA2021,
+        MSOA2001,
         MSOA2011,
         NationalPark,
         Parish,
