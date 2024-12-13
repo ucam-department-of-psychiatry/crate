@@ -1655,13 +1655,13 @@ class StatisticalWard2005(Base):
         super().__init__(**kwargs)
 
 
-class SICBL2023(Base):
+class SICBLEN2023(Base):
     """
     Represents Sub ICB Locations in England. Seems to be a subset of LOC2022.
     """
 
     __filename__ = "Sub_ICB Location and Local Health Board names and codes EW as at 04_23.xlsx"  # noqa: E501
-    __tablename__ = "sicbl_sub_icb_locations_2023"
+    __tablename__ = "sicbl_sub_icb_locations_en_2023"
 
     sicbl_ons_code = Column(String(CODE_LEN), primary_key=True)
     sicbl_ods_code = Column(String(5))
@@ -1671,6 +1671,27 @@ class SICBL2023(Base):
         rename_key(kwargs, "SICBL23CD", "sicbl_ons_code")
         rename_key(kwargs, "SICBL23CDH", "sicbl_ods_code")
         rename_key(kwargs, "SICBL23NM", "sicbl_name")
+        super().__init__(**kwargs)
+
+
+class SICBLUK2023(Base):
+    """
+    Represents Sub ICB Locations in UK 2023.
+    """
+
+    __filename__ = "Sub_ICB Location and Local Health Board names and codes UK as at 04_23.xlsx"  # noqa: E501
+    __tablename__ = "sicbl_sub_icb_locations_uk_2023"
+
+    sicbl_ons_code = Column(String(CODE_LEN), primary_key=True)
+    sicbl_ods_code = Column(String(5))
+    sicbl_name = Column(String(NAME_LEN))
+    sicbl_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "SICBL23CD", "sicbl_ons_code")
+        rename_key(kwargs, "SICBL23CDH", "sicbl_ods_code")
+        rename_key(kwargs, "SICBL23NM", "sicbl_name")
+        rename_key(kwargs, "SICBL23NMW", "sicbl_name_welsh")
         super().__init__(**kwargs)
 
 
@@ -2185,7 +2206,8 @@ def main() -> None:
         SDZ2021,
         SSR,
         StatisticalWard2005,
-        SICBL2023,
+        SICBLEN2023,
+        SICBLUK2023,
         TTWA,
         Ward2019,
         WestminsterConstituency,
