@@ -1637,23 +1637,22 @@ class SSR(Base):
         super().__init__(**kwargs)
 
 
-_ = '''
-# NOT WORKING 2020-03-03: missing PK somewhere? Also: unimportant.
-class Ward2005(Base):
+class StatisticalWard2005(Base):
     """
-    Represents electoral wards, UK 2005.
+    Represents "Statistical" wards. These no longer exist. See ONSPD user
+    guide.
     """
+
     __filename__ = "Statistical ward names and codes UK as at 2005.xlsx"
-    __tablename__ = "electoral_ward_2005"
+    __tablename__ = "statistical_ward_2005"
 
     ward_code = Column(String(6), primary_key=True)
     ward_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'WDSTL05CD', 'ward_code')
-        rename_key(kwargs, 'WDSTL05NM', 'ward_name')
+        rename_key(kwargs, "WDSTL05CD", "ward_code")
+        rename_key(kwargs, "WDSTL05NM", "ward_name")
         super().__init__(**kwargs)
-'''
 
 
 class Ward2019(Base):
@@ -2163,7 +2162,7 @@ def main() -> None:
         RuralUrban2011,
         SDZ2021,
         SSR,
-        # Ward2005,
+        StatisticalWard2005,
         TTWA,
         Ward2019,
         WestminsterConstituency,
