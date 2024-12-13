@@ -1543,6 +1543,9 @@ class PFA(Base):
 class GOR(Base):
     """
     Represents Government Office Regions (GORs), England 2010.
+
+    The nine GORs were abolished in 2011 and are now known as Regions for
+    statistical purposes. See RGN2020.
     """
 
     __filename__ = "Region names and codes EN as at 12_10 (RGN).xlsx"
