@@ -1905,7 +1905,6 @@ def populate_generic_lookup_table(
 
     headings = getattr(sa_class, "__headings__", [])
     debug = getattr(sa_class, "__debug_content__", False)
-    n = 0
 
     if not replace:
         engine = session.bind
@@ -1958,20 +1957,24 @@ def populate_generic_lookup_table(
         # workbook = xlrd.open_workbook(filename)
         # sheet = workbook.sheet_by_index(0)
         # dict_iterator = dict_from_rows(sheet.get_rows())
+    row = 0
+    num_inserted = 0
     for datadict in dict_iterator:
-        n += 1
+        row += 1
         if debug:
-            log.critical(f"{n}: {datadict}")
+            log.critical(f"{row}: {datadict}")
         # filter out blanks:
-        datadict = {k: v for k, v in datadict.items() if k}
-        # noinspection PyNoneFunctionAssignment
-        obj = sa_class(**datadict)
-        session.add(obj)
-        if commit and n % commitevery == 0:
+        datadict = {k: v for k, v in datadict.items() if v}
+        if datadict:
+            # noinspection PyNoneFunctionAssignment
+            obj = sa_class(**datadict)
+            session.add(obj)
+            num_inserted += 1
+        if commit and num_inserted % commitevery == 0:
             commit_and_announce(session)
     if commit:
         commit_and_announce(session)
-    log.info(f"... inserted {n} rows")
+    log.info(f"... inserted {num_inserted} rows")
 
     if file:
         file.close()
