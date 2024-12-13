@@ -2004,8 +2004,8 @@ def populate_generic_lookup_table(
         if debug:
             log.critical(f"{row}: {datadict}")
         # filter out blanks:
-        datadict = {k: v for k, v in datadict.items() if v}
-        if datadict:
+        datadict = {k: v for k, v in datadict.items() if k}
+        if any(datadict.values()):
             # noinspection PyNoneFunctionAssignment
             obj = sa_class(**datadict)
             session.add(obj)
