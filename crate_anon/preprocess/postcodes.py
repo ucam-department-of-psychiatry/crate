@@ -1657,7 +1657,7 @@ class StatisticalWard2005(Base):
 
 class Ward2019(Base):
     """
-    Represents electoral wards, UK 2016.
+    Represents electoral wards, UK 2019.
     """
 
     __filename__ = "Ward names and codes UK as at 12_19.xlsx"
