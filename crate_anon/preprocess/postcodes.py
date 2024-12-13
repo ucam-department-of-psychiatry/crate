@@ -1306,6 +1306,23 @@ class LOC22(Base):
         super().__init__(**kwargs)
 
 
+class LSOA2001(Base):
+    """
+    Represents lower layer super output area (LSOAs), UK 2001.
+    """
+
+    __filename__ = "LSOA (2001) names and codes EW & NI as at 02_05.xlsx"
+    __tablename__ = "lsoa_lower_layer_super_output_area_2001"
+
+    lsoa_code = Column(String(CODE_LEN), primary_key=True)
+    lsoa_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "LSOA01CD", "lsoa_code")
+        rename_key(kwargs, "LSOA01NM", "lsoa_name")
+        super().__init__(**kwargs)
+
+
 class LSOA2011(Base):
     """
     Represents lower layer super output area (LSOAs), UK 2011.
@@ -1964,6 +1981,7 @@ def main() -> None:
         LEP17,
         LEP21,
         LOC22,
+        LSOA2001,
         LSOA2011,
         MSOA2011,
         NationalPark,
