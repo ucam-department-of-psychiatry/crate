@@ -1462,7 +1462,7 @@ class NHSER2022(Base):
     region_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, "NHSER22CD", "region_code")
+        rename_key(kwargs, "NHSER22CD", "region_ons_code")
         rename_key(kwargs, "NHSER22CDH", "region_nhser_code")
         rename_key(kwargs, "NHSER22NM", "region_name")
         super().__init__(**kwargs)
