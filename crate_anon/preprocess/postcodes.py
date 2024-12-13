@@ -1750,6 +1750,25 @@ class TTWA(Base):
         super().__init__(**kwargs)
 
 
+class UrbanRural2001(Base):
+    """
+    Represents Urban Rural indicators, UK 2001.
+    """
+
+    __filename__ = "Urban Rural (2001) Indicator names and codes UK.xlsx"
+    __tablename__ = "urban_rural_indicator_2001"
+
+    # ur_code is not unique
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ur_code = Column(String(1))
+    ur_name = Column(String(200))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "UR01IND", "ur_code")
+        rename_key(kwargs, "UR01NM", "ur_name")
+        super().__init__(**kwargs)
+
+
 class WestminsterConstituency(Base):
     """
     Represents Westminster parliamentary constituencies, UK 2014.
@@ -2231,6 +2250,7 @@ def main() -> None:
         SICBLUK2023,
         TECLEC,
         TTWA,
+        UrbanRural2001,
         Ward2019,
         WestminsterConstituency,
         # Centroids:
