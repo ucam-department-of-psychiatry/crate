@@ -1712,6 +1712,27 @@ class Ward2019(Base):
         super().__init__(**kwargs)
 
 
+class TECLEC(Base):
+    """
+    Represents Local Learning and Skills Council (LLSC)
+    Dept. of Children, Education, Lifelong Learning and Skills (DCELLS)
+    Enterprise Region (ER).
+    """
+
+    __filename__ = "TECLEC names and codes UK as at 12_16.xlsx"
+    __tablename__ = "teclec_2016"
+
+    teclec_code = Column(String(CODE_LEN), primary_key=True)
+    teclec_code_old = Column(String(5))
+    teclec_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "TECLECCD", "teclec_code")
+        rename_key(kwargs, "TECLECCDO", "teclec_code_old")
+        rename_key(kwargs, "TECLECNM", "teclec_name")
+        super().__init__(**kwargs)
+
+
 class TTWA(Base):
     """
     Represents travel-to-work area (TTWAs), UK 2011.
@@ -2208,6 +2229,7 @@ def main() -> None:
         StatisticalWard2005,
         SICBLEN2023,
         SICBLUK2023,
+        TECLEC,
         TTWA,
         Ward2019,
         WestminsterConstituency,
