@@ -1602,6 +1602,23 @@ class RuralUrban2011(Base):
         super().__init__(**kwargs)
 
 
+class SDZ2021(Base):
+    """
+    Represents Super Data Zones, Northern Ireland, 2021.
+    """
+
+    __filename__ = "SDZ names and codes NI as at 03_21.xlsx"
+    __tablename__ = "sdz_super_data_zones_2021"
+
+    sdz_code = Column(String(CODE_LEN), primary_key=True)
+    sdz_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "SDZ21CD", "sdz_code")
+        rename_key(kwargs, "SDZ21NM", "sdz_name")
+        super().__init__(**kwargs)
+
+
 class SSR(Base):
     """
     Represents Standard Statistical Regions (SSRs), UK 2005.
@@ -2144,6 +2161,7 @@ def main() -> None:
         GOR,
         RGN2020,
         RuralUrban2011,
+        SDZ2021,
         SSR,
         # Ward2005,
         TTWA,
