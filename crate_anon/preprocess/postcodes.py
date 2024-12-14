@@ -584,6 +584,11 @@ class Postcode(Base):
         "imd_index_multiple_deprivation_scotland_2012.imd_rank; "
         "imd_index_multiple_deprivation_wales_2014.imd_rank]",
     )
+    bua22 = Column(
+        String(CODE_LEN),
+        comment="Built-up Area (BUA) [FK to "
+        "bua_built_up_area_uk_2022.bua_code]",
+    )
 
     # New in Nov 2019 ONSPD, relative to 2016 ONSPD:
     # ** Not yet implemented:
