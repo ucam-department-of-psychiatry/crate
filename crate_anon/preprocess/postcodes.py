@@ -1903,6 +1903,7 @@ def populate_postcode_table(
     reportevery: int = DEFAULT_REPORT_EVERY,
     commit: bool = True,
     commitevery: int = DEFAULT_COMMIT_EVERY,
+    dump: bool = False,
 ) -> None:
     """
     Populates the :class:`Postcode` table, which is very big, from Office of
@@ -1919,6 +1920,7 @@ def populate_postcode_table(
         reportevery: report to the Python log every *n* rows
         commit: COMMIT the session once we've inserted the data?
         commitevery: if committing: commit every *n* rows inserted
+        dump: Dump a sample of lines from the table
     """
     tablename = Postcode.__tablename__
     # noinspection PyUnresolvedReferences
@@ -1933,7 +1935,8 @@ def populate_postcode_table(
     table.create(checkfirst=True)
     log.info(f"Using ONSPD data file: {filename}")
     n = 0
-    n_inserted = 0
+    num_inserted = 0
+    num_dumped = 0
     extra_fields = []  # type: List[str]
     db_fields = sorted(
         k for k in table.columns.keys() if k != COL_POSTCODE_NOSPACE
@@ -1946,7 +1949,7 @@ def populate_postcode_table(
                 log.info(
                     f"Processing row {n}: "
                     f"{row[COL_POSTCODE_VARIABLE_LENGTH_SPACE]} "
-                    f"({n_inserted} inserted)"
+                    f"({num_inserted} inserted)"
                 )
                 # log.debug(row)
             if n == 1:
@@ -1961,6 +1964,13 @@ def populate_postcode_table(
                     log.warning(
                         f"Fields in file but not database : {extra_fields}"
                     )
+                if dump:
+                    dump_header = "|".join(
+                        [f"{k:{DUMP_FORMAT}}" for k in row.keys()]
+                    )
+                    print(dump_header)
+                    print("-" * len(dump_header))
+
             for k in extra_fields:
                 del row[k]
             if startswith:
@@ -1973,7 +1983,14 @@ def populate_postcode_table(
                     continue
             obj = Postcode(**row)
             session.add(obj)
-            n_inserted += 1
+            num_inserted += 1
+            if dump and num_dumped <= ROWS_TO_DUMP:
+                dump_values = [
+                    str("" if v is None else v) for v in row.values()
+                ]
+                print("|".join([f"{v:{DUMP_FORMAT}}" for v in dump_values]))
+                num_dumped += 1
+
             if commit and n % commitevery == 0:
                 commit_and_announce(session)
     if commit:
@@ -2389,6 +2406,7 @@ def main() -> None:
             reportevery=args.reportevery,
             commit=True,
             commitevery=args.commitevery,
+            dump=args.dump,
         )
 
 
