@@ -77,8 +77,6 @@ from typing import (
     Generator,
     Iterable,
     List,
-    Optional,
-    TextIO,
     Tuple,
 )
 
@@ -1992,6 +1990,7 @@ def populate_generic_lookup_table(
     replace: bool = False,
     commit: bool = True,
     commitevery: int = DEFAULT_COMMIT_EVERY,
+    dump: bool = False,
 ) -> bool:
     """
     Populates one of many generic lookup tables with ONSPD data.
@@ -2017,6 +2016,7 @@ def populate_generic_lookup_table(
             tables.)
         commit: COMMIT the session once we've inserted the data?
         commitevery: if committing: commit every *n* rows inserted
+        dump: Dump a sample of lines from every table
     """
     tablename = sa_class.__tablename__
 
@@ -2040,10 +2040,53 @@ def populate_generic_lookup_table(
     sa_class.__table__.create(checkfirst=True)
 
     log.info(f'Processing file "{filename}" -> table "{tablename}"')
-    ext = os.path.splitext(filename)[1].lower()
-    type_xlsx = ext in [".xlsx"]
-    type_csv = ext in [".csv"]
-    file = None  # type: Optional[TextIO]
+    dict_iterator = open_spreadsheet(filename, headings)
+
+    row = 0
+    num_inserted = 0
+    num_dumped = 0
+    fmt = "20.20"
+    rows_to_dump = 5
+
+    for datadict in dict_iterator:
+        row += 1
+
+        if debug:
+            log.critical(f"{row}: {datadict}")
+        # filter out blanks:
+        datadict = {k: v for k, v in datadict.items() if k}
+        if dump and row == 1:
+            dump_header = "|".join([f"{k:{fmt}}" for k in datadict.keys()])
+            print(dump_header)
+            print("-" * len(dump_header))
+
+        values = datadict.values()
+        if any(values):
+            # noinspection PyNoneFunctionAssignment
+            obj = sa_class(**datadict)
+            session.add(obj)
+            num_inserted += 1
+            if dump and num_dumped <= rows_to_dump:
+                dump_values = [str("" if v is None else v) for v in values]
+                print("|".join([f"{v:{fmt}}" for v in dump_values]))
+                num_dumped += 1
+
+        if commit and num_inserted % commitevery == 0:
+            commit_and_announce(session)
+    if commit:
+        commit_and_announce(session)
+    log.info(f"... inserted {num_inserted} rows")
+
+    return True
+
+
+def open_spreadsheet(
+    filename: str, headings: List[str]
+) -> Generator[Dict, None, None]:
+    if os.path.splitext(filename)[1].lower() != ".xlsx":
+        raise ValueError(
+            f"Unable to import {filename}. Only .xlsx files are supported."
+        )
 
     def dict_from_rows(
         row_iterator: Iterable[List],
@@ -2058,51 +2101,18 @@ def populate_generic_lookup_table(
                 yield dict(zip(local_headings, values))
             first_row = False
 
-    if type_xlsx:
-        workbook = openpyxl.load_workbook(filename)  # read_only=True
-        # openpyxl BUG: with read_only=True, cells can have None as their value
-        # when they're fine if opened in non-read-only mode.
-        # May be related to this:
-        # https://bitbucket.org/openpyxl/openpyxl/issues/601/read_only-cell-row-column-attributes-are  # noqa
+    workbook = openpyxl.load_workbook(filename)  # read_only=True
+    # openpyxl BUG: with read_only=True, cells can have None as their value
+    # when they're fine if opened in non-read-only mode.
+    # May be related to this:
+    # https://bitbucket.org/openpyxl/openpyxl/issues/601/read_only-cell-row-column-attributes-are  # noqa
 
-        # Assume the first sheet is the one with the data in it.
-        # Choosing the active sheet is unreliable for some files.
-        # If this proves to be a wrong assumption, support an optional named
-        # sheet to load for each class.
-        sheet = workbook.worksheets[0]
-        dict_iterator = dict_from_rows(sheet.iter_rows())
-    elif type_csv:
-        file = open(filename, "r")
-        csv_reader = csv.DictReader(file)
-        dict_iterator = csv_reader
-    else:
-        raise ValueError("Only XLSX and CSV these days")
-        # workbook = xlrd.open_workbook(filename)
-        # sheet = workbook.sheet_by_index(0)
-        # dict_iterator = dict_from_rows(sheet.get_rows())
-    row = 0
-    num_inserted = 0
-    for datadict in dict_iterator:
-        row += 1
-        if debug:
-            log.critical(f"{row}: {datadict}")
-        # filter out blanks:
-        datadict = {k: v for k, v in datadict.items() if k}
-        if any(datadict.values()):
-            # noinspection PyNoneFunctionAssignment
-            obj = sa_class(**datadict)
-            session.add(obj)
-            num_inserted += 1
-        if commit and num_inserted % commitevery == 0:
-            commit_and_announce(session)
-    if commit:
-        commit_and_announce(session)
-    log.info(f"... inserted {num_inserted} rows")
-
-    if file:
-        file.close()
-
-    return True
+    # Assume the first sheet is the one with the data in it.
+    # Choosing the active sheet is unreliable for some files.
+    # If this proves to be a wrong assumption, support an optional named
+    # sheet to load for each class.
+    sheet = workbook.worksheets[0]
+    return dict_from_rows(sheet.iter_rows())
 
 
 # =============================================================================
@@ -2222,6 +2232,11 @@ def main() -> None:
         help="Skip generation of main (large) postcode table",
     )
     parser.add_argument(
+        "--dump",
+        action="store_true",
+        help="Dump a sample of rows from each table",
+    )
+    parser.add_argument(
         "--docsonly",
         action="store_true",
         help="Show help for postcode table then stop",
@@ -2338,10 +2353,6 @@ def main() -> None:
                 and sa_class.__tablename__ not in args.specific_lookup_tables
             ):
                 continue
-            # if (sa_class.__tablename__ ==
-            #         "ccg_clinical_commissioning_group_uk_2019"):
-            #     log.warning("Ignore warning 'Discarded range with reserved "
-            #                 "name' below; it works regardless")
             if populate_generic_lookup_table(
                 sa_class=sa_class,
                 datadir=lookupdir,
@@ -2349,6 +2360,7 @@ def main() -> None:
                 replace=args.replace,
                 commit=True,
                 commitevery=args.commitevery,
+                dump=args.dump,
             ):
                 found_files.append(sa_class.__filename__)
             else:
@@ -2357,11 +2369,14 @@ def main() -> None:
         extra_files = sorted(set(all_files) - set(found_files))
         if extra_files:
             log.warning(
-                f"Files ignored because they aren't handled: {extra_files}"
+                "These files were ignored either because they were "
+                f"deliberately skipped or they weren't handled : {extra_files}"
             )
 
         if missing_files:
-            log.info(f"Files not found under {datadir}: {missing_files}")
+            log.info(
+                f"These Files were not found under {datadir}: {missing_files}"
+            )
 
     if not args.skippostcodes:
         populate_postcode_table(
