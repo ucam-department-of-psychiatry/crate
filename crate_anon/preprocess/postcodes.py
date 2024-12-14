@@ -2090,8 +2090,8 @@ def populate_generic_lookup_table(
                 print("|".join([f"{v:{DUMP_FORMAT}}" for v in dump_values]))
                 num_dumped += 1
 
-        if commit and num_inserted % commitevery == 0:
-            commit_and_announce(session)
+            if commit and num_inserted % commitevery == 0:
+                commit_and_announce(session)
     if commit:
         commit_and_announce(session)
     log.info(f"... inserted {num_inserted} rows")
