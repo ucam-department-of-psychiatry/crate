@@ -135,6 +135,8 @@ NAME_LEN = 80  # seems about right; a bit more than the length of many
 COL_POSTCODE_NOSPACE = "pcd_nospace"
 COL_POSTCODE_VARIABLE_LENGTH_SPACE = "pcds"
 
+ROWS_TO_DUMP = 5
+DUMP_FORMAT = "20.20"  # Pad and truncate columns to 20 characters
 
 # =============================================================================
 # Metadata
@@ -2045,8 +2047,6 @@ def populate_generic_lookup_table(
     row = 0
     num_inserted = 0
     num_dumped = 0
-    fmt = "20.20"
-    rows_to_dump = 5
 
     for datadict in dict_iterator:
         row += 1
@@ -2056,7 +2056,9 @@ def populate_generic_lookup_table(
         # filter out blanks:
         datadict = {k: v for k, v in datadict.items() if k}
         if dump and row == 1:
-            dump_header = "|".join([f"{k:{fmt}}" for k in datadict.keys()])
+            dump_header = "|".join(
+                [f"{k:{DUMP_FORMAT}}" for k in datadict.keys()]
+            )
             print(dump_header)
             print("-" * len(dump_header))
 
@@ -2066,9 +2068,9 @@ def populate_generic_lookup_table(
             obj = sa_class(**datadict)
             session.add(obj)
             num_inserted += 1
-            if dump and num_dumped <= rows_to_dump:
+            if dump and num_dumped <= ROWS_TO_DUMP:
                 dump_values = [str("" if v is None else v) for v in values]
-                print("|".join([f"{v:{fmt}}" for v in dump_values]))
+                print("|".join([f"{v:{DUMP_FORMAT}}" for v in dump_values]))
                 num_dumped += 1
 
         if commit and num_inserted % commitevery == 0:
