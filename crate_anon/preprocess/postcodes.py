@@ -589,7 +589,13 @@ class Postcode(Base):
         comment="Built-up Area (BUA) [FK to "
         "bua_built_up_area_uk_2022.bua_code]",
     )
-
+    calncv = Column(
+        String(CODE_LEN),
+        comment=(
+            "Cancer Alliance / National Cancer Vanguard code "
+            "[FK to cal_ncv_2023.cal_ncv_code]"
+        ),
+    )
     # New in Nov 2019 ONSPD, relative to 2016 ONSPD:
     # ** Not yet implemented:
     # calncv
