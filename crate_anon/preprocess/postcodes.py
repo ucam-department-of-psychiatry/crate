@@ -626,6 +626,10 @@ class Postcode(Base):
             "[FK to MSOA2021]"
         ),
     )
+    nhser = Column(
+        String(CODE_LEN),
+        comment="NHS England (Region) (NHS ER) [FK to NHSER2022]",
+    )
 
     def __init__(self, **kwargs: Any) -> None:
         convert_date(kwargs, "dointr")
