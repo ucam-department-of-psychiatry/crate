@@ -630,6 +630,10 @@ class Postcode(Base):
         String(CODE_LEN),
         comment="NHS England (Region) (NHS ER) [FK to NHSER2022]",
     )
+    npark = Column(
+        String(CODE_LEN),
+        comment=("National park [FK to park_national_park_2022]"),
+    )
 
     def __init__(self, **kwargs: Any) -> None:
         convert_date(kwargs, "dointr")
