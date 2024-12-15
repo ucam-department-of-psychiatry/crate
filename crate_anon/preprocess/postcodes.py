@@ -641,6 +641,10 @@ class Postcode(Base):
             "Based on 2011 Census OAs."
         ),
     )
+    rgn = Column(
+        String(CODE_LEN),
+        comment="Region (former GOR) [FK to rgn_region_england_2020]",
+    )
 
     def __init__(self, **kwargs: Any) -> None:
         convert_date(kwargs, "dointr")
