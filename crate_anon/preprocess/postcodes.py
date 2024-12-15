@@ -1991,12 +1991,6 @@ def populate_postcode_table(
                     log.warning(
                         f"Fields in file but not database : {extra_fields}"
                     )
-                if dump:
-                    dump_header = "|".join(
-                        [f"{k:{DUMP_FORMAT}}" for k in row.keys()]
-                    )
-                    print(dump_header)
-                    print("-" * len(dump_header))
 
             for k in extra_fields:
                 del row[k]
@@ -2012,10 +2006,10 @@ def populate_postcode_table(
             session.add(obj)
             num_inserted += 1
             if dump and num_dumped <= ROWS_TO_DUMP:
-                dump_values = [
-                    str("" if v is None else v) for v in row.values()
-                ]
-                print("|".join([f"{v:{DUMP_FORMAT}}" for v in dump_values]))
+                print("-" * 80)
+                for k, v in row.items():
+                    v = str("" if v is None else v)
+                    print(f"| {k:{DUMP_FORMAT}}| {v}")
                 num_dumped += 1
 
             if commit and n % commitevery == 0:
