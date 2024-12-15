@@ -604,6 +604,13 @@ class Postcode(Base):
         String(CODE_LEN),
         comment="Integrated Care Boards code [FK to icb_2023]",
     )
+    itl = Column(
+        String(CODE_LEN),
+        comment=(
+            "International Territory Level (former NUTS)"
+            "[FK to lad23_lau121_itl321_itl221_itl121]"
+        ),
+    )
 
     def __init__(self, **kwargs: Any) -> None:
         convert_date(kwargs, "dointr")
