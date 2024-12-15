@@ -645,6 +645,16 @@ class Postcode(Base):
         String(CODE_LEN),
         comment="Region (former GOR) [FK to rgn_region_england_2020]",
     )
+    sicbl = Column(
+        String(CODE_LEN),
+        comment=(
+            "Sub ICB Location (LOC)/ Local Health Board (LHB)/ "
+            "Community Health Partnership (CHP)/ "
+            "Local Commissioning Group (LCG)/ "
+            "Primary Healthcare Directorate (PHD) "
+            "[FK to loc_sub_icb_locations_2022]",
+        ),
+    )
 
     def __init__(self, **kwargs: Any) -> None:
         convert_date(kwargs, "dointr")
