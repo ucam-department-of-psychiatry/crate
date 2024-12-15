@@ -600,6 +600,10 @@ class Postcode(Base):
         String(CODE_LEN),
         comment="County Electoral Division code [FK to county_ed_2023]",
     )
+    icb = Column(
+        String(CODE_LEN),
+        comment="Integrated Care Boards code [FK to icb_2023]",
+    )
 
     def __init__(self, **kwargs: Any) -> None:
         convert_date(kwargs, "dointr")
