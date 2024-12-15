@@ -596,13 +596,10 @@ class Postcode(Base):
             "[FK to cal_ncv_2023.cal_ncv_code]"
         ),
     )
-    # New in Nov 2019 ONSPD, relative to 2016 ONSPD:
-    # ** Not yet implemented:
-    # calncv
-    # ced
-    # nhser
-    # rgn
-    # stp
+    ced = Column(
+        String(CODE_LEN),
+        comment="County Electoral Division code [FK to county_ed_2023]",
+    )
 
     def __init__(self, **kwargs: Any) -> None:
         convert_date(kwargs, "dointr")
