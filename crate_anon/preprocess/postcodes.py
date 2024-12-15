@@ -2229,8 +2229,8 @@ def main() -> None:
     Database (ONSPD) and inserts it into a database.
 
 -   You will need to download the ONSPD from
-        https://geoportal.statistics.gov.uk/geoportal/catalog/content/filelist.page
-    e.g. ONSPD_MAY_2016_csv.zip (79 Mb), and unzip it (>1.4 Gb) to a directory.
+        https://geoportal.statistics.gov.uk
+    e.g. ONSPD_AUG_2024.zip and unzip it (>3.7 Gb) to a directory.
     Tell this program which directory you used.
 
 -   Specify your database as an SQLAlchemy connection URL: see
