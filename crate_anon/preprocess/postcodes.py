@@ -634,6 +634,13 @@ class Postcode(Base):
         String(CODE_LEN),
         comment=("National park [FK to park_national_park_2022]"),
     )
+    oa21 = Column(
+        String(CODE_LEN),
+        comment=(
+            "2021 Census Output Area (OA)/ Data Zone (DZ). "
+            "Based on 2011 Census OAs."
+        ),
+    )
 
     def __init__(self, **kwargs: Any) -> None:
         convert_date(kwargs, "dointr")
