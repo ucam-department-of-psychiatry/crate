@@ -611,6 +611,14 @@ class Postcode(Base):
             "[FK to lad23_lau121_itl321_itl221_itl121]"
         ),
     )
+    lsoa21 = Column(
+        String(CODE_LEN),
+        comment=(
+            "2021 Census Lower Layer Super Output Area (LSOA)/Super Data Zone "
+            "(SDZ) [FK to lsoa_lower_layer_super_output_area_2021 or "
+            "sdz_super_data_zones_2021]"
+        ),
+    )
 
     def __init__(self, **kwargs: Any) -> None:
         convert_date(kwargs, "dointr")
