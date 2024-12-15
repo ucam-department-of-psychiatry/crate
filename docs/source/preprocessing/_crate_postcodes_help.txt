@@ -3,8 +3,8 @@ USAGE: crate_postcodes [-h] [--dir DIR] [--url URL] [--echo]
                        [--startswith STARTSWITH [STARTSWITH ...]] [--replace]
                        [--skiplookup]
                        [--specific_lookup_tables [SPECIFIC_LOOKUP_TABLES ...]]
-                       [--list_lookup_tables] [--skippostcodes] [--docsonly]
-                       [-v]
+                       [--list_lookup_tables] [--skippostcodes] [--dump]
+                       [--docsonly] [-v]
 
 -   This program reads data from the UK Office of National Statistics Postcode
     Database (ONSPD) and inserts it into a database.
@@ -60,6 +60,7 @@ OPTIONS:
                         False)
   --skippostcodes       Skip generation of main (large) postcode table
                         (default: False)
+  --dump                Dump a sample of rows from each table (default: False)
   --docsonly            Show help for postcode table then stop (default:
                         False)
   -v, --verbose         Verbose (default: False)
