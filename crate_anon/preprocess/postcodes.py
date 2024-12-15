@@ -1235,11 +1235,11 @@ class LAD23LAU121ITL321ITL221ITL121(Base):
     __filename__ = "LAD23_LAU121_ITL321_ITL221_ITL121_UK_LU.xlsx"
     __tablename__ = "lad23_lau121_itl321_itl221_itl121"
 
-    # lad_code is not unique
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    # lad_code is not unique but lau1 appears to be and is referenced from the
+    # itl field in the postcode table.
     lad_code = Column(String(CODE_LEN))
     lad_name = Column(String(NAME_LEN))
-    lau1_code = Column(String(10))
+    lau1_code = Column(String(CODE_LEN), primary_key=True)
     lau1_name = Column(String(NAME_LEN))
     itl3_code = Column(String(5))
     itl3_name = Column(String(NAME_LEN))
