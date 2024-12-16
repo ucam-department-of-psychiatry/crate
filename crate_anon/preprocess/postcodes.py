@@ -590,6 +590,11 @@ class Postcode(Base):
         comment="Built-up Area (BUA) [FK to "
         "bua_built_up_area_uk_2022.bua_code]",
     )
+    bua24 = Column(
+        String(CODE_LEN),
+        comment="Built-up Area (BUA) [FK to "
+        "bua_built_up_area_uk_2024.bua_code]",
+    )
     calncv = Column(
         String(CODE_LEN),
         comment=(
