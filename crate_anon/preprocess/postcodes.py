@@ -2140,7 +2140,7 @@ def populate_generic_lookup_table(
     sa_class.__table__.create(checkfirst=True)
 
     log.info(f'Processing file "{filename}" -> table "{tablename}"')
-    dict_iterator = open_spreadsheet(filename, headings)
+    dict_iterator = read_spreadsheet(filename, headings)
 
     row = 0
     num_inserted = 0
@@ -2189,7 +2189,7 @@ def populate_generic_lookup_table(
     return True
 
 
-def open_spreadsheet(
+def read_spreadsheet(
     filename: str, headings: List[str]
 ) -> Generator[Dict, None, None]:
     if os.path.splitext(filename)[1].lower() != ".xlsx":
