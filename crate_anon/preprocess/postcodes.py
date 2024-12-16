@@ -1554,6 +1554,25 @@ class NHSER2022(Base):
         super().__init__(**kwargs)
 
 
+class NHSER2024(Base):
+    """
+    Represents NHS England (Region) Names and Codes 2024.
+    """
+
+    __filename__ = "NHSER names and codes EN as at 04_24.xlsx"
+    __tablename__ = "nhser_nhs_england_region_2024"
+
+    region_ons_code = Column(String(CODE_LEN), primary_key=True)
+    region_nhser_code = Column(String(3))
+    region_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "NHSER24CD", "region_ons_code")
+        rename_key(kwargs, "NHSER24CDH", "region_nhser_code")
+        rename_key(kwargs, "NHSER24NM", "region_name")
+        super().__init__(**kwargs)
+
+
 class Parish2018(Base):
     """
     Represents parishes, England & Wales 2018.
@@ -2404,6 +2423,7 @@ def main() -> None:
         NationalPark2016,
         NationalPark2022,
         NHSER2022,
+        NHSER2024,
         Parish2018,
         Parish2021,
         PCT2019,
