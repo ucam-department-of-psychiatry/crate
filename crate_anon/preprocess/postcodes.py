@@ -2146,7 +2146,7 @@ def populate_generic_lookup_table(
         engine = session.bind
         if engine.has_table(tablename):
             log.info(f"Table {tablename} exists; skipping")
-            return True
+            return
 
     log.info(f"Dropping/recreating table: {tablename}")
     sa_class.__table__.drop(checkfirst=True)
