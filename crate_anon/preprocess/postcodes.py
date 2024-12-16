@@ -94,6 +94,7 @@ from sqlalchemy import (
     Numeric,
     String,
 )
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
@@ -766,6 +767,28 @@ class BUA2022(Base):
         rename_key(kwargs, "BUA22CD", "bua_code")
         rename_key(kwargs, "BUA22NM", "bua_name")
         rename_key(kwargs, "BUA22NMW", "bua_name_welsh")
+        super().__init__(**kwargs)
+
+
+class BUA2024(Base):
+    """
+    Represents England & Wales 2024 built-up area (BUA) codes/names.
+    """
+
+    __filename__ = "BUA24 names and codes EW as at 04_24.xlsx"
+    __tablename__ = "bua_built_up_area_uk_2024"
+    __duplicates__ = [
+        {"BUA24CD": "W45001083", "BUA24NM": "Bargod", "BUA24NMW": "Bargoed"}
+    ]
+
+    bua_code = Column(String(CODE_LEN), primary_key=True)
+    bua_name = Column(String(NAME_LEN))
+    bua_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "BUA24CD", "bua_code")
+        rename_key(kwargs, "BUA24NM", "bua_name")
+        rename_key(kwargs, "BUA24NMW", "bua_name_welsh")
         super().__init__(**kwargs)
 
 
@@ -2104,6 +2127,7 @@ def populate_generic_lookup_table(
 
     headings = getattr(sa_class, "__headings__", [])
     debug = getattr(sa_class, "__debug_content__", False)
+    duplicates = getattr(sa_class, "__duplicates__", [])
 
     if not replace:
         engine = session.bind
@@ -2140,7 +2164,16 @@ def populate_generic_lookup_table(
         if any(values):
             # noinspection PyNoneFunctionAssignment
             obj = sa_class(**datadict)
+            if datadict in duplicates:
+                commit_and_announce(session)
+
             session.add(obj)
+            if datadict in duplicates:
+                try:
+                    commit_and_announce(session)
+                except IntegrityError:
+                    log.info(f"Skipping duplicate row {datadict}")
+                    session.rollback()
             num_inserted += 1
             if dump and num_dumped <= ROWS_TO_DUMP:
                 dump_values = [str("" if v is None else v) for v in values]
@@ -2336,6 +2369,7 @@ def main() -> None:
         OAClassification2011,
         BUA2013,
         BUA2022,
+        BUA2024,
         BUASD,
         CALNCV2023,
         CASWard,
