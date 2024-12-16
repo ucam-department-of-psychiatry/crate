@@ -152,6 +152,7 @@ class CrateCommand:
     """
 
     # Preprocessing
+    AUTOIMPORTDB = "crate_autoimport_db"
     FETCH_WORDLISTS = "crate_fetch_wordlists"
     POSTCODES = "crate_postcodes"
     PREPROCESS_PCMIS = "crate_preprocess_pcmis"

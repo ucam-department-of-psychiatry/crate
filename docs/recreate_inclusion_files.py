@@ -215,6 +215,10 @@ def main():
     # -------------------------------------------------------------------------
     helpflag = "--help"
     run_cmd(
+        [CrateCommand.AUTOIMPORTDB, helpflag],
+        join(DevPath.DOCS_PREPROC_DIR, "_crate_autoimport_db_help.txt"),
+    )
+    run_cmd(
         [CrateCommand.FETCH_WORDLISTS, helpflag],
         join(DevPath.DOCS_PREPROC_DIR, "_crate_fetch_wordlists_help.txt"),
     )

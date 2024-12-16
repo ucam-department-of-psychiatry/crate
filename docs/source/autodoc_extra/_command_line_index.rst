@@ -33,6 +33,8 @@ Index of CRATE commands
 
 :ref:`crate_anonymise_multiprocess <crate_anonymise_multiprocess>`
 
+:ref:`crate_autoimport_db <crate_autoimport_db>`
+
 :ref:`crate_bulk_hash <crate_bulk_hash>`
 
 :ref:`crate_celery_status <crate_celery_status>`
