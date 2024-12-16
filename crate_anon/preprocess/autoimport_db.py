@@ -30,6 +30,14 @@ as file-like objects, and can be iterated in a low-memory way very fast.
 Spreadsheet-type objects often need to be loaded "whole", so repeat iteration
 is less sensible. We're trying to handle both, so no perfect/simple way.
 
+Considered but not done:
+
+- Track min/max for numeric types. This would allow us to refine the integer
+  type. However, there is always the danger that we scan data and create tables
+  for one set of files, then want to import from another, and the latter has
+  more extreme values. So we just use a column type (BigInteger) with wide
+  capabilities. (Having said that, we do track the maximum length of strings!)
+
 """
 
 import argparse
@@ -477,8 +485,6 @@ class ColumnTypeDetector:
         self.seen_bool = False
         self.seen_int = False
         self.seen_float = False
-        # self.min_numeric = math.inf
-        # self.max_numeric = -math.inf
 
         # String and string-derived types:
         self.seen_str = False
@@ -520,13 +526,9 @@ class ColumnTypeDetector:
             return
         if isinstance(v, int):
             self.seen_int = True
-            # self.min_numeric = min(self.min_numeric, v)
-            # self.max_numeric = max(self.max_numeric, v)
             return
         if isinstance(v, float):
             self.seen_float = True
-            # self.min_numeric = min(self.min_numeric, v)
-            # self.max_numeric = max(self.max_numeric, v)
             return
         is_str = isinstance(v, str)
         if is_date_like_not_datetime_like(v):
