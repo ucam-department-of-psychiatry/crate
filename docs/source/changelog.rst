@@ -1688,7 +1688,7 @@ Changes
 - Change the installer to test external database connections early and give
   better feedback to the user regarding failures.
 
-- Update ``crate_postcodes`` to fully support the August 2024 ONSPD. Offer
+- Update ``crate_postcodes`` to fully support the November 2024 ONSPD. Offer
   partial support for ONSPD lookup tables in earlier/future versions by not
   failing when there is a mismatch between the created database tables and the
   ONSPD spreadsheet files.
