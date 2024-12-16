@@ -21,3 +21,7 @@ python:
       path: .
 
 formats: []
+
+search:
+  ranking:
+    "autodoc/*.html": -10
