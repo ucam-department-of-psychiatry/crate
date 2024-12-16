@@ -2103,18 +2103,15 @@ def populate_postcode_table(
 
 def populate_generic_lookup_table(
     sa_class: GenericLookupClassType,
-    datadir: str,
+    filename: str,
     session: Session,
     replace: bool = False,
     commit: bool = True,
     commitevery: int = DEFAULT_COMMIT_EVERY,
     dump: bool = False,
-) -> bool:
+) -> None:
     """
     Populates one of many generic lookup tables with ONSPD data.
-
-    We find the data filename from the ``__filename__`` property of the
-    specific class, hunting for it within ``datadir`` and its subdirectories.
 
     The ``.TXT`` files look at first glance like tab-separated values files,
     but in some cases have inconsistent numbers of tabs (e.g. "2011 Census
@@ -2124,11 +2121,9 @@ def populate_generic_lookup_table(
     If the headings parameter is passed, those headings are used. Otherwise,
     the first row is used for headings.
 
-    Returns False if the file could not be found, otherwise True.
-
     Args:
         sa_class: SQLAlchemy ORM class
-        datadir: root directory of ONSPD data
+        filename: .XLSX file containing lookup table
         session: SQLAlchemy ORM database session
         replace: replace tables even if they exist? (Otherwise, skip existing
             tables.)
@@ -2137,12 +2132,6 @@ def populate_generic_lookup_table(
         dump: Dump a sample of lines from every table
     """
     tablename = sa_class.__tablename__
-
-    try:
-        filename = find_first(sa_class.__filename__, datadir)
-    except IndexError:
-        log.info(f"Could not find match for {sa_class.__filename__}; skipping")
-        return False
 
     headings = getattr(sa_class, "__headings__", [])
     debug = getattr(sa_class, "__debug_content__", False)
@@ -2204,8 +2193,6 @@ def populate_generic_lookup_table(
     if commit:
         commit_and_announce(session)
     log.info(f"... inserted {num_inserted} rows")
-
-    return True
 
 
 def read_spreadsheet(
@@ -2467,45 +2454,63 @@ def main() -> None:
     session = sessionmaker(bind=engine)()
 
     log.info(f"Using directory: {args.dir}")
-    # lookupdir = os.path.join(args.dir, "Documents")
-    lookupdir = args.dir
-    # datadir = os.path.join(args.dir, "Data")
     datadir = args.dir
 
     if not args.skiplookup:
         all_files = [os.path.basename(f) for f in find("*.xlsx", datadir)]
         found_files = []
         missing_files = []
+        omitted_files = []
 
         for sa_class in classlist:
+            filename = None
+
+            try:
+                filename = find_first(sa_class.__filename__, datadir)
+                basename = os.path.basename(filename)
+            except IndexError:
+                log.info(
+                    f"Could not find match for {sa_class.__filename__}; "
+                    "skipping"
+                )
+                missing_files.append(sa_class.__filename__)
+                continue
+
             if (
                 args.specific_lookup_tables
                 and sa_class.__tablename__ not in args.specific_lookup_tables
             ):
+                omitted_files.append(basename)
                 continue
-            if populate_generic_lookup_table(
+
+            populate_generic_lookup_table(
                 sa_class=sa_class,
-                datadir=lookupdir,
+                filename=filename,
                 session=session,
                 replace=args.replace,
                 commit=True,
                 commitevery=args.commitevery,
                 dump=args.dump,
-            ):
-                found_files.append(sa_class.__filename__)
-            else:
-                missing_files.append(sa_class.__filename__)
+            )
+            found_files.append(basename)
 
-        extra_files = sorted(set(all_files) - set(found_files))
+        extra_files = sorted(
+            set(all_files) - set(found_files) - set(omitted_files)
+        )
         if extra_files:
             log.warning(
-                "These files were ignored either because they were "
-                f"deliberately skipped or they weren't handled : {extra_files}"
+                "You may be using a later version of ONSPD and the importer "
+                f"didn't recognise these files: {extra_files}"
+            )
+
+        if omitted_files:
+            log.warning(
+                f"These files were deliberately omitted: {omitted_files}"
             )
 
         if missing_files:
             log.info(
-                f"These Files were not found under {datadir}: {missing_files}"
+                f"These files were not found under {datadir}: {missing_files}"
             )
 
     if not args.skippostcodes:
