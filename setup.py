@@ -153,7 +153,7 @@ INSTALL_REQUIRES = [
     "pytest-django==4.5.2",  # automatic testing
     "python-on-whales==0.68.0",  # python wrappers for testing with Docker
     "sphinx==7.1.2",  # documentation
-    "sphinx_rtd_theme==2.0.0",  # documentation
+    "sphinx_rtd_theme==3.0.2",  # documentation
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
     # ---------------------------------------------------------------------
