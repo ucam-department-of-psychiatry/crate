@@ -658,7 +658,7 @@ class Postcode(Base):
             "Community Health Partnership (CHP)/ "
             "Local Commissioning Group (LCG)/ "
             "Primary Healthcare Directorate (PHD) "
-            "[FK to loc_sub_icb_locations_2022]",
+            "[FK to loc_sub_icb_locations_2022]"
         ),
     )
 
