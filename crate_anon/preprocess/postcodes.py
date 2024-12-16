@@ -1824,7 +1824,7 @@ class Ward2024(Base):
     Represents electoral wards, UK 2024.
     """
 
-    __filename__ = "Ward names and codes UK as at 05_24.xlsx"
+    __filename__ = "Ward names and codes UK as at ??_24.xlsx"
     __tablename__ = "electoral_ward_2024"
 
     ward_code = Column(String(CODE_LEN), primary_key=True)
