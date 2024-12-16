@@ -23,5 +23,5 @@ python:
 formats: []
 
 search:
-  ignore:
-    - "autodoc/*.html"
+  ranking:
+    "autodoc/*.html": -10
