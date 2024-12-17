@@ -163,6 +163,15 @@ class Cloud(TableMaker):
         """
         return self.schema_type == NlprpValues.TABULAR
 
+    def get_tabular_schema_tablenames(self) -> List[str]:
+        """
+        Returns the names of the tables in the tabular schema (or an empty list
+        if we do not have a tabular schema).
+        """
+        if not self.is_tabular():
+            return []
+        return list(self.schema.keys())
+
     def get_tablename_from_type(self, output_type: str) -> str:
         return self._type_to_tablename[output_type]
 

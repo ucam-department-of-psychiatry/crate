@@ -208,7 +208,7 @@ MYSQL_MAX_IDENTIFIER_LENGTH = 64
 # MySQL: 64 -- http://dev.mysql.com/doc/refman/5.7/en/identifiers.html
 SQLSERVER_MAX_IDENTIFIER_LENGTH = 128
 # Microsoft SQL Server: 128 --
-# https://docs.microsoft.com/en-us/sql/relational-databases/databases/database-identifiers  # noqa
+# https://docs.microsoft.com/en-us/sql/relational-databases/databases/database-identifiers  # noqa: E501
 
 
 # =============================================================================
@@ -872,7 +872,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 {_SK.DDGEN_FILENAME_TO_TEXT_FIELDS} =
 {_SK.DDGEN_BINARY_TO_TEXT_FIELD_PAIRS} =
 
-"""  # noqa
+"""  # noqa: E501
 
 # For the style:
 #       [source_databases]

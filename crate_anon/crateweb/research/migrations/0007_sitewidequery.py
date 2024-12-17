@@ -53,20 +53,20 @@ class Migration(migrations.Migration):
                             "64-bit non-cryptographic hash of SQL query"
                         )
                     ),
-                ),  # nopep8
+                ),
                 (
                     "args",
                     JsonClassField(
                         null=True, verbose_name="SQL arguments (as JSON)"
                     ),
-                ),  # nopep8
+                ),
                 (
                     "raw",
                     models.BooleanField(
                         default=False,
                         verbose_name="SQL is raw, not parameter-substituted",
                     ),
-                ),  # nopep8
+                ),
                 (
                     "qmark",
                     models.BooleanField(
@@ -76,7 +76,7 @@ class Migration(migrations.Migration):
                             " placeholders"
                         ),
                     ),
-                ),  # nopep8
+                ),
                 ("created", models.DateTimeField(auto_now_add=True)),
                 (
                     "deleted",
@@ -87,13 +87,13 @@ class Migration(migrations.Migration):
                             " queries are never properly deleted."
                         ),
                     ),
-                ),  # nopep8
+                ),
                 (
                     "description",
                     models.TextField(
                         default="", verbose_name="query description"
                     ),
-                ),  # nopep8
+                ),
             ],
             options={
                 "abstract": False,

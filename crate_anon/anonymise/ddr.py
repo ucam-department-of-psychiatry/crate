@@ -1045,7 +1045,7 @@ class DataDictionaryRow:
         kwargs = {
             "doc": comment,  # Python side
             "comment": comment,  # SQL side; supported from SQLAlchemy 1.2:
-            # https://docs.sqlalchemy.org/en/14/core/metadata.html#sqlalchemy.schema.Column.params.comment  # noqa
+            # https://docs.sqlalchemy.org/en/14/core/metadata.html#sqlalchemy.schema.Column.params.comment  # noqa: E501
         }
         if self.pk:
             kwargs["primary_key"] = True

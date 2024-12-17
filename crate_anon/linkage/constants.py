@@ -70,7 +70,7 @@ DAYS_PER_MONTH = DAYS_PER_YEAR / MONTHS_PER_YEAR  # on average
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 
 UK_MEAN_OA_POPULATION_2011 = 309  # not used any more! Left here for interest.
-# ... https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography  # noqa
+# ... https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography  # noqa: E501
 UK_POPULATION_2017 = 66040000  # 2017 figure, 66.04m
 CAMBS_PBORO_POPULATION_2018 = 852523
 

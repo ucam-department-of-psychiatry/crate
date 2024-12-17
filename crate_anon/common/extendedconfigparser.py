@@ -148,7 +148,7 @@ class ExtendedConfigParser(configparser.ConfigParser):
         # 'converters': Python 3.5 and up
         super().__init__(*args, **kwargs)
         if case_sensitive:
-            # https://stackoverflow.com/questions/1611799/preserve-case-in-configparser  # noqa
+            # https://stackoverflow.com/questions/1611799/preserve-case-in-configparser  # noqa: E501
             self.optionxform = str
 
     # Use the underlying ConfigParser class for e.g.

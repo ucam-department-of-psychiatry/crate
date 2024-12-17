@@ -110,7 +110,7 @@ def get_response(
     #   "deflate" transfer-encodings from the server; see
     #   http://docs.python-requests.org/en/master/user/quickstart/.
     # - The difference between gzip and deflate:
-    #   https://stackoverflow.com/questions/388595/why-use-deflate-instead-of-gzip-for-text-files-served-by-apache  # noqa
+    #   https://stackoverflow.com/questions/388595/why-use-deflate-instead-of-gzip-for-text-files-served-by-apache  # noqa: E501
     log.debug(
         f"Reply has status_code={r.status_code}, headers={r.headers!r}, "
         f"text={r.text!r}"
@@ -120,7 +120,7 @@ def get_response(
         # "r.text" automatically does gzip decode
     except (
         ValueError
-    ):  # includes simplejson.errors.JSONDecodeError, json.decoder.JSONDecodeError  # noqa
+    ):  # includes simplejson.errors.JSONDecodeError, json.decoder.JSONDecodeError  # noqa: E501
         fail("Reply was not JSON")
         response = None  # for type checker
     log.debug(f"Response JSON decoded to: {response.dict!r}")

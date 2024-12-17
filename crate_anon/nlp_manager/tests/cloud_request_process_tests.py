@@ -34,10 +34,16 @@ from unittest import mock, TestCase
 from cardinal_pythonlib.httpconst import HttpStatus
 from sqlalchemy.exc import OperationalError
 
-from crate_anon.nlprp.constants import (
-    NlprpKeys as NKeys,
+from crate_anon.nlprp.constants import NlprpKeys as NKeys, NlprpValues
+from crate_anon.nlp_manager.cloud_request import (
+    CloudRequestProcess,
+    CloudRequestListProcessors,
 )
-from crate_anon.nlp_manager.cloud_request import CloudRequestProcess
+
+
+# =============================================================================
+# CloudRequestProcessTests
+# =============================================================================
 
 
 class CloudRequestProcessTests(TestCase):
@@ -232,3 +238,143 @@ class CloudRequestProcessTests(TestCase):
                 ready = self.process.check_if_ready()
         self.assertFalse(ready)
         self.assertIn("Got HTTP status code 403", logging_cm.output[0])
+
+
+# =============================================================================
+# CloudRequestListProcessorsTests
+# =============================================================================
+
+# A real one that wasn't working, 2024-12-16, with keys parameterized and
+# boolean values Pythonized.
+TEST_PROCINFO_SMOKING = {
+    NKeys.DESCRIPTION: "A description",
+    NKeys.IS_DEFAULT_VERSION: True,
+    NKeys.NAME: "smoking",
+    NKeys.SCHEMA_TYPE: NlprpValues.TABULAR,
+    NKeys.SQL_DIALECT: "mssql",
+    NKeys.TABULAR_SCHEMA: {
+        "Smoking:Smoking": [
+            {
+                NKeys.COLUMN_NAME: "start_",
+                NKeys.COLUMN_TYPE: "BIGINT",
+                NKeys.DATA_TYPE: "BIGINT",
+                NKeys.IS_NULLABLE: False,
+            },
+            {
+                NKeys.COLUMN_NAME: "end_",
+                NKeys.COLUMN_TYPE: "BIGINT",
+                NKeys.DATA_TYPE: "BIGINT",
+                NKeys.IS_NULLABLE: False,
+            },
+            {
+                NKeys.COLUMN_NAME: "who",
+                NKeys.COLUMN_TYPE: "NVARCHAR(255)",
+                NKeys.DATA_TYPE: "NVARCHAR",
+                NKeys.IS_NULLABLE: True,
+            },
+            {
+                NKeys.COLUMN_NAME: "rule",
+                NKeys.COLUMN_TYPE: "VARCHAR(50)",
+                NKeys.DATA_TYPE: "VARCHAR",
+                NKeys.IS_NULLABLE: True,
+            },
+            {
+                NKeys.COLUMN_NAME: "status",
+                NKeys.COLUMN_TYPE: "VARCHAR(10)",
+                NKeys.DATA_TYPE: "VARCHAR",
+                NKeys.IS_NULLABLE: True,
+            },
+        ]
+    },
+    NKeys.TITLE: "Smoking Status Annotator",
+    NKeys.VERSION: "0.1",
+}
+
+
+class CloudRequestListProcessorsTests(TestCase):
+    def setUp(self) -> None:
+        # As above
+        self.mock_execute_method = mock.Mock()
+        self.mock_session = mock.Mock(execute=self.mock_execute_method)
+        self.mock_db = mock.Mock(session=self.mock_session)
+
+        self.mock_notify_transaction_method = mock.Mock()
+        self.mock_nlpdef = mock.Mock(
+            notify_transaction=self.mock_notify_transaction_method
+        )
+        self.mock_nlpdef.name = "testlistprocdef"
+        self.process = CloudRequestListProcessors(nlpdef=self.mock_nlpdef)
+
+        self.test_version = "0.3.0"
+
+    def test_processors_key_missing(self) -> None:
+        response = {
+            NKeys.STATUS: HttpStatus.ACCEPTED,
+            NKeys.VERSION: self.test_version,
+            # Missing: NKeys.PROCESSORS
+        }
+        with mock.patch.object(
+            self.process, "_post_get_json", return_value=response
+        ):
+            with self.assertRaises(KeyError):
+                self.process.get_remote_processors()
+
+    def test_processors_not_list(self) -> None:
+        response = {
+            NKeys.STATUS: HttpStatus.ACCEPTED,
+            NKeys.VERSION: self.test_version,
+            NKeys.PROCESSORS: "XXX",  # not a list
+        }
+        with mock.patch.object(
+            self.process, "_post_get_json", return_value=response
+        ):
+            with self.assertRaises(ValueError):
+                self.process.get_remote_processors()
+
+    def test_procinfo_not_dict(self) -> None:
+        procinfo = "xxx"  # not a dict
+        response = {
+            NKeys.STATUS: HttpStatus.ACCEPTED,
+            NKeys.VERSION: self.test_version,
+            NKeys.PROCESSORS: [procinfo],
+        }
+        with mock.patch.object(
+            self.process, "_post_get_json", return_value=response
+        ):
+            with self.assertRaises(ValueError):
+                self.process.get_remote_processors()
+
+    def test_procinfo_missing_keys(self) -> None:
+        mandatory_keys = (
+            NKeys.NAME,
+            NKeys.TITLE,
+            NKeys.VERSION,
+            NKeys.DESCRIPTION,
+        )
+        base_procinfo = {k: "x" for k in mandatory_keys}
+        for key in mandatory_keys:
+            procinfo = base_procinfo.copy()
+            del procinfo[key]
+            response = {
+                NKeys.STATUS: HttpStatus.ACCEPTED,
+                NKeys.VERSION: self.test_version,
+                NKeys.PROCESSORS: [procinfo],
+            }
+            with mock.patch.object(
+                self.process, "_post_get_json", return_value=response
+            ):
+                with self.assertRaises(KeyError):
+                    self.process.get_remote_processors()
+
+    def test_procinfo_smoking(self) -> None:
+        response = {
+            NKeys.STATUS: HttpStatus.ACCEPTED,
+            NKeys.VERSION: self.test_version,
+            NKeys.PROCESSORS: [TEST_PROCINFO_SMOKING],
+        }
+        with mock.patch.object(
+            self.process, "_post_get_json", return_value=response
+        ):
+            self.process.get_remote_processors()
+        # Should be happy.
+        # *** now test table creation

@@ -151,9 +151,9 @@ MYSQL_COLTYPE_TO_LEN = {
 
 MSSQL_COLTYPE_TO_LEN = {
     # The "N" prefix means Unicode.
-    # https://docs.microsoft.com/en-us/sql/t-sql/data-types/char-and-varchar-transact-sql?view=sql-server-ver15  # noqa
-    # https://docs.microsoft.com/en-us/sql/t-sql/data-types/nchar-and-nvarchar-transact-sql?view=sql-server-ver15  # noqa
-    # https://docs.microsoft.com/en-us/sql/t-sql/data-types/ntext-text-and-image-transact-sql?view=sql-server-ver15  # noqa
+    # https://docs.microsoft.com/en-us/sql/t-sql/data-types/char-and-varchar-transact-sql?view=sql-server-ver15  # noqa: E501
+    # https://docs.microsoft.com/en-us/sql/t-sql/data-types/nchar-and-nvarchar-transact-sql?view=sql-server-ver15  # noqa: E501
+    # https://docs.microsoft.com/en-us/sql/t-sql/data-types/ntext-text-and-image-transact-sql?view=sql-server-ver15  # noqa: E501
     "NVARCHAR_MAX": 2**30 - 1,
     # Can specify NVARCHAR(1) to NVARCHAR(4000), or NVARCHAR(MAX) for 2^30 - 1.
     "VARCHAR_MAX": 2**31 - 1,

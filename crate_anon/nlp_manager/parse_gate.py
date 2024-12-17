@@ -52,7 +52,7 @@ from crate_anon.nlp_manager.base_nlp_parser import (
 from crate_anon.nlp_manager.constants import (
     MAX_SQL_FIELD_LEN,
     ProcessorConfigKeys,
-    GateFieldNames as GateFN,
+    GateFieldNames,
 )
 from crate_anon.nlp_manager.nlp_definition import (
     NlpDefinition,
@@ -318,7 +318,7 @@ class Gate(BaseNlpParser):
                 d = tsv_pairs_to_dict(line)
                 log.debug(f"dictionary received: {d}")
                 try:
-                    annottype = d[GateFN.TYPE].lower()
+                    annottype = d[GateFieldNames.TYPE].lower()
                 except KeyError:
                     raise ValueError("_type information not in data received")
                 if annottype not in self._type_to_tablename:
