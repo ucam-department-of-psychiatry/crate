@@ -1688,8 +1688,6 @@ Changes
 - Change the installer to test external database connections early and give
   better feedback to the user regarding failures.
 
-- Give the code documentation lower weighting when searching on readthedocs.org.
-
 
 To do
 -----
