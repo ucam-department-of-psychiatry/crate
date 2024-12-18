@@ -140,7 +140,7 @@ def wipe_and_recreate_destination_db(
             ``incremental``.
     """
     assert not (incremental and full_drop_only)
-    engine = config.destdb.dummy_engine
+    engine = config.destdb.engine
 
     if full_drop_only:
         log.info("Dropping tables from destination database")
@@ -219,7 +219,7 @@ def delete_dest_rows_with_no_src_row(
     log.info(start + "[WARNING: MAY BE SLOW]")
 
     metadata = MetaData()  # operate in isolation!
-    destengine = config.destdb.dummy_engine
+    destengine = config.destdb.engine
     destsession = config.destdb.session
     dest_table = config.dd.get_dest_sqla_table(dest_table_name)
     pkddr = config.dd.get_pk_ddr(srcdbname, src_table)
@@ -1585,7 +1585,7 @@ def wipe_destination_data_for_opt_out_patients(
 
     adminsession = config.admindb.session
     metadata = MetaData()  # operate in isolation!
-    destengine = config.destdb.dummy_engine
+    destengine = config.destdb.engine
     destsession = config.destdb.session
     ridfield = config.research_id_fieldname
 
@@ -1675,7 +1675,7 @@ def drop_remake(
     """
     assert not (full_drop_only and incremental)
     log.info(SEP + "Creating database structure +/- deleting dead data")
-    engine = config.admindb.dummy_engine
+    engine = config.admindb.engine
 
     # -------------------------------------------------------------------------
     # Mapping tables
