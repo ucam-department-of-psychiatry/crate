@@ -797,7 +797,7 @@ class CloudRequestProcess(CloudRequest):
 
         Args:
             processor:
-                The processor object:
+                The processor object.
             tablename:
                 The table name to use.
             rows:

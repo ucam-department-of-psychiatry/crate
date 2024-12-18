@@ -624,10 +624,11 @@ class CloudRequestDataTests(TestCase):
         """
         Test the full pipeline:
 
-        - create a source database
-        - build a config file
-        - create destination tables
-        - run data through cloud NLP, and insert results
+        - create a source database (in setUp);
+        - build a config file (in setUp);
+        - create destination tables, based on remote processor definitions
+          using tabular_schema;
+        - run data through cloud NLP, and insert results.
 
         """
         drop_remake(nlpdef=self.nlpdef)

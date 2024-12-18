@@ -45,16 +45,6 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
-# Constants
-# =============================================================================
-
-TABLE_STRUCTURE_UNSPECIFIED = (
-    "You haven't specified a table structure and the processor hasn't "
-    "provided one."
-)
-
-
-# =============================================================================
 # Cloud class for cloud-based processsors
 # =============================================================================
 
@@ -298,7 +288,10 @@ class Cloud(TableMaker):
         # the processor, or we have user-specified destfields
         assert self.is_tabular() or all(
             x.destfields for x in self._outputtypemap.values()
-        ), TABLE_STRUCTURE_UNSPECIFIED
+        ), (
+            "You haven't specified a table structure and the processor hasn't "
+            "provided one."
+        )
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         """

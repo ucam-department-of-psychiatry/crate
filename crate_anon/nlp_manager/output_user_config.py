@@ -129,10 +129,10 @@ class OutputUserConfig:
                     f"section {sectionname!r}; line was {line!r} but should "
                     f"have contained two things"
                 )
-            from_column_name = words[0]
+            annotation_or_remote_column_name = words[0]
             to_column_name = words[1]
             ensure_valid_field_name(to_column_name)
-            self._renames[from_column_name] = to_column_name
+            self._renames[annotation_or_remote_column_name] = to_column_name
 
         # ---------------------------------------------------------------------
         # null_literals
