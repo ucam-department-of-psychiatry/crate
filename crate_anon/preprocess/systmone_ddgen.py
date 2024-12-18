@@ -410,7 +410,7 @@ Related tools
   et al. 2014, https://pubmed.ncbi.nlm.nih.gov/25261970/) perform similar
   researcher/data separation via other methods.
 
-"""  # noqa
+"""  # noqa: E501
 
 # todo: SystmOne (CRATE traffic-light system): implement S1_ClinicalOutcome_ConsentResearch  # noqa
 

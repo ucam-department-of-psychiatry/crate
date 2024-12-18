@@ -977,7 +977,7 @@ def get_latest_consent_mode_from_rio_generic(
                 po.NHSNumber = %s  -- string comparison
             ORDER BY
                 cr.AssessmentDate DESC
-        """  # noqa
+        """  # noqa: E501
         # BEWARE "%s" IN SQL COMMENTS! The database backend will crash because
         # the number of substituted parameters will be wrong.
         # New as of 2018-06-28:
@@ -999,7 +999,7 @@ def get_latest_consent_mode_from_rio_generic(
                 cr.NHSNumber = %s  -- string comparison
             ORDER BY
                 cr.AssessmentDate DESC
-        """  # noqa
+        """  # noqa: E501
     else:
         assert False, "Internal bug"  # makes type checker happy
 

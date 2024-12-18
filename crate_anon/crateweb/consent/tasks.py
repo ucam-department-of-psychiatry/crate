@@ -97,7 +97,7 @@ See also :mod:`crate_anon.crateweb.consent.celery`, which defines the ``app``.
 
   Requires Django 1.9. As of 2015-11-21, that means 1.9rc1
 
-"""  # noqa
+"""  # noqa: E501
 
 import logging
 from celery import shared_task
@@ -195,7 +195,7 @@ def finalize_clinician_response(clinician_response_id: int) -> None:
 
     Args:
         clinician_response_id: PK of the clinician response
-    """  # noqa
+    """  # noqa: E501
     from crate_anon.crateweb.consent.models import (
         ClinicianResponse,
     )  # delayed import

@@ -571,7 +571,7 @@ class DataDictionary:
             CREATE TABLE junk (intthing INT PRIMARY KEY, text1 LONGTEXT, text2 LONGTEXT);
             ALTER TABLE junk ADD FULLTEXT INDEX ftidx1 (text1);
             ALTER TABLE junk ADD FULLTEXT INDEX ftidx2 (text2);  -- OK
-        """  # noqa
+        """  # noqa: E501
         log.info("Tidying/correcting draft data dictionary")
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

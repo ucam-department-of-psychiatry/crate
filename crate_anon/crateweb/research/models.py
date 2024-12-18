@@ -278,7 +278,7 @@ def get_executed_researchdb_cursor(
         from crate_anon.crateweb.research.models import *
         c = get_executed_researchdb_cursor("SELECT 1")
 
-    """  # noqa
+    """  # noqa: E501
     args = args or []
     cursor = connections[
         RESEARCH_DB_CONNECTION_NAME
@@ -1535,7 +1535,7 @@ class PatientMultiQuery:
 
       - ... within
 
-    """  # noqa
+    """  # noqa: E501
 
     def __init__(
         self,
@@ -1690,7 +1690,7 @@ class PatientMultiQuery:
                 AND anonymous_output.patient.nhshash IS NOT NULL
             ORDER BY _mrid
 
-        """  # noqa
+        """  # noqa: E501
         self._manual_patient_id_query = query
 
     def _get_select_mrid_column(self) -> Optional[ColumnId]:

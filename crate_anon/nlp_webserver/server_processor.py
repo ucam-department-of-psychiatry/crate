@@ -30,11 +30,17 @@ ServerProcessor class.
 from typing import Dict, Optional, Any
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
-from crate_anon.nlp_manager.all_processors import make_nlp_parser_unconfigured
+from crate_anon.nlp_manager.processor_helpers import (
+    make_nlp_parser_unconfigured,
+)
 from crate_anon.nlprp.api import JsonObjectType, NlprpServerProcessor
 from crate_anon.nlprp.constants import NlprpKeys, NlprpValues
 from crate_anon.nlprp.errors import BAD_REQUEST, mkerror, no_such_proc_error
-from crate_anon.nlp_webserver.constants import PROCTYPE_GATE, GATE_BASE_URL
+from crate_anon.nlp_webserver.constants import (
+    KEY_PROCTYPE,
+    PROCTYPE_GATE,
+    GATE_BASE_URL,
+)
 
 
 class ServerProcessor(NlprpServerProcessor):
@@ -92,6 +98,23 @@ class ServerProcessor(NlprpServerProcessor):
 
         # Add instance to list of processors
         ServerProcessor.processors[self.processor_id] = self
+
+    @classmethod
+    def from_nlprp_json_dict(
+        cls, processor_dict: Dict[str, Any]
+    ) -> NlprpServerProcessor:
+        pd = processor_dict  # shorthand
+        return ServerProcessor(
+            name=pd[NlprpKeys.NAME],
+            title=pd[NlprpKeys.TITLE],
+            version=pd[NlprpKeys.VERSION],
+            is_default_version=pd[NlprpKeys.IS_DEFAULT_VERSION],
+            description=pd[NlprpKeys.DESCRIPTION],
+            proctype=pd.get(KEY_PROCTYPE),  # may be None
+            schema_type=pd[NlprpKeys.SCHEMA_TYPE],  # 'unknown' or 'tabular'
+            sql_dialect=pd.get(NlprpKeys.SQL_DIALECT),
+            tabular_schema=pd.get(NlprpKeys.TABULAR_SCHEMA),
+        )  # also registers with the ServerProcessor class
 
     @property
     def processor_id(self) -> str:

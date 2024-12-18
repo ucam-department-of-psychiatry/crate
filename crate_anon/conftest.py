@@ -282,7 +282,7 @@ def setup(
     # methods, but it still supports the latter perfectly well.
     # We use this fixture in testing/classes.py to store these values into
     # DatabaseTestCase and its descendants.
-    request.cls.engine = engine
+    request.cls.dummy_engine = engine
     request.cls.database_on_disk = database_on_disk
     request.cls.dbsession = dbsession
     request.cls.tmpdir_obj = tmpdir_obj

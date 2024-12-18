@@ -35,7 +35,7 @@ To create a SQLAlchemy Table programmatically:
 To create a SQLAlchemy ORM programmatically:
 
 - https://stackoverflow.com/questions/2574105/sqlalchemy-dynamic-mapping/2575016#2575016
-"""  # noqa
+"""  # noqa: E501
 
 import logging
 import random

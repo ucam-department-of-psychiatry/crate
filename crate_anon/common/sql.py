@@ -222,7 +222,7 @@ class SchemaId:
 
       - https://stackoverflow.com/questions/11618277/difference-between-schema-database-in-mysql
 
-    """  # noqa
+    """  # noqa: E501
 
     def __init__(self, db: str = "", schema: str = "") -> None:
         """
@@ -2452,7 +2452,7 @@ def translate_sql_qmark_to_percent(sql: str) -> str:
       :class:`cardinal_pythonlib.sql.sql_grammar.SqlGrammar` objects, so that
       the visual appearance matches what they expect from their database.
 
-    """  # noqa
+    """  # noqa: E501
     # 1. Escape % characters
     sql = escape_percent_for_python_dbapi(sql)
     # 2. Replace ? characters that are not within quotes with %s.
@@ -2466,3 +2466,29 @@ def translate_sql_qmark_to_percent(sql: str) -> str:
         else:
             newsql += c
     return newsql
+
+
+def decorate_index_name(
+    idxname: str, tablename: str = None, engine: Engine = None
+) -> str:
+    """
+    Amend the name of a database index. Specifically, this is because SQLite
+    (which we won't use much, but do use for testing!) won't accept two indexes
+    with the same names applying to different tables.
+
+    Args:
+        idxname:
+            The original index name.
+        tablename:
+            The name of the table.
+        engine:
+            The SQLAlchemy engine, from which we obtain the dialect.
+
+    Returns:
+        The index name, amended if necessary.
+    """
+    if not tablename or not engine:
+        return idxname
+    if engine.dialect.name == "sqlite":
+        return f"{idxname}_{tablename}"
+    return idxname

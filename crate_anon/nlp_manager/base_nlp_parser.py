@@ -67,6 +67,7 @@ from crate_anon.anonymise.constants import (
     COMMENT,
     TABLE_KWARGS,
 )
+from crate_anon.common.sql import decorate_index_name
 from crate_anon.common.stringfunc import (
     compress_docstring,
     does_text_contain_word_chars,
@@ -226,6 +227,9 @@ class TableMaker(ABC):
         """
         Describes indexes that this NLP processor suggests for its destination
         table(s).
+
+        It is perfectly legitimate for the list not to include some tables, or
+        indeed to be empty.
 
         Returns:
              dict: a dictionary of ``{tablename: indexes}``, where ``indexes``
@@ -431,14 +435,17 @@ class TableMaker(ABC):
             ),
         ]
 
-    @staticmethod
-    def _standard_gate_indexes() -> List[Index]:
+    def _standard_gate_indexes(self, dest_tablename: str) -> List[Index]:
         """
         Returns standard indexes for GATE output.
         """
         return [
             Index(
-                "_idx__set", GateFieldNames.SET, mysql_length=MAX_SQL_FIELD_LEN
+                decorate_index_name(
+                    "_idx__set", dest_tablename, self.dest_engine
+                ),
+                GateFieldNames.SET,
+                mysql_length=MAX_SQL_FIELD_LEN,
             )
         ]
 
@@ -484,7 +491,9 @@ class TableMaker(ABC):
             copyindexes_list = [i.get_copy_indexes() for i in ifconfigs]
             self._assert_index_lists_identical(copyindexes_list)
             copy_indexes = copyindexes_list[0]
-            core_indexes = InputFieldConfig.get_core_indexes_for_dest()
+            core_indexes = InputFieldConfig.get_core_indexes_for_dest(
+                tablename=tablename, engine=self._destdb.engine
+            )
 
             column_like_things = (
                 copy_of_cols + core_indexes + extra_dest_indexes + copy_indexes
@@ -522,9 +531,12 @@ class TableMaker(ABC):
         try:
             return tables[tablename]
         except KeyError:
+            all_tablenames = list(tables.keys())
             raise KeyError(
-                f"No destination table for this NLP processor "
-                f"named {tablename!r}"
+                f"For this NLP processor ({self._cfg_processor_name!r}), the "
+                f"destination table named {tablename!r} does not have an "
+                f"associated Table object. Known Table objects are "
+                f"named {all_tablenames}"
             )
 
     def make_tables(self, drop_first: bool = False) -> List[str]:
@@ -693,6 +705,7 @@ class BaseNlpParser(TableMaker):
     """
 
     uses_external_tool = False  # may be overridden
+    is_test_nlp_parser = False  # may be overridden by tests!
 
     def __init__(
         self,

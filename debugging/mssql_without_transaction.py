@@ -99,7 +99,7 @@ In the pyodbc source, a connect() call goes like this:
 - SQLSetConnectAttr is an ODBC function:
   https://docs.microsoft.com/en-us/sql/odbc/reference/syntax/sqlsetconnectattr-function
 
-"""  # noqa
+"""  # noqa: E501
 
 print("SQLAlchemy engine again:")
 show_query(engine, query_trancount)  # 1

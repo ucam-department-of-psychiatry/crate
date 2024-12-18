@@ -554,7 +554,7 @@ class SingleResearchDatabase:
           - ``sys.fulltext_catalogs``: https://msdn.microsoft.com/en-us/library/ms188779.aspx
           - ``sys.fulltext_index_columns``: https://msdn.microsoft.com/en-us/library/ms188335.aspx
 
-        """  # noqa
+        """  # noqa: E501
         if not schema_names:
             raise ValueError(
                 "No schema_names specified (for SQL Server " "database)"

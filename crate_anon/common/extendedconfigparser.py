@@ -30,6 +30,7 @@ crate_anon/common/extendedconfigparser.py
 import ast
 import configparser
 import logging
+import os.path
 from typing import (
     Any,
     Dict,
@@ -520,6 +521,10 @@ class ConfigSection:
             self.parser = ExtendedConfigParser(case_sensitive=case_sensitive)
             if filename:
                 log.info(f"Reading config file: {filename}")
+                if not os.path.isfile(filename):
+                    raise RuntimeError(
+                        f"Config file {filename} does not exist"
+                    )
                 self.parser.read(filename, encoding=encoding)
             else:
                 self.parser.read_file(fileobj)

@@ -237,7 +237,7 @@ def site_absolute_url(path: str) -> str:
 
     But that does at least mean we can use the same method for static and
     Django URLs.
-    """  # noqa
+    """  # noqa: E501
     url = settings.DJANGO_SITE_ROOT_ABSOLUTE_URL + path
     log.debug(f"site_absolute_url: {path} -> {url}")
     return url
@@ -467,7 +467,7 @@ class JavascriptTree(JavascriptTreeNode):
         print(t.js_str_html())
         print(t.js_data())
 
-    """  # noqa
+    """  # noqa: E501
 
     def __init__(
         self,

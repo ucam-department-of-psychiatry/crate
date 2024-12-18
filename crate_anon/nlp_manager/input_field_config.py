@@ -45,13 +45,22 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     table_or_view_exists,
 )
 from cardinal_pythonlib.timing import MultiTimerContext, timer
-from sqlalchemy import BigInteger, Column, DateTime, Index, String, Table
+from sqlalchemy import (
+    BigInteger,
+    Column,
+    DateTime,
+    Index,
+    Integer,
+    String,
+    Table,
+)
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import and_, column, exists, null, or_, select, table
 from sqlalchemy.sql.schema import MetaData
 
 from crate_anon.common.parallel import is_my_job_by_hash_prehashed
+from crate_anon.common.sql import decorate_index_name
 from crate_anon.common.stringfunc import relevant_for_nlp
 from crate_anon.nlp_manager.constants import (
     FN_CRATE_VERSION_FIELD,
@@ -254,7 +263,9 @@ class InputFieldConfig:
         return [
             Column(
                 FN_PK,
-                BigInteger,
+                # Autoincrement under SQLite needs a trick:
+                # https://docs.sqlalchemy.org/en/20/dialects/sqlite.html
+                BigInteger().with_variant(Integer, "sqlite"),
                 primary_key=True,
                 autoincrement=True,
                 comment="Arbitrary primary key (PK) of output record",
@@ -322,21 +333,28 @@ class InputFieldConfig:
         ]
 
     @staticmethod
-    def get_core_indexes_for_dest() -> List[Index]:
+    def get_core_indexes_for_dest(
+        tablename: str, engine: Engine
+    ) -> List[Index]:
         """
         Returns the core indexes to be applied to the destination tables.
         Primarily, these are for columns that refer to the source.
+
+        Args:
+            tablename:
+                The name of the table to be used in the destination.
+            engine:
+                The destination database SQLAlchemy Engine.
 
         Returns:
             a list of SQLAlchemy :class:`Index` objects
 
         See
-
         - https://stackoverflow.com/questions/179085/multiple-indexes-vs-multi-column-indexes
-        """  # noqa
+        """  # noqa: E501
         return [
             Index(
-                "_idx_srcref",
+                decorate_index_name("_idx_srcref", tablename, engine),
                 # Remember, order matters; more to less specific
                 # See also BaseNlpParser.delete_dest_record
                 FN_SRCPKVAL,
@@ -346,9 +364,12 @@ class InputFieldConfig:
                 FN_SRCDB,
                 FN_SRCPKSTR,
             ),
-            Index("_idx_srcdate", FN_SRCDATETIMEVAL),
             Index(
-                "_idx_deletion",
+                decorate_index_name("_idx_srcdate", tablename, engine),
+                FN_SRCDATETIMEVAL,
+            ),
+            Index(
+                decorate_index_name("_idx_deletion", tablename, engine),
                 # We sometimes delete just using the following; see
                 # BaseNlpParser.delete_where_srcpk_not
                 FN_NLPDEF,

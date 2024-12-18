@@ -65,14 +65,15 @@ log = logging.getLogger(__name__)
 
 class OutputUserConfig:
     """
-    Class defining configuration for the output of a given GATE app.
+    Class defining configuration for the output of a given GATE app, or remote
+    cloud app.
 
     See the documentation for the :ref:`NLP config file <nlp_config>`.
     """
 
     def __init__(
         self,
-        parser: ExtendedConfigParser,
+        config_parser: ExtendedConfigParser,
         cfg_output_name: str,
         schema_required: bool = True,
     ) -> None:
@@ -80,7 +81,7 @@ class OutputUserConfig:
         Read config from a configparser section.
 
         Args:
-            parser:
+            config_parser:
                 :class:`crate_anon.common.extendedconfigparser.ExtendedConfigParser`
             cfg_output_name:
                 config file section name suffix -- this is the second of the
@@ -89,18 +90,17 @@ class OutputUserConfig:
 
                 - :ref:`NLP config file <nlp_config>`
                 - :class:`crate_anon.nlp_manager.parse_gate.Gate`
-
-           schema_required:
-               is it required that the user has specified a schema, i.e.
-               destfields and a desttable? - Should be true for Gate, False
-               for Cloud as the remote processors may have their own schema
-               definition.
+            schema_required:
+                is it required that the user has specified a schema, i.e.
+                destfields and a desttable? - Should be true for Gate, False
+                for Cloud as the remote processors may have their own schema
+                definition.
         """
 
         sectionname = full_sectionname(
             NlpConfigPrefixes.OUTPUT, cfg_output_name
         )
-        cfg = ConfigSection(section=sectionname, parser=parser)
+        cfg = ConfigSection(section=sectionname, parser=config_parser)
 
         # ---------------------------------------------------------------------
         # desttable
@@ -129,10 +129,10 @@ class OutputUserConfig:
                     f"section {sectionname!r}; line was {line!r} but should "
                     f"have contained two things"
                 )
-            annotation_name = words[0]
-            field_name = words[1]
-            ensure_valid_field_name(field_name)
-            self._renames[annotation_name] = field_name
+            from_column_name = words[0]
+            to_column_name = words[1]
+            ensure_valid_field_name(to_column_name)
+            self._renames[from_column_name] = to_column_name
 
         # ---------------------------------------------------------------------
         # null_literals
@@ -158,7 +158,6 @@ class OutputUserConfig:
             as_words=False,
         )
         # ... comments will be removed during that process.
-        # log.critical(dest_field_lines)
         # If dest_field_lines is empty (as it may be for a Cloud processor)
         # the following block doesn't execute, so the 'dest' attributed remain
         # empty
@@ -279,7 +278,8 @@ class OutputUserConfig:
     def renames(self) -> Dict[str, str]:
         """
         Return the "rename dictionary": a dictionary mapping GATE annotation
-        names to fieldnames in the NLP destination table.
+        names (or cloud remote column names) to local field (column) names in
+        the NLP destination table.
 
         See
 

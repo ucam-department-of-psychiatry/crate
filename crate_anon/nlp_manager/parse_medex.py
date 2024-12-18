@@ -388,7 +388,7 @@ PROBLEMS:
     Therefore, we should have a Java parameter specified in the config file as
     ``-Dfile.encoding=UTF-8``.
 
-"""  # noqa
+"""  # noqa: E501
 
 import logging
 import os

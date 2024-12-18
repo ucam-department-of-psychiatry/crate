@@ -456,7 +456,7 @@ def get_word_alternatives(filenames: List[str]) -> List[List[str]]:
     Returns:
         a list of lists of equivalent words
 
-    """  # noqa
+    """  # noqa: E501
     alternatives = []  # type: List[List[str]]
     all_words_seen = set()  # type: Set[str]
     for filename in filenames:

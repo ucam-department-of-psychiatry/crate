@@ -1688,6 +1688,13 @@ Changes
 - Change the installer to test external database connections early and give
   better feedback to the user regarding failures.
 
+- Update NLP handler to cope with remote NLPRP servers providing tabular_schema
+  data!
+
+  - As part of testing, implement ``decorate_index_name()`` to deal with the
+    fact that SQLite (unusual in production, helpful in testing) insists on
+    per-database, not per-table, uniqueness in index names.
+
 
 To do
 -----

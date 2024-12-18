@@ -558,7 +558,7 @@ class CloudRequestProcess(CloudRequest):
         It can be quite a big overestimate, so we probably shouldn't chuck
         out requests just because the Python size looks too big.
 
-        """  # noqa
+        """  # noqa: E501
         if not max_length:  # None or 0
             return False  # no maximum; not too long
         # Fast, apt to overestimate size a bit (as above)
@@ -786,6 +786,7 @@ class CloudRequestProcess(CloudRequest):
         tablename: str,
         rows: List[Dict[str, Any]],
         metadata: Dict[str, Any],
+        column_renames: Dict[str, str] = None,
     ) -> Generator[Tuple[str, Dict[str, Any], Cloud], None, None]:
         """
         Get result values from processed data, where the results object is a
@@ -805,11 +806,15 @@ class CloudRequestProcess(CloudRequest):
             metadata:
                 The metadata for a particular document - it would have been
                 sent with the document and the server would have sent it back.
+            column_renames:
+                Column renames to apply.
 
         Yields ``(output_tablename, formatted_result, processor)``.
 
         """
+        column_renames = column_renames or {}
         for row in rows:
+            rename_keys_in_dict(row, column_renames)
             row.update(metadata)
             yield tablename, row, processor
 
@@ -902,6 +907,7 @@ class CloudRequestProcess(CloudRequest):
 
         Yields:
              ``(tablename, result, processor)`` for each result.
+             The ``tablename`` value is the actual destination database table.
 
         Raises:
             :exc:`KeyError` if an unexpected processor turned up in the results
@@ -970,9 +976,9 @@ class CloudRequestProcess(CloudRequest):
                 # All well. Process the results.
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 processor_results = processor_data[NKeys.RESULTS]
-                # See
-                # https://crateanon.readthedocs.io/en/latest/nlp/nlprp.html#nlprp-format-of-per-processor-results  # noqa
+                # See nlprp.rst, <nlprp_format_of_per_processor_results>.
                 if isinstance(processor_results, dict):
+                    # MULTI-TABLE.
                     # This is a dictionary mapping tables to row lists.
                     if not processor.is_tabular():
                         raise RuntimeError(
@@ -981,25 +987,30 @@ class CloudRequestProcess(CloudRequest):
                             f"table schema"
                         )
                     tnames = processor.get_tabular_schema_tablenames()
-                    for tablename, rows in processor_results.items():
-                        if tablename not in tnames:
+                    for remote_tablename, rows in processor_results.items():
+                        if remote_tablename not in tnames:
                             raise ValueError(
                                 f"For processor {name!r}, data provided for "
-                                f"table {tablename!r}, but this was not in "
-                                "the schema"
+                                f"table {remote_tablename!r}, but this was "
+                                "not in the schema"
                             )
                         yield from self.gen_nlp_values_generic_single_table(
                             processor=processor,
-                            tablename=tablename,
+                            tablename=remote_tablename,
                             rows=rows,
                             metadata=metadata,
+                            column_renames=processor.get_otconf_from_type(
+                                remote_tablename
+                            ).renames,
                         )
                 elif isinstance(processor_results, list):
+                    # SINGLE TABLE.
                     # This is a list of rows, where each row should be a
                     # dictionary mapping column names to values.
                     if processor.format == NlpDefValues.FORMAT_GATE:
                         # We have special knowledge of the "traditional" GATE
-                        # format.
+                        # format. The sub-function will work out the table
+                        # name(s).
                         yield from self.gen_nlp_values_gate(
                             processor=processor,
                             processor_results=processor_results,
@@ -1021,14 +1032,21 @@ class CloudRequestProcess(CloudRequest):
                                     "a single table; its tables are "
                                     f"{tnames!r}"
                                 )
-                            tablename = tnames[0]
+                            remote_tablename = tnames[0]
                         else:
-                            tablename = processor.tablename
+                            # We use the FIRST defined table name.
+                            remote_tablename = processor.get_first_tablename()
+                        dest_tablename = processor.get_tablename_from_type(
+                            remote_tablename
+                        )
                         yield from self.gen_nlp_values_generic_single_table(
                             processor=processor,
-                            tablename=tablename,
+                            tablename=dest_tablename,
                             rows=processor_results,
                             metadata=metadata,
+                            column_renames=processor.get_otconf_from_type(
+                                remote_tablename
+                            ).renames,
                         )
                 else:
                     raise ValueError(

@@ -527,7 +527,7 @@ def get_uk_postcode_regex_elements(
     See:
 
     - https://stackoverflow.com/questions/164979/regex-for-matching-uk-postcodes
-    """  # noqa
+    """  # noqa: E501
     # -------------------------------------------------------------------------
     # Old
     # -------------------------------------------------------------------------

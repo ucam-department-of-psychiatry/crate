@@ -958,7 +958,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
                 \s* {OUT_OF_SEPARATOR} \s*
                 ( {IGNORESIGN_INTEGER} )         # 5. group for denominator
             )?
-        """  # noqa
+        """  # noqa: E501
         if debug:
             log.debug(f"Regex for {self.classname()}: {regex_str}")
         self.regex_str = regex_str

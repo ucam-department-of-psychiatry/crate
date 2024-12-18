@@ -57,6 +57,7 @@ crate_anon/nlp_manager
     parse_medex.py.rst
     parse_substance_misuse.py.rst
     prepare_umls_for_bioyodie.py.rst
+    processor_helpers.py.rst
     regex_func.py.rst
     regex_numbers.py.rst
     regex_parser.py.rst

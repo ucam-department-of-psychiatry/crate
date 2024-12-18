@@ -61,7 +61,7 @@ Background:
 
 - https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography#output-area-oa
 
-"""  # noqa
+"""  # noqa: E501
 
 from abc import ABC, ABCMeta, abstractmethod
 import argparse
@@ -268,7 +268,7 @@ class GenericLookupClassMeta(DeclarativeMeta, ABCMeta):
     and thus define this class to inherit from those two metaclasses, so it can
     be the metaclass we want.
 
-    """  # noqa
+    """  # noqa: E501
 
     pass
 
@@ -671,7 +671,7 @@ class CASWard(Base):
     Represents censua area statistics (CAS) wards in the UK, 2003.
 
     - https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography#statistical-wards-cas-wards-and-st-wards
-    """  # noqa
+    """  # noqa: E501
 
     __filename__ = "CAS ward names and codes UK as at 01_03.xlsx"
     __tablename__ = "cas_ward_2003"
@@ -1107,9 +1107,9 @@ _ = '''
 # =============================================================================
 # Models: centroids
 # =============================================================================
-# https://webarchive.nationalarchives.gov.uk/20160105160709/https://www.ons.gov.uk/ons/guide-method/geography/products/census/spatial/centroids/index.html  # noqa
+# https://webarchive.nationalarchives.gov.uk/20160105160709/https://www.ons.gov.uk/ons/guide-method/geography/products/census/spatial/centroids/index.html  # noqa: E501
 #
-# Looking at lower_layer_super_output_areas_(e+w)_2011_population_weighted_centroids_v2.zip : # noqa
+# Looking at lower_layer_super_output_areas_(e+w)_2011_population_weighted_centroids_v2.zip : # noqa: E501
 # - LSOA_2011_EW_PWC.shp -- probably a Shape file;
 #   ... yes
 #   ... https://en.wikipedia.org/wiki/Shapefile
@@ -1124,7 +1124,7 @@ class PopWeightedCentroidsLsoa2011(Base):
     That is, the geographical centre of the LSOA, weighted by population. (A
     first approximation: imagine every person pulling on the centroid
     simultaneously and with equal force from their home. Where will it end up?)
-    """  # noqa
+    """
     __filename__ = "LSOA_2011_EW_PWC_COORD_V2.CSV"
     __tablename__ = "pop_weighted_centroids_lsoa_2011"
     # __debug_content__ = True
@@ -1133,7 +1133,7 @@ class PopWeightedCentroidsLsoa2011(Base):
     lsoa_name = Column(String(NAME_LEN))
     bng_north = Column(Integer, comment="British National Grid, North (m)")
     bng_east = Column(Integer, comment="British National Grid, East (m)")
-    # https://en.wikipedia.org/wiki/Ordnance_Survey_National_Grid#All-numeric_grid_references  # noqa
+    # https://en.wikipedia.org/wiki/Ordnance_Survey_National_Grid#All-numeric_grid_references  # noqa: E501
     latitude = Column(Numeric(precision=13, scale=10),
                       comment="Latitude (degrees, 10dp)")
     longitude = Column(Numeric(precision=13, scale=10),
