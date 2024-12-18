@@ -116,9 +116,21 @@ class ServerProcessor(NlprpServerProcessor):
             tabular_schema=pd.get(NlprpKeys.TABULAR_SCHEMA),
         )  # also registers with the ServerProcessor class
 
+    @classmethod
+    def debug_remove_processor(cls, name: str, version: str) -> None:
+        """
+        For debugging purposes (testing). De-registers a processor.
+        """
+        processor_id = cls._mk_processor_id(name, version)
+        cls.processors.pop(processor_id, None)  # delete if present
+
+    @classmethod
+    def _mk_processor_id(cls, name: str, version: str) -> str:
+        return f"{name}_{version}"
+
     @property
     def processor_id(self) -> str:
-        return f"{self.name}_{self.version}"
+        return self._mk_processor_id(self.name, self.version)
 
     @classmethod
     def get_processor(cls, name: str, version: str = "") -> "ServerProcessor":

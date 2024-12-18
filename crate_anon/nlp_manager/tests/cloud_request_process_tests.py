@@ -114,10 +114,10 @@ class CloudRequestProcessTests(TestCase):
             ("output", {"fruit": "fig"}, self.mock_processor),
         ]
 
-        mock_get_nlp_values_method = mock.Mock(return_value=iter(nlp_values))
+        mock_gen_nlp_values_method = mock.Mock(return_value=iter(nlp_values))
 
         with mock.patch.multiple(
-            self.process, get_nlp_values=mock_get_nlp_values_method
+            self.process, gen_nlp_values=mock_gen_nlp_values_method
         ):
             self.process.process_all()
 
@@ -156,10 +156,10 @@ class CloudRequestProcessTests(TestCase):
             "Insert failed", None, None, None
         )
 
-        mock_get_nlp_values_method = mock.Mock(return_value=iter(nlp_values))
+        mock_gen_nlp_values_method = mock.Mock(return_value=iter(nlp_values))
         with self.assertLogs(level=logging.ERROR) as logging_cm:
             with mock.patch.multiple(
-                self.process, get_nlp_values=mock_get_nlp_values_method
+                self.process, gen_nlp_values=mock_gen_nlp_values_method
             ):
                 self.process.process_all()
 
@@ -279,10 +279,12 @@ class CloudRequestProcessTests(TestCase):
 # A real one that wasn't working, 2024-12-16, with keys parameterized and
 # boolean values Pythonized.
 TEST_REMOTE_TABLE_SMOKING = "Smoking:Smoking"
-TEST_PROCINFO_SMOKING = {
+TEST_SMOKING_PROC_NAME = "smoking"
+TEST_SMOKING_PROC_VERSION = "0.1"
+TEST_SMOKING_PROCINFO = {
     NKeys.DESCRIPTION: "A description",
     NKeys.IS_DEFAULT_VERSION: True,
-    NKeys.NAME: "smoking",
+    NKeys.NAME: TEST_SMOKING_PROC_NAME,
     NKeys.SCHEMA_TYPE: NlprpValues.TABULAR,
     NKeys.SQL_DIALECT: "mssql",
     NKeys.TABULAR_SCHEMA: {
@@ -320,7 +322,7 @@ TEST_PROCINFO_SMOKING = {
         ]
     },
     NKeys.TITLE: "Smoking Status Annotator",
-    NKeys.VERSION: "0.1",
+    NKeys.VERSION: TEST_SMOKING_PROC_VERSION,
 }
 
 
@@ -394,13 +396,17 @@ class CloudRequestListProcessorsTests(TestCase):
         response = {
             NKeys.STATUS: HttpStatus.ACCEPTED,
             NKeys.VERSION: self.test_version,
-            NKeys.PROCESSORS: [TEST_PROCINFO_SMOKING],
+            NKeys.PROCESSORS: [TEST_SMOKING_PROCINFO],
         }
         with mock.patch.object(
             self.process, "_post_get_json", return_value=response
         ):
             self.process.get_remote_processors()
             # Should be happy.
+        # Clean up:
+        ServerProcessor.debug_remove_processor(
+            name=TEST_SMOKING_PROC_NAME, version=TEST_SMOKING_PROC_VERSION
+        )
 
 
 # =============================================================================
