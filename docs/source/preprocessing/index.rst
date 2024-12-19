@@ -40,6 +40,10 @@ These tools:
   - crate_postcodes_ -- fetch ONS_ postcode information
   - crate_fetch_wordlists_ -- fetch forenames, surnames, and medical eponyms
 
+- import tabular data to a database:
+
+  - crate_autoimport_db_ -- import tabular data from files to a database
+
 - perform fuzzy identity matching for linking different databases securely:
 
   - :ref:`crate_fuzzy_id_match <crate_fuzzy_id_match>`
@@ -162,3 +166,16 @@ Specimen usage:
 
 ..  literalinclude:: crate_fetch_wordlists_specimen_usage.sh
     :language: bash
+
+
+.. _crate_autoimport_db:
+
+crate_autoimport_db
+~~~~~~~~~~~~~~~~~~~
+
+This tool reads tabular data from files, and imports it into a database.
+
+Help:
+
+..  literalinclude:: _crate_fetch_wordlists_help.txt
+    :language: none

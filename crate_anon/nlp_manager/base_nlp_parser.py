@@ -455,7 +455,7 @@ class TableMaker(ABC):
 
         # Create one or more tables
         meta = self.dest_metadata
-        tables = {}  # Dict[str, Table]
+        tables = {}  # type: Dict[str, Table]
         t_columns = self.dest_tables_columns()
         for tablename, extra_dest_cols in t_columns.items():
             self._assert_no_overlap(

@@ -209,10 +209,7 @@ def values_from_row(row: Iterable[Cell]) -> List[Any]:
 
     For the ``openpyxl`` interface to XLSX files.
     """
-    values = []  # type: List[Any]
-    for cell in row:
-        values.append(cell.value)
-    return values
+    return [cell.value for cell in row]
 
 
 def commit_and_announce(session: Session) -> None:

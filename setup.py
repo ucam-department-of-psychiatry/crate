@@ -99,7 +99,7 @@ INSTALL_REQUIRES = [
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa: E501
     "numba==0.60.0",  # just-in-time compilation of functions
     "numpy==1.26.4",  # numerical work
-    "openpyxl==3.0.7",  # read Excel
+    "openpyxl==3.0.7",  # read Excel (slower?)
     "ordered-set==4.1.0",  # ordered sets; search for ordered_set
     "pendulum==2.1.2",  # dates/times
     "Pillow==10.3.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
@@ -153,7 +153,7 @@ INSTALL_REQUIRES = [
     "pytest-django==4.5.2",  # automatic testing
     "python-on-whales==0.68.0",  # python wrappers for testing with Docker
     "sphinx==7.1.2",  # documentation
-    "sphinx_rtd_theme==2.0.0",  # documentation
+    "sphinx_rtd_theme==3.0.2",  # documentation
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
     # ---------------------------------------------------------------------
@@ -229,6 +229,7 @@ setup(
             # Documentation
             "crate_help=crate_anon.tools.launch_docs:main",
             # Preprocessing
+            f"{CrateCommand.AUTOIMPORTDB}=crate_anon.preprocess.autoimport_db:main",  # noqa: E501
             f"{CrateCommand.FETCH_WORDLISTS}=crate_anon.anonymise.fetch_wordlists:main",  # noqa: E501
             f"{CrateCommand.POSTCODES}=crate_anon.preprocess.postcodes:main",
             f"{CrateCommand.PREPROCESS_PCMIS}=crate_anon.preprocess.preprocess_pcmis:main",  # noqa: E501

@@ -1688,7 +1688,11 @@ Changes
 - Change the installer to test external database connections early and give
   better feedback to the user regarding failures.
 
-- Update ``crate_postcodes`` to fully support the November 2024 ONSPD. Offer
+- Fix the data dictionary generator to allow column names with valid but unusual
+  characters in the source database. Convert any unusual characters to ASCII in
+  the destination database.
+  
+- Update ``crate_postcodes`` to support the November 2024 ONSPD in full. Offer
   partial support for ONSPD lookup tables in earlier/future versions by not
   failing when there is a mismatch between the created database tables and the
   ONSPD spreadsheet files.
