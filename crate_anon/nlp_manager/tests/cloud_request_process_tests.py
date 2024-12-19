@@ -515,7 +515,7 @@ class CloudRequestDataTests(TestCase):
 {ProcessorConfigKeys.PROCESSOR_NAME} = crate_anon.nlp_manager.parse_substance_misuse.AlcoholUnits
 {ProcessorConfigKeys.PROCESSOR_FORMAT} = {NlpDefValues.FORMAT_STANDARD}
 {ProcessorConfigKeys.OUTPUTTYPEMAP} =
-    AlcoholUnits {self.output_alcohol}
+    alcoholunits {self.output_alcohol}
 {ProcessorConfigKeys.DESTDB} = {self.dbsectionname}
 
 # Output sections

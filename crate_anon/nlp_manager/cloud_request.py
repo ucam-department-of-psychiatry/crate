@@ -921,16 +921,16 @@ class CloudRequestProcess(CloudRequest):
             raise KeyError(
                 f"Top-level response does not contain key: {NKeys.RESULTS!r}"
             )
-        textresultlist = self.nlp_data[NKeys.RESULTS]
-        if not isinstance(textresultlist, list):
+        docresultlist = self.nlp_data[NKeys.RESULTS]
+        if not isinstance(docresultlist, list):
             raise ValueError(
-                f"{NKeys.RESULTS!r} value is not a list: {textresultlist!r}"
+                f"{NKeys.RESULTS!r} value is not a list: {docresultlist!r}"
             )
-        for textresult in textresultlist:
-            metadata = textresult[NKeys.METADATA]  # type: Dict[str, Any]
+        for docresult in docresultlist:
+            metadata = docresult[NKeys.METADATA]  # type: Dict[str, Any]
             # ... expected type because that's what we sent; see add_text()
-            text = textresult.get(NKeys.TEXT)
-            for processor_data in textresult[NKeys.PROCESSORS]:  # type: Dict
+            text = docresult.get(NKeys.TEXT)
+            for processor_data in docresult[NKeys.PROCESSORS]:  # type: Dict
 
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Check that the processor was one we asked for.
@@ -994,9 +994,12 @@ class CloudRequestProcess(CloudRequest):
                                 f"table {remote_tablename!r}, but this was "
                                 "not in the schema"
                             )
+                        dest_tablename = processor.get_tablename_from_type(
+                            remote_tablename
+                        )
                         yield from self.gen_nlp_values_generic_single_table(
                             processor=processor,
-                            tablename=remote_tablename,
+                            tablename=dest_tablename,
                             rows=rows,
                             metadata=metadata,
                             column_renames=processor.get_otconf_from_type(
