@@ -156,6 +156,16 @@ from crate_anon.crateweb.userprofile.models import (
     get_patients_per_page,
     UserProfile,
 )
+from crate_anon.nlp_manager.constants import (
+    # Fieldnames for CRATE NLP table
+    FN_NLPDEF,
+    FN_SRCDB,
+    FN_SRCFIELD,
+    FN_SRCPKFIELD,
+    FN_SRCPKSTR,
+    FN_SRCPKVAL,
+    FN_SRCTABLE,
+)
 
 log = BraceStyleAdapter(logging.getLogger(__name__))
 
@@ -171,16 +181,6 @@ MAX_LEN_SHOW = 20000
 # Prefix for inline pid and mpid conversion
 PID_PREFIX = "~pid"
 MPID_PREFIX = "~mpid"
-
-
-# Fieldnames for CRATE NLP table
-FN_NLPDEF = "_nlpdef"
-FN_SRCDB = "_srcdb"
-FN_SRCTABLE = "_srctable"
-FN_SRCFIELD = "_srcfield"
-FN_SRCPKFIELD = "_srcpkfield"
-FN_SRCPKVAL = "_srcpkval"
-FN_SRCPKSTR = "_srcpkstr"
 
 
 # =============================================================================

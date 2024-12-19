@@ -171,7 +171,7 @@ if getattr(
     SettingsKeys.DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET,
     True,
 ):
-    # https://stackoverflow.com/questions/5601590/how-to-define-a-default-value-for-a-custom-django-setting  # noqa
+    # https://stackoverflow.com/questions/5601590/how-to-define-a-default-value-for-a-custom-django-setting  # noqa: E501
     hack_django_pyodbc_azure_cursorwrapper()
 
 
@@ -372,7 +372,7 @@ def gen_excel_row_elements(
         converting to ``str`` in the encoding of the worksheet's choice.)
     """
     # Docstring must be a raw string for Sphinx! See
-    # http://openalea.gforge.inria.fr/doc/openalea/doc/_build/html/source/sphinx/rest_syntax.html#text-syntax-bold-italic-verbatim-and-special-characters  # noqa
+    # http://openalea.gforge.inria.fr/doc/openalea/doc/_build/html/source/sphinx/rest_syntax.html#text-syntax-bold-italic-verbatim-and-special-characters  # noqa: E501
     for element in row:
         if isinstance(element, bytes):
             # Convert to str using the worksheet's encoding.
@@ -621,7 +621,7 @@ class Query(QueryBase):
         Custom save method. Ensures that only one :class:`Query` has ``active
         == True`` for a given user. Also sets the hash.
         """
-        # https://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django  # noqa
+        # https://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django  # noqa: E501
         if self.active:
             Query.objects.filter(user=self.user, active=True).update(
                 active=False
@@ -1252,7 +1252,7 @@ class QueryAudit(models.Model):
 #     # https://docs.djangoproject.com/en/1.8/topics/db/multi-db/
 #     # https://newcircle.com/s/post/1242/django_multiple_database_support
 #     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-#     def db_for_read(self, model: Type[models.Model], **hints) -> Optional[str]:  # noqa
+#     def db_for_read(self, model: Type[models.Model], **hints) -> Optional[str]:  # noqa: E501
 #         """
 #         read model PidLookup -> look at database secret
 #         """
@@ -1269,7 +1269,7 @@ class QueryAudit(models.Model):
 #         # 2017-02-12, to address bug:
 #         # - https://code.djangoproject.com/ticket/27054
 #         # See also:
-#         # - https://docs.djangoproject.com/en/1.10/topics/db/multi-db/#using-other-management-commands  # noqa
+#         # - https://docs.djangoproject.com/en/1.10/topics/db/multi-db/#using-other-management-commands  # noqa: E501
 #         return db == 'default'
 
 
@@ -1311,7 +1311,7 @@ class PidLookup(models.Model):
         managed = False
         db_table = PatientInfoConstants.SECRET_MAP_TABLENAME
 
-    # https://stackoverflow.com/questions/12158463/how-can-i-make-a-model-read-only  # noqa
+    # https://stackoverflow.com/questions/12158463/how-can-i-make-a-model-read-only  # noqa: E501
     def save(self, *args, **kwargs) -> None:
         return
 

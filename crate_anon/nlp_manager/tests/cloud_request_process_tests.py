@@ -69,7 +69,7 @@ from crate_anon.nlp_manager.nlp_manager import drop_remake, process_cloud_now
 from crate_anon.nlp_webserver.server_processor import ServerProcessor
 import crate_anon.nlp_webserver.tasks
 from crate_anon.nlp_webserver.views import NlpWebViews
-from crate_anon.nlprp.constants import NlprpKeys as NKeys, NlprpValues
+from crate_anon.nlprp.constants import NlprpKeys, NlprpValues
 
 log = logging.getLogger(__name__)
 
@@ -202,8 +202,8 @@ class CloudRequestProcessTests(TestCase):
         self.process.queue_id = "queue_0001"
 
         response = {
-            NKeys.STATUS: HttpStatus.OK,
-            NKeys.VERSION: "0.3.0",
+            NlprpKeys.STATUS: HttpStatus.OK,
+            NlprpKeys.VERSION: "0.3.0",
         }
 
         with mock.patch.object(
@@ -216,8 +216,8 @@ class CloudRequestProcessTests(TestCase):
         self.process.queue_id = "queue_0001"
 
         response = {
-            NKeys.STATUS: HttpStatus.PROCESSING,
-            NKeys.VERSION: "0.2.0",
+            NlprpKeys.STATUS: HttpStatus.PROCESSING,
+            NlprpKeys.VERSION: "0.2.0",
         }
 
         with mock.patch.object(
@@ -230,8 +230,8 @@ class CloudRequestProcessTests(TestCase):
         self.process.queue_id = "queue_0001"
 
         response = {
-            NKeys.STATUS: HttpStatus.ACCEPTED,
-            NKeys.VERSION: "0.3.0",
+            NlprpKeys.STATUS: HttpStatus.ACCEPTED,
+            NlprpKeys.VERSION: "0.3.0",
         }
 
         with mock.patch.object(
@@ -244,8 +244,8 @@ class CloudRequestProcessTests(TestCase):
         self.process.queue_id = "queue_0001"
 
         response = {
-            NKeys.STATUS: HttpStatus.NOT_FOUND,
-            NKeys.VERSION: "0.3.0",
+            NlprpKeys.STATUS: HttpStatus.NOT_FOUND,
+            NlprpKeys.VERSION: "0.3.0",
         }
 
         with mock.patch.object(
@@ -260,8 +260,8 @@ class CloudRequestProcessTests(TestCase):
         self.process.queue_id = "queue_0001"
 
         response = {
-            NKeys.STATUS: HttpStatus.FORBIDDEN,
-            NKeys.VERSION: "0.3.0",
+            NlprpKeys.STATUS: HttpStatus.FORBIDDEN,
+            NlprpKeys.VERSION: "0.3.0",
         }
 
         with mock.patch.object(
@@ -283,47 +283,47 @@ TEST_REMOTE_TABLE_SMOKING = "Smoking:Smoking"
 TEST_SMOKING_PROC_NAME = "smoking"
 TEST_SMOKING_PROC_VERSION = "0.1"
 TEST_SMOKING_PROCINFO = {
-    NKeys.DESCRIPTION: "A description",
-    NKeys.IS_DEFAULT_VERSION: True,
-    NKeys.NAME: TEST_SMOKING_PROC_NAME,
-    NKeys.SCHEMA_TYPE: NlprpValues.TABULAR,
-    NKeys.SQL_DIALECT: "mssql",
-    NKeys.TABULAR_SCHEMA: {
+    NlprpKeys.DESCRIPTION: "A description",
+    NlprpKeys.IS_DEFAULT_VERSION: True,
+    NlprpKeys.NAME: TEST_SMOKING_PROC_NAME,
+    NlprpKeys.SCHEMA_TYPE: NlprpValues.TABULAR,
+    NlprpKeys.SQL_DIALECT: "mssql",
+    NlprpKeys.TABULAR_SCHEMA: {
         TEST_REMOTE_TABLE_SMOKING: [
             {
-                NKeys.COLUMN_NAME: "start_",
-                NKeys.COLUMN_TYPE: "BIGINT",
-                NKeys.DATA_TYPE: "BIGINT",
-                NKeys.IS_NULLABLE: False,
+                NlprpKeys.COLUMN_NAME: "start_",
+                NlprpKeys.COLUMN_TYPE: "BIGINT",
+                NlprpKeys.DATA_TYPE: "BIGINT",
+                NlprpKeys.IS_NULLABLE: False,
             },
             {
-                NKeys.COLUMN_NAME: "end_",
-                NKeys.COLUMN_TYPE: "BIGINT",
-                NKeys.DATA_TYPE: "BIGINT",
-                NKeys.IS_NULLABLE: False,
+                NlprpKeys.COLUMN_NAME: "end_",
+                NlprpKeys.COLUMN_TYPE: "BIGINT",
+                NlprpKeys.DATA_TYPE: "BIGINT",
+                NlprpKeys.IS_NULLABLE: False,
             },
             {
-                NKeys.COLUMN_NAME: "who",
-                NKeys.COLUMN_TYPE: "NVARCHAR(255)",
-                NKeys.DATA_TYPE: "NVARCHAR",
-                NKeys.IS_NULLABLE: True,
+                NlprpKeys.COLUMN_NAME: "who",
+                NlprpKeys.COLUMN_TYPE: "NVARCHAR(255)",
+                NlprpKeys.DATA_TYPE: "NVARCHAR",
+                NlprpKeys.IS_NULLABLE: True,
             },
             {
-                NKeys.COLUMN_NAME: "rule",
-                NKeys.COLUMN_TYPE: "VARCHAR(50)",
-                NKeys.DATA_TYPE: "VARCHAR",
-                NKeys.IS_NULLABLE: True,
+                NlprpKeys.COLUMN_NAME: "rule",
+                NlprpKeys.COLUMN_TYPE: "VARCHAR(50)",
+                NlprpKeys.DATA_TYPE: "VARCHAR",
+                NlprpKeys.IS_NULLABLE: True,
             },
             {
-                NKeys.COLUMN_NAME: "status",
-                NKeys.COLUMN_TYPE: "VARCHAR(10)",
-                NKeys.DATA_TYPE: "VARCHAR",
-                NKeys.IS_NULLABLE: True,
+                NlprpKeys.COLUMN_NAME: "status",
+                NlprpKeys.COLUMN_TYPE: "VARCHAR(10)",
+                NlprpKeys.DATA_TYPE: "VARCHAR",
+                NlprpKeys.IS_NULLABLE: True,
             },
         ]
     },
-    NKeys.TITLE: "Smoking Status Annotator",
-    NKeys.VERSION: TEST_SMOKING_PROC_VERSION,
+    NlprpKeys.TITLE: "Smoking Status Annotator",
+    NlprpKeys.VERSION: TEST_SMOKING_PROC_VERSION,
 }
 
 
@@ -336,8 +336,8 @@ class CloudRequestListProcessorsTests(TestCase):
 
     def test_processors_key_missing(self) -> None:
         response = {
-            NKeys.STATUS: HttpStatus.ACCEPTED,
-            NKeys.VERSION: self.test_version,
+            NlprpKeys.STATUS: HttpStatus.ACCEPTED,
+            NlprpKeys.VERSION: self.test_version,
             # Missing: NKeys.PROCESSORS
         }
         with mock.patch.object(
@@ -348,9 +348,9 @@ class CloudRequestListProcessorsTests(TestCase):
 
     def test_processors_not_list(self) -> None:
         response = {
-            NKeys.STATUS: HttpStatus.ACCEPTED,
-            NKeys.VERSION: self.test_version,
-            NKeys.PROCESSORS: "XXX",  # not a list
+            NlprpKeys.STATUS: HttpStatus.ACCEPTED,
+            NlprpKeys.VERSION: self.test_version,
+            NlprpKeys.PROCESSORS: "XXX",  # not a list
         }
         with mock.patch.object(
             self.process, "_post_get_json", return_value=response
@@ -361,9 +361,9 @@ class CloudRequestListProcessorsTests(TestCase):
     def test_procinfo_not_dict(self) -> None:
         procinfo = "xxx"  # not a dict
         response = {
-            NKeys.STATUS: HttpStatus.ACCEPTED,
-            NKeys.VERSION: self.test_version,
-            NKeys.PROCESSORS: [procinfo],
+            NlprpKeys.STATUS: HttpStatus.ACCEPTED,
+            NlprpKeys.VERSION: self.test_version,
+            NlprpKeys.PROCESSORS: [procinfo],
         }
         with mock.patch.object(
             self.process, "_post_get_json", return_value=response
@@ -373,19 +373,19 @@ class CloudRequestListProcessorsTests(TestCase):
 
     def test_procinfo_missing_keys(self) -> None:
         mandatory_keys = (
-            NKeys.NAME,
-            NKeys.TITLE,
-            NKeys.VERSION,
-            NKeys.DESCRIPTION,
+            NlprpKeys.NAME,
+            NlprpKeys.TITLE,
+            NlprpKeys.VERSION,
+            NlprpKeys.DESCRIPTION,
         )
         base_procinfo = {k: "x" for k in mandatory_keys}
         for key in mandatory_keys:
             procinfo = base_procinfo.copy()
             del procinfo[key]
             response = {
-                NKeys.STATUS: HttpStatus.ACCEPTED,
-                NKeys.VERSION: self.test_version,
-                NKeys.PROCESSORS: [procinfo],
+                NlprpKeys.STATUS: HttpStatus.ACCEPTED,
+                NlprpKeys.VERSION: self.test_version,
+                NlprpKeys.PROCESSORS: [procinfo],
             }
             with mock.patch.object(
                 self.process, "_post_get_json", return_value=response
@@ -395,9 +395,9 @@ class CloudRequestListProcessorsTests(TestCase):
 
     def test_procinfo_smoking(self) -> None:
         response = {
-            NKeys.STATUS: HttpStatus.ACCEPTED,
-            NKeys.VERSION: self.test_version,
-            NKeys.PROCESSORS: [TEST_SMOKING_PROCINFO],
+            NlprpKeys.STATUS: HttpStatus.ACCEPTED,
+            NlprpKeys.VERSION: self.test_version,
+            NlprpKeys.PROCESSORS: [TEST_SMOKING_PROCINFO],
         }
         with mock.patch.object(
             self.process, "_post_get_json", return_value=response
@@ -578,10 +578,10 @@ class CloudRequestDataTests(TestCase):
         form).
         """
         request_json = json.loads(request_json_str)
-        log.debug(f"{request_json=}")
+        log.warning(f"{request_json=}")  # ***
         self.server.body = request_json
         response_json = self.server.index()
-        log.debug(f"-> {response_json=}")
+        log.warning(f"-> {response_json=}")  # ***
         return response_json
 
     def test_get_remote_processor_columns(self) -> None:

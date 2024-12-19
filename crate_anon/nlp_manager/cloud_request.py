@@ -55,19 +55,26 @@ from requests.exceptions import HTTPError, RequestException
 from semantic_version import Version
 from urllib3.exceptions import NewConnectionError
 
-from crate_anon.common.constants import JSON_INDENT, JSON_SEPARATORS_COMPACT
+from crate_anon.common.constants import (
+    JSON_INDENT,
+    JSON_SEPARATORS_COMPACT,
+    NoneType,
+)
 from crate_anon.common.memsize import getsize
 from crate_anon.common.stringfunc import does_text_contain_word_chars
 from crate_anon.nlp_manager.cloud_parser import Cloud
 from crate_anon.nlp_manager.constants import (
     FN_NLPDEF,
+    FN_SRCPKSTR,
+    FN_SRCPKVAL,
     FN_WHEN_FETCHED,
-    full_sectionname,
     GateFieldNames,
     GateResultKeys,
     NlpConfigPrefixes,
     NlpDefValues,
+    full_sectionname,
 )
+from crate_anon.nlp_manager.models import FN_SRCHASH
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 
 from crate_anon.nlprp.api import (
@@ -79,7 +86,7 @@ from crate_anon.nlprp.api import (
 )
 from crate_anon.nlprp.constants import (
     NlprpCommands,
-    NlprpKeys as NKeys,
+    NlprpKeys,
     NlprpValues,
     NlprpVersions,
 )
@@ -122,17 +129,177 @@ def report_processor_errors(processor_data: Dict[str, Any]) -> None:
     Should only be called if there has been an error. Reports the error(s) to
     the log.
     """
-    name = processor_data[NKeys.NAME]
-    version = processor_data[NKeys.VERSION]
+    name = processor_data[NlprpKeys.NAME]
+    version = processor_data[NlprpKeys.VERSION]
     error_messages = "\n".join(
-        f"{error[NKeys.CODE]} - {error[NKeys.MESSAGE]}: "
-        f"{error[NKeys.DESCRIPTION]}"
-        for error in processor_data[NKeys.ERRORS]
+        f"{error[NlprpKeys.CODE]} - {error[NlprpKeys.MESSAGE]}: "
+        f"{error[NlprpKeys.DESCRIPTION]}"
+        for error in processor_data[NlprpKeys.ERRORS]
     )
     log.error(
         f"Processor {name!r} (version {version}) failed for this "
         f"document. Errors:\n{error_messages}"
     )
+
+
+def extract_nlprp_top_level_results(nlp_data: JsonObjectType) -> List:
+    """
+    Checks that the top-level NLP response contains an appropriate "results"
+    object, or raises KeyError or ValueError.
+
+    Returns the list result, which is a list of results per document.
+    """
+    try:
+        docresultlist = nlp_data[NlprpKeys.RESULTS]
+    except KeyError:
+        raise KeyError(
+            "Top-level response does not contain key "
+            f"{NlprpKeys.RESULTS!r}: {nlp_data!r}"
+        )
+    if not isinstance(docresultlist, list):
+        raise ValueError(
+            f"{NlprpKeys.RESULTS!r} value is not a list: {docresultlist!r}"
+        )
+    return docresultlist
+
+
+def parse_nlprp_docresult_metadata(
+    docresult: JsonObjectType,
+) -> Tuple[Dict[str, Any], Optional[int], Optional[str], str]:
+    """
+    Check that this NLPRP document result validly contains metadata, and that
+    metadata contains things we always send. Extract key components. Provide
+    helpful error message on failure.
+
+    Returns:
+        tuple (metadata, pkval, pkstr, srchhash)
+
+    """
+    try:
+        metadata = docresult[NlprpKeys.METADATA]
+    except KeyError:
+        raise KeyError(
+            "Document result does not contain key "
+            f"{NlprpKeys.METADATA!r}: {docresult!r}"
+        )
+    if not isinstance(metadata, dict):
+        # ... expected type because that's what we sent; see add_text()
+        raise KeyError(f"Document result metadata is not a dict: {metadata!r}")
+
+    try:
+        pkval = metadata[FN_SRCPKVAL]
+    except KeyError:
+        raise KeyError(
+            "Document metadata does not contain key "
+            f"{FN_SRCPKVAL!r}: {metadata!r}"
+        )
+    if not isinstance(pkval, (int, NoneType)):
+        # ... expected type because that's what we sent; see add_text()
+        raise KeyError(
+            f"Document result metadata {FN_SRCPKVAL!r} is not null or int: "
+            f"{pkval!r}"
+        )
+
+    try:
+        pkstr = metadata[FN_SRCPKSTR]
+    except KeyError:
+        raise KeyError(
+            "Document metadata does not contain key "
+            f"{FN_SRCPKSTR!r}: {metadata!r}"
+        )
+    if not isinstance(pkstr, (str, NoneType)):
+        raise KeyError(
+            f"Document result metadata {FN_SRCPKVAL!r} is not null or str: "
+            f"{pkstr!r}"
+        )
+
+    if pkval is None and pkstr is None:
+        raise ValueError(
+            f"In document result, both {FN_SRCPKVAL!r} and "
+            f"{FN_SRCPKSTR!r} are null"
+        )
+
+    try:
+        srchash = metadata[FN_SRCHASH]
+    except KeyError:
+        raise KeyError(
+            "Document metadata does not contain key "
+            f"{FN_SRCPKSTR!r}: {metadata!r}"
+        )
+    if not isinstance(srchash, str):
+        raise KeyError(
+            f"Document result metadata {FN_SRCPKSTR!r} is not str: "
+            f"{srchash!r}"
+        )
+
+    return metadata, pkval, pkstr, srchash
+
+
+def extract_processor_data_list(
+    docresult: JsonObjectType,
+) -> List[JsonObjectType]:
+    """
+    Check and extract a list of per-processor results from a single-document
+    NLPRP result.
+    """
+    try:
+        processor_data_list = docresult[NlprpKeys.PROCESSORS]
+    except KeyError:
+        raise KeyError(
+            "Document result does not contain key "
+            f"{NlprpKeys.PROCESSORS!r}: {docresult!r}"
+        )
+    if not isinstance(processor_data_list, list):
+        raise ValueError(
+            f"Document result's {NlprpKeys.PROCESSORS!r} element is not a "
+            f"list: {processor_data_list!r}"
+        )
+    return processor_data_list
+
+
+def parse_per_processor_data(processor_data: Dict[str, Any]) -> Tuple:
+    """
+    Return a tuple of mandatory results from NLPRP per-processor data, or raise
+    KeyError.
+    """
+    if not isinstance(processor_data, dict):
+        raise ValueError(f"Processor result is not a dict: {processor_data!r}")
+
+    try:
+        name = processor_data[NlprpKeys.NAME]
+    except KeyError:
+        raise KeyError(
+            "Processor result does not contain key "
+            f"{NlprpKeys.NAME!r}: {processor_data!r}"
+        )
+
+    try:
+        version = processor_data[NlprpKeys.VERSION]
+    except KeyError:
+        raise KeyError(
+            "Processor result does not contain key "
+            f"{NlprpKeys.VERSION!r}: {processor_data!r}"
+        )
+
+    is_default_version = processor_data.get(NlprpKeys.IS_DEFAULT_VERSION, True)
+
+    try:
+        success = processor_data[NlprpKeys.SUCCESS]
+    except KeyError:
+        raise KeyError(
+            "Processor result does not contain key "
+            f"{NlprpKeys.SUCCESS!r}: {processor_data!r}"
+        )
+
+    try:
+        processor_results = processor_data[NlprpKeys.RESULTS]
+    except KeyError:
+        raise KeyError(
+            "Processor result does not contain key "
+            f"{NlprpKeys.RESULTS!r}: {processor_data!r}"
+        )
+
+    return name, version, is_default_version, success, processor_results
 
 
 # =============================================================================
@@ -371,29 +538,32 @@ class CloudRequestListProcessors(CloudRequest):
         """
         # Make request
         list_procs_request = make_nlprp_dict()
-        list_procs_request[NKeys.COMMAND] = NlprpCommands.LIST_PROCESSORS
+        list_procs_request[NlprpKeys.COMMAND] = NlprpCommands.LIST_PROCESSORS
         request_json = to_json_str(list_procs_request)
 
         # Send request, get response
         json_response = self._post_get_json(request_json, may_fail=False)
 
-        status = json_get_int(json_response, NKeys.STATUS)
+        status = json_get_int(json_response, NlprpKeys.STATUS)
         if not HttpStatus.is_good_answer(status):
-            errors = json_get_array(json_response, NKeys.ERRORS)
+            errors = json_get_array(json_response, NlprpKeys.ERRORS)
             for err in errors:
                 log.error(f"Error received: {err!r}")
             raise HTTPError(f"Response status was: {status}")
 
         processors = []  # type: List[ServerProcessor]
-        if NKeys.PROCESSORS not in json_response:
+        try:
+            proclist = json_response[
+                NlprpKeys.PROCESSORS
+            ]  # type: JsonArrayType
+        except KeyError:
             raise KeyError(
-                f"Server did not provide key {NKeys.PROCESSORS!r} in its "
+                f"Server did not provide key {NlprpKeys.PROCESSORS!r} in its "
                 f"response: {json_response!r}"
             )
-        proclist = json_response[NKeys.PROCESSORS]  # type: JsonArrayType
         if not isinstance(proclist, list):
             raise ValueError(
-                f"Server's value of {NKeys.PROCESSORS!r} is not a list: "
+                f"Server's value of {NlprpKeys.PROCESSORS!r} is not a list: "
                 f"{proclist!r}"
             )
         for procinfo in proclist:
@@ -402,22 +572,29 @@ class CloudRequestListProcessors(CloudRequest):
                     f"Server's procinfo object not a dict: {procinfo!r}"
                 )
             # Any of the following may raise KeyError if missing:
-            proc = ServerProcessor(
-                # Mandatory:
-                name=procinfo[NKeys.NAME],
-                title=procinfo[NKeys.TITLE],
-                version=procinfo[NKeys.VERSION],
-                is_default_version=procinfo.get(
-                    NKeys.IS_DEFAULT_VERSION, True
-                ),
-                description=procinfo[NKeys.DESCRIPTION],
-                # Optional:
-                schema_type=procinfo.get(
-                    NKeys.SCHEMA_TYPE, NlprpValues.UNKNOWN
-                ),
-                sql_dialect=procinfo.get(NKeys.SQL_DIALECT, ""),
-                tabular_schema=procinfo.get(NKeys.TABULAR_SCHEMA),
-            )
+            try:
+                proc = ServerProcessor(
+                    # Mandatory:
+                    name=procinfo[NlprpKeys.NAME],
+                    title=procinfo[NlprpKeys.TITLE],
+                    version=procinfo[NlprpKeys.VERSION],
+                    is_default_version=procinfo.get(
+                        NlprpKeys.IS_DEFAULT_VERSION, True
+                    ),
+                    description=procinfo[NlprpKeys.DESCRIPTION],
+                    # Optional:
+                    schema_type=procinfo.get(
+                        NlprpKeys.SCHEMA_TYPE, NlprpValues.UNKNOWN
+                    ),
+                    sql_dialect=procinfo.get(NlprpKeys.SQL_DIALECT, ""),
+                    tabular_schema=procinfo.get(NlprpKeys.TABULAR_SCHEMA),
+                )
+            except KeyError:
+                log.critical(
+                    "NLPRP server's processor information is missing a "
+                    "required field"
+                )
+                raise
             processors.append(proc)
         return processors
 
@@ -465,17 +642,17 @@ class CloudRequestProcess(CloudRequest):
 
         # Set up processing request
         self._request_process = make_nlprp_dict()
-        self._request_process[NKeys.COMMAND] = NlprpCommands.PROCESS
-        self._request_process[NKeys.ARGS] = {
-            NKeys.PROCESSORS: [],  # type: List[str]
-            NKeys.QUEUE: True,
-            NKeys.CLIENT_JOB_ID: self._client_job_id,
-            NKeys.INCLUDE_TEXT: False,
-            NKeys.CONTENT: [],  # type: List[str]
+        self._request_process[NlprpKeys.COMMAND] = NlprpCommands.PROCESS
+        self._request_process[NlprpKeys.ARGS] = {
+            NlprpKeys.PROCESSORS: [],  # type: List[str]
+            NlprpKeys.QUEUE: True,
+            NlprpKeys.CLIENT_JOB_ID: self._client_job_id,
+            NlprpKeys.INCLUDE_TEXT: False,
+            NlprpKeys.CONTENT: [],  # type: List[str]
         }
         # Set up fetch_from_queue request
         self._fetch_request = make_nlprp_dict()
-        self._fetch_request[NKeys.COMMAND] = NlprpCommands.FETCH_FROM_QUEUE
+        self._fetch_request[NlprpKeys.COMMAND] = NlprpCommands.FETCH_FROM_QUEUE
 
         self.nlp_data = None  # type: Optional[JsonObjectType]
         # ... the JSON response
@@ -588,10 +765,12 @@ class CloudRequestProcess(CloudRequest):
             procname: name of processor on the server
             procversion: version of processor on the server
         """
-        info = {NKeys.NAME: procname}
+        info = {NlprpKeys.NAME: procname}
         if procversion:
-            info[NKeys.VERSION] = procversion
-        self._request_process[NKeys.ARGS][NKeys.PROCESSORS].append(info)
+            info[NlprpKeys.VERSION] = procversion
+        self._request_process[NlprpKeys.ARGS][NlprpKeys.PROCESSORS].append(
+            info
+        )
 
     def _add_all_processors_to_request(self) -> None:
         """
@@ -640,10 +819,10 @@ class CloudRequestProcess(CloudRequest):
         if self.number_of_records > self._cloudcfg.max_records_per_request:
             raise RecordsPerRequestExceeded
 
-        new_content = {NKeys.METADATA: metadata, NKeys.TEXT: text}
+        new_content = {NlprpKeys.METADATA: metadata, NlprpKeys.TEXT: text}
         # Add all the identifying information.
-        args = self._request_process[NKeys.ARGS]
-        content_key = NKeys.CONTENT  # local copy for fractional speedup
+        args = self._request_process[NlprpKeys.ARGS]
+        content_key = NlprpKeys.CONTENT  # local copy for fractional speedup
         old_content = copy(args[content_key])
         args[content_key].append(new_content)
         max_length = self._cloudcfg.max_content_length
@@ -674,25 +853,25 @@ class CloudRequestProcess(CloudRequest):
                 should the server include the source text in the reply?
         """
         # Don't send off an empty request
-        if not self._request_process[NKeys.ARGS][NKeys.CONTENT]:
+        if not self._request_process[NlprpKeys.ARGS][NlprpKeys.CONTENT]:
             log.warning("Request empty - not sending.")
             return
 
         # Create request
         if cookies:
             self.cookies = cookies
-        self._request_process[NKeys.ARGS][NKeys.QUEUE] = queue
-        self._request_process[NKeys.ARGS][
-            NKeys.INCLUDE_TEXT
+        self._request_process[NlprpKeys.ARGS][NlprpKeys.QUEUE] = queue
+        self._request_process[NlprpKeys.ARGS][
+            NlprpKeys.INCLUDE_TEXT
         ] = include_text_in_reply
         request_json = to_json_str(self._request_process)
 
         # Send request; get response
         json_response = self._post_get_json(request_json)
 
-        status = json_response[NKeys.STATUS]
+        status = json_response[NlprpKeys.STATUS]
         if queue and status == HttpStatus.ACCEPTED:
-            self.queue_id = json_response[NKeys.QUEUE_ID]
+            self.queue_id = json_response[NlprpKeys.QUEUE_ID]
             self._fetched = False
         elif (not queue) and status == HttpStatus.OK:
             self.nlp_data = json_response
@@ -727,7 +906,9 @@ class CloudRequestProcess(CloudRequest):
         # Create request
         if cookies:
             self.cookies = cookies
-        self._fetch_request[NKeys.ARGS] = {NKeys.QUEUE_ID: self.queue_id}
+        self._fetch_request[NlprpKeys.ARGS] = {
+            NlprpKeys.QUEUE_ID: self.queue_id
+        }
         request_json = to_json_str(self._fetch_request)
 
         # Send request; get response
@@ -748,9 +929,9 @@ class CloudRequestProcess(CloudRequest):
         json_response = self._try_fetch(cookies)
         if not json_response:
             return False
-        status = json_response[NKeys.STATUS]
+        status = json_response[NlprpKeys.STATUS]
         pending_use_202 = (
-            Version(json_response[NKeys.VERSION])
+            Version(json_response[NlprpKeys.VERSION])
             >= NlprpVersions.FETCH_Q_PENDING_RETURNS_202
         )
         if status == HttpStatus.OK:
@@ -917,30 +1098,24 @@ class CloudRequestProcess(CloudRequest):
             "Method 'get_nlp_values' must only be called "
             "after nlp_data is obtained"
         )
-        if NKeys.RESULTS not in self.nlp_data:
-            raise KeyError(
-                f"Top-level response does not contain key: {NKeys.RESULTS!r}"
-            )
-        docresultlist = self.nlp_data[NKeys.RESULTS]
-        if not isinstance(docresultlist, list):
-            raise ValueError(
-                f"{NKeys.RESULTS!r} value is not a list: {docresultlist!r}"
-            )
+        docresultlist = extract_nlprp_top_level_results(self.nlp_data)
         for docresult in docresultlist:
-            metadata = docresult[NKeys.METADATA]  # type: Dict[str, Any]
-            # ... expected type because that's what we sent; see add_text()
-            text = docresult.get(NKeys.TEXT)
-            for processor_data in docresult[NKeys.PROCESSORS]:  # type: Dict
+            metadata, _, _, _ = parse_nlprp_docresult_metadata(docresult)
+            text = docresult.get(NlprpKeys.TEXT)
+            processor_data_list = extract_processor_data_list(docresult)
+            for processor_data in processor_data_list:
+                # Details of the server processor that has responded:
+                (
+                    name,
+                    version,
+                    is_default_version,
+                    success,
+                    processor_results,
+                ) = parse_per_processor_data(processor_data)
 
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Check that the processor was one we asked for.
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                # Details of the server processor that has responded:
-                name = processor_data[NKeys.NAME]
-                version = processor_data[NKeys.VERSION]
-                is_default_version = processor_data.get(
-                    NKeys.IS_DEFAULT_VERSION, True
-                )
                 try:
                     # Retrieve the Python object corresponding to the server
                     # processor that has responded:
@@ -968,14 +1143,13 @@ class CloudRequestProcess(CloudRequest):
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # OK; we're happy with the processor. Was it happy?
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                if not processor_data[NKeys.SUCCESS]:
+                if not success:
                     report_processor_errors(processor_data)
                     return
 
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # All well. Process the results.
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                processor_results = processor_data[NKeys.RESULTS]
                 # See nlprp.rst, <nlprp_format_of_per_processor_results>.
                 if isinstance(processor_results, dict):
                     # MULTI-TABLE FORMAT.
@@ -1120,12 +1294,12 @@ class CloudRequestQueueManagement(CloudRequest):
         request_json = to_json_str(show_request)
         json_response = self._post_get_json(request_json, may_fail=False)
 
-        status = json_response[NKeys.STATUS]
+        status = json_response[NlprpKeys.STATUS]
         if status == HttpStatus.OK:
             try:
-                queue = json_response[NKeys.QUEUE]
+                queue = json_response[NlprpKeys.QUEUE]
             except KeyError:
-                log.error(f"Response did not contain key {NKeys.QUEUE!r}.")
+                log.error(f"Response did not contain key {NlprpKeys.QUEUE!r}.")
                 raise
             return queue
         else:
@@ -1138,7 +1312,7 @@ class CloudRequestQueueManagement(CloudRequest):
         """
         delete_request = make_nlprp_request(
             command=NlprpCommands.DELETE_FROM_QUEUE,
-            command_args={NKeys.DELETE_ALL: True},
+            command_args={NlprpKeys.DELETE_ALL: True},
         )
         request_json = to_json_str(delete_request)
         response = self._post(request_json, may_fail=False)
@@ -1161,7 +1335,7 @@ class CloudRequestQueueManagement(CloudRequest):
         """
         delete_request = make_nlprp_request(
             command=NlprpCommands.DELETE_FROM_QUEUE,
-            command_args={NKeys.QUEUE_IDS: queue_ids},
+            command_args={NlprpKeys.QUEUE_IDS: queue_ids},
         )
         request_json = to_json_str(delete_request)
         response = self._post(request_json, may_fail=False)
