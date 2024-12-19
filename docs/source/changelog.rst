@@ -1697,6 +1697,11 @@ Changes
   NLPRP server behaviour to use the more explicit format (object/dictionaries
   by table, not plain arrays/lists of records).
 
+- Shift from SQLAlchemy 1.4.49 to SQLALchemy 2.0.36.
+
+  - https://docs.sqlalchemy.org/en/20/changelog/migration_20.html
+  - Already on SQLAlchemy 1.4.x, and Python 3.9+.
+  - Set environment variable ``SQLALCHEMY_WARN_20=1`` for tests.
 
 To do
 -----

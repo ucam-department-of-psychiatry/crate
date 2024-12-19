@@ -1010,7 +1010,7 @@ def auto_import_db(
     safe_url = get_safe_url_from_engine(engine)
     log.info(f"Connected to database: {safe_url}")
     session = sessionmaker(bind=engine)()  # type: Session
-    metadata = MetaData(bind=engine)
+    metadata = MetaData()
 
     # Reflection:
     # - dropping doesn't need reflection
@@ -1022,7 +1022,7 @@ def auto_import_db(
     reflect = create_tables or import_data
     if reflect:
         log.info("Reading table structure from database...")
-        metadata.reflect()  # views not required, though
+        metadata.reflect(bind=engine)  # views not required, though
 
     log.info("Processing...")
     for ti in gen_tablename_info(

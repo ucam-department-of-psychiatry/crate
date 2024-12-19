@@ -82,7 +82,7 @@ class DatabaseHolder:
         self._reflect_on_request = reflect
         self._reflected = False
         self._table_names = []  # type: List[str]
-        self._metadata = MetaData(bind=self.engine)
+        self._metadata = MetaData()
         log.debug(self.engine)  # obscures password
 
         if with_conn:  # for raw connections
@@ -113,7 +113,7 @@ class DatabaseHolder:
             return
         log.info(f"Reflecting database: {self.name}")
         # self.table_names = get_table_names(self.engine)
-        self._metadata.reflect(views=True)  # include views
+        self._metadata.reflect(bind=self.engine, views=True)  # include views
         self._table_names = [t.name for t in self._metadata.sorted_tables]
         self._reflected = True
 
@@ -121,7 +121,7 @@ class DatabaseHolder:
         """
         Updates the metadata, for example if a table has been dropped.
         """
-        self._metadata = MetaData(bind=self.engine)
+        self._metadata = MetaData()
 
     @property
     def metadata(self) -> MetaData:
