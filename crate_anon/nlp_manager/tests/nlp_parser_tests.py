@@ -37,6 +37,8 @@ from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 
 
 class FruitParser(BaseNlpParser):
+    is_test_nlp_parser = True
+
     def test(self, verbose: bool = False) -> None:
         pass
 

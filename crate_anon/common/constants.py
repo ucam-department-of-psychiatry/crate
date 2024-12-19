@@ -111,7 +111,7 @@ class DockerConstants:
 
     HOST = "0.0.0.0"
     # ... not "localhost" or "127.0.0.1"; see
-    # https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors  # noqa
+    # https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors  # noqa: E501
 
 
 # =============================================================================

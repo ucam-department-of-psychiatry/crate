@@ -29,7 +29,7 @@ crate_anon/nlp_manager/models.py
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import Column, Index, MetaData
-from sqlalchemy.types import BigInteger, DateTime, String
+from sqlalchemy.types import BigInteger, DateTime, Integer, String
 
 from crate_anon.anonymise.constants import COMMENT, TABLE_KWARGS
 from crate_anon.nlp_manager.constants import (
@@ -96,7 +96,8 @@ class NlpRecord(ProgressBase):
 
     pk = Column(
         "pk",
-        BigInteger,
+        # https://docs.sqlalchemy.org/en/20/dialects/sqlite.html
+        BigInteger().with_variant(Integer, "sqlite"),
         primary_key=True,
         autoincrement=True,
         comment="PK of NLP record (no specific use)",

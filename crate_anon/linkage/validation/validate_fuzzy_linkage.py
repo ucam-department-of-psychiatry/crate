@@ -1090,7 +1090,7 @@ def validate_2_fetch_cdl(
 
         -- Final count: 152888 (on 2022-05-26).
         -- Compare: SELECT COUNT(*) FROM rawCRSCDL.dbo.[CRS_Output_2020 09 21] = 162874
-    """  # noqa
+    """  # noqa: E501
     )
     engine = create_engine(url, echo=echo)
     result = engine.execute(sql)  # type: CursorResult
@@ -1344,7 +1344,7 @@ def validate_2_fetch_pcmis(
 
         -- Final count: 93347 (on 2022-05-26).
         -- Compare: SELECT COUNT(*) FROM rawPCMIS.dbo.PatientDetails = 94344.
-    """  # noqa
+    """  # noqa: E501
     )
     engine = create_engine(url, echo=echo)
     result = engine.execute(sql)  # type: CursorResult
@@ -1775,7 +1775,7 @@ def validate_2_fetch_rio(
         -- 2022-06-16) after removal of NNNStatus clause.
         -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.ClientIndex = 216739
         -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.Client = 216739
-    """  # noqa
+    """  # noqa: E501
     )
     engine = create_engine(url, echo=echo)
     result = engine.execute(sql)  # type: CursorResult
@@ -2072,7 +2072,7 @@ def validate_2_fetch_systmone(
 
         -- Final count: 613175 (2022-06-01).
         -- Compare: SELECT COUNT(*) FROM SystmOne.dbo.S1_Patient = 619062.
-    """  # noqa
+    """  # noqa: E501
     )
     engine = create_engine(url, echo=echo)
     result = engine.execute(sql)  # type: CursorResult
@@ -2385,7 +2385,7 @@ cd "%{EnvVar.DATADIR}%"
 set {EnvVar.COMMON_OPTIONS}=--{Switches.POPULATION_SIZE} {CAMBS_POPULATION} --{Switches.EXTRA_VALIDATION_OUTPUT}
 cd "%{EnvVar.DATADIR}%"
 {help_v2_compare(plaintext=False)}
-"""  # noqa
+"""  # noqa: E501
 # Skipped: {help_v2_compare(plaintext=True)}
 
 

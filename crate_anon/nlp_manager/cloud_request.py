@@ -63,6 +63,7 @@ from crate_anon.nlp_manager.constants import (
     FN_NLPDEF,
     FN_WHEN_FETCHED,
     full_sectionname,
+    GateFieldNames,
     GateResultKeys,
     NlpConfigPrefixes,
     NlpDefValues,
@@ -384,8 +385,23 @@ class CloudRequestListProcessors(CloudRequest):
             raise HTTPError(f"Response status was: {status}")
 
         processors = []  # type: List[ServerProcessor]
+        if NKeys.PROCESSORS not in json_response:
+            raise KeyError(
+                f"Server did not provide key {NKeys.PROCESSORS!r} in its "
+                f"response: {json_response!r}"
+            )
         proclist = json_response[NKeys.PROCESSORS]  # type: JsonArrayType
+        if not isinstance(proclist, list):
+            raise ValueError(
+                f"Server's value of {NKeys.PROCESSORS!r} is not a list: "
+                f"{proclist!r}"
+            )
         for procinfo in proclist:
+            if not isinstance(procinfo, dict):
+                raise ValueError(
+                    f"Server's procinfo object not a dict: {procinfo!r}"
+                )
+            # Any of the following may raise KeyError if missing:
             proc = ServerProcessor(
                 # Mandatory:
                 name=procinfo[NKeys.NAME],
@@ -542,7 +558,7 @@ class CloudRequestProcess(CloudRequest):
         It can be quite a big overestimate, so we probably shouldn't chuck
         out requests just because the Python size looks too big.
 
-        """  # noqa
+        """  # noqa: E501
         if not max_length:  # None or 0
             return False  # no maximum; not too long
         # Fast, apt to overestimate size a bit (as above)
@@ -765,87 +781,133 @@ class CloudRequestProcess(CloudRequest):
     # -------------------------------------------------------------------------
 
     @staticmethod
-    def get_nlp_values_internal(
-        processor_data: Dict[str, Any], metadata: Dict[str, Any]
-    ) -> Generator[Tuple[str, Dict[str, Any], str], None, None]:
+    def gen_nlp_values_generic_single_table(
+        processor: Cloud,
+        tablename: str,
+        rows: List[Dict[str, Any]],
+        metadata: Dict[str, Any],
+        column_renames: Dict[str, str] = None,
+    ) -> Generator[Tuple[str, Dict[str, Any], Cloud], None, None]:
         """
-        Get result values from processed data from a CRATE server-side.
+        Get result values from processed data, where the results object is a
+        list of rows (each row in dictionary format), all for a single table,
+        such as from a remote CRATE server.
+
+        Success should have been pre-verified.
 
         Args:
-            processor_data:
-                NLPRP results for one processor
+            processor:
+                The processor object.
+            tablename:
+                The table name to use.
+            rows:
+                List of NLPRP results for one processor. Each result represents
+                a row of a table and is in dictionary format.
             metadata:
                 The metadata for a particular document - it would have been
                 sent with the document and the server would have sent it back.
+            column_renames:
+                Column renames to apply.
 
-        Yields ``(output_tablename, formatted_result, processor_name)``.
+        Yields ``(output_tablename, formatted_result, processor)``.
 
         """
-        if not processor_data[NKeys.SUCCESS]:
-            report_processor_errors(processor_data)
-            return
-        for result in processor_data[NKeys.RESULTS]:
-            result.update(metadata)
-            yield result
+        column_renames = column_renames or {}
+        for row in rows:
+            rename_keys_in_dict(row, column_renames)
+            row.update(metadata)
+            yield tablename, row, processor
 
     @staticmethod
-    def get_nlp_values_gate(
-        processor_data: Dict[str, Any],
+    def gen_nlp_values_gate(
         processor: Cloud,
+        processor_results: List[Dict[str, Any]],
         metadata: Dict[str, Any],
         text: str = "",
-    ) -> Generator[Tuple[Dict[str, Any], Cloud], None, None]:
+    ) -> Generator[Tuple[str, Dict[str, Any], Cloud], None, None]:
         """
-        Gets result values from processed GATE data which will originally
-        be in the following format:
+        Generates row values from processed GATE data.
+
+        Success should have been pre-verified.
+
+        Args:
+            processor:
+                The processor object:
+            processor_results:
+                A list of dictionaries (originally from JSON), each
+                representing a row in a table, and each expected to have this
+                format:
+
+                .. code-block:: none
+
+                    {
+                        'set': set the results belong to (e.g. 'Medication'),
+                        'type': annotation type,
+                        'start': start index,
+                        'end': end index,
+                        'features': {
+                            a dictionary of features, e.g. having keys 'drug',
+                            'frequency', etc., with corresponding values
+                        }
+                    }
+
+            metadata:
+                The metadata for a particular document - it would have been
+                sent with the document and the server would have sent it back.
+            text:
+                The source text itself (optional).
+
+        Yields:
+
+            tuples ``(output_tablename, formatted_result, processor)``
+
+        Each instance of ``formatted_result`` has this format:
 
         .. code-block:: none
 
             {
-                'set': set the results belong to (e.g. 'Medication'),
-                'type': annotation type,
-                'start': start index,
-                'end': end index,
-                'features': {a dictionary of features e.g. 'drug', 'frequency', etc}
+                GateFieldNames.TYPE: annotation type,
+                GateFieldNames.SET: set,
+                GateFieldNames.STARTPOS: start index,
+                GateFieldNames.ENDPOS: end index,
+                GateFieldNames.CONTENT: text fragment,
+                FEATURE1: VALUE1,
+                FEATURE2: VALUE2,
+                ...
             }
-
-        Yields ``(output_tablename, formatted_result, processor_name)``.
-        """  # noqa
-        if not processor_data[NKeys.SUCCESS]:
-            report_processor_errors(processor_data)
-            return
-        for result in processor_data[NKeys.RESULTS]:
-            # Assuming each set of results says what annotation type
-            # it is (annotation type is stored as lower case)
-            annottype = result[GateResultKeys.TYPE].lower()
-            features = result[GateResultKeys.FEATURES]
-            start = result[GateResultKeys.START]
-            end = result[GateResultKeys.END]
+        """
+        for row in processor_results:
+            # Assuming each row says what annotation type it is (annotation
+            # type is stored as lower case):
+            annottype = row[GateResultKeys.TYPE].lower()
+            features = row[GateResultKeys.FEATURES]
+            start = row[GateResultKeys.START]
+            end = row[GateResultKeys.END]
             formatted_result = {
-                "_type": annottype,
-                "_set": result[GateResultKeys.SET],
-                "_start": start,
-                "_end": end,
-                "_content": "" if not text else text[start:end],
+                GateFieldNames.TYPE: annottype,
+                GateFieldNames.SET: row[GateResultKeys.SET],
+                GateFieldNames.STARTPOS: start,
+                GateFieldNames.ENDPOS: end,
+                GateFieldNames.CONTENT: text[start:end] if text else "",
             }
-
             formatted_result.update(features)
             c = processor.get_otconf_from_type(annottype)
             rename_keys_in_dict(formatted_result, c.renames)
             set_null_values_in_dict(formatted_result, c.null_literals)
             formatted_result.update(metadata)
             tablename = processor.get_tablename_from_type(annottype)
-            yield tablename, formatted_result
+            yield tablename, formatted_result, processor
 
-    def get_nlp_values(
+    def gen_nlp_values(
         self,
-    ) -> Generator[Tuple[Dict[str, Any], Cloud], None, None]:
+    ) -> Generator[Tuple[str, Dict[str, Any], Cloud], None, None]:
         """
         Process response data that we have already obtained from the server,
         generating individual NLP results.
 
         Yields:
              ``(tablename, result, processor)`` for each result.
+             The ``tablename`` value is the actual destination database table.
 
         Raises:
             :exc:`KeyError` if an unexpected processor turned up in the results
@@ -855,11 +917,20 @@ class CloudRequestProcess(CloudRequest):
             "Method 'get_nlp_values' must only be called "
             "after nlp_data is obtained"
         )
-        for result in self.nlp_data[NKeys.RESULTS]:
-            metadata = result[NKeys.METADATA]  # type: Dict[str, Any]
+        if NKeys.RESULTS not in self.nlp_data:
+            raise KeyError(
+                f"Top-level response does not contain key: {NKeys.RESULTS!r}"
+            )
+        docresultlist = self.nlp_data[NKeys.RESULTS]
+        if not isinstance(docresultlist, list):
+            raise ValueError(
+                f"{NKeys.RESULTS!r} value is not a list: {docresultlist!r}"
+            )
+        for docresult in docresultlist:
+            metadata = docresult[NKeys.METADATA]  # type: Dict[str, Any]
             # ... expected type because that's what we sent; see add_text()
-            text = result.get(NKeys.TEXT)
-            for processor_data in result[NKeys.PROCESSORS]:  # type: Dict
+            text = docresult.get(NKeys.TEXT)
+            for processor_data in docresult[NKeys.PROCESSORS]:  # type: Dict
 
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 # Check that the processor was one we asked for.
@@ -895,20 +966,96 @@ class CloudRequestProcess(CloudRequest):
                         raise KeyError(failmsg)
 
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                # OK; we're happy with the processor. Process its results.
+                # OK; we're happy with the processor. Was it happy?
                 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                if processor.format == NlpDefValues.FORMAT_GATE:
-                    for t, r in self.get_nlp_values_gate(
-                        processor_data, processor, metadata, text
-                    ):
-                        yield t, r, processor
+                if not processor_data[NKeys.SUCCESS]:
+                    report_processor_errors(processor_data)
+                    return
+
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                # All well. Process the results.
+                # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                processor_results = processor_data[NKeys.RESULTS]
+                # See nlprp.rst, <nlprp_format_of_per_processor_results>.
+                if isinstance(processor_results, dict):
+                    # MULTI-TABLE FORMAT.
+                    # This is a dictionary mapping tables to row lists.
+                    if not processor.is_tabular():
+                        raise RuntimeError(
+                            f"Unsupported: processor {name!r} is returning "
+                            f"multi-table results but hasn't provided a "
+                            f"table schema"
+                        )
+                    tnames = processor.get_tabular_schema_tablenames()
+                    for remote_tablename, rows in processor_results.items():
+                        if remote_tablename not in tnames:
+                            raise ValueError(
+                                f"For processor {name!r}, data provided for "
+                                f"table {remote_tablename!r}, but this was "
+                                "not in the schema"
+                            )
+                        dest_tablename = processor.get_tablename_from_type(
+                            remote_tablename
+                        )
+                        yield from self.gen_nlp_values_generic_single_table(
+                            processor=processor,
+                            tablename=dest_tablename,
+                            rows=rows,
+                            metadata=metadata,
+                            column_renames=processor.get_otconf_from_type(
+                                remote_tablename
+                            ).renames,
+                        )
+                elif isinstance(processor_results, list):
+                    # SINGLE TABLE FORMAT.
+                    # This is a list of rows, where each row should be a
+                    # dictionary mapping column names to values.
+                    if processor.format == NlpDefValues.FORMAT_GATE:
+                        # We have special knowledge of the "traditional" GATE
+                        # format. The sub-function will work out the table
+                        # name(s).
+                        yield from self.gen_nlp_values_gate(
+                            processor=processor,
+                            processor_results=processor_results,
+                            metadata=metadata,
+                            text=text,
+                        )
+                    else:
+                        # Potentially valid whether or not there is a
+                        # tabular_schema. The results object is a generic list
+                        # of column_name/value dictionaries.
+                        if processor.is_tabular():
+                            # Only valid here if there is a SINGLE table in
+                            # the tabular_schema.
+                            tnames = processor.get_tabular_schema_tablenames()
+                            if len(tnames) != 1:
+                                raise ValueError(
+                                    f"Processor {name!r} returned results in "
+                                    "list format, but this is only valid for "
+                                    "a single table; its tables are "
+                                    f"{tnames!r}"
+                                )
+                            remote_tablename = tnames[0]
+                        else:
+                            # We use the FIRST defined table name.
+                            remote_tablename = processor.get_first_tablename()
+                        dest_tablename = processor.get_tablename_from_type(
+                            remote_tablename
+                        )
+                        yield from self.gen_nlp_values_generic_single_table(
+                            processor=processor,
+                            tablename=dest_tablename,
+                            rows=processor_results,
+                            metadata=metadata,
+                            column_renames=processor.get_otconf_from_type(
+                                remote_tablename
+                            ).renames,
+                        )
                 else:
-                    for res in self.get_nlp_values_internal(
-                        processor_data, metadata
-                    ):
-                        # For non-GATE processors ther will only be one table
-                        # name
-                        yield processor.tablename, res, processor
+                    raise ValueError(
+                        f"For processor {name!r}, bad results format: "
+                        f"{processor_results!r}"
+                    )
 
     # @do_cprofile
     def process_all(self) -> None:
@@ -921,7 +1068,7 @@ class CloudRequestProcess(CloudRequest):
 
         sessions = []
 
-        for tablename, nlp_values, processor in self.get_nlp_values():
+        for tablename, nlp_values, processor in self.gen_nlp_values():
             nlp_values[FN_NLPDEF] = nlpname
             session = processor.dest_session
             if session not in sessions:

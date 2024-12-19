@@ -347,8 +347,8 @@ if MAKE_USER:
         f"adduser --system --ingroup {CRATE_GROUP} {CRATE_USER}"
     )
     # MAKE_USER_COMMAND_2 = f"adduser --ingroup {CRATE_GROUP} {CRATE_USER}"
-    # https://lintian.debian.org/tags/maintainer-script-should-not-use-adduser-system-without-home.html  # noqa
-    # http://unix.stackexchange.com/questions/47880/how-debian-package-should-create-user-accounts  # noqa
+    # https://lintian.debian.org/tags/maintainer-script-should-not-use-adduser-system-without-home.html  # noqa: E501
+    # http://unix.stackexchange.com/questions/47880/how-debian-package-should-create-user-accounts  # noqa: E501
 else:
     MAKE_USER_COMMAND_1 = "# No need to add user"
     MAKE_USER_COMMAND_2 = ""
@@ -514,7 +514,7 @@ with open(join(DEB_OVERRIDE_DIR, PACKAGE_FOR_DEB), "w") as outfile:
         f"""
 # Not an official new Debian package, so ignore this one.
 # If we did want to close a new-package ITP bug:
-# http://www.debian.org/doc/manuals/developers-reference/pkgs.html#upload-bugfix  # noqa
+# http://www.debian.org/doc/manuals/developers-reference/pkgs.html#upload-bugfix  # noqa: E501
 {PACKAGE_FOR_DEB} binary: new-package-should-close-itp-bug
 {PACKAGE_FOR_DEB} binary: extra-license-file
 {PACKAGE_FOR_DEB} binary: embedded-javascript-library

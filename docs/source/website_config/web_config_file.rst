@@ -704,7 +704,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/#email-backend. Example:
     EMAIL_USE_SSL = False
 
     # Who will the e-mails appear to come from?
-    EMAIL_SENDER = "My NHS Trust Research Database - DO NOT REPLY <noreply@somewhere.nhs.uk>"  # noqa
+    EMAIL_SENDER = "My NHS Trust Research Database - DO NOT REPLY <noreply@somewhere.nhs.uk>"  # noqa: E501
 
 Then there are some additional custom settings:
 

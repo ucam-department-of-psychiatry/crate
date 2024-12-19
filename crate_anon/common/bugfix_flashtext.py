@@ -54,13 +54,13 @@ class KeywordProcessorFixed(KeywordProcessor):
         if not self.case_sensitive:
             sentence = a_sentence.lower()
             # by Ihor Bobak:
-            # some letters can expand in size when lower() is called, therefore we will preprocess  # noqa
-            # a_sentense to find those letters which lower()-ed to 2 or more symbols.  # noqa
-            # So, imagine that X is lowered as yz,  the rest are lowered as is:  A->a, B->b, C->c  # noqa
+            # some letters can expand in size when lower() is called, therefore we will preprocess  # noqa: E501
+            # a_sentense to find those letters which lower()-ed to 2 or more symbols.  # noqa: E501
+            # So, imagine that X is lowered as yz,  the rest are lowered as is:  A->a, B->b, C->c  # noqa: E501
             # then for the string ABCXABC we want to get
             # ['A', 'B', 'C', 'X', '',  'A', 'B', 'C'] which corresponds to
-            # ['a', 'b', 'c', 'y', 'z', 'a', 'b', 'c'] because when the code below will run by the indexes  # noqa
-            # of the lowered string, it will "glue" the original string also by THE SAME indexes  # noqa
+            # ['a', 'b', 'c', 'y', 'z', 'a', 'b', 'c'] because when the code below will run by the indexes  # noqa: E501
+            # of the lowered string, it will "glue" the original string also by THE SAME indexes  # noqa: E501
             orig_sentence = []
             for i in range(0, len(a_sentence)):
                 char = a_sentence[i]

@@ -58,7 +58,7 @@ from crate_anon.crateweb.config.constants import (
     UrlNames,
 )
 
-# https://stackoverflow.com/questions/2636536/how-to-make-django-work-with-unsupported-mysql-drivers-such-as-gevent-mysql-or-c  # noqa
+# https://stackoverflow.com/questions/2636536/how-to-make-django-work-with-unsupported-mysql-drivers-such-as-gevent-mysql-or-c  # noqa: E501
 try:
     import pymysql
 
@@ -115,10 +115,10 @@ INSTALLED_APPS = (
     # 'kombu.transport.django',  # for Celery with Django database as broker
     # 'template_profiler_panel',
     # 'silk',
-    "crate_anon.crateweb.config.apps.UserProfileAppConfig",  # for user-specific settings  # noqa
-    "crate_anon.crateweb.config.apps.ResearchAppConfig",  # the research database query app  # noqa
-    "crate_anon.crateweb.config.apps.ConsentAppConfig",  # the consent-to-contact app  # noqa
-    "crate_anon.crateweb.config.apps.CoreAppConfig",  # for e.g. the runcpserver command  # noqa
+    "crate_anon.crateweb.config.apps.UserProfileAppConfig",  # for user-specific settings  # noqa: E501
+    "crate_anon.crateweb.config.apps.ResearchAppConfig",  # the research database query app  # noqa: E501
+    "crate_anon.crateweb.config.apps.ConsentAppConfig",  # the consent-to-contact app  # noqa: E501
+    "crate_anon.crateweb.config.apps.CoreAppConfig",  # for e.g. the runcpserver command  # noqa: E501
     "crate_anon.crateweb.config.apps.ApiConfig",  # for the anonymisation API
 )
 
@@ -130,7 +130,7 @@ MIDDLEWARE = (
     # ... reinstated here 2017-01-30 (django-debug-toolbar==1.6)
     # ... "as early as possible... but after any other middle that encodes the
     #     response's content, such as GZipMiddleware"
-    # ... http://django-debug-toolbar.readthedocs.io/en/1.0/installation.html#explicit-setup  # noqa
+    # ... http://django-debug-toolbar.readthedocs.io/en/1.0/installation.html#explicit-setup  # noqa: E501
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -140,11 +140,11 @@ MIDDLEWARE = (
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     # Additional:
-    "cardinal_pythonlib.django.middleware.UserBasedExceptionMiddleware",  # provide debugging details to superusers  # noqa
-    "cardinal_pythonlib.django.middleware.LoginRequiredMiddleware",  # prohibit all pages except login pages if not logged in  # noqa
-    # 'cardinal_pythonlib.django.middleware.DisableClientSideCachingMiddleware',  # no client-side caching  # noqa
-    "crate_anon.crateweb.core.middleware.RestrictAdminMiddleware",  # non-developers can't access the devadmin site  # noqa
-    # 'cardinal_pythonlib.django.request_cache.RequestCacheMiddleware',  # per-request cache, UNTESTED  # noqa
+    "cardinal_pythonlib.django.middleware.UserBasedExceptionMiddleware",  # provide debugging details to superusers  # noqa: E501
+    "cardinal_pythonlib.django.middleware.LoginRequiredMiddleware",  # prohibit all pages except login pages if not logged in  # noqa: E501
+    # 'cardinal_pythonlib.django.middleware.DisableClientSideCachingMiddleware',  # no client-side caching  # noqa: E501
+    "crate_anon.crateweb.core.middleware.RestrictAdminMiddleware",  # non-developers can't access the devadmin site  # noqa: E501
+    # 'cardinal_pythonlib.django.request_cache.RequestCacheMiddleware',  # per-request cache, UNTESTED  # noqa: E501
 )
 
 LOGIN_URL = "/login/"  # for LoginRequiredMiddleware
@@ -166,7 +166,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "crate_anon.crateweb.core.context_processors.common_context",  # noqa
+                "crate_anon.crateweb.core.context_processors.common_context",
             ],
             "loaders": [
                 # https://docs.djangoproject.com/en/1.9/ref/templates/api/
@@ -206,9 +206,9 @@ DEBUG_TOOLBAR_PANELS = [
     "debug_toolbar.panels.logging.LoggingPanel",
     "debug_toolbar.panels.redirects.RedirectsPanel",
     # Built in but not enabled as standard:
-    # 'debug_toolbar.panels.profiling.ProfilingPanel',  # EXTREME DANGER! Breaks middleware inc. LoginRequiredMiddleware!  # noqa
+    # 'debug_toolbar.panels.profiling.ProfilingPanel',  # EXTREME DANGER! Breaks middleware inc. LoginRequiredMiddleware!  # noqa: E501
     # Extra:
-    # 'template_profiler_panel.panels.template.TemplateProfilerPanel',  # removed 2017-01-31; division by zero error  # noqa
+    # 'template_profiler_panel.panels.template.TemplateProfilerPanel',  # removed 2017-01-31; division by zero error  # noqa: E501
 ]
 
 
@@ -223,7 +223,7 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TASK_SERIALIZER = "json"
 # Results are OPTIONAL. The CRATE web service doesn't use them.
 # But may be helpful for Celery testing.
-# See http://docs.celeryproject.org/en/latest/configuration.html#std:setting-CELERY_RESULT_BACKEND  # noqa
+# See http://docs.celeryproject.org/en/latest/configuration.html#std:setting-CELERY_RESULT_BACKEND  # noqa: E501
 CELERY_RESULT_BACKEND = "rpc://"  # uses AMQP
 CELERY_RESULT_PERSISTENT = False
 

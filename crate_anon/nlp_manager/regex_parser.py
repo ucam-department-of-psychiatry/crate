@@ -90,8 +90,8 @@ OPTIONAL_RESULTS_IGNORABLES = r"""
 #   "Present: Nicola Adams (NA). 1.0. Minutes of the last meeting."
 #   ... which we don't want to be interpreted as "sodium 1.0".
 #   HOW BEST TO DO THIS?
-# - https://stackoverflow.com/questions/546433/regular-expression-to-match-outer-brackets  # noqa
-#   https://stackoverflow.com/questions/7898310/using-regex-to-balance-match-parenthesis  # noqa
+# - https://stackoverflow.com/questions/546433/regular-expression-to-match-outer-brackets  # noqa: E501
+#   https://stackoverflow.com/questions/7898310/using-regex-to-balance-match-parenthesis  # noqa: E501
 # - ... simplest is perhaps: base ignorables, or those with brackets, as above
 # - ... even better than a nested thing is just a list of alternatives
 
@@ -958,7 +958,7 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser, ABC):
                 \s* {OUT_OF_SEPARATOR} \s*
                 ( {IGNORESIGN_INTEGER} )         # 5. group for denominator
             )?
-        """  # noqa
+        """  # noqa: E501
         if debug:
             log.debug(f"Regex for {self.classname()}: {regex_str}")
         self.regex_str = regex_str

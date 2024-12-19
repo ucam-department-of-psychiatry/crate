@@ -67,6 +67,7 @@ from crate_anon.anonymise.constants import (
     COMMENT,
     TABLE_KWARGS,
 )
+from crate_anon.common.sql import decorate_index_name
 from crate_anon.common.stringfunc import (
     compress_docstring,
     does_text_contain_word_chars,
@@ -79,7 +80,7 @@ from crate_anon.nlp_manager.constants import (
     full_sectionname,
     NlpConfigPrefixes,
     ProcessorConfigKeys,
-    GateFieldNames as GateFN,
+    GateFieldNames,
     SqlTypeDbIdentifier,
     MAX_SQL_FIELD_LEN,
 )
@@ -198,7 +199,7 @@ class TableMaker(ABC):
         Returns the class's fully qualified name.
         """
         # This may be imperfect; see
-        # https://stackoverflow.com/questions/2020014/get-fully-qualified-class-name-of-an-object-in-python  # noqa
+        # https://stackoverflow.com/questions/2020014/get-fully-qualified-class-name-of-an-object-in-python  # noqa: E501
         # https://www.python.org/dev/peps/pep-3155/
         return ".".join([cls.__module__, cls.__qualname__])
 
@@ -226,6 +227,9 @@ class TableMaker(ABC):
         """
         Describes indexes that this NLP processor suggests for its destination
         table(s).
+
+        It is perfectly legitimate for the list not to include some tables, or
+        indeed to be empty.
 
         Returns:
              dict: a dictionary of ``{tablename: indexes}``, where ``indexes``
@@ -400,39 +404,50 @@ class TableMaker(ABC):
         """
         return [
             Column(
-                GateFN.SET, SqlTypeDbIdentifier, comment="GATE output set name"
+                GateFieldNames.SET,
+                SqlTypeDbIdentifier,
+                comment="GATE output set name",
             ),
             Column(
-                GateFN.TYPE,
+                GateFieldNames.TYPE,
                 SqlTypeDbIdentifier,
                 comment="GATE annotation type name",
             ),
             Column(
-                GateFN.ID,
+                GateFieldNames.ID,
                 Integer,
                 comment="GATE annotation ID (not clear this is very useful)",
             ),
             Column(
-                GateFN.STARTPOS,
+                GateFieldNames.STARTPOS,
                 Integer,
                 comment="Start position in the content",
             ),
             Column(
-                GateFN.ENDPOS, Integer, comment="End position in the content"
+                GateFieldNames.ENDPOS,
+                Integer,
+                comment="End position in the content",
             ),
             Column(
-                GateFN.CONTENT,
+                GateFieldNames.CONTENT,
                 Text,
                 comment="Full content marked as relevant.",
             ),
         ]
 
-    @staticmethod
-    def _standard_gate_indexes() -> List[Index]:
+    def _standard_gate_indexes(self, dest_tablename: str) -> List[Index]:
         """
         Returns standard indexes for GATE output.
         """
-        return [Index("_idx__set", GateFN.SET, mysql_length=MAX_SQL_FIELD_LEN)]
+        return [
+            Index(
+                decorate_index_name(
+                    "_idx__set", dest_tablename, self.dest_engine
+                ),
+                GateFieldNames.SET,
+                mysql_length=MAX_SQL_FIELD_LEN,
+            )
+        ]
 
     @lru_cache(maxsize=None)
     def tables(self) -> Dict[str, Table]:
@@ -476,7 +491,9 @@ class TableMaker(ABC):
             copyindexes_list = [i.get_copy_indexes() for i in ifconfigs]
             self._assert_index_lists_identical(copyindexes_list)
             copy_indexes = copyindexes_list[0]
-            core_indexes = InputFieldConfig.get_core_indexes_for_dest()
+            core_indexes = InputFieldConfig.get_core_indexes_for_dest(
+                tablename=tablename, engine=self._destdb.engine
+            )
 
             column_like_things = (
                 copy_of_cols + core_indexes + extra_dest_indexes + copy_indexes
@@ -514,9 +531,12 @@ class TableMaker(ABC):
         try:
             return tables[tablename]
         except KeyError:
+            all_tablenames = list(tables.keys())
             raise KeyError(
-                f"No destination table for this NLP processor "
-                f"named {tablename!r}"
+                f"For this NLP processor ({self._cfg_processor_name!r}), the "
+                f"destination table named {tablename!r} does not have an "
+                f"associated Table object. Known Table objects are "
+                f"named {all_tablenames}"
             )
 
     def make_tables(self, drop_first: bool = False) -> List[str]:
@@ -568,7 +588,7 @@ class TableMaker(ABC):
                 If you don't do this, we will get deadlocks in incremental mode.
                 See e.g.
                 https://dev.mysql.com/doc/refman/5.5/en/innodb-deadlocks.html
-        """  # noqa
+        """  # noqa: E501
         session = self.dest_session
         srcdb = ifconfig.srcdb
         srctable = ifconfig.srctable
@@ -685,6 +705,7 @@ class BaseNlpParser(TableMaker):
     """
 
     uses_external_tool = False  # may be overridden
+    is_test_nlp_parser = False  # may be overridden by tests!
 
     def __init__(
         self,
@@ -855,7 +876,7 @@ class BaseNlpParser(TableMaker):
         # dialect = MSDialect()
         column_type = column.type.compile(dialect)
         data_type = column_type.partition("(")[0]
-        # ... https://stackoverflow.com/questions/27387415/how-would-i-get-everything-before-a-in-a-string-python  # noqa
+        # ... https://stackoverflow.com/questions/27387415/how-would-i-get-everything-before-a-in-a-string-python  # noqa: E501
         return {
             NlprpKeys.COLUMN_NAME: column.name,
             NlprpKeys.COLUMN_TYPE: column_type,

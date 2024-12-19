@@ -58,7 +58,7 @@ Speed testing:
         mysqld about 18% [from top]
         nlp_manager.py about 4-5% * 8 [from top]
 
-"""  # noqa
+"""  # noqa: E501
 
 # =============================================================================
 # Imports

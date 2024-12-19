@@ -678,7 +678,7 @@ class MatchConfig:
             simplify(second_stage_speedup)
                 # = b + 647 / 16
 
-        """  # noqa
+        """  # noqa: E501
 
         if verbose:
             log.debug(f"... MatchConfig built. Settings: {self}")

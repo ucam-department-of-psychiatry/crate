@@ -27,6 +27,7 @@ Tasks to process text for an NLPRP server (and be scheduled via Celery).
 
 """
 
+from collections import defaultdict
 import datetime
 import json
 import logging
@@ -64,6 +65,18 @@ if TYPE_CHECKING:
     from typing import Optional
 
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+# Use the more explicit NLPRP dictionary (JSON object) result format, rather
+# than the simpler list (JSON array) format?
+USE_DICT_FORMAT_NLPRP_RESULT = True
+
+# Following on from that:
+EMPTY_PROCESSOR_RESULT = {} if USE_DICT_FORMAT_NLPRP_RESULT else []
 
 
 # =============================================================================
@@ -122,7 +135,7 @@ def nlprp_processor_dict(
         processor:
             a :class:`crate_anon.nlp_webserver.procs.Processor`, or ``None``
         results:
-            a JSON array of results
+            a JSON array (or dict) of results
         errcode:
             (if not ``success``) an integer error code
         errmsg:
@@ -131,7 +144,10 @@ def nlprp_processor_dict(
     Returns:
         a JSON object in NLPRP format
     """
-    proc_dict = {NlprpKeys.RESULTS: results or [], NlprpKeys.SUCCESS: success}
+    proc_dict = {
+        NlprpKeys.RESULTS: results or EMPTY_PROCESSOR_RESULT,
+        NlprpKeys.SUCCESS: success,
+    }
     if processor:
         proc_dict[NlprpKeys.NAME] = processor.name
         proc_dict[NlprpKeys.TITLE] = processor.title
@@ -394,6 +410,12 @@ def process_nlp_internal(
     """
     Send text to a chosen CRATE Python NLP processor and return a
     :class:`NlpServerResult`.
+
+    Args:
+        text:
+            The text to process.
+        processor:
+            The NLP processor to use.
     """
     parser = processor.parser
     try:
@@ -402,8 +424,26 @@ def process_nlp_internal(
         return internal_error(
             f"parser is not a CRATE Python NLP parser; is {parser!r}"
         )
-    # Get second element of each element in parsed text as first is tablename
-    # which will have no meaning here
-    return nlprp_processor_dict(
-        True, processor, results=[x[1] for x in tablename_valuedict_generator]
-    )
+    if USE_DICT_FORMAT_NLPRP_RESULT:
+        results = defaultdict(list)
+        for tablename, tableresult in tablename_valuedict_generator:
+            results[tablename].append(tableresult)
+        # If we use defaultdict(list) here, unmodified, the default JSON
+        # serialiser messes up and products things like {'results':
+        # defaultdict(<class 'list'>, {'alcoholunits': [{'variable_name': ...
+        # The code above is probably quicker as an iterator, but we can convert
+        # here:
+        results = dict(results)
+    else:
+        # Get second element of each element in parsed text as first is
+        # tablename which will have no meaning here
+        results = []
+        tables_seen = set()
+        for tablename, tableresult in tablename_valuedict_generator:
+            results.append(tableresult)
+            tables_seen.add(tablename)
+        assert len(tables_seen) < 2, (
+            "Internal bug: can't return results from multiple tables (within "
+            "a single NLP processor) in single-table list format"
+        )
+    return nlprp_processor_dict(True, processor, results=results)

@@ -591,7 +591,7 @@ all exceptions" strategy, but one would imagine the errors are unintentional
 (certainly the &/&& one!) or else they wouldn't print a stack trace and chug
 on.
 
-    """  # noqa
+    """  # noqa: E501
 
     for bf in bugfixes:
         filename = bf["filename"]

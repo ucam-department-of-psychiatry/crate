@@ -35,21 +35,21 @@ log.critical(
 # =============================================================================
 # Site URL configuration
 # =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
-# DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://mymachine.mydomain"  # example for Apache  # noqa
-# DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://localhost:8000"  # for the Django dev server  # noqa
+# DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://mymachine.mydomain"  # example for Apache  # noqa: E501
+# DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://localhost:8000"  # for the Django dev server  # noqa: E501
 DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://mymachine.mydomain"
 
 FORCE_SCRIPT_NAME = ""
 # FORCE_SCRIPT_NAME = ""  # example for Apache root hosting
-# FORCE_SCRIPT_NAME = "/crate"  # example for CherryPy or Apache non-root hosting  # noqa
+# FORCE_SCRIPT_NAME = "/crate"  # example for CherryPy or Apache non-root hosting  # noqa: E501
 
 
 # =============================================================================
 # Site security
 # =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "aaaaaaaaaaaaaaaaaa CHANGE THIS! aaaaaaaaaaaaaaaaaa"
@@ -358,12 +358,12 @@ EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 
 # Who will the e-mails appear to come from?
-EMAIL_SENDER = "My NHS Trust Research Database - DO NOT REPLY <noreply@somewhere.nhs.uk>"  # noqa
+EMAIL_SENDER = "My NHS Trust Research Database - DO NOT REPLY <noreply@somewhere.nhs.uk>"  # noqa: E501
 
 # -----------------------------------------------------------------------------
 # Additional settings
 # -----------------------------------------------------------------------------
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 # During development, we route all consent-related e-mails to the developer.
 # Switch SAFETY_CATCH_ON to False for production mode.

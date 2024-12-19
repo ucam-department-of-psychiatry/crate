@@ -289,7 +289,7 @@ def write_spreadsheet(
     ext = filetype or os.path.splitext(filename)[1]
     if filename == "-" or ext == SpreadsheetFileExtensions.TSV.value:
         first_key = next(iter(data))
-        # https://stackoverflow.com/questions/30362391/how-do-you-find-the-first-key-in-a-dictionary  # noqa
+        # https://stackoverflow.com/questions/30362391/how-do-you-find-the-first-key-in-a-dictionary  # noqa: E501
         first_sheet = data[first_key]
         write_tsv(filename, first_sheet)
     elif ext == SpreadsheetFileExtensions.CSV.value:

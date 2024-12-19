@@ -16,6 +16,6 @@ class Migration(migrations.Migration):
             field=models.BooleanField(
                 default=False,
                 verbose_name="Omit Null columns for this query when displayed",
-            ),  # nopep8
+            ),
         ),
     ]

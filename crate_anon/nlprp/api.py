@@ -840,3 +840,10 @@ class NlprpServerProcessor:
 
     def __repr__(self) -> str:
         return auto_repr(self)
+
+    def is_tabular(self) -> bool:
+        """
+        Is the format of the schema information given by the remote processor
+        tabular?
+        """
+        return self.schema_type == NlprpValues.TABULAR

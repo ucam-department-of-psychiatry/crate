@@ -272,7 +272,7 @@ class MatchNoMatchComparison(Comparison):
                 :math:`P(D | \neg H) = P(\text{match given different person}) = p_f`.
                 If no match:
                 :math:`P(D | \neg H) = 1 - P(\text{match given different person}) = 1 - p_f`.
-        """  # noqa
+        """  # noqa: E501
         super().__init__()
         self.match = match
         self.p_match_given_same_person = p_match_given_same_person

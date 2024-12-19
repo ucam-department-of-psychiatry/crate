@@ -392,4 +392,4 @@ def get_rio_dd_settings(ddhint: DDHint) -> str:
 {sk.DDGEN_FORCE_LOWER_CASE} = False
 
 {sk.DDGEN_CONVERT_ODD_CHARS_TO_UNDERSCORE} = True
-"""  # noqa
+"""  # noqa: E501

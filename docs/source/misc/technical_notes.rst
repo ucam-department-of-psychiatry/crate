@@ -759,7 +759,7 @@ webnotes.txt
         - ... or could validate manually with a form, e.g.
             form = MyForm(request.GET, extraparam)
           using the style at
-            https://stackoverflow.com/questions/18769607/django-form-with-customer-parameter-and-validation-not-getting-clean-function  # noqa
+            https://stackoverflow.com/questions/18769607/django-form-with-customer-parameter-and-validation-not-getting-clean-function  # noqa: E501
 
     2. Query parameters
         - can encode using urllib, e.g.
