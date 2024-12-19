@@ -890,6 +890,7 @@ class Config:
         if RUNNING_WITHOUT_CONFIG:
             self.destdb = None  # type: Optional[DatabaseHolder]
             self._dest_dialect = mysql_dialect
+            self._destdb_transaction_limiter = None
         else:
             self.destdb = get_database(
                 destination_database_cfg_section,

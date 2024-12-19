@@ -44,14 +44,13 @@ from typing import Optional, TYPE_CHECKING, Union
 from cardinal_pythonlib.sqlalchemy.orm_query import exists_orm
 from sqlalchemy import (
     Column,
-    MetaData,
     Text,
 )
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import Session
 
+from crate_anon.anonymise import AdminBase
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
     MAX_TRID,
@@ -63,8 +62,6 @@ if TYPE_CHECKING:
     from crate_anon.anonymise.scrub import PersonalizedScrubber
 
 log = logging.getLogger(__name__)
-admin_meta = MetaData()
-AdminBase = declarative_base(metadata=admin_meta)
 
 
 class PatientInfoConstants:

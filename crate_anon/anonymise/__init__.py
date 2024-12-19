@@ -23,6 +23,11 @@ crate_anon/anonymise/__init__.py
 
 ===============================================================================
 
-The mere existence of this file makes Python treat the directory as a package.
-
 """
+
+from sqlalchemy import MetaData
+from sqlalchemy.orm import declarative_base
+
+# Access through AdminBase.metadata
+_admin_meta = MetaData()
+AdminBase = declarative_base(metadata=_admin_meta)

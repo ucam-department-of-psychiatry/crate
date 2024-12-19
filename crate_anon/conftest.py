@@ -43,6 +43,7 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import Session
 
+from crate_anon.anonymise import AdminBase
 from crate_anon.common.constants import EnvVar
 from crate_anon.testing import Base
 
@@ -187,6 +188,7 @@ def create_engine_from_url(
     engine = create_engine(db_url, echo=echo, pool_pre_ping=True)
 
     if create_test_db:
+        AdminBase.metadata.drop_all(engine)
         Base.metadata.drop_all(engine)
 
     return engine
@@ -236,6 +238,7 @@ def tables(
     database_is_empty = not inspect(engine).get_table_names()
 
     if create_test_db or database_is_empty:
+        AdminBase.metadata.create_all(engine)
         Base.metadata.create_all(engine)
     yield
 

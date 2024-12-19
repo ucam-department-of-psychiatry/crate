@@ -44,13 +44,16 @@ from sqlalchemy import (
 from crate_anon.anonymise.anonymise import (
     create_indexes,
     gen_opt_out_pids_from_database,
+    process_patient_tables,
     validate_optouts,
 )
 from crate_anon.anonymise.constants import IndexType
+from crate_anon.anonymise.models import PatientInfo
 from crate_anon.anonymise.ddr import DataDictionaryRow
+from crate_anon.common.sql import TransactionSizeLimiter
 from crate_anon.testing import Base
 from crate_anon.testing.classes import DatabaseTestCase
-from crate_anon.testing.factories import BaseFactory
+from crate_anon.testing.factories import BaseFactory, DemoPatientFactory
 
 
 class TestBoolOptOut(Base):
@@ -86,6 +89,8 @@ class TestStringOptOutFactory(BaseFactory):
 
 
 class TestAnonPatient(Base):
+    # TODO: Make fields more realistic for an anonymised table
+
     __tablename__ = "anon_patient"
 
     pid = Column(Integer, primary_key=True, comment="Patient ID")
@@ -375,3 +380,42 @@ DROP FULLTEXT INDEX ON [dbo].[anon_patient]
                 _destination_database_url=self.engine.url,
             ) as mock_config:
                 create_indexes()
+
+
+class ProcessPatientTablesTests(DatabaseTestCase):
+    def test_patient_saved_in_secret_database(self) -> None:
+        patient = DemoPatientFactory()
+        self.dbsession.commit()
+
+        pids = [patient.patient_id]
+
+        mock_get_scrub_from_db_table_pairs = mock.Mock(return_value=[])
+        mock_dd = mock.Mock(
+            get_scrub_from_db_table_pairs=mock_get_scrub_from_db_table_pairs
+        )
+        mock_estimate_count_patients = mock.Mock(return_value=1)
+        mock_admin_db = mock.Mock(session=self.dbsession)
+        mock_opting_out_pid = mock.Mock(return_value=False)
+
+        destdb_transaction_limiter = TransactionSizeLimiter(
+            session=self.dbsession,
+            max_bytes_before_commit=1000,
+            max_rows_before_commit=80 * 1024 * 1024,
+        )
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise",
+            estimate_count_patients=mock_estimate_count_patients,
+            opting_out_pid=mock_opting_out_pid,
+        ):
+            with mock.patch.multiple(
+                "crate_anon.anonymise.anonymise.config",
+                dd=mock_dd,
+                _destination_database_url=self.engine.url,
+                admindb=mock_admin_db,
+                _destdb_transaction_limiter=destdb_transaction_limiter,
+            ):
+                process_patient_tables(specified_pids=pids)
+
+        patient_info = self.dbsession.query(PatientInfo).one()
+        self.assertEqual(patient_info.pid, patient.patient_id)
