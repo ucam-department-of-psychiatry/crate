@@ -638,10 +638,13 @@ class CloudRequestDataTests(TestCase):
         - run data through cloud NLP, and insert results.
 
         """
+        prev = crate_anon.nlp_webserver.tasks.USE_DICT_FORMAT_NLPRP_RESULT
         crate_anon.nlp_webserver.tasks.USE_DICT_FORMAT_NLPRP_RESULT = True
         drop_remake(nlpdef=self.nlpdef)
         process_cloud_now(crinfo=self.crinfo)
         # The test is (currently) that it doesn't crash.
+        # Reset for other tests:
+        crate_anon.nlp_webserver.tasks.USE_DICT_FORMAT_NLPRP_RESULT = prev
 
         # To explore the database manually:
         # import pdb; pdb.set_trace()
@@ -657,10 +660,9 @@ class CloudRequestDataTests(TestCase):
         - run data through cloud NLP, and insert results.
 
         """
+        prev = crate_anon.nlp_webserver.tasks.USE_DICT_FORMAT_NLPRP_RESULT
         crate_anon.nlp_webserver.tasks.USE_DICT_FORMAT_NLPRP_RESULT = False
         drop_remake(nlpdef=self.nlpdef)
         process_cloud_now(crinfo=self.crinfo)
-        # The test is (currently) that it doesn't crash.
-
-        # To explore the database manually:
-        # import pdb; pdb.set_trace()
+        # Reset for other tests:
+        crate_anon.nlp_webserver.tasks.USE_DICT_FORMAT_NLPRP_RESULT = prev
