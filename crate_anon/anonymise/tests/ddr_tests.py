@@ -38,7 +38,7 @@ class DataDictionaryRowTests(TestCase):
     def test_odd_chars_replaced_in_dest_table(self) -> None:
         mock_config = mock.Mock()
         ddr = DataDictionaryRow(mock_config)
-        # unicode n-dash ----------------------v
+        # unicode n-dash ------------------------v
         test_table = f"A b(c)d/e|f\tg{chr(0x80)}h–i"
         test_field = test_table
 

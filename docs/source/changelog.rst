@@ -1688,6 +1688,10 @@ Changes
 - Change the installer to test external database connections early and give
   better feedback to the user regarding failures.
 
+- Fix the data dictionary generator to allow column names with valid but unusual
+  characters in the source database. Convert any unusual characters to ASCII in
+  the destination database.
+
 
 To do
 -----
