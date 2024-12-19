@@ -33,6 +33,7 @@ crate_anon/anonymise/ddr.py
 
 import ast
 import logging
+import re
 from typing import Any, List, Dict, Iterable, Optional, TYPE_CHECKING, Union
 
 from cardinal_pythonlib.convert import convert_to_int
@@ -67,7 +68,6 @@ from crate_anon.anonymise.constants import (
     DEFAULT_INDEX_LEN,
     IndexType,
     MYSQL_MAX_IDENTIFIER_LENGTH,
-    ODD_CHARS_TRANSLATE,
     ScrubMethod,
     ScrubSrc,
     SQLSERVER_MAX_IDENTIFIER_LENGTH,
@@ -1253,7 +1253,6 @@ class DataDictionaryRow:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Check other source field information
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        ensure_valid_field_name(self.src_field)
         assert self.src_datatype, "Need src_datatype"
 
         # REMOVED 2016-06-04; fails with complex SQL Server types, which can
@@ -1604,7 +1603,7 @@ class DataDictionaryRow:
         if dbconf.ddgen_convert_odd_chars_to_underscore:
             self.dest_field = str(self.dest_field)  # if this fails,
             # there's a Unicode problem
-            self.dest_field = self.dest_field.translate(ODD_CHARS_TRANSLATE)
+            self.dest_field = self.replace_odd_chars(self.dest_field)
             # ... this will choke on a Unicode string
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1709,7 +1708,7 @@ class DataDictionaryRow:
         if dbconf.ddgen_convert_odd_chars_to_underscore:
             self.dest_table = str(self.dest_table)
             # ... if this fails, there's a Unicode problem
-            self.dest_table = self.dest_table.translate(ODD_CHARS_TRANSLATE)
+            self.dest_table = self.replace_odd_chars(self.dest_table)
 
         for suffix in dbconf.ddgen_rename_tables_remove_suffixes:
             if self.dest_table.endswith(suffix):
@@ -1788,6 +1787,22 @@ class DataDictionaryRow:
 
         else:
             self.omit = dbconf.ddgen_omit_by_default
+
+    @staticmethod
+    def replace_odd_chars(text: str) -> str:
+        """
+        Sanitise a table or field name to only contain printable ASCII
+        characters plus ()/|
+
+        SQLServer and MySQL allow pretty much anything in a table or field name
+        but these could cause problems elsewhere.
+        """
+
+        # Replace Unicode with underscore
+        text = re.sub(r"[^\x21-\x7F]+", "_", text)
+
+        # Replace invalid ASCII
+        return text.translate({ord(c): "_" for c in "()/|"})
 
     def set_as_table_comment(
         self, src_db: str, src_table: str, comment: str

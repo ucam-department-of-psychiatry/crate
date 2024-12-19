@@ -86,16 +86,6 @@ LONGTEXT = "LONGTEXT"
 
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
 
-# Better overall than string.maketrans:
-ODD_CHARS_TRANSLATE = [chr(x) for x in range(0, 256)]
-for c in "()/ ":
-    ODD_CHARS_TRANSLATE[ord(c)] = "_"
-for i in range(0, 32):
-    ODD_CHARS_TRANSLATE[i] = "_"
-for i in range(127, 256):
-    ODD_CHARS_TRANSLATE[i] = "_"
-ODD_CHARS_TRANSLATE = "".join(ODD_CHARS_TRANSLATE)
-
 TridType = Integer
 MAX_TRID = 2**31 - 1
 # https://dev.mysql.com/doc/refman/5.0/en/numeric-type-overview.html
