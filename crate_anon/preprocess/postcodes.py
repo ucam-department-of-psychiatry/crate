@@ -77,13 +77,11 @@ from typing import (
     Generator,
     Iterable,
     List,
-    Optional,
-    TextIO,
     Tuple,
 )
 
 from cardinal_pythonlib.dicts import rename_key
-from cardinal_pythonlib.fileops import find_first
+from cardinal_pythonlib.fileops import find, find_first
 from cardinal_pythonlib.logs import configure_logger_for_colour
 import openpyxl
 from openpyxl.cell.cell import Cell
@@ -91,10 +89,12 @@ from sqlalchemy import (
     Column,
     create_engine,
     Date,
+    Float,
     Integer,
     Numeric,
     String,
 )
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
@@ -109,6 +109,11 @@ from crate_anon.common.stringfunc import make_twocol_table
 
 log = logging.getLogger(__name__)
 
+# find_first() logs a critical error if a file is not found. For our purposes,
+# this is expected behaviour so we don't want to alarm the user. Maybe it
+# shouldn't do that and instead leave it to the caller to decide how serious
+# that is.
+logging.getLogger("cardinal_pythonlib.fileops").disabled = True
 
 # =============================================================================
 # Constants
@@ -131,6 +136,8 @@ NAME_LEN = 80  # seems about right; a bit more than the length of many
 COL_POSTCODE_NOSPACE = "pcd_nospace"
 COL_POSTCODE_VARIABLE_LENGTH_SPACE = "pcds"
 
+ROWS_TO_DUMP = 5
+DUMP_FORMAT = "20.20"  # Pad and truncate columns to 20 characters
 
 # =============================================================================
 # Metadata
@@ -575,14 +582,82 @@ class Postcode(Base):
         "imd_index_multiple_deprivation_scotland_2012.imd_rank; "
         "imd_index_multiple_deprivation_wales_2014.imd_rank]",
     )
-
-    # New in Nov 2019 ONSPD, relative to 2016 ONSPD:
-    # ** Not yet implemented:
-    # calncv
-    # ced
-    # nhser
-    # rgn
-    # stp
+    bua22 = Column(
+        String(CODE_LEN),
+        comment="Built-up Area (BUA) [FK to "
+        "bua_built_up_area_uk_2022.bua_code]",
+    )
+    bua24 = Column(
+        String(CODE_LEN),
+        comment="Built-up Area (BUA) [FK to "
+        "bua_built_up_area_uk_2024.bua_code]",
+    )
+    calncv = Column(
+        String(CODE_LEN),
+        comment=(
+            "Cancer Alliance / National Cancer Vanguard code "
+            "[FK to cal_ncv_2023.cal_ncv_code]"
+        ),
+    )
+    ced = Column(
+        String(CODE_LEN),
+        comment="County Electoral Division code [FK to county_ed_2023]",
+    )
+    icb = Column(
+        String(CODE_LEN),
+        comment="Integrated Care Boards code [FK to icb_2023]",
+    )
+    itl = Column(
+        String(CODE_LEN),
+        comment=(
+            "International Territory Level (former NUTS)"
+            "[FK to lad23_lau121_itl321_itl221_itl121]"
+        ),
+    )
+    lsoa21 = Column(
+        String(CODE_LEN),
+        comment=(
+            "2021 Census Lower Layer Super Output Area (LSOA)/Super Data Zone "
+            "(SDZ) [FK to lsoa_lower_layer_super_output_area_2021 or "
+            "sdz_super_data_zones_2021]"
+        ),
+    )
+    msoa21 = Column(
+        String(CODE_LEN),
+        comment=(
+            "2021 Census Middle Layer Super Output Area (MSOA) "
+            "[FK to MSOA2021]"
+        ),
+    )
+    nhser = Column(
+        String(CODE_LEN),
+        comment="NHS England (Region) (NHS ER) [FK to NHSER2022]",
+    )
+    npark = Column(
+        String(CODE_LEN),
+        comment=("National park [FK to park_national_park_2022]"),
+    )
+    oa21 = Column(
+        String(CODE_LEN),
+        comment=(
+            "2021 Census Output Area (OA)/ Data Zone (DZ). "
+            "Based on 2011 Census OAs."
+        ),
+    )
+    rgn = Column(
+        String(CODE_LEN),
+        comment="Region (former GOR) [FK to rgn_region_england_2020]",
+    )
+    sicbl = Column(
+        String(CODE_LEN),
+        comment=(
+            "Sub ICB Location (LOC)/ Local Health Board (LHB)/ "
+            "Community Health Partnership (CHP)/ "
+            "Local Commissioning Group (LCG)/ "
+            "Primary Healthcare Directorate (PHD) "
+            "[FK to loc_sub_icb_locations_2022]"
+        ),
+    )
 
     def __init__(self, **kwargs: Any) -> None:
         convert_date(kwargs, "dointr")
@@ -603,13 +678,42 @@ class Postcode(Base):
 # =============================================================================
 
 
-class OAClassification(Base):
+class OAClassification2001(Base):
+    """
+    Represents 2001 Census Output Area (OA) classification names/codes.
+    """
+
+    __filename__ = (
+        "2001 Census Output Area Classification Names and Codes UK.xlsx"
+    )
+    __tablename__ = "output_area_classification_2001"
+
+    oac01 = Column(String(3), primary_key=True)
+    supergroup_code = Column(String(1))
+    supergroup_desc = Column(String(35))
+    group_code = Column(String(2))
+    group_desc = Column(String(40))
+    subgroup_code = Column(String(3))
+    subgroup_desc = Column(String(60))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "OAC01", "oac01")
+        rename_key(kwargs, "Supergroup", "supergroup_desc")
+        rename_key(kwargs, "Group", "group_desc")
+        rename_key(kwargs, "Subgroup", "subgroup_desc")
+        kwargs["supergroup_code"] = kwargs["oac01"][0:1]
+        kwargs["group_code"] = kwargs["oac01"][0:2]
+        kwargs["subgroup_code"] = kwargs["oac01"]
+        super().__init__(**kwargs)
+
+
+class OAClassification2011(Base):
     """
     Represents 2011 Census Output Area (OA) classification names/codes.
     """
 
     __filename__ = (
-        "2011 Census Output Area Classification Names and Codes " "UK.xlsx"
+        "2011 Census Output Area Classification Names and Codes UK.xlsx"
     )
     __tablename__ = "output_area_classification_2011"
 
@@ -632,9 +736,9 @@ class OAClassification(Base):
         super().__init__(**kwargs)
 
 
-class BUA(Base):
+class BUA2013(Base):
     """
-    Represents England & Wales 2013 build-up area (BUA) codes/names.
+    Represents England & Wales 2013 built-up area (BUA) codes/names.
     """
 
     __filename__ = "BUA_names and codes UK as at 12_13.xlsx"
@@ -646,6 +750,47 @@ class BUA(Base):
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, "BUA13CD", "bua_code")
         rename_key(kwargs, "BUA13NM", "bua_name")
+        super().__init__(**kwargs)
+
+
+class BUA2022(Base):
+    """
+    Represents England & Wales 2022 built-up area (BUA) codes/names.
+    """
+
+    __filename__ = "BUA22_names and codes EW as at 12_22.xlsx"
+    __tablename__ = "bua_built_up_area_uk_2022"
+
+    bua_code = Column(String(CODE_LEN), primary_key=True)
+    bua_name = Column(String(NAME_LEN))
+    bua_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "BUA22CD", "bua_code")
+        rename_key(kwargs, "BUA22NM", "bua_name")
+        rename_key(kwargs, "BUA22NMW", "bua_name_welsh")
+        super().__init__(**kwargs)
+
+
+class BUA2024(Base):
+    """
+    Represents England & Wales 2024 built-up area (BUA) codes/names.
+    """
+
+    __filename__ = "BUA24 names and codes EW as at 04_24.xlsx"
+    __tablename__ = "bua_built_up_area_uk_2024"
+    __duplicates__ = [
+        {"BUA24CD": "W45001083", "BUA24NM": "Bargod", "BUA24NMW": "Bargoed"}
+    ]
+
+    bua_code = Column(String(CODE_LEN), primary_key=True)
+    bua_name = Column(String(NAME_LEN))
+    bua_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "BUA24CD", "bua_code")
+        rename_key(kwargs, "BUA24NM", "bua_name")
+        rename_key(kwargs, "BUA24NMW", "bua_name_welsh")
         super().__init__(**kwargs)
 
 
@@ -663,6 +808,24 @@ class BUASD(Base):
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, "BUASD13CD", "buasd_code")
         rename_key(kwargs, "BUASD13NM", "buasd_name")
+        super().__init__(**kwargs)
+
+
+class CALNCV2023(Base):
+    """
+    Represents Cancer Alliance / National Cancer Vanguard codes for each
+    postcode 2023.
+    """
+
+    __filename__ = "CALNCV names and codes EN as at 07_23.xlsx"
+    __tablename__ = "cal_ncv_2023"
+
+    cal_ncv_code = Column(String(CODE_LEN), primary_key=True)
+    cal_ncv_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "CAL23CD", "cal_ncv_code")
+        rename_key(kwargs, "CAL23NM", "cal_ncv_name")
         super().__init__(**kwargs)
 
 
@@ -729,6 +892,23 @@ class Country(Base):
         super().__init__(**kwargs)
 
 
+class CountyED2023(Base):
+    """
+    Represents county electoral divisions in England 2023.
+    """
+
+    __filename__ = "County Electoral Division names and codes EN as at 05_23.xlsx"  # noqa: E501
+    __tablename__ = "county_ed_2023"
+
+    county_ed_code = Column(String(CODE_LEN), primary_key=True)
+    county_ed_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "CED23CD", "county_ed_code")
+        rename_key(kwargs, "CED23NM", "county_ed_name")
+        super().__init__(**kwargs)
+
+
 class County2019(Base):
     """
     Represents counties, UK 2019.
@@ -743,6 +923,23 @@ class County2019(Base):
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, "CTY19CD", "county_code")
         rename_key(kwargs, "CTY19NM", "county_name")
+        super().__init__(**kwargs)
+
+
+class County2023(Base):
+    """
+    Represents counties, UK 2023.
+    """
+
+    __filename__ = "County names and codes UK as at 12_23.xlsx"
+    __tablename__ = "county_england_2023"
+
+    county_code = Column(String(CODE_LEN), primary_key=True)
+    county_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "CTY23CD", "county_code")
+        rename_key(kwargs, "CTY23NM", "county_name")
         super().__init__(**kwargs)
 
 
@@ -765,7 +962,47 @@ class EER(Base):
         super().__init__(**kwargs)
 
 
-class IMDLookupEN(Base):
+class HealthArea2019(Base):
+    """
+    Represents Health Area, 2019.
+    """
+
+    __filename__ = "HLTHAU names and codes UK as at 04_19 (OSHLTHAU).xlsx"
+    __tablename__ = "health_area_2019"
+
+    health_area_code = Column(String(CODE_LEN), primary_key=True)
+    health_area_code_old = Column(String(CODE_LEN))
+    health_area_name = Column(String(NAME_LEN))
+    health_area_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "HLTHAUCD", "health_area_code")
+        rename_key(kwargs, "HLTHAUCDO", "health_area_code_old")
+        rename_key(kwargs, "HLTHAUNM", "health_area_name")
+        rename_key(kwargs, "HLTHAUNMW", "health_area_name_welsh")
+        super().__init__(**kwargs)
+
+
+class ICB2023(Base):
+    """
+    Represents Integrated Care Boards, 2023.
+    """
+
+    __filename__ = "ICB names and codes UK as at 04_23.xlsx"
+    __tablename__ = "icb_2023"
+
+    icb_code = Column(String(CODE_LEN), primary_key=True)
+    icb_code_h = Column(String(3))  # Don't know what this is. Has Q prefix.
+    icb_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "ICB23CD", "icb_code")
+        rename_key(kwargs, "ICB23CDH", "icb_code_h")
+        rename_key(kwargs, "ICB23NM", "icb_name")
+        super().__init__(**kwargs)
+
+
+class IMDLookupEN2015(Base):
     """
     Represents the Index of Multiple Deprivation (IMD), England 2015.
 
@@ -788,7 +1025,63 @@ class IMDLookupEN(Base):
         super().__init__(**kwargs)
 
 
-class IMDLookupSC(Base):
+class IMDLookupEN2019(Base):
+    """
+    Represents the Index of Multiple Deprivation (IMD), England 2019.
+    """
+
+    __filename__ = "IMD lookup EN as at 12_19.xlsx"
+    __tablename__ = "imd_index_multiple_deprivation_england_2019"
+
+    fid = Column(Integer)  # MB: Don't know what this is
+    lsoa_code = Column(String(CODE_LEN), primary_key=True)
+    lsoa_name = Column(String(NAME_LEN))
+    lad_code = Column(String(CODE_LEN))
+    lad_name = Column(String(NAME_LEN))
+    imd_rank = Column(Integer)
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "FID", "fid")
+        rename_key(kwargs, "LSOA11CD", "lsoa_code")
+        rename_key(kwargs, "LSOA11NM", "lsoa_name")
+        rename_key(kwargs, "LAD19CD", "lad_code")
+        rename_key(kwargs, "LAD19NM", "lad_name")
+
+        rename_key(kwargs, "IMD19", "imd_rank")
+        convert_int(kwargs, "fid")
+        convert_int(kwargs, "imd_rank")
+        super().__init__(**kwargs)
+
+
+class IMDLookupNI2017(Base):
+    """
+    Represents the Index of Multiple Deprivation (IMD), Northern Ireland 2017.
+    """
+
+    __filename__ = "IMD lookup NI as at 12_17.xlsx"
+    __tablename__ = "imd_index_multiple_deprivation_northern_ireland_2017"
+
+    fid = Column(Integer)  # Don't know what this is
+    lgd_code = Column(String(CODE_LEN))  # Local government district
+    lgd_name = Column(String(NAME_LEN))
+    lsoa_code = Column(String(CODE_LEN), primary_key=True)
+    lsoa_name = Column(String(NAME_LEN))
+    imd_rank = Column(Integer)
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "FID", "fid")
+        rename_key(kwargs, "LGD14CD", "lgd_code")
+        rename_key(kwargs, "LGD14NM", "lgd_name")
+        rename_key(kwargs, "LSOA01CD", "lsoa_code")
+        rename_key(kwargs, "LSOA01NM", "lsoa_name")
+
+        rename_key(kwargs, "IMD17", "imd_rank")
+        convert_int(kwargs, "fid")
+        convert_int(kwargs, "imd_rank")
+        super().__init__(**kwargs)
+
+
+class IMDLookupSC2016(Base):
     """
     Represents the Index of Multiple Deprivation (IMD), Scotland 2016.
     """
@@ -806,7 +1099,104 @@ class IMDLookupSC(Base):
         super().__init__(**kwargs)
 
 
-class IMDLookupWA(Base):
+class IMDLookupSC2020(Base):
+    """
+    Represents the Index of Multiple Deprivation (IMD), Scotland 2020.
+    """
+
+    __filename__ = "IMD lookup SC as at 12_20.xlsx"
+    __tablename__ = "imd_index_multiple_deprivation_scotland_2020"
+
+    dz_code = Column(String(CODE_LEN), primary_key=True)
+    dz_name = Column(String(NAME_LEN))
+    imd_rank = Column(Integer)
+    vigintile = Column(Integer)
+    decile = Column(Integer)
+    quintile = Column(Integer)
+    # Some of these columns have multiple rows with the same rank that
+    # aren't integers e.g. SIMD2020v2_Income_Domain_Rank is 5955.5 for six
+    # rows.
+    income_domain_rank = Column(Float)
+    employment_domain_rank = Column(Float)
+    education_domain_rank = Column(Float)
+    health_domain_rank = Column(Float)
+    access_domain_rank = Column(Float)
+    crime_domain_rank = Column(Float)
+    housing_domain_rank = Column(Float)
+    population = Column(Integer)
+    working_age_population = Column(Integer)
+    urban_rural_class = Column(Integer)
+    urban_rural_name = Column(String(NAME_LEN))
+    intermediate_zone_code = Column(String(CODE_LEN))
+    intermediate_zone_name = Column(String(NAME_LEN))
+    local_authority_code = Column(String(CODE_LEN))
+    local_authority_name = Column(String(NAME_LEN))
+    health_board_code = Column(String(CODE_LEN))
+    health_board_name = Column(String(NAME_LEN))
+    multi_member_ward_code = Column(String(CODE_LEN))
+    multi_member_ward_name = Column(String(NAME_LEN))
+    scottish_parliamentary_constituency_code = Column(String(CODE_LEN))
+    scottish_parliamentary_constituency_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "DZ", "dz_code")
+        rename_key(kwargs, "DZname", "dz_name")
+        rename_key(kwargs, "SIMD2020v2_Rank", "imd_rank")
+        rename_key(kwargs, "SIMD2020v2_Vigintile", "vigintile")
+        rename_key(kwargs, "SIMD2020v2_Decile", "decile")
+        rename_key(kwargs, "SIMD2020v2_Quintile", "quintile")
+        rename_key(
+            kwargs, "SIMD2020v2_Income_Domain_Rank", "income_domain_rank"
+        )
+        rename_key(
+            kwargs, "SIMD2020_Employment_Domain_Rank", "employment_domain_rank"
+        )
+        rename_key(
+            kwargs, "SIMD2020_Education_Domain_Rank", "education_domain_rank"
+        )
+        rename_key(kwargs, "SIMD2020_Health_Domain_Rank", "health_domain_rank")
+        rename_key(kwargs, "SIMD2020_Access_Domain_Rank", "access_domain_rank")
+        rename_key(kwargs, "SIMD2020_Crime_Domain_Rank", "crime_domain_rank")
+        rename_key(
+            kwargs, "SIMD2020_Housing_Domain_Rank", "housing_domain_rank"
+        )
+        rename_key(kwargs, "Population", "population")
+        rename_key(kwargs, "Working_Age_Population", "working_age_population")
+        rename_key(kwargs, "URclass", "urban_rural_class")
+        rename_key(kwargs, "URname", "urban_rural_name")
+        rename_key(kwargs, "IZcode", "intermediate_zone_code")
+        rename_key(kwargs, "IZname", "intermediate_zone_name")
+        rename_key(kwargs, "LAcode", "local_authority_code")
+        rename_key(kwargs, "LAname", "local_authority_name")
+        rename_key(kwargs, "HBcode", "health_board_code")
+        rename_key(kwargs, "HBname", "health_board_name")
+        rename_key(kwargs, "MMWcode", "multi_member_ward_code")
+        rename_key(kwargs, "MMWname", "multi_member_ward_name")
+        rename_key(
+            kwargs, "SPCcode", "scottish_parliamentary_constituency_code"
+        )
+        rename_key(
+            kwargs, "SPCname", "scottish_parliamentary_constituency_name"
+        )
+
+        convert_int(kwargs, "imd_rank")
+        convert_int(kwargs, "vigintile")
+        convert_int(kwargs, "decile")
+        convert_int(kwargs, "quintile")
+        convert_float(kwargs, "income_domain_rank")
+        convert_float(kwargs, "employment_domain_rank")
+        convert_float(kwargs, "education_domain_rank")
+        convert_float(kwargs, "health_domain_rank")
+        convert_float(kwargs, "access_domain_rank")
+        convert_float(kwargs, "crime_domain_rank")
+        convert_float(kwargs, "housing_domain_rank")
+        convert_int(kwargs, "population")
+        convert_int(kwargs, "working_age_population")
+        convert_int(kwargs, "urban_rural_class")
+        super().__init__(**kwargs)
+
+
+class IMDLookupWA2014(Base):
     """
     Represents the Index of Multiple Deprivation (IMD), Wales 2014.
     """
@@ -822,6 +1212,35 @@ class IMDLookupWA(Base):
         rename_key(kwargs, "LSOA11CD", "lsoa_code")
         rename_key(kwargs, "LSOA11NM", "lsoa_name")
         rename_key(kwargs, "IMD14", "imd_rank")
+        convert_int(kwargs, "imd_rank")
+        super().__init__(**kwargs)
+
+
+class IMDLookupWA2019(Base):
+    """
+    Represents the Index of Multiple Deprivation (IMD), Wales 2019.
+    """
+
+    __filename__ = "IMD lookup WA as at 12_19.xlsx"
+    __tablename__ = "imd_index_multiple_deprivation_wales_2019"
+
+    fid = Column(Integer)  # MB: Don't know what this is
+    lsoa_code = Column(String(CODE_LEN), primary_key=True)
+    lsoa_name = Column(String(NAME_LEN))
+    lad_code = Column(String(CODE_LEN))
+    lad_name = Column(String(NAME_LEN))
+    lad_name_welsh = Column(String(NAME_LEN))
+
+    imd_rank = Column(Integer)
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "FID", "fid")
+        rename_key(kwargs, "lsoa11cd", "lsoa_code")
+        rename_key(kwargs, "lsoa11nm", "lsoa_name")
+        rename_key(kwargs, "ladcd", "lad_code")
+        rename_key(kwargs, "ladnm", "lad_name")
+        rename_key(kwargs, "ladnmw", "lad_name_welsh")
+        rename_key(kwargs, "wimd_2019", "imd_rank")
         convert_int(kwargs, "imd_rank")
         super().__init__(**kwargs)
 
@@ -843,7 +1262,7 @@ class LAU(Base):
         super().__init__(**kwargs)
 
 
-class LAD(Base):
+class LAD2019(Base):
     """
     Represents local authority districts (LADs), UK 2019.
     """
@@ -862,7 +1281,64 @@ class LAD(Base):
         super().__init__(**kwargs)
 
 
-class LEP(Base):
+class LAD2023(Base):
+    """
+    Represents local authority districts (LADs), UK 2023.
+    """
+
+    __filename__ = "LA_UA names and codes UK as at 04_23.xlsx"
+    __tablename__ = "lad_local_authority_district_2023"
+
+    lad_code = Column(String(CODE_LEN), primary_key=True)
+    lad_name = Column(String(NAME_LEN))
+    lad_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "LAD23CD", "lad_code")
+        rename_key(kwargs, "LAD23NM", "lad_name")
+        rename_key(kwargs, "LAD23NMW", "lad_name_welsh")
+        super().__init__(**kwargs)
+
+
+class LAD23LAU121ITL321ITL221ITL121(Base):
+    """
+    Represents Local Authority Districts (LADs), Local Administrative Units
+    (LAUs) and (International Territorial Levels (ITLs). Following the UK's
+    departure from the EU, ITLs replace but mirror the former NUTS
+    classification.
+    """
+
+    __filename__ = "LAD23_LAU121_ITL321_ITL221_ITL121_UK_LU.xlsx"
+    __tablename__ = "lad23_lau121_itl321_itl221_itl121"
+
+    # lad_code is not unique but lau1 appears to be and is referenced from the
+    # itl field in the postcode table.
+    lad_code = Column(String(CODE_LEN))
+    lad_name = Column(String(NAME_LEN))
+    lau1_code = Column(String(CODE_LEN), primary_key=True)
+    lau1_name = Column(String(NAME_LEN))
+    itl3_code = Column(String(5))
+    itl3_name = Column(String(NAME_LEN))
+    itl2_code = Column(String(4))
+    itl2_name = Column(String(NAME_LEN))
+    itl1_code = Column(String(3))
+    itl1_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "LAD23CD", "lad_code")
+        rename_key(kwargs, "LAD23NM", "lad_name")
+        rename_key(kwargs, "LAU121CD", "lau1_code")
+        rename_key(kwargs, "LAU121NM", "lau1_name")
+        rename_key(kwargs, "ITL321CD", "itl3_code")
+        rename_key(kwargs, "ITL321NM", "itl3_name")
+        rename_key(kwargs, "ITL221CD", "itl2_code")
+        rename_key(kwargs, "ITL221NM", "itl2_name")
+        rename_key(kwargs, "ITL121CD", "itl1_code")
+        rename_key(kwargs, "ITL121NM", "itl1_name")
+        super().__init__(**kwargs)
+
+
+class LEP2017(Base):
     """
     Represents Local Enterprise Partnerships (LEPs), England 2017.
     """
@@ -877,6 +1353,63 @@ class LEP(Base):
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, "LEP17CD", "lep_code")
         rename_key(kwargs, "LEP17NM", "lep_name")
+        super().__init__(**kwargs)
+
+
+class LEP2021(Base):
+    """
+    Represents Local Enterprise Partnerships (LEPs), England 2021.
+    """
+
+    __filename__ = "LEP names and codes EN as at 04_21 v2.xlsx"
+    __tablename__ = "lep_local_enterprise_partnership_england_2021"
+    # __debug_content__ = True
+
+    lep_code = Column(String(CODE_LEN), primary_key=True)
+    lep_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "LEP21CD", "lep_code")
+        rename_key(kwargs, "LEP21NM", "lep_name")
+        super().__init__(**kwargs)
+
+
+class LOC2022(Base):
+    """
+    Represents Sub-ICB Locations (LOCs), UK 2022.
+    Replaces CCGs following Health and Care Act 2022.
+    """
+
+    __filename__ = "LOC names and codes UK as at 07_22.xlsx"
+    __tablename__ = "loc_sub_icb_locations_2022"
+
+    loc_ons_code = Column(String(CODE_LEN), primary_key=True)
+    loc_ods_code = Column(String(9))
+    loc_name = Column(String(NAME_LEN))
+    loc_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "LOC22CD", "loc_ons_code")
+        rename_key(kwargs, "LOC22CDH", "loc_ods_code")
+        rename_key(kwargs, "LOC22NM", "loc_name")
+        rename_key(kwargs, "LOC22NMW", "loc_name_welsh")
+        super().__init__(**kwargs)
+
+
+class LSOA2001(Base):
+    """
+    Represents lower layer super output area (LSOAs), UK 2001.
+    """
+
+    __filename__ = "LSOA (2001) names and codes EW & NI as at 02_05.xlsx"
+    __tablename__ = "lsoa_lower_layer_super_output_area_2001"
+
+    lsoa_code = Column(String(CODE_LEN), primary_key=True)
+    lsoa_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "LSOA01CD", "lsoa_code")
+        rename_key(kwargs, "LSOA01NM", "lsoa_name")
         super().__init__(**kwargs)
 
 
@@ -900,6 +1433,40 @@ class LSOA2011(Base):
         super().__init__(**kwargs)
 
 
+class LSOA2021(Base):
+    """
+    Represents lower layer super output area (LSOAs), England and Wales 2021.
+    """
+
+    __filename__ = "LSOA (2021) names and codes EW as at 12_21.xlsx"
+    __tablename__ = "lsoa_lower_layer_super_output_area_2021"
+
+    lsoa_code = Column(String(CODE_LEN), primary_key=True)
+    lsoa_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "lsoa21cd", "lsoa_code")
+        rename_key(kwargs, "lsoa21nm", "lsoa_name")
+        super().__init__(**kwargs)
+
+
+class MSOA2001(Base):
+    """
+    Represents middle layer super output areas (MSOAs), UK 2001.
+    """
+
+    __filename__ = "MSOA (2001) names and codes GB as at 11_11.xlsx"
+    __tablename__ = "msoa_middle_layer_super_output_area_2001"
+
+    msoa_code = Column(String(CODE_LEN), primary_key=True)
+    msoa_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "MSOA01CD", "msoa_code")
+        rename_key(kwargs, "MSOA01NM", "msoa_name")
+        super().__init__(**kwargs)
+
+
 class MSOA2011(Base):
     """
     Represents middle layer super output areas (MSOAs), UK 2011.
@@ -917,7 +1484,24 @@ class MSOA2011(Base):
         super().__init__(**kwargs)
 
 
-class NationalPark(Base):
+class MSOA2021(Base):
+    """
+    Represents middle layer super output areas (MSOAs), UK 2021.
+    """
+
+    __filename__ = "MSOA (2021) names and codes EW as at 12_21.xlsx"
+    __tablename__ = "msoa_middle_layer_super_output_area_2021"
+
+    msoa_code = Column(String(CODE_LEN), primary_key=True)
+    msoa_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "MSOA21CD", "msoa_code")
+        rename_key(kwargs, "MSOA21NM", "msoa_name")
+        super().__init__(**kwargs)
+
+
+class NationalPark2016(Base):
     """
     Represents national parks, Great Britain 2016.
     """
@@ -934,9 +1518,66 @@ class NationalPark(Base):
         super().__init__(**kwargs)
 
 
-class Parish(Base):
+class NationalPark2022(Base):
     """
-    Represents parishes, England & Wales 2014.
+    Represents national parks, Great Britain 2022.
+    """
+
+    __filename__ = "National Park names and codes GB as at 03_23.xlsx"
+    __tablename__ = "park_national_park_2022"
+
+    park_code = Column(String(CODE_LEN), primary_key=True)
+    park_name = Column(String(NAME_LEN))
+    park_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "NPARK22CD", "park_code")
+        rename_key(kwargs, "NPARK22NM", "park_name")
+        rename_key(kwargs, "NPARK22NMW", "park_name_welsh")
+        super().__init__(**kwargs)
+
+
+class NHSER2022(Base):
+    """
+    Represents NHS England (Region) Names and Codes 2022.
+    """
+
+    __filename__ = "NHSER names and codes EN as at 07_22.xlsx"
+    __tablename__ = "nhser_nhs_england_region_2022"
+
+    region_ons_code = Column(String(CODE_LEN), primary_key=True)
+    region_nhser_code = Column(String(3))
+    region_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "NHSER22CD", "region_ons_code")
+        rename_key(kwargs, "NHSER22CDH", "region_nhser_code")
+        rename_key(kwargs, "NHSER22NM", "region_name")
+        super().__init__(**kwargs)
+
+
+class NHSER2024(Base):
+    """
+    Represents NHS England (Region) Names and Codes 2024.
+    """
+
+    __filename__ = "NHSER names and codes EN as at 04_24.xlsx"
+    __tablename__ = "nhser_nhs_england_region_2024"
+
+    region_ons_code = Column(String(CODE_LEN), primary_key=True)
+    region_nhser_code = Column(String(3))
+    region_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "NHSER24CD", "region_ons_code")
+        rename_key(kwargs, "NHSER24CDH", "region_nhser_code")
+        rename_key(kwargs, "NHSER24NM", "region_name")
+        super().__init__(**kwargs)
+
+
+class Parish2018(Base):
+    """
+    Represents parishes, England & Wales 2018.
     """
 
     __filename__ = "Parish_NCP names and codes EW as at 12_18.xlsx"
@@ -948,6 +1589,23 @@ class Parish(Base):
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, "PARNCP18CD", "parish_code")
         rename_key(kwargs, "PARNCP18NM", "parish_name")
+        super().__init__(**kwargs)
+
+
+class Parish2021(Base):
+    """
+    Represents parishes, England & Wales 2021.
+    """
+
+    __filename__ = "Parish_NCP names and codes EW as at 12_21.xlsx"
+    __tablename__ = "parish_ncp_england_wales_2021"
+
+    parish_code = Column(String(CODE_LEN), primary_key=True)
+    parish_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "PARNCP21CD", "parish_code")
+        rename_key(kwargs, "PARNCP21NM", "parish_name")
         super().__init__(**kwargs)
 
 
@@ -994,6 +1652,9 @@ class PFA(Base):
 class GOR(Base):
     """
     Represents Government Office Regions (GORs), England 2010.
+
+    The nine GORs were abolished in 2011 and are now known as Regions for
+    statistical purposes. See RGN2020.
     """
 
     __filename__ = "Region names and codes EN as at 12_10 (RGN).xlsx"
@@ -1009,6 +1670,61 @@ class GOR(Base):
         rename_key(kwargs, "GOR10CDO", "gor_code_old")
         rename_key(kwargs, "GOR10NM", "gor_name")
         rename_key(kwargs, "GOR10NMW", "gor_name")
+        super().__init__(**kwargs)
+
+
+class RGN2020(Base):
+    """
+    Represents Regions (RGNs), England 2020.
+    """
+
+    __filename__ = "Region names and codes EN as at 12_20 (RGN).xlsx"
+    __tablename__ = "rgn_region_england_2020"
+
+    rgn_code = Column(String(CODE_LEN), primary_key=True)
+    rgn_code_old = Column(String(1))
+    rgn_name = Column(String(NAME_LEN))
+    rgn_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "RGN20CD", "rgn_code")
+        rename_key(kwargs, "RGN20CDO", "rgn_code_old")
+        rename_key(kwargs, "RGN20NM", "rgn_name")
+        rename_key(kwargs, "RGN20NMW", "rgn_name")
+        super().__init__(**kwargs)
+
+
+class RuralUrban2011(Base):
+    """
+    Represents Rural Urban indicators, GB 2011.
+    """
+
+    __filename__ = "Rural Urban (2011) Indicator names and codes GB as at 12_16.xlsx"  # noqa: E501
+    __tablename__ = "rural_urban_indicator_2011"
+
+    ru_code = Column(String(2), primary_key=True)
+    ru_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "RU11IND", "ru_code")
+        rename_key(kwargs, "RU11NM", "ru_name")
+        super().__init__(**kwargs)
+
+
+class SDZ2021(Base):
+    """
+    Represents Super Data Zones, Northern Ireland, 2021.
+    """
+
+    __filename__ = "SDZ names and codes NI as at 03_21.xlsx"
+    __tablename__ = "sdz_super_data_zones_2021"
+
+    sdz_code = Column(String(CODE_LEN), primary_key=True)
+    sdz_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "SDZ21CD", "sdz_code")
+        rename_key(kwargs, "SDZ21NM", "sdz_name")
         super().__init__(**kwargs)
 
 
@@ -1030,28 +1746,67 @@ class SSR(Base):
         super().__init__(**kwargs)
 
 
-_ = '''
-# NOT WORKING 2020-03-03: missing PK somewhere? Also: unimportant.
-class Ward2005(Base):
+class StatisticalWard2005(Base):
     """
-    Represents electoral wards, UK 2005.
+    Represents "Statistical" wards. These no longer exist. See ONSPD user
+    guide.
     """
+
     __filename__ = "Statistical ward names and codes UK as at 2005.xlsx"
-    __tablename__ = "electoral_ward_2005"
+    __tablename__ = "statistical_ward_2005"
 
     ward_code = Column(String(6), primary_key=True)
     ward_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_key(kwargs, 'WDSTL05CD', 'ward_code')
-        rename_key(kwargs, 'WDSTL05NM', 'ward_name')
+        rename_key(kwargs, "WDSTL05CD", "ward_code")
+        rename_key(kwargs, "WDSTL05NM", "ward_name")
         super().__init__(**kwargs)
-'''
+
+
+class SICBLEN2023(Base):
+    """
+    Represents Sub ICB Locations in England. Seems to be a subset of LOC2022.
+    """
+
+    __filename__ = "Sub_ICB Location and Local Health Board names and codes EW as at 04_23.xlsx"  # noqa: E501
+    __tablename__ = "sicbl_sub_icb_locations_en_2023"
+
+    sicbl_ons_code = Column(String(CODE_LEN), primary_key=True)
+    sicbl_ods_code = Column(String(5))
+    sicbl_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "SICBL23CD", "sicbl_ons_code")
+        rename_key(kwargs, "SICBL23CDH", "sicbl_ods_code")
+        rename_key(kwargs, "SICBL23NM", "sicbl_name")
+        super().__init__(**kwargs)
+
+
+class SICBLUK2023(Base):
+    """
+    Represents Sub ICB Locations in UK 2023.
+    """
+
+    __filename__ = "Sub_ICB Location and Local Health Board names and codes UK as at 04_23.xlsx"  # noqa: E501
+    __tablename__ = "sicbl_sub_icb_locations_uk_2023"
+
+    sicbl_ons_code = Column(String(CODE_LEN), primary_key=True)
+    sicbl_ods_code = Column(String(5))
+    sicbl_name = Column(String(NAME_LEN))
+    sicbl_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "SICBL23CD", "sicbl_ons_code")
+        rename_key(kwargs, "SICBL23CDH", "sicbl_ods_code")
+        rename_key(kwargs, "SICBL23NM", "sicbl_name")
+        rename_key(kwargs, "SICBL23NMW", "sicbl_name_welsh")
+        super().__init__(**kwargs)
 
 
 class Ward2019(Base):
     """
-    Represents electoral wards, UK 2016.
+    Represents electoral wards, UK 2019.
     """
 
     __filename__ = "Ward names and codes UK as at 12_19.xlsx"
@@ -1063,6 +1818,46 @@ class Ward2019(Base):
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, "WD19CD", "ward_code")
         rename_key(kwargs, "WD19NM", "ward_name")
+        super().__init__(**kwargs)
+
+
+class Ward2024(Base):
+    """
+    Represents electoral wards, UK 2024.
+    """
+
+    __filename__ = "Ward names and codes UK as at ??_24.xlsx"
+    __tablename__ = "electoral_ward_2024"
+
+    ward_code = Column(String(CODE_LEN), primary_key=True)
+    ward_name = Column(String(NAME_LEN))
+    ward_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "WD24CD", "ward_code")
+        rename_key(kwargs, "WD24NM", "ward_name")
+        rename_key(kwargs, "WD24NMW", "ward_name_welsh")
+        super().__init__(**kwargs)
+
+
+class TECLEC(Base):
+    """
+    Represents Local Learning and Skills Council (LLSC)
+    Dept. of Children, Education, Lifelong Learning and Skills (DCELLS)
+    Enterprise Region (ER).
+    """
+
+    __filename__ = "TECLEC names and codes UK as at 12_16.xlsx"
+    __tablename__ = "teclec_2016"
+
+    teclec_code = Column(String(CODE_LEN), primary_key=True)
+    teclec_code_old = Column(String(5))
+    teclec_name = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "TECLECCD", "teclec_code")
+        rename_key(kwargs, "TECLECCDO", "teclec_code_old")
+        rename_key(kwargs, "TECLECNM", "teclec_name")
         super().__init__(**kwargs)
 
 
@@ -1083,7 +1878,26 @@ class TTWA(Base):
         super().__init__(**kwargs)
 
 
-class WestminsterConstituency(Base):
+class UrbanRural2001(Base):
+    """
+    Represents Urban Rural indicators, UK 2001.
+    """
+
+    __filename__ = "Urban Rural (2001) Indicator names and codes UK.xlsx"
+    __tablename__ = "urban_rural_indicator_2001"
+
+    # ur_code is not unique
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ur_code = Column(String(1))
+    ur_name = Column(String(200))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "UR01IND", "ur_code")
+        rename_key(kwargs, "UR01NM", "ur_name")
+        super().__init__(**kwargs)
+
+
+class WestminsterConstituency2014(Base):
     """
     Represents Westminster parliamentary constituencies, UK 2014.
     """
@@ -1100,6 +1914,28 @@ class WestminsterConstituency(Base):
     def __init__(self, **kwargs: Any) -> None:
         rename_key(kwargs, "PCON14CD", "pcon_code")
         rename_key(kwargs, "PCON14NM", "pcon_name")
+        super().__init__(**kwargs)
+
+
+class WestminsterConstituency2024(Base):
+    """
+    Represents Westminster parliamentary constituencies, UK 2024.
+    """
+
+    __filename__ = (
+        "Westminster Parliamentary Constituency names and codes "
+        "UK as at 12_24.xlsx"
+    )
+    __tablename__ = "pcon_westminster_parliamentary_constituency_2024"
+
+    pcon_code = Column(String(CODE_LEN), primary_key=True)
+    pcon_name = Column(String(NAME_LEN))
+    pcon_name_welsh = Column(String(NAME_LEN))
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_key(kwargs, "PCON24CD", "pcon_code")
+        rename_key(kwargs, "PCON24NM", "pcon_name")
+        rename_key(kwargs, "PCON24NMW", "pcon_name_welsh")
         super().__init__(**kwargs)
 
 
@@ -1174,6 +2010,7 @@ def populate_postcode_table(
     reportevery: int = DEFAULT_REPORT_EVERY,
     commit: bool = True,
     commitevery: int = DEFAULT_COMMIT_EVERY,
+    dump: bool = False,
 ) -> None:
     """
     Populates the :class:`Postcode` table, which is very big, from Office of
@@ -1190,6 +2027,7 @@ def populate_postcode_table(
         reportevery: report to the Python log every *n* rows
         commit: COMMIT the session once we've inserted the data?
         commitevery: if committing: commit every *n* rows inserted
+        dump: Dump a sample of lines from the table
     """
     tablename = Postcode.__tablename__
     # noinspection PyUnresolvedReferences
@@ -1204,7 +2042,8 @@ def populate_postcode_table(
     table.create(checkfirst=True)
     log.info(f"Using ONSPD data file: {filename}")
     n = 0
-    n_inserted = 0
+    num_inserted = 0
+    num_dumped = 0
     extra_fields = []  # type: List[str]
     db_fields = sorted(
         k for k in table.columns.keys() if k != COL_POSTCODE_NOSPACE
@@ -1217,7 +2056,7 @@ def populate_postcode_table(
                 log.info(
                     f"Processing row {n}: "
                     f"{row[COL_POSTCODE_VARIABLE_LENGTH_SPACE]} "
-                    f"({n_inserted} inserted)"
+                    f"({num_inserted} inserted)"
                 )
                 # log.debug(row)
             if n == 1:
@@ -1232,6 +2071,7 @@ def populate_postcode_table(
                     log.warning(
                         f"Fields in file but not database : {extra_fields}"
                     )
+
             for k in extra_fields:
                 del row[k]
             if startswith:
@@ -1244,7 +2084,14 @@ def populate_postcode_table(
                     continue
             obj = Postcode(**row)
             session.add(obj)
-            n_inserted += 1
+            num_inserted += 1
+            if dump and num_dumped <= ROWS_TO_DUMP:
+                print("-" * 80)
+                for k, v in row.items():
+                    v = str("" if v is None else v)
+                    print(f"| {k:{DUMP_FORMAT}}| {v}")
+                num_dumped += 1
+
             if commit and n % commitevery == 0:
                 commit_and_announce(session)
     if commit:
@@ -1258,17 +2105,15 @@ def populate_postcode_table(
 
 def populate_generic_lookup_table(
     sa_class: GenericLookupClassType,
-    datadir: str,
+    filename: str,
     session: Session,
     replace: bool = False,
     commit: bool = True,
     commitevery: int = DEFAULT_COMMIT_EVERY,
+    dump: bool = False,
 ) -> None:
     """
     Populates one of many generic lookup tables with ONSPD data.
-
-    We find the data filename from the ``__filename__`` property of the
-    specific class, hunting for it within ``datadir`` and its subdirectories.
 
     The ``.TXT`` files look at first glance like tab-separated values files,
     but in some cases have inconsistent numbers of tabs (e.g. "2011 Census
@@ -1280,18 +2125,19 @@ def populate_generic_lookup_table(
 
     Args:
         sa_class: SQLAlchemy ORM class
-        datadir: root directory of ONSPD data
+        filename: .XLSX file containing lookup table
         session: SQLAlchemy ORM database session
         replace: replace tables even if they exist? (Otherwise, skip existing
             tables.)
         commit: COMMIT the session once we've inserted the data?
         commitevery: if committing: commit every *n* rows inserted
+        dump: Dump a sample of lines from every table
     """
     tablename = sa_class.__tablename__
-    filename = find_first(sa_class.__filename__, datadir)
+
     headings = getattr(sa_class, "__headings__", [])
     debug = getattr(sa_class, "__debug_content__", False)
-    n = 0
+    duplicates = getattr(sa_class, "__duplicates__", [])
 
     if not replace:
         engine = session.bind
@@ -1304,10 +2150,60 @@ def populate_generic_lookup_table(
     sa_class.__table__.create(checkfirst=True)
 
     log.info(f'Processing file "{filename}" -> table "{tablename}"')
-    ext = os.path.splitext(filename)[1].lower()
-    type_xlsx = ext in [".xlsx"]
-    type_csv = ext in [".csv"]
-    file = None  # type: Optional[TextIO]
+    dict_iterator = read_spreadsheet(filename, headings)
+
+    row = 0
+    num_inserted = 0
+    num_dumped = 0
+
+    for datadict in dict_iterator:
+        row += 1
+
+        if debug:
+            log.critical(f"{row}: {datadict}")
+        # filter out blanks:
+        datadict = {k: v for k, v in datadict.items() if k}
+        if dump and row == 1:
+            dump_header = "|".join(
+                [f"{k:{DUMP_FORMAT}}" for k in datadict.keys()]
+            )
+            print(dump_header)
+            print("-" * len(dump_header))
+
+        values = datadict.values()
+        if any(values):
+            # noinspection PyNoneFunctionAssignment
+            obj = sa_class(**datadict)
+            if datadict in duplicates:
+                commit_and_announce(session)
+
+            session.add(obj)
+            if datadict in duplicates:
+                try:
+                    commit_and_announce(session)
+                except IntegrityError:
+                    log.info(f"Skipping duplicate row {datadict}")
+                    session.rollback()
+            num_inserted += 1
+            if dump and num_dumped <= ROWS_TO_DUMP:
+                dump_values = [str("" if v is None else v) for v in values]
+                print("|".join([f"{v:{DUMP_FORMAT}}" for v in dump_values]))
+                num_dumped += 1
+
+            if commit and num_inserted % commitevery == 0:
+                commit_and_announce(session)
+    if commit:
+        commit_and_announce(session)
+    log.info(f"... inserted {num_inserted} rows")
+
+
+def read_spreadsheet(
+    filename: str, headings: List[str]
+) -> Generator[Dict, None, None]:
+    if os.path.splitext(filename)[1].lower() != ".xlsx":
+        raise ValueError(
+            f"Unable to import {filename}. Only .xlsx files are supported."
+        )
 
     def dict_from_rows(
         row_iterator: Iterable[List],
@@ -1322,40 +2218,18 @@ def populate_generic_lookup_table(
                 yield dict(zip(local_headings, values))
             first_row = False
 
-    if type_xlsx:
-        workbook = openpyxl.load_workbook(filename)  # read_only=True
-        # openpyxl BUG: with read_only=True, cells can have None as their value
-        # when they're fine if opened in non-read-only mode.
-        # May be related to this:
-        # https://bitbucket.org/openpyxl/openpyxl/issues/601/read_only-cell-row-column-attributes-are  # noqa
-        sheet = workbook.active
-        dict_iterator = dict_from_rows(sheet.iter_rows())
-    elif type_csv:
-        file = open(filename, "r")
-        csv_reader = csv.DictReader(file)
-        dict_iterator = csv_reader
-    else:
-        raise ValueError("Only XLSX and CSV these days")
-        # workbook = xlrd.open_workbook(filename)
-        # sheet = workbook.sheet_by_index(0)
-        # dict_iterator = dict_from_rows(sheet.get_rows())
-    for datadict in dict_iterator:
-        n += 1
-        if debug:
-            log.critical(f"{n}: {datadict}")
-        # filter out blanks:
-        datadict = {k: v for k, v in datadict.items() if k}
-        # noinspection PyNoneFunctionAssignment
-        obj = sa_class(**datadict)
-        session.add(obj)
-        if commit and n % commitevery == 0:
-            commit_and_announce(session)
-    if commit:
-        commit_and_announce(session)
-    log.info(f"... inserted {n} rows")
+    workbook = openpyxl.load_workbook(filename)  # read_only=True
+    # openpyxl BUG: with read_only=True, cells can have None as their value
+    # when they're fine if opened in non-read-only mode.
+    # May be related to this:
+    # https://bitbucket.org/openpyxl/openpyxl/issues/601/read_only-cell-row-column-attributes-are  # noqa
 
-    if file:
-        file.close()
+    # Assume the first sheet is the one with the data in it.
+    # Choosing the active sheet is unreliable for some files.
+    # If this proves to be a wrong assumption, support an optional named
+    # sheet to load for each class.
+    sheet = workbook.worksheets[0]
+    return dict_from_rows(sheet.iter_rows())
 
 
 # =============================================================================
@@ -1396,8 +2270,8 @@ def main() -> None:
     Database (ONSPD) and inserts it into a database.
 
 -   You will need to download the ONSPD from
-        https://geoportal.statistics.gov.uk/geoportal/catalog/content/filelist.page
-    e.g. ONSPD_MAY_2016_csv.zip (79 Mb), and unzip it (>1.4 Gb) to a directory.
+        https://geoportal.statistics.gov.uk
+    e.g. ONSPD_AUG_2024.zip and unzip it (>3.7 Gb) to a directory.
     Tell this program which directory you used.
 
 -   Specify your database as an SQLAlchemy connection URL: see
@@ -1475,6 +2349,11 @@ def main() -> None:
         help="Skip generation of main (large) postcode table",
     )
     parser.add_argument(
+        "--dump",
+        action="store_true",
+        help="Dump a sample of rows from each table",
+    )
+    parser.add_argument(
         "--docsonly",
         action="store_true",
         help="Show help for postcode table then stop",
@@ -1494,32 +2373,65 @@ def main() -> None:
     classlist = [
         # Core lookup tables:
         # In alphabetical order of filename:
-        OAClassification,
-        BUA,
+        OAClassification2001,
+        OAClassification2011,
+        BUA2013,
+        BUA2022,
+        BUA2024,
         BUASD,
+        CALNCV2023,
         CASWard,
         CCG,
         Country,
+        CountyED2023,
         County2019,
+        County2023,
         EER,
-        IMDLookupEN,
-        IMDLookupSC,
-        IMDLookupWA,
+        HealthArea2019,
+        ICB2023,
+        IMDLookupEN2015,
+        IMDLookupEN2019,
+        IMDLookupNI2017,
+        IMDLookupSC2016,
+        IMDLookupSC2020,
+        IMDLookupWA2014,
+        IMDLookupWA2019,
         LAU,
-        LAD,
-        LEP,
+        LAD2019,
+        LAD2023,
+        LAD23LAU121ITL321ITL221ITL121,
+        LEP2017,
+        LEP2021,
+        LOC2022,
+        LSOA2001,
         LSOA2011,
+        LSOA2021,
+        MSOA2001,
         MSOA2011,
-        NationalPark,
-        Parish,
+        MSOA2021,
+        NationalPark2016,
+        NationalPark2022,
+        NHSER2022,
+        NHSER2024,
+        Parish2018,
+        Parish2021,
         PCT2019,
         PFA,
         GOR,
+        RGN2020,
+        RuralUrban2011,
+        SDZ2021,
         SSR,
-        # Ward2005,
+        StatisticalWard2005,
+        SICBLEN2023,
+        SICBLUK2023,
+        TECLEC,
         TTWA,
+        UrbanRural2001,
         Ward2019,
-        WestminsterConstituency,
+        Ward2024,
+        WestminsterConstituency2014,
+        WestminsterConstituency2024,
         # Centroids:
         # PopWeightedCentroidsLsoa2011,
     ]
@@ -1544,30 +2456,65 @@ def main() -> None:
     session = sessionmaker(bind=engine)()
 
     log.info(f"Using directory: {args.dir}")
-    # lookupdir = os.path.join(args.dir, "Documents")
-    lookupdir = args.dir
-    # datadir = os.path.join(args.dir, "Data")
     datadir = args.dir
 
     if not args.skiplookup:
+        all_files = [os.path.basename(f) for f in find("*.xlsx", datadir)]
+        found_files = []
+        missing_files = []
+        omitted_files = []
+
         for sa_class in classlist:
+            filename = None
+
+            try:
+                filename = find_first(sa_class.__filename__, datadir)
+                basename = os.path.basename(filename)
+            except IndexError:
+                log.info(
+                    f"Could not find match for {sa_class.__filename__}; "
+                    "skipping"
+                )
+                missing_files.append(sa_class.__filename__)
+                continue
+
             if (
                 args.specific_lookup_tables
                 and sa_class.__tablename__ not in args.specific_lookup_tables
             ):
+                omitted_files.append(basename)
                 continue
-            # if (sa_class.__tablename__ ==
-            #         "ccg_clinical_commissioning_group_uk_2019"):
-            #     log.warning("Ignore warning 'Discarded range with reserved "
-            #                 "name' below; it works regardless")
+
             populate_generic_lookup_table(
                 sa_class=sa_class,
-                datadir=lookupdir,
+                filename=filename,
                 session=session,
                 replace=args.replace,
                 commit=True,
                 commitevery=args.commitevery,
+                dump=args.dump,
             )
+            found_files.append(basename)
+
+        extra_files = sorted(
+            set(all_files) - set(found_files) - set(omitted_files)
+        )
+        if extra_files:
+            log.warning(
+                "You may be using a later version of ONSPD and the importer "
+                f"didn't recognise these files: {extra_files}"
+            )
+
+        if omitted_files:
+            log.warning(
+                f"These files were deliberately omitted: {omitted_files}"
+            )
+
+        if missing_files:
+            log.info(
+                f"These files were not found under {datadir}: {missing_files}"
+            )
+
     if not args.skippostcodes:
         populate_postcode_table(
             filename=find_first("ONSPD_*.csv", datadir),
@@ -1577,6 +2524,7 @@ def main() -> None:
             reportevery=args.reportevery,
             commit=True,
             commitevery=args.commitevery,
+            dump=args.dump,
         )
 
 
