@@ -978,7 +978,7 @@ class CloudRequestProcess(CloudRequest):
                 processor_results = processor_data[NKeys.RESULTS]
                 # See nlprp.rst, <nlprp_format_of_per_processor_results>.
                 if isinstance(processor_results, dict):
-                    # MULTI-TABLE.
+                    # MULTI-TABLE FORMAT.
                     # This is a dictionary mapping tables to row lists.
                     if not processor.is_tabular():
                         raise RuntimeError(
@@ -1007,7 +1007,7 @@ class CloudRequestProcess(CloudRequest):
                             ).renames,
                         )
                 elif isinstance(processor_results, list):
-                    # SINGLE TABLE.
+                    # SINGLE TABLE FORMAT.
                     # This is a list of rows, where each row should be a
                     # dictionary mapping column names to values.
                     if processor.format == NlpDefValues.FORMAT_GATE:

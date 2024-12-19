@@ -67,6 +67,7 @@ from crate_anon.nlp_manager.constants import (
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.nlp_manager import drop_remake, process_cloud_now
 from crate_anon.nlp_webserver.server_processor import ServerProcessor
+import crate_anon.nlp_webserver.tasks
 from crate_anon.nlp_webserver.views import NlpWebViews
 from crate_anon.nlprp.constants import NlprpKeys as NKeys, NlprpValues
 
@@ -626,7 +627,7 @@ class CloudRequestDataTests(TestCase):
                 for col in columns:
                     self.assertIsInstance(col, Column)
 
-    def test_cloud_pipeline(self) -> None:
+    def test_cloud_pipeline_dict_format(self) -> None:
         """
         Test the full pipeline:
 
@@ -637,6 +638,26 @@ class CloudRequestDataTests(TestCase):
         - run data through cloud NLP, and insert results.
 
         """
+        crate_anon.nlp_webserver.tasks.USE_DICT_FORMAT_NLPRP_RESULT = True
+        drop_remake(nlpdef=self.nlpdef)
+        process_cloud_now(crinfo=self.crinfo)
+        # The test is (currently) that it doesn't crash.
+
+        # To explore the database manually:
+        # import pdb; pdb.set_trace()
+
+    def test_cloud_pipeline_list_format(self) -> None:
+        """
+        Test the full pipeline:
+
+        - create a source database (in setUp);
+        - build a config file (in setUp);
+        - create destination tables, based on remote processor definitions
+          using tabular_schema;
+        - run data through cloud NLP, and insert results.
+
+        """
+        crate_anon.nlp_webserver.tasks.USE_DICT_FORMAT_NLPRP_RESULT = False
         drop_remake(nlpdef=self.nlpdef)
         process_cloud_now(crinfo=self.crinfo)
         # The test is (currently) that it doesn't crash.
