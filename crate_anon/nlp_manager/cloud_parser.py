@@ -37,7 +37,7 @@ from sqlalchemy import types as sqlatypes
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.constants import ProcessorConfigKeys, NlpDefValues
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
-from crate_anon.nlprp.constants import NlprpKeys as NKeys, NlprpValues
+from crate_anon.nlprp.constants import NlprpKeys, NlprpValues
 from crate_anon.nlp_manager.base_nlp_parser import TableMaker
 from crate_anon.nlp_webserver.server_processor import ServerProcessor
 
@@ -238,13 +238,13 @@ class Cloud(TableMaker):
         else:
             return []
 
-    def _standard_indexes_if_gate(self) -> List[Index]:
+    def _standard_indexes_if_gate(self, dest_tablename: str) -> List[Index]:
         """
         Returns standard indexes for GATE output if ``self.format`` is GATE.
         Returns an empty list otherwise.
         """
         if self.format == NlpDefValues.FORMAT_GATE:
-            return self._standard_gate_indexes()
+            return self._standard_gate_indexes(dest_tablename)
         else:
             return []
 
@@ -330,21 +330,21 @@ class Cloud(TableMaker):
                     remote_tablename
                 ).renames
                 for column_info in columndefs:
-                    colname = column_info[NKeys.COLUMN_NAME]
+                    colname = column_info[NlprpKeys.COLUMN_NAME]
                     # Rename (or keep the same if no applicable rename):
                     colname = column_renames.get(colname, colname)
                     col_str, parameter = self.get_coltype_parts(
-                        column_info[NKeys.COLUMN_TYPE]
+                        column_info[NlprpKeys.COLUMN_TYPE]
                     )
-                    data_type_str = column_info[NKeys.DATA_TYPE]
+                    data_type_str = column_info[NlprpKeys.DATA_TYPE]
                     # We could use col_str or data_type_str here.
                     coltype = self.data_type_str_to_coltype(data_type_str)
                     column_objects.append(
                         Column(
                             name=colname,
                             type_=coltype(parameter) if parameter else coltype,
-                            comment=column_info.get(NKeys.COLUMN_COMMENT),
-                            nullable=column_info[NKeys.IS_NULLABLE],
+                            comment=column_info.get(NlprpKeys.COLUMN_COMMENT),
+                            nullable=column_info[NlprpKeys.IS_NULLABLE],
                         )
                     )
                 if not column_objects:
@@ -394,7 +394,9 @@ class Cloud(TableMaker):
         """
         table_indexes = {}  # type: Dict[str, List[Index]]
         for output_type, otconfig in self._outputtypemap.items():
-            table_indexes[otconfig.dest_tablename] = (
-                self._standard_indexes_if_gate() + otconfig.indexes
+            dest_tablename = otconfig.dest_tablename
+            table_indexes[dest_tablename] = (
+                self._standard_indexes_if_gate(dest_tablename)
+                + otconfig.indexes
             )
         return table_indexes
