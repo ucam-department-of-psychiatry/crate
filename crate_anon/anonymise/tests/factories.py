@@ -1,5 +1,5 @@
 """
-crate_anon/anonymise/__init__.py
+crate_anon/anonymise/tests/factories.py
 
 ===============================================================================
 
@@ -23,13 +23,31 @@ crate_anon/anonymise/__init__.py
 
 ===============================================================================
 
-Anonymisation package.
+**Factory Boy SQL Alchemy test factories for anonymisation.**
 
 """
 
-from sqlalchemy import MetaData
-from sqlalchemy.orm import declarative_base
+from typing import TYPE_CHECKING
 
-# Access through AdminBase.metadata
-_admin_meta = MetaData()
-AdminBase = declarative_base(metadata=_admin_meta)
+from cardinal_pythonlib.hash import HashMethods, make_hasher
+import factory
+
+from crate_anon.anonymise.models import PatientInfo
+from crate_anon.testing.factories import BaseFactory, Fake
+
+if TYPE_CHECKING:
+    from factory.builder import Resolver
+
+
+class PatientInfoFactory(BaseFactory):
+    class Meta:
+        exclude = ("hasher",)
+        model = PatientInfo
+
+    hasher = make_hasher(HashMethods.HMAC_MD5, "encryptionphrase")
+    pid = factory.Sequence(lambda n: n + 1)
+    mpid = factory.LazyFunction(Fake.en_gb.nhs_number)
+
+    @factory.lazy_attribute
+    def rid(obj: "Resolver") -> str:
+        return obj.hasher.hash(obj.pid)

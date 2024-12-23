@@ -62,5 +62,6 @@ crate_anon/anonymise
     test_extract_text.py.rst
     tests/anonregex_tests.py.rst
     tests/anonymise_tests.py.rst
+    tests/factories.py.rst
     tests/researcher_report_tests.py.rst
     tests/scrub_tests.py.rst

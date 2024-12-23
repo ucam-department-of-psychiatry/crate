@@ -54,6 +54,7 @@ from crate_anon.anonymise import AdminBase
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
     MAX_TRID,
+    PatientInfoConstants,
     TABLE_KWARGS,
     TridType,
 )
@@ -62,15 +63,6 @@ if TYPE_CHECKING:
     from crate_anon.anonymise.scrub import PersonalizedScrubber
 
 log = logging.getLogger(__name__)
-
-
-class PatientInfoConstants:
-    SECRET_MAP_TABLENAME = "secret_map"
-    PID_FIELDNAME = "pid"
-    MPID_FIELDNAME = "mpid"
-    RID_FIELDNAME = "rid"
-    MRID_FIELDNAME = "mrid"
-    TRID_FIELDNAME = "trid"
 
 
 class PatientInfo(AdminBase):
