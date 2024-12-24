@@ -491,3 +491,41 @@ class ProcessPatientTablesTests(DatabaseTestCase):
         patient_info = self.dbsession.query(PatientInfo).one()
         self.assertEqual(patient_info.pid, patient.pid)
         self.assertEqual(str(patient_info.mpid), patient.nhsnum)
+
+    def test_patient_with_invalid_mpid_skipped(self) -> None:
+        if self.engine.dialect.name == "sqlite":
+            pytest.skip(
+                "Skipping test because SQLite would allow non-integer values "
+                "in an integer field"
+            )
+
+        patient = TestPatientWithStringMPIDFactory(nhsnum="ABC123")
+        self.dbsession.commit()
+
+        pid = patient.pid
+        pids = [pid]
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise",
+            estimate_count_patients=self.mock_estimate_count_patients,
+            opting_out_pid=self.mock_opting_out_pid,
+        ):
+            with mock.patch.multiple(
+                "crate_anon.anonymise.anonymise.config",
+                dd=self.mock_dd,
+                _destination_database_url=self.engine.url,
+                admindb=self.mock_admindb,
+                sources={"source1": self.mock_sourcedb},
+            ):
+                with self.assertLogs(level=logging.WARNING) as logging_cm:
+                    process_patient_tables(specified_pids=pids)
+
+        self.assertIsNone(self.dbsession.query(PatientInfo).one_or_none())
+        logger_name = "crate_anon.anonymise.anonymise"
+        expected_message = (
+            f"Skipping patient with PID={pid} because the record could "
+            "not be saved to the secret_map table"
+        )
+        self.assertIn(
+            f"WARNING:{logger_name}:{expected_message}", logging_cm.output
+        )

@@ -45,6 +45,7 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     get_column_names,
 )
 from sortedcontainers import SortedSet
+from sqlalchemy.exc import DatabaseError
 from sqlalchemy.schema import Column, Index, MetaData, Table
 from sqlalchemy.sql import column, func, or_, select, table, text
 from sqlalchemy.types import Boolean
@@ -1519,7 +1520,16 @@ def patient_processing_fn(
         # we do as we build the scrubber).
 
         # Gather scrubbing information for a patient. (Will save.)
-        patient = Patient(pid)
+        try:
+            patient = Patient(pid)
+        except DatabaseError:
+            log.warning(
+                f"Skipping patient with PID={pid} because the record could "
+                "not be saved to the secret_map table"
+            )
+            adminsession = config.admindb.session
+            adminsession.rollback()
+            continue
 
         if patient.mandatory_scrubbers_unfulfilled:
             log.warning(
