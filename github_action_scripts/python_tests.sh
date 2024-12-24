@@ -46,7 +46,6 @@ fi
 
 echo running tests
 cd "${GITHUB_WORKSPACE}"/crate_anon
-export CRATE_RUN_WITHOUT_LOCAL_SETTINGS=True
 export CRATE_NLP_WEB_CONFIG=${GITHUB_WORKSPACE}/github_action_scripts/test_nlp_web_config.ini
 
 VENV_BIN="${HOME}/venv/bin"
