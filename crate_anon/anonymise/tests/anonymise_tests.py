@@ -317,7 +317,7 @@ class CreateIndexesTests(DatabaseTestCase):
 
     def test_full_text_index_created_with_mysql(self) -> None:
         if self.engine.dialect.name != "mysql":
-            pytest.skip("Skipping mysql-only test")
+            pytest.skip("Skipping MySQL-only test")
 
         if self._get_mysql_anon_patient_table_full_text_indexes():
             self._drop_mysql_full_text_indexes()
@@ -629,6 +629,10 @@ class ProcessPatientTablesPKTests(DatabaseTestCase):
         )
 
     def test_duplicate_primary_key_skipped(self) -> None:
+        # MySQL supports ON DUPLICATE KEY UPDATE
+        if self.engine.dialect.name == "mysql":
+            pytest.skip("Skipping different behaviour for MySQL")
+
         patient = TestPatientWithStringMPIDFactory()
         TestRecordFactory(pid=patient.pid, row_identifier=123456)
         TestRecordFactory(pid=patient.pid, row_identifier=123456)
