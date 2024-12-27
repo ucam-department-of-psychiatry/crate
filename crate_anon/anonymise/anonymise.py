@@ -45,7 +45,7 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     get_column_names,
 )
 from sortedcontainers import SortedSet
-from sqlalchemy.exc import DatabaseError
+from sqlalchemy.exc import DatabaseError, IntegrityError
 from sqlalchemy.schema import Column, Index, MetaData, Table
 from sqlalchemy.sql import column, func, or_, select, table, text
 from sqlalchemy.types import Boolean
@@ -1405,7 +1405,15 @@ def process_table(
         # Insert values into database
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         q = sqla_table.insert_on_duplicate().values(destvalues)
-        session.execute(q)
+        try:
+            session.execute(q)
+        except IntegrityError:
+            log.warning(
+                "Skipping record due to IntegrityError. Non-unique primary "
+                f"key? {sourcedbname}.{sourcetable}.{src_pk_name} = "
+                f"(destination) {dest_table}.{dest_pk_name} = "
+                f"{row[pkfield_index]}"
+            )
 
         # Trigger an early commit?
         config.notify_dest_db_transaction(

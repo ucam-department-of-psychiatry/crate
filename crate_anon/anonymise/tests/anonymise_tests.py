@@ -32,6 +32,7 @@ from unittest import mock
 from cardinal_pythonlib.sqlalchemy.schema import mssql_table_has_ft_index
 import factory
 import pytest
+from sortedcontainers import SortedSet
 from sqlalchemy import (
     Boolean,
     Column,
@@ -113,6 +114,27 @@ class TestPatientWithStringMPIDFactory(BaseFactory):
     pid = factory.Sequence(lambda n: n + 1)
 
     nhsnum = factory.LazyFunction(Fake.en_gb.nhs_number)
+
+
+class TestRecord(Base):
+    __tablename__ = "test_record"
+
+    pk = Column(Integer, primary_key=True, comment="PK")
+    pid = Column(Integer, comment="Patient ID")
+    row_identifier = Column(Integer, comment="Row ID")
+
+
+class TestRecordFactory(BaseFactory):
+    class Meta:
+        model = TestRecord
+
+    pk = factory.Sequence(lambda n: n + 1)
+
+
+class TestAnonRecord(Base):
+    __tablename__ = "test_anon_record"
+
+    row_identifier = Column(Integer, primary_key=True, comment="Row ID")
 
 
 class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
@@ -399,7 +421,7 @@ DROP FULLTEXT INDEX ON [dbo].[anon_patient]
                 create_indexes()
 
 
-class ProcessPatientTablesTests(DatabaseTestCase):
+class ProcessPatientTablesMPidTests(DatabaseTestCase):
     def setUp(self) -> None:
         super().setUp()
 
@@ -529,3 +551,113 @@ class ProcessPatientTablesTests(DatabaseTestCase):
         self.assertIn(
             f"WARNING:{logger_name}:{expected_message}", logging_cm.output
         )
+
+
+class ProcessPatientTablesPKTests(DatabaseTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.mock_admindb = mock.Mock(session=self.dbsession)
+        self.mock_destdb = mock.Mock(
+            session=self.dbsession,
+            engine=self.engine,
+            metadata=Base.metadata,
+        )
+        mock_srccfg = mock.Mock(debug_limited_tables=[])
+        self.mock_sourcedb = mock.Mock(
+            session=self.dbsession,
+            srccfg=mock_srccfg,
+            engine=self.engine,
+            metadata=Base.metadata,
+        )
+        self.mock_get_scrub_from_rows_as_fieldinfo = mock.Mock(
+            return_value=[
+                ScrubSourceFieldInfo(
+                    is_mpid=True,
+                    is_patient=False,
+                    recurse=False,
+                    required_scrubber=False,
+                    scrub_method=ScrubMethod.NUMERIC,
+                    signature=None,
+                    value_fieldname="nhsnum",
+                ),
+            ]
+        )
+
+        self.mock_get_scrub_from_db_table_pairs = mock.Mock(
+            return_value=[
+                ("source1", "test_patient_with_string_mpid"),
+            ]
+        )
+
+        self.mock_get_pid_name = mock.Mock(return_value="pid")
+        self.mock_estimate_count_patients = mock.Mock(return_value=1)
+        self.mock_opting_out_pid = mock.Mock(return_value=False)
+
+        mock_row = mock.Mock(
+            omit=False,
+            src_field="row_identifier",
+            skip_row_by_value=mock.Mock(return_value=False),
+            primary_pid=False,
+            master_pid=False,
+            third_party_pid=False,
+            alter_methods=[],
+            dest_field="row_identifier",
+            add_src_hash=False,
+        )
+        mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
+
+        self.mock_dd = mock.Mock(
+            get_scrub_from_db_table_pairs=(
+                self.mock_get_scrub_from_db_table_pairs
+            ),
+            get_scrub_from_rows_as_fieldinfo=(
+                self.mock_get_scrub_from_rows_as_fieldinfo
+            ),
+            get_pid_name=self.mock_get_pid_name,
+            get_mandatory_scrubber_sigs=mock.Mock(return_value=set()),
+            get_source_databases=mock.Mock(
+                return_value=SortedSet(["source1"])
+            ),
+            get_patient_src_tables_with_active_dest=mock.Mock(
+                return_value=SortedSet(["test_record"])
+            ),
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+
+    def test_duplicate_primary_key_skipped(self) -> None:
+        patient = TestPatientWithStringMPIDFactory()
+        TestRecordFactory(pid=patient.pid, row_identifier=123456)
+        TestRecordFactory(pid=patient.pid, row_identifier=123456)
+        self.dbsession.commit()
+
+        pids = [patient.pid]
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise",
+            estimate_count_patients=self.mock_estimate_count_patients,
+            opting_out_pid=self.mock_opting_out_pid,
+        ):
+            with mock.patch.multiple(
+                "crate_anon.anonymise.anonymise.config",
+                dd=self.mock_dd,
+                _destination_database_url=self.engine.url,
+                admindb=self.mock_admindb,
+                destdb=self.mock_destdb,
+                sources={"source1": self.mock_sourcedb},
+                rows_inserted_per_table={("source1", "test_record"): 0},
+                timefield=None,
+            ):
+                with self.assertLogs(level=logging.WARNING) as logging_cm:
+                    process_patient_tables(specified_pids=pids)
+
+        logger_name = "crate_anon.anonymise.anonymise"
+        expected_message = "Skipping record due to IntegrityError"
+        self.assertIn(
+            f"WARNING:{logger_name}:{expected_message}", logging_cm.output[0]
+        )
+
+        self.assertEqual(self.dbsession.query(TestAnonRecord).count(), 1)
