@@ -362,7 +362,7 @@ class CreateIndexesTests(DatabaseTestCase):
 
     def _mssql_anon_note_table_has_full_text_index(self) -> None:
         return mssql_table_has_ft_index(
-            self.anon_engine_outside_transaction, "test_anon_note", "dbo"
+            self.engine_outside_transaction, "test_anon_note", "dbo"
         )
 
     def _drop_mssql_full_text_indexes(self) -> None:
@@ -375,7 +375,7 @@ IF EXISTS (
 
 DROP FULLTEXT INDEX ON [dbo].[test_anon_note]
 """
-        self.anon_engine_outside_transaction.execute(sql)
+        self.engine_outside_transaction.execute(sql)
 
     @property
     def engine_outside_transaction(self) -> None:
