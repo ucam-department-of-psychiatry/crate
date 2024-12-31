@@ -28,6 +28,6 @@ crate_anon/testing/__init__.py
 from sqlalchemy import MetaData
 from sqlalchemy.orm import declarative_base
 
-# Access this through Base.metadata
-_metadata = MetaData()
-Base = declarative_base(metadata=_metadata)
+# Access metadata through *Base.metadata
+AnonTestBase = declarative_base(metadata=MetaData())
+SourceTestBase = declarative_base(metadata=MetaData())

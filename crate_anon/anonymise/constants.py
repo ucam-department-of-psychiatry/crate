@@ -73,7 +73,6 @@ DEFAULT_CHUNKSIZE = 100000  # 100k
 # =============================================================================
 
 ANON_CONFIG_ENV_VAR = "CRATE_ANON_CONFIG"
-RUNNING_TESTS_ENV_VAR = "CRATE_RUNNING_TESTS"
 
 # =============================================================================
 # Data dictionary

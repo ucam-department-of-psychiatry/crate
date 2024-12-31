@@ -30,6 +30,5 @@ Anonymisation package.
 from sqlalchemy import MetaData
 from sqlalchemy.orm import declarative_base
 
-# Access through AdminBase.metadata
-_admin_meta = MetaData()
-AdminBase = declarative_base(metadata=_admin_meta)
+# Access through SecretBase.metadata
+SecretBase = declarative_base(metadata=MetaData())

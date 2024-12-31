@@ -50,7 +50,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import Session
 
-from crate_anon.anonymise import AdminBase
+from crate_anon.anonymise import SecretBase
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
     MAX_TRID,
@@ -65,7 +65,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class PatientInfo(AdminBase):
+class PatientInfo(SecretBase):
     """
     Represent patient information in the secret admin database.
 
@@ -206,7 +206,7 @@ class PatientInfo(AdminBase):
             self.tp_scrubber_text = None  # type: Optional[str]
 
 
-class TridRecord(AdminBase):
+class TridRecord(SecretBase):
     """
     Records the mapping from patient ID (PID) to integer transient research ID
     (TRID), and makes new TRIDs as required.
@@ -275,7 +275,7 @@ class TridRecord(AdminBase):
                 session.rollback()
 
 
-class OptOutPid(AdminBase):
+class OptOutPid(SecretBase):
     """
     Records the PID values of patients opting out of the anonymised database.
     """
@@ -331,7 +331,7 @@ class OptOutPid(AdminBase):
         # https://stackoverflow.com/questions/12297156/fastest-way-to-insert-object-if-it-doesnt-exist-with-sqlalchemy  # noqa
 
 
-class OptOutMpid(AdminBase):
+class OptOutMpid(SecretBase):
     """
     Records the MPID values of patients opting out of the anonymised database.
     """

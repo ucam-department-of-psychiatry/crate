@@ -40,6 +40,7 @@ from sqlalchemy import (
     inspect,
     Integer,
     String,
+    Text,
 )
 
 from crate_anon.anonymise.anonymise import (
@@ -53,12 +54,15 @@ from crate_anon.anonymise.models import PatientInfo
 from crate_anon.anonymise.dd import ScrubSourceFieldInfo
 from crate_anon.anonymise.ddr import DataDictionaryRow
 from crate_anon.anonymise.tests.factories import PatientInfoFactory
-from crate_anon.testing import Base
+from crate_anon.testing import AnonTestBase, SourceTestBase
 from crate_anon.testing.classes import DatabaseTestCase
-from crate_anon.testing.factories import BaseFactory, Fake
+from crate_anon.testing.factories import (
+    SourceTestBaseFactory,
+    Fake,
+)
 
 
-class TestBoolOptOut(Base):
+class TestBoolOptOut(SourceTestBase):
     __tablename__ = "test_opt_out_bool"
 
     pid = Column(Integer, primary_key=True, comment="Patient ID")
@@ -66,7 +70,7 @@ class TestBoolOptOut(Base):
     opt_out = Column(Boolean, comment="Opt out?")
 
 
-class TestBoolOptOutFactory(BaseFactory):
+class TestBoolOptOutFactory(SourceTestBaseFactory):
     class Meta:
         model = TestBoolOptOut
 
@@ -74,7 +78,7 @@ class TestBoolOptOutFactory(BaseFactory):
     mpid = factory.Sequence(lambda n: n + 1)
 
 
-class TestStringOptOut(Base):
+class TestStringOptOut(SourceTestBase):
     __tablename__ = "test_opt_out_string"
 
     pid = Column(Integer, primary_key=True, comment="Patient ID")
@@ -82,7 +86,7 @@ class TestStringOptOut(Base):
     opt_out = Column(String(4), comment="Opt out?")
 
 
-class TestStringOptOutFactory(BaseFactory):
+class TestStringOptOutFactory(SourceTestBaseFactory):
     class Meta:
         model = TestStringOptOut
 
@@ -90,24 +94,22 @@ class TestStringOptOutFactory(BaseFactory):
     mpid = factory.Sequence(lambda n: n + 1)
 
 
-class TestAnonPatient(Base):
-    # TODO: Make fields more realistic for an anonymised table
+class TestAnonNote(AnonTestBase):
+    __tablename__ = "test_anon_note"
 
-    __tablename__ = "anon_patient"
-
-    pid = Column(Integer, primary_key=True, comment="Patient ID")
-    forename = Column(String(50), comment="Forename")
-    surname = Column(String(50), comment="Surname")
+    note_id = Column(Integer, primary_key=True, comment="Note ID")
+    note1 = Column(Text, comment="Text of note 1")
+    note2 = Column(Text, comment="Text of note 2")
 
 
-class TestPatientWithStringMPID(Base):
+class TestPatientWithStringMPID(SourceTestBase):
     __tablename__ = "test_patient_with_string_mpid"
 
     pid = Column(Integer, primary_key=True, comment="Patient ID")
     nhsnum = Column(String(10), comment="NHS Number")
 
 
-class TestPatientWithStringMPIDFactory(BaseFactory):
+class TestPatientWithStringMPIDFactory(SourceTestBaseFactory):
     class Meta:
         model = TestPatientWithStringMPID
 
@@ -116,7 +118,7 @@ class TestPatientWithStringMPIDFactory(BaseFactory):
     nhsnum = factory.LazyFunction(Fake.en_gb.nhs_number)
 
 
-class TestRecord(Base):
+class TestRecord(SourceTestBase):
     __tablename__ = "test_record"
 
     pk = Column(Integer, primary_key=True, comment="PK")
@@ -124,14 +126,14 @@ class TestRecord(Base):
     row_identifier = Column(Integer, comment="Row ID")
 
 
-class TestRecordFactory(BaseFactory):
+class TestRecordFactory(SourceTestBaseFactory):
     class Meta:
         model = TestRecord
 
     pk = factory.Sequence(lambda n: n + 1)
 
 
-class TestAnonRecord(Base):
+class TestAnonRecord(AnonTestBase):
     __tablename__ = "test_anon_record"
 
     row_identifier = Column(Integer, primary_key=True, comment="Row ID")
@@ -155,9 +157,9 @@ class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
         mock_dd = mock.Mock(get_optout_defining_fields=optout_defining_fields)
         mock_sources = {
             "db": mock.Mock(
-                session=self.dbsession,
-                engine=self.engine,
-                metadata=Base.metadata,
+                session=self.source_dbsession,
+                engine=self.source_engine,
+                metadata=SourceTestBase.metadata,
             ),
         }
 
@@ -165,7 +167,7 @@ class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
         opt_out_2 = TestBoolOptOutFactory(opt_out=True)
         opt_out_3 = TestBoolOptOutFactory(opt_out=True)
         opt_out_4 = TestBoolOptOutFactory(opt_out=False)
-        self.dbsession.flush()
+        self.source_dbsession.flush()
 
         with mock.patch.multiple(
             "crate_anon.anonymise.anonymise.config",
@@ -197,14 +199,14 @@ class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
         mock_dd = mock.Mock(get_optout_defining_fields=optout_defining_fields)
         mock_sources = {
             "db": mock.Mock(
-                session=self.dbsession,
-                engine=self.engine,
-                metadata=Base.metadata,
+                session=self.source_dbsession,
+                engine=self.source_engine,
+                metadata=SourceTestBase.metadata,
             ),
         }
 
         TestBoolOptOutFactory(opt_out=True)
-        self.dbsession.flush()
+        self.source_dbsession.flush()
 
         with mock.patch.multiple(
             "crate_anon.anonymise.anonymise.config",
@@ -241,9 +243,9 @@ class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
         mock_dd = mock.Mock(get_optout_defining_fields=optout_defining_fields)
         mock_sources = {
             "db": mock.Mock(
-                session=self.dbsession,
-                engine=self.engine,
-                metadata=Base.metadata,
+                session=self.source_dbsession,
+                engine=self.source_engine,
+                metadata=SourceTestBase.metadata,
             ),
         }
 
@@ -251,7 +253,7 @@ class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
         opt_out_2 = TestStringOptOutFactory(opt_out="1")
         opt_out_3 = TestStringOptOutFactory(opt_out="no")
         opt_out_4 = TestStringOptOutFactory(opt_out="0")
-        self.dbsession.flush()
+        self.source_dbsession.flush()
 
         with mock.patch.multiple(
             "crate_anon.anonymise.anonymise.config",
@@ -285,15 +287,15 @@ class ValidateOptoutsTests(DatabaseTestCase):
         )
         mock_sources = {
             "db": mock.Mock(
-                session=self.dbsession,
-                engine=self.engine,
-                metadata=Base.metadata,
+                session=self.source_dbsession,
+                engine=self.source_engine,
+                metadata=SourceTestBase.metadata,
             ),
         }
 
         TestBoolOptOutFactory(opt_out=True)
         TestBoolOptOutFactory(opt_out=False)
-        self.dbsession.flush()
+        self.source_dbsession.flush()
 
         with mock.patch.multiple(
             "crate_anon.anonymise.anonymise.config",
@@ -316,51 +318,51 @@ class CreateIndexesTests(DatabaseTestCase):
         self._engine_outside_transaction = None
 
     def test_full_text_index_created_with_mysql(self) -> None:
-        if self.engine.dialect.name != "mysql":
+        if self.anon_engine.dialect.name != "mysql":
             pytest.skip("Skipping MySQL-only test")
 
-        if self._get_mysql_anon_patient_table_full_text_indexes():
+        if self._get_mysql_anon_note_table_full_text_indexes():
             self._drop_mysql_full_text_indexes()
 
-        indexes = self._get_mysql_anon_patient_table_full_text_indexes()
+        indexes = self._get_mysql_anon_note_table_full_text_indexes()
         self.assertEqual(len(indexes), 0)
 
         self._make_full_text_index()
-        indexes = self._get_mysql_anon_patient_table_full_text_indexes()
+        indexes = self._get_mysql_anon_note_table_full_text_indexes()
 
         self.assertEqual(len(indexes), 2)
-        self.assertEqual(indexes["forename"]["type"], "FULLTEXT")
-        self.assertEqual(indexes["surname"]["type"], "FULLTEXT")
+        self.assertEqual(indexes["note1"]["type"], "FULLTEXT")
+        self.assertEqual(indexes["note2"]["type"], "FULLTEXT")
 
     def _drop_mysql_full_text_indexes(self) -> None:
-        sql = "DROP INDEX _idxft_forename ON anon_patient"
-        self.engine.execute(sql)
+        sql = "DROP INDEX _idxft_note1 ON test_anon_note"
+        self.anon_engine.execute(sql)
 
-        sql = "DROP INDEX _idxft_surname ON anon_patient"
-        self.engine.execute(sql)
+        sql = "DROP INDEX _idxft_note2 ON test_anon_note"
+        self.anon_engine.execute(sql)
 
-    def _get_mysql_anon_patient_table_full_text_indexes(
+    def _get_mysql_anon_note_table_full_text_indexes(
         self,
     ) -> Dict[str, List[Dict[str, Any]]]:
         return {
             i["column_names"][0]: i
-            for i in inspect(self.engine).get_indexes("anon_patient")
+            for i in inspect(self.anon_engine).get_indexes("test_anon_note")
         }
 
     def test_full_text_index_created_with_mssql(self) -> None:
-        if self.engine.dialect.name != "mssql":
+        if self.anon_engine.dialect.name != "mssql":
             pytest.skip("Skipping mssql-only test")
 
         self._drop_mssql_full_text_indexes()
 
-        self.assertFalse(self._mssql_anon_patient_table_has_full_text_index())
+        self.assertFalse(self._mssql_anon_note_table_has_full_text_index())
         self._make_full_text_index()
 
-        self.assertTrue(self._mssql_anon_patient_table_has_full_text_index())
+        self.assertTrue(self._mssql_anon_note_table_has_full_text_index())
 
-    def _mssql_anon_patient_table_has_full_text_index(self) -> None:
+    def _mssql_anon_note_table_has_full_text_index(self) -> None:
         return mssql_table_has_ft_index(
-            self.engine_outside_transaction, "anon_patient", "dbo"
+            self.anon_engine_outside_transaction, "test_anon_note", "dbo"
         )
 
     def _drop_mssql_full_text_indexes(self) -> None:
@@ -368,18 +370,18 @@ class CreateIndexesTests(DatabaseTestCase):
         sql = """
 IF EXISTS (
     SELECT fti.object_id FROM sys.fulltext_indexes fti
-    WHERE fti.object_id = OBJECT_ID(N'[dbo].[anon_patient]')
+    WHERE fti.object_id = OBJECT_ID(N'[dbo].[test_anon_note]')
 )
 
-DROP FULLTEXT INDEX ON [dbo].[anon_patient]
+DROP FULLTEXT INDEX ON [dbo].[test_anon_note]
 """
-        self.engine_outside_transaction.execute(sql)
+        self.anon_engine_outside_transaction.execute(sql)
 
     @property
     def engine_outside_transaction(self) -> None:
         if self._engine_outside_transaction is None:
             self._engine_outside_transaction = create_engine(
-                self.engine.url,
+                self.anon_engine.url,
                 encoding="utf-8",
                 connect_args={"autocommit": True},  # for pyodbc
             )
@@ -392,22 +394,20 @@ DROP FULLTEXT INDEX ON [dbo].[anon_patient]
         def index_row_sets(
             tasknum: int = 0, ntasks: int = 1
         ) -> Generator[Tuple[str, List[DataDictionaryRow]], None, None]:
-            forename_row = DataDictionaryRow(mock_config)
-            forename_row.dest_field = "forename"
-            forename_row.index = IndexType.FULLTEXT
-            surname_row = DataDictionaryRow(mock_config)
-            surname_row.dest_field = "surname"
-            surname_row.index = IndexType.FULLTEXT
+            note1_row = DataDictionaryRow(mock_config)
+            note1_row.dest_field = "note1"
+            note1_row.index = IndexType.FULLTEXT
+            note2_row = DataDictionaryRow(mock_config)
+            note2_row.dest_field = "note2"
+            note2_row.index = IndexType.FULLTEXT
 
             for set in [
-                ("TestAnonPatient", [forename_row, surname_row]),
+                ("TestAnonNote", [note1_row, note2_row]),
             ]:
                 yield set
 
         mock_dd = mock.Mock(
-            get_dest_sqla_table=mock.Mock(
-                return_value=TestAnonPatient.__table__
-            )
+            get_dest_sqla_table=mock.Mock(return_value=TestAnonNote.__table__)
         )
         with mock.patch.multiple(
             "crate_anon.anonymise.anonymise",
@@ -416,7 +416,7 @@ DROP FULLTEXT INDEX ON [dbo].[anon_patient]
             with mock.patch.multiple(
                 "crate_anon.anonymise.anonymise.config",
                 dd=mock_dd,
-                _destination_database_url=self.engine.url,
+                _destination_database_url=self.anon_engine.url,
             ) as mock_config:
                 create_indexes()
 
@@ -425,8 +425,14 @@ class ProcessPatientTablesMPidTests(DatabaseTestCase):
     def setUp(self) -> None:
         super().setUp()
 
-        self.mock_admindb = mock.Mock(session=self.dbsession)
-        self.mock_sourcedb = mock.Mock(session=self.dbsession)
+        self.mock_admindb = mock.Mock(session=self.secret_dbsession)
+        mock_srccfg = mock.Mock(debug_limited_tables=[])
+        self.mock_sourcedb = mock.Mock(
+            session=self.source_dbsession,
+            srccfg=mock_srccfg,
+            engine=self.source_engine,
+            metadata=SourceTestBase.metadata,
+        )
         self.mock_get_scrub_from_rows_as_fieldinfo = mock.Mock(
             return_value=[
                 ScrubSourceFieldInfo(
@@ -451,6 +457,19 @@ class ProcessPatientTablesMPidTests(DatabaseTestCase):
         self.mock_estimate_count_patients = mock.Mock(return_value=1)
         self.mock_opting_out_pid = mock.Mock(return_value=False)
 
+        mock_row = mock.Mock(
+            omit=False,
+            src_field="row_identifier",
+            skip_row_by_value=mock.Mock(return_value=False),
+            primary_pid=False,
+            master_pid=False,
+            third_party_pid=False,
+            alter_methods=[],
+            dest_field="row_identifier",
+            add_src_hash=False,
+        )
+        mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
+
         self.mock_dd = mock.Mock(
             get_scrub_from_db_table_pairs=(
                 self.mock_get_scrub_from_db_table_pairs
@@ -459,11 +478,19 @@ class ProcessPatientTablesMPidTests(DatabaseTestCase):
                 self.mock_get_scrub_from_rows_as_fieldinfo
             ),
             get_pid_name=self.mock_get_pid_name,
+            get_mandatory_scrubber_sigs=mock.Mock(return_value=set()),
+            get_source_databases=mock.Mock(
+                return_value=SortedSet(["source1"])
+            ),
+            get_patient_src_tables_with_active_dest=mock.Mock(
+                return_value=SortedSet(["test_record"])
+            ),
+            get_rows_for_src_table=mock_rows_for_src_table,
         )
 
     def test_patient_saved_in_secret_database(self) -> None:
         patient = TestPatientWithStringMPIDFactory()
-        self.dbsession.commit()
+        self.source_dbsession.commit()
 
         pids = [patient.pid]
 
@@ -475,26 +502,24 @@ class ProcessPatientTablesMPidTests(DatabaseTestCase):
             with mock.patch.multiple(
                 "crate_anon.anonymise.anonymise.config",
                 dd=self.mock_dd,
-                _destination_database_url=self.engine.url,
+                _destination_database_url=self.anon_engine.url,
                 admindb=self.mock_admindb,
                 sources={"source1": self.mock_sourcedb},
             ):
                 process_patient_tables(specified_pids=pids)
 
-        patient_info = self.dbsession.query(PatientInfo).one()
+        patient_info = self.secret_dbsession.query(PatientInfo).one()
         self.assertEqual(patient_info.pid, patient.pid)
         self.assertEqual(str(patient_info.mpid), patient.nhsnum)
 
     def test_patient_mpid_updated_in_secret_database(self) -> None:
         patient = TestPatientWithStringMPIDFactory()
-        self.dbsession.commit()
+        self.source_dbsession.commit()
 
         patient_info = PatientInfoFactory(pid=patient.pid, mpid=None)
-        self.dbsession.commit()
+        self.secret_dbsession.commit()
 
         pids = [patient.pid]
-
-        patient.nhsnum = Fake.en_gb.nhs_number()
 
         with mock.patch.multiple(
             "crate_anon.anonymise.anonymise",
@@ -504,25 +529,25 @@ class ProcessPatientTablesMPidTests(DatabaseTestCase):
             with mock.patch.multiple(
                 "crate_anon.anonymise.anonymise.config",
                 dd=self.mock_dd,
-                _destination_database_url=self.engine.url,
+                _destination_database_url=self.anon_engine.url,
                 admindb=self.mock_admindb,
                 sources={"source1": self.mock_sourcedb},
             ):
                 process_patient_tables(specified_pids=pids)
 
-        patient_info = self.dbsession.query(PatientInfo).one()
+        patient_info = self.secret_dbsession.query(PatientInfo).one()
         self.assertEqual(patient_info.pid, patient.pid)
         self.assertEqual(str(patient_info.mpid), patient.nhsnum)
 
     def test_patient_with_invalid_mpid_skipped(self) -> None:
-        if self.engine.dialect.name == "sqlite":
+        if self.source_engine.dialect.name == "sqlite":
             pytest.skip(
                 "Skipping test because SQLite would allow non-integer values "
                 "in an integer field"
             )
 
         patient = TestPatientWithStringMPIDFactory(nhsnum="ABC123")
-        self.dbsession.commit()
+        self.source_dbsession.commit()
 
         pid = patient.pid
         pids = [pid]
@@ -535,14 +560,16 @@ class ProcessPatientTablesMPidTests(DatabaseTestCase):
             with mock.patch.multiple(
                 "crate_anon.anonymise.anonymise.config",
                 dd=self.mock_dd,
-                _destination_database_url=self.engine.url,
+                _destination_database_url=self.anon_engine.url,
                 admindb=self.mock_admindb,
                 sources={"source1": self.mock_sourcedb},
             ):
                 with self.assertLogs(level=logging.WARNING) as logging_cm:
                     process_patient_tables(specified_pids=pids)
 
-        self.assertIsNone(self.dbsession.query(PatientInfo).one_or_none())
+        self.assertIsNone(
+            self.secret_dbsession.query(PatientInfo).one_or_none()
+        )
         logger_name = "crate_anon.anonymise.anonymise"
         expected_message = (
             f"Skipping patient with PID={pid} because the record could "
@@ -557,18 +584,18 @@ class ProcessPatientTablesPKTests(DatabaseTestCase):
     def setUp(self) -> None:
         super().setUp()
 
-        self.mock_admindb = mock.Mock(session=self.dbsession)
+        self.mock_admindb = mock.Mock(session=self.secret_dbsession)
         self.mock_destdb = mock.Mock(
-            session=self.dbsession,
-            engine=self.engine,
-            metadata=Base.metadata,
+            session=self.anon_dbsession,
+            engine=self.anon_engine,
+            metadata=AnonTestBase.metadata,
         )
         mock_srccfg = mock.Mock(debug_limited_tables=[])
         self.mock_sourcedb = mock.Mock(
-            session=self.dbsession,
+            session=self.source_dbsession,
             srccfg=mock_srccfg,
-            engine=self.engine,
-            metadata=Base.metadata,
+            engine=self.source_engine,
+            metadata=SourceTestBase.metadata,
         )
         self.mock_get_scrub_from_rows_as_fieldinfo = mock.Mock(
             return_value=[
@@ -630,13 +657,13 @@ class ProcessPatientTablesPKTests(DatabaseTestCase):
 
     def test_duplicate_primary_key_skipped(self) -> None:
         # MySQL supports ON DUPLICATE KEY UPDATE
-        if self.engine.dialect.name == "mysql":
+        if self.anon_engine.dialect.name == "mysql":
             pytest.skip("Skipping different behaviour for MySQL")
 
         patient = TestPatientWithStringMPIDFactory()
         TestRecordFactory(pid=patient.pid, row_identifier=123456)
         TestRecordFactory(pid=patient.pid, row_identifier=123456)
-        self.dbsession.commit()
+        self.source_dbsession.commit()
 
         pids = [patient.pid]
 
@@ -648,7 +675,7 @@ class ProcessPatientTablesPKTests(DatabaseTestCase):
             with mock.patch.multiple(
                 "crate_anon.anonymise.anonymise.config",
                 dd=self.mock_dd,
-                _destination_database_url=self.engine.url,
+                _destination_database_url=self.anon_engine.url,
                 admindb=self.mock_admindb,
                 destdb=self.mock_destdb,
                 sources={"source1": self.mock_sourcedb},
@@ -664,4 +691,4 @@ class ProcessPatientTablesPKTests(DatabaseTestCase):
             f"WARNING:{logger_name}:{expected_message}", logging_cm.output[0]
         )
 
-        self.assertEqual(self.dbsession.query(TestAnonRecord).count(), 1)
+        self.assertEqual(self.anon_dbsession.query(TestAnonRecord).count(), 1)

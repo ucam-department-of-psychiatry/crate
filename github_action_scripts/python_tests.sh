@@ -3,7 +3,7 @@
 # Run from .github/workflows/python-tests.yml
 # Install CRATE python packages and run pytest
 
-set -euxo pipefail
+set -euo pipefail
 
 ENGINE=$1
 if [ "${ENGINE}" == "" ]; then
@@ -37,11 +37,24 @@ else
             ;;
     esac
 
-    ENGINE_IP=$(docker inspect crate_test_container_engine_${ENGINE} --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
-    TEST_USER=tester
-    TEST_PASSWORD=Qcig%40cuW%3Fmyo
-    TEST_DB=testdb
-    DB_OPTION="--db-url ${SCHEME}://${TEST_USER}:${TEST_PASSWORD}@${ENGINE_IP}:${PORT}/${TEST_DB}${QUERY}"
+    ENGINE_IP=$(docker inspect crate_test_container_engine_"${ENGINE}" --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+
+    ANON_USER=administrator
+    ANON_PASSWORD=8z3%3FI84%40mvBX
+    ANON_DB=anondb
+    ANON_DB_URL="${SCHEME}://${ANON_USER}:${ANON_PASSWORD}@${ENGINE_IP}:${PORT}/${ANON_DB}${QUERY}"
+
+    SECRET_USER=administrator
+    SECRET_PASSWORD=8z3%3FI84%40mvBX
+    SECRET_DB=secretdb
+    SECRET_DB_URL="${SCHEME}://${SECRET_USER}:${SECRET_PASSWORD}@${ENGINE_IP}:${PORT}/${SECRET_DB}${QUERY}"
+
+    SOURCE_USER=administrator
+    SOURCE_PASSWORD=8z3%3FI84%40mvBX
+    SOURCE_DB=sourcedb
+    SOURCE_DB_URL="${SCHEME}://${SOURCE_USER}:${SOURCE_PASSWORD}@${ENGINE_IP}:${PORT}/${SOURCE_DB}${QUERY}"
+
+    DB_OPTION="--anon-db-url ${ANON_DB_URL} --secret_db_url ${SECRET_DB_URL} --source-db-url ${SOURCE_DB_URL}"
 fi
 
 echo running tests
@@ -51,4 +64,4 @@ export CRATE_NLP_WEB_CONFIG=${GITHUB_WORKSPACE}/github_action_scripts/test_nlp_w
 VENV_BIN="${HOME}/venv/bin"
 PYTEST="${VENV_BIN}/pytest"
 
-${PYTEST} -v ${DB_OPTION}
+${PYTEST} -v "${DB_OPTION}"

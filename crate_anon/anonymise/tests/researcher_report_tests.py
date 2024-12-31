@@ -36,17 +36,96 @@ import factory
 from pypdf import PdfReader
 import pytest
 
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Text,
+)
+
+from sqlalchemy.orm import relationship
+
+
 from crate_anon.anonymise.researcher_report import (
     mk_researcher_report_pdf,
     ResearcherReportConfig,
     TEMPLATE_DIR,
 )
-from crate_anon.testing import Base
-from crate_anon.testing.classes import DemoDatabaseTestCase
-from crate_anon.testing.factories import DemoPatientFactory
+from crate_anon.testing import AnonTestBase
+from crate_anon.testing.classes import DatabaseTestCase
+from crate_anon.testing.factories import AnonTestBaseFactory, Fake
+from crate_anon.testing.models import SexColType
 
 if TYPE_CHECKING:
     from django.conf import LazySettings
+    from factory.builder import Resolver
+
+
+class AnonNote(AnonTestBase):
+    __tablename__ = "anon_note"
+
+    note_id = Column(Integer, primary_key=True, comment="Note ID")
+    patient_id = Column(
+        Integer, ForeignKey("anon_patient.patient_id"), comment="Patient ID"
+    )
+    note = Column(Text, comment="Text of the note")
+    note_datetime = Column(DateTime, comment="Date/time of the note")
+
+    patient = relationship("AnonPatient")
+
+
+class AnonPatient(AnonTestBase):
+    __tablename__ = "anon_patient"
+
+    patient_id = Column(
+        Integer,
+        primary_key=True,
+        autoincrement=False,
+        comment="Patient ID",
+    )
+    sex = Column(
+        SexColType,
+        comment="Sex (M, F, X)",
+    )
+    age = Column(Integer, comment="Age")
+
+
+class AnonPatientFactory(AnonTestBaseFactory):
+    class Meta:
+        model = AnonPatient
+
+    patient_id = factory.Sequence(lambda n: n + 1)
+
+    sex = factory.LazyFunction(Fake.en_gb.sex)
+    age = factory.LazyFunction(Fake.en_gb.age)
+
+    @factory.post_generation
+    def notes(obj: "Resolver", create: bool, extracted: int, **kwargs) -> None:
+        if not create:
+            return
+
+        if extracted:
+            AnonNoteFactory.create_batch(size=extracted, patient=obj, **kwargs)
+
+
+class AnonNoteFactory(AnonTestBaseFactory):
+    class Meta:
+        model = AnonNote
+
+    class Params:
+        words_per_note = 100
+
+    note_datetime = factory.LazyFunction(Fake.en_gb.incrementing_date)
+
+    @factory.lazy_attribute
+    def note(obj: "Resolver") -> str:
+        # Use en_US because you get Lorem ipsum with en_GB.
+        paragraph = Fake.en_us.paragraph(
+            nb_sentences=obj.words_per_note / 2,  # way more than we need
+        )
+
+        return " ".join(paragraph.split()[: obj.words_per_note])
 
 
 @pytest.fixture
@@ -59,7 +138,7 @@ def django_test_settings(settings: "LazySettings") -> None:
     ]
 
 
-class ResearcherReportTests(DemoDatabaseTestCase):
+class ResearcherReportTests(DatabaseTestCase):
     def setUp(self) -> None:
         super().setUp()
 
@@ -76,10 +155,10 @@ class ResearcherReportTests(DemoDatabaseTestCase):
         random.seed(seed)
         factory.random.reseed_random(seed)
 
-        DemoPatientFactory.create_batch(
+        AnonPatientFactory.create_batch(
             self.num_patients, notes=self.notes_per_patient
         )
-        self.dbsession.commit()
+        self.anon_dbsession.commit()
 
     @pytest.mark.usefixtures("django_test_settings")
     def test_report_has_pages_for_each_table(self) -> None:
@@ -94,8 +173,8 @@ class ResearcherReportTests(DemoDatabaseTestCase):
 
         with NamedTemporaryFile(delete=False, mode="w") as f:
             mock_db = mock.Mock(
-                table_names=["patient", "note"],
-                metadata=Base.metadata,
+                table_names=["anon_patient", "anon_note"],
+                metadata=AnonTestBase.metadata,
             )
 
             with mock.patch.multiple(
@@ -107,7 +186,7 @@ class ResearcherReportTests(DemoDatabaseTestCase):
                     anonconfig=anon_config,
                     use_dd=False,
                 )
-                report_config.db_session = self.dbsession
+                report_config.db_session = self.anon_dbsession
                 report_config.db = mock_db
                 mk_researcher_report_pdf(report_config)
 
@@ -126,11 +205,11 @@ class ResearcherReportTests(DemoDatabaseTestCase):
                 if rows_index > 0:
                     num_rows = int(lines[rows_index + 1])
 
-                if lines[0] == "patient":
+                if lines[0] == "anon_patient":
                     patient_found = True
                     self.assertEqual(num_rows, self.num_patients)
 
-                elif lines[0] == "note":
+                elif lines[0] == "anon_note":
                     note_found = True
                     self.assertEqual(
                         num_rows, self.num_patients * self.notes_per_patient

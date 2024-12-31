@@ -33,13 +33,13 @@ from cardinal_pythonlib.hash import HashMethods, make_hasher
 import factory
 
 from crate_anon.anonymise.models import PatientInfo
-from crate_anon.testing.factories import BaseFactory, Fake
+from crate_anon.testing.factories import SecretBaseFactory, Fake
 
 if TYPE_CHECKING:
     from factory.builder import Resolver
 
 
-class PatientInfoFactory(BaseFactory):
+class PatientInfoFactory(SecretBaseFactory):
     class Meta:
         exclude = ("hasher",)
         model = PatientInfo
