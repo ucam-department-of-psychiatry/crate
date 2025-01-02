@@ -46,7 +46,11 @@ ARG USER_ID
 ARG GROUP_ID
 
 RUN addgroup --gid $GROUP_ID crate
-RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID crate
+
+# The --no-log-init is necessary to prevent the image ballooning in size
+# when USER_ID is large
+# See https://github.com/moby/moby/issues/5419
+RUN useradd --no-log-init --uid $USER_ID --gid $GROUP_ID crate
 
 FROM crate-build-1-user AS crate-build-2-files
 
