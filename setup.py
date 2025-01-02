@@ -76,7 +76,7 @@ INSTALL_REQUIRES = [
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==4.2.17",  # for main CRATE research database web server
+    "django==4.2.16",  # for main CRATE research database web server
     "django-debug-toolbar==3.2.1",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
@@ -132,7 +132,7 @@ INSTALL_REQUIRES = [
     "pyramid_tm==2.4",  # Pyramid transaction management
     "redis==4.5.4",  # interface to Redis in-memory key-value database
     "requests==2.32.2",  # HTTP requests
-    "tornado==6.4.2",  # web framework
+    "tornado==6.4.1",  # web framework
     "transaction==3.0.0",  # generic transaction management
     "urllib3==1.26.19",  # used by requests
     "waitress==3.0.1",  # pure-Python WSGI server
@@ -149,8 +149,9 @@ INSTALL_REQUIRES = [
     "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
     "paramiko==3.4.1",  # Python implementation of the SSHv2 protocol, required by faker-file  # noqa: E501
     "pre-commit==2.20.0",  # development only, various sanity checks on code
-    "pytest==8.1.1",  # automatic testing
+    "pytest==8.3.4",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
+    "pytest-env==1.1.5",  # automatic testing
     "python-on-whales==0.68.0",  # python wrappers for testing with Docker
     "sphinx==7.1.2",  # documentation
     "sphinx_rtd_theme==3.0.2",  # documentation

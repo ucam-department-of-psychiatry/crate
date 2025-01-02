@@ -74,7 +74,6 @@ DEFAULT_CHUNKSIZE = 100000  # 100k
 
 ANON_CONFIG_ENV_VAR = "CRATE_ANON_CONFIG"
 
-
 # =============================================================================
 # Data dictionary
 # =============================================================================
@@ -85,6 +84,16 @@ DEFAULT_INDEX_LEN = 20  # for data types where it's mandatory
 LONGTEXT = "LONGTEXT"
 
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
+
+# Better overall than string.maketrans:
+ODD_CHARS_TRANSLATE = [chr(x) for x in range(0, 256)]
+for c in "()/ ":
+    ODD_CHARS_TRANSLATE[ord(c)] = "_"
+for i in range(0, 32):
+    ODD_CHARS_TRANSLATE[i] = "_"
+for i in range(127, 256):
+    ODD_CHARS_TRANSLATE[i] = "_"
+ODD_CHARS_TRANSLATE = "".join(ODD_CHARS_TRANSLATE)
 
 TridType = Integer
 MAX_TRID = 2**31 - 1
@@ -870,3 +879,12 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 #       source2 = thing
 # ... you can't have multiple keys with the same name.
 # https://stackoverflow.com/questions/287757
+
+
+class PatientInfoConstants:
+    SECRET_MAP_TABLENAME = "secret_map"
+    PID_FIELDNAME = "pid"
+    MPID_FIELDNAME = "mpid"
+    RID_FIELDNAME = "rid"
+    MRID_FIELDNAME = "mrid"
+    TRID_FIELDNAME = "trid"
