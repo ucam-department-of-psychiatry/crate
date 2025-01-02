@@ -62,4 +62,4 @@ jobs:
             - name: Python tests
               run: |
                 set -euxo pipefail
-                ${GITHUB_WORKSPACE}/github_action_scripts/python_tests.sh ${{ matrix.engine }} $${{ matrix.scheme }} ${{ matrix.port }}
+                ${GITHUB_WORKSPACE}/github_action_scripts/python_tests.sh ${HOME}/venv/bin/pytest ${{ matrix.engine }} $${{ matrix.scheme }} ${{ matrix.port }}
