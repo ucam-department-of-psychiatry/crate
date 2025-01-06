@@ -30,4 +30,4 @@ This ensures the app is always imported when Django starts, so that
 
 """
 
-from crate_anon.crateweb.consent.celery import app as celery_app  # noqa
+from crate_anon.crateweb.consent.celery import app as celery_app  # noqa: F401
