@@ -1691,11 +1691,15 @@ Changes
 - Fix the data dictionary generator to allow column names with valid but unusual
   characters in the source database. Convert any unusual characters to ASCII in
   the destination database.
-  
+
 - Update ``crate_postcodes`` to support the November 2024 ONSPD in full. Offer
   partial support for ONSPD lookup tables in earlier/future versions by not
   failing when there is a mismatch between the created database tables and the
   ONSPD spreadsheet files.
+
+- Workaround a problem with Docker's handling of large sparse files, which
+  resulted in a very large Docker image if the ID of the user creating the image
+  was large.
 
 
 To do
