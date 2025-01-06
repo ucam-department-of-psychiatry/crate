@@ -14,7 +14,7 @@ on:
             - github_action_scripts/python_setup.sh
 jobs:
     run-integration-tests:
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-22.04
         strategy:
             matrix:
                 # add "postgres" when supported
