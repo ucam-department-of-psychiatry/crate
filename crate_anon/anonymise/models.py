@@ -48,7 +48,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import Session
 
@@ -306,7 +306,7 @@ class OptOutPid(AdminBase):
     # key (see sqlalchemy.sql.schema.Column.__init__). In turn, that (under SQL
     # Server) likely makes it an IDENTITY column, this being an SQL Server
     # mechanism for auto-incrementing
-    # (https://docs.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql-identity-property?view=sql-server-ver16).  # noqa
+    # (https://docs.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql-identity-property?view=sql-server-ver16).  # noqa: E501
     # And in turn that means that when a value is explicitly inserted, it gives
     # the error "Cannot insert explicit value for identity column in table
     # 'opt_out_pid' when IDENTITY_INSERT is set to OFF. (544)"
@@ -339,7 +339,7 @@ class OptOutPid(AdminBase):
         # noinspection PyArgumentList
         newthing = cls(pid=pid)
         session.merge(newthing)
-        # https://stackoverflow.com/questions/12297156/fastest-way-to-insert-object-if-it-doesnt-exist-with-sqlalchemy  # noqa
+        # https://stackoverflow.com/questions/12297156/fastest-way-to-insert-object-if-it-doesnt-exist-with-sqlalchemy  # noqa: E501
 
 
 class OptOutMpid(AdminBase):

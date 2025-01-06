@@ -1006,7 +1006,7 @@ def auto_import_db(
             "data"
         )
 
-    engine = create_engine(url, echo=echo, encoding=CHARSET)
+    engine = create_engine(url, echo=echo, encoding=CHARSET, future=True)
     safe_url = get_safe_url_from_engine(engine)
     log.info(f"Connected to database: {safe_url}")
     session = sessionmaker(bind=engine)()  # type: Session

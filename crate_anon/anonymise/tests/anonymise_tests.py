@@ -25,6 +25,10 @@ crate_anon/anonymise/tests/anonymise_tests.py
 
 """
 
+# =============================================================================
+# Imports
+# =============================================================================
+
 import logging
 from typing import Any, Dict, Generator, List, Tuple
 from unittest import mock
@@ -51,6 +55,11 @@ from crate_anon.anonymise.ddr import DataDictionaryRow
 from crate_anon.testing import Base
 from crate_anon.testing.classes import DatabaseTestCase
 from crate_anon.testing.factories import BaseFactory
+
+
+# =============================================================================
+# SQLAlchemy test tables
+# =============================================================================
 
 
 class TestBoolOptOut(Base):
@@ -91,6 +100,11 @@ class TestAnonPatient(Base):
     pid = Column(Integer, primary_key=True, comment="Patient ID")
     forename = Column(String(50), comment="Forename")
     surname = Column(String(50), comment="Surname")
+
+
+# =============================================================================
+# Unit tests
+# =============================================================================
 
 
 class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
@@ -338,6 +352,7 @@ DROP FULLTEXT INDEX ON [dbo].[anon_patient]
                 self.engine.url,
                 encoding="utf-8",
                 connect_args={"autocommit": True},  # for pyodbc
+                future=True,
             )
 
         return self._engine_outside_transaction
@@ -355,10 +370,10 @@ DROP FULLTEXT INDEX ON [dbo].[anon_patient]
             surname_row.dest_field = "surname"
             surname_row.index = IndexType.FULLTEXT
 
-            for set in [
+            for set_ in [
                 ("TestAnonPatient", [forename_row, surname_row]),
             ]:
-                yield set
+                yield set_
 
         mock_dd = mock.Mock(
             get_dest_sqla_table=mock.Mock(

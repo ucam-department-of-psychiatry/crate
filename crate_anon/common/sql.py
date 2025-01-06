@@ -25,6 +25,10 @@ crate_anon/common/sql.py
 
 **Low-level SQL manipulation functions.**
 
+These are about the manipulation of SQL as text (e.g. for query building
+assistance for researchers, or for interpreting SQL data types in data
+dictionaries), not about a higher-level approach like SQLAlchemy.
+
 """
 
 from collections import OrderedDict

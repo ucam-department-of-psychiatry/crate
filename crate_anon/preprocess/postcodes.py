@@ -95,8 +95,8 @@ from sqlalchemy import (
     Numeric,
     String,
 )
-from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import DeclarativeMeta
+from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql.schema import MetaData, Table
 
@@ -253,7 +253,7 @@ class GenericLookupClassMeta(DeclarativeMeta, ABCMeta):
     .. code-block:: python
 
         from abc import ABC
-        from sqlalchemy.ext.declarative import declarative_base
+        from sqlalchemy.orm import declarative_base
         from sqlalchemy.sql.schema import MetaData
 
         class ExtendedBase:
@@ -469,7 +469,7 @@ class Postcode(Base):
         comment="2001 Census Lower Layer Super Output Area (LSOA) [England & "
         "Wales, ~1,500 population] / Data Zone (DZ) [Scotland] / "
         "Super Output Area (SOA) [FK to one of: "
-        "lsoa_lower_layer_super_output_area_england_wales_2004.lsoa_code; "  # noqa
+        "lsoa_lower_layer_super_output_area_england_wales_2004.lsoa_code; "  # noqa: E501
         "lsoa_lower_layer_super_output_area_n_ireland_2005.lsoa_code]",
     )
     msoa01 = Column(
@@ -477,7 +477,7 @@ class Postcode(Base):
         comment="2001 Census Middle Layer Super Output Area (MSOA) [England & "
         "Wales, ~7,200 population] / "
         "Intermediate Zone (IZ) [Scotland] [FK to one of: "
-        "msoa_middle_layer_super_output_area_england_wales_2004.msoa_code; "  # noqa
+        "msoa_middle_layer_super_output_area_england_wales_2004.msoa_code; "  # noqa: E501
         "iz_intermediate_zone_scotland_2005.iz_code]",
     )
     ur01ind = Column(
@@ -1327,7 +1327,7 @@ def populate_generic_lookup_table(
         # openpyxl BUG: with read_only=True, cells can have None as their value
         # when they're fine if opened in non-read-only mode.
         # May be related to this:
-        # https://bitbucket.org/openpyxl/openpyxl/issues/601/read_only-cell-row-column-attributes-are  # noqa
+        # https://bitbucket.org/openpyxl/openpyxl/issues/601/read_only-cell-row-column-attributes-are  # noqa: E501
         sheet = workbook.active
         dict_iterator = dict_from_rows(sheet.iter_rows())
     elif type_csv:
@@ -1539,7 +1539,9 @@ def main() -> None:
         print("Must specify URL")
         return
 
-    engine = create_engine(args.url, echo=args.echo, encoding=CHARSET)
+    engine = create_engine(
+        args.url, echo=args.echo, encoding=CHARSET, future=True
+    )
     metadata.bind = engine
     session = sessionmaker(bind=engine)()
 

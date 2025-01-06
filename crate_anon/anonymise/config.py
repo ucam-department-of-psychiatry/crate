@@ -87,14 +87,8 @@ from cardinal_pythonlib.sql.validation import (
     ensure_valid_field_name,
     ensure_valid_table_name,
 )
-from cardinal_pythonlib.sqlalchemy.schema import (
-    hack_in_mssql_xml_type,
-    is_sqlatype_integer,
-)
+from cardinal_pythonlib.sqlalchemy.schema import is_sqlatype_integer
 from cardinal_pythonlib.sizeformatter import sizeof_fmt
-from cardinal_pythonlib.sqlalchemy.insert_on_duplicate import (
-    monkeypatch_TableClause,
-)
 import regex
 from sqlalchemy import BigInteger, create_engine, String
 from sqlalchemy.dialects.mssql.base import dialect as ms_sql_server_dialect
@@ -133,11 +127,6 @@ if TYPE_CHECKING:
     from crate_anon.anonymise.dbholder import DatabaseHolder
 
 log = logging.getLogger(__name__)
-
-# The Config class is loaded very early, via the nasty singleton.
-# This is therefore the appropriate moment to make any changes to SQLAlchemy.
-monkeypatch_TableClause()
-hack_in_mssql_xml_type()  # support XML type under SQL Server
 
 
 # =============================================================================
@@ -1011,6 +1000,7 @@ class Config:
             encoding=encoding,
             echo=self._echo,
             connect_args={"autocommit": True},  # for pyodbc
+            future=True,
         )
 
     def overall_progress(self) -> str:

@@ -67,7 +67,7 @@ def is_superuser(user: settings.AUTH_USER_MODEL) -> bool:
 
     Superuser equates to Research Database Manager.
     """
-    # https://docs.djangoproject.com/en/dev/topics/auth/default/#django.contrib.auth.decorators.user_passes_test  # noqa
+    # https://docs.djangoproject.com/en/dev/topics/auth/default/#django.contrib.auth.decorators.user_passes_test  # noqa: E501
     return user.is_superuser
 
 
@@ -184,7 +184,7 @@ def url_with_querystring(
 
     # Return the final rebuilt URL.
     # You can't write to a urllib.parse.ParseResult. So, as per
-    # https://stackoverflow.com/questions/26221669/how-do-i-replace-a-query-with-a-new-value-in-urlparse  # noqa
+    # https://stackoverflow.com/questions/26221669/how-do-i-replace-a-query-with-a-new-value-in-urlparse  # noqa: E501
     # we have do to this:
 
     components = list(pr)

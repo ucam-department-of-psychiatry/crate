@@ -40,7 +40,7 @@ from crate_anon.testing.providers import register_all_providers
 
 if TYPE_CHECKING:
     from factory.builder import Resolver
-    from sqlalchemy.orm import Session
+    from sqlalchemy.orm.session import Session
 
 
 # When running with pytest sqlalchemy_session gets poked in by

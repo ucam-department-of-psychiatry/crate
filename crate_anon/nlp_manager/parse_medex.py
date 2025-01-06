@@ -441,28 +441,28 @@ SKIP_IF_NO_GENERIC = True
 # RxNorm: https://www.nlm.nih.gov/research/umls/rxnorm/overview.html
 #
 # UMLS: https://www.nlm.nih.gov/research/umls/new_users/glossary.html
-# UMLS CUI max length: https://www.nlm.nih.gov/research/umls/knowledge_sources/metathesaurus/release/columns_data_elements.html  # noqa
+# UMLS CUI max length: https://www.nlm.nih.gov/research/umls/knowledge_sources/metathesaurus/release/columns_data_elements.html  # noqa: E501
 UMLS_CUI_MAX_LENGTH = 8  # definite
 
 # TIMEX3:
-# - http://www.timeml.org/tempeval2/tempeval2-trial/guidelines/timex3guidelines-072009.pdf  # noqa
-# - http://www.timeml.org/publications/timeMLdocs/timeml_1.2.1.html#timex3  # noqa
+# - http://www.timeml.org/tempeval2/tempeval2-trial/guidelines/timex3guidelines-072009.pdf  # noqa: E501
+# - http://www.timeml.org/publications/timeMLdocs/timeml_1.2.1.html#timex3  # noqa: E501
 TIMEX3_MAX_LENGTH = 50  # guess
 
 # Drug length:
 # There are long ones, like
-#   "influenza virus vaccine, inactivated a-brisbane-59-2007, ivr-148 (h1n1) strain" (78)  # noqa
+#   "influenza virus vaccine, inactivated a-brisbane-59-2007, ivr-148 (h1n1) strain" (78)  # noqa: E501
 # See e.g. resources/rxcui_generic.cfg, and:
 # $ wc -L filename  # shows length of longest line
 # $ egrep -n "^.{$(wc -L < filename)}$" filename  # shows longest line
 #   ... possibly this gets a bit confused by tabs, can also put a length in:
 # $ egrep -n "^.{302}$" filename  # shows lines of length 302
 # And we find a drug of length 286:
-#   1-oxa-7-azacyclopentadecan-15-one,13-((2,6-dideoy-3-c-methyl-3-o-methyl-alpha-l-ribo-hexopyranosyl)oxy)-2-ethyl-3,4,10-trihydroxy 3,5,8,10,12,14-hexamethyl-7-propyl-11-((3,4,6-trideoxy-3-(dimethylamino)-beta-d-xylo-hexopyranosyl)oxy)-, ((2r*, 3s*,4r*,5s*,8r*,10r*,11r*,12s*,13s*,14r*))-  # noqa
+#   1-oxa-7-azacyclopentadecan-15-one,13-((2,6-dideoy-3-c-methyl-3-o-methyl-alpha-l-ribo-hexopyranosyl)oxy)-2-ethyl-3,4,10-trihydroxy 3,5,8,10,12,14-hexamethyl-7-propyl-11-((3,4,6-trideoxy-3-(dimethylamino)-beta-d-xylo-hexopyranosyl)oxy)-, ((2r*, 3s*,4r*,5s*,8r*,10r*,11r*,12s*,13s*,14r*))-  # noqa: E501
 # Then there are multivitamin things in brand_generic with length >600.
 # So we should use an unlimited field; SQLAlchemy helpfully seems to translate
 # Text to VARCHAR(MAX) under SQL Server, which is the more efficient:
-# https://stackoverflow.com/questions/834788/using-varcharmax-vs-text-on-sql-server  # noqa
+# https://stackoverflow.com/questions/834788/using-varcharmax-vs-text-on-sql-server  # noqa: E501
 MEDEX_MAX_FORM_LENGTH = 255  # guess; "Powder For Oral Suspension" (26) is one
 MEDEX_MAX_STRENGTH_LENGTH = 50  # guess
 MEDEX_MAX_DOSE_AMOUNT_LENGTH = 50  # guess

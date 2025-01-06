@@ -503,7 +503,8 @@ def rio_add_user_lookup(
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
     # ... table alias
     viewmaker.add_select(
-        """
+        (
+            """
         {basetable}.{basecolumn} AS {cp}_Code,
 
         {ap}_genhcp.ConsultantFlag AS {cp}_Consultant_Flag,
@@ -528,7 +529,8 @@ def rio_add_user_lookup(
 
         {ap}_genorg.Code AS {cp}_Organisation_Type_Code,
         {ap}_genorg.CodeDescription AS {cp}_Organisation_Type_Description
-    """.format(  # noqa
+        """  # noqa: E501
+        ).format(
             basetable=viewmaker.basetable,
             basecolumn=basecolumn,
             cp=column_prefix,
@@ -866,11 +868,13 @@ def rio_add_ims_event_lookup(
         )
     )
     viewmaker.add_from(
-        """
-        LEFT JOIN ImsEvent {ap}_evt
+        (
+            """
+            LEFT JOIN ImsEvent {ap}_evt
             ON {ap}_evt.{CRATE_COL_RIO_NUMBER} = {basetable}.{CRATE_COL_RIO_NUMBER}
             AND {ap}_evt.EventNumber = {basetable}.{basecolumn_event_num}
-    """.format(  # noqa
+            """  # noqa: E501
+        ).format(
             basetable=viewmaker.basetable,
             ap=internal_alias_prefix,
             CRATE_COL_RIO_NUMBER=CRATE_COL_RIO_NUMBER,

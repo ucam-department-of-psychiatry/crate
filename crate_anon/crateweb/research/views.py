@@ -393,7 +393,7 @@ def query_build(request: HttpRequest) -> HttpResponse:
     #   (differentially) non-collapsed at the start, e.g. on form POST.
     # - Also harder work to do this HTML manually (rather than with
     #   template rendering), because the csrf_token ends up like:
-    #   <input type='hidden' name='csrfmiddlewaretoken' value='RGN5UZnTVkLFAVNtXRpJwn5CclBRAdLr' />  # noqa
+    #   <input type='hidden' name='csrfmiddlewaretoken' value='RGN5UZnTVkLFAVNtXRpJwn5CclBRAdLr' />  # noqa: E501
 
     # noinspection PyUnresolvedReferences
     profile = request.user.profile  # type: UserProfile
@@ -626,10 +626,10 @@ def get_identical_queries(
     #                   -> GetUnicodeInfo
     #                   ... and depending on the string length of the
     #                       parameter, this returns either
-    #                   SQL_WVARCHAR -> NVARCHAR on SQL Server [6], for short strings  # noqa
-    #                   SQL_WLONGVARCHAR -> NTEXT on SQL Server [6], for long strings  # noqa
+    #                   SQL_WVARCHAR -> NVARCHAR on SQL Server [6], for short strings  # noqa: E501
+    #                   SQL_WLONGVARCHAR -> NTEXT on SQL Server [6], for long strings  # noqa: E501
     #                   ... and the length depends on
-    #                       -> connection.h: cur->cnxn->GetMaxLength(info.ValueType);  # noqa
+    #                       -> connection.h: cur->cnxn->GetMaxLength(info.ValueType);  # noqa: E501
     #           -> BindParameter
     #   in cursor.cpp
     #
@@ -646,14 +646,14 @@ def get_identical_queries(
     #   (ADODB.Connection; Provider cannot be found. It may not be properly
     #   installed.) Anyway, pyodbc is good enough for SQLAlchemy.
     #
-    # [1] https://github.com/michiya/django-pyodbc-azure/blob/azure-1.10/sql_server/pyodbc/base.py  # noqa
-    # [2] https://github.com/mkleehammer/pyodbc/blob/master/tests2/informixtests.py  # noqa
+    # [1] https://github.com/michiya/django-pyodbc-azure/blob/azure-1.10/sql_server/pyodbc/base.py  # noqa: E501
+    # [2] https://github.com/mkleehammer/pyodbc/blob/master/tests2/informixtests.py  # noqa: E501
     # [3] https://stackoverflow.com/questions/13090907
     # [4] https://docs.python.org/3/c-api/bytes.html
     # [5] https://docs.python.org/3/c-api/unicode.html
-    # [6] https://documentation.progress.com/output/DataDirect/DataDirectCloud/index.html#page/queries/microsoft-sql-server-data-types.html  # noqa
+    # [6] https://documentation.progress.com/output/DataDirect/DataDirectCloud/index.html#page/queries/microsoft-sql-server-data-types.html  # noqa: E501
     # [7] https://github.com/mkleehammer/pyodbc/wiki/Data-Types
-    # [8] https://docs.djangoproject.com/en/1.10/ref/databases/#using-a-3rd-party-database-backend  # noqa
+    # [8] https://docs.djangoproject.com/en/1.10/ref/databases/#using-a-3rd-party-database-backend  # noqa: E501
     # [9] https://django-mssql.readthedocs.io/en/latest/
 
     # Screw it, let's use a hash. We can use our hash64() function and
@@ -1145,7 +1145,7 @@ def query_count(request: HttpRequest, query_id: str) -> HttpResponse:
         # ... will return None if not found, but may raise something derived
         # from ObjectDoesNotExist or (in principle, if this weren't a PK)
         # MultipleObjectsReturned;
-        # https://docs.djangoproject.com/en/1.9/ref/models/querysets/#django.db.models.query.QuerySet.get  # noqa
+        # https://docs.djangoproject.com/en/1.9/ref/models/querysets/#django.db.models.query.QuerySet.get  # noqa: E501
     except ObjectDoesNotExist:
         return render_bad_query_id(request, query_id)
     return render_resultcount(request, query)
@@ -1599,7 +1599,7 @@ def resultset_html_table(
     """  # noqa: E501
     # Considered but not implemented: hiding table columns
     # ... see esp "tr > *:nth-child(n)" at
-    # https://stackoverflow.com/questions/5440657/how-to-hide-columns-in-html-table  # noqa
+    # https://stackoverflow.com/questions/5440657/how-to-hide-columns-in-html-table  # noqa: E501
     nlptable = False
     if FN_NLPDEF in fieldnames:
         srcdb_ind = srctable_ind = srcfield_ind = None
@@ -1770,7 +1770,9 @@ def single_record_html_table(
                     "srcpkstr": record[srcpkstr_ind],
                 },
             )
-            table_html += f'<b><a href="{source_url}">See NLP source info</a></b>\n'  # noqa
+            table_html += (
+                f'<b><a href="{source_url}">See NLP source info</a></b>\n'
+            )
     table_html += "<table>\n"
     for col_index, value in enumerate(record):
         fieldname = fieldnames[col_index]
@@ -2413,7 +2415,7 @@ def render_lookup(
     """  # noqa: E501
     # if not request.user.superuser:
     #    return HttpResponse('Forbidden', status=403)
-    #    # https://stackoverflow.com/questions/3297048/403-forbidden-vs-401-unauthorized-http-responses  # noqa
+    #    # https://stackoverflow.com/questions/3297048/403-forbidden-vs-401-unauthorized-http-responses  # noqa: E501
     trids = [] if trids is None else trids
     rids = [] if rids is None else rids
     mrids = [] if mrids is None else mrids
@@ -2517,8 +2519,8 @@ def get_structure_tree_html() -> str:
             "database_structure_table.html",
             {
                 "colinfolist": colinfolist,
-                "default_database": research_database_info.get_default_database_name(),  # noqa
-                "default_schema": research_database_info.get_default_schema_name(),  # noqa
+                "default_database": research_database_info.get_default_database_name(),  # noqa: E501
+                "default_schema": research_database_info.get_default_schema_name(),  # noqa: E501
                 "with_database": research_database_info.uses_database_level(),
             },
         )
@@ -3773,7 +3775,7 @@ def pe_tsv_zip(request: HttpRequest, pe_id: str) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
-    # https://stackoverflow.com/questions/12881294/django-create-a-zip-of-multiple-files-and-make-it-downloadable  # noqa
+    # https://stackoverflow.com/questions/12881294/django-create-a-zip-of-multiple-files-and-make-it-downloadable  # noqa: E501
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
         response = file_response(

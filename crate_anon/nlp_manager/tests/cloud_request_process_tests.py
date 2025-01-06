@@ -42,6 +42,7 @@ from cardinal_pythonlib.httpconst import HttpStatus
 from sqlalchemy.engine import create_engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.schema import Column
+from sqlalchemy.sql.expression import text
 
 from crate_anon.nlp_manager.all_processors import (
     register_all_crate_python_processors_with_serverprocessor,
@@ -429,7 +430,7 @@ class CloudRequestDataTests(TestCase):
         self._mk_test_data()
 
         # Dummy database
-        self.dummy_engine = create_engine("sqlite://")
+        self.dummy_engine = create_engine("sqlite://", future=True)
 
         # Config file
         self.nlpdefname = "mynlp"
@@ -547,26 +548,26 @@ class CloudRequestDataTests(TestCase):
         Inserts some test data into a table.
         """
         texts = ["Current CRP 7. Teetotal. Non-smoker."]
-        engine = create_engine(self.dburl)
-        with engine.connect() as con:
-            con.execute(
-                f"""
-                    CREATE TABLE {self.txttable} (
-                        {self.pkcol} INTEGER,
-                        {self.txtcol} TEXT
-                    )
-                """
-            )
-            for i, text in enumerate(texts, start=1):
-                con.execute(
-                    f"""
-                        INSERT INTO {self.txttable}
-                            ({self.pkcol}, {self.txtcol})
-                            VALUES(:1, :2)
-                    """,
-                    i,
-                    text,
+        engine = create_engine(self.dburl, future=True)
+        sql_create = text(
+            f"""
+                CREATE TABLE {self.txttable} (
+                    {self.pkcol} INTEGER,
+                    {self.txtcol} TEXT
                 )
+            """
+        )
+        sql_insert = text(
+            f"""
+                INSERT INTO {self.txttable}
+                    ({self.pkcol}, {self.txtcol})
+                    VALUES(:a, :b)
+            """
+        )
+        with engine.begin() as con:
+            con.execute(sql_create)
+            for i, txt in enumerate(texts, start=1):
+                con.execute(sql_insert, dict(a=i, b=txt))
 
     # noinspection PyUnusedLocal
     def _get_server_response(
@@ -578,10 +579,10 @@ class CloudRequestDataTests(TestCase):
         form).
         """
         request_json = json.loads(request_json_str)
-        log.warning(f"{request_json=}")  # ***
+        log.debug(f"{request_json=}")
         self.server.body = request_json
         response_json = self.server.index()
-        log.warning(f"-> {response_json=}")  # ***
+        log.debug(f"-> {response_json=}")
         return response_json
 
     def test_get_remote_processor_columns(self) -> None:

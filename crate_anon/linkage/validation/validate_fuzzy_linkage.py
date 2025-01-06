@@ -704,7 +704,7 @@ def validate_1(
 
                 rowdata = {
                     # As of Python 3.6, keyword order is preserved:
-                    # https://docs.python.org/3/library/collections.html#collections.OrderedDict  # noqa
+                    # https://docs.python.org/3/library/collections.html#collections.OrderedDict  # noqa: E501
                     # https://www.python.org/dev/peps/pep-0468/
                     # ... but it doesn't matter since we're using a DictWriter.
                     vc.COLLECTION_NAME: collection_name,
@@ -1092,7 +1092,7 @@ def validate_2_fetch_cdl(
         -- Compare: SELECT COUNT(*) FROM rawCRSCDL.dbo.[CRS_Output_2020 09 21] = 162874
     """  # noqa: E501
     )
-    engine = create_engine(url, echo=echo)
+    engine = create_engine(url, echo=echo, future=True)
     result = engine.execute(sql)  # type: CursorResult
     q = QueryColnames
     for row in result:
@@ -1346,7 +1346,7 @@ def validate_2_fetch_pcmis(
         -- Compare: SELECT COUNT(*) FROM rawPCMIS.dbo.PatientDetails = 94344.
     """  # noqa: E501
     )
-    engine = create_engine(url, echo=echo)
+    engine = create_engine(url, echo=echo, future=True)
     result = engine.execute(sql)  # type: CursorResult
     q = QueryColnames
     for row in result:
@@ -1777,7 +1777,7 @@ def validate_2_fetch_rio(
         -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.Client = 216739
     """  # noqa: E501
     )
-    engine = create_engine(url, echo=echo)
+    engine = create_engine(url, echo=echo, future=True)
     result = engine.execute(sql)  # type: CursorResult
     q = QueryColnames
     for row in result:
@@ -2074,7 +2074,7 @@ def validate_2_fetch_systmone(
         -- Compare: SELECT COUNT(*) FROM SystmOne.dbo.S1_Patient = 619062.
     """  # noqa: E501
     )
-    engine = create_engine(url, echo=echo)
+    engine = create_engine(url, echo=echo, future=True)
     result = engine.execute(sql)  # type: CursorResult
     q = QueryColnames
     for row in result:

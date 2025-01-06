@@ -410,30 +410,29 @@ Done.
         AuditAction -- 2 = insert, 3 = update
         RowID -- row number -- how does that work?
             ... cheerfully, SQL Server doesn't have an automatic row ID;
-            https://stackoverflow.com/questions/909155/equivalent-of-oracles-rowid-in-sql-server  # noqa
+            https://stackoverflow.com/questions/909155/equivalent-of-oracles-rowid-in-sql-server
             ... so is it the PK we've already identified and called crate_pk?
         TableNumber -- FK to GenTable.Code
         ClientID -- FK to ClientIndex.ClientID
         ...
 
 
-"""
+"""  # noqa: E501
 
 import argparse
 import logging
 from typing import List
 
-# from cardinal_pythonlib.debugging import pdb_run
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.sqlalchemy.schema import (
     get_effective_int_pk_col,
-    hack_in_mssql_xml_type,
     make_bigint_autoincrement_column,
 )
 from rich_argparse import RawDescriptionRichHelpFormatter
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.schema import Column, Table
+from sqlalchemy.sql.schema import MetaData
 from sqlalchemy.sql.sqltypes import BigInteger, Integer
 
 from crate_anon.anonymise.constants import CHARSET
@@ -1491,16 +1490,15 @@ def main() -> None:
 
     set_print_not_execute(progargs.print)
 
-    hack_in_mssql_xml_type()
-
-    engine = create_engine(progargs.url, echo=progargs.echo, encoding=CHARSET)
+    engine = create_engine(
+        progargs.url, echo=progargs.echo, encoding=CHARSET, future=True
+    )
     metadata = MetaData()
-    metadata.bind = engine
     log.info(f"Database: {engine.url!r}")  # ... repr (!r) hides p/w
     log.debug(f"Dialect: {engine.dialect.name}")
 
     log.info("Reflecting (inspecting) database...")
-    metadata.reflect(engine)
+    metadata.reflect(bind=engine)
     log.info("... inspection complete")
 
     configoptions = RioViewConfigOptions(
@@ -1542,5 +1540,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    # pdb_run(main)
     main()

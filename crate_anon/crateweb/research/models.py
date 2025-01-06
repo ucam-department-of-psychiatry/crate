@@ -2614,7 +2614,7 @@ class ArchiveTemplateAudit(models.Model):
     patient_id = models.CharField(max_length=ARCHIVE_PATIENT_ID_MAX_LENGTH)
     query_string = models.TextField()
     # ... no max length; see
-    # https://stackoverflow.com/questions/812925/what-is-the-maximum-possible-length-of-a-query-string  # noqa
+    # https://stackoverflow.com/questions/812925/what-is-the-maximum-possible-length-of-a-query-string  # noqa: E501
 
     def __str__(self) -> str:
         return f"<ArchiveTemplateAudit id={self.id}>"

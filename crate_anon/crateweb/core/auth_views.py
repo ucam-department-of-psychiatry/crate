@@ -48,8 +48,8 @@ def login_view(request: HttpRequest) -> HttpResponse:
     """
     # don't call it login (name clash with django.contrib.auth.login)
     # https://www.fir3net.com/Web-Development/Django/django.html
-    # http://www.flagonwiththedragon.com/2011/06/16/django-authenticationform-for-user-login/  # noqa
-    # https://stackoverflow.com/questions/16750464/django-redirect-after-login-not-working-next-not-posting  # noqa
+    # http://www.flagonwiththedragon.com/2011/06/16/django-authenticationform-for-user-login/  # noqa: E501
+    # https://stackoverflow.com/questions/16750464/django-redirect-after-login-not-working-next-not-posting  # noqa: E501
 
     # Where to after a successful login?
     # noinspection PyCallByClass,PyTypeChecker
@@ -91,7 +91,7 @@ def password_change(request: HttpRequest) -> HttpResponse:
     """
     View to change your password.
     """
-    # https://docs.djangoproject.com/en/1.8/topics/auth/default/#module-django.contrib.auth.forms  # noqa
+    # https://docs.djangoproject.com/en/1.8/topics/auth/default/#module-django.contrib.auth.forms  # noqa: E501
     form = PasswordChangeForm(
         data=request.POST if request.method == "POST" else None,
         user=request.user,

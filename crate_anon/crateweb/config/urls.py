@@ -72,7 +72,7 @@ import crate_anon.crateweb.research.views as research_views
 import crate_anon.crateweb.userprofile.views as userprofile_views
 
 # This is the place for one-time startup code.
-# https://stackoverflow.com/questions/6791911/execute-code-when-django-starts-once-only  # noqa
+# https://stackoverflow.com/questions/6791911/execute-code-when-django-starts-once-only  # noqa: E501
 # So we cache things here that we don't want the user to have to wait for:
 if (
     EnvVar.GENERATING_CRATE_DOCS not in os.environ
@@ -217,7 +217,8 @@ urlpatterns = [
         name=UrlNames.SHOW_QUERY,
     ),
     re_path(
-        r"^source_information/(?P<srcdb>.+)/(?P<srctable>.+)/(?P<srcfield>.+)/(?P<srcpkfield>.+)/(?P<srcpkval>.+)/(?P<srcpkstr>.+)/$",  # noqa
+        r"^source_information/(?P<srcdb>.+)/(?P<srctable>.+)/(?P<srcfield>.+)/"
+        r"(?P<srcpkfield>.+)/(?P<srcpkval>.+)/(?P<srcpkstr>.+)/$",
         research_views.source_info,
         name=UrlNames.SRCINFO,
     ),
@@ -277,7 +278,7 @@ urlpatterns = [
         name=UrlNames.PE_TABLE_BROWSER,
     ),
     re_path(
-        r"^pe_one_table/(?P<pe_id>[0-9]+)/(?P<db>.*)/(?P<schema>.+)/(?P<table>.+)/$",  # noqa
+        r"^pe_one_table/(?P<pe_id>[0-9]+)/(?P<db>.*)/(?P<schema>.+)/(?P<table>.+)/$",  # noqa: E501
         research_views.pe_one_table,
         name=UrlNames.PE_ONE_TABLE,
     ),
@@ -477,7 +478,7 @@ urlpatterns = [
         name=UrlNames.CLINICIAN_RESPONSE,
     ),
     re_path(
-        r"^clinician_pack/(?P<clinician_response_id>-?[0-9]+)/(?P<token>[a-zA-Z0-9]+)/$",  # noqa
+        r"^clinician_pack/(?P<clinician_response_id>-?[0-9]+)/(?P<token>[a-zA-Z0-9]+)/$",  # noqa: E501
         consent_views.clinician_pack,
         name=UrlNames.CLINICIAN_PACK,
     ),
@@ -533,37 +534,44 @@ urlpatterns = [
         name=UrlNames.DRAFT_WITHDRAWAL_EMAIL,
     ),
     re_path(
-        r"^draft_approval_letter/(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$",  # noqa
+        r"^draft_approval_letter/"
+        r"(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$",
         consent_views.draft_approval_letter,
         name=UrlNames.DRAFT_APPROVAL_LETTER,
     ),
     re_path(
-        r"^draft_withdrawal_letter/(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$",  # noqa
+        r"^draft_withdrawal_letter/"
+        r"(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$",
         consent_views.draft_withdrawal_letter,
         name=UrlNames.DRAFT_WITHDRAWAL_LETTER,
     ),
     re_path(
-        r"^draft_first_traffic_light_letter/(?P<patient_lookup_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$",  # noqa
+        r"^draft_first_traffic_light_letter/"
+        r"(?P<patient_lookup_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$",
         consent_views.draft_first_traffic_light_letter,
         name=UrlNames.DRAFT_FIRST_TRAFFIC_LIGHT_LETTER,
     ),
     re_path(
-        r"^draft_letter_clinician_to_pt_re_study/(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$",  # noqa
+        r"^draft_letter_clinician_to_pt_re_study/"
+        r"(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$",
         consent_views.draft_letter_clinician_to_pt_re_study,
         name=UrlNames.DRAFT_LETTER_CLINICIAN_TO_PT_RE_STUDY,
     ),
     re_path(
-        r"^decision_form_to_pt_re_study/(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$",  # noqa
+        r"^decision_form_to_pt_re_study/"
+        r"(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$",
         consent_views.decision_form_to_pt_re_study,
         name=UrlNames.DECISION_FORM_TO_PT_RE_STUDY,
     ),
     re_path(
-        r"^draft_confirm_traffic_light_letter/(?P<consent_mode_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$",  # noqa
+        r"^draft_confirm_traffic_light_letter/"
+        r"(?P<consent_mode_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$",
         consent_views.draft_confirm_traffic_light_letter,
         name=UrlNames.DRAFT_CONFIRM_TRAFFIC_LIGHT_LETTER,
     ),
     re_path(
-        r"^draft_traffic_light_decision_form/(?P<patient_lookup_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$",  # noqa
+        r"^draft_traffic_light_decision_form/"
+        r"(?P<patient_lookup_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$",
         consent_views.draft_traffic_light_decision_form,
         name=UrlNames.DRAFT_TRAFFIC_LIGHT_DECISION_FORM,
     ),
@@ -587,7 +595,7 @@ urlpatterns = [
 if settings.DEBUG:
     # Debug toolbar
     # - https://github.com/jazzband/django-debug-toolbar/issues/529
-    # - https://stackoverflow.com/questions/32111203/what-is-the-benefit-of-using-django-conf-urls-patterns-versus-a-list-of-url-in-d  # noqa
+    # - https://stackoverflow.com/questions/32111203/what-is-the-benefit-of-using-django-conf-urls-patterns-versus-a-list-of-url-in-d  # noqa: E501
     urlpatterns += [
         re_path(r"^__debug__/", include(debug_toolbar.urls)),
     ]

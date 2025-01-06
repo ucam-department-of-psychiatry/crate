@@ -681,7 +681,7 @@ ORDER BY
         # ---------------------------------------------------------------------
         # Method B. Much faster, e.g. 0.35s for the same thing.
         # ---------------------------------------------------------------------
-        # http://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins  # noqa
+        # http://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins  # noqa: E501
         # (Note that EXISTS() above returns 0 or 1.)
         # The LEFT JOIN below will produce NULL values for the index
         # columns for non-indexed fields.

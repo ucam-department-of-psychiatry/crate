@@ -190,10 +190,10 @@ INCHES = r"""(?: in(?:ch(?:e)?)?s? | \" | ” | ″)"""
 # Mass
 # -----------------------------------------------------------------------------
 
-MCG = r"(?: mcg | microgram(?:me)?s? | [μu]g )"  # you won't stop people using ug...  # noqa
-MG = r"(?: mg | milligram(?:me)?s? )"  # mg, milligram, milligrams, milligramme, milligrammes  # noqa
+MCG = r"(?: mcg | microgram(?:me)?s? | [μu]g )"  # you won't stop people using ug...  # noqa: E501
+MG = r"(?: mg | milligram(?:me)?s? )"  # mg, milligram, milligrams, milligramme, milligrammes  # noqa: E501
 G = r"(?: gram(?:me)?s? | g )"  # g, gram, grams, gramme, grammes
-KG = r"(?: kgs? | kilo(?:gram(?:me)?)?s? )"  # kg, kgs, kilos ... kilogrammes etc.  # noqa
+KG = r"(?: kgs? | kilo(?:gram(?:me)?)?s? )"  # kg, kgs, kilos ... kilogrammes etc.  # noqa: E501
 LB = r"(?: pounds? | lbs? )"  # pound(s), lb(s)
 STONES = r"(?: stones? | st\.? )"  # stone(s), st, st.
 
@@ -204,14 +204,14 @@ STONES = r"(?: stones? | st\.? )"  # stone(s), st, st.
 L = r"(?: lit(?:re|er)s? | L )"  # L, litre(s), liter(s)
 DL = rf"(?: d(?:eci)?{L} )"  # 10^-1
 ML = rf"(?: m(?:illi)?{L} )"  # 10^-3
-MICROLITRE = rf"(?: micro{L} | [μu]L )"  # 10^-6: microL, microliter(s), microlitre(s), μL, uL  # noqa
-NANOLITRE = rf"(?: nano{L} | nL )"  # 10^-9: nanoL, nanoliter(s), nanolitre(s), nL  # noqa
-PICOLITRE = rf"(?: pico{L} | pL )"  # 10^-12: picoL, picoliter(s), picolitre(s), pL  # noqa
-FEMTOLITRE = rf"(?: femto{L} | fL )"  # 10^-15: femtoL, femtoliter(s), femtolitre(s), fL  # noqa
+MICROLITRE = rf"(?: micro{L} | [μu]L )"  # 10^-6: microL, microliter(s), microlitre(s), μL, uL  # noqa: E501
+NANOLITRE = rf"(?: nano{L} | nL )"  # 10^-9: nanoL, nanoliter(s), nanolitre(s), nL  # noqa: E501
+PICOLITRE = rf"(?: pico{L} | pL )"  # 10^-12: picoL, picoliter(s), picolitre(s), pL  # noqa: E501
+FEMTOLITRE = rf"(?: femto{L} | fL )"  # 10^-15: femtoL, femtoliter(s), femtolitre(s), fL  # noqa: E501
 # CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} )""".format(
-CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} | (?: \b cmm \b ) )""".format(  # noqa
-    mm=MM, mm_cubed=power(MM, 3, allow_no_operator=True)
-)
+CUBIC_MM = (
+    r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} | (?: \b cmm \b ) )"""
+).format(mm=MM, mm_cubed=power(MM, 3, allow_no_operator=True))
 # cubic mm, etc. | mm^3, mm3, mm 3, etc. | cmm
 # "cmm" added 2018-09-07 having seen this in the wild (albeit urinary results).
 

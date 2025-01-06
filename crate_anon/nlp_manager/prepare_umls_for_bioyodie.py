@@ -531,9 +531,9 @@ def get_mmsys_configfile_text(
 
     # New values to set
     new_values = {
-        "gov.nih.nlm.umls.mmsys.filter.SourceListFilter.remove_selected_sources": "false",  # noqa
-        "mmsys_input_stream": "gov.nih.nlm.umls.mmsys.io.NLMFileMetamorphoSysInputStream",  # noqa
-        "mmsys_output_stream": "gov.nih.nlm.umls.mmsys.io.RRFMetamorphoSysOutputStream",  # noqa
+        "gov.nih.nlm.umls.mmsys.filter.SourceListFilter.remove_selected_sources": "false",  # noqa: E501
+        "mmsys_input_stream": "gov.nih.nlm.umls.mmsys.io.NLMFileMetamorphoSysInputStream",  # noqa: E501
+        "mmsys_output_stream": "gov.nih.nlm.umls.mmsys.io.RRFMetamorphoSysOutputStream",  # noqa: E501
         "meta_source_uri": metadir,
         "umls_source_uri": metadir,  # ?
     }
@@ -744,7 +744,7 @@ def prepare_umls_for_bioyodie(cfg: UmlsBioyodieConversionConfig) -> None:
     # -------------------------------------------------------------------------
     log.info("Running MetamorphoSys in batch mode...")
     # -------------------------------------------------------------------------
-    # https://www.nlm.nih.gov/research/umls/implementation_resources/community/mmsys/BatchMetaMorphoSys.html  # noqa
+    # https://www.nlm.nih.gov/research/umls/implementation_resources/community/mmsys/BatchMetaMorphoSys.html  # noqa: E501
     classpath = ":".join(
         [
             umls_mmsys_home,
@@ -870,7 +870,7 @@ def main() -> NoReturn:
     parser.add_argument(
         "umls_zip",
         help="Filename of ZIP file downloaded from "
-        "https://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html, "  # noqa
+        "https://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html, "  # noqa: E501
         "e.g. /path/to/umls-2017AA-full.zip . This can't be "
         "autodownloaded, as it requires a license/login.",
     )

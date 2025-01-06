@@ -96,8 +96,6 @@ class CloudRunInfo:
         for lp in self.get_local_processors():
             for rp in self.get_remote_processors():
                 lp.set_procinfo_if_correct(rp)
-        # log.debug(f"Remote processors: {self.get_remote_processors()}")
-        # log.debug(f"Configured local processors: {self.get_local_processors()}")  # noqa
 
     def get_requested_processors(self) -> List[Tuple[str, str]]:
         """

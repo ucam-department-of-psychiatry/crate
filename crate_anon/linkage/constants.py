@@ -306,10 +306,10 @@ class FuzzyDefaults:
     We'll round: 0.000203
     (So that's about 13.5k people with postcode ZZ99 3VZ, estimated.)
 
-    [1] https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/852953/Statutory_Homelessness_Statistical_Release_Apr-Jun_2019.pdf  # noqa
-    [2] https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/families/bulletins/familiesandhouseholds/2020  # noqa
+    [1] https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/852953/Statutory_Homelessness_Statistical_Release_Apr-Jun_2019.pdf  # noqa: E501
+    [2] https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/families/bulletins/familiesandhouseholds/2020  # noqa: E501
     [3] https://pubmed.ncbi.nlm.nih.gov/35477868/
-    [4] http://www.datadictionary.wales.nhs.uk/index.html#!WordDocuments/postcode.htm  # noqa
+    [4] http://www.datadictionary.wales.nhs.uk/index.html#!WordDocuments/postcode.htm  # noqa: E501
 
     However, our empirical rate is 0.00201 for ZZ99 3VZ (SystmOne; see
     empirical_rates.sql).

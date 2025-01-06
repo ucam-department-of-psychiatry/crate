@@ -482,7 +482,6 @@ class TableMaker(ABC):
             )
 
             columns = core_columns + extra_dest_cols + copy_columns
-            copy_of_cols = [c.copy() for c in columns]
 
             t_indexes = self.dest_tables_indexes()
             extra_dest_indexes = []  # type: List[Index]
@@ -496,7 +495,7 @@ class TableMaker(ABC):
             )
 
             column_like_things = (
-                copy_of_cols + core_indexes + extra_dest_indexes + copy_indexes
+                columns + core_indexes + extra_dest_indexes + copy_indexes
             )
             # log.debug(repr(column_like_things))
             table_kwargs = {

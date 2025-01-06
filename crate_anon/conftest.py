@@ -41,7 +41,7 @@ import pytest
 from sqlalchemy import event, inspect
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
-from sqlalchemy.orm import Session
+from sqlalchemy.orm.session import Session
 
 from crate_anon.common.constants import EnvVar
 from crate_anon.testing import Base
@@ -184,7 +184,7 @@ def create_engine_from_url(
     # mysql> CREATE DATABASE <db_name>;
     # mysql> GRANT ALL PRIVILEGES ON <db_name>.*
     #        TO <db_user>@localhost IDENTIFIED BY '<db_password>';
-    engine = create_engine(db_url, echo=echo, pool_pre_ping=True)
+    engine = create_engine(db_url, echo=echo, pool_pre_ping=True, future=True)
 
     if create_test_db:
         Base.metadata.drop_all(engine)
@@ -196,14 +196,14 @@ def make_memory_sqlite_engine(echo: bool = False) -> Engine:
     """
     Create an SQLAlchemy :class:`Engine` for an in-memory SQLite database.
     """
-    return create_engine(SQLITE_MEMORY_URL, echo=echo)
+    return create_engine(SQLITE_MEMORY_URL, echo=echo, future=True)
 
 
 def make_file_sqlite_engine(filename: str, echo: bool = False) -> Engine:
     """
     Create an SQLAlchemy :class:`Engine` for an on-disk SQLite database.
     """
-    return create_engine(make_sqlite_url(filename), echo=echo)
+    return create_engine(make_sqlite_url(filename), echo=echo, future=True)
 
 
 def create_engine_sqlite(

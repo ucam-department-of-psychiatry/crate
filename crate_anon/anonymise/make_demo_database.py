@@ -56,7 +56,7 @@ from rich_argparse import ArgumentDefaultsRichHelpFormatter
 from sqlalchemy import (
     create_engine,
 )
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.sql import text
 
 from crate_anon.anonymise.constants import CHARSET
@@ -115,7 +115,7 @@ def mk_demo_database(
 
     log.info("Opening database.")
     log.debug(f"URL: {url}")
-    engine = create_engine(url, echo=echo, encoding=CHARSET)
+    engine = create_engine(url, echo=echo, encoding=CHARSET, future=True)
     session = sessionmaker(bind=engine)()
 
     # 2. Create tables

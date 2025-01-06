@@ -40,7 +40,7 @@ from crate_anon.testing.factories import (
 )
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+    from sqlalchemy.orm.session import Session
 
 
 @pytest.mark.usefixtures("setup")

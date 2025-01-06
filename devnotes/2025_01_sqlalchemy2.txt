@@ -1,0 +1,161 @@
+===============================================================================
+CHANGES FOR SQLALCHEMY 2
+===============================================================================
+
+GUIDE: https://docs.sqlalchemy.org/en/20/changelog/migration_20.html
+
+SIMULTANEOUSLY: cardinal_pythonlib from 1.1.27 to 1.1.28
+
+
+First Prerequisite, step one - A Working 1.3 Application
+--------------------------------------------------------
+
+We already had this.
+
+
+First Prerequisite, step two - A Working 1.4 Application
+--------------------------------------------------------
+
+We already had this.
+
+
+Migration to 2.0 Step One - Python 3 only (Python 3.7 minimum for 2.0 compatibility)
+------------------------------------------------------------------------------------
+
+We already had this.
+
+
+Migration to 2.0 Step Two - Turn on RemovedIn20Warnings
+-------------------------------------------------------
+
+Export SQLALCHEMY_WARN_20=1 (RNC: in ~/dev/SET_COMMON_ENVS.sh).
+
+
+Migration to 2.0 Step Three - Resolve all RemovedIn20Warnings
+-------------------------------------------------------------
+
+- Also: fix MovedIn20Warnings (that means: import from a different file; easy).
+
+- todo: ALSO: fix SADeprecationWarning
+
+- Remove use of insert_on_duplicate() via
+  cardinal_pythonlib.sqlalchemy.insert_on_duplicate.monkeypatch_TableClause().
+
+- Remove use of cardinal_pythonlib.sqlalchemy.schema.hack_in_mssql_xml_type;
+  XML is now part of sqlalchemy.dialects.mssql.base.ischema_names.
+
+- select([col1, col2]) -> select(col1, col2), or expand list with *.
+
+- Beware when converting select(["*"]). You might get the impression that
+  in SQLAlchemy 2, if you don't specify any columns, you get them all.
+  But that is only the case if the table/Table object knows about its columns:
+
+    from sqlalchemy.schema import Column, Table
+    from sqlalchemy.sql.expression import column, select, table, text
+    from sqlalchemy.sql.schema import MetaData
+    from sqlalchemy.types import Integer
+
+    s1 = select(table("sometable"))
+    print(str(s1))  # SELECT FROM sometable
+    s2 = select(table("sometable", column("col1")))  # Core
+    print(str(s2))  # SELECT sometable.col1 FROM sometable
+    s3 = select(Table("sometable", MetaData(), Column("col1", Integer)))  # ORM
+    print(str(s3))  # SELECT sometable.col1 FROM sometable
+
+  So for a table with unknown columns:
+
+    s4 = select(text("*")).select_from(table("sometable"))
+    print(str(s4))  # SELECT * FROM sometable
+
+- Table objects require their metadata to be bound
+  ("sqlalchemy.exc.UnboundExecutionError: No engine is bound to this Table's
+  MetaData. Pass an engine to the Table via
+  autoload_with=<someengine_or_connection>").
+
+  But if you create MetaData using MetaData(bind=engine), you get
+  "RemovedIn20Warning: The MetaData.bind argument is deprecated and will be
+  removed in SQLAlchemy 2.0".
+
+  Instead, the recommendation seems to be to create bare MetaData(), use that for
+  Table creation (for example), and bind to an engine/connection at the time of
+  creation or other SQL execution:
+
+  - https://docs.sqlalchemy.org/en/20/tutorial/metadata.html
+  - https://docs.sqlalchemy.org/en/20/core/metadata.html#sqlalchemy.schema.MetaData
+
+  For example, replace Table(tablename, metadata, autoload=True) with
+  Table(tablename, metadata, autoload_with=engine).
+
+- Some instances of "with engine.connect() as con: con.execute(...)" produce
+  "RemovedIn20Warning: The current statement is being autocommitted using
+  implicit autocommit, which will be removed in SQLAlchemy 2.0. Use the
+  .begin() method of Engine or Connection in order to use an explicit
+  transaction for DML and DDL statements. (Background on SQLAlchemy 2.0 at:
+  https://sqlalche.me/e/b8d9)".
+
+  Replace with "with engine.begin() as con: ..."; this autocommits on success.
+
+- "RemovedIn20Warning: Passing a string to Connection.execute() is deprecated
+  and will be removed in version 2.0.  Use the text() construct, or the
+  Connection.exec_driver_sql() method to invoke a driver-level SQL string.
+  (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)".
+
+  Self-explanatory; primarily shift to text("oldtext").
+
+- "RemovedIn20Warning: The connection.execute() method in SQLAlchemy 2.0 will
+  accept parameters as a single dictionary or a single sequence of dictionaries
+  only. Parameters passed as keyword arguments, tuples or positionally oriented
+  dictionaries and/or tuples will no longer be accepted. (Background on
+  SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)".
+
+  Change e.g. connection.execute("INSERT... VALUES(:1, :2)", param1, param2) to
+  connection.execute("INSERT... VALUES(:a, :b)", dict(a=param1, b=param2)).
+
+  - https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Connection.execute
+  - https://peps.python.org/pep-0249/#paramstyle
+
+- "SADeprecationWarning: The Column.copy() method is deprecated and will be
+  removed in a future release. (deprecated since: 1.4)"
+
+  - https://github.com/kvesteri/sqlalchemy-continuum/issues/263
+  - https://github.com/sqlalchemy/sqlalchemy/discussions/8213
+  - https://github.com/sqlalchemy/sqlalchemy/issues/5953#issue-810301180
+
+    ... consider Table.to_medatata() if cloning a table;
+    https://docs.sqlalchemy.org/en/20/core/metadata.html#sqlalchemy.schema.Table.to_metadata;
+    this returns a copy of a table attached to a different MetaData().
+    However, Column objects aren't attached to a metadata anyway, so these may
+    be OK to use without copying.
+
+- TESTS:
+
+  - pytest
+    ... remember pytest -k; pytest --log-cli-level
+  - crate_anonymise --full
+  - crate_anonymise --incremental
+  - crate_nlp --nlpdef crate_biomarkers --full
+  - crate_nlp --nlpdef crate_biomarkers --incremental
+  - crate_researcher_report ~/Downloads/tmp_crate_researcher_report.pdf
+
+
+Migration to 2.0 Step Four - Use the future flag on Engine
+----------------------------------------------------------
+
+- Added.
+
+
+Migration to 2.0 Step Five - Use the future flag on Session
+-----------------------------------------------------------
+
+Migration to 2.0 Step Six - Add __allow_unmapped__ to explicitly typed ORM models
+---------------------------------------------------------------------------------
+
+Migration to 2.0 Step Seven - Test against a SQLAlchemy 2.0 Release
+-------------------------------------------------------------------
+
+
+~~~
+
+todo: CURRENTLY ON: cardinal_pythonlib / pytest -k orm_query_tests --log-cli-level INFO
+
+todo: *** also # noqa \n

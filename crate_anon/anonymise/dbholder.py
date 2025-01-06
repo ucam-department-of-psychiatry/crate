@@ -30,10 +30,9 @@ crate_anon/anonymise/dbholder.py
 import logging
 from typing import List, Optional, TYPE_CHECKING
 
-from sqlalchemy import create_engine
+from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.session import Session
+from sqlalchemy.orm.session import sessionmaker, Session
 from sqlalchemy.sql.schema import MetaData
 
 if TYPE_CHECKING:
@@ -76,7 +75,9 @@ class DatabaseHolder:
         """
         self.name = name
         self.srccfg = srccfg
-        self.engine = create_engine(url, encoding=encoding, echo=echo)
+        self.engine = create_engine(
+            url, encoding=encoding, echo=echo, future=True
+        )
         self.conn = None  # type: Optional[Connection]
         self.session = None  # type: Optional[Session]
         self._reflect_on_request = reflect

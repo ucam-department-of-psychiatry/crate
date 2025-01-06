@@ -591,7 +591,7 @@ class DataDictionary:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         log.info("... Make full-text indexes follow dialect rules")
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # https://docs.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-index-transact-sql?view=sql-server-ver15  # noqa
+        # https://docs.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-index-transact-sql?view=sql-server-ver15  # noqa: E501
         if self.dest_dialect_name == SqlaDialectName.SQLSERVER:
             # -----------------------------------------------------------------
             # Checks for Microsoft SQL Server

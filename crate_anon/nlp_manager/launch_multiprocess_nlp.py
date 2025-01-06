@@ -40,9 +40,9 @@ crate_anon/nlp_manager/launch_multiprocess_nlp.py
 #
 # Python version:
 #
-# https://stackoverflow.com/questions/23611396/python-execute-cat-subprocess-in-parallel  # noqa
-# https://stackoverflow.com/questions/320232/ensuring-subprocesses-are-dead-on-exiting-python-program  # noqa
-# https://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python  # noqa
+# https://stackoverflow.com/questions/23611396/python-execute-cat-subprocess-in-parallel  # noqa: E501
+# https://stackoverflow.com/questions/320232/ensuring-subprocesses-are-dead-on-exiting-python-program  # noqa: E501
+# https://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python  # noqa: E501
 
 import argparse
 import logging

@@ -181,7 +181,6 @@ from cardinal_pythonlib.sql.sql_grammar_factory import make_grammar
 from cardinal_pythonlib.sqlalchemy.schema import (
     get_effective_int_pk_col,
     get_pk_colnames,
-    hack_in_mssql_xml_type,
     make_bigint_autoincrement_column,
 )
 from sqlalchemy import (
@@ -698,7 +697,7 @@ def get_pcmis_views(
                     )
                 )
                 viewmaker.add_from(
-                    "LEFT JOIN {referrals} ON {t}.{case} = {referrals}.{case}".format(  # noqa
+                    "LEFT JOIN {referrals} ON {t}.{case} = {referrals}.{case}".format(  # noqa: E501
                         referrals=PCMIS_TABLE_REFERRAL_DETAILS,
                         t=q(tablename),
                         case=PCMIS_COL_CASE_NUMBER,
@@ -718,7 +717,7 @@ def get_pcmis_views(
                     )
                 )
                 viewmaker.add_from(
-                    "LEFT JOIN {contacts} ON {t}.{contact} = {contacts}.{contact}".format(  # noqa
+                    "LEFT JOIN {contacts} ON {t}.{contact} = {contacts}.{contact}".format(  # noqa: E501
                         contacts=PCMIS_TABLE_CASE_CONTACTS,
                         t=tablename,
                         contact=PCMIS_COL_CONTACT_NUMBER,
@@ -734,7 +733,7 @@ def get_pcmis_views(
                     )
                 )
                 viewmaker.add_from(
-                    "LEFT JOIN {referrals} ON {contacts}.{case} = {referrals}.{case}".format(  # noqa
+                    "LEFT JOIN {referrals} ON {contacts}.{case} = {referrals}.{case}".format(  # noqa: E501
                         referrals=PCMIS_TABLE_REFERRAL_DETAILS,
                         contacts=PCMIS_TABLE_CASE_CONTACTS,
                         case=PCMIS_COL_CASE_NUMBER,
@@ -975,16 +974,15 @@ def main() -> None:
 
     set_print_not_execute(progargs.print)
 
-    hack_in_mssql_xml_type()
-
-    engine = create_engine(progargs.url, echo=progargs.echo, encoding=CHARSET)
+    engine = create_engine(
+        progargs.url, echo=progargs.echo, encoding=CHARSET, future=True
+    )
     metadata = MetaData()
-    metadata.bind = engine
     log.info(f"Database: {engine.url!r}")  # ... repr (!r) hides p/w
     log.debug(f"Dialect: {engine.dialect.name}")
 
     log.info("Reflecting (inspecting) database...")
-    metadata.reflect(engine)
+    metadata.reflect(bind=engine)
     log.info("... inspection complete")
 
     ddhint = DDHint()
