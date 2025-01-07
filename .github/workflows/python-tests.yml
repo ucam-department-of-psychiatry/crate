@@ -13,7 +13,7 @@ on:
             - github_action_scripts/redis_setup.sh
 jobs:
     python-tests:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-22.04
         strategy:
             matrix:
                 # Run tests with sqlite for all python versions

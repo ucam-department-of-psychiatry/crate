@@ -14,7 +14,7 @@ on:
           - github_action_scripts/python_setup.sh
 jobs:
     build-gate:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-22.04
         strategy:
             matrix:
                 gate_version: ["8.6.1", "9.0.1"]
