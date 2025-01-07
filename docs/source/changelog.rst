@@ -1701,6 +1701,9 @@ Changes
   resulted in a very large Docker image if the ID of the user creating the image
   was large.
 
+- Update the installer to provide some example scripts for running
+  anonymisation, NLP etc under Docker.
+  https://github.com/ucam-department-of-psychiatry/crate/issues/163
 
 To do
 -----
