@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# installer/example_scripts/anonymise_FULL.sh
+# installer/example_scripts/anonymise_INCREMENTAL.sh
 
 # ==============================================================================
 #
