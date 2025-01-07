@@ -43,8 +43,8 @@ exit 0
 
 ${PYTHON} "${CRATE_HOST_INSTALLER_BASE_DIR}/installer.py" exec "crate_nlp_multiprocess \
     --nproc ${CRATE_NPROCESSORS} \
-    --config ${CRATE_CONTAINER_CONFIG_RIO_NLP} \
-    --nlpdef biomarkers_crate \
+    --config ${CRATE_CONTAINER_CONFIG_NLP} \
+    --nlpdef crate_biomarkers \
     --incremental" \
     2>&1 \
     | tee "${CRATE_HOST_NLP_BIOMARKERS_LOG}"
