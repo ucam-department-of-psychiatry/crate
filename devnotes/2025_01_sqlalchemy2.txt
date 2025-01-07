@@ -156,6 +156,5 @@ Migration to 2.0 Step Seven - Test against a SQLAlchemy 2.0 Release
 
 ~~~
 
-todo: CURRENTLY ON: cardinal_pythonlib / pytest -k orm_query_tests --log-cli-level INFO
-
-todo: *** also # noqa \n
+todo: CURRENTLY ON:
+    STEP THREE TESTS

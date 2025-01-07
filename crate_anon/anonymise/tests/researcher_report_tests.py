@@ -117,20 +117,27 @@ class ResearcherReportTests(DemoDatabaseTestCase):
             patient_found = False
             note_found = False
             for page in reader.pages:
-                lines = page.extract_text().splitlines()
+                lines = page.extract_text().replace("\t", " ").splitlines()
+                # Sometimes spaces come back as tabs; fix that.
+
                 rows_index = index_of_list_substring(
                     lines,
                     "Number of rows in this table:",
                 )
+                # The label text here is from
+                # crate_anon/anonymise/templates/researcher_report/table.html.
 
-                if rows_index > 0:
-                    num_rows = int(lines[rows_index + 1])
+                if rows_index < 0:
+                    continue
 
-                if lines[0] == "patient":
+                num_rows = int(lines[rows_index + 1])
+                table_name = lines[0]
+
+                if table_name == "patient":
                     patient_found = True
                     self.assertEqual(num_rows, self.num_patients)
 
-                elif lines[0] == "note":
+                elif table_name == "note":
                     note_found = True
                     self.assertEqual(
                         num_rows, self.num_patients * self.notes_per_patient

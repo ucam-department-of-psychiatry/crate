@@ -860,9 +860,7 @@ def process_table(
         # ---------------------------------------------------------------------
         # SQL Server requires Table-bound columns in order to generate DDL:
         if adding_crate_pk:
-            crate_pk_col = make_bigint_autoincrement_column(
-                CRATE_COL_PK, engine.dialect
-            )
+            crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK)
             table.append_column(crate_pk_col)
             add_columns(engine, table, [crate_pk_col])
         ensure_columns_present(

@@ -584,9 +584,7 @@ def process_patient_table(
         # ... can't do NOT NULL; need to populate it
         required_cols.append(rio_pk)
     else:  # RCEP type, or no PK in RiO
-        crate_pk_col = make_bigint_autoincrement_column(
-            CRATE_COL_PK, engine.dialect
-        )
+        crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK)
         # ... autopopulates
     crate_rio_number_col = Column(
         CRATE_COL_RIO_NUMBER, BigInteger, nullable=True
@@ -693,9 +691,7 @@ def process_nonpatient_table(
     if other_pk_col:  # table has a primary key already
         crate_pk_col = Column(CRATE_COL_PK, BigInteger, nullable=True)
     else:
-        crate_pk_col = make_bigint_autoincrement_column(
-            CRATE_COL_PK, engine.dialect
-        )
+        crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK)
     table.append_column(crate_pk_col)  # must be Table-bound, as above
     add_columns(engine, table, [crate_pk_col])
     if not configoptions.print_sql_only:

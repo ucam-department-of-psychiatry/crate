@@ -40,6 +40,9 @@ from typing import Any, Dict, Iterable, Generator, List, Tuple, Union
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
 from cardinal_pythonlib.sqlalchemy.core_query import count_star, exists_plain
+from cardinal_pythonlib.sqlalchemy.insert_on_duplicate import (
+    insert_with_upsert_if_supported,
+)
 from cardinal_pythonlib.sqlalchemy.schema import (
     add_index,
     get_column_names,
@@ -74,7 +77,6 @@ from crate_anon.common.file_io import (
 )
 from crate_anon.common.parallel import is_my_job_by_hash, is_my_job_by_int
 from crate_anon.common.sql import matches_tabledef
-from crate_anon.common.sqlalchemy import insert_with_upsert_if_supported
 
 log = logging.getLogger(__name__)
 
