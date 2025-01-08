@@ -41,6 +41,10 @@ from cardinal_pythonlib.json.serialize import METHOD_NO_ARGS, register_for_json
 from cardinal_pythonlib.logs import BraceStyleAdapter
 from cardinal_pythonlib.reprfunc import auto_repr
 from cardinal_pythonlib.sql.sql_grammar import SqlGrammar
+from cardinal_pythonlib.sql.validation import (
+    SQLTYPES_TEXT,
+    SQLTYPES_WITH_DATE,
+)
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 from cardinal_pythonlib.sqlalchemy.schema import (
     MSSQL_DEFAULT_SCHEMA,
@@ -56,21 +60,19 @@ from requests.structures import CaseInsensitiveDict
 from crate_anon.common.constants import RUNNING_WITHOUT_CONFIG
 from crate_anon.common.sql import (
     ColumnId,
-    is_sql_column_type_textual,
-    make_grammar,
     QB_DATATYPE_DATE,
     QB_DATATYPE_FLOAT,
     QB_DATATYPE_INTEGER,
     QB_DATATYPE_STRING,
     QB_DATATYPE_STRING_FULLTEXT,
     QB_DATATYPE_UNKNOWN,
+    SQLTYPES_FLOAT_OR_OTHER_NUMERIC,
+    SQLTYPES_INTEGER_OR_BIT,
     SchemaId,
     SqlArgsTupleType,
-    SQLTYPES_FLOAT,
-    SQLTYPES_WITH_DATE,
-    SQLTYPES_TEXT,
-    SQLTYPES_INTEGER,
     TableId,
+    is_sql_column_type_textual,
+    make_grammar,
     translate_sql_qmark_to_percent,
 )
 from crate_anon.crateweb.core.constants import SettingsKeys
@@ -151,7 +153,7 @@ class ColumnInfo:
         defines our field type, like ``"int"`` or ``"date"``. See source.
         """
         basetype = self.basetype
-        if basetype in SQLTYPES_FLOAT:
+        if basetype in SQLTYPES_FLOAT_OR_OTHER_NUMERIC:
             return QB_DATATYPE_FLOAT
         if basetype in SQLTYPES_WITH_DATE:
             return QB_DATATYPE_DATE
@@ -160,7 +162,7 @@ class ColumnInfo:
                 return QB_DATATYPE_STRING_FULLTEXT
             else:
                 return QB_DATATYPE_STRING
-        if basetype in SQLTYPES_INTEGER:
+        if basetype in SQLTYPES_INTEGER_OR_BIT:
             return QB_DATATYPE_INTEGER
         return QB_DATATYPE_UNKNOWN
 

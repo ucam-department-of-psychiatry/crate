@@ -69,7 +69,8 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==2.0.0",  # RNC libraries
+    # "cardinal_pythonlib==2.0.0",  # RNC libraries
+    "cardinal_pythonlib @ git+https://github.com/RudolfCardinal/pythonlib@sqlalchemy2#egg=cardinal_pythonlib-2.0.0-rc1",  # RNC libraries, development version  # noqa: E501
     "cairosvg==2.7.0",  # work with SVG files
     "celery==5.2.7",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib

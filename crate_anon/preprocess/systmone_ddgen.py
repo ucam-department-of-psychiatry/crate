@@ -427,6 +427,7 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from cardinal_pythonlib.dicts import reversedict
 from cardinal_pythonlib.enumlike import CaseInsensitiveEnumMeta
+from cardinal_pythonlib.sql.validation import SQLTYPE_DATE
 
 from crate_anon.anonymise.altermethod import AlterMethod
 from crate_anon.anonymise.constants import (
@@ -437,7 +438,6 @@ from crate_anon.anonymise.constants import (
     SrcFlag,
 )
 from crate_anon.common.logfunc import warn_once
-from crate_anon.common.sql import SQLTYPE_DATE
 from crate_anon.anonymise.dd import DataDictionary, DataDictionaryRow
 from crate_anon.preprocess.constants import CRATE_COL_PK
 

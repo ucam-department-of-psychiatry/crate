@@ -133,6 +133,7 @@ Migration to 2.0 Step Three - Resolve all RemovedIn20Warnings
   - pytest
     ... remember pytest -k; pytest --log-cli-level
   - crate_make_demo_database <URL>
+  - crate_anon_draft_dd
   - crate_anonymise --full
   - crate_anonymise --incremental
   - crate_nlp --nlpdef crate_biomarkers --full
