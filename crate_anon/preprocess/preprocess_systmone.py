@@ -43,7 +43,6 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.sql.schema import MetaData
 
-from crate_anon.anonymise.constants import CHARSET
 from crate_anon.common.sql import (
     add_columns,
     add_indexes,
@@ -402,9 +401,7 @@ def main() -> None:
 
     set_print_not_execute(args.print)
 
-    engine = create_engine(
-        args.url, echo=args.echo, encoding=CHARSET, future=True
-    )
+    engine = create_engine(args.url, echo=args.echo, future=True)
     log.info(f"Database: {engine.url!r}")  # ... repr (!r) hides p/w
     log.debug(f"Dialect: {engine.dialect.name}")
 

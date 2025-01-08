@@ -976,9 +976,7 @@ class Config:
         self._dest_bytes_written = 0
         self._echo = False
 
-    def get_destdb_engine_outside_transaction(
-        self, encoding: str = "utf-8"
-    ) -> Engine:
+    def get_destdb_engine_outside_transaction(self) -> Engine:
         """
         Get a standalone SQLAlchemy Engine for the destination database, and
         configure itself so transactions aren't used (equivalently:
@@ -988,16 +986,12 @@ class Config:
         See
         https://github.com/mkleehammer/pyodbc/wiki/Database-Transaction-Management
 
-        Args:
-            encoding: passed to the SQLAlchemy :func:`create_engine` function
-
         Returns:
             the Engine
         """
         url = self._destination_database_url
         return create_engine(
             url,
-            encoding=encoding,
             echo=self._echo,
             connect_args={"autocommit": True},  # for pyodbc
             future=True,

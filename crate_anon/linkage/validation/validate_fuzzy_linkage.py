@@ -360,6 +360,20 @@ def postcode_temporal_identifiers(
 
 
 # =============================================================================
+# SQLAlchemy convenience function
+# =============================================================================
+
+
+def exec_get_result(engine: Engine, sql: str, *args, **kwargs) -> CursorResult:
+    """
+    Executes a query and returns the result.
+    """
+    with engine.begin() as connection:
+        result = connection.execute(sql, *args, **kwargs)  # type: CursorResult
+    return result
+
+
+# =============================================================================
 # Speed testing
 # =============================================================================
 
@@ -1093,7 +1107,7 @@ def validate_2_fetch_cdl(
     """  # noqa: E501
     )
     engine = create_engine(url, echo=echo, future=True)
-    result = engine.execute(sql)  # type: CursorResult
+    result = exec_get_result(engine, sql)
     q = QueryColnames
     for row in result:
         cdl_m_number = row["cdl_m_number"]  # type: int
@@ -1347,7 +1361,7 @@ def validate_2_fetch_pcmis(
     """  # noqa: E501
     )
     engine = create_engine(url, echo=echo, future=True)
-    result = engine.execute(sql)  # type: CursorResult
+    result = exec_get_result(engine, sql)
     q = QueryColnames
     for row in result:
         pcmis_patient_id = row["pcmis_patient_id"]  # type: str
@@ -1460,7 +1474,7 @@ def _get_rio_postcodes(
             postcode
     """
     )
-    rows = engine.execute(sql, patient_id=rio_patient_id)
+    rows = exec_get_result(engine, sql, patient_id=rio_patient_id)
     q = QueryColnames
     postcodes = [
         PostcodeInfo(
@@ -1599,7 +1613,7 @@ def _get_rio_names(
             AND AliasType = '1'  -- usual name
     """
     )
-    result = engine.execute(sql, client_id=rio_client_id)  # type: CursorResult
+    result = exec_get_result(engine, sql, client_id=rio_client_id)
     rows = result.fetchall()  # type: List[Row]
     n_rows = len(rows)  # or result.rowcount()
     assert n_rows <= 1, "Didn't expect >1 row per patient in ClientName"
@@ -1778,7 +1792,7 @@ def validate_2_fetch_rio(
     """  # noqa: E501
     )
     engine = create_engine(url, echo=echo, future=True)
-    result = engine.execute(sql)  # type: CursorResult
+    result = exec_get_result(engine, sql)
     q = QueryColnames
     for row in result:
         rio_client_id = row["rio_client_id"]  # type: str
@@ -1875,7 +1889,7 @@ def _get_systmone_postcodes(
             postcode
     """
     )
-    rows = engine.execute(sql, patient_id=systmone_patient_id)
+    rows = exec_get_result(engine, sql, patient_id=systmone_patient_id)
     q = QueryColnames
     postcodes = [
         PostcodeInfo(
@@ -2075,7 +2089,7 @@ def validate_2_fetch_systmone(
     """  # noqa: E501
     )
     engine = create_engine(url, echo=echo, future=True)
-    result = engine.execute(sql)  # type: CursorResult
+    result = exec_get_result(engine, sql)
     q = QueryColnames
     for row in result:
         systmone_patient_id = row["systmone_patient_id"]  # type: int

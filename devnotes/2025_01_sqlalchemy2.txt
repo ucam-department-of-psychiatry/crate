@@ -36,10 +36,11 @@ Migration to 2.0 Step Three - Resolve all RemovedIn20Warnings
 
 - Also: fix MovedIn20Warnings (that means: import from a different file; easy).
 
-- todo: ALSO: fix SADeprecationWarning
+- Also: fix SADeprecationWarning
 
 - Remove use of insert_on_duplicate() via
   cardinal_pythonlib.sqlalchemy.insert_on_duplicate.monkeypatch_TableClause().
+  Replace with insert_with_upsert_if_supported().
 
 - Remove use of cardinal_pythonlib.sqlalchemy.schema.hack_in_mssql_xml_type;
   XML is now part of sqlalchemy.dialects.mssql.base.ischema_names.
@@ -131,12 +132,14 @@ Migration to 2.0 Step Three - Resolve all RemovedIn20Warnings
 
   - pytest
     ... remember pytest -k; pytest --log-cli-level
+  - crate_make_demo_database <URL>
   - crate_anonymise --full
   - crate_anonymise --incremental
   - crate_nlp --nlpdef crate_biomarkers --full
   - crate_nlp --nlpdef crate_biomarkers --incremental
   - crate_researcher_report ~/Downloads/tmp_crate_researcher_report.pdf
 
+  ... on RNC local machine,
 
 Migration to 2.0 Step Four - Use the future flag on Engine
 ----------------------------------------------------------
@@ -147,14 +150,27 @@ Migration to 2.0 Step Four - Use the future flag on Engine
 Migration to 2.0 Step Five - Use the future flag on Session
 -----------------------------------------------------------
 
+- Added, to Session() and sessionmaker().
+
+
 Migration to 2.0 Step Six - Add __allow_unmapped__ to explicitly typed ORM models
 ---------------------------------------------------------------------------------
+
+- Don't think we have any of these. They mean this sort of thing:
+
+  foo: Foo = relationship(Foo, ...)
+     ^^^^^
+
 
 Migration to 2.0 Step Seven - Test against a SQLAlchemy 2.0 Release
 -------------------------------------------------------------------
 
+- From SQLAlchemy==1.4.49 to SQLAlchemy==2.0.36. Fixes required:
 
-~~~
+- create_engine() no longer takes an "encoding" parameter.
+  See https://docs.sqlalchemy.org/en/14/core/engines.html#sqlalchemy.create_engine.params.encoding.
+  Removed.
 
-todo: CURRENTLY ON:
-    STEP THREE TESTS
+- sqlalchemy.engine.url.make_url no longer accepts None input.
+
+Done.

@@ -57,7 +57,10 @@ from cardinal_pythonlib.sql.sql_grammar_factory import (
 )
 from cardinal_pythonlib.sqlalchemy.core_query import count_star
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
-from cardinal_pythonlib.sqlalchemy.schema import column_creation_ddl
+from cardinal_pythonlib.sqlalchemy.schema import (
+    column_creation_ddl,
+    execute_ddl,
+)
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 from pyparsing import ParseResults
 from sqlalchemy import inspect
@@ -1014,9 +1017,9 @@ def set_print_not_execute(print_not_execute: bool) -> None:
     _global_print_not_execute_sql = print_not_execute
 
 
-def execute(engine: Engine, sql: str) -> None:
+def _exec_ddl(engine: Engine, sql: str) -> None:
     """
-    Executes SQL.
+    Executes SQL as DDL.
 
     Whether we act or just print is conditional on previous calls to
     :func:`set_print_not_execute`.
@@ -1030,7 +1033,7 @@ def execute(engine: Engine, sql: str) -> None:
         print(format_sql_for_print(sql) + "\n;")
         # extra \n in case the SQL ends in a comment
     else:
-        engine.execute(sql)
+        execute_ddl(engine, sql=sql)
 
 
 def add_columns(engine: Engine, table: Table, columns: List[Column]) -> None:
@@ -1084,7 +1087,7 @@ def add_columns(engine: Engine, table: Table, columns: List[Column]) -> None:
     for column_def in column_defs:
         log.info(f"Table {table.name!r}: adding column {column_def!r}")
         sql = f"ALTER TABLE {table.name} ADD {column_def}"
-        execute(engine, sql)
+        _exec_ddl(engine, sql)
 
 
 def drop_columns(
@@ -1115,12 +1118,11 @@ def drop_columns(
             )
         else:
             log.info(f"Table {table.name!r}: dropping column {name!r}")
-            sql = f"ALTER TABLE {table.name} DROP COLUMN {name}"
             # SQL Server:
             #   http://www.techonthenet.com/sql_server/tables/alter_table.php
             # MySQL:
             #   http://dev.mysql.com/doc/refman/5.7/en/alter-table.html
-            execute(engine, sql)
+            _exec_ddl(engine, f"ALTER TABLE {table.name} DROP COLUMN {name}")
 
 
 def add_indexes(
@@ -1151,12 +1153,12 @@ def add_indexes(
                 f"Table {table.name!r}: adding index {index_name!r} on "
                 f"column {column!r}"
             )
-            execute(
+            _exec_ddl(
                 engine,
                 f"""
-                CREATE{" UNIQUE" if i.unique else ""} INDEX {index_name}
-                    ON {table.name} ({column})
-            """,
+                    CREATE{" UNIQUE" if i.unique else ""} INDEX {index_name}
+                        ON {table.name} ({column})
+                """,
             )
         else:
             log.debug(
@@ -1196,7 +1198,7 @@ def drop_indexes(
                 sql = f"DROP INDEX {table.name}.{index_name}"
             else:
                 assert False, f"Unknown dialect: {engine.dialect.name}"
-            execute(engine, sql)
+            _exec_ddl(engine, sql)
 
 
 def get_table_names(
@@ -1353,7 +1355,7 @@ def create_view(engine: Engine, viewname: str, select_sql: str) -> None:
         drop_view(engine, viewname, quiet=True)
         sql = f"CREATE VIEW {viewname} AS {select_sql}"
     log.info(f"Creating view: {viewname!r}")
-    execute(engine, sql)
+    _exec_ddl(engine, sql)
 
 
 def assert_view_has_same_num_rows(
@@ -1406,8 +1408,7 @@ def drop_view(engine: Engine, viewname: str, quiet: bool = False) -> None:
     else:
         if not quiet:
             log.info(f"Dropping view: {viewname!r}")
-        sql = f"DROP VIEW {viewname}"
-        execute(engine, sql)
+        _exec_ddl(engine, f"DROP VIEW {viewname}")
 
 
 def get_column_fk_description(c: Column) -> str:

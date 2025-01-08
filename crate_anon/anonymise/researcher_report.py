@@ -207,7 +207,7 @@ class ResearcherReportConfig:
         Sanitised version of the database URL, or a blank string if not
         enabled.
         """
-        if not self.show_url:
+        if not self.show_url or not self.db_url:
             return ""
         url_obj = make_url(self.db_url)  # type: URL
         return repr(url_obj)

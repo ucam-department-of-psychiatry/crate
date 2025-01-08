@@ -51,8 +51,7 @@ from zope.sqlalchemy import register
 # SQLAlchemy setup
 # =============================================================================
 
-# Session = sessionmaker(extension=ZopeTransactionExtension())
-Session = sessionmaker()
+Session = sessionmaker(future=True)
 register(Session)
 dbsession = scoped_session(Session)
 

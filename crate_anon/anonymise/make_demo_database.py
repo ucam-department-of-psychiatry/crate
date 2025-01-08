@@ -59,8 +59,6 @@ from sqlalchemy import (
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.sql import text
 
-from crate_anon.anonymise.constants import CHARSET
-
 from crate_anon.testing import Base
 from crate_anon.testing.factories import (
     DemoFilenameDocFactory,
@@ -78,6 +76,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 REPORT_EVERY = 50
+
 
 # =============================================================================
 # Randomness
@@ -115,8 +114,8 @@ def mk_demo_database(
 
     log.info("Opening database.")
     log.debug(f"URL: {url}")
-    engine = create_engine(url, echo=echo, encoding=CHARSET, future=True)
-    session = sessionmaker(bind=engine)()
+    engine = create_engine(url, echo=echo, future=True)
+    session = sessionmaker(bind=engine, future=True)()
 
     # 2. Create tables
 

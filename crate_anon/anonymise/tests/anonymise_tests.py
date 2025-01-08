@@ -33,7 +33,10 @@ import logging
 from typing import Any, Dict, Generator, List, Tuple
 from unittest import mock
 
-from cardinal_pythonlib.sqlalchemy.schema import mssql_table_has_ft_index
+from cardinal_pythonlib.sqlalchemy.schema import (
+    execute_ddl,
+    mssql_table_has_ft_index,
+)
 import factory
 import pytest
 from sqlalchemy import (
@@ -303,11 +306,12 @@ class CreateIndexesTests(DatabaseTestCase):
         self.assertEqual(indexes["surname"]["type"], "FULLTEXT")
 
     def _drop_mysql_full_text_indexes(self) -> None:
-        sql = "DROP INDEX _idxft_forename ON anon_patient"
-        self.engine.execute(sql)
-
-        sql = "DROP INDEX _idxft_surname ON anon_patient"
-        self.engine.execute(sql)
+        execute_ddl(
+            self.engine, sql="DROP INDEX _idxft_forename ON anon_patient"
+        )
+        execute_ddl(
+            self.engine, sql="DROP INDEX _idxft_surname ON anon_patient"
+        )
 
     def _get_mysql_anon_patient_table_full_text_indexes(
         self,
@@ -350,7 +354,6 @@ DROP FULLTEXT INDEX ON [dbo].[anon_patient]
         if self._engine_outside_transaction is None:
             self._engine_outside_transaction = create_engine(
                 self.engine.url,
-                encoding="utf-8",
                 connect_args={"autocommit": True},  # for pyodbc
                 future=True,
             )

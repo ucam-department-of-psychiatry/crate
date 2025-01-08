@@ -259,7 +259,7 @@ def dbsession(
     # begin the nested transaction
     transaction = connection.begin()
     # use the connection with the already started transaction
-    session = Session(bind=connection)
+    session = Session(bind=connection, future=True)
 
     yield session
 

@@ -100,7 +100,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql.schema import MetaData, Table
 
-from crate_anon.anonymise.constants import CHARSET, TABLE_KWARGS
+from crate_anon.anonymise.constants import TABLE_KWARGS
 from crate_anon.common.argparse_assist import (
     RawDescriptionArgumentDefaultsRichHelpFormatter,
 )
@@ -1539,11 +1539,9 @@ def main() -> None:
         print("Must specify URL")
         return
 
-    engine = create_engine(
-        args.url, echo=args.echo, encoding=CHARSET, future=True
-    )
+    engine = create_engine(args.url, echo=args.echo, future=True)
     metadata.bind = engine
-    session = sessionmaker(bind=engine)()
+    session = sessionmaker(bind=engine, future=True)()
 
     log.info(f"Using directory: {args.dir}")
     # lookupdir = os.path.join(args.dir, "Documents")

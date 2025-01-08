@@ -280,10 +280,6 @@ def delete_dest_rows_with_no_src_row(
     commit_destdb()
 
     # 4. Index -- no, hang on, it's a primary key already
-    #
-    # log.debug("... creating index on temporary table")
-    # index = Index('_temptable_idx', temptable.columns[pkfield])
-    # index.create(destengine)
 
     # 5. DELETE FROM desttable
     #    WHERE destpk NOT IN (SELECT srcpk FROM temptable)
@@ -291,7 +287,7 @@ def delete_dest_rows_with_no_src_row(
     query = dest_table.delete().where(
         ~column(pkddr.dest_field).in_(select(temptable.columns[pkfield]))
     )
-    destengine.execute(query)
+    destsession.execute(query)
     commit_destdb()
 
     # 6. Drop temporary table
@@ -1406,9 +1402,6 @@ def process_table(
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Insert values into database
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Previously (prior to 2025-01-05 and prior to SQLAlchemy 2):
-        #       q = sqla_table.insert_on_duplicate().values(destvalues)
-        # See comments in insert_with_upsert_if_supported().
         q = insert_with_upsert_if_supported(
             table=sqla_table, values=destvalues, session=session
         )
@@ -1645,7 +1638,7 @@ def wipe_destination_data_for_opt_out_patients(
         query = dest_table.delete().where(
             column(ridfield).in_(select(temptable.columns[pkfield]))
         )
-        destengine.execute(query)
+        destsession.execute(query)
         commit_destdb()
 
     log.debug(start + ": 6. dropping temporary table")

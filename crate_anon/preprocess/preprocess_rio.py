@@ -435,7 +435,6 @@ from sqlalchemy.schema import Column, Table
 from sqlalchemy.sql.schema import MetaData
 from sqlalchemy.sql.sqltypes import BigInteger, Integer
 
-from crate_anon.anonymise.constants import CHARSET
 from crate_anon.common.sql import (
     add_columns,
     add_indexes,
@@ -1486,9 +1485,7 @@ def main() -> None:
 
     set_print_not_execute(progargs.print)
 
-    engine = create_engine(
-        progargs.url, echo=progargs.echo, encoding=CHARSET, future=True
-    )
+    engine = create_engine(progargs.url, echo=progargs.echo, future=True)
     metadata = MetaData()
     log.info(f"Database: {engine.url!r}")  # ... repr (!r) hides p/w
     log.debug(f"Dialect: {engine.dialect.name}")
