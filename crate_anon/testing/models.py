@@ -52,7 +52,7 @@ from crate_anon.anonymise.constants import (
     COMMENT,
     TABLE_KWARGS,
 )
-from crate_anon.testing import Base
+from crate_anon.testing import SourceTestBase
 
 if TYPE_CHECKING:
     from sqlalchemy.sql.type_api import TypeEngine
@@ -138,7 +138,7 @@ class EnumColours(enum.Enum):
 # =============================================================================
 
 
-class Patient(Base):
+class Patient(SourceTestBase):
     """
     SQLAlchemy ORM class for fictional patients.
     """
@@ -198,7 +198,7 @@ class Patient(Base):
         return f"{forename} {surname}"
 
 
-class Note(Base):
+class Note(SourceTestBase):
     """
     SQLAlchemy ORM class for fictional notes.
     """
@@ -219,7 +219,7 @@ class Note(Base):
     patient = relationship("Patient")
 
 
-class BlobDoc(Base):
+class BlobDoc(SourceTestBase):
     """
     SQLAlchemy ORM class for fictional binary documents.
     """
@@ -268,7 +268,7 @@ class BlobDoc(Base):
         )
 
 
-class FilenameDoc(Base):
+class FilenameDoc(SourceTestBase):
     """
     SQLAlchemy ORM class for a table containing the filenames of binary
     documents.

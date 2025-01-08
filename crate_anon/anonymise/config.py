@@ -106,10 +106,10 @@ from crate_anon.anonymise.constants import (
     AnonymiseDatabaseSafeConfigKeys as SK,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
-    DEMO_CONFIG,
     HashConfigKeys as HK,
     SEP,
 )
+from crate_anon.anonymise.demo_config import get_demo_config
 from crate_anon.anonymise.dd import DataDictionary
 from crate_anon.anonymise.scrub import (
     NonspecificScrubber,
@@ -531,7 +531,7 @@ class Config:
             if RUNNING_WITHOUT_CONFIG or mock:
                 # Running in a mock environment; no config required
                 filename = None
-                fileobj = StringIO(DEMO_CONFIG)
+                fileobj = StringIO(get_demo_config())
             else:
                 print(
                     f"You must set the {ANON_CONFIG_ENV_VAR} environment "

@@ -3,15 +3,15 @@ USAGE: crate_postcodes [-h] [--dir DIR] [--url URL] [--echo]
                        [--startswith STARTSWITH [STARTSWITH ...]] [--replace]
                        [--skiplookup]
                        [--specific_lookup_tables [SPECIFIC_LOOKUP_TABLES ...]]
-                       [--list_lookup_tables] [--skippostcodes] [--docsonly]
-                       [-v]
+                       [--list_lookup_tables] [--skippostcodes] [--dump]
+                       [--docsonly] [-v]
 
 -   This program reads data from the UK Office of National Statistics Postcode
     Database (ONSPD) and inserts it into a database.
 
 -   You will need to download the ONSPD from
-        https://geoportal.statistics.gov.uk/geoportal/catalog/content/filelist.page
-    e.g. ONSPD_MAY_2016_csv.zip (79 Mb), and unzip it (>1.4 Gb) to a directory.
+        https://geoportal.statistics.gov.uk
+    e.g. ONSPD_AUG_2024.zip and unzip it (>3.7 Gb) to a directory.
     Tell this program which directory you used.
 
 -   Specify your database as an SQLAlchemy connection URL: see
@@ -60,6 +60,7 @@ OPTIONS:
                         False)
   --skippostcodes       Skip generation of main (large) postcode table
                         (default: False)
+  --dump                Dump a sample of rows from each table (default: False)
   --docsonly            Show help for postcode table then stop (default:
                         False)
   -v, --verbose         Verbose (default: False)

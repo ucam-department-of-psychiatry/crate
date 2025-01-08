@@ -59,10 +59,11 @@ from sqlalchemy import (
 from sqlalchemy.orm.session import sessionmaker
 from sqlalchemy.sql import text
 
-from crate_anon.testing import Base
+from crate_anon.testing import SourceTestBase
 from crate_anon.testing.factories import (
     DemoFilenameDocFactory,
     DemoPatientFactory,
+    SourceTestBaseFactory,
     set_sqlalchemy_session_on_all_factories,
 )
 from crate_anon.testing.models import (
@@ -120,8 +121,8 @@ def mk_demo_database(
     # 2. Create tables
 
     log.info("Creating tables (dropping them first if required).")
-    Base.metadata.drop_all(engine, checkfirst=True)
-    Base.metadata.create_all(engine, checkfirst=True)
+    SourceTestBase.metadata.drop_all(engine, checkfirst=True)
+    SourceTestBase.metadata.create_all(engine, checkfirst=True)
 
     # 3. Insert
 
@@ -131,7 +132,7 @@ def mk_demo_database(
         f"words in notes."
     )
 
-    set_sqlalchemy_session_on_all_factories(session)
+    set_sqlalchemy_session_on_all_factories(SourceTestBaseFactory, session)
     log.info("Inserting data.")
 
     total_words = 0

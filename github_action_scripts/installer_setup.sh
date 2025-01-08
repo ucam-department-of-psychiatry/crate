@@ -14,7 +14,7 @@ CONFIG_DIR=${CRATE_INSTALLER_CRATE_ROOT_HOST_DIR}/config
 mkdir ${CERTS_DIR}
 mkdir ${CONFIG_DIR}
 
-cp ${GITHUB_WORKSPACE}/github_action_scripts/odbc_user.ini ${CONFIG_DIR}
+cp ${GITHUB_WORKSPACE}/github_action_scripts/odbc_user_container.ini ${CONFIG_DIR}/odbc_user.ini
 
 SSL_CSR=${CERTS_DIR}/crate.csr
 

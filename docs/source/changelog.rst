@@ -1699,9 +1699,19 @@ Changes
 
 - Shift from SQLAlchemy 1.4.49 to SQLALchemy 2.0.36.
 
-  - https://docs.sqlalchemy.org/en/20/changelog/migration_20.html
-  - Already on SQLAlchemy 1.4.x, and Python 3.9+.
-  - Set environment variable ``SQLALCHEMY_WARN_20=1`` for tests.
+- Update ``crate_postcodes`` to support the November 2024 ONSPD in full. Offer
+  partial support for ONSPD lookup tables in earlier/future versions by not
+  failing when there is a mismatch between the created database tables and the
+  ONSPD spreadsheet files.
+
+- Workaround a problem with Docker's handling of large sparse files, which
+  resulted in a very large Docker image if the ID of the user creating the image
+  was large.
+
+- Update the installer to provide some example scripts for running
+  anonymisation, NLP etc under Docker.
+  https://github.com/ucam-department-of-psychiatry/crate/issues/163
+
 
 To do
 -----

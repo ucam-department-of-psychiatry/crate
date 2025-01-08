@@ -77,6 +77,11 @@ class DateFormatProvider(ChoiceProvider):
         )
 
 
+class AgeProvider(BaseProvider):
+    def age(self) -> int:
+        return self.generator.pyint(min_value=0, max_value=120)
+
+
 class SexProvider(ChoiceProvider):
     """
     Return a random sex, with realistic distribution.
@@ -407,6 +412,7 @@ class NhsNumberProvider(BaseProvider):
 
 def register_all_providers(fake: Faker) -> None:
     # Our own
+    fake.add_provider(AgeProvider)
     fake.add_provider(AlcoholProvider)
     fake.add_provider(ChoiceProvider)
     fake.add_provider(ConsistentDateOfBirthProvider)

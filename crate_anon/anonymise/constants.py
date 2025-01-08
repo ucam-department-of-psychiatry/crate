@@ -74,7 +74,6 @@ DEFAULT_CHUNKSIZE = 100000  # 100k
 
 ANON_CONFIG_ENV_VAR = "CRATE_ANON_CONFIG"
 
-
 # =============================================================================
 # Data dictionary
 # =============================================================================
@@ -870,3 +869,12 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 #       source2 = thing
 # ... you can't have multiple keys with the same name.
 # https://stackoverflow.com/questions/287757
+
+
+class PatientInfoConstants:
+    SECRET_MAP_TABLENAME = "secret_map"
+    PID_FIELDNAME = "pid"
+    MPID_FIELDNAME = "mpid"
+    RID_FIELDNAME = "rid"
+    MRID_FIELDNAME = "mrid"
+    TRID_FIELDNAME = "trid"

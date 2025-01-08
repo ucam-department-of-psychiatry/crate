@@ -31,11 +31,16 @@ on things set in the config, even before instances are created.
 
 """
 
+import os
+
 from crate_anon.anonymise.config import Config
+from crate_anon.common.constants import EnvVar
 
 
 # =============================================================================
 # Singleton config
 # =============================================================================
 
-config = Config()
+mock = EnvVar.RUNNING_TESTS in os.environ
+
+config = Config(mock=mock)
