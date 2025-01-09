@@ -1016,6 +1016,26 @@ def _exec_ddl(engine: Engine, sql: str) -> None:
         execute_ddl(engine, sql=sql)
 
 
+def execute(engine: Engine, sql: str) -> None:
+    """
+    Executes plain SQL in a transaction.
+
+    Whether we act or just print is conditional on previous calls to
+    :func:`set_print_not_execute`.
+
+    Args:
+        engine: SQLAlchemy database Engine
+        sql: raw SQL to execute (or print)
+    """
+    log.debug(sql)
+    if _global_print_not_execute_sql:
+        print(format_sql_for_print(sql) + "\n;")
+        # extra \n in case the SQL ends in a comment
+    else:
+        with engine.begin() as connection:
+            connection.execute(sql)
+
+
 def add_columns(engine: Engine, table: Table, columns: List[Column]) -> None:
     """
     Adds columns to a table.
