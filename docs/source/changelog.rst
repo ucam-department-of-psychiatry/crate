@@ -48,6 +48,7 @@ Quick links:
 - :ref:`2022 <changelog_2022>`
 - :ref:`2023 <changelog_2023>`
 - :ref:`2024 <changelog_2024>`
+- :ref:`2025 <changelog_2025>`
 
 
 Changes
@@ -1661,7 +1662,12 @@ Changes
 - When the Docker image is built, it is now possible to specify both a user ID and a group ID
   so that file systems shared between the host and the container have the correct permissions.
 
-**0.20.6, in progress**
+.. _changelog_2025:
+
+2025
+~~~~
+
+**0.20.6, 2025-01-09**
 
 - Update Django to 4.2 LTS. The minimum version of MySQL supported by Django 4.2 is 8.0.
 
@@ -1704,6 +1710,8 @@ Changes
 - Update the installer to provide some example scripts for running
   anonymisation, NLP etc under Docker.
   https://github.com/ucam-department-of-psychiatry/crate/issues/163
+
+**0.20.7, in progress**
 
 To do
 -----
