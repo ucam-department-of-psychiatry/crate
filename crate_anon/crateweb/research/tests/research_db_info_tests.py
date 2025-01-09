@@ -54,13 +54,10 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
-# Constants
-# =============================================================================
-
-
-# =============================================================================
 # Unit tests
 # =============================================================================
+
+
 class ResearchDBInfoTests(TestCase):
     databases = {DJANGO_DEFAULT_CONNECTION, RESEARCH_DB_CONNECTION_NAME}
     # ... or the test framework will produce this:
