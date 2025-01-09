@@ -49,6 +49,8 @@ DEFAULT_SETTINGS = {ApiSettingsKeys.HASH_KEY: secrets.token_urlsafe(16)}
 
 @override_settings(ANONYMISE_API=DEFAULT_SETTINGS)
 class AnonymisationTests(TestCase):
+    databases = {"default", "research"}
+
     def setUp(self) -> None:
         super().setUp()
 

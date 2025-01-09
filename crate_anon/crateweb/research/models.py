@@ -48,7 +48,7 @@ from cardinal_pythonlib.json.serialize import (
     register_for_json,
 )
 from cardinal_pythonlib.reprfunc import simple_repr
-from cardinal_pythonlib.sql.sql_grammar import format_sql, SqlGrammar
+from cardinal_pythonlib.sql.sql_grammar import format_sql
 from cardinal_pythonlib.tsv import make_tsv_row
 from cardinal_pythonlib.django.function_cache import django_cache_function
 from django.db import connections, DatabaseError, models
@@ -82,7 +82,7 @@ from crate_anon.crateweb.research.html_functions import (
 )
 from crate_anon.crateweb.research.research_db_info import (
     RESEARCH_DB_CONNECTION_NAME,
-    research_database_info,
+    get_research_db_info,
     SingleResearchDatabase,
 )
 from crate_anon.crateweb.research.sql_writer import (
@@ -185,6 +185,7 @@ def database_last_updated(dbname: str) -> Optional[datetime.datetime]:
     are null, the function will return the minimum date possible. If there
     are no such tables, the function will return None.
     """
+    research_database_info = get_research_db_info()
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
@@ -1704,7 +1705,7 @@ class PatientMultiQuery:
         """
         if not self._patient_conditions:
             return None
-        return research_database_info.get_linked_mrid_column(
+        return self._research_database_info.get_linked_mrid_column(
             self._patient_conditions[0].table_id
         )
 
@@ -1748,7 +1749,6 @@ class PatientMultiQuery:
         if not self._patient_conditions:
             return ""
 
-        grammar = research_database_info.grammar
         select_mrid_column = self._get_select_mrid_column()
         if not select_mrid_column.is_valid:
             log.warning(
@@ -1758,6 +1758,10 @@ class PatientMultiQuery:
             # One way this can happen: (1) a user saves a PMQ; (2) the
             # administrator removes one of the databases!
             return ""
+
+        research_database_info = get_research_db_info()
+        grammar = research_database_info.grammar
+
         mrid_alias = "_mrid"
         sql = add_to_select(
             "",
@@ -1847,7 +1851,7 @@ class PatientMultiQuery:
         return queries
 
     def where_patient_clause(
-        self, table_id: TableId, grammar: SqlGrammar, mrids: List[Any] = None
+        self, table_id: TableId, mrids: List[Any] = None
     ) -> SqlArgsTupleType:
         """
         Returns an SQL WHERE clauses similar to ``sometable.mrid IN (1, 2, 3)``
@@ -1857,15 +1861,13 @@ class PatientMultiQuery:
         Args:
             table_id: :class:`crate_anon.common.sql.TableId` for the table
                 whose MRID column we will apply the ``WHERE`` clause to
-            grammar: :class:`cardinal_pythonlib.sql.sql_grammar.SqlGrammar`
-                to use
             mrids: list of MRIDs; if this is ``None`` or empty, use the
                 patients fetched (live) by our :meth:`patient_id_query`.
 
         Returns:
             tuple: ``sql, args``
         """
-        mrid_column = research_database_info.get_mrid_column_from_table(
+        mrid_column = self._research_database_info.get_mrid_column_from_table(
             table_id
         )
         if mrids:
@@ -1881,6 +1883,8 @@ class PatientMultiQuery:
             # derived tables, subqueries, ... unless TOP, OFFSET or FOR XML
             # is specified."
             args = []  # type: List[Any]
+        research_database_info = get_research_db_info()
+        grammar = research_database_info.grammar
         sql = f"{mrid_column.identifier(grammar)} IN ({in_clause})"
         return sql, args
 
@@ -1914,6 +1918,7 @@ class PatientMultiQuery:
         """
         if not columns:
             raise ValueError("No columns specified")
+        research_database_info = get_research_db_info()
         grammar = research_database_info.grammar
         mrid_column = research_database_info.get_mrid_column_from_table(
             table_id
@@ -1922,9 +1927,7 @@ class PatientMultiQuery:
         for c in columns:
             if c not in all_columns:
                 all_columns.append(c)
-        where_clause, args = self.where_patient_clause(
-            table_id, grammar, mrids
-        )
+        where_clause, args = self.where_patient_clause(table_id, mrids)
         select_elements = [SelectElement(column_id=col) for col in all_columns]
         where_conditions = [WhereCondition(raw_sql=where_clause)]
         sql = add_to_select(
@@ -1946,6 +1949,7 @@ class PatientMultiQuery:
         """
         Returns all our output columns in HTML format.
         """
+        research_database_info = get_research_db_info()
         grammar = research_database_info.grammar
         return prettify_sql_html(
             "\n".join(
@@ -1961,6 +1965,7 @@ class PatientMultiQuery:
         """
         Returns all our patient WHERE conditions in HTML format.
         """
+        research_database_info = get_research_db_info()
         grammar = research_database_info.grammar
         return prettify_sql_html(
             "\nAND ".join([wc.sql(grammar) for wc in self.patient_conditions])
@@ -2030,6 +2035,7 @@ class PatientMultiQuery:
             :class:`TableQueryArgs` objects (q.v.)
 
         """
+        research_database_info = get_research_db_info()
         grammar = research_database_info.grammar
         mrid_alias = "master_research_id"
         table_name_alias = "table_name"
@@ -2053,9 +2059,7 @@ class PatientMultiQuery:
                 max_date = "NULL"
                 # ... OK (at least in MySQL) to do:
                 # SELECT col1, COUNT(*), NULL FROM table GROUP BY col1;
-            where_clause, args = self.where_patient_clause(
-                table_id, grammar, mrids
-            )
+            where_clause, args = self.where_patient_clause(table_id, mrids)
             table_identifier = table_id.identifier(grammar)
             select_elements = [
                 SelectElement(column_id=mrid_col, alias=mrid_alias),
@@ -2116,6 +2120,7 @@ class PatientMultiQuery:
             :class:`TableQueryArgs` objects (q.v.)
 
         """
+        research_database_info = get_research_db_info()
         grammar = research_database_info.grammar
         for (
             table_id
@@ -2123,9 +2128,7 @@ class PatientMultiQuery:
             mrid_col = research_database_info.get_mrid_column_from_table(
                 table=table_id
             )
-            where_clause, args = self.where_patient_clause(
-                table_id, grammar, mrids
-            )
+            where_clause, args = self.where_patient_clause(table_id, mrids)
             # We add the WHERE using our magic query machine, to get the joins
             # right:
             select_elements = [

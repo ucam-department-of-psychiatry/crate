@@ -111,7 +111,7 @@ from crate_anon.crateweb.consent.utils import (
 )
 from crate_anon.crateweb.research.models import get_mpid
 from crate_anon.crateweb.research.research_db_info import (
-    research_database_info,
+    get_research_db_info,
 )
 from crate_anon.crateweb.userprofile.models import UserProfile
 
@@ -2038,6 +2038,7 @@ class ContactRequest(models.Model):
         )  # delayed import
 
         # Translate to an NHS number
+        research_database_info = get_research_db_info()
         dbinfo = research_database_info.dbinfo_for_contact_lookup
         if self.lookup_nhs_number is not None:
             self.nhs_number = self.lookup_nhs_number

@@ -79,9 +79,10 @@ if (
     and EnvVar.RUNNING_TESTS not in os.environ
 ):
     from crate_anon.crateweb.research.research_db_info import (
-        research_database_info,
+        get_research_db_info,
     )
 
+    research_database_info = get_research_db_info()
     research_database_info.get_colinfolist()
 
 log = logging.getLogger(__name__)

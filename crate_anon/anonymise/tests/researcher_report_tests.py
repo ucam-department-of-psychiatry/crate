@@ -27,15 +27,15 @@ Researcher report tests.
 
 """
 
+import os.path
 import random
-from tempfile import NamedTemporaryFile
+from tempfile import TemporaryDirectory
 from typing import List, TYPE_CHECKING
 from unittest import mock
 
 import factory
 from pypdf import PdfReader
 import pytest
-
 from sqlalchemy import (
     Column,
     DateTime,
@@ -43,9 +43,7 @@ from sqlalchemy import (
     Integer,
     Text,
 )
-
 from sqlalchemy.orm import relationship
-
 
 from crate_anon.anonymise.researcher_report import (
     mk_researcher_report_pdf,
@@ -160,6 +158,8 @@ class ResearcherReportTests(DatabaseTestCase):
         )
         self.anon_dbsession.commit()
 
+        self.tempdir = TemporaryDirectory()
+
     @pytest.mark.usefixtures("django_test_settings")
     def test_report_has_pages_for_each_table(self) -> None:
         def index_of_list_substring(items: List[str], substr: str) -> int:
@@ -171,7 +171,9 @@ class ResearcherReportTests(DatabaseTestCase):
 
         anon_config = mock.Mock()
 
-        with NamedTemporaryFile(delete=False, mode="w") as f:
+        reportfilename = os.path.join(self.tempdir.name, "tmpreport.pdf")
+
+        with open(reportfilename, mode="w") as f:
             mock_db = mock.Mock(
                 table_names=["anon_patient", "anon_note"],
                 metadata=AnonTestBase.metadata,
@@ -182,7 +184,7 @@ class ResearcherReportTests(DatabaseTestCase):
                 __post_init__=mock.Mock(),
             ):
                 report_config = ResearcherReportConfig(
-                    output_filename=f.name,
+                    output_filename=reportfilename,
                     anonconfig=anon_config,
                     use_dd=False,
                 )
@@ -190,7 +192,7 @@ class ResearcherReportTests(DatabaseTestCase):
                 report_config.db = mock_db
                 mk_researcher_report_pdf(report_config)
 
-        with open(f.name, "rb") as f:
+        with open(reportfilename, "rb") as f:
             reader = PdfReader(f)
 
             patient_found = False
@@ -212,7 +214,7 @@ class ResearcherReportTests(DatabaseTestCase):
                 num_rows = int(lines[rows_index + 1])
                 table_name = lines[0]
 
-                if table_name == "patient":
+                if table_name == "anon_patient":
                     patient_found = True
                     self.assertEqual(num_rows, self.num_patients)
 

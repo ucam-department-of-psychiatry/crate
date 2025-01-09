@@ -70,7 +70,6 @@ from pyparsing import ParseException
 
 from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
 
-# from crate_anon.common.profiling import do_cprofile
 from crate_anon.common.sql import (
     ColumnId,
     escape_sql_string_literal,
@@ -145,7 +144,7 @@ from crate_anon.crateweb.research.models import (
 )
 from crate_anon.crateweb.research.research_db_info import (
     PatientFieldPythonTypes,
-    research_database_info,
+    get_research_db_info,
     SingleResearchDatabase,
 )
 from crate_anon.crateweb.research.sql_writer import (
@@ -280,6 +279,7 @@ def get_db_structure_json() -> str:
     Returns the research database structure in JSON format.
     """
     log.debug("get_db_structure_json")
+    research_database_info = get_research_db_info()
     colinfolist = research_database_info.get_colinfolist()
     if not colinfolist:
         log.warning("get_db_structure_json(): colinfolist is empty")
@@ -398,6 +398,7 @@ def query_build(request: HttpRequest) -> HttpResponse:
     # noinspection PyUnresolvedReferences
     profile = request.user.profile  # type: UserProfile
     parse_error = ""
+    research_database_info = get_research_db_info()
     default_database = research_database_info.get_default_database_name()
     default_schema = research_database_info.get_default_schema_name()
     with_database = research_database_info.uses_database_level()
@@ -688,6 +689,7 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
     sql_components = sql.split()
     new_sql = ""
     i = 0
+    research_database_info = get_research_db_info()
     while i < len(sql_components):
         split_component = sql_components[i].split(":")
         if len(split_component) == 2 and (
@@ -911,6 +913,7 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
             # Have to use plain sql for this (not coloured) in case it cuts it
             # off after an html start tag but before the end tag
             q.truncated_sql = sql[:50]
+    research_database_info = get_research_db_info()
     context = {
         "form": form,
         "queries": queries,
@@ -1214,6 +1217,7 @@ def get_source_results(
     Returns:
         a :class:`NlpSourceResult`
     """
+    research_database_info = get_research_db_info()
     try:
         dbname = research_database_info.nlp_sourcedb_map[srcdb]
     except KeyError:
@@ -2222,6 +2226,7 @@ def pid_rid_lookup(
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     dbinfolist = research_database_info.dbs_with_secret_map
     n = len(dbinfolist)
     if n == 0:
@@ -2269,6 +2274,7 @@ def pid_rid_lookup_with_db(
     # Union[Type[PidLookupForm], Type[RidLookupForm]] yet; we get
     # TypeError: descriptor '__subclasses__' of 'type' object needs an argument
     # ... see https://github.com/python/typing/issues/266
+    research_database_info = get_research_db_info()
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
@@ -2463,6 +2469,7 @@ def structure_table_long(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     colinfolist = research_database_info.get_colinfolist()
     rowcount = len(colinfolist)
     context = {
@@ -2486,6 +2493,7 @@ def structure_table_paginated(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     colinfolist = research_database_info.get_colinfolist()
     rowcount = len(colinfolist)
     colinfolist = paginate(request, colinfolist)
@@ -2510,6 +2518,7 @@ def get_structure_tree_html() -> str:
     Returns:
         str: HTML
     """
+    research_database_info = get_research_db_info()
     table_to_colinfolist = research_database_info.get_colinfolist_by_tables()
     content = ""
     element_counter = HtmlElementCounter()
@@ -2551,6 +2560,7 @@ def structure_tree(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     context = {
         "content": get_structure_tree_html(),
         "default_database": research_database_info.get_default_database_name(),
@@ -2570,6 +2580,7 @@ def structure_tsv(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     return file_response(
         research_database_info.get_tsv(),
         content_type=ContentType.TSV,
@@ -2589,6 +2600,7 @@ def structure_excel(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     return file_response(
         research_database_info.get_excel(),
         content_type=ContentType.TSV,
@@ -2721,6 +2733,7 @@ def textfinder_sql(
         raise ValueError(
             "Must supply either 'fragment' or 'drug_type' to 'textfinder_sql'"
         )
+    research_database_info = get_research_db_info()
     grammar = research_database_info.grammar
     tables = research_database_info.tables_containing_field(
         patient_id_fieldname
@@ -3096,6 +3109,7 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     if research_database_info.single_research_db:
         dbname = research_database_info.first_dbinfo.name
         return HttpResponseRedirect(
@@ -3132,6 +3146,7 @@ def sqlhelper_text_anywhere_with_db(
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
@@ -3164,6 +3179,7 @@ def sqlhelper_drug_type(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     if research_database_info.single_research_db:
         dbname = research_database_info.first_dbinfo.name
         return HttpResponseRedirect(
@@ -3197,6 +3213,7 @@ def sqlhelper_drug_type_with_db(
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
@@ -3229,6 +3246,7 @@ def all_text_from_pid(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     dbinfolist = research_database_info.dbs_with_secret_map
     n = len(dbinfolist)
     if n == 0:
@@ -3267,6 +3285,7 @@ def all_text_from_pid_with_db(
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
@@ -3304,6 +3323,7 @@ def pe_build(request: HttpRequest) -> HttpResponse:
         a :class:`django.http.response.HttpResponse`
 
     """
+    research_database_info = get_research_db_info()
     # noinspection PyUnresolvedReferences
     profile = request.user.profile  # type: UserProfile
     default_database = research_database_info.get_default_database_name()
@@ -3562,6 +3582,7 @@ def pe_results(request: HttpRequest, pe_id: str) -> HttpResponse:
         a :class:`django.http.response.HttpResponse`
     """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    research_database_info = get_research_db_info()
     grammar = research_database_info.grammar
     # noinspection PyUnresolvedReferences
     profile = request.user.profile  # type: UserProfile
@@ -3948,6 +3969,7 @@ def pe_monster_results(request: HttpRequest, pe_id: str) -> HttpResponse:
 
     """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    research_database_info = get_research_db_info()
     grammar = research_database_info.grammar
     # noinspection PyUnresolvedReferences
     profile = request.user.profile  # type: UserProfile
@@ -4026,6 +4048,7 @@ def pe_table_browser(request: HttpRequest, pe_id: str) -> HttpResponse:
 
     """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    research_database_info = get_research_db_info()
     tables = research_database_info.get_tables()
     with_database = research_database_info.uses_database_level()
     try:
@@ -4071,6 +4094,7 @@ def pe_one_table(
 
     """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    research_database_info = get_research_db_info()
     table_id = TableId(db=db, schema=schema, table=table)
     grammar = research_database_info.grammar
     highlights = Highlight.get_active_highlights(request)
