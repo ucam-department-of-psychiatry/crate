@@ -75,7 +75,10 @@ from crate_anon.common.sql import (
     make_grammar,
     translate_sql_qmark_to_percent,
 )
-from crate_anon.crateweb.core.constants import SettingsKeys
+from crate_anon.crateweb.core.constants import (
+    RESEARCH_DB_CONNECTION_NAME,
+    SettingsKeys,
+)
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys
 
 log = BraceStyleAdapter(logging.getLogger(__name__))
@@ -84,8 +87,6 @@ log = BraceStyleAdapter(logging.getLogger(__name__))
 # =============================================================================
 # Constants
 # =============================================================================
-
-RESEARCH_DB_CONNECTION_NAME = "research"
 
 SUPPORTED_DIALECTS = [
     SqlaDialectName.MSSQL,

@@ -43,13 +43,17 @@ from crate_anon.crateweb.anonymise_api.constants import (
     ApiKeys,
     ApiSettingsKeys,
 )
+from crate_anon.crateweb.core.constants import (
+    DJANGO_DEFAULT_CONNECTION,
+    RESEARCH_DB_CONNECTION_NAME,
+)
 
 DEFAULT_SETTINGS = {ApiSettingsKeys.HASH_KEY: secrets.token_urlsafe(16)}
 
 
 @override_settings(ANONYMISE_API=DEFAULT_SETTINGS)
 class AnonymisationTests(TestCase):
-    databases = {"default", "research"}
+    databases = {DJANGO_DEFAULT_CONNECTION, RESEARCH_DB_CONNECTION_NAME}
 
     def setUp(self) -> None:
         super().setUp()

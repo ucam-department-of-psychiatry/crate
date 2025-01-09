@@ -37,10 +37,14 @@ from tempfile import TemporaryDirectory
 
 from cardinal_pythonlib.dbfunc import dictfetchall
 from cardinal_pythonlib.sql.sql_grammar import SqlGrammar
-from django.db import connections, DEFAULT_DB_ALIAS
+from django.db import connections
 from django.test.testcases import TestCase  # inherits from unittest.TestCase
 
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
+from crate_anon.crateweb.core.constants import (
+    DJANGO_DEFAULT_CONNECTION,
+    RESEARCH_DB_CONNECTION_NAME,
+)
 from crate_anon.crateweb.research.research_db_info import (
     SingleResearchDatabase,
     ResearchDatabaseInfo,
@@ -58,9 +62,7 @@ log = logging.getLogger(__name__)
 # Unit tests
 # =============================================================================
 class ResearchDBInfoTests(TestCase):
-    _research_django_db_name = "research"
-
-    databases = {DEFAULT_DB_ALIAS, _research_django_db_name}
+    databases = {DJANGO_DEFAULT_CONNECTION, RESEARCH_DB_CONNECTION_NAME}
     # ... or the test framework will produce this:
     #
     # django.test.testcases.DatabaseOperationForbidden: Database queries to
@@ -82,11 +84,11 @@ class ResearchDBInfoTests(TestCase):
         self.tempdir = TemporaryDirectory()  # will be deleted on destruction
         self.settings(
             DATABASES={
-                DEFAULT_DB_ALIAS: {
+                DJANGO_DEFAULT_CONNECTION: {
                     "ENGINE": "django.db.backends.sqlite3",
                     "NAME": os.path.join(self.tempdir.name, "main.sqlite3"),
                 },
-                self._research_django_db_name: {
+                RESEARCH_DB_CONNECTION_NAME: {
                     "ENGINE": "django.db.backends.sqlite3",
                     "NAME": os.path.join(
                         self.tempdir.name, "research.sqlite3"
@@ -119,8 +121,8 @@ class ResearchDBInfoTests(TestCase):
                 },
             ],
         )
-        self.mainconn = connections[DEFAULT_DB_ALIAS]
-        self.resconn = connections[self._research_django_db_name]
+        self.mainconn = connections[DJANGO_DEFAULT_CONNECTION]
+        self.resconn = connections[RESEARCH_DB_CONNECTION_NAME]
         self.grammar = SqlGrammar()
         with self.resconn.cursor() as cursor:
             cursor.execute("CREATE TABLE t (a INT, b INT)")

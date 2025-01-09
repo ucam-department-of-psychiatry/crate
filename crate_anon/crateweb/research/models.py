@@ -74,14 +74,16 @@ from crate_anon.common.sql import (
     WhereCondition,
 )
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys
-from crate_anon.crateweb.core.constants import SettingsKeys
+from crate_anon.crateweb.core.constants import (
+    RESEARCH_DB_CONNECTION_NAME,
+    SettingsKeys,
+)
 from crate_anon.crateweb.research.html_functions import (
     HtmlElementCounter,
     N_CSS_HIGHLIGHT_CLASSES,
     prettify_sql_html,
 )
 from crate_anon.crateweb.research.research_db_info import (
-    RESEARCH_DB_CONNECTION_NAME,
     get_research_db_info,
     SingleResearchDatabase,
 )

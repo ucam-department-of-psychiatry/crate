@@ -28,10 +28,10 @@ Test sql_writer.py.
 """
 
 import logging
-from unittest import TestCase
 
 from cardinal_pythonlib.sql.sql_grammar_factory import make_grammar
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
+from django.test import TestCase
 
 from crate_anon.common.sql import ColumnId, WhereCondition
 from crate_anon.crateweb.research.errors import DatabaseStructureNotUnderstood
