@@ -2222,7 +2222,7 @@ def read_spreadsheet(
     # openpyxl BUG: with read_only=True, cells can have None as their value
     # when they're fine if opened in non-read-only mode.
     # May be related to this:
-    # https://bitbucket.org/openpyxl/openpyxl/issues/601/read_only-cell-row-column-attributes-are  # noqa
+    # https://bitbucket.org/openpyxl/openpyxl/issues/601/read_only-cell-row-column-attributes-are
 
     # Assume the first sheet is the one with the data in it.
     # Choosing the active sheet is unreliable for some files.

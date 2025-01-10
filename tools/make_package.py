@@ -634,7 +634,7 @@ autorestart = true
 startsecs = 10
 stopwaitsecs = 60
 
-    """,  # noqa:E501
+    """,  # noqa: E501
         file=outfile,
     )
 
