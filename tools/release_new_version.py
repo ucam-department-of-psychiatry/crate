@@ -54,6 +54,7 @@ REBUILD_DOCS = os.path.join(DOCS_DIR, "rebuild_docs.py")
 DOCS_SOURCE_DIR = os.path.join(DOCS_DIR, "source")
 
 CHANGELOG = os.path.join(DOCS_SOURCE_DIR, "changelog.rst")
+NLP_HELP_FILE = os.path.join(DOCS_SOURCE_DIR, "nlp", "_crate_nlp_help.txt")
 VERSION_FILE = os.path.join(PROJECT_ROOT, "crate_anon", "version.py")
 DOCKER_ENV_FILE = os.path.join(PROJECT_ROOT, "docker", "dockerfiles", ".env")
 
@@ -92,6 +93,10 @@ class VersionReleaser:
         r"(^CRATE_DOCKER_IMAGE_TAG=crate:)(\d+)(\.)(\d+)(\.)(\d+)($)"
     )
     docker_version_replace = r"\g<1>{major}\g<3>{minor}\g<5>{patch}\g<7>"
+
+    nlp_help_version_search = (
+        r"(^NLP manager. Version )(\d+)(\.)(\d+)(\.)(\d+)"
+    )
 
     def __init__(
         self,
@@ -418,7 +423,19 @@ class VersionReleaser:
     def check_docs(self) -> None:
         # The GitHub docs workflow will do a more thorough check. This
         # will hopefully be enough.
-        self.rebuild_docs()
+        if self.get_nlp_help_file_version() != self.new_version:
+            self.rebuild_docs()
+
+    def get_nlp_help_file_version(self) -> Version:
+        with open(NLP_HELP_FILE, "r") as f:
+            for line in f.readlines():
+                m = re.match(self.nlp_help_version_search, line)
+                if m is not None:
+                    return Version(
+                        major=int(m.group(2)),
+                        minor=int(m.group(4)),
+                        patch=int(m.group(6)),
+                    )
 
     def rebuild_docs(self) -> None:
         self.run_with_check([REBUILD_DOCS, "--warnings_as_errors"])
