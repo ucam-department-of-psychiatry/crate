@@ -387,7 +387,7 @@ class CreateIndexesTests(DatabaseTestCase):
             )
             DROP FULLTEXT INDEX ON [dbo].[test_anon_note]
         """
-        self.engine_outside_transaction.execute(sql)
+        execute_ddl(self.engine_outside_transaction, sql)
 
     @property
     def engine_outside_transaction(self) -> None:
