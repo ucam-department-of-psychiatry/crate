@@ -4089,7 +4089,6 @@ def make_dummy_objects(
         study_details_pdf=None,
         subject_form_template_pdf=None,
     )
-    # import pdb; pdb.set_trace()
     consent_mode = ConsentMode(
         id=TEST_ID,
         nhs_number=nhs_number,

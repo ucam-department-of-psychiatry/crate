@@ -447,7 +447,6 @@ class CloudRequestDataTests(TestCase):
             configtext = self._mk_nlp_config()
             log.debug(configtext)
             f.write(configtext)
-        # import pdb; pdb.set_trace()
 
         # Server side
         register_all_crate_python_processors_with_serverprocessor()
@@ -647,8 +646,7 @@ class CloudRequestDataTests(TestCase):
         # Reset for other tests:
         crate_anon.nlp_webserver.tasks.USE_DICT_FORMAT_NLPRP_RESULT = prev
 
-        # To explore the database manually:
-        # import pdb; pdb.set_trace()
+        # To explore the database manually: import pdb; pdb.set_trace()
 
     def test_cloud_pipeline_list_format(self) -> None:
         """
