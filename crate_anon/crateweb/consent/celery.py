@@ -138,7 +138,7 @@ crate_anon/crateweb/consent/celery.py
 
 Inspecting workers:
 
-- https://docs.celeryproject.org/en/latest/userguide/workers.html#inspecting-workers  # noqa
+- https://docs.celeryproject.org/en/latest/userguide/workers.html#inspecting-workers  # noqa: E501
 
 Inspecting lots of things:
 
@@ -198,7 +198,7 @@ Argh!
 
 People have achieved this with Win10:
 
-- https://github.com/hotdogee/django-blast/Windows-Development-Environment-Setup  # noqa
+- https://github.com/hotdogee/django-blast/Windows-Development-Environment-Setup  # noqa: E501
 
 Aha! Using ``--pool=solo`` made it work!
 

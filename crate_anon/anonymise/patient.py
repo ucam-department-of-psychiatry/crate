@@ -75,7 +75,7 @@ def gen_all_values_for_patient(
          ``scrub_src_fieldinfo``.
     """
     query = (
-        select([column(i.value_fieldname) for i in scrub_src_fieldinfo])
+        select(*[column(i.value_fieldname) for i in scrub_src_fieldinfo])
         .where(column(pid_field) == pid)
         .select_from(table(tablename))
     )

@@ -12,7 +12,7 @@ USAGE: crate_subset_db [-h] --src_db_url SRC_DB_URL --dst_db_url DST_DB_URL
                        [--exclude_table_filenames [EXCLUDE_TABLE_FILENAMES ...]]
                        [--verbose] [--echo]
 
-Create a simple subset of a database, copying one database to another while applying filters. You can filter by a standard column (e.g. one representing patient IDs), taking permitted filter values from the command line, from file(s), and/or from database(s). You can also decide which tables to include/exclude. (CRATE version 0.20.5, 2024-06-26. Created by Rudolf Cardinal.)
+Create a simple subset of a database, copying one database to another while applying filters. You can filter by a standard column (e.g. one representing patient IDs), taking permitted filter values from the command line, from file(s), and/or from database(s). You can also decide which tables to include/exclude. (CRATE version 0.20.6, 2025-01-09. Created by Rudolf Cardinal.)
 
 OPTIONS:
   -h, --help            show this help message and exit

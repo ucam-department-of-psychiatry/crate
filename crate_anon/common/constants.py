@@ -52,6 +52,8 @@ LOWER_CASE_STRINGS_MEANING_TRUE = ["true", "1", "t", "y", "yes"]
 # Is this program running on readthedocs.org?
 ON_READTHEDOCS = os.environ.get("READTHEDOCS") == "True"
 
+NoneType = type(None)  # for isinstance, sometimes
+
 
 # =============================================================================
 # Constant creation
@@ -111,7 +113,7 @@ class DockerConstants:
 
     HOST = "0.0.0.0"
     # ... not "localhost" or "127.0.0.1"; see
-    # https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors  # noqa
+    # https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors  # noqa: E501
 
 
 # =============================================================================

@@ -36,14 +36,13 @@ from typing import List, TYPE_CHECKING
 from cardinal_pythonlib.enumlike import keys_descriptions_from_enum
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.sqlalchemy.schema import (
-    hack_in_mssql_xml_type,
     make_bigint_autoincrement_column,
 )
 from rich_argparse import RawDescriptionRichHelpFormatter
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
+from sqlalchemy.sql.schema import MetaData
 
-from crate_anon.anonymise.constants import CHARSET
 from crate_anon.common.sql import (
     add_columns,
     add_indexes,
@@ -243,8 +242,7 @@ def preprocess_systmone(
 
     log.info("Reflecting (inspecting) database...")
     metadata = MetaData()
-    metadata.bind = engine
-    metadata.reflect(engine)
+    metadata.reflect(bind=engine)
     log.info("... inspection complete")
 
     # Tables
@@ -267,9 +265,7 @@ def preprocess_systmone(
 
         # Create step #1
         if not drop_danger_drop and table_needs_pk:
-            crate_pk_col = make_bigint_autoincrement_column(
-                CRATE_COL_PK, engine.dialect
-            )
+            crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK)
             # SQL Server requires Table-bound columns in order to generate DDL:
             table.append_column(crate_pk_col)
             add_columns(engine, table, [crate_pk_col])
@@ -405,9 +401,7 @@ def main() -> None:
 
     set_print_not_execute(args.print)
 
-    hack_in_mssql_xml_type()
-
-    engine = create_engine(args.url, echo=args.echo, encoding=CHARSET)
+    engine = create_engine(args.url, echo=args.echo, future=True)
     log.info(f"Database: {engine.url!r}")  # ... repr (!r) hides p/w
     log.debug(f"Dialect: {engine.dialect.name}")
 

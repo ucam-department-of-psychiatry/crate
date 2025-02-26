@@ -76,21 +76,21 @@ log.critical(
 # =============================================================================
 # Site URL configuration
 # =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
-# DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://mymachine.mydomain"  # example for Apache  # noqa
-# DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://localhost:8000"  # for the Django dev server  # noqa
+# DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://mymachine.mydomain"  # example for Apache  # noqa: E501
+# DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://localhost:8000"  # for the Django dev server  # noqa: E501
 DJANGO_SITE_ROOT_ABSOLUTE_URL = "@@django_site_root_absolute_url@@"
 
 FORCE_SCRIPT_NAME = "@@force_script_name@@"
 # FORCE_SCRIPT_NAME = ""  # example for Apache root hosting
-# FORCE_SCRIPT_NAME = "/crate"  # example for CherryPy or Apache non-root hosting  # noqa
+# FORCE_SCRIPT_NAME = "/crate"  # example for CherryPy or Apache non-root hosting  # noqa: E501
 
 
 # =============================================================================
 # Site security
 # =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "@@secret_key@@"
@@ -120,14 +120,14 @@ else:
 # =============================================================================
 # Celery configuration
 # =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 BROKER_URL = "@@broker_url@@"
 
 # =============================================================================
 # Database configuration
 # =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 DATABASES = {
     # See https://docs.djangoproject.com/en/1.8/ref/settings/#databases
@@ -168,7 +168,7 @@ DATABASES = {
         "ENGINE": "@@dest_db_engine@@",
         "HOST": "@@dest_db_host@@",  # e.g. 127.0.0.1
         "PORT": "@@dest_db_port@@",  # local, e.g. 3306
-        "NAME": "@@dest_db_name@@",  # will be the default database; use None for no default database  # noqa
+        "NAME": "@@dest_db_name@@",  # will be the default database; use None for no default database  # noqa: E501
         "OPTIONS": @@dest_db_options@@,
         "USER": "@@dest_db_user@@",
         "PASSWORD": "@@dest_db_password@@",
@@ -208,7 +208,7 @@ CLINICAL_LOOKUP_CONSENT_DB = "dummy_clinical"
 RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 
 # Database structure information for CRATE's query builders.
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 RESEARCH_DB_INFO = [
     {
         # Unique name e.g. "myresearchdb":
@@ -329,7 +329,7 @@ DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET = True
 # =============================================================================
 # Archive views
 # =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 # e.g. /home/somewhere/my_archive_templates
 ARCHIVE_TEMPLATE_DIR = "@@archive_template_dir@@"
@@ -349,7 +349,7 @@ CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC = 0
 # =============================================================================
 # Database extra help file
 # =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 # If specified, this must be a string that is an absolute filename of TRUSTED
 # HTML that will be included.
@@ -359,7 +359,7 @@ DATABASE_HELP_HTML_FILENAME = None
 # =============================================================================
 # Local file storage (for PDFs etc).
 # =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 # Where should we store the files? Make this directory (and don't let it
 # be served by a generic web server that doesn't check permissions).
@@ -378,7 +378,7 @@ MAX_UPLOAD_SIZE_BYTES = mebibytes(10)
 # =============================================================================
 # Outgoing e-mail
 # =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 # -----------------------------------------------------------------------------
 # General settings for sending e-mail from Django
@@ -399,12 +399,12 @@ EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 
 # Who will the e-mails appear to come from?
-EMAIL_SENDER = "My NHS Trust Research Database - DO NOT REPLY <noreply@somewhere.nhs.uk>"  # noqa
+EMAIL_SENDER = "My NHS Trust Research Database - DO NOT REPLY <noreply@somewhere.nhs.uk>"  # noqa: E501
 
 # -----------------------------------------------------------------------------
 # Additional settings
 # -----------------------------------------------------------------------------
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 # During development, we route all consent-related e-mails to the developer.
 # Switch SAFETY_CATCH_ON to False for production mode.
@@ -418,7 +418,7 @@ VALID_RESEARCHER_EMAIL_DOMAINS = []  # type: List[str]
 # =============================================================================
 # Research Database Manager (RDBM) details
 # =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 RDBM_NAME = "John Doe"
 RDBM_TITLE = "Research Database Manager"
@@ -432,7 +432,7 @@ RDBM_ADDRESS = [
 # =============================================================================
 # Administrators/managers to be notified of errors
 # =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 # Exceptions get sent to these people.
 ADMINS = [
@@ -443,7 +443,7 @@ ADMINS = [
 # =============================================================================
 # PDF creation
 # =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 # Note that using headers/footers requires a version of wkhtmltopdf built using
 # "patched Qt". See above.
 # Fetch one from http://wkhtmltopdf.org/, e.g. v0.12.4 for your OS.
@@ -492,7 +492,7 @@ TRAFFIC_LIGHT_GREEN_ABS_URL = (
 # =============================================================================
 # Consent-for-contact settings
 # =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 # For how long may we contact discharged patients without specific permission?
 # Use 0 for "not at all".
@@ -511,7 +511,7 @@ ETHICS_INFO = CPFTEthics2022()
 # =============================================================================
 # Local information links
 # =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa
+# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 CHARITY_URL = "http://www.cpft.nhs.uk/research.htm"
 CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"

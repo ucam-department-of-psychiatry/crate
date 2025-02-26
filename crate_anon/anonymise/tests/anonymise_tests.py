@@ -25,11 +25,18 @@ crate_anon/anonymise/tests/anonymise_tests.py
 
 """
 
+# =============================================================================
+# Imports
+# =============================================================================
+
 import logging
 from typing import Any, Dict, Generator, List, Tuple
 from unittest import mock
 
-from cardinal_pythonlib.sqlalchemy.schema import mssql_table_has_ft_index
+from cardinal_pythonlib.sqlalchemy.schema import (
+    execute_ddl,
+    mssql_table_has_ft_index,
+)
 import factory
 import pytest
 from sortedcontainers import SortedSet
@@ -60,6 +67,11 @@ from crate_anon.testing.factories import (
     SourceTestBaseFactory,
     Fake,
 )
+
+
+# =============================================================================
+# SQLAlchemy test tables
+# =============================================================================
 
 
 class TestBoolOptOut(SourceTestBase):
@@ -137,6 +149,11 @@ class TestAnonRecord(AnonTestBase):
     __tablename__ = "test_anon_record"
 
     row_identifier = Column(Integer, primary_key=True, comment="Row ID")
+
+
+# =============================================================================
+# Unit tests
+# =============================================================================
 
 
 class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
@@ -335,11 +352,12 @@ class CreateIndexesTests(DatabaseTestCase):
         self.assertEqual(indexes["note2"]["type"], "FULLTEXT")
 
     def _drop_mysql_full_text_indexes(self) -> None:
-        sql = "DROP INDEX _idxft_note1 ON test_anon_note"
-        self.anon_engine.execute(sql)
-
-        sql = "DROP INDEX _idxft_note2 ON test_anon_note"
-        self.anon_engine.execute(sql)
+        execute_ddl(
+            self.anon_engine, sql="DROP INDEX _idxft_note1 ON test_anon_note"
+        )
+        execute_ddl(
+            self.anon_engine, sql="DROP INDEX _idxft_note2 ON test_anon_note"
+        )
 
     def _get_mysql_anon_note_table_full_text_indexes(
         self,
@@ -360,7 +378,7 @@ class CreateIndexesTests(DatabaseTestCase):
 
         self.assertTrue(self._mssql_anon_note_table_has_full_text_index())
 
-    def _mssql_anon_note_table_has_full_text_index(self) -> None:
+    def _mssql_anon_note_table_has_full_text_index(self) -> bool:
         return mssql_table_has_ft_index(
             self.engine_outside_transaction, "test_anon_note", "dbo"
         )
@@ -368,22 +386,21 @@ class CreateIndexesTests(DatabaseTestCase):
     def _drop_mssql_full_text_indexes(self) -> None:
         # SQL Server only. Need to be outside a transaction to drop indexes
         sql = """
-IF EXISTS (
-    SELECT fti.object_id FROM sys.fulltext_indexes fti
-    WHERE fti.object_id = OBJECT_ID(N'[dbo].[test_anon_note]')
-)
-
-DROP FULLTEXT INDEX ON [dbo].[test_anon_note]
-"""
-        self.engine_outside_transaction.execute(sql)
+            IF EXISTS (
+                SELECT fti.object_id FROM sys.fulltext_indexes fti
+                WHERE fti.object_id = OBJECT_ID(N'[dbo].[test_anon_note]')
+            )
+            DROP FULLTEXT INDEX ON [dbo].[test_anon_note]
+        """
+        execute_ddl(self.engine_outside_transaction, sql)
 
     @property
     def engine_outside_transaction(self) -> None:
         if self._engine_outside_transaction is None:
             self._engine_outside_transaction = create_engine(
                 self.anon_engine.url,
-                encoding="utf-8",
                 connect_args={"autocommit": True},  # for pyodbc
+                future=True,
             )
 
         return self._engine_outside_transaction
@@ -391,6 +408,7 @@ DROP FULLTEXT INDEX ON [dbo].[test_anon_note]
     def _make_full_text_index(self) -> None:
         mock_config = None
 
+        # noinspection PyUnusedLocal
         def index_row_sets(
             tasknum: int = 0, ntasks: int = 1
         ) -> Generator[Tuple[str, List[DataDictionaryRow]], None, None]:
@@ -401,10 +419,10 @@ DROP FULLTEXT INDEX ON [dbo].[test_anon_note]
             note2_row.dest_field = "note2"
             note2_row.index = IndexType.FULLTEXT
 
-            for set in [
+            for set_ in [
                 ("TestAnonNote", [note1_row, note2_row]),
             ]:
-                yield set
+                yield set_
 
         mock_dd = mock.Mock(
             get_dest_sqla_table=mock.Mock(return_value=TestAnonNote.__table__)

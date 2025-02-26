@@ -27,9 +27,9 @@ crate_anon/nlp_manager/models.py
 
 """
 
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.schema import Column, Index, MetaData
-from sqlalchemy.types import BigInteger, DateTime, String
+from sqlalchemy.types import BigInteger, DateTime, Integer, String
 
 from crate_anon.anonymise.constants import COMMENT, TABLE_KWARGS
 from crate_anon.nlp_manager.constants import (
@@ -76,7 +76,7 @@ class NlpRecord(ProgressBase):
             "srcpkstr",  # last as we may not use it
             # - performance is critical here
             # - put them in descending order of specificity
-            #   https://stackoverflow.com/questions/2292662/how-important-is-the-order-of-columns-in-indexes  # noqa
+            #   https://stackoverflow.com/questions/2292662/how-important-is-the-order-of-columns-in-indexes  # noqa: E501
             # - start with srcpkval, as it's (a) specific and (b) integer
             # - srcpkfield: don't need to index, because the source table
             #   can only have one PK
@@ -91,12 +91,13 @@ class NlpRecord(ProgressBase):
         ),
         {COMMENT: "CRATE NLP progress table", **TABLE_KWARGS},
     )
-    # https://stackoverflow.com/questions/6626810/multiple-columns-index-when-using-the-declarative-orm-extension-of-sqlalchemy  # noqa
-    # http://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/table_config.html  # noqa
+    # https://stackoverflow.com/questions/6626810/multiple-columns-index-when-using-the-declarative-orm-extension-of-sqlalchemy  # noqa: E501
+    # http://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/table_config.html  # noqa: E501
 
     pk = Column(
         "pk",
-        BigInteger,
+        # https://docs.sqlalchemy.org/en/20/dialects/sqlite.html
+        BigInteger().with_variant(Integer, "sqlite"),
         primary_key=True,
         autoincrement=True,
         comment="PK of NLP record (no specific use)",

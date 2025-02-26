@@ -68,10 +68,10 @@ INSTALLED_APPS = (
     # 'kombu.transport.django',  # for Celery with Django database as broker
     # 'template_profiler_panel',
     # 'silk',
-    "crate_anon.crateweb.config.apps.UserProfileAppConfig",  # for user-specific settings  # noqa
-    "crate_anon.crateweb.config.apps.ResearchAppConfig",  # the research database query app  # noqa
-    "crate_anon.crateweb.config.apps.ConsentAppConfig",  # the consent-to-contact app  # noqa
-    "crate_anon.crateweb.config.apps.CoreAppConfig",  # for e.g. the runcpserver command  # noqa
+    "crate_anon.crateweb.config.apps.UserProfileAppConfig",  # for user-specific settings  # noqa: E501
+    "crate_anon.crateweb.config.apps.ResearchAppConfig",  # the research database query app  # noqa: E501
+    "crate_anon.crateweb.config.apps.ConsentAppConfig",  # the consent-to-contact app  # noqa: E501
+    "crate_anon.crateweb.config.apps.CoreAppConfig",  # for e.g. the runcpserver command  # noqa: E501
     "crate_anon.crateweb.config.apps.ApiConfig",  # for the anonymisation API
 )
 

@@ -48,6 +48,7 @@ Quick links:
 - :ref:`2022 <changelog_2022>`
 - :ref:`2023 <changelog_2023>`
 - :ref:`2024 <changelog_2024>`
+- :ref:`2025 <changelog_2025>`
 
 
 Changes
@@ -1661,7 +1662,12 @@ Changes
 - When the Docker image is built, it is now possible to specify both a user ID and a group ID
   so that file systems shared between the host and the container have the correct permissions.
 
-**0.20.6, in progress**
+.. _changelog_2025:
+
+2025
+~~~~
+
+**0.20.6, 2025-01-09**
 
 - Update Django to 4.2 LTS. The minimum version of MySQL supported by Django 4.2 is 8.0.
 
@@ -1687,6 +1693,32 @@ Changes
 
 - Change the installer to test external database connections early and give
   better feedback to the user regarding failures.
+
+- Fix the data dictionary generator to allow column names with valid but unusual
+  characters in the source database. Convert any unusual characters to ASCII in
+  the destination database.
+
+- Update NLP handler to cope with remote NLPRP servers providing tabular_schema
+  data, and create local tables based on this, if desired. Change default
+  NLPRP server behaviour to use the more explicit format (object/dictionaries
+  by table, not plain arrays/lists of records).
+
+- Update ``crate_postcodes`` to support the November 2024 ONSPD in full. Offer
+  partial support for ONSPD lookup tables in earlier/future versions by not
+  failing when there is a mismatch between the created database tables and the
+  ONSPD spreadsheet files.
+
+- Workaround a problem with Docker's handling of large sparse files, which
+  resulted in a very large Docker image if the ID of the user creating the image
+  was large.
+
+- Update the installer to provide some example scripts for running
+  anonymisation, NLP etc under Docker.
+  https://github.com/ucam-department-of-psychiatry/crate/issues/163
+
+**0.20.7, in progress**
+
+- Shift from SQLAlchemy 1.4.49 to SQLALchemy 2.0.36.
 
 
 To do

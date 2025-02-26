@@ -96,7 +96,7 @@ class Haemoglobin(SimpleNumericalResultParser):
     old-style units, 9 g/dL = 90 g/L, but this will be interpreted as 9 g/L.
     This problem is hard to avoid.
 
-    """  # noqa
+    """  # noqa: E501
 
     HAEMOGLOBIN_BASE = rf"""
         {WORD_BOUNDARY} (?: Ha?emoglobin | Hb | HGB ) {WORD_BOUNDARY}

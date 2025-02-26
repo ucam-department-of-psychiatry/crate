@@ -250,7 +250,7 @@ class AnonRegexTests(TestCase):
         )
 
     def test_generic_date(self) -> None:
-        # https://stackoverflow.com/questions/51224/regular-expression-to-match-valid-dates  # noqa
+        # https://stackoverflow.com/questions/51224/regular-expression-to-match-valid-dates  # noqa: E501
         valid = (
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             # From that StackOverflow set
@@ -794,7 +794,7 @@ class MoreAnonRegexTests(TestCase):
             "CB2 0QQ",
         ]
         # See also
-        # https://club.ministryoftesting.com/t/fun-postcodes-to-use-when-testing/10772  # noqa
+        # https://club.ministryoftesting.com/t/fun-postcodes-to-use-when-testing/10772  # noqa: E501
         invalid_postcodes = [
             "ABCDEFG",
         ]
