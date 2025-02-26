@@ -46,6 +46,6 @@ class Migration(migrations.Migration):
             field=models.TextField(
                 default="[]",
                 verbose_name="Subset of output columns to be displayed",
-            ),  # nopep8
+            ),
         ),
     ]

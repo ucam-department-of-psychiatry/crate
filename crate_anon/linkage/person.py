@@ -404,7 +404,7 @@ class Person:
     # Equality, hashing -- local_id should be unique
     # -------------------------------------------------------------------------
     # Be careful:
-    # - https://inventwithpython.com/blog/2019/02/01/hashable-objects-must-be-immutable/  # noqa
+    # - https://inventwithpython.com/blog/2019/02/01/hashable-objects-must-be-immutable/  # noqa: E501
     # - https://docs.python.org/3/glossary.html [re "hashable"]
     # Here, we define equality based on local_id, which will not change. In
     # practice, nothing else will either.

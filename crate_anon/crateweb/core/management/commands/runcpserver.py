@@ -42,7 +42,7 @@ TEST COMMAND:
 
     ./manage.py runcpserver --port 8080 --ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem --ssl_private_key /etc/ssl/private/ssl-cert-snakeoil.key
 
-"""  # noqa
+"""  # noqa: E501
 
 from argparse import ArgumentParser, Namespace
 import logging

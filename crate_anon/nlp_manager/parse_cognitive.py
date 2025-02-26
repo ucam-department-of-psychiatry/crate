@@ -153,7 +153,7 @@ class Ace(NumeratorOutOfDenominatorParser):
                 ) \b
             )?+
         {WORD_BOUNDARY} )
-    """  # noqa
+    """  # noqa: E501
     # ... note the possessive "?+" above; see tests below.
 
     def __init__(

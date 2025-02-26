@@ -126,7 +126,7 @@ Conditional information value
 .. code-block:: none
 
     inf(A | B) = -log2[P(A | B)]                                [8], from [5]
-    
+
                = -log2{ P(A)   * pev(A, B) }                        from [4a]
                = -{ log2[P(A)] + log2[pev(A, B)] }
                = -log2[P(A)]   - log2[pev(A, B)]
@@ -219,15 +219,15 @@ Other references
   the other. The "iev" concept above is about pairs of individual events.
 
   For two discrete RVs,
-  
-    I(X; Y) = sum_y{ sum_x{ P_XY(x, y) log[ P_XY(x, y) / (P_X(x) * P_Y(y)) ] }} 
+
+    I(X; Y) = sum_y{ sum_x{ P_XY(x, y) log[ P_XY(x, y) / (P_X(x) * P_Y(y)) ] }}
 
 - Mutual information is a consideration across events. The individual-event
-  version is "pointwise mutual information", 
+  version is "pointwise mutual information",
   https://en.wikipedia.org/wiki/Pointwise_mutual_information, which is
-  
+
   .. code-block:: none
-  
+
     pmi(x; y) = log[ P(x, y) / (P(x) * P(y) ]
               = log[ P(x | y) / P(x) ]
               = log[ P(y | x) / P(y) ]
@@ -251,7 +251,7 @@ Converting to log2 just involves multiplying by a constant, of course:
 
 .. code-block:: none
 
-    ln(x)   = log2(x) * ln(2) 
+    ln(x)   = log2(x) * ln(2)
     log2(x) = ln(x) * log2(e)
 
 A partial match would provide a log likelihood of
@@ -279,7 +279,7 @@ Note
 Code largely abandoned; not re-checked since NameFrequencyInfo was refactored,
 since this code had served it purpose.
 
-"""  # noqa
+"""  # noqa: E501
 
 
 # =============================================================================
@@ -986,7 +986,7 @@ P(share first two char, not name) = 0.016020598269274045
 P(share metaphone, not first two char or name) = 0.0014685292425002856
 P(share first two char, not metaphone or name) = 0.014894287604562073
 
-"""  # noqa
+"""  # noqa: E501
 
 
 # =============================================================================

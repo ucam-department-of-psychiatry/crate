@@ -305,7 +305,7 @@ with open(join(DEB_DIR, "preinst"), "w") as outfile:
     # "unknown-control-interpreter" and "forbidden-postrm-interpreter".
     # On Debian, Bash is always /bin/bash.
     # See also
-    # https://stackoverflow.com/questions/10376206/what-is-the-preferred-bash-shebang  # noqa
+    # https://stackoverflow.com/questions/10376206/what-is-the-preferred-bash-shebang  # noqa: E501
     print(
         f"""#!/bin/bash
 set -e  # Exit on any errors. (Lintian strongly advises this.)
@@ -347,8 +347,8 @@ if MAKE_USER:
         f"adduser --system --ingroup {CRATE_GROUP} {CRATE_USER}"
     )
     # MAKE_USER_COMMAND_2 = f"adduser --ingroup {CRATE_GROUP} {CRATE_USER}"
-    # https://lintian.debian.org/tags/maintainer-script-should-not-use-adduser-system-without-home.html  # noqa
-    # http://unix.stackexchange.com/questions/47880/how-debian-package-should-create-user-accounts  # noqa
+    # https://lintian.debian.org/tags/maintainer-script-should-not-use-adduser-system-without-home.html  # noqa: E501
+    # http://unix.stackexchange.com/questions/47880/how-debian-package-should-create-user-accounts  # noqa: E501
 else:
     MAKE_USER_COMMAND_1 = "# No need to add user"
     MAKE_USER_COMMAND_2 = ""
@@ -514,7 +514,7 @@ with open(join(DEB_OVERRIDE_DIR, PACKAGE_FOR_DEB), "w") as outfile:
         f"""
 # Not an official new Debian package, so ignore this one.
 # If we did want to close a new-package ITP bug:
-# http://www.debian.org/doc/manuals/developers-reference/pkgs.html#upload-bugfix  # noqa
+# http://www.debian.org/doc/manuals/developers-reference/pkgs.html#upload-bugfix  # noqa: E501
 {PACKAGE_FOR_DEB} binary: new-package-should-close-itp-bug
 {PACKAGE_FOR_DEB} binary: extra-license-file
 {PACKAGE_FOR_DEB} binary: embedded-javascript-library
@@ -569,7 +569,7 @@ ADDITIONAL LIBRARY COMPONENTS
         file=outfile,
     )
 # ... reference to /usr/share/common-licenses is required by Lintian;
-# https://lintian.debian.org/tags/copyright-should-refer-to-common-license-file-for-gpl.html  # noqa
+# https://lintian.debian.org/tags/copyright-should-refer-to-common-license-file-for-gpl.html  # noqa: E501
 
 # =============================================================================
 # Destination files
@@ -634,7 +634,7 @@ autorestart = true
 startsecs = 10
 stopwaitsecs = 60
 
-    """,  # noqa:E501
+    """,  # noqa: E501
         file=outfile,
     )
 
@@ -873,7 +873,7 @@ OPTIMAL: proxy Apache through to Gunicorn
 
 </VirtualHost>
 
-        """,  # noqa
+        """,  # noqa: E501
         file=outfile,
     )
 
@@ -881,7 +881,7 @@ OPTIMAL: proxy Apache through to Gunicorn
 # http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypassreverse
 # ... says Unix domain socket (UDS) support came in 2.4.7
 # ... but was actually 2.4.9:
-#     http://mail-archives.apache.org/mod_mbox/httpd-announce/201403.mbox/%3CF590EEF7-7D4F-4ED7-A810-97ED5AA17DCE@apache.org%3E  # noqa
+#     http://mail-archives.apache.org/mod_mbox/httpd-announce/201403.mbox/%3CF590EEF7-7D4F-4ED7-A810-97ED5AA17DCE@apache.org%3E  # noqa: E501
 #     https://httpd.apache.org/docs/trunk/mod/mod_proxy.html#comment_4772
 # http://design.canonical.com/2015/08/django-behind-a-proxy-fixing-absolute-urls/
 
@@ -890,7 +890,7 @@ OPTIMAL: proxy Apache through to Gunicorn
 
 # Upgrading Apache from 2.4.7 to 2.4.9 or 2.4.10 (Ubuntu 14.03.3 LTS,
 # # as per lsb_release -a):
-# - http://askubuntu.com/questions/539256/how-to-update-apache2-on-ubuntu-14-04-server-to-the-latest-version  # noqa
+# - http://askubuntu.com/questions/539256/how-to-update-apache2-on-ubuntu-14-04-server-to-the-latest-version  # noqa: E501
 # - As of 2015-11-24 and Ubuntu 14.03.3 LTS (as per lsb_release -a)
 #       apt-cache showpkg apache2  # shows versions
 #           ... 2.4.7 is the only available version
@@ -898,7 +898,7 @@ OPTIMAL: proxy Apache through to Gunicorn
 # - Similarly, 2.4.7 is the current version for Ubuntu 14.04
 #       http://packages.ubuntu.com/trusty/apache2
 # - However, we can use this:
-#       https://launchpad.net/~ondrej/+archive/ubuntu/apache2?field.series_filter=trusty  # noqa
+#       https://launchpad.net/~ondrej/+archive/ubuntu/apache2?field.series_filter=trusty  # noqa: E501
 #       sudo add-apt-repository ppa:ondrej/apache2
 #   ... goes to 2.4.17
 

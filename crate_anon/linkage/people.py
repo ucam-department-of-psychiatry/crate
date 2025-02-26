@@ -287,7 +287,7 @@ class People:
 
         # 2020-04-25: Do this in one pass.
         # A bit like
-        # https://www.geeksforgeeks.org/python-program-to-find-second-largest-number-in-a-list/  # noqa
+        # https://www.geeksforgeeks.org/python-program-to-find-second-largest-number-in-a-list/  # noqa: E501
         # ... but modified, as that fails to deal with joint winners
         # ... and it's not a super algorithm anyway.
 

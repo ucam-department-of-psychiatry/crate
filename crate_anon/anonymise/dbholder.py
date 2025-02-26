@@ -30,10 +30,9 @@ crate_anon/anonymise/dbholder.py
 import logging
 from typing import List, Optional, TYPE_CHECKING
 
-from sqlalchemy import create_engine
+from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.session import Session
+from sqlalchemy.orm.session import sessionmaker, Session
 from sqlalchemy.sql.schema import MetaData
 
 if TYPE_CHECKING:
@@ -60,7 +59,6 @@ class DatabaseHolder:
         with_session: bool = False,
         with_conn: bool = True,
         reflect: bool = True,
-        encoding: str = "utf-8",
         echo: bool = False,
     ) -> None:
         """
@@ -71,18 +69,17 @@ class DatabaseHolder:
             with_session: create an SQLAlchemy Session?
             with_conn: create an SQLAlchemy connection (via an Engine)?
             reflect: read the database structure (when required)?
-            encoding: passed to SQLAlchemy's :func:`create_engine`
             echo: passed to SQLAlchemy's :func:`create_engine`
         """
         self.name = name
         self.srccfg = srccfg
-        self.engine = create_engine(url, encoding=encoding, echo=echo)
+        self.engine = create_engine(url, echo=echo, future=True)
         self.conn = None  # type: Optional[Connection]
         self.session = None  # type: Optional[Session]
         self._reflect_on_request = reflect
         self._reflected = False
         self._table_names = []  # type: List[str]
-        self._metadata = MetaData(bind=self.engine)
+        self._metadata = MetaData()
         log.debug(self.engine)  # obscures password
 
         if with_conn:  # for raw connections
@@ -101,7 +98,9 @@ class DatabaseHolder:
         Creates a database session, if not created to begin with.
         """
         if not self.session:
-            self.session = sessionmaker(bind=self.engine)()  # for ORM
+            self.session = sessionmaker(
+                bind=self.engine, future=True
+            )()  # type: Session
 
     def _reflect(self) -> None:
         """
@@ -113,7 +112,7 @@ class DatabaseHolder:
             return
         log.info(f"Reflecting database: {self.name}")
         # self.table_names = get_table_names(self.engine)
-        self._metadata.reflect(views=True)  # include views
+        self._metadata.reflect(bind=self.engine, views=True)  # include views
         self._table_names = [t.name for t in self._metadata.sorted_tables]
         self._reflected = True
 
@@ -121,7 +120,7 @@ class DatabaseHolder:
         """
         Updates the metadata, for example if a table has been dropped.
         """
-        self._metadata = MetaData(bind=self.engine)
+        self._metadata = MetaData()
 
     @property
     def metadata(self) -> MetaData:

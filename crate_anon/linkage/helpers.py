@@ -143,7 +143,7 @@ postcode sector? Smaller, I think.
 - this allows you to look up *from* output area *to* postcode sector, implying
   that postcode sectors must be larger.
 
-"""  # noqa
+"""  # noqa: E501
 
 
 # =============================================================================
@@ -179,7 +179,7 @@ For a sense of metaphones:
 
 >>> dmeta("Clérambault")  # raises UnicodeEncodeError
 
-"""  # noqa
+"""  # noqa: E501
 
 
 # =============================================================================
@@ -501,7 +501,7 @@ PSEUDO_POSTCODES = set(standardize_postcode(p) for p in (
     # (*) [2] uses "Z99 3CZ" (page 6); [1, 3] use "ZZ99 3CZ".
 ))
 PSEUDO_POSTCODE_SECTORS = set(get_postcode_sector(p) for p in PSEUDO_POSTCODES)
-"""  # noqa
+"""  # noqa: E501
 
 PSEUDO_POSTCODE_START = "ZZ99"
 PSEUDOPOSTCODE_NFA = "ZZ993VZ"  # no fixed abode
@@ -806,7 +806,7 @@ def mk_blurry_dates(d: Union[Date, str]) -> Tuple[str, str, str]:
     Returns MONTH_DAY, YEAR_DAY, and YEAR_MONTH versions in a standard form.
     """
     # ISO format is %Y-%m-%d; see
-    # https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes  # noqa
+    # https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes  # noqa: E501
     # Here we want the shortest full representation; these are not intended to
     # be human-legible.
     d = coerce_to_pendulum_date(d)

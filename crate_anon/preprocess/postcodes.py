@@ -61,7 +61,7 @@ Background:
 
 - https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography#output-area-oa
 
-"""  # noqa
+"""  # noqa: E501
 
 from abc import ABC, ABCMeta, abstractmethod
 import argparse
@@ -100,7 +100,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql.schema import MetaData, Table
 
-from crate_anon.anonymise.constants import CHARSET, TABLE_KWARGS
+from crate_anon.anonymise.constants import TABLE_KWARGS
 from crate_anon.common.argparse_assist import (
     RawDescriptionArgumentDefaultsRichHelpFormatter,
 )
@@ -260,7 +260,7 @@ class GenericLookupClassMeta(DeclarativeMeta, ABCMeta):
     .. code-block:: python
 
         from abc import ABC
-        from sqlalchemy.ext.declarative import declarative_base
+        from sqlalchemy.orm import declarative_base
         from sqlalchemy.sql.schema import MetaData
 
         class ExtendedBase:
@@ -275,7 +275,7 @@ class GenericLookupClassMeta(DeclarativeMeta, ABCMeta):
     and thus define this class to inherit from those two metaclasses, so it can
     be the metaclass we want.
 
-    """  # noqa
+    """  # noqa: E501
 
     pass
 
@@ -476,7 +476,7 @@ class Postcode(Base):
         comment="2001 Census Lower Layer Super Output Area (LSOA) [England & "
         "Wales, ~1,500 population] / Data Zone (DZ) [Scotland] / "
         "Super Output Area (SOA) [FK to one of: "
-        "lsoa_lower_layer_super_output_area_england_wales_2004.lsoa_code; "  # noqa
+        "lsoa_lower_layer_super_output_area_england_wales_2004.lsoa_code; "  # noqa: E501
         "lsoa_lower_layer_super_output_area_n_ireland_2005.lsoa_code]",
     )
     msoa01 = Column(
@@ -484,7 +484,7 @@ class Postcode(Base):
         comment="2001 Census Middle Layer Super Output Area (MSOA) [England & "
         "Wales, ~7,200 population] / "
         "Intermediate Zone (IZ) [Scotland] [FK to one of: "
-        "msoa_middle_layer_super_output_area_england_wales_2004.msoa_code; "  # noqa
+        "msoa_middle_layer_super_output_area_england_wales_2004.msoa_code; "  # noqa: E501
         "iz_intermediate_zone_scotland_2005.iz_code]",
     )
     ur01ind = Column(
@@ -834,7 +834,7 @@ class CASWard(Base):
     Represents censua area statistics (CAS) wards in the UK, 2003.
 
     - https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography#statistical-wards-cas-wards-and-st-wards
-    """  # noqa
+    """  # noqa: E501
 
     __filename__ = "CAS ward names and codes UK as at 01_03.xlsx"
     __tablename__ = "cas_ward_2003"
@@ -1943,9 +1943,9 @@ _ = '''
 # =============================================================================
 # Models: centroids
 # =============================================================================
-# https://webarchive.nationalarchives.gov.uk/20160105160709/https://www.ons.gov.uk/ons/guide-method/geography/products/census/spatial/centroids/index.html  # noqa
+# https://webarchive.nationalarchives.gov.uk/20160105160709/https://www.ons.gov.uk/ons/guide-method/geography/products/census/spatial/centroids/index.html  # noqa: E501
 #
-# Looking at lower_layer_super_output_areas_(e+w)_2011_population_weighted_centroids_v2.zip : # noqa
+# Looking at lower_layer_super_output_areas_(e+w)_2011_population_weighted_centroids_v2.zip : # noqa: E501
 # - LSOA_2011_EW_PWC.shp -- probably a Shape file;
 #   ... yes
 #   ... https://en.wikipedia.org/wiki/Shapefile
@@ -1960,7 +1960,7 @@ class PopWeightedCentroidsLsoa2011(Base):
     That is, the geographical centre of the LSOA, weighted by population. (A
     first approximation: imagine every person pulling on the centroid
     simultaneously and with equal force from their home. Where will it end up?)
-    """  # noqa
+    """
     __filename__ = "LSOA_2011_EW_PWC_COORD_V2.CSV"
     __tablename__ = "pop_weighted_centroids_lsoa_2011"
     # __debug_content__ = True
@@ -1969,7 +1969,7 @@ class PopWeightedCentroidsLsoa2011(Base):
     lsoa_name = Column(String(NAME_LEN))
     bng_north = Column(Integer, comment="British National Grid, North (m)")
     bng_east = Column(Integer, comment="British National Grid, East (m)")
-    # https://en.wikipedia.org/wiki/Ordnance_Survey_National_Grid#All-numeric_grid_references  # noqa
+    # https://en.wikipedia.org/wiki/Ordnance_Survey_National_Grid#All-numeric_grid_references  # noqa: E501
     latitude = Column(Numeric(precision=13, scale=10),
                       comment="Latitude (degrees, 10dp)")
     longitude = Column(Numeric(precision=13, scale=10),
@@ -2222,7 +2222,7 @@ def read_spreadsheet(
     # openpyxl BUG: with read_only=True, cells can have None as their value
     # when they're fine if opened in non-read-only mode.
     # May be related to this:
-    # https://bitbucket.org/openpyxl/openpyxl/issues/601/read_only-cell-row-column-attributes-are  # noqa
+    # https://bitbucket.org/openpyxl/openpyxl/issues/601/read_only-cell-row-column-attributes-are
 
     # Assume the first sheet is the one with the data in it.
     # Choosing the active sheet is unreliable for some files.
@@ -2451,9 +2451,9 @@ def main() -> None:
         print("Must specify URL")
         return
 
-    engine = create_engine(args.url, echo=args.echo, encoding=CHARSET)
+    engine = create_engine(args.url, echo=args.echo, future=True)
     metadata.bind = engine
-    session = sessionmaker(bind=engine)()
+    session = sessionmaker(bind=engine, future=True)()
 
     log.info(f"Using directory: {args.dir}")
     datadir = args.dir

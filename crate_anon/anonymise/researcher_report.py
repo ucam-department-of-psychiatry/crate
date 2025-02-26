@@ -207,7 +207,7 @@ class ResearcherReportConfig:
         Sanitised version of the database URL, or a blank string if not
         enabled.
         """
-        if not self.show_url:
+        if not self.show_url or not self.db_url:
             return ""
         url_obj = make_url(self.db_url)  # type: URL
         return repr(url_obj)
@@ -373,7 +373,7 @@ def get_values_summary(
     items = []  # type: List[str]
     session = reportcfg.db_session
     n_distinct_notnull = session.execute(
-        select([func.count(distinct(column))])
+        select(func.count(distinct(column)))
     ).fetchone()[0]
     # This does NOT include NULL values, by the SQL standard.
     suffix = "" if n_distinct_notnull == 1 else "s"  # "value" or "values"?
@@ -418,13 +418,13 @@ def get_values_summary(
 
     if show_min_max:
         min_val, max_val = session.execute(
-            select([func.min(column), func.max(column)])
+            select(func.min(column), func.max(column))
         ).fetchone()
         items.append(f"Min {lit(min_val)}; max {lit(max_val)}.")
 
     if show_distinct:
         dv_rows = session.execute(
-            select([column])
+            select(column)
             .distinct()
             .order_by(column)
             .limit(reportcfg.max_value_length + 1)
@@ -471,7 +471,7 @@ def mk_table_html(table_name: str, reportcfg: ResearcherReportConfig) -> str:
 
     n_rows = (
         session.execute(
-            select([func.count()]).select_from(table(table_name))
+            select(func.count()).select_from(table(table_name))
         ).fetchone()[0]
         if reportcfg.show_counts
         else None

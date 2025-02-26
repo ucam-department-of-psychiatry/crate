@@ -587,7 +587,7 @@ class QueryBuilderForm(forms.Form):
         # Check the WHERE information is sufficient.
         if "submit_select" in self.data or "submit_select_star" in self.data:
             # Form submitted via the "Add" method, so no checks required.
-            # https://stackoverflow.com/questions/866272/how-can-i-build-multiple-submit-buttons-django-form  # noqa
+            # https://stackoverflow.com/questions/866272/how-can-i-build-multiple-submit-buttons-django-form  # noqa: E501
             return
         if not self.offering_where():
             return

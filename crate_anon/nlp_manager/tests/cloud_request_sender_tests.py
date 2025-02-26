@@ -32,17 +32,17 @@ from unittest import mock, TestCase
 
 from crate_anon.nlp_manager.cloud_request import CloudRequestProcess
 from crate_anon.nlp_manager.cloud_request_sender import CloudRequestSender
-from crate_anon.nlp_manager.constants import HashClass
-from crate_anon.nlp_manager.input_field_config import (
+from crate_anon.nlp_manager.constants import (
     FN_SRCDB,
     FN_SRCFIELD,
     FN_SRCPKFIELD,
     FN_SRCPKSTR,
     FN_SRCPKVAL,
     FN_SRCTABLE,
+    HashClass,
 )
 from crate_anon.nlp_manager.models import FN_SRCHASH, NlpRecord
-from crate_anon.nlprp.constants import NlprpKeys as NKeys
+from crate_anon.nlprp.constants import NlprpKeys
 
 PANAMOWA = "A woman, a plan, a canal. Panamowa!"
 PAGODA = "A dog! A panic in a pagoda."
@@ -163,14 +163,17 @@ class CloudRequestSenderTests(TestCase):
             include_text_in_reply=True,  # has_gate_processors from config
         )
 
-        records = cloud_requests[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
+        records = cloud_requests[0]._request_process[NlprpKeys.ARGS][
+            NlprpKeys.CONTENT
+        ]
 
-        self.assertEqual(records[0][NKeys.METADATA][FN_SRCPKVAL], 1)
-        self.assertEqual(records[0][NKeys.METADATA][FN_SRCPKSTR], "pkstr")
+        self.assertEqual(records[0][NlprpKeys.METADATA][FN_SRCPKVAL], 1)
+        self.assertEqual(records[0][NlprpKeys.METADATA][FN_SRCPKSTR], "pkstr")
         self.assertEqual(
-            records[0][NKeys.METADATA][FN_SRCHASH], self.hasher.hash(PANAMOWA)
+            records[0][NlprpKeys.METADATA][FN_SRCHASH],
+            self.hasher.hash(PANAMOWA),
         )
-        self.assertEqual(records[0][NKeys.TEXT], PANAMOWA)
+        self.assertEqual(records[0][NlprpKeys.TEXT], PANAMOWA)
 
     def test_multiple_records_sent_in_single_request(self) -> None:
         self.test_text = [
@@ -222,11 +225,13 @@ class CloudRequestSenderTests(TestCase):
             include_text_in_reply=True,  # has_gate_processors
         )
 
-        records = cloud_requests[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
+        records = cloud_requests[0]._request_process[NlprpKeys.ARGS][
+            NlprpKeys.CONTENT
+        ]
 
-        self.assertEqual(records[0][NKeys.METADATA][FN_SRCPKVAL], 1)
-        self.assertEqual(records[1][NKeys.METADATA][FN_SRCPKSTR], "pkstr")
-        self.assertEqual(records[2][NKeys.TEXT], REVOLT)
+        self.assertEqual(records[0][NlprpKeys.METADATA][FN_SRCPKVAL], 1)
+        self.assertEqual(records[1][NlprpKeys.METADATA][FN_SRCPKSTR], "pkstr")
+        self.assertEqual(records[2][NlprpKeys.TEXT], REVOLT)
 
     def test_max_records_per_request(self) -> None:
         self.test_text = [
@@ -318,14 +323,20 @@ class CloudRequestSenderTests(TestCase):
             include_text_in_reply=True,  # has_gate_processors from config
         )
 
-        content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
-        self.assertEqual(content_0[0][NKeys.TEXT], PANAMOWA)
+        content_0 = requests_out[0]._request_process[NlprpKeys.ARGS][
+            NlprpKeys.CONTENT
+        ]
+        self.assertEqual(content_0[0][NlprpKeys.TEXT], PANAMOWA)
 
-        content_1 = requests_out[1]._request_process[NKeys.ARGS][NKeys.CONTENT]
-        self.assertEqual(content_1[0][NKeys.TEXT], PAGODA)
+        content_1 = requests_out[1]._request_process[NlprpKeys.ARGS][
+            NlprpKeys.CONTENT
+        ]
+        self.assertEqual(content_1[0][NlprpKeys.TEXT], PAGODA)
 
-        content_2 = requests_out[2]._request_process[NKeys.ARGS][NKeys.CONTENT]
-        self.assertEqual(content_2[0][NKeys.TEXT], REVOLT)
+        content_2 = requests_out[2]._request_process[NlprpKeys.ARGS][
+            NlprpKeys.CONTENT
+        ]
+        self.assertEqual(content_2[0][NlprpKeys.TEXT], REVOLT)
 
         logger_name = "crate_anon.nlp_manager.cloud_request_sender"
         expected_message = "Sent request to be processed: #1 of this block"
@@ -397,11 +408,13 @@ class CloudRequestSenderTests(TestCase):
             include_text_in_reply=True,  # has_gate_processors from config
         )
 
-        content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
+        content_0 = requests_out[0]._request_process[NlprpKeys.ARGS][
+            NlprpKeys.CONTENT
+        ]
         self.assertEqual(len(content_0), 2)
-        self.assertEqual(content_0[0][NKeys.TEXT], PANAMOWA)
+        self.assertEqual(content_0[0][NlprpKeys.TEXT], PANAMOWA)
 
-        self.assertEqual(content_0[1][NKeys.TEXT], PAGODA)
+        self.assertEqual(content_0[1][NlprpKeys.TEXT], PAGODA)
 
     def test_max_content_length(self) -> None:
         self.test_text = [
@@ -473,13 +486,17 @@ class CloudRequestSenderTests(TestCase):
             include_text_in_reply=True,  # has_gate_processors from config
         )
 
-        content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
-        self.assertEqual(content_0[0][NKeys.TEXT], PANAMOWA)
+        content_0 = requests_out[0]._request_process[NlprpKeys.ARGS][
+            NlprpKeys.CONTENT
+        ]
+        self.assertEqual(content_0[0][NlprpKeys.TEXT], PANAMOWA)
 
-        self.assertEqual(content_0[1][NKeys.TEXT], PAGODA)
+        self.assertEqual(content_0[1][NlprpKeys.TEXT], PAGODA)
 
-        content_1 = requests_out[1]._request_process[NKeys.ARGS][NKeys.CONTENT]
-        self.assertEqual(content_1[0][NKeys.TEXT], REVOLT)
+        content_1 = requests_out[1]._request_process[NlprpKeys.ARGS][
+            NlprpKeys.CONTENT
+        ]
+        self.assertEqual(content_1[0][NlprpKeys.TEXT], REVOLT)
 
     def test_record_bigger_than_max_content_length_skipped(self) -> None:
         short_text = "Some text with serialized length greater than 500. "
@@ -553,12 +570,16 @@ class CloudRequestSenderTests(TestCase):
             include_text_in_reply=True,  # has_gate_processors from config
         )
 
-        content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
+        content_0 = requests_out[0]._request_process[NlprpKeys.ARGS][
+            NlprpKeys.CONTENT
+        ]
         self.assertEqual(len(content_0), 1)
-        self.assertEqual(content_0[0][NKeys.TEXT], PANAMOWA)
+        self.assertEqual(content_0[0][NlprpKeys.TEXT], PANAMOWA)
 
-        content_1 = requests_out[1]._request_process[NKeys.ARGS][NKeys.CONTENT]
-        self.assertEqual(content_1[0][NKeys.TEXT], REVOLT)
+        content_1 = requests_out[1]._request_process[NlprpKeys.ARGS][
+            NlprpKeys.CONTENT
+        ]
+        self.assertEqual(content_1[0][NlprpKeys.TEXT], REVOLT)
 
         logger_name = "crate_anon.nlp_manager.cloud_request_sender"
         self.assertIn(
@@ -643,8 +664,10 @@ class CloudRequestSenderTests(TestCase):
             include_text_in_reply=True,  # has_gate_processors from config
         )
 
-        content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
-        self.assertEqual(content_0[0][NKeys.TEXT], PAGODA)
+        content_0 = requests_out[0]._request_process[NlprpKeys.ARGS][
+            NlprpKeys.CONTENT
+        ]
+        self.assertEqual(content_0[0][NlprpKeys.TEXT], PAGODA)
 
         logger_name = "crate_anon.nlp_manager.cloud_request_sender"
         self.assertIn(
@@ -821,8 +844,10 @@ class CloudRequestSenderTests(TestCase):
             include_text_in_reply=True,  # has_gate_processors from config
         )
 
-        content_0 = requests_out[0]._request_process[NKeys.ARGS][NKeys.CONTENT]
+        content_0 = requests_out[0]._request_process[NlprpKeys.ARGS][
+            NlprpKeys.CONTENT
+        ]
         self.assertEqual(len(content_0), 2)
-        self.assertEqual(content_0[0][NKeys.TEXT], PANAMOWA)
+        self.assertEqual(content_0[0][NlprpKeys.TEXT], PANAMOWA)
 
-        self.assertEqual(content_0[1][NKeys.TEXT], REVOLT)
+        self.assertEqual(content_0[1][NlprpKeys.TEXT], REVOLT)

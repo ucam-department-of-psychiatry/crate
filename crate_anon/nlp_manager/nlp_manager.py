@@ -58,7 +58,7 @@ Speed testing:
         mysqld about 18% [from top]
         nlp_manager.py about 4-5% * 8 [from top]
 
-"""  # noqa
+"""  # noqa: E501
 
 # =============================================================================
 # Imports
@@ -113,37 +113,36 @@ from crate_anon.nlp_manager.base_nlp_parser import (
     BaseNlpParser,
     TextProcessingFailed,
 )
-from crate_anon.nlp_manager.cloud_request_sender import CloudRequestSender
-from crate_anon.nlp_manager.constants import (
-    DEFAULT_REPORT_EVERY_NLP,
-    MAX_STRING_PK_LENGTH,
-    NLP_CONFIG_ENV_VAR,
-    NlpDefConfigKeys,
-)
-from crate_anon.nlp_manager.input_field_config import (
-    InputFieldConfig,
-    FN_SRCDB,
-    FN_SRCTABLE,
-    FN_SRCPKFIELD,
-    FN_SRCPKVAL,
-    FN_SRCPKSTR,
-    FN_SRCFIELD,
-    TRUNCATED_FLAG,
-)
-from crate_anon.nlp_manager.models import FN_SRCHASH, NlpRecord
-from crate_anon.nlp_manager.nlp_definition import (
-    NlpDefinition,
-    demo_nlp_config,
-)
 from crate_anon.nlp_manager.cloud_parser import Cloud
 from crate_anon.nlp_manager.cloud_request import (
     CloudRequest,
     CloudRequestListProcessors,
     CloudRequestProcess,
     CloudRequestQueueManagement,
+    extract_nlprp_top_level_results,
+    parse_nlprp_docresult_metadata,
 )
+from crate_anon.nlp_manager.cloud_request_sender import CloudRequestSender
 from crate_anon.nlp_manager.cloud_run_info import CloudRunInfo
-from crate_anon.nlprp.constants import NlprpKeys as NKeys
+from crate_anon.nlp_manager.constants import (
+    DEFAULT_REPORT_EVERY_NLP,
+    FN_SRCDB,
+    FN_SRCFIELD,
+    FN_SRCPKFIELD,
+    FN_SRCPKSTR,
+    FN_SRCPKVAL,
+    FN_SRCTABLE,
+    MAX_STRING_PK_LENGTH,
+    NLP_CONFIG_ENV_VAR,
+    NlpDefConfigKeys,
+    TRUNCATED_FLAG,
+)
+from crate_anon.nlp_manager.input_field_config import InputFieldConfig
+from crate_anon.nlp_manager.models import NlpRecord
+from crate_anon.nlp_manager.nlp_definition import (
+    NlpDefinition,
+    demo_nlp_config,
+)
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
 # from crate_anon.common.profiling import do_cprofile
@@ -238,7 +237,7 @@ def delete_where_no_source(
     - for each table, make a temporary table in the same database
     - populate that table with (source PK integer/hash, source PK string) pairs
     - delete where pairs don't match -- is that portable SQL?
-      https://stackoverflow.com/questions/7356108/sql-query-for-deleting-rows-with-not-in-using-2-columns  # noqa
+      https://stackoverflow.com/questions/7356108/sql-query-for-deleting-rows-with-not-in-using-2-columns  # noqa: E501
 
     More efficient would be to make one table per destination database.
 
@@ -643,8 +642,8 @@ def process_nlp(
                 #   guarantee it'll do something sensible?
                 # - See also
                 #   https://en.wikipedia.org/wiki/Isolation_(database_systems)
-                #   http://skien.cc/blog/2014/02/06/sqlalchemy-and-race-conditions-follow-up/  # noqa
-                #   http://docs.sqlalchemy.org/en/latest/core/connections.html?highlight=execution_options#sqlalchemy.engine.Connection.execution_options  # noqa
+                #   http://skien.cc/blog/2014/02/06/sqlalchemy-and-race-conditions-follow-up/  # noqa: E501
+                #   http://docs.sqlalchemy.org/en/latest/core/connections.html?highlight=execution_options#sqlalchemy.engine.Connection.execution_options  # noqa: E501
                 # - However, empirically, setting this to False gives
                 #   "Transaction (Process ID xx) was deadlocked on lock
                 #   resources with another process and has been chosen as the
@@ -652,7 +651,7 @@ def process_nlp(
                 #   query.
                 # - SQL Server uses READ COMMITTED as the default isolation
                 #   level.
-                # - https://technet.microsoft.com/en-us/library/jj856598(v=sql.110).aspx  # noqa
+                # - https://technet.microsoft.com/en-us/library/jj856598(v=sql.110).aspx  # noqa: E501
 
                 nlpdef.notify_transaction(
                     session=session,
@@ -750,7 +749,6 @@ def retrieve_nlp_data(crinfo: CloudRunInfo, incremental: bool = False) -> None:
             ifconfig_cache[if_section] = ifconfig
         seen_srchashs = []  # type: List[str]
         cloud_request = CloudRequestProcess(crinfo=crinfo)
-        # cloud_request.set_mirror_processors(mirror_procs)
         cloud_request.set_queue_id(queue_id)
         log.info(f"Atempting to retrieve data from request #{i} ...")
         i += 1
@@ -761,21 +759,20 @@ def retrieve_nlp_data(crinfo: CloudRunInfo, incremental: bool = False) -> None:
         if not ready:
             # If results are not ready for this particular queue_id, put
             # back in file
-            # request_data.write(f"{if_section},{queue_id}\n")
             remaining_data.append(f"{if_section},{queue_id}\n")
             all_ready = False
         else:
-            nlp_data = cloud_request.nlp_data
-            for result in nlp_data[NKeys.RESULTS]:
+            docresultlist = extract_nlprp_top_level_results(
+                cloud_request.nlp_data
+            )
+            for result in docresultlist:
                 # There are records associated with the given queue_id
                 records_exist = True
                 uncommitted_data = True
                 # 'metadata' is just 'other_values' from before
-                metadata = result[NKeys.METADATA]  # type: Dict[str, Any]
-                # ... expected type because that's what we sent; see add_text()
-                pkval = metadata[FN_SRCPKVAL]
-                pkstr = metadata[FN_SRCPKSTR]
-                srchash = metadata[FN_SRCHASH]
+                _, pkval, pkstr, srchash = parse_nlprp_docresult_metadata(
+                    result
+                )
                 progrec = None
                 if incremental:
                     progrec = ifconfig.get_progress_record(pkval, pkstr)
@@ -865,14 +862,17 @@ def process_cloud_now(
             for cloud_request in cloud_requests:
                 if cloud_request.request_failed:
                     continue
+                # (a) handle the actual data
                 cloud_request.process_all()
-                nlp_data = cloud_request.nlp_data
-                for result in nlp_data[NKeys.RESULTS]:
+                # (b) handle the progress records
+                docresultlist = extract_nlprp_top_level_results(
+                    cloud_request.nlp_data
+                )
+                for result in docresultlist:
                     # 'metadata' is just 'other_values' from before
-                    metadata = result[NKeys.METADATA]
-                    pkval = metadata[FN_SRCPKVAL]
-                    pkstr = metadata[FN_SRCPKSTR]
-                    srchash = metadata[FN_SRCHASH]
+                    _, pkval, pkstr, srchash = parse_nlprp_docresult_metadata(
+                        result
+                    )
                     progrec = None
                     if incremental:
                         # A word of explanation: to get here, the record must
@@ -1078,7 +1078,7 @@ def test_nlp_stdin(nlpdef: NlpDefinition) -> None:
                     )
                     procreq.add_text(text, metadata={})
                     procreq.send_process_request(queue=False)
-                    results = procreq.nlp_data[NKeys.RESULTS]
+                    results = extract_nlprp_top_level_results(procreq.nlp_data)
                     result_found = True
                     # ... may not really be true, but we have something to show
                     formatted_results = json.dumps(results, indent=JSON_INDENT)

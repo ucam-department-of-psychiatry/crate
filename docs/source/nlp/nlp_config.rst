@@ -218,7 +218,9 @@ and CRATE would then look for a :ref:`processor definition
 ``[processor:mygateproc_name_location]``, and expect it to have the information
 required for a GATE processor.
 
-For possible processor types, see ``crate_nlp --listprocessors``.
+For possible processor types, see ``crate_nlp --listprocessors``. These include
+CRATE internal processors (e.g. "Glucose"), external tools run locally (e.g.
+"GATE"), and cloud-based NLP ("Cloud").
 
 
 progressdb
@@ -456,15 +458,77 @@ Destination database; the name of a :ref:`database definition
 <nlp_config_section_database>` in the config file.
 
 
+.. _nlp_config_processor_desttable:
+
 desttable
 #########
 
 *String.*
 
-**Applicable to: Cloud, MedEx, all CRATE Python processors.**
+**Applicable to: MedEx, all CRATE Python processors.**
 
 The name of the table in the destination database in which the results should
 be stored.
+
+**Cloud** and local **GATE** processors may produce output for multiple tables
+(or a single table, but potentially one that you need to help define). For
+these, use :ref:`outputtypemap <nlp_config_processor_outputtypemap>` instead.
+This refers to "output" configurations, in which you can define the table(s).
+
+
+.. _nlp_config_processor_outputtypemap:
+
+outputtypemap
+#############
+
+*Multiline string.*
+
+**Applicable to: GATE, Cloud.**
+
+For GATE processors:
+
+    What's GATE? See the section on :ref:`GATE NLP <gate_nlp>`.
+
+    This tabular entry maps GATE '_type' parameters to possible destination
+    tables (in case-insensitive fashion). This parameter is follows is a list
+    of pairs, one pair per line.
+
+    - The first item of each is the annotation type coming out of the GATE
+      system.
+
+    - The second is the output type section defined in this file (as a separate
+      section). Those sections each define a table with its columns (fields);
+      see :ref:`GATE/cloud output definitions
+      <nlp_config_section_gate_cloud_output>`.
+
+    Example:
+
+    .. code-block:: none
+
+        outputtypemap =
+            Person output_person
+            Location output_location
+
+    This example would take output from GATE labelled with ``_type=Person`` and
+    send it to output defined in the ``[output:output_person]`` section of the
+    config file -- see :ref:`GATE/cloud output definitions
+    <nlp_config_section_gate_cloud_output>`. Equivalently for the ``Location``
+    type.
+
+For cloud processors:
+
+    - The first parameter is the remote server's tablename (see :ref:`NLPRP
+      schema definition <nlprp_schema_definition>`). The second is an output
+      type definition, as above (which may define the table in full, or just
+      name it and leave the definition to the remote processor).
+
+    - Use this method whenever the remote processor may return data for more
+      than one table.
+
+    - If the remote processor will only return results for a single table, and
+      doesn't name it, the FIRST definition in the output type map is used
+      (and the first element of the pair is ignored for this purpose, i.e.
+      you can use any string you want).
 
 
 assume_preferred_unit
@@ -481,65 +545,6 @@ will assume mg/L.)
 Some override this and are not configurable, however:
 
 - ``AlcoholUnits`` never assumes this.
-
-
-.. _nlp_config_processor_desttable:
-
-desttable
-#########
-
-*String.*
-
-**Applicable to: Cloud.**
-
-Table name in the destination (NLP output) database into which to write results
-from the cloud NLP processor. Use this for single-table processors.
-
-The alternative is :ref:`outputtypemap <nlp_config_processor_outputtypemap>`.
-
-
-.. _nlp_config_processor_outputtypemap:
-
-outputtypemap
-#############
-
-*Multiline string.*
-
-**Applicable to: GATE, Cloud.**
-
-For GATE:
-
-    What's GATE? See the section on :ref:`GATE NLP <gate_nlp>`.
-
-    Map GATE '_type' parameters to possible destination tables (in
-    case-insensitive fashion). This parameter is follows is a list of pairs,
-    one pair per line.
-
-    - The first item of each is the annotation type coming out of the GATE
-      system.
-
-    - The second is the output type section defined in this file (as a separate
-      section). Those sections (q.v.) define tables and columns (fields).
-
-    Example:
-
-    .. code-block:: none
-
-        outputtypemap =
-            Person output_person
-            Location output_location
-
-    This example would take output from GATE labelled with ``_type=Person`` and
-    send it to output defined in the ``[output:output_person]`` section of the
-    config file -- see :ref:`GATE output definitions
-    <nlp_config_section_gate_output>`. Equivalently for the ``Location`` type.
-
-For cloud:
-
-    - The alternative is :ref:`desttable <nlp_config_processor_desttable>`.
-
-    - If both are present, only :ref:`outputtypemap
-      <nlp_config_processor_outputtypemap>` will be used.
 
 
 .. _nlp_config_section_gate_progargs:
@@ -739,17 +744,25 @@ same format as the CRATE processors. ``GATE`` refers to GATE remote
 processors, which return a standard set of columns.
 
 
-.. _nlp_config_section_gate_output:
+.. _nlp_config_section_gate_cloud_output:
 
-Config file section: GATE output definition
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Config file section: GATE/cloud output definition
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 These are config file sections named ``[output:XXX]`` where ``XXX`` is the
-name of one of your GATE output types [#outputuserconfig]_.
+name of one of your GATE output types, or cloud remote processor table
+names.[#outputuserconfig]_
 
-This is an additional thing we need for GATE applications, since CRATE doesn't
-automatically know what sort of output they will produce. The tables and
-SPECIFIC output fields for a given GATE processor are defined here.
+For GATE applications, we need this additional information because CRATE
+doesn't automatically know what sort of output they will produce. The tables
+and SPECIFIC output fields for a given GATE processor are defined here.
+
+For remote cloud processors, this section enables you to rename remote tables
+to something appropriate locally, and add options (like indexing).
+Additionally, CRATE may or may not be told exactly by the remote application
+what tabular structure it is using, but even if the remote application is
+helpfully informative, you wouldn't automatically trust remotely provided table
+names. So this section is still mandatory.
 
 They are referred to by the :ref:`outputtypemap
 <nlp_config_processor_outputtypemap>` parameter (q.v.).
@@ -761,7 +774,7 @@ desttable
 *String.*
 
 Table name in the destination (NLP output) database into which to write results
-from the GATE NLP application.
+from the GATE/cloud NLP application.
 
 
 renames
@@ -769,9 +782,15 @@ renames
 
 *Multiline string.*
 
-A list of ``from, to`` things to rename from the GATE output en route to the
-database. In each case, the ``from`` item is the name of a GATE output
-annotation. The ``to`` item is the destination field/column name.
+This is an optional "column renaming" section.
+
+For GATE processors: a list of ``from, to`` things to rename from the GATE
+output en route to the database. In each case, the ``from`` item is the name of
+a GATE output annotation. The ``to`` item is the destination field/column name.
+
+Also applicable to cloud processors; you can rename columns in this way. The
+``from`` item is the column name as specified by the remote processor, and the
+``to`` item the local destination column name.
 
 Specify one pair per line. You can can quote, using shlex_ rules.
 Case-sensitive.
@@ -806,6 +825,8 @@ null_literals
 #############
 
 *Multiline string.*
+
+**Applicable to: GATE only.**
 
 Define values that will be treated as ``NULL`` in SQL. For example, sometimes
 GATE provides the string ``null`` for a NULL value; we can convert to a proper
@@ -852,6 +873,11 @@ separate the columns. Examples:
         surname     VARCHAR(100)    Surname
         gender      VARCHAR(7)      Gender (e.g. male, female, unknown)
         kind        VARCHAR(100)    Kind of name (e.g. personName, fullName)
+
+For cloud applications, this is optional. If you specify **any** lines here,
+your table will be created in this way (plus additional universal CRATE NLP
+columns). If you don't specify any, it will be created according to the remote
+table specification (plus additional universal CRATE NLP columns).
 
 
 indexdefs
