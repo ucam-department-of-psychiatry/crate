@@ -400,7 +400,7 @@ class InputFieldConfig:
         # We read the column type from the source database.
         self._require_table_or_view_exists()
         meta = self._source_metadata
-        t = Table(self._srctable, meta, autoload=True)
+        t = Table(self._srctable, meta, autoload_with=self._source_engine)
         copy_columns = []  # type: List[Column]
         processed_copy_column_names = []  # type: List[str]
         for c in t.columns:
@@ -437,7 +437,7 @@ class InputFieldConfig:
         """
         self._require_table_or_view_exists()
         meta = self._source_metadata
-        t = Table(self._srctable, meta, autoload=True)
+        t = Table(self._srctable, meta, autoload_with=self._source_engine)
         copy_indexes = []  # type: List[Index]
         processed_copy_index_col_names = []  # type: List[str]
         for c in t.columns:
@@ -529,7 +529,7 @@ class InputFieldConfig:
         for extracol in self._copyfields:
             selectcols.append(column(extracol))
 
-        query = select(selectcols).select_from(table(self._srctable))
+        query = select(*selectcols).select_from(table(self._srctable))
         # not ordered...
         # if self._fetch_sorted:
         #     query = query.order_by(pkcol)
@@ -560,7 +560,8 @@ class InputFieldConfig:
 
                     # Deal with non-integer PKs
                     if pk_is_integer:
-                        hashed_pk = None  # remove warning about reference before assignment  # noqa
+                        hashed_pk = None
+                        # ... remove warning about reference before assignment
                     else:
                         hashed_pk = hash64(pkval)
                         if (
@@ -579,7 +580,8 @@ class InputFieldConfig:
                             f"(in total for this process) due to debugging "
                             f"limits"
                         )
-                        result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
+                        result.close()
+                        # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa: E501
                         return
 
                     # Get text
@@ -647,7 +649,7 @@ class InputFieldConfig:
             .filter(NlpRecord.nlpdef == self._nlpdef.name)
             # Order not important (though the order of the index certainly
             # is; see NlpRecord.__table_args__).
-            # https://stackoverflow.com/questions/11436469/does-order-of-where-clauses-matter-in-sql  # noqa
+            # https://stackoverflow.com/questions/11436469/does-order-of-where-clauses-matter-in-sql  # noqa: E501
         )
         if srcpkstr is not None:
             query = query.filter(NlpRecord.srcpkstr == srcpkstr)
@@ -668,7 +670,7 @@ class InputFieldConfig:
           ``TIMING_DELETE_WHERE_NO_SOURCE``.
         """
         session = self.source_session
-        query = select([column(self._srcpkfield)]).select_from(
+        query = select(column(self._srcpkfield)).select_from(
             table(self._srctable)
         )
         result = session.execute(query)
@@ -728,7 +730,7 @@ class InputFieldConfig:
             log.debug("... deleting all")
         with MultiTimerContext(timer, TIMING_PROGRESS_DB_DELETE):
             prog_deletion_query.delete(synchronize_session=False)
-            # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete  # noqa
+            # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete  # noqa: E501
         self._nlpdef.commit(progsession)
 
     def delete_all_progress_records(self) -> None:

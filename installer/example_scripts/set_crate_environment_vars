@@ -1,0 +1,78 @@
+# ===========================================================================
+# CRATE
+# ===========================================================================
+
+# Paths on the Docker container should have the form CRATE_CONTAINER_xxx
+# Paths on the Host should have the form CRATE_HOST_xxx
+
+# Avoid variables starting with CRATE_DOCKER or CRATE_INSTALLER as these are
+# used by the installer and Docker setup
+
+# As seen from the Docker container running CRATE
+export CRATE_CONTAINER_BASE_DIR=/crate
+export CRATE_CONTAINER_FILES_DIR=${CRATE_CONTAINER_BASE_DIR}/files
+export CRATE_CONTAINER_LOG_DIR=${CRATE_CONTAINER_FILES_DIR}/logs
+export CRATE_CONTAINER_CONFIG_DIR=${CRATE_CONTAINER_BASE_DIR}/cfg
+
+# Config files
+# Anonymisation
+export CRATE_CONTAINER_CONFIG_ANON=${CRATE_CONTAINER_CONFIG_DIR}/crate_anon_config.ini
+
+# NLP
+# This is not currently created by the installer:
+export CRATE_CONTAINER_CONFIG_NLP=${CRATE_CONTAINER_CONFIG_DIR}/crate_nlp_config.ini
+
+export CRATE_CONTAINER_SYSTMONE_TPP_SRE_SPEC="${CRATE_CONTAINER_CONFIG_DIR}/systmone_sre_specifications/SpecificationDirectory/Specification v123.csv"
+
+# Third-party tools
+export CRATE_CONTAINER_GATE_DIR=${CRATE_CONTAINER_BASE_DIR}/gate
+
+
+# As seen from the Ubuntu host
+export CRATE_HOST_BASE_DIR=@@CRATE_HOST_BASE_DIR@@
+export CRATE_HOST_CONFIG_DIR=@@CRATE_HOST_CONFIG_DIR@@
+export CRATE_HOST_INSTALLER_BASE_DIR=${CRATE_HOST_BASE_DIR}/src/installer
+export CRATE_HOST_INSTALLER_VENV=${CRATE_HOST_BASE_DIR}/venv
+export CRATE_HOST_ONSPD_DIR=${CRATE_HOST_BASE_DIR}/ons_postcode_database
+export PYTHON=${CRATE_HOST_INSTALLER_VENV}/bin/python
+
+
+# Log files
+export CRATE_HOST_LOG_DIR=${CRATE_HOST_BASE_DIR}/files/logs
+export CRATE_HOST_PREPROCESS_LOG=${CRATE_HOST_LOG_DIR}/preprocess.log
+export CRATE_HOST_DDGEN_LOG=${CRATE_HOST_LOG_DIR}/ddgen.log
+export CRATE_HOST_ANON_LOG=${CRATE_HOST_LOG_DIR}/anon.log
+export CRATE_HOST_NLP_BIOMARKERS_LOG=${CRATE_HOST_LOG_DIR}/nlp_biomarkers.log
+
+
+# Other variables
+
+# Number of processors to use for various tasks.
+
+# Some scripts have been seen to fail with duplicate record errors, even with
+# MARS_Connection = yes in odbc_user.ini. In this case try setting this to 1.
+# Create separate variables for just the failing scripts if necessary.
+
+GENERIC_NPROCESSORS=24
+export CRATE_NPROCESSORS=${GENERIC_NPROCESSORS}
+
+
+# Database URLs (SQLAlchemy)
+# https://docs.sqlalchemy.org/en/14/core/engines.html#database-urls
+
+# ONS Postcode Database e.g. mssql+pyodbc://@onspd
+export CRATE_ONSPD_URL=
+
+# The database (schema) name of the ONS Postcode Database, as imported by
+# CRATE. With SQL Server you have to specify the schema as well as the database
+# e.g. onspd.dbo
+export CRATE_ONSPD_NAME=
+
+# RiO source database
+export CRATE_SOURCE_RIO_DB_URL=
+
+# SystmOne source database
+export CRATE_SOURCE_SYSTMONE_DB_URL=
+
+# Set all the environment variables from the Docker setup
+source ${CRATE_HOST_CONFIG_DIR}/set_crate_docker_host_envvars

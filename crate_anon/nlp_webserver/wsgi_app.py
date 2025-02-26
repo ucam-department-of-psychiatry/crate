@@ -120,6 +120,6 @@ def make_wsgi_app(global_config: Dict[Any, Any], **settings) -> Router:
     # -------------------------------------------------------------------------
     # Register processors
     # -------------------------------------------------------------------------
-    from crate_anon.nlp_webserver.procs import ServerProcessor  # noqa
+    from crate_anon.nlp_webserver.procs import ServerProcessor  # noqa: F401
 
     return app

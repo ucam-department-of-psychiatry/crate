@@ -44,17 +44,17 @@ from typing import Optional, TYPE_CHECKING, Union
 from cardinal_pythonlib.sqlalchemy.orm_query import exists_orm
 from sqlalchemy import (
     Column,
-    MetaData,
     Text,
 )
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.session import Session
 
+from crate_anon.anonymise import SecretBase
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
     MAX_TRID,
+    PatientInfoConstants,
     TABLE_KWARGS,
     TridType,
 )
@@ -63,20 +63,9 @@ if TYPE_CHECKING:
     from crate_anon.anonymise.scrub import PersonalizedScrubber
 
 log = logging.getLogger(__name__)
-admin_meta = MetaData()
-AdminBase = declarative_base(metadata=admin_meta)
 
 
-class PatientInfoConstants:
-    SECRET_MAP_TABLENAME = "secret_map"
-    PID_FIELDNAME = "pid"
-    MPID_FIELDNAME = "mpid"
-    RID_FIELDNAME = "rid"
-    MRID_FIELDNAME = "mrid"
-    TRID_FIELDNAME = "trid"
-
-
-class PatientInfo(AdminBase):
+class PatientInfo(SecretBase):
     """
     Represent patient information in the secret admin database.
 
@@ -217,7 +206,7 @@ class PatientInfo(AdminBase):
             self.tp_scrubber_text = None  # type: Optional[str]
 
 
-class TridRecord(AdminBase):
+class TridRecord(SecretBase):
     """
     Records the mapping from patient ID (PID) to integer transient research ID
     (TRID), and makes new TRIDs as required.
@@ -286,7 +275,7 @@ class TridRecord(AdminBase):
                 session.rollback()
 
 
-class OptOutPid(AdminBase):
+class OptOutPid(SecretBase):
     """
     Records the PID values of patients opting out of the anonymised database.
     """
@@ -306,7 +295,7 @@ class OptOutPid(AdminBase):
     # key (see sqlalchemy.sql.schema.Column.__init__). In turn, that (under SQL
     # Server) likely makes it an IDENTITY column, this being an SQL Server
     # mechanism for auto-incrementing
-    # (https://docs.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql-identity-property?view=sql-server-ver16).  # noqa
+    # (https://docs.microsoft.com/en-us/sql/t-sql/statements/create-table-transact-sql-identity-property?view=sql-server-ver16).  # noqa: E501
     # And in turn that means that when a value is explicitly inserted, it gives
     # the error "Cannot insert explicit value for identity column in table
     # 'opt_out_pid' when IDENTITY_INSERT is set to OFF. (544)"
@@ -339,10 +328,10 @@ class OptOutPid(AdminBase):
         # noinspection PyArgumentList
         newthing = cls(pid=pid)
         session.merge(newthing)
-        # https://stackoverflow.com/questions/12297156/fastest-way-to-insert-object-if-it-doesnt-exist-with-sqlalchemy  # noqa
+        # https://stackoverflow.com/questions/12297156/fastest-way-to-insert-object-if-it-doesnt-exist-with-sqlalchemy  # noqa: E501
 
 
-class OptOutMpid(AdminBase):
+class OptOutMpid(SecretBase):
     """
     Records the MPID values of patients opting out of the anonymised database.
     """

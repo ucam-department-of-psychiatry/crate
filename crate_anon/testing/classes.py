@@ -36,11 +36,14 @@ from sqlalchemy.engine.base import Engine
 
 from crate_anon.testing.providers import register_all_providers
 from crate_anon.testing.factories import (
+    AnonTestBaseFactory,
+    SecretBaseFactory,
+    SourceTestBaseFactory,
     set_sqlalchemy_session_on_all_factories,
 )
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+    from sqlalchemy.orm.session import Session
 
 
 @pytest.mark.usefixtures("setup")
@@ -49,19 +52,35 @@ class DatabaseTestCase(TestCase):
     Base class for testing with a database.
     """
 
-    dbsession: "Session"
-    engine: Engine
-    database_on_disk: bool
-    db_filename: str
+    anon_dbsession: "Session"
+    secret_dbsession: "Session"
+    source_dbsession: "Session"
+    anon_engine: Engine
+    secret_engine: Engine
+    source_engine: Engine
+    databases_on_disk: bool
+    anon_db_filename: str
+    secret_db_filename: str
+    source_db_filename: str
 
     def setUp(self) -> None:
-        set_sqlalchemy_session_on_all_factories(self.dbsession)
+        set_sqlalchemy_session_on_all_factories(
+            AnonTestBaseFactory, self.anon_dbsession
+        )
+        set_sqlalchemy_session_on_all_factories(
+            SecretBaseFactory, self.secret_dbsession
+        )
+        set_sqlalchemy_session_on_all_factories(
+            SourceTestBaseFactory, self.source_dbsession
+        )
 
     def set_echo(self, echo: bool) -> None:
         """
         Changes the database echo status.
         """
-        self.engine.echo = echo
+        self.anon_engine.echo = echo
+        self.secret_engine.echo = echo
+        self.source_engine.echo = echo
 
 
 class DemoDatabaseTestCase(DatabaseTestCase):

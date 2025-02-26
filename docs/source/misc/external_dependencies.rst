@@ -83,7 +83,6 @@ Versions of software etc. used by CRATE
 |                |    3.11 | 2027-10-31                                                 |
 |                |         | https://devguide.python.org/versions/                      |
 +----------------+---------+------------------------------------------------------------+
-| SQLAlchemy     |     1.4 | Still maintained but will reach EOL when 2.1 becomes the   |
-|                |         | next major release. Upgrade to 2.0 is encouraged.          |
+| SQLAlchemy     |     2.0 | No scheduled date. 2.1 is still in development.            |
 |                |         | https://www.sqlalchemy.org/download.html                   |
 +----------------+---------+------------------------------------------------------------+

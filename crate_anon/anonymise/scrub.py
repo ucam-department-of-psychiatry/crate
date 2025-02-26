@@ -524,9 +524,9 @@ class NonspecificScrubber(ScrubberBase):
         self,
         hasher: GenericHasher,
         replacement_text: str = DA.REPLACE_NONSPECIFIC_INFO_WITH,
-        anonymise_codes_at_word_boundaries_only: bool = DA.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,  # noqa
-        anonymise_dates_at_word_boundaries_only: bool = DA.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,  # noqa
-        anonymise_numbers_at_word_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,  # noqa
+        anonymise_codes_at_word_boundaries_only: bool = DA.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,  # noqa: E501
+        anonymise_dates_at_word_boundaries_only: bool = DA.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,  # noqa: E501
+        anonymise_numbers_at_word_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,  # noqa: E501
         denylist: WordList = None,
         scrub_all_numbers_of_n_digits: List[int] = None,
         scrub_all_uk_postcodes: bool = DA.SCRUB_ALL_UK_POSTCODES,
@@ -696,7 +696,7 @@ class NonspecificScrubber(ScrubberBase):
         if self.scrub_all_dates:
             elements.extend(
                 get_generic_date_regex_elements(
-                    at_word_boundaries_only=self.anonymise_dates_at_word_boundaries_only  # noqa
+                    at_word_boundaries_only=self.anonymise_dates_at_word_boundaries_only  # noqa: E501
                 )
             )
         if self.scrub_all_email_addresses:
@@ -722,15 +722,15 @@ class PersonalizedScrubber(ScrubberBase):
         self,
         hasher: GenericHasher,
         replacement_text_patient: str = DA.REPLACE_PATIENT_INFO_WITH,
-        replacement_text_third_party: str = DA.REPLACE_THIRD_PARTY_INFO_WITH,  # noqa
-        anonymise_codes_at_word_boundaries_only: bool = DA.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,  # noqa
-        anonymise_codes_at_numeric_boundaries_only: bool = DA.ANONYMISE_CODES_AT_NUMERIC_BOUNDARIES_ONLY,  # noqa
-        anonymise_dates_at_word_boundaries_only: bool = DA.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,  # noqa
-        anonymise_numbers_at_word_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,  # noqa
-        anonymise_numbers_at_numeric_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY,  # noqa
-        anonymise_strings_at_word_boundaries_only: bool = DA.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY,  # noqa
-        min_string_length_for_errors: int = DA.MIN_STRING_LENGTH_FOR_ERRORS,  # noqa
-        min_string_length_to_scrub_with: int = DA.MIN_STRING_LENGTH_TO_SCRUB_WITH,  # noqa
+        replacement_text_third_party: str = DA.REPLACE_THIRD_PARTY_INFO_WITH,  # noqa: E501
+        anonymise_codes_at_word_boundaries_only: bool = DA.ANONYMISE_CODES_AT_WORD_BOUNDARIES_ONLY,  # noqa: E501
+        anonymise_codes_at_numeric_boundaries_only: bool = DA.ANONYMISE_CODES_AT_NUMERIC_BOUNDARIES_ONLY,  # noqa: E501
+        anonymise_dates_at_word_boundaries_only: bool = DA.ANONYMISE_DATES_AT_WORD_BOUNDARIES_ONLY,  # noqa: E501
+        anonymise_numbers_at_word_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_WORD_BOUNDARIES_ONLY,  # noqa: E501
+        anonymise_numbers_at_numeric_boundaries_only: bool = DA.ANONYMISE_NUMBERS_AT_NUMERIC_BOUNDARIES_ONLY,  # noqa: E501
+        anonymise_strings_at_word_boundaries_only: bool = DA.ANONYMISE_STRINGS_AT_WORD_BOUNDARIES_ONLY,  # noqa: E501
+        min_string_length_for_errors: int = DA.MIN_STRING_LENGTH_FOR_ERRORS,
+        min_string_length_to_scrub_with: int = DA.MIN_STRING_LENGTH_TO_SCRUB_WITH,  # noqa: E501
         scrub_string_suffixes: List[str] = None,
         string_max_regex_errors: int = DA.STRING_MAX_REGEX_ERRORS,
         allowlist: WordList = None,

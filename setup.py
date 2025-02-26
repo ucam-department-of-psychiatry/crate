@@ -69,14 +69,14 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==1.1.27",  # RNC libraries
+    "cardinal_pythonlib==2.0.0",  # RNC libraries
     "cairosvg==2.7.0",  # work with SVG files
     "celery==5.2.7",  # back-end scheduling
     "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==4.2.16",  # for main CRATE research database web server
+    "django==4.2.17",  # for main CRATE research database web server
     "django-debug-toolbar==3.2.1",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
@@ -118,7 +118,7 @@ INSTALL_REQUIRES = [
     "rich-argparse==0.5.0",  # colourful help
     "semantic_version==2.8.5",  # semantic versioning; better than semver
     "sortedcontainers==2.2.2",  # for SortedSet
-    "SQLAlchemy==1.4.49",  # database access
+    "SQLAlchemy==2.0.36",  # database access
     "sqlparse==0.5.0",  # [pin exact version from cardinal_pythonlib]
     "unidecode==1.1.1",  # for removing accents
     # -------------------------------------------------------------------------
@@ -132,7 +132,7 @@ INSTALL_REQUIRES = [
     "pyramid_tm==2.4",  # Pyramid transaction management
     "redis==4.5.4",  # interface to Redis in-memory key-value database
     "requests==2.32.2",  # HTTP requests
-    "tornado==6.4.1",  # web framework
+    "tornado==6.4.2",  # web framework
     "transaction==3.0.0",  # generic transaction management
     "urllib3==1.26.19",  # used by requests
     "waitress==3.0.1",  # pure-Python WSGI server
@@ -149,8 +149,9 @@ INSTALL_REQUIRES = [
     "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
     "paramiko==3.4.1",  # Python implementation of the SSHv2 protocol, required by faker-file  # noqa: E501
     "pre-commit==2.20.0",  # development only, various sanity checks on code
-    "pytest==8.1.1",  # automatic testing
+    "pytest==8.3.4",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
+    "pytest-env==1.1.5",  # automatic testing
     "python-on-whales==0.68.0",  # python wrappers for testing with Docker
     "sphinx==7.1.2",  # documentation
     "sphinx_rtd_theme==3.0.2",  # documentation

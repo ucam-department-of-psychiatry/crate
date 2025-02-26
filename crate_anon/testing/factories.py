@@ -40,18 +40,29 @@ from crate_anon.testing.providers import register_all_providers
 
 if TYPE_CHECKING:
     from factory.builder import Resolver
-    from sqlalchemy.orm import Session
+    from sqlalchemy.orm.session import Session
 
 
 # When running with pytest sqlalchemy_session gets poked in by
 # DatabaseTestCase.setUp(). Otherwise call
 # set_sqlalchemy_session_on_all_factories()
-class BaseFactory(factory.alchemy.SQLAlchemyModelFactory):
+class AnonTestBaseFactory(factory.alchemy.SQLAlchemyModelFactory):
     pass
 
 
-def set_sqlalchemy_session_on_all_factories(dbsession: "Session") -> None:
-    for factory_class in all_subclasses(BaseFactory):
+class SecretBaseFactory(factory.alchemy.SQLAlchemyModelFactory):
+    pass
+
+
+class SourceTestBaseFactory(factory.alchemy.SQLAlchemyModelFactory):
+    pass
+
+
+def set_sqlalchemy_session_on_all_factories(
+    factory_base_class: factory.alchemy.SQLAlchemyModelFactory,
+    dbsession: "Session",
+) -> None:
+    for factory_class in all_subclasses(factory_base_class):
         factory_class._meta.sqlalchemy_session = dbsession
 
 
@@ -83,7 +94,7 @@ class Fake:
 register_all_providers(Fake.en_gb)
 
 
-class DemoFactory(BaseFactory):
+class DemoFactory(SourceTestBaseFactory):
     class Meta:
         abstract = True
 

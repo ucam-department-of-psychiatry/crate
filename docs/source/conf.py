@@ -123,7 +123,7 @@ extensions = [
     "sphinx.ext.imgmath",
     "sphinx.ext.napoleon",
     # ... support different docstring styles; we use the Google style:
-    # https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings  # noqa
+    # https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings  # noqa: E501
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
 ]
@@ -178,7 +178,7 @@ pygments_style = "sphinx"
 
 # See http://www.sphinx-doc.org/en/master/theming.html
 # html_theme = 'alabaster'  # elegant but monochrome
-# html_theme = 'classic'  # like the Python docs. GOOD. CHOSEN. Then sphinx_rtd_theme  # noqa
+# html_theme = 'classic'  # like the Python docs. GOOD. CHOSEN. Then sphinx_rtd_theme  # noqa: E501
 # html_theme = 'sphinxdoc'  # OK; TOC on right
 # html_theme = 'scrolls'  # ugly
 # html_theme = 'agogo'  # nice, but a bit big-print; TOC on right; justified
@@ -201,7 +201,7 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
 
 # favicon; see
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_favicon  # noqa
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_favicon  # noqa: E501
 html_favicon = "images/scrubber.ico"
 
 # Custom sidebar templates, must be a dictionary that maps document names
@@ -316,18 +316,18 @@ def skip(
 
 def setup(app: Sphinx) -> None:
     # Add CSS
-    # https://stackoverflow.com/questions/23462494/how-to-add-a-custom-css-file-to-sphinx  # noqa
+    # https://stackoverflow.com/questions/23462494/how-to-add-a-custom-css-file-to-sphinx  # noqa: E501
     app.add_css_file("css/crate_docs.css")  # may also be an URL
 
     # Don't skip __init__
-    # https://stackoverflow.com/questions/5599254/how-to-use-sphinxs-autodoc-to-document-a-classs-init-self-method  # noqa
+    # https://stackoverflow.com/questions/5599254/how-to-use-sphinxs-autodoc-to-document-a-classs-init-self-method  # noqa: E501
     app.connect("autodoc-skip-member", skip)
 
 
 # -----------------------------------------------------------------------------
 # RNC: autodoc
 # -----------------------------------------------------------------------------
-# http://www.sphinx-doc.org/en/stable/ext/autodoc.html#confval-autodoc_mock_imports  # noqa
+# http://www.sphinx-doc.org/en/stable/ext/autodoc.html#confval-autodoc_mock_imports  # noqa: E501
 # https://stackoverflow.com/questions/36228537/django-settings-module-not-defined-when-building-sphinx-documentation
 
 autodoc_mock_imports = [
@@ -349,11 +349,11 @@ os.environ["DJANGO_SETTINGS_MODULE"] = "crate_anon.crateweb.config.settings"
 django.setup()
 
 
-# https://stackoverflow.com/questions/5599254/how-to-use-sphinxs-autodoc-to-document-a-classs-init-self-method  # noqa
+# https://stackoverflow.com/questions/5599254/how-to-use-sphinxs-autodoc-to-document-a-classs-init-self-method  # noqa: E501
 autoclass_content = "class"
 
 # To prevent Pyramid SETTINGS breaking:
 os.environ[EnvVar.GENERATING_CRATE_DOCS] = "true"
 
 # For "Command killed due to excessive memory consumption" on readthedocs.org:
-# https://docs.readthedocs.io/en/latest/guides/build-using-too-many-resources.html  # noqa
+# https://docs.readthedocs.io/en/latest/guides/build-using-too-many-resources.html  # noqa: E501

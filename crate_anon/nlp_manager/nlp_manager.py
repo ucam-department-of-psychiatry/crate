@@ -237,7 +237,7 @@ def delete_where_no_source(
     - for each table, make a temporary table in the same database
     - populate that table with (source PK integer/hash, source PK string) pairs
     - delete where pairs don't match -- is that portable SQL?
-      https://stackoverflow.com/questions/7356108/sql-query-for-deleting-rows-with-not-in-using-2-columns  # noqa
+      https://stackoverflow.com/questions/7356108/sql-query-for-deleting-rows-with-not-in-using-2-columns  # noqa: E501
 
     More efficient would be to make one table per destination database.
 
@@ -642,8 +642,8 @@ def process_nlp(
                 #   guarantee it'll do something sensible?
                 # - See also
                 #   https://en.wikipedia.org/wiki/Isolation_(database_systems)
-                #   http://skien.cc/blog/2014/02/06/sqlalchemy-and-race-conditions-follow-up/  # noqa
-                #   http://docs.sqlalchemy.org/en/latest/core/connections.html?highlight=execution_options#sqlalchemy.engine.Connection.execution_options  # noqa
+                #   http://skien.cc/blog/2014/02/06/sqlalchemy-and-race-conditions-follow-up/  # noqa: E501
+                #   http://docs.sqlalchemy.org/en/latest/core/connections.html?highlight=execution_options#sqlalchemy.engine.Connection.execution_options  # noqa: E501
                 # - However, empirically, setting this to False gives
                 #   "Transaction (Process ID xx) was deadlocked on lock
                 #   resources with another process and has been chosen as the
@@ -651,7 +651,7 @@ def process_nlp(
                 #   query.
                 # - SQL Server uses READ COMMITTED as the default isolation
                 #   level.
-                # - https://technet.microsoft.com/en-us/library/jj856598(v=sql.110).aspx  # noqa
+                # - https://technet.microsoft.com/en-us/library/jj856598(v=sql.110).aspx  # noqa: E501
 
                 nlpdef.notify_transaction(
                     session=session,

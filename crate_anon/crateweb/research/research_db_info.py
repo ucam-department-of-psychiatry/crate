@@ -41,6 +41,10 @@ from cardinal_pythonlib.json.serialize import METHOD_NO_ARGS, register_for_json
 from cardinal_pythonlib.logs import BraceStyleAdapter
 from cardinal_pythonlib.reprfunc import auto_repr
 from cardinal_pythonlib.sql.sql_grammar import SqlGrammar
+from cardinal_pythonlib.sql.validation import (
+    SQLTYPES_TEXT,
+    SQLTYPES_WITH_DATE,
+)
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 from cardinal_pythonlib.sqlalchemy.schema import (
     MSSQL_DEFAULT_SCHEMA,
@@ -56,24 +60,25 @@ from requests.structures import CaseInsensitiveDict
 from crate_anon.common.constants import RUNNING_WITHOUT_CONFIG
 from crate_anon.common.sql import (
     ColumnId,
-    is_sql_column_type_textual,
-    make_grammar,
     QB_DATATYPE_DATE,
     QB_DATATYPE_FLOAT,
     QB_DATATYPE_INTEGER,
     QB_DATATYPE_STRING,
     QB_DATATYPE_STRING_FULLTEXT,
     QB_DATATYPE_UNKNOWN,
+    SQLTYPES_FLOAT_OR_OTHER_NUMERIC,
+    SQLTYPES_INTEGER_OR_BIT,
     SchemaId,
     SqlArgsTupleType,
-    SQLTYPES_FLOAT,
-    SQLTYPES_WITH_DATE,
-    SQLTYPES_TEXT,
-    SQLTYPES_INTEGER,
     TableId,
+    is_sql_column_type_textual,
+    make_grammar,
     translate_sql_qmark_to_percent,
 )
-from crate_anon.crateweb.core.constants import SettingsKeys
+from crate_anon.crateweb.core.constants import (
+    RESEARCH_DB_CONNECTION_NAME,
+    SettingsKeys,
+)
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys
 
 log = BraceStyleAdapter(logging.getLogger(__name__))
@@ -82,8 +87,6 @@ log = BraceStyleAdapter(logging.getLogger(__name__))
 # =============================================================================
 # Constants
 # =============================================================================
-
-RESEARCH_DB_CONNECTION_NAME = "research"
 
 SUPPORTED_DIALECTS = [
     SqlaDialectName.MSSQL,
@@ -151,7 +154,7 @@ class ColumnInfo:
         defines our field type, like ``"int"`` or ``"date"``. See source.
         """
         basetype = self.basetype
-        if basetype in SQLTYPES_FLOAT:
+        if basetype in SQLTYPES_FLOAT_OR_OTHER_NUMERIC:
             return QB_DATATYPE_FLOAT
         if basetype in SQLTYPES_WITH_DATE:
             return QB_DATATYPE_DATE
@@ -160,7 +163,7 @@ class ColumnInfo:
                 return QB_DATATYPE_STRING_FULLTEXT
             else:
                 return QB_DATATYPE_STRING
-        if basetype in SQLTYPES_INTEGER:
+        if basetype in SQLTYPES_INTEGER_OR_BIT:
             return QB_DATATYPE_INTEGER
         return QB_DATATYPE_UNKNOWN
 
@@ -209,7 +212,6 @@ class SingleResearchDatabase:
         grammar: SqlGrammar,
         rdb_info: "ResearchDatabaseInfo",
         connection: BaseDatabaseWrapper,
-        vendor: str,
     ) -> None:
         """
         Instantiates, reading database information as follows:
@@ -229,16 +231,15 @@ class SingleResearchDatabase:
                 the research database
             connection:
                 a :class:`django.db.backends.base.base.BaseDatabaseWrapper`,
-                i.e. a Django database connection
-            vendor:
-                the Django database vendor name; see e.g.
+                i.e. a Django database connection. This includes
+                connection.vendor, the Django database vendor name; see e.g.
                 https://docs.djangoproject.com/en/2.1/ref/models/options/
         """
         assert 0 <= index <= len(settings.RESEARCH_DB_INFO)
         infodict = settings.RESEARCH_DB_INFO[index]
 
-        self.connection = connection
-        self.vendor = vendor
+        # Don't store self.connection; the Django cache will pickle and it is
+        # not pickleable.
 
         self.index = index
         self.is_first_db = index == 0
@@ -387,9 +388,7 @@ class SingleResearchDatabase:
         assert self.schema_id
 
         # Now discover the schema
-        self._schema_infodictlist = (
-            None
-        )  # type: Optional[List[Dict[str, Any]]]
+        self._schema_infodictlist = self.get_schema_infodictlist(connection)
         self._colinfolist = None  # type: Optional[List[ColumnInfo]]
 
     @property
@@ -399,10 +398,6 @@ class SingleResearchDatabase:
         :meth:`get_schema_infodictlist` for our connection and vendor.
         Implements caching.
         """
-        if self._schema_infodictlist is None:
-            self._schema_infodictlist = self.get_schema_infodictlist(
-                self.connection, self.vendor
-            )
         return self._schema_infodictlist
 
     @property
@@ -522,7 +517,7 @@ class SingleResearchDatabase:
         return False
 
     # -------------------------------------------------------------------------
-    # Fetching schema info from the database
+    # Fetching schema info from the database: internals
     # -------------------------------------------------------------------------
 
     @classmethod
@@ -530,7 +525,7 @@ class SingleResearchDatabase:
         cls, db_name: str, schema_names: List[str]
     ) -> SqlArgsTupleType:
         """
-        Returns a query to fetche the database structure from an SQL Server
+        Returns a query to fetch the database structure from an SQL Server
         database.
 
         The columns returned are as expected by
@@ -571,15 +566,20 @@ SELECT
     d.column_type,
     d.column_comment,
     CASE WHEN COUNT(d.index_id) > 0 THEN 1 ELSE 0 END AS indexed,
-    CASE WHEN COUNT(d.fulltext_index_object_id) > 0 THEN 1 ELSE 0 END AS indexed_fulltext
+    CASE
+        WHEN COUNT(d.fulltext_index_object_id) > 0 THEN 1
+        ELSE 0
+    END AS indexed_fulltext
 FROM (
     SELECT
         s.name AS table_schema,
         ta.name AS table_name,
         c.name AS column_name,
         c.is_nullable,
-        UPPER(ty.name) + '(' + CONVERT(VARCHAR(100), c.max_length) + ')' AS column_type,
-        CONVERT(VARCHAR(1000), x.value) AS column_comment, -- x.value is of type SQL_VARIANT
+        UPPER(ty.name) + '(' + CONVERT(VARCHAR(100), c.max_length) + ')'
+            AS column_type,
+        CONVERT(VARCHAR(1000), x.value) AS column_comment,
+            -- x.value is of type SQL_VARIANT
         i.index_id,
         fi.object_id AS fulltext_index_object_id
     FROM [{db_name}].sys.tables ta
@@ -599,7 +599,8 @@ FROM (
         AND fi.column_id = c.column_id
     )
     WHERE s.name IN ({schema_placeholder})
-    AND ty.user_type_id = ty.system_type_id  -- restricts to system data types; eliminates 'sysname' type
+    AND ty.user_type_id = ty.system_type_id
+        -- restricts to system data types; eliminates 'sysname' type
 ) AS d
 GROUP BY
     table_schema,
@@ -612,7 +613,7 @@ ORDER BY
     table_schema,
     table_name,
     column_name
-        """  # noqa: E501
+            """
         )
         args = [db_name] + schema_names
         return sql, args
@@ -620,7 +621,7 @@ ORDER BY
     @classmethod
     def _schema_query_mysql(cls, db_and_schema_name: str) -> SqlArgsTupleType:
         """
-        Returns a query to fetche the database structure from a MySQL database.
+        Returns a query to fetch the database structure from a MySQL database.
 
         The columns returned are as expected by
         :func:`get_schema_infodictlist`.
@@ -681,7 +682,7 @@ ORDER BY
         # ---------------------------------------------------------------------
         # Method B. Much faster, e.g. 0.35s for the same thing.
         # ---------------------------------------------------------------------
-        # http://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins  # noqa
+        # http://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins  # noqa: E501
         # (Note that EXISTS() above returns 0 or 1.)
         # The LEFT JOIN below will produce NULL values for the index
         # columns for non-indexed fields.
@@ -737,7 +738,7 @@ ORDER BY
     table_schema,
     table_name,
     column_name
-        """
+            """
         )
         args = [db_and_schema_name]
         return sql, args
@@ -747,7 +748,7 @@ ORDER BY
         cls, schema_names: List[str]
     ) -> SqlArgsTupleType:
         """
-        Returns a query to fetche the database structure from an SQL Server
+        Returns a query to fetch the database structure from an SQL Server
         database.
 
         The columns returned are as expected by
@@ -842,13 +843,112 @@ ORDER BY
     table_schema,
     table_name,
     column_name
-        """
+            """
         )
         args = schema_names
         return sql, args
 
+    @classmethod
+    def _schema_query_sqlite_as_infodictlist(
+        cls, connection: BaseDatabaseWrapper, debug: bool = False
+    ) -> List[Dict[str, Any]]:
+        """
+        Queries an SQLite databases and returns columns as expected by
+        :func:`get_schema_infodictlist`.
+        """
+        # 1. Catalogue tables.
+        # pragma table_info(sqlite_master);
+        empty_args = []
+        sql_get_tables = """
+            SELECT tbl_name AS tablename
+            FROM sqlite_master
+            WHERE type='table'
+        """
+        table_info_rows = cls._exec_sql_query(
+            connection, (sql_get_tables, empty_args), debug=debug
+        )
+        table_names = [row["tablename"] for row in table_info_rows]
+
+        # 2. Catalogue each tables
+        results = []  # type: List[Dict[str, Any]]
+        for table_name in table_names:
+            # A "PRAGMA table_info()" call doesn't work with arguments.
+            sql_inspect_table = f"PRAGMA table_info({table_name})"
+            column_info_rows = cls._exec_sql_query(
+                connection, (sql_inspect_table, empty_args), debug=debug
+            )
+            for ci in column_info_rows:
+                results.append(
+                    dict(
+                        table_catalog="",
+                        table_schema="",
+                        table_name=table_name,
+                        column_name=ci["name"],
+                        is_nullable=1 - ci["notnull"],
+                        column_type=ci["type"],
+                        column_comment="",
+                        indexed=0,
+                        indexed_fulltext=0,
+                    )
+                )
+                # Ignored:
+                # - "cid" (column ID)
+                # - "dflt_value"
+                # - "pk"
+        return results
+
+    @classmethod
+    def _exec_sql_query(
+        cls,
+        connection: BaseDatabaseWrapper,
+        sql_args: SqlArgsTupleType,
+        debug: bool = False,
+    ) -> List[Dict[str, Any]]:
+        """
+        Used by get_schema_infodictlist() as a common function to translate an
+        sql/args pair into the desired results. But it does that because the
+        incoming SQL has the right column names; the function is more generic
+        and just runs a query.
+
+        Args:
+            connection:
+                a :class:`django.db.backends.base.base.BaseDatabaseWrapper`,
+                i.e. a Django database connection
+            sql_args:
+                tuple of SQL and arguments
+            debug:
+                be verbose to the log?
+
+        Returns:
+            A list of dictionaries, each mapping column names to values.
+            The dictionaries are suitable for use as ``**kwargs`` to
+            :class:`ColumnInfo`.
+        """
+        # We execute this one directly, rather than using the Query class,
+        # since this is a system rather than a per-user query.
+        sql, args = sql_args
+        cursor = connection.cursor()
+        if debug:
+            log.debug(f"- sql = {sql}\n- args = {args!r}")
+        cursor.execute(sql, args)
+        # Re passing multiple values to SQL via args:
+        # - Don't circumvent the parameter protection against SQL injection.
+        # - Too much hassle to use Django's ORM model here, though that would
+        #   also be possible.
+        # - https://stackoverflow.com/questions/907806
+        # - Similarly via SQLAlchemy reflection/inspection.
+        results = dictfetchall(cursor)  # list of OrderedDicts
+        if debug:
+            log.debug(f"results = {results!r}")
+        log.debug("... done")
+        return results
+
+    # -------------------------------------------------------------------------
+    # Fetching schema info from the database: main (still internal) interface
+    # -------------------------------------------------------------------------
+
     def get_schema_infodictlist(
-        self, connection: BaseDatabaseWrapper, vendor: str, debug: bool = False
+        self, connection: BaseDatabaseWrapper, debug: bool = False
     ) -> List[Dict[str, Any]]:
         """
         Fetch structure information for a specific database, by asking the
@@ -858,9 +958,6 @@ ORDER BY
             connection:
                 a :class:`django.db.backends.base.base.BaseDatabaseWrapper`,
                 i.e. a Django database connection
-            vendor:
-                the Django database vendor name; see e.g.
-                https://docs.djangoproject.com/en/2.1/ref/models/options/
             debug:
                 be verbose to the log?
 
@@ -877,49 +974,53 @@ ORDER BY
             f"{db_name!r}, schema {schema_name!r})..."
         )
         # The db/schema names are guaranteed to be strings by __init__().
-        if vendor == ConnectionVendors.MICROSOFT:
+        if connection.vendor == ConnectionVendors.MICROSOFT:
             if not db_name:
-                raise ValueError("No db_name specified; required for MSSQL")
+                raise ValueError(f"{db_name=!r}; required for MSSQL")
             if not schema_name:
-                raise ValueError(
-                    "No schema_name specified; required for MSSQL"
-                )
-            sql, args = self._schema_query_microsoft(db_name, [schema_name])
-        elif vendor == ConnectionVendors.POSTGRESQL:
+                raise ValueError(f"{schema_name=!r}; required for MSSQL")
+            results = self._exec_sql_query(
+                connection,
+                sql_args=self._schema_query_microsoft(db_name, [schema_name]),
+                debug=debug,
+            )
+        elif connection.vendor == ConnectionVendors.POSTGRESQL:
             if db_name:
-                raise ValueError(
-                    "db_name specified; must be '' for PostgreSQL"
-                )
+                raise ValueError(f"{db_name=!r}; must be '' for PostgreSQL")
             if not schema_name:
-                raise ValueError(
-                    "No schema_name specified; required for PostgreSQL"
-                )
-            sql, args = self._schema_query_postgres([schema_name])
-        elif vendor == ConnectionVendors.MYSQL:
+                raise ValueError(f"{schema_name=!r}; required for PostgreSQL")
+            results = self._exec_sql_query(
+                connection,
+                sql_args=self._schema_query_postgres([schema_name]),
+                debug=debug,
+            )
+        elif connection.vendor == ConnectionVendors.MYSQL:
             if db_name:
-                raise ValueError("db_name specified; must be '' for MySQL")
+                raise ValueError(f"{db_name=!r}; must be '' for MySQL")
             if not schema_name:
-                raise ValueError(
-                    "No schema_name specified; required for MySQL"
-                )
-            sql, args = self._schema_query_mysql(
-                db_and_schema_name=schema_name
+                raise ValueError(f"{schema_name=!r}; required for MySQL")
+            results = self._exec_sql_query(
+                connection,
+                sql_args=self._schema_query_mysql(
+                    db_and_schema_name=schema_name
+                ),
+                debug=debug,
+            )
+        elif connection.vendor == ConnectionVendors.SQLITE:
+            # db_name: don't care?
+            # schema_name: don't care?
+            # This one can't be done as a single query; the following function
+            # builds up the information by querying a list of tables, then each
+            # table.
+            results = self._schema_query_sqlite_as_infodictlist(
+                connection, debug=debug
             )
         else:
             raise ValueError(
                 f"Don't know how to get metadata for "
-                f"connection.vendor=='{vendor}'"
+                f"{connection.vendor=!r}"
             )
-        # We execute this one directly, rather than using the Query class,
-        # since this is a system rather than a per-user query.
-        cursor = connection.cursor()
-        if debug:
-            log.debug(f"sql = {sql}, args = {args!r}")
-        cursor.execute(sql, args)
-        results = dictfetchall(cursor)  # list of OrderedDicts
-        if debug:
-            log.debug(f"results = {results!r}")
-        log.debug("... done")
+
         if not results:
             log.warning(
                 f"SingleResearchDatabase.get_schema_infodictlist(): no "
@@ -927,12 +1028,6 @@ ORDER BY
                 f"database - misconfigured?"
             )
         return results
-        # Re passing multiple values to SQL via args:
-        # - Don't circumvent the parameter protection against SQL injection.
-        # - Too much hassle to use Django's ORM model here, though that would
-        #   also be possible.
-        # - https://stackoverflow.com/questions/907806
-        # - Similarly via SQLAlchemy reflection/inspection.
 
 
 @register_for_json(method=METHOD_NO_ARGS)
@@ -952,10 +1047,10 @@ class ResearchDatabaseInfo:
     # We fetch the dialect at first request; this enables us to import the
     # class without Django configured.
 
-    def __init__(self) -> None:
+    def __init__(self, running_without_config: bool = False) -> None:
         self.dbinfolist = []  # type: List[SingleResearchDatabase]
 
-        if RUNNING_WITHOUT_CONFIG:
+        if running_without_config:
             self.dialect = ""
             self.grammar = None  # type: Optional[SqlGrammar]
             self.dbinfo_for_contact_lookup = (
@@ -971,7 +1066,6 @@ class ResearchDatabaseInfo:
             self.grammar = make_grammar(self.dialect)  # not expensive
 
             connection = self._connection()
-            vendor = connection.vendor
 
             for index in range(len(settings.RESEARCH_DB_INFO)):
                 self.dbinfolist.append(
@@ -980,7 +1074,6 @@ class ResearchDatabaseInfo:
                         grammar=self.grammar,
                         rdb_info=self,
                         connection=connection,
-                        vendor=vendor,
                     )
                 )
             assert (
@@ -1595,4 +1688,6 @@ class ResearchDatabaseInfo:
         return sorted(list(eligible_tables))
 
 
-research_database_info = ResearchDatabaseInfo()
+@django_cache_function(timeout=None)
+def get_research_db_info() -> ResearchDatabaseInfo:
+    return ResearchDatabaseInfo(RUNNING_WITHOUT_CONFIG)

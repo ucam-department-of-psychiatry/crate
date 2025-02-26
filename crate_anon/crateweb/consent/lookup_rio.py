@@ -85,33 +85,33 @@ def lookup_cpft_rio_crate_preprocessed(
 
         CREATE INDEX _idx_cdd_nhs ON ClientIndex (NNN);  -- already in RiO source
 
-        CREATE INDEX _idx_cnh_id ON ClientName (ClientID);  -- already in RiO source  # noqa
+        CREATE INDEX _idx_cnh_id ON ClientName (ClientID);  -- already in RiO source
         CREATE INDEX _idx_cnh_eff ON ClientName (EffectiveDate);  -- ignored
         CREATE INDEX _idx_cnh_end ON ClientName (EndDate);  -- ignored
 
-        CREATE INDEX _idx_cah_id ON ClientAddress (ClientID);  -- already in RiO source as part of composite index  # noqa
+        CREATE INDEX _idx_cah_id ON ClientAddress (ClientID);  -- already in RiO source as part of composite index
         CREATE INDEX _idx_cah_from ON ClientAddress (FromDate);  -- ignored
         CREATE INDEX _idx_cah_to ON ClientAddress (ToDate);  -- ignored
 
-        CREATE INDEX _idx_cch_id ON ClientTelecom (ClientID);  -- already in RiO source as part of composite index  # noqa
+        CREATE INDEX _idx_cch_id ON ClientTelecom (ClientID);  -- already in RiO source as part of composite index
 
-        CREATE INDEX _idx_cgh_id ON ClientHealthCareProvider (ClientID);  -- already in RiO source  # noqa
-        CREATE INDEX _idx_cgh_from ON ClientHealthCareProvider (FromDate);  -- ignored  # noqa
+        CREATE INDEX _idx_cgh_id ON ClientHealthCareProvider (ClientID);  -- already in RiO source
+        CREATE INDEX _idx_cgh_from ON ClientHealthCareProvider (FromDate);  -- ignored
         CREATE INDEX _idx_cgh_to ON ClientHealthCareProvider (ToDate);  -- ignored
 
-        CREATE INDEX _idx_cc_id ON CPACareCoordinator (ClientID);  -- preprocessor adds this  # noqa
+        CREATE INDEX _idx_cc_id ON CPACareCoordinator (ClientID);  -- preprocessor adds this
         CREATE INDEX _idx_cc_start ON CPACareCoordinator (StartDate);  -- ignored
         CREATE INDEX _idx_cc_end ON CPACareCoordinator (EndDate);  -- ignored
 
-        CREATE INDEX _idx_ref_id ON AmsReferral (ClientID);  -- already in RiO source as part of composite index  # noqa
-        CREATE INDEX _idx_ref_recv ON AmsReferral (ReferralReceivedDate);  -- ignored  # noqa
+        CREATE INDEX _idx_ref_id ON AmsReferral (ClientID);  -- already in RiO source as part of composite index
+        CREATE INDEX _idx_ref_recv ON AmsReferral (ReferralReceivedDate);  -- ignored
         CREATE INDEX _idx_ref_removal ON AmsReferral (RemovalDateTime);  -- ignored
 
-        CREATE INDEX _idx_rsh_id ON AmsReferralAllocation (ClientID);  -- already in RiO source as part of composite index  # noqa
+        CREATE INDEX _idx_rsh_id ON AmsReferralAllocation (ClientID);  -- already in RiO source as part of composite index
         CREATE INDEX _idx_rsh_start ON AmsReferralAllocation (StartDate);  -- ignored
         CREATE INDEX _idx_rsh_end ON AmsReferralAllocation (EndDate);  -- ignored
 
-        CREATE INDEX _idx_rth_id ON AmsReferralTeam (ClientID);  -- already in RiO source as part of composite index  # noqa
+        CREATE INDEX _idx_rth_id ON AmsReferralTeam (ClientID);  -- already in RiO source as part of composite index
         CREATE INDEX _idx_rth_start ON AmsReferralTeam (StartDate);  -- ignored
         CREATE INDEX _idx_rth_end ON AmsReferralTeam (EndDate);  -- ignored
 
@@ -122,7 +122,7 @@ def lookup_cpft_rio_crate_preprocessed(
     .. code-block:: none
 
         Client_Name_History.End_Date  -- not End_Date_
-    """
+    """  # noqa: E501
     lookup_cpft_rio_generic(
         lookup, decisions, secret_decisions, as_crate_not_rcep=True
     )
@@ -189,8 +189,8 @@ def lookup_cpft_rio_rcep(
         CREATE INDEX _idx_rth_start ON Referral_Team_History (Start_Date);
         CREATE INDEX _idx_rth_end ON Referral_Team_History (End_Date);
 
-        -- CREATE INDEX _idx_rth_teamdesc ON Referral_Team_History (Team_Description);  # noqa
-    """
+        -- CREATE INDEX _idx_rth_teamdesc ON Referral_Team_History (Team_Description);
+    """  # noqa: E501
     lookup_cpft_rio_generic(
         lookup, decisions, secret_decisions, as_crate_not_rcep=False
     )
@@ -431,7 +431,7 @@ def lookup_cpft_rio_generic(
                      OR {'End_Date' if as_crate_not_rcep else 'End_Date_'} > GETDATE())
                 AND (Deleted_Flag IS NULL OR Deleted_Flag = 0)
             ORDER BY Name_Type_Code
-        """,  # noqa
+        """,  # noqa: E501
         [rio_client_id],
     )
     row = dictfetchone(cursor)
@@ -1072,11 +1072,11 @@ def get_latest_consent_mode_from_rio_generic(
         consent_mode=traffic_light,
         prefers_email=use_email,
         decision_signed_by_patient=decision_signed_by_patient,
-        decision_otherwise_directly_authorized_by_patient=decision_otherwise_directly_authorized_by_patient,  # noqa
-        decision_under16_signed_by_parent=decision_under16_signed_by_parent,  # noqa
-        decision_under16_signed_by_clinician=decision_under16_signed_by_clinician,  # noqa
-        decision_lack_capacity_signed_by_representative=decision_lack_capacity_signed_by_representative,  # noqa
-        decision_lack_capacity_signed_by_clinician=decision_lack_capacity_signed_by_clinician,  # noqa
+        decision_otherwise_directly_authorized_by_patient=decision_otherwise_directly_authorized_by_patient,  # noqa: E501
+        decision_under16_signed_by_parent=decision_under16_signed_by_parent,  # noqa: E501
+        decision_under16_signed_by_clinician=decision_under16_signed_by_clinician,  # noqa: E501
+        decision_lack_capacity_signed_by_representative=decision_lack_capacity_signed_by_representative,  # noqa: E501
+        decision_lack_capacity_signed_by_clinician=decision_lack_capacity_signed_by_clinician,  # noqa: E501
     )
     return cm
 

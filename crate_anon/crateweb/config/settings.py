@@ -434,7 +434,7 @@ LOGGING = {
             "propagate": True,
         },
         # Not sure the following are working, despite the docs!
-        # http://docs.cherrypy.org/en/latest/basics.html#play-along-with-your-other-loggers  # noqa
+        # http://docs.cherrypy.org/en/latest/basics.html#play-along-with-your-other-loggers  # noqa: E501
         "cherrypy_console": {
             "handlers": ["console"],
             "level": os.getenv("DJANGO_LOG_LEVEL", "DEBUG"),
@@ -569,7 +569,7 @@ else:
     # noinspection PyArgumentList
     _local_module = _loader.load_module()
     # noinspection PyUnresolvedReferences
-    from local_settings import *  # noqa
+    from local_settings import *  # noqa: F401, F403
 
     # noinspection PyUnresolvedReferences
     from local_settings import (
@@ -664,7 +664,7 @@ if CRATE_HTTPS:
     #   ... trust the X-Forwarded-Proto header from the front-end browser;
     #       if it's 'https', we trust the connection is secure
     # but it is a bit tricky to get right:
-    #   https://docs.djangoproject.com/en/1.8/ref/settings/#std:setting-SECURE_PROXY_SSL_HEADER  # noqa
+    #   https://docs.djangoproject.com/en/1.8/ref/settings/#std:setting-SECURE_PROXY_SSL_HEADER  # noqa: E501
     # Instead, YOU SHOULD RESTRICT THE FRONT END. See instructions.txt.
     SESSION_COOKIE_SECURE = True  # cookies only via HTTPS
     CSRF_COOKIE_SECURE = True  # CSRF cookies only via HTTPS

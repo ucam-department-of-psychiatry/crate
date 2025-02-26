@@ -360,6 +360,20 @@ def postcode_temporal_identifiers(
 
 
 # =============================================================================
+# SQLAlchemy convenience function
+# =============================================================================
+
+
+def exec_get_result(engine: Engine, sql: str, *args, **kwargs) -> CursorResult:
+    """
+    Executes a query and returns the result.
+    """
+    with engine.begin() as connection:
+        result = connection.execute(sql, *args, **kwargs)  # type: CursorResult
+    return result
+
+
+# =============================================================================
 # Speed testing
 # =============================================================================
 
@@ -704,7 +718,7 @@ def validate_1(
 
                 rowdata = {
                     # As of Python 3.6, keyword order is preserved:
-                    # https://docs.python.org/3/library/collections.html#collections.OrderedDict  # noqa
+                    # https://docs.python.org/3/library/collections.html#collections.OrderedDict  # noqa: E501
                     # https://www.python.org/dev/peps/pep-0468/
                     # ... but it doesn't matter since we're using a DictWriter.
                     vc.COLLECTION_NAME: collection_name,
@@ -1092,8 +1106,8 @@ def validate_2_fetch_cdl(
         -- Compare: SELECT COUNT(*) FROM rawCRSCDL.dbo.[CRS_Output_2020 09 21] = 162874
     """  # noqa: E501
     )
-    engine = create_engine(url, echo=echo)
-    result = engine.execute(sql)  # type: CursorResult
+    engine = create_engine(url, echo=echo, future=True)
+    result = exec_get_result(engine, sql)
     q = QueryColnames
     for row in result:
         cdl_m_number = row["cdl_m_number"]  # type: int
@@ -1346,8 +1360,8 @@ def validate_2_fetch_pcmis(
         -- Compare: SELECT COUNT(*) FROM rawPCMIS.dbo.PatientDetails = 94344.
     """  # noqa: E501
     )
-    engine = create_engine(url, echo=echo)
-    result = engine.execute(sql)  # type: CursorResult
+    engine = create_engine(url, echo=echo, future=True)
+    result = exec_get_result(engine, sql)
     q = QueryColnames
     for row in result:
         pcmis_patient_id = row["pcmis_patient_id"]  # type: str
@@ -1460,7 +1474,7 @@ def _get_rio_postcodes(
             postcode
     """
     )
-    rows = engine.execute(sql, patient_id=rio_patient_id)
+    rows = exec_get_result(engine, sql, patient_id=rio_patient_id)
     q = QueryColnames
     postcodes = [
         PostcodeInfo(
@@ -1599,7 +1613,7 @@ def _get_rio_names(
             AND AliasType = '1'  -- usual name
     """
     )
-    result = engine.execute(sql, client_id=rio_client_id)  # type: CursorResult
+    result = exec_get_result(engine, sql, client_id=rio_client_id)
     rows = result.fetchall()  # type: List[Row]
     n_rows = len(rows)  # or result.rowcount()
     assert n_rows <= 1, "Didn't expect >1 row per patient in ClientName"
@@ -1777,8 +1791,8 @@ def validate_2_fetch_rio(
         -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.Client = 216739
     """  # noqa: E501
     )
-    engine = create_engine(url, echo=echo)
-    result = engine.execute(sql)  # type: CursorResult
+    engine = create_engine(url, echo=echo, future=True)
+    result = exec_get_result(engine, sql)
     q = QueryColnames
     for row in result:
         rio_client_id = row["rio_client_id"]  # type: str
@@ -1875,7 +1889,7 @@ def _get_systmone_postcodes(
             postcode
     """
     )
-    rows = engine.execute(sql, patient_id=systmone_patient_id)
+    rows = exec_get_result(engine, sql, patient_id=systmone_patient_id)
     q = QueryColnames
     postcodes = [
         PostcodeInfo(
@@ -2074,8 +2088,8 @@ def validate_2_fetch_systmone(
         -- Compare: SELECT COUNT(*) FROM SystmOne.dbo.S1_Patient = 619062.
     """  # noqa: E501
     )
-    engine = create_engine(url, echo=echo)
-    result = engine.execute(sql)  # type: CursorResult
+    engine = create_engine(url, echo=echo, future=True)
+    result = exec_get_result(engine, sql)
     q = QueryColnames
     for row in result:
         systmone_patient_id = row["systmone_patient_id"]  # type: int

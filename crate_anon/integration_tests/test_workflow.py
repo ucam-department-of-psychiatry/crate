@@ -129,14 +129,11 @@ DB_ANON: str = "anondb"
 DB_SECRET: str = "secretdb"
 DB_NLP: str = "nlpdb"
 DB_CRATE: str = "cratedb"
-DB_TEST: str = "testdb"
 DB_ROOT_PASSWORD: str = "9@dVM7?v5U4q"  # random, e.g. https://www.lastpass.com
 DB_PRIVUSER_USER: str = "administrator"
 DB_PRIVUSER_PASSWORD: str = "8z3?I84@mvBX"
 DB_RESEARCHER_USER: str = "researcher"
 DB_RESEARCHER_PASSWORD: str = "G6f@V3?oc3Yb"
-DB_TEST_USER: str = "tester"
-DB_TEST_PASSWORD: str = "Qcig@cuW?myo"
 # Postgres has an additional layer... database/schema/table.
 PG_DB_IDENT = "identdb"
 PG_DB_DEIDENT = "deidentdb"
@@ -149,7 +146,6 @@ DOCKER_BUILD_ARGS = {
     "DB_SECRET": DB_SECRET,
     "DB_NLP": DB_NLP,
     "DB_CRATE": DB_CRATE,
-    "DB_TEST": DB_TEST,
     "PG_DB_IDENT": PG_DB_IDENT,
     "PG_DB_DEIDENT": PG_DB_DEIDENT,
     # Usernames/passwords
@@ -158,8 +154,6 @@ DOCKER_BUILD_ARGS = {
     "DB_PRIVUSER_PASSWORD": DB_PRIVUSER_PASSWORD,
     "DB_RESEARCHER_USER": DB_RESEARCHER_USER,
     "DB_RESEARCHER_PASSWORD": DB_RESEARCHER_PASSWORD,
-    "DB_TEST_USER": DB_TEST_USER,
-    "DB_TEST_PASSWORD": DB_TEST_PASSWORD,
     # NB this is an INSECURE method; see
     # https://docs.docker.com/engine/reference/builder/#arg. But this is just
     # a quick demo with no actual sensitive information.

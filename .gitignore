@@ -41,6 +41,6 @@ celerybeat.pid
 .dir-locals.el
 
 # Test database
-crate_test.sqlite
+crate_test*.sqlite
 
 crate_anon/nlp_manager/compiled_nlp_classes/*

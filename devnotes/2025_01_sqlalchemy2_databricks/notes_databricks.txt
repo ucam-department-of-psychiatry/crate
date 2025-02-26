@@ -1,0 +1,40 @@
+===============================================================================
+CHANGES FOR DATABRICKS SUPPORT
+===============================================================================
+
+Databricks is a cloud-based data platform:
+https://en.wikipedia.org/wiki/Databricks.
+
+
+-------------------------------------------------------------------------------
+Can you run Databricks locally?
+-------------------------------------------------------------------------------
+
+Maybe not. This set of instructions about a Docker image look ultimately to be
+about creating a Docker image that you can push to an existing Databricks
+cluster and run there:
+
+https://medium.com/@d.v.rademaker/do-it-yourself-building-your-own-databricks-docker-container-9cd670612927
+
+
+-------------------------------------------------------------------------------
+Databricks for SQLAlchemy
+-------------------------------------------------------------------------------
+
+Tutorial for Azure Databricks:
+
+    https://learn.microsoft.com/en-us/azure/databricks/dev-tools/sqlalchemy
+
+... has a broken link to its example sqlalchemy.py
+
+The basic SQL connector for Databricks is:
+
+    https://github.com/databricks/databricks-sql-python
+
+The SQLAlchemy dialect is:
+
+    https://github.com/databricks/databricks-sqlalchemy
+
+To import it:
+
+    from databricks.sqlalchemy import DatabricksDialect

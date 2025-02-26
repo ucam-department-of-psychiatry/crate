@@ -812,9 +812,9 @@ webnotes.txt
           not this:
             request.POST or None
 
-    https://stackoverflow.com/questions/2345708/how-can-i-get-the-full-absolute-url-with-domain-in-django  # noqa
-    https://stackoverflow.com/questions/150505/capturing-url-parameters-in-request-get  # noqa
-    https://stackoverflow.com/questions/2778247/how-do-i-construct-a-django-reverse-url-using-query-args  # noqa
+    https://stackoverflow.com/questions/2345708/how-can-i-get-the-full-absolute-url-with-domain-in-django
+    https://stackoverflow.com/questions/150505/capturing-url-parameters-in-request-get
+    https://stackoverflow.com/questions/2778247/how-do-i-construct-a-django-reverse-url-using-query-args
     http://whippleit.blogspot.co.uk/2010/10/pretty-urls-vs-query-strings.html
     https://stackoverflow.com/questions/3821663/querystring-in-rest-resource-url
     https://stackoverflow.com/questions/9399147/django-form-validation-with-get
@@ -1123,7 +1123,7 @@ webnotes.txt
     # )
     #
     # An alternative is to set DEBUG_TOOLBAR_CONFIG as per
-    # https://stackoverflow.com/questions/28226940/django-debug-toolbar-wont-display-from-production-server  # noqa
+    # https://stackoverflow.com/questions/28226940/django-debug-toolbar-wont-display-from-production-server  # noqa: E501
     # Like this:
 
     def always_show_toolbar(request):

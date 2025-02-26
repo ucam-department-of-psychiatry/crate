@@ -68,7 +68,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 # Have Python host the client process, communicating with stdin/stdout?
 #   http://eyalarubas.com/python-subproc-nonblock.html
-#   https://stackoverflow.com/questions/2715847/python-read-streaming-input-from-subprocess-communicate  # noqa
+#   https://stackoverflow.com/questions/2715847/python-read-streaming-input-from-subprocess-communicate  # noqa: E501
 # Java process could be a network server.
 #   http://docs.oracle.com/javase/tutorial/networking/sockets/clientServer.html
 #   http://www.tutorialspoint.com/java/java_networking.htm

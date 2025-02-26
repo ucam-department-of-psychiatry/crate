@@ -42,6 +42,7 @@ from cardinal_pythonlib.sql.validation import (
     ensure_valid_field_name,
     ensure_valid_table_name,
     is_sqltype_valid,
+    SQLTYPE_DATE,
 )
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 from cardinal_pythonlib.sqlalchemy.schema import (
@@ -78,7 +79,6 @@ from crate_anon.common.sql import (
     is_sql_column_type_textual,
     matches_fielddef,
     matches_tabledef,
-    SQLTYPE_DATE,
 )
 
 if TYPE_CHECKING:

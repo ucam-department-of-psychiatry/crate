@@ -137,14 +137,14 @@ class WordListTests(TestCase):
             + "\n".join(f" {x} " for x in denylist_phrases)
             + "\n"
         )
-        # https://stackoverflow.com/questions/952914/how-to-make-a-flat-list-out-of-a-list-of-lists  # noqa
+        # https://stackoverflow.com/questions/952914/how-to-make-a-flat-list-out-of-a-list-of-lists  # noqa: E501
         denylist_words = []  # type: List[str]
         for line in denylist_phrases:
             denylist_words += [x for x in line.split() if x]
 
         expected_result_phrases = test_source_text
         for element in denylist_phrases:
-            # https://stackoverflow.com/questions/919056/case-insensitive-replace  # noqa
+            # https://stackoverflow.com/questions/919056/case-insensitive-replace  # noqa: E501
             element_re = re.compile(re.escape(element), re.IGNORECASE)
             expected_result_phrases = element_re.sub(
                 anon_text, expected_result_phrases

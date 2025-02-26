@@ -87,14 +87,8 @@ from cardinal_pythonlib.sql.validation import (
     ensure_valid_field_name,
     ensure_valid_table_name,
 )
-from cardinal_pythonlib.sqlalchemy.schema import (
-    hack_in_mssql_xml_type,
-    is_sqlatype_integer,
-)
+from cardinal_pythonlib.sqlalchemy.schema import is_sqlatype_integer
 from cardinal_pythonlib.sizeformatter import sizeof_fmt
-from cardinal_pythonlib.sqlalchemy.insert_on_duplicate import (
-    monkeypatch_TableClause,
-)
 import regex
 from sqlalchemy import BigInteger, create_engine, String
 from sqlalchemy.dialects.mssql.base import dialect as ms_sql_server_dialect
@@ -112,10 +106,10 @@ from crate_anon.anonymise.constants import (
     AnonymiseDatabaseSafeConfigKeys as SK,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
-    DEMO_CONFIG,
     HashConfigKeys as HK,
     SEP,
 )
+from crate_anon.anonymise.demo_config import get_demo_config
 from crate_anon.anonymise.dd import DataDictionary
 from crate_anon.anonymise.scrub import (
     NonspecificScrubber,
@@ -133,11 +127,6 @@ if TYPE_CHECKING:
     from crate_anon.anonymise.dbholder import DatabaseHolder
 
 log = logging.getLogger(__name__)
-
-# The Config class is loaded very early, via the nasty singleton.
-# This is therefore the appropriate moment to make any changes to SQLAlchemy.
-monkeypatch_TableClause()
-hack_in_mssql_xml_type()  # support XML type under SQL Server
 
 
 # =============================================================================
@@ -542,7 +531,7 @@ class Config:
             if RUNNING_WITHOUT_CONFIG or mock:
                 # Running in a mock environment; no config required
                 filename = None
-                fileobj = StringIO(DEMO_CONFIG)
+                fileobj = StringIO(get_demo_config())
             else:
                 print(
                     f"You must set the {ANON_CONFIG_ENV_VAR} environment "
@@ -987,9 +976,7 @@ class Config:
         self._dest_bytes_written = 0
         self._echo = False
 
-    def get_destdb_engine_outside_transaction(
-        self, encoding: str = "utf-8"
-    ) -> Engine:
+    def get_destdb_engine_outside_transaction(self) -> Engine:
         """
         Get a standalone SQLAlchemy Engine for the destination database, and
         configure itself so transactions aren't used (equivalently:
@@ -999,18 +986,15 @@ class Config:
         See
         https://github.com/mkleehammer/pyodbc/wiki/Database-Transaction-Management
 
-        Args:
-            encoding: passed to the SQLAlchemy :func:`create_engine` function
-
         Returns:
             the Engine
         """
         url = self._destination_database_url
         return create_engine(
             url,
-            encoding=encoding,
             echo=self._echo,
             connect_args={"autocommit": True},  # for pyodbc
+            future=True,
         )
 
     def overall_progress(self) -> str:

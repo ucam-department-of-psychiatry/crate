@@ -150,7 +150,7 @@ LE = "<="
 EQ = r"(?: = | equals | equal \s+ to )"
 GE = ">="
 GT = r"(?: > | (?:more|greater) \s+ than | over )"
-# OF = "\b of \b"  # as in: "a BMI of 30"... but too likely to be mistaken for a target?  # noqa
+# OF = "\b of \b"  # as in: "a BMI of 30"... but too likely to be mistaken for a target?  # noqa: E501
 
 RELATION = rf"(?: {LE} | {LT} | {EQ} | {GE} | {GT} )"
 # ... ORDER MATTERS: greedier things first, i.e.

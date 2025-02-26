@@ -25,6 +25,10 @@ crate_anon/common/sql.py
 
 **Low-level SQL manipulation functions.**
 
+These are about the manipulation of SQL as text (e.g. for query building
+assistance for researchers, or for interpreting SQL data types in data
+dictionaries), not about a higher-level approach like SQLAlchemy.
+
 """
 
 from collections import OrderedDict
@@ -51,9 +55,19 @@ from cardinal_pythonlib.sql.sql_grammar_factory import (
     make_grammar,
     mysql_grammar,
 )
+from cardinal_pythonlib.sql.validation import (
+    SQLTYPES_INTEGER,
+    SQLTYPES_BIT,
+    SQLTYPES_FLOAT,
+    SQLTYPES_TEXT,
+    SQLTYPES_OTHER_NUMERIC,
+)
 from cardinal_pythonlib.sqlalchemy.core_query import count_star
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
-from cardinal_pythonlib.sqlalchemy.schema import column_creation_ddl
+from cardinal_pythonlib.sqlalchemy.schema import (
+    column_creation_ddl,
+    execute_ddl,
+)
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 from pyparsing import ParseResults
 from sqlalchemy import inspect
@@ -81,48 +95,17 @@ SqlArgsTupleType = Tuple[str, List[Any]]
 # Constants
 # =============================================================================
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Generic
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 TIMING_COMMIT = "commit"
 
 SQL_OPS_VALUE_UNNECESSARY = ["IS NULL", "IS NOT NULL"]
 SQL_OPS_MULTIPLE_VALUES = ["IN", "NOT IN"]
 
-SQLTYPE_DATE = "DATE"
-
-SQLTYPES_INTEGER = [
-    "INT",
-    "INTEGER",
-    "TINYINT",
-    "SMALLINT",
-    "MEDIUMINT",
-    "BIGINT",
-    "BIT",
-    "BOOL",
-    "BOOLEAN",
-]
-SQLTYPES_FLOAT = [
-    "DOUBLE",
-    "FLOAT",
-    "DEC",
-    "DECIMAL",
-]
-SQLTYPES_TEXT = [
-    "CHAR",
-    "VARCHAR",
-    "NVARCHAR",
-    "TINYTEXT",
-    "TEXT",
-    "NTEXT",
-    "MEDIUMTEXT",
-    "LONGTEXT",
-]
-SQLTYPES_WITH_DATE = [
-    SQLTYPE_DATE,
-    "DATETIME",
-    "TIMESTAMP",
-]
-# SQLTYPES_BINARY = [
-#     "BINARY", "BLOB", "IMAGE", "LONGBLOB", "VARBINARY",
-# ]
+SQLTYPES_INTEGER_OR_BIT = SQLTYPES_INTEGER + SQLTYPES_BIT
+SQLTYPES_FLOAT_OR_OTHER_NUMERIC = SQLTYPES_FLOAT + SQLTYPES_OTHER_NUMERIC
 
 # Must match querybuilder.js:
 QB_DATATYPE_INTEGER = "int"
@@ -140,15 +123,15 @@ COLTYPE_WITH_ONE_INTEGER_REGEX = re.compile(r"^([A-z]+)\((-?\d+)\)$")
 # Dictionaries for the different dialects mapping text column type to length
 # or default length.
 # Doesn't include things like VARCHAR which require the user to specify length
-MYSQL_COLTYPE_TO_LEN = {
-    # https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html
-    "CHAR": 1,  # can specify CHAR(0) to CHAR(255), but if omitted, length is 1
-    "TINYTEXT": 255,  # 2^8 - 1
-    "TEXT": 65535,  # 2^16 - 1
-    "MEDIUMTEXT": 16777215,  # 2^24 - 1
-    "LONGTEXT": 4294967295,  # 2^32 - 1
-}
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# SQLAlchemy dialects
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+DATABRICKS_COLTYPE_TO_LEN = {
+    # https://docs.databricks.com/en/sql/language-manual/data-types/string-type.html  # noqa: E501
+    "STRING": None  # There is no maximum.
+}
 MSSQL_COLTYPE_TO_LEN = {
     # The "N" prefix means Unicode.
     # https://docs.microsoft.com/en-us/sql/t-sql/data-types/char-and-varchar-transact-sql?view=sql-server-ver15  # noqa: E501
@@ -161,16 +144,20 @@ MSSQL_COLTYPE_TO_LEN = {
     "TEXT": 2**31 - 1,
     "NTEXT": 2**30 - 1,
 }
+MYSQL_COLTYPE_TO_LEN = {
+    # https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html
+    "CHAR": 1,  # can specify CHAR(0) to CHAR(255), but if omitted, length is 1
+    "TINYTEXT": 255,  # 2^8 - 1
+    "TEXT": 65535,  # 2^16 - 1
+    "MEDIUMTEXT": 16777215,  # 2^24 - 1
+    "LONGTEXT": 4294967295,  # 2^32 - 1
+}
 
-
-# def combine_db_schema_table(db: Optional[str],
-#                             schema: Optional[str],
-#                             table: str) -> str:
-#     # ANSI SQL: http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
-#     # <table name>, <qualified name>
-#     if not table:
-#         raise ValueError("Missing table supplied to combine_db_schema_table")
-#     return ".".join(x for x in [db, schema, table] if x)
+DIALECT_TO_STRING_LEN_LOOKUP = {
+    SqlaDialectName.DATABRICKS: DATABRICKS_COLTYPE_TO_LEN,
+    SqlaDialectName.MSSQL: MSSQL_COLTYPE_TO_LEN,
+    SqlaDialectName.MYSQL: MYSQL_COLTYPE_TO_LEN,
+}
 
 
 # =============================================================================
@@ -1010,9 +997,9 @@ def set_print_not_execute(print_not_execute: bool) -> None:
     _global_print_not_execute_sql = print_not_execute
 
 
-def execute(engine: Engine, sql: str) -> None:
+def _exec_ddl(engine: Engine, sql: str) -> None:
     """
-    Executes SQL.
+    Executes SQL as DDL.
 
     Whether we act or just print is conditional on previous calls to
     :func:`set_print_not_execute`.
@@ -1026,7 +1013,27 @@ def execute(engine: Engine, sql: str) -> None:
         print(format_sql_for_print(sql) + "\n;")
         # extra \n in case the SQL ends in a comment
     else:
-        engine.execute(sql)
+        execute_ddl(engine, sql=sql)
+
+
+def execute(engine: Engine, sql: str) -> None:
+    """
+    Executes plain SQL in a transaction.
+
+    Whether we act or just print is conditional on previous calls to
+    :func:`set_print_not_execute`.
+
+    Args:
+        engine: SQLAlchemy database Engine
+        sql: raw SQL to execute (or print)
+    """
+    log.debug(sql)
+    if _global_print_not_execute_sql:
+        print(format_sql_for_print(sql) + "\n;")
+        # extra \n in case the SQL ends in a comment
+    else:
+        with engine.begin() as connection:
+            connection.execute(sql)
 
 
 def add_columns(engine: Engine, table: Table, columns: List[Column]) -> None:
@@ -1080,7 +1087,7 @@ def add_columns(engine: Engine, table: Table, columns: List[Column]) -> None:
     for column_def in column_defs:
         log.info(f"Table {table.name!r}: adding column {column_def!r}")
         sql = f"ALTER TABLE {table.name} ADD {column_def}"
-        execute(engine, sql)
+        _exec_ddl(engine, sql)
 
 
 def drop_columns(
@@ -1111,12 +1118,11 @@ def drop_columns(
             )
         else:
             log.info(f"Table {table.name!r}: dropping column {name!r}")
-            sql = f"ALTER TABLE {table.name} DROP COLUMN {name}"
             # SQL Server:
             #   http://www.techonthenet.com/sql_server/tables/alter_table.php
             # MySQL:
             #   http://dev.mysql.com/doc/refman/5.7/en/alter-table.html
-            execute(engine, sql)
+            _exec_ddl(engine, f"ALTER TABLE {table.name} DROP COLUMN {name}")
 
 
 def add_indexes(
@@ -1147,12 +1153,12 @@ def add_indexes(
                 f"Table {table.name!r}: adding index {index_name!r} on "
                 f"column {column!r}"
             )
-            execute(
+            _exec_ddl(
                 engine,
                 f"""
-                CREATE{" UNIQUE" if i.unique else ""} INDEX {index_name}
-                    ON {table.name} ({column})
-            """,
+                    CREATE{" UNIQUE" if i.unique else ""} INDEX {index_name}
+                        ON {table.name} ({column})
+                """,
             )
         else:
             log.debug(
@@ -1192,7 +1198,7 @@ def drop_indexes(
                 sql = f"DROP INDEX {table.name}.{index_name}"
             else:
                 assert False, f"Unknown dialect: {engine.dialect.name}"
-            execute(engine, sql)
+            _exec_ddl(engine, sql)
 
 
 def get_table_names(
@@ -1349,7 +1355,7 @@ def create_view(engine: Engine, viewname: str, select_sql: str) -> None:
         drop_view(engine, viewname, quiet=True)
         sql = f"CREATE VIEW {viewname} AS {select_sql}"
     log.info(f"Creating view: {viewname!r}")
-    execute(engine, sql)
+    _exec_ddl(engine, sql)
 
 
 def assert_view_has_same_num_rows(
@@ -1402,8 +1408,7 @@ def drop_view(engine: Engine, viewname: str, quiet: bool = False) -> None:
     else:
         if not quiet:
             log.info(f"Dropping view: {viewname!r}")
-        sql = f"DROP VIEW {viewname}"
-        execute(engine, sql)
+        _exec_ddl(engine, f"DROP VIEW {viewname}")
 
 
 def get_column_fk_description(c: Column) -> str:
@@ -2309,7 +2314,7 @@ def coltype_length_if_text(column_type: str, dialect: str) -> Optional[int]:
 
     Args:
         column_type: SQL column type as a string, e.g. ``"VARCHAR(50)"``
-        dialect: the sql dialect the column type is from
+        dialect: the SQL dialect the column type is from
 
     Returns:
         length of the column or ``None`` if it's not a text column.
@@ -2319,21 +2324,20 @@ def coltype_length_if_text(column_type: str, dialect: str) -> Optional[int]:
     if column_type in SQLTYPES_TEXT:
         # No length specified - get the default
         try:
-            if dialect == SqlaDialectName.MYSQL:
-                return MYSQL_COLTYPE_TO_LEN[column_type]
-            elif dialect == SqlaDialectName.MSSQL:
-                return MSSQL_COLTYPE_TO_LEN[column_type]
-            else:
-                raise ValueError(
-                    f"{dialect} is not a valid SQL dialect. Must "
-                    f"be one of: {SqlaDialectName.MYSQL!r}, "
-                    f"{SqlaDialectName.MSSQL!r}"
-                )
+            lookup = DIALECT_TO_STRING_LEN_LOOKUP[dialect]
         except KeyError:
-            log.error(
-                f"SQL dialect {dialect} has no data type " f"{column_type}"
+            possible = list(DIALECT_TO_STRING_LEN_LOOKUP.keys())
+            raise ValueError(
+                f"CRATE doesn't properly understand SQL dialect {dialect!r}. "
+                f"Supported: {possible}"
             )
-            raise
+        try:
+            return lookup[column_type]
+        except KeyError:
+            raise ValueError(
+                f"For SQL dialect {dialect!r}, CRATE doesn't know the length "
+                f"for string data type {column_type!r}"
+            )
     else:
         # Length specified - get it from the column type
         try:
@@ -2341,21 +2345,20 @@ def coltype_length_if_text(column_type: str, dialect: str) -> Optional[int]:
             basetype = m.group(1)
             length = m.group(2)
             if length == "MAX" or length == "-1":
-                if basetype == "VARCHAR":
-                    return MSSQL_COLTYPE_TO_LEN["VARCHAR_MAX"]
-                elif basetype == "NVARCHAR":
-                    return MSSQL_COLTYPE_TO_LEN["NVARCHAR_MAX"]
-                else:
-                    return None
+                if dialect == SqlaDialectName.MSSQL:
+                    if basetype == "VARCHAR":
+                        return MSSQL_COLTYPE_TO_LEN["VARCHAR_MAX"]
+                    elif basetype == "NVARCHAR":
+                        return MSSQL_COLTYPE_TO_LEN["NVARCHAR_MAX"]
+                return None
         except AttributeError:
             # Not the correct type of column
             return None
         try:
-            length = int(length)
+            return int(length)
         except ValueError:
             # Not the correct type of column
             return None
-        return length
 
 
 def escape_quote_in_literal(s: str) -> str:

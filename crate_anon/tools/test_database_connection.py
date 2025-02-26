@@ -31,11 +31,11 @@ installer/test_database_connection.py
 
 import argparse
 
-from sqlalchemy import create_engine
+from sqlalchemy.engine import create_engine
 
 
 def test_connection(url: str) -> None:
-    engine = create_engine(url)
+    engine = create_engine(url, future=True)
 
     try:
         connection = engine.connect()

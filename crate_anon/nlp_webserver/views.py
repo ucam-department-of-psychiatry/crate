@@ -738,8 +738,7 @@ class NlpWebViews:
         # noinspection PyUnresolvedReferences
         queue_ids = fetch_all_first_values(
             dbsession,
-            select([Document.queue_id])
-            .select_from(Document.__table__)
+            select(Document.queue_id)
             .where(and_(*queue_id_wheres))
             .distinct()
             .order_by(Document.queue_id),
