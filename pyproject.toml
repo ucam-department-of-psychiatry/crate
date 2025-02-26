@@ -25,5 +25,236 @@
 # CRATE project file
 
 [build-system]
-build-backend = "setuptools.build_meta"
 requires = ["setuptools >= 61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "crate_anon"
+authors = [{name = "Rudolf Cardinal", email = "rudolf@pobox.com"}]
+version = "0.20.6"  # TODO: make dynamic
+description = "CRATE: clinical records anonymisation and text extraction"
+readme = "README.rst"
+requires-python = ">=3.9"
+keywords = ["anonymisation"]
+license = {text = "GNU General Public License v3 or later (GPLv3+)"}
+classifiers = [
+    # How mature is this project? Common values are
+    #   3 - Alpha
+    #   4 - Beta
+    #   5 - Production/Stable
+    "Development Status :: 5 - Production/Stable",
+    # Indicate who your project is intended for
+    "Intended Audience :: Science/Research",
+    # Pick your license as you wish (should match "license" above)
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: System :: Hardware",
+    "Topic :: System :: Networking",
+]
+dependencies = [
+    "amqp==5.0.9",  # amqp is used by Celery
+    "appdirs==1.4.4",  # where to store some temporary data
+    "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
+    "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
+    "cardinal_pythonlib==2.0.0",  # RNC libraries
+    "cairosvg==2.7.0",  # work with SVG files
+    "celery==5.2.7",  # back-end scheduling
+    "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib
+    "cherrypy==18.6.0",  # Cross-platform web server
+    "colorlog==4.1.0",  # colour in logs
+    "distro==1.5.0",  # replaces platform.linux_distribution
+    "django==4.2.18",  # for main CRATE research database web server
+    "django-debug-toolbar==3.2.1",  # Django debug toolbar
+    "django-extensions==3.1.1",  # for graph_models, show_urls etc.
+    "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations
+    # "django-silk==4.0.1",  # Django profiler
+    "djangorestframework==3.15.2",  # Anonymisation API support
+    "django-sslserver==0.22",  # SSL development server for Django
+    "drf-spectacular==0.27.2",  # Open API Schema and documentation
+    "drf-spectacular-sidecar==2024.7.1",  # Static files for drf-spectacular
+    "flashtext==2.7",  # fast word replacement with the FlashText algorithm
+    "flower==2.0.1",  # debug Celery; web server; only runs explicitly
+    "fuzzy==1.2.2",  # phonetic matching
+    "gunicorn==23.0.0",  # UNIX only, though will install under Windows
+    "gutenbergpy==0.3.4",  # Project Gutenberg API
+    "jsonlines==3.0.0",  # JSON Lines format
+    "kombu==5.2.3",  # AMQP library for Celery; requires VC++ under Windows
+    "mako==1.2.2",  # templates with Python in
+    "MarkupSafe==2.0.1",  # for HTML escaping
+    # mmh3 requires VC++
+    "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?
+    "numba==0.60.0",  # just-in-time compilation of functions
+    "numpy==1.26.4",  # numerical work
+    "openpyxl==3.0.7",  # read Excel (slower?)
+    "ordered-set==4.1.0",  # ordered sets; search for ordered_set
+    "pendulum==2.1.2",  # dates/times
+    "Pillow==10.3.0",  # image processing; import as PIL (Python Imaging Library)
+    "pdfkit==0.6.1",  # interface to wkhtmltopdf
+    "prettytable==3.2.0",  # pretty formating of text-based tables
+    "psutil==6.0.0",  # process management
+    "pyexcel-ods==0.6.0",  # for reading/writing ODS files
+    "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
+    "pygments==2.15.0",  # syntax highlighting
+    "pyparsing==2.4.7",  # generic grammar parser
+    "pypdf==3.17.1",  # create PDF files
+    "pypiwin32==223; os_name=='nt'",
+    "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
+    # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows
+    # ... https://python-docx.readthedocs.org/en/latest/user/install.html
+    "regex==2020.11.13",  # better regexes (cf. re)
+    "rich-argparse==0.5.0",  # colourful help
+    "semantic_version==2.8.5",  # semantic versioning; better than semver
+    "sortedcontainers==2.2.2",  # for SortedSet
+    "SQLAlchemy==2.0.36",  # database access
+    "sqlparse==0.5.0",  # [pin exact version from cardinal_pythonlib]
+    "unidecode==1.1.1",  # for removing accents
+    # -------------------------------------------------------------------------
+    # Packages for cloud NLP:
+    # -------------------------------------------------------------------------
+    "bcrypt==3.2.2",  # bcrypt encryption
+    "cryptography==44.0.1",  # cryptography library
+    # "mysqlclient",  # database access
+    "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
+    "pyramid==1.10.4",  # Pyramid web framework
+    "pyramid_tm==2.4",  # Pyramid transaction management
+    "redis==4.5.4",  # interface to Redis in-memory key-value database
+    "requests==2.32.2",  # HTTP requests
+    "tornado==6.4.2",  # web framework
+    "transaction==3.0.0",  # generic transaction management
+    "urllib3==1.26.19",  # used by requests
+    "waitress==3.0.1",  # pure-Python WSGI server
+    "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
+    # ---------------------------------------------------------------------
+    # For database connections (see manual): install manually
+    # ---------------------------------------------------------------------
+    # MySQL: one of:
+    #   "PyMySQL",
+    #   "mysqlclient",
+    # SQL Server / ODBC route:
+    #   "django-pyodbc-azure",
+    #   "pyodbc",  # has C prerequisites
+    #   "pypyodbc==1.3.3",
+    # SQL Server / Embedded FreeTDS route:
+    #   "django-pymssql",
+    #   "django-mssql",
+    #   "pymssql",
+    # PostgreSQL:
+    #   "psycopg2",  # has prerequisites (e.g. pg_config executable)
+]
+
+[project.optional-dependencies]
+# -------------------------------------------------------------------------
+# For development only:
+# -------------------------------------------------------------------------
+dev = [
+    "black==24.3.0",  # auto code formatter, keep in sync with .pre-commit-config.yaml
+    "factory_boy==3.3.0",  # easier test data creation
+    "faker==13.3.1",  # test data creation
+    "faker-file[common]==0.17.13",  # test file creation
+    "flake8==5.0.4",  # code checks, keep in sync with .pre-commit-config.yaml
+    "docutils==0.19",
+    "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
+    "paramiko==3.4.1",  # Python implementation of the SSHv2 protocol, required by faker-file
+    "pre-commit==2.20.0",  # development only, various sanity checks on code
+    "pytest==8.3.4",  # automatic testing
+    "pytest-django==4.5.2",  # automatic testing
+    "pytest-env==1.1.5",  # automatic testing
+    "python-on-whales==0.68.0",  # python wrappers for testing with Docker
+    "sphinx==7.1.2",  # documentation
+    "sphinx_rtd_theme==3.0.2",  # documentation
+]
+
+[project.scripts]
+# Format is "script=module:function".
+# Documentation
+crate_help = "crate_anon.tools.launch_docs:main"
+# Preprocessing
+crate_autoimport_db = "crate_anon.preprocess.autoimport_db:main"
+crate_fetch_wordlists = "crate_anon.anonymise.fetch_wordlists:main"
+crate_postcodes = "crate_anon.preprocess.postcodes:main"
+crate_preprocess_pcmis = "crate_anon.preprocess.preprocess_pcmis:main"
+crate_preprocess_rio = "crate_anon.preprocess.preprocess_rio:main"
+crate_preprocess_systmone = "crate_anon.preprocess.preprocess_systmone:main"
+# Linkage
+crate_bulk_hash = "crate_anon.linkage.bulk_hash:main"
+crate_fuzzy_id_match = "crate_anon.linkage.fuzzy_id_match:main"
+# Anonymisation
+crate_anon_check_text_extractor = "crate_anon.anonymise.check_text_extractor:main"
+crate_anon_demo_config = "crate_anon.anonymise.demo_config:main"
+crate_anon_draft_dd = "crate_anon.anonymise.draft_dd:main"
+crate_anon_show_counts = "crate_anon.anonymise.show_counts:main"
+crate_anon_summarize_dd = "crate_anon.anonymise.summarize_dd:main"
+crate_anonymise = "crate_anon.anonymise.anonymise_cli:main"
+crate_anonymise_multiprocess = "crate_anon.anonymise.launch_multiprocess_anonymiser:main"
+crate_make_demo_database = "crate_anon.anonymise.make_demo_database:main"
+crate_researcher_report = "crate_anon.anonymise.researcher_report:main"
+crate_subset_db = "crate_anon.anonymise.subset_db:main"
+crate_test_anonymisation = "crate_anon.anonymise.test_anonymisation:main"
+crate_test_extract_text = "crate_anon.anonymise.test_extract_text:main"
+# NLP
+crate_nlp = "crate_anon.nlp_manager.nlp_manager:main"
+crate_nlp_build_gate_java_interface = "crate_anon.nlp_manager.build_gate_java_interface:main"
+crate_nlp_build_medex_itself = "crate_anon.nlp_manager.build_medex_itself:main"
+crate_nlp_build_medex_java_interface = "crate_anon.nlp_manager.build_medex_java_interface:main"
+crate_nlp_multiprocess = "crate_anon.nlp_manager.launch_multiprocess_nlp:main"
+crate_nlp_prepare_ymls_for_bioyodie = "crate_anon.nlp_manager.prepare_umls_for_bioyodie:main"
+crate_nlp_write_gate_auto_install_xml = "crate_anon.nlp_manager.write_gate_auto_install_xml:main"
+crate_run_crate_nlp_demo = "crate_anon.nlp_manager.run_crate_nlp_demo:main"
+crate_run_gate_annie_demo = "crate_anon.nlp_manager.run_gate_annie_demo:main"
+crate_run_gate_kcl_kconnect_demo = "crate_anon.nlp_manager.run_gate_kcl_kconnect_demo:main"
+crate_run_gate_kcl_lewy_demo = "crate_anon.nlp_manager.run_gate_kcl_lewy_demo:main"
+crate_run_gate_kcl_pharmacotherapy_demo = "crate_anon.nlp_manager.run_gate_kcl_pharmacotherapy_demo:main"
+crate_show_crate_gate_pipeline_options = "crate_anon.nlp_manager.show_crate_gate_pipeline_options:main"
+crate_show_crate_medex_pipeline_options = "crate_anon.nlp_manager.show_crate_medex_pipeline_options:main"
+# Web site
+crate_celery_status = "crate_anon.tools.celery_status:main"
+crate_django_manage = "crate_anon.crateweb.manage:main"  # will cope with argv
+crate_email_rdbm = "crate_anon.tools.email_rdbm:main"
+crate_generate_new_django_secret_key = "cardinal_pythonlib.django.tools.generate_new_django_secret_key:main"
+crate_launch_celery = "crate_anon.tools.launch_celery:main"
+crate_launch_flower = "crate_anon.tools.launch_flower:main"
+crate_print_demo_crateweb_config = "crate_anon.tools.print_crateweb_demo_config:main"
+crate_test_database_connection = "crate_anon.tools.test_database_connection:main"
+crate_windows_service = "crate_anon.tools.winservice:main"
+# Indirect shortcuts to "crate_django_manage" commands:
+crate_launch_cherrypy_server = "crate_anon.tools.launch_cherrypy_server:main"
+# ... a separate script with ":main" rather than
+# "crate_anon.crateweb.manage:runcpserver" so that we can launch
+# the "runcpserver" function from our Windows service, and have it
+# deal with the CherryPy special environment variable
+crate_launch_django_server = "crate_anon.crateweb.manage:runserver"
+# NLP web server
+crate_nlp_webserver_generate_encryption_key = "crate_anon.nlp_webserver.security:generate_encryption_key"
+crate_nlp_webserver_initialize_db = "crate_anon.nlp_webserver.initialize_db:main"
+crate_nlp_webserver_launch_celery = "crate_anon.tools.launch_nlp_webserver_celery:main"
+crate_nlp_webserver_launch_flower = "crate_anon.tools.launch_nlp_webserver_flower:main"
+crate_nlp_webserver_launch_gunicorn = "crate_anon.tools.launch_nlp_webserver_gunicorn:main"
+crate_nlp_webserver_manage_users = "crate_anon.nlp_webserver.manage_users:main"
+crate_nlp_webserver_print_demo = "crate_anon.nlp_webserver.print_demos:main"
+crate_nlp_webserver_pserve = "pyramid.scripts.pserve:main"
+
+[project.entry-points."paste.app_factory"]
+# Entry point for nlp webserver
+main = "crate_anon.nlp_webserver.wsgi_app:make_wsgi_app"
+# ... means we can launch with "pserve <config_file>"; see
+# https://docs.pylonsproject.org/projects/pyramid-cookbook/en/latest/pylons/launch.html
+
+[project.entry-points."paste.server_runner"]
+cherrypy = "crate_anon.nlp_webserver.wsgi_launchers:cherrypy"
+waitress = "crate_anon.nlp_webserver.wsgi_launchers:waitress"
+
+[project.urls]
+Homepage = "https://crateanon.readthedocs.io"
+Documentation = "https://crateanon.readthedocs.io"
+Changelog = "https://crateanon.readthedocs.io/en/latest/changelog.html"
+"Source Code" = "https://github.com/ucam-department-of-psychiatry/crate"
+"Issue Tracker" = "https://github.com/ucam-department-of-psychiatry/crate/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
