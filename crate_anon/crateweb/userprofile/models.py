@@ -247,7 +247,7 @@ def user_saved_so_create_profile(
     sender: Type[settings.AUTH_USER_MODEL],
     instance: settings.AUTH_USER_MODEL,
     created: bool,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> None:
     """
     Django signal receiver.

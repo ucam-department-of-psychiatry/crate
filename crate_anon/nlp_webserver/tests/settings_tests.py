@@ -51,5 +51,5 @@ class NlprpDocgenSettingsTests(unittest.TestCase):
         _ = engine_from_config(
             SETTINGS,
             NlpServerConfigKeys.SQLALCHEMY_PREFIX,
-            **SQLALCHEMY_COMMON_OPTIONS
+            **SQLALCHEMY_COMMON_OPTIONS,
         )
