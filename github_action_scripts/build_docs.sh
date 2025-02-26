@@ -13,7 +13,7 @@ python -VV
 python -m site
 python -m pip install -U pip
 echo installing pip packages
-python -m pip install -e .
+python -m pip install -e ".[dev]"
 python -m pip install mysqlclient
 export CRATE_ANON_CONFIG=${HOME}/crate_anon_config.ini
 export CRATE_WEB_LOCAL_SETTINGS=${HOME}/crateweb_local_settings.py
