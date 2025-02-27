@@ -167,6 +167,9 @@ class Patient:
         )
         self._unchanged = self.scrubber_hash == self._info.scrubber_hash
         self._info.set_scrubber_info(self.scrubber)
+
+        # May raise DatabaseError (includes OperationalError, ProgrammingError)
+        # If insert failed due to invalid mpid
         self._session.commit()
         # Commit immediately, because other processes may need this table
         # promptly. Otherwise, might get:

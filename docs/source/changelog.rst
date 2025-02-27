@@ -1720,6 +1720,11 @@ Changes
 
 - Shift from SQLAlchemy 1.4.49 to SQLALchemy 2.0.36.
 
+- Make the anonymiser more tolerant of Integrity errors and patients with
+  invalid Master PIDs
+
+- Ensure the Dockerfile uses a more recent ``setuptools`` so that ``fuzzy`` can
+  be installed.
 
 To do
 -----

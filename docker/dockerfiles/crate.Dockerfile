@@ -222,6 +222,7 @@ RUN echo "======================================================================
     && python3 -m venv /crate/venv \
     && echo "- Upgrading pip within virtual environment..." \
     && "$CRATE_VENV_BIN/python3" -m pip install --upgrade pip \
+    && "$CRATE_VENV_BIN/python3" -m pip install 'setuptools>=61' \
     && echo "- Installing wheel within virtual environment..." \
     && "$CRATE_VENV_BIN/pip" install wheel==0.35.1 \
     && echo "- Installing CRATE (crate_anon, from source) and Python database drivers..." \
