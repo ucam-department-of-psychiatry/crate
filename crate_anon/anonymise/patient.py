@@ -115,8 +115,6 @@ class Patient:
             self._info.ensure_rid()
             self._info.ensure_trid(self._session)
             self._session.add(self._info)
-            self._session.commit()
-            # prompt commit after insert operations, to ensure no locks
 
         # Scrubber
         self.scrubber = PersonalizedScrubber(
