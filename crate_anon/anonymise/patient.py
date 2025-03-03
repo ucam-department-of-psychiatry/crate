@@ -109,7 +109,7 @@ class Patient:
         self._session = config.admindb.session
 
         # Fetch or create PatientInfo object
-        self._info = self._session.query(PatientInfo).get(pid)
+        self._info = self._session.get(PatientInfo, pid)
         if self._info is None:
             self._info = PatientInfo(pid=pid)
             self._info.ensure_rid()
