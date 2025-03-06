@@ -48,6 +48,7 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     get_column_names,
 )
 from sortedcontainers import SortedSet
+from sqlalchemy.exc import DatabaseError, IntegrityError
 from sqlalchemy.schema import Column, Index, MetaData, Table
 from sqlalchemy.sql import column, func, or_, select, table, text
 from sqlalchemy.types import Boolean
@@ -1405,7 +1406,15 @@ def process_table(
         q = insert_with_upsert_if_supported(
             table=sqla_table, values=destvalues, session=session
         )
-        session.execute(q)
+        try:
+            session.execute(q)
+        except IntegrityError:
+            log.warning(
+                "Skipping record due to IntegrityError. Non-unique primary "
+                f"key? {sourcedbname}.{sourcetable}.{src_pk_name} = "
+                f"(destination) {dest_table}.{dest_pk_name} = "
+                f"{row[pkfield_index]}"
+            )
 
         # Trigger an early commit?
         config.notify_dest_db_transaction(
@@ -1520,7 +1529,19 @@ def patient_processing_fn(
         # we do as we build the scrubber).
 
         # Gather scrubbing information for a patient. (Will save.)
-        patient = Patient(pid)
+        try:
+            adminsession = config.admindb.session
+            # In case anything else is in the transaction pending commit
+            adminsession.commit()
+
+            patient = Patient(pid)
+        except DatabaseError:
+            log.warning(
+                f"Skipping patient with PID={pid} because the record could "
+                "not be saved to the secret_map table"
+            )
+            adminsession.rollback()
+            continue
 
         if patient.mandatory_scrubbers_unfulfilled:
             log.warning(
