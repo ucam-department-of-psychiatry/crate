@@ -69,10 +69,10 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==2.0.0",  # RNC libraries
+    "cardinal_pythonlib @ git+https://github.com/RudolfCardinal/pythonlib@e937fc37e551641c2711bf177a743d5489d9c071#egg=cardinal_pythonlib-2.0.3-rc1",  # RNC libraries  # noqa: E501
     "cairosvg==2.7.0",  # work with SVG files
     "celery==5.2.7",  # back-end scheduling
-    "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib
+    "chardet==5.2.0",  # character encoding detection for cardinal_pythonlib
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
