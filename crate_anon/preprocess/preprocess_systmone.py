@@ -220,8 +220,8 @@ def add_testpatient_view(
         FROM
             {patient_table}
         WHERE
-            {S1PatientCol.FORENAME} LIKE '%test%'
-            AND {S1PatientCol.SURNAME} LIKE '%test%'
+            {S1PatientCol.FORENAME} LIKE '%%test%%'
+            AND {S1PatientCol.SURNAME} LIKE '%%test%%'
     """
     create_view(engine, view_name, select_sql)
 
