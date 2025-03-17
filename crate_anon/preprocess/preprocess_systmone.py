@@ -267,7 +267,7 @@ def preprocess_systmone(
         if not drop_danger_drop and table_needs_pk:
             crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK)
             # SQL Server requires Table-bound columns in order to generate DDL:
-            table.append_column(crate_pk_col)
+            table.append_column(crate_pk_col, replace_existing=True)
             add_columns(engine, table, [crate_pk_col])
 
         # Create step #2 or drop step #1
