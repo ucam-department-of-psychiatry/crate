@@ -1721,6 +1721,10 @@ Changes
 - Shift from SQLAlchemy 1.4.49 to SQLALchemy 2.0.36.
 
 
+- Drop support for Debian package given that we have PyPI, GitHub and the
+  Docker-based installer.
+
+
 To do
 -----
 

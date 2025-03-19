@@ -33,8 +33,8 @@
 
 .. _crate_docker:
 
-Installing and running CRATE via Docker
-=======================================
+Installing and running CRATE via Docker (recommended)
+=====================================================
 
 ..  contents::
     :local:
