@@ -30,7 +30,7 @@ crate_anon/anonymise/tests/anonymise_tests.py
 # =============================================================================
 
 import logging
-from typing import Any, Dict, Generator, List, Tuple
+from typing import Any, Dict, Generator, List, Tuple, TYPE_CHECKING
 from unittest import mock
 
 from cardinal_pythonlib.sqlalchemy.schema import (
@@ -39,6 +39,7 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 )
 import factory
 import pytest
+from sortedcontainers import SortedSet
 from sqlalchemy import (
     Boolean,
     Column,
@@ -52,16 +53,26 @@ from sqlalchemy import (
 from crate_anon.anonymise.anonymise import (
     create_indexes,
     gen_opt_out_pids_from_database,
+    process_patient_tables,
     validate_optouts,
 )
-from crate_anon.anonymise.constants import IndexType
+from crate_anon.anonymise.constants import IndexType, ScrubMethod
+from crate_anon.anonymise.models import PatientInfo
+from crate_anon.anonymise.dd import ScrubSourceFieldInfo
 from crate_anon.anonymise.ddr import DataDictionaryRow
+from crate_anon.anonymise.tests.factories import PatientInfoFactory
 from crate_anon.testing import AnonTestBase, SourceTestBase
-from crate_anon.testing.classes import DatabaseTestCase
+from crate_anon.testing.classes import (
+    DatabaseTestCase,
+    SlowSecretDatabaseTestCase,
+)
 from crate_anon.testing.factories import (
     SourceTestBaseFactory,
     Fake,
 )
+
+if TYPE_CHECKING:
+    from factory.builder import Resolver
 
 
 # =============================================================================
@@ -122,7 +133,9 @@ class TestPatientWithStringMPIDFactory(SourceTestBaseFactory):
 
     pid = factory.Sequence(lambda n: n + 1)
 
-    nhsnum = factory.LazyFunction(Fake.en_gb.nhs_number)
+    @factory.lazy_attribute
+    def nhsnum(obj: "Resolver") -> str:
+        return str(Fake.en_gb.nhs_number())
 
 
 class TestRecord(SourceTestBase):
@@ -432,3 +445,331 @@ class CreateIndexesTests(DatabaseTestCase):
                 _destination_database_url=self.anon_engine.url,
             ) as mock_config:
                 create_indexes()
+
+
+class ProcessPatientTablesMPidTests(SlowSecretDatabaseTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.mock_admindb = mock.Mock(session=self.secret_dbsession)
+        mock_srccfg = mock.Mock(debug_limited_tables=[])
+        self.mock_sourcedb = mock.Mock(
+            session=self.source_dbsession,
+            srccfg=mock_srccfg,
+            engine=self.source_engine,
+            metadata=SourceTestBase.metadata,
+        )
+        self.mock_get_scrub_from_rows_as_fieldinfo = mock.Mock(
+            return_value=[
+                ScrubSourceFieldInfo(
+                    is_mpid=True,
+                    is_patient=False,
+                    recurse=False,
+                    required_scrubber=False,
+                    scrub_method=ScrubMethod.NUMERIC,
+                    signature=None,
+                    value_fieldname="nhsnum",
+                ),
+            ]
+        )
+
+        self.mock_get_scrub_from_db_table_pairs = mock.Mock(
+            return_value=[
+                ("source1", "test_patient_with_string_mpid"),
+            ]
+        )
+
+        self.mock_get_pid_name = mock.Mock(return_value="pid")
+        self.mock_estimate_count_patients = mock.Mock(return_value=1)
+        self.mock_opting_out_pid = mock.Mock(return_value=False)
+
+        mock_row = mock.Mock(
+            omit=False,
+            src_field="row_identifier",
+            skip_row_by_value=mock.Mock(return_value=False),
+            primary_pid=False,
+            master_pid=False,
+            third_party_pid=False,
+            alter_methods=[],
+            dest_field="row_identifier",
+            add_src_hash=False,
+        )
+        mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
+
+        self.mock_dd = mock.Mock(
+            get_scrub_from_db_table_pairs=(
+                self.mock_get_scrub_from_db_table_pairs
+            ),
+            get_scrub_from_rows_as_fieldinfo=(
+                self.mock_get_scrub_from_rows_as_fieldinfo
+            ),
+            get_pid_name=self.mock_get_pid_name,
+            get_mandatory_scrubber_sigs=mock.Mock(return_value=set()),
+            get_source_databases=mock.Mock(
+                return_value=SortedSet(["source1"])
+            ),
+            get_patient_src_tables_with_active_dest=mock.Mock(
+                return_value=SortedSet(["test_record"])
+            ),
+            get_rows_for_src_table=mock_rows_for_src_table,
+        )
+
+    def test_patient_saved_in_secret_database(self) -> None:
+        patient = TestPatientWithStringMPIDFactory()
+        self.source_dbsession.commit()
+
+        pids = [patient.pid]
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise",
+            estimate_count_patients=self.mock_estimate_count_patients,
+            opting_out_pid=self.mock_opting_out_pid,
+        ):
+            with mock.patch.multiple(
+                "crate_anon.anonymise.anonymise.config",
+                dd=self.mock_dd,
+                _destination_database_url=self.anon_engine.url,
+                admindb=self.mock_admindb,
+                sources={"source1": self.mock_sourcedb},
+            ):
+                process_patient_tables(specified_pids=pids)
+
+        patient_info = self.secret_dbsession.query(PatientInfo).one()
+        self.assertEqual(patient_info.pid, patient.pid)
+        self.assertEqual(str(patient_info.mpid), patient.nhsnum)
+
+    def test_patient_mpid_updated_in_secret_database(self) -> None:
+        patient = TestPatientWithStringMPIDFactory()
+        self.source_dbsession.commit()
+
+        patient_info = self.secret_dbsession.query(PatientInfo).one_or_none()
+        self.assertIsNone(patient_info)
+
+        patient_info = PatientInfoFactory(pid=patient.pid, mpid=None)
+        self.secret_dbsession.commit()
+
+        pids = [patient.pid]
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise",
+            estimate_count_patients=self.mock_estimate_count_patients,
+            opting_out_pid=self.mock_opting_out_pid,
+        ):
+            with mock.patch.multiple(
+                "crate_anon.anonymise.anonymise.config",
+                dd=self.mock_dd,
+                _destination_database_url=self.anon_engine.url,
+                admindb=self.mock_admindb,
+                sources={"source1": self.mock_sourcedb},
+            ):
+                process_patient_tables(specified_pids=pids)
+
+        patient_info = self.secret_dbsession.query(PatientInfo).one()
+        self.assertEqual(patient_info.pid, patient.pid)
+        self.assertEqual(str(patient_info.mpid), patient.nhsnum)
+
+    def test_patient_with_invalid_mpid_skipped(self) -> None:
+        if self.source_engine.dialect.name == "sqlite":
+            pytest.skip(
+                "Skipping test because SQLite would allow non-integer values "
+                "in an integer field"
+            )
+
+        patient_info = self.secret_dbsession.query(PatientInfo).one_or_none()
+        self.assertIsNone(patient_info)
+
+        patient = TestPatientWithStringMPIDFactory(nhsnum="ABC123")
+        self.source_dbsession.commit()
+
+        pid = patient.pid
+        pids = [pid]
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise",
+            estimate_count_patients=self.mock_estimate_count_patients,
+            opting_out_pid=self.mock_opting_out_pid,
+        ):
+            with mock.patch.multiple(
+                "crate_anon.anonymise.anonymise.config",
+                dd=self.mock_dd,
+                _destination_database_url=self.anon_engine.url,
+                admindb=self.mock_admindb,
+                sources={"source1": self.mock_sourcedb},
+            ):
+                with self.assertLogs(level=logging.WARNING) as logging_cm:
+                    process_patient_tables(specified_pids=pids)
+
+        self.assertIsNone(
+            self.secret_dbsession.query(PatientInfo).one_or_none()
+        )
+        logger_name = "crate_anon.anonymise.anonymise"
+        expected_message = (
+            f"Skipping patient with PID={pid} because the record could "
+            "not be saved to the secret_map table"
+        )
+        self.assertIn(
+            f"WARNING:{logger_name}:{expected_message}", logging_cm.output
+        )
+
+    def test_valid_patients_added_when_invalid_mpid_skipped(self) -> None:
+        if self.source_engine.dialect.name == "sqlite":
+            pytest.skip(
+                "Skipping test because SQLite would allow non-integer values "
+                "in an integer field"
+            )
+
+        patient_info = self.secret_dbsession.query(PatientInfo).one_or_none()
+        self.assertIsNone(patient_info)
+        invalid_patient = TestPatientWithStringMPIDFactory(nhsnum="ABC123")
+        self.source_dbsession.commit()
+        valid_patient1 = TestPatientWithStringMPIDFactory()
+        self.source_dbsession.commit()
+        valid_patient2 = TestPatientWithStringMPIDFactory()
+        self.source_dbsession.commit()
+
+        invalid_pid = invalid_patient.pid
+        valid_pid1 = valid_patient1.pid
+        valid_pid2 = valid_patient2.pid
+        pids = [valid_pid1, invalid_pid, valid_pid2]
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise",
+            estimate_count_patients=self.mock_estimate_count_patients,
+            opting_out_pid=self.mock_opting_out_pid,
+        ):
+            with mock.patch.multiple(
+                "crate_anon.anonymise.anonymise.config",
+                dd=self.mock_dd,
+                _destination_database_url=self.anon_engine.url,
+                admindb=self.mock_admindb,
+                sources={"source1": self.mock_sourcedb},
+            ):
+                process_patient_tables(specified_pids=pids)
+
+        pids = [p.pid for p in self.secret_dbsession.query(PatientInfo)]
+        self.assertIn(valid_patient1.pid, pids)
+        self.assertIn(valid_patient2.pid, pids)
+
+        # For some reason these end up being a mixture of strings and ints
+        nhsnums = [
+            int(p.mpid) for p in self.secret_dbsession.query(PatientInfo)
+        ]
+        self.assertIn(int(valid_patient1.nhsnum), nhsnums)
+        self.assertIn(int(valid_patient2.nhsnum), nhsnums)
+
+
+class ProcessPatientTablesPKTests(DatabaseTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.mock_admindb = mock.Mock(session=self.secret_dbsession)
+        self.mock_destdb = mock.Mock(
+            session=self.anon_dbsession,
+            engine=self.anon_engine,
+            metadata=AnonTestBase.metadata,
+        )
+        mock_srccfg = mock.Mock(debug_limited_tables=[])
+        self.mock_sourcedb = mock.Mock(
+            session=self.source_dbsession,
+            srccfg=mock_srccfg,
+            engine=self.source_engine,
+            metadata=SourceTestBase.metadata,
+        )
+        self.mock_get_scrub_from_rows_as_fieldinfo = mock.Mock(
+            return_value=[
+                ScrubSourceFieldInfo(
+                    is_mpid=True,
+                    is_patient=False,
+                    recurse=False,
+                    required_scrubber=False,
+                    scrub_method=ScrubMethod.NUMERIC,
+                    signature=None,
+                    value_fieldname="nhsnum",
+                ),
+            ]
+        )
+
+        self.mock_get_scrub_from_db_table_pairs = mock.Mock(
+            return_value=[
+                ("source1", "test_patient_with_string_mpid"),
+            ]
+        )
+
+        self.mock_get_pid_name = mock.Mock(return_value="pid")
+        self.mock_estimate_count_patients = mock.Mock(return_value=1)
+        self.mock_opting_out_pid = mock.Mock(return_value=False)
+
+        mock_row = mock.Mock(
+            omit=False,
+            src_field="row_identifier",
+            skip_row_by_value=mock.Mock(return_value=False),
+            primary_pid=False,
+            master_pid=False,
+            third_party_pid=False,
+            alter_methods=[],
+            dest_field="row_identifier",
+            add_src_hash=False,
+        )
+        mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
+
+        self.mock_dd = mock.Mock(
+            get_scrub_from_db_table_pairs=(
+                self.mock_get_scrub_from_db_table_pairs
+            ),
+            get_scrub_from_rows_as_fieldinfo=(
+                self.mock_get_scrub_from_rows_as_fieldinfo
+            ),
+            get_pid_name=self.mock_get_pid_name,
+            get_mandatory_scrubber_sigs=mock.Mock(return_value=set()),
+            get_source_databases=mock.Mock(
+                return_value=SortedSet(["source1"])
+            ),
+            get_patient_src_tables_with_active_dest=mock.Mock(
+                return_value=SortedSet(["test_record"])
+            ),
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+
+    def test_duplicate_primary_key_skipped(self) -> None:
+        # MySQL supports ON DUPLICATE KEY UPDATE
+        if self.anon_engine.dialect.name == "mysql":
+            pytest.skip("Skipping different behaviour for MySQL")
+
+        patient = TestPatientWithStringMPIDFactory()
+        TestRecordFactory(pid=patient.pid, row_identifier=123456)
+        TestRecordFactory(pid=patient.pid, row_identifier=123456)
+        self.source_dbsession.commit()
+
+        pids = [patient.pid]
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise",
+            estimate_count_patients=self.mock_estimate_count_patients,
+            opting_out_pid=self.mock_opting_out_pid,
+        ):
+            with mock.patch.multiple(
+                "crate_anon.anonymise.anonymise.config",
+                dd=self.mock_dd,
+                _destination_database_url=self.anon_engine.url,
+                admindb=self.mock_admindb,
+                destdb=self.mock_destdb,
+                sources={"source1": self.mock_sourcedb},
+                rows_inserted_per_table={("source1", "test_record"): 0},
+                timefield=None,
+            ):
+                with self.assertLogs(level=logging.WARNING) as logging_cm:
+                    process_patient_tables(specified_pids=pids)
+
+        logger_name = "crate_anon.anonymise.anonymise"
+        expected_message = "Skipping record due to IntegrityError"
+        self.assertTrue(
+            any(
+                f"WARNING:{logger_name}:{expected_message}" in line
+                for line in logging_cm.output
+            )
+        )
+
+        self.assertEqual(self.anon_dbsession.query(TestAnonRecord).count(), 1)

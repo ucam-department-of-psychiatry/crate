@@ -60,7 +60,7 @@ from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from openpyxl.workbook.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 
-from crate_anon.anonymise.models import PatientInfoConstants
+from crate_anon.anonymise.constants import PatientInfoConstants
 from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
 from crate_anon.common.sql import (
     ColumnId,

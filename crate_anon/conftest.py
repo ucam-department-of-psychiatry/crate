@@ -415,7 +415,6 @@ def anon_dbsession(
     """
 
     connection = anon_engine.connect()
-    # begin the nested transaction
     transaction = connection.begin()
     # use the connection with the already started transaction
     session = Session(bind=connection)
@@ -423,7 +422,11 @@ def anon_dbsession(
     yield session
 
     session.close()
-    # roll back the broader transaction
+    # If you get the warning: 'sqlalchemy.exc.SAWarning: transaction already
+    # deassociated from Connection', it might be that the code under test needs
+    # to roll back the tranaction and you need to adopt the approach taken by
+    # slow_secret_dbsession() where the tables are created and dropped for each
+    # test.
     transaction.rollback()
     # put back the connection to the connection pool
     connection.close()
@@ -440,7 +443,6 @@ def secret_dbsession(
     """
 
     connection = secret_engine.connect()
-    # begin the nested transaction
     transaction = connection.begin()
     # use the connection with the already started transaction
     session = Session(bind=connection)
@@ -448,7 +450,11 @@ def secret_dbsession(
     yield session
 
     session.close()
-    # roll back the broader transaction
+    # If you get the warning: 'sqlalchemy.exc.SAWarning: transaction already
+    # deassociated from Connection', it might be that the code under test needs
+    # to roll back the tranaction and you need to adopt the approach taken by
+    # slow_secret_dbsession() where the tables are created and dropped for each
+    # test.
     transaction.rollback()
     # put back the connection to the connection pool
     connection.close()
@@ -465,7 +471,6 @@ def source_dbsession(
     """
 
     connection = source_engine.connect()
-    # begin the nested transaction
     transaction = connection.begin()
     # use the connection with the already started transaction
     session = Session(bind=connection, future=True)
@@ -473,7 +478,11 @@ def source_dbsession(
     yield session
 
     session.close()
-    # roll back the broader transaction
+    # If you get the warning: 'sqlalchemy.exc.SAWarning: transaction already
+    # deassociated from Connection', it might be that the code under test needs
+    # to roll back the tranaction and you need to adopt the approach taken by
+    # slow_secret_dbsession() where the tables are created and dropped for each
+    # test.
     transaction.rollback()
     # put back the connection to the connection pool
     connection.close()
@@ -502,6 +511,73 @@ def setup(
     request.cls.databases_on_disk = databases_on_disk
     request.cls.anon_dbsession = anon_dbsession
     request.cls.secret_dbsession = secret_dbsession
+    request.cls.source_dbsession = source_dbsession
+    request.cls.tmpdir_obj = tmpdir_obj
+    request.cls.anon_db_filename = ANON_DATABASE_FILENAME
+    request.cls.secret_db_filename = SECRET_DATABASE_FILENAME
+    request.cls.source_db_filename = SOURCE_DATABASE_FILENAME
+
+
+@pytest.fixture
+def slow_secret_tables(
+    request: "FixtureRequest", secret_engine: "Engine", create_test_dbs: bool
+) -> Generator[None, None, None]:
+    # This has the default 'function' scope so tables are created at the
+    # beginning of each test and dropped at the end. This is for the case where
+    # we need to roll back a transaction in the code, so the trick used by
+    # secret_tables() to run each test in a transaction won't work. Potentially
+    # expensive if there are a lot of tables.
+    SecretBase.metadata.create_all(secret_engine)
+
+    yield
+
+    SecretBase.metadata.drop_all(secret_engine)
+
+    # in case another test that uses the normal secret_tables runs next.
+    SecretBase.metadata.create_all(secret_engine)
+
+
+# noinspection PyUnusedLocal
+@pytest.fixture
+def slow_secret_dbsession(
+    request: "FixtureRequest",
+    secret_engine: "Engine",
+    slow_secret_tables: None,
+) -> Generator[Session, None, None]:
+    """
+    As with secret_dbsession() but we don't start a transaction for each test.
+    Used in conjunction with slow_secret_tables() where the tables are dropped
+    and recreated with each test.
+    """
+
+    connection = secret_engine.connect()
+
+    session = Session(bind=connection)
+
+    yield session
+
+    session.close()
+    connection.close()
+
+
+@pytest.fixture
+def slow_secret_setup(
+    request: "FixtureRequest",
+    anon_engine: "Engine",
+    secret_engine: "Engine",
+    source_engine: "Engine",
+    databases_on_disk: bool,
+    anon_dbsession: Session,
+    slow_secret_dbsession: Session,
+    source_dbsession: Session,
+    tmpdir_obj: tempfile.TemporaryDirectory,
+) -> None:
+    request.cls.anon_engine = anon_engine
+    request.cls.secret_engine = secret_engine
+    request.cls.source_engine = source_engine
+    request.cls.databases_on_disk = databases_on_disk
+    request.cls.anon_dbsession = anon_dbsession
+    request.cls.secret_dbsession = slow_secret_dbsession
     request.cls.source_dbsession = source_dbsession
     request.cls.tmpdir_obj = tmpdir_obj
     request.cls.anon_db_filename = ANON_DATABASE_FILENAME
