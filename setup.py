@@ -69,14 +69,14 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==2.0.0",  # RNC libraries
+    "cardinal_pythonlib==2.0.4",  # RNC libraries
     "cairosvg==2.7.0",  # work with SVG files
     "celery==5.2.7",  # back-end scheduling
-    "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib
+    "chardet==5.2.0",  # character encoding detection for cardinal_pythonlib
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==4.2.17",  # for main CRATE research database web server
+    "django==4.2.20",  # for main CRATE research database web server
     "django-debug-toolbar==3.2.1",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
@@ -125,7 +125,7 @@ INSTALL_REQUIRES = [
     # Packages for cloud NLP:
     # -------------------------------------------------------------------------
     "bcrypt==3.2.2",  # bcrypt encryption
-    "cryptography==43.0.1",  # cryptography library
+    "cryptography==44.0.1",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework
