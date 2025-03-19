@@ -220,8 +220,8 @@ def add_testpatient_view(
         FROM
             {patient_table}
         WHERE
-            {S1PatientCol.FORENAME} LIKE '%test%'
-            AND {S1PatientCol.SURNAME} LIKE '%test%'
+            {S1PatientCol.FORENAME} LIKE '%%test%%'
+            AND {S1PatientCol.SURNAME} LIKE '%%test%%'
     """
     create_view(engine, view_name, select_sql)
 
@@ -267,7 +267,7 @@ def preprocess_systmone(
         if not drop_danger_drop and table_needs_pk:
             crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK)
             # SQL Server requires Table-bound columns in order to generate DDL:
-            table.append_column(crate_pk_col)
+            table.append_column(crate_pk_col, replace_existing=True)
             add_columns(engine, table, [crate_pk_col])
 
         # Create step #2 or drop step #1
