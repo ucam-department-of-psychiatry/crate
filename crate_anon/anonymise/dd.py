@@ -1617,7 +1617,7 @@ class DataDictionary:
         pid_found = False
         rows_include_mrid_with_expected_name = False
         columns = []  # type: List[Column]
-        extra_kwargs = {}  # type: Dict[str, Any]
+        extra_kwargs = dict(extend_existing=True)  # type: Dict[str, Any]
         for ddr in self.get_rows_for_dest_table(
             tablename, skip_table_comments=False
         ):
