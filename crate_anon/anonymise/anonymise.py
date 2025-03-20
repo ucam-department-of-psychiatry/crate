@@ -1045,6 +1045,11 @@ def count_rows(
     query = select(func.count()).select_from(table(sourcetable))
     if pid is not None:
         pidcol_name = config.dd.get_pid_name(dbname, sourcetable)
+        if not pidcol_name:
+            raise ValueError(
+                "No row in the data dictionary provides primary PID "
+                f"information for db:{dbname}, table: {sourcetable}"
+            )
         query = query.where(column(pidcol_name) == pid)
     return session.execute(query).scalar()
 
