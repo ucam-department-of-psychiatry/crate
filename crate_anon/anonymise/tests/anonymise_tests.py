@@ -25,11 +25,18 @@ crate_anon/anonymise/tests/anonymise_tests.py
 
 """
 
+# =============================================================================
+# Imports
+# =============================================================================
+
 import logging
-from typing import Any, Dict, Generator, List, Tuple
+from typing import Any, Dict, Generator, List, Tuple, TYPE_CHECKING
 from unittest import mock
 
-from cardinal_pythonlib.sqlalchemy.schema import mssql_table_has_ft_index
+from cardinal_pythonlib.sqlalchemy.schema import (
+    execute_ddl,
+    mssql_table_has_ft_index,
+)
 import factory
 import pytest
 from sortedcontainers import SortedSet
@@ -55,11 +62,22 @@ from crate_anon.anonymise.dd import ScrubSourceFieldInfo
 from crate_anon.anonymise.ddr import DataDictionaryRow
 from crate_anon.anonymise.tests.factories import PatientInfoFactory
 from crate_anon.testing import AnonTestBase, SourceTestBase
-from crate_anon.testing.classes import DatabaseTestCase
+from crate_anon.testing.classes import (
+    DatabaseTestCase,
+    SlowSecretDatabaseTestCase,
+)
 from crate_anon.testing.factories import (
     SourceTestBaseFactory,
     Fake,
 )
+
+if TYPE_CHECKING:
+    from factory.builder import Resolver
+
+
+# =============================================================================
+# SQLAlchemy test tables
+# =============================================================================
 
 
 class TestBoolOptOut(SourceTestBase):
@@ -115,7 +133,9 @@ class TestPatientWithStringMPIDFactory(SourceTestBaseFactory):
 
     pid = factory.Sequence(lambda n: n + 1)
 
-    nhsnum = factory.LazyFunction(Fake.en_gb.nhs_number)
+    @factory.lazy_attribute
+    def nhsnum(obj: "Resolver") -> str:
+        return str(Fake.en_gb.nhs_number())
 
 
 class TestRecord(SourceTestBase):
@@ -137,6 +157,11 @@ class TestAnonRecord(AnonTestBase):
     __tablename__ = "test_anon_record"
 
     row_identifier = Column(Integer, primary_key=True, comment="Row ID")
+
+
+# =============================================================================
+# Unit tests
+# =============================================================================
 
 
 class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
@@ -335,11 +360,12 @@ class CreateIndexesTests(DatabaseTestCase):
         self.assertEqual(indexes["note2"]["type"], "FULLTEXT")
 
     def _drop_mysql_full_text_indexes(self) -> None:
-        sql = "DROP INDEX _idxft_note1 ON test_anon_note"
-        self.anon_engine.execute(sql)
-
-        sql = "DROP INDEX _idxft_note2 ON test_anon_note"
-        self.anon_engine.execute(sql)
+        execute_ddl(
+            self.anon_engine, sql="DROP INDEX _idxft_note1 ON test_anon_note"
+        )
+        execute_ddl(
+            self.anon_engine, sql="DROP INDEX _idxft_note2 ON test_anon_note"
+        )
 
     def _get_mysql_anon_note_table_full_text_indexes(
         self,
@@ -360,7 +386,7 @@ class CreateIndexesTests(DatabaseTestCase):
 
         self.assertTrue(self._mssql_anon_note_table_has_full_text_index())
 
-    def _mssql_anon_note_table_has_full_text_index(self) -> None:
+    def _mssql_anon_note_table_has_full_text_index(self) -> bool:
         return mssql_table_has_ft_index(
             self.engine_outside_transaction, "test_anon_note", "dbo"
         )
@@ -368,22 +394,21 @@ class CreateIndexesTests(DatabaseTestCase):
     def _drop_mssql_full_text_indexes(self) -> None:
         # SQL Server only. Need to be outside a transaction to drop indexes
         sql = """
-IF EXISTS (
-    SELECT fti.object_id FROM sys.fulltext_indexes fti
-    WHERE fti.object_id = OBJECT_ID(N'[dbo].[test_anon_note]')
-)
-
-DROP FULLTEXT INDEX ON [dbo].[test_anon_note]
-"""
-        self.engine_outside_transaction.execute(sql)
+            IF EXISTS (
+                SELECT fti.object_id FROM sys.fulltext_indexes fti
+                WHERE fti.object_id = OBJECT_ID(N'[dbo].[test_anon_note]')
+            )
+            DROP FULLTEXT INDEX ON [dbo].[test_anon_note]
+        """
+        execute_ddl(self.engine_outside_transaction, sql)
 
     @property
     def engine_outside_transaction(self) -> None:
         if self._engine_outside_transaction is None:
             self._engine_outside_transaction = create_engine(
                 self.anon_engine.url,
-                encoding="utf-8",
                 connect_args={"autocommit": True},  # for pyodbc
+                future=True,
             )
 
         return self._engine_outside_transaction
@@ -391,6 +416,7 @@ DROP FULLTEXT INDEX ON [dbo].[test_anon_note]
     def _make_full_text_index(self) -> None:
         mock_config = None
 
+        # noinspection PyUnusedLocal
         def index_row_sets(
             tasknum: int = 0, ntasks: int = 1
         ) -> Generator[Tuple[str, List[DataDictionaryRow]], None, None]:
@@ -401,10 +427,10 @@ DROP FULLTEXT INDEX ON [dbo].[test_anon_note]
             note2_row.dest_field = "note2"
             note2_row.index = IndexType.FULLTEXT
 
-            for set in [
+            for set_ in [
                 ("TestAnonNote", [note1_row, note2_row]),
             ]:
-                yield set
+                yield set_
 
         mock_dd = mock.Mock(
             get_dest_sqla_table=mock.Mock(return_value=TestAnonNote.__table__)
@@ -421,7 +447,7 @@ DROP FULLTEXT INDEX ON [dbo].[test_anon_note]
                 create_indexes()
 
 
-class ProcessPatientTablesMPidTests(DatabaseTestCase):
+class ProcessPatientTablesMPidTests(SlowSecretDatabaseTestCase):
     def setUp(self) -> None:
         super().setUp()
 
@@ -516,6 +542,9 @@ class ProcessPatientTablesMPidTests(DatabaseTestCase):
         patient = TestPatientWithStringMPIDFactory()
         self.source_dbsession.commit()
 
+        patient_info = self.secret_dbsession.query(PatientInfo).one_or_none()
+        self.assertIsNone(patient_info)
+
         patient_info = PatientInfoFactory(pid=patient.pid, mpid=None)
         self.secret_dbsession.commit()
 
@@ -545,6 +574,9 @@ class ProcessPatientTablesMPidTests(DatabaseTestCase):
                 "Skipping test because SQLite would allow non-integer values "
                 "in an integer field"
             )
+
+        patient_info = self.secret_dbsession.query(PatientInfo).one_or_none()
+        self.assertIsNone(patient_info)
 
         patient = TestPatientWithStringMPIDFactory(nhsnum="ABC123")
         self.source_dbsession.commit()
@@ -578,6 +610,52 @@ class ProcessPatientTablesMPidTests(DatabaseTestCase):
         self.assertIn(
             f"WARNING:{logger_name}:{expected_message}", logging_cm.output
         )
+
+    def test_valid_patients_added_when_invalid_mpid_skipped(self) -> None:
+        if self.source_engine.dialect.name == "sqlite":
+            pytest.skip(
+                "Skipping test because SQLite would allow non-integer values "
+                "in an integer field"
+            )
+
+        patient_info = self.secret_dbsession.query(PatientInfo).one_or_none()
+        self.assertIsNone(patient_info)
+        invalid_patient = TestPatientWithStringMPIDFactory(nhsnum="ABC123")
+        self.source_dbsession.commit()
+        valid_patient1 = TestPatientWithStringMPIDFactory()
+        self.source_dbsession.commit()
+        valid_patient2 = TestPatientWithStringMPIDFactory()
+        self.source_dbsession.commit()
+
+        invalid_pid = invalid_patient.pid
+        valid_pid1 = valid_patient1.pid
+        valid_pid2 = valid_patient2.pid
+        pids = [valid_pid1, invalid_pid, valid_pid2]
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise",
+            estimate_count_patients=self.mock_estimate_count_patients,
+            opting_out_pid=self.mock_opting_out_pid,
+        ):
+            with mock.patch.multiple(
+                "crate_anon.anonymise.anonymise.config",
+                dd=self.mock_dd,
+                _destination_database_url=self.anon_engine.url,
+                admindb=self.mock_admindb,
+                sources={"source1": self.mock_sourcedb},
+            ):
+                process_patient_tables(specified_pids=pids)
+
+        pids = [p.pid for p in self.secret_dbsession.query(PatientInfo)]
+        self.assertIn(valid_patient1.pid, pids)
+        self.assertIn(valid_patient2.pid, pids)
+
+        # For some reason these end up being a mixture of strings and ints
+        nhsnums = [
+            int(p.mpid) for p in self.secret_dbsession.query(PatientInfo)
+        ]
+        self.assertIn(int(valid_patient1.nhsnum), nhsnums)
+        self.assertIn(int(valid_patient2.nhsnum), nhsnums)
 
 
 class ProcessPatientTablesPKTests(DatabaseTestCase):
@@ -687,8 +765,11 @@ class ProcessPatientTablesPKTests(DatabaseTestCase):
 
         logger_name = "crate_anon.anonymise.anonymise"
         expected_message = "Skipping record due to IntegrityError"
-        self.assertIn(
-            f"WARNING:{logger_name}:{expected_message}", logging_cm.output[0]
+        self.assertTrue(
+            any(
+                f"WARNING:{logger_name}:{expected_message}" in line
+                for line in logging_cm.output
+            )
         )
 
         self.assertEqual(self.anon_dbsession.query(TestAnonRecord).count(), 1)

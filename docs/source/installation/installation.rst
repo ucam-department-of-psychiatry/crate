@@ -19,8 +19,8 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 
-Installing CRATE
-================
+Installing CRATE without Docker
+===============================
 
 .. contents::
    :local:
@@ -31,19 +31,6 @@ URLs for CRATE source code
 
 - https://github.com/ucam-department-of-psychiatry/crate (for source)
 - https://pypi.io/project/crate-anon/ (for ``pip install crate-anon``)
-
-
-Ubuntu Linux, from Debian package
----------------------------------
-
-To install CRATE and all its dependencies, download the Debian package and use
-``gdebi``:
-
-.. code-block:: bash
-
-    sudo gdebi crate-VERSION.deb
-
-(If you don’t have ``gdebi``, install it with ``sudo apt-get install gdebi``.)
 
 
 Manual installation

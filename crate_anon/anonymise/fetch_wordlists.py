@@ -1450,13 +1450,13 @@ def main() -> None:
     us_surname_group.add_argument(
         "--us_surnames_1990_census_url",
         type=str,
-        default="http://www2.census.gov/topics/genealogy/1990surnames/dist.all.last",  # noqa
+        default="http://www2.census.gov/topics/genealogy/1990surnames/dist.all.last",  # noqa: E501
         help="URL for textfile of US 1990 Census surnames",
     )
     us_surname_group.add_argument(
         "--us_surnames_2010_census_url",
         type=str,
-        default="https://www2.census.gov/topics/genealogy/2010surnames/names.zip",  # noqa
+        default="https://www2.census.gov/topics/genealogy/2010surnames/names.zip",  # noqa: E501
         help="URL for zip of US 2010 Census surnames",
     )
     us_surname_group.add_argument(

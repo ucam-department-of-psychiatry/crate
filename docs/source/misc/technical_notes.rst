@@ -41,13 +41,6 @@ Resolved bugs elsewhere, previously affecting CRATE
 Cross-platform hosting
 ~~~~~~~~~~~~~~~~~~~~~~
 
-For Ubuntu, CRATE is packaged as a Debian .DEB file and will install itself,
-though will not configure the web front end (intrinsically a separate
-configuration task).
-
-If you have to run under Windows, then one option is a VirtualBox
-(https://www.virtualbox.org/).
-
 In the conversion from Ubuntu to Windows:
 
 **Python code, i.e. CRATE itself**
@@ -759,7 +752,7 @@ webnotes.txt
         - ... or could validate manually with a form, e.g.
             form = MyForm(request.GET, extraparam)
           using the style at
-            https://stackoverflow.com/questions/18769607/django-form-with-customer-parameter-and-validation-not-getting-clean-function  # noqa
+            https://stackoverflow.com/questions/18769607/django-form-with-customer-parameter-and-validation-not-getting-clean-function  # noqa: E501
 
     2. Query parameters
         - can encode using urllib, e.g.
@@ -812,9 +805,9 @@ webnotes.txt
           not this:
             request.POST or None
 
-    https://stackoverflow.com/questions/2345708/how-can-i-get-the-full-absolute-url-with-domain-in-django  # noqa
-    https://stackoverflow.com/questions/150505/capturing-url-parameters-in-request-get  # noqa
-    https://stackoverflow.com/questions/2778247/how-do-i-construct-a-django-reverse-url-using-query-args  # noqa
+    https://stackoverflow.com/questions/2345708/how-can-i-get-the-full-absolute-url-with-domain-in-django
+    https://stackoverflow.com/questions/150505/capturing-url-parameters-in-request-get
+    https://stackoverflow.com/questions/2778247/how-do-i-construct-a-django-reverse-url-using-query-args
     http://whippleit.blogspot.co.uk/2010/10/pretty-urls-vs-query-strings.html
     https://stackoverflow.com/questions/3821663/querystring-in-rest-resource-url
     https://stackoverflow.com/questions/9399147/django-form-validation-with-get
@@ -1123,7 +1116,7 @@ webnotes.txt
     # )
     #
     # An alternative is to set DEBUG_TOOLBAR_CONFIG as per
-    # https://stackoverflow.com/questions/28226940/django-debug-toolbar-wont-display-from-production-server  # noqa
+    # https://stackoverflow.com/questions/28226940/django-debug-toolbar-wont-display-from-production-server  # noqa: E501
     # Like this:
 
     def always_show_toolbar(request):

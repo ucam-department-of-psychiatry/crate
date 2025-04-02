@@ -46,7 +46,7 @@ from crate_anon.crateweb.research.archive_backend import (
     archive_template_url,
 )
 from crate_anon.crateweb.research.research_db_info import (
-    research_database_info,
+    get_research_db_info,
 )
 from crate_anon.crateweb.research.views import (
     FN_SRCDB,
@@ -151,6 +151,7 @@ def delimit_sql_identifier(identifer: str) -> str:
     """
     Delimits (quotes) an SQL identifier, if required.
     """
+    research_database_info = get_research_db_info()
     return research_database_info.grammar.quote_identifier_if_required(
         identifer
     )

@@ -67,7 +67,7 @@ from crate_anon.nlprp.api import (
 )
 from crate_anon.nlprp.constants import (
     NlprpCommands,
-    NlprpKeys as NKeys,
+    NlprpKeys,
     NlprpValues,
 )
 from crate_anon.nlprp.errors import (
@@ -190,7 +190,7 @@ class NlprpProcessRequest:
         # The processors being requested. We fetch all of them now, so they
         # can be iterated through fast for each document.
         requested_processors = json_get_array(
-            args, NKeys.PROCESSORS, required=True
+            args, NlprpKeys.PROCESSORS, required=True
         )
         self.processors = [
             ServerProcessor.get_processor_nlprp(d)
@@ -198,18 +198,18 @@ class NlprpProcessRequest:
         ]
 
         # Queue?
-        self.queue = json_get_bool(args, NKeys.QUEUE, default=False)
+        self.queue = json_get_bool(args, NlprpKeys.QUEUE, default=False)
 
         # Client job ID
         self.client_job_id = json_get_str(
-            args, NKeys.CLIENT_JOB_ID, default=""
+            args, NlprpKeys.CLIENT_JOB_ID, default=""
         )
 
         # Include the source text in the reply?
-        self.include_text = json_get_bool(args, NKeys.INCLUDE_TEXT)
+        self.include_text = json_get_bool(args, NlprpKeys.INCLUDE_TEXT)
 
         # Content: list of objects (each with text and metadata)
-        self.content = json_get_array(args, NKeys.CONTENT, required=True)
+        self.content = json_get_array(args, NlprpKeys.CONTENT, required=True)
 
     def processor_ids(self) -> List[str]:
         """
@@ -236,9 +236,9 @@ class NlprpProcessRequest:
             tuple: ``(text, metadata)``, as above
         """
         for document in self.content:
-            text = json_get_str(document, NKeys.TEXT, required=True)
+            text = json_get_str(document, NlprpKeys.TEXT, required=True)
             metadata = json_get_value(
-                document, NKeys.METADATA, default=None, required=False
+                document, NlprpKeys.METADATA, default=None, required=False
             )
             yield text, metadata
 
@@ -252,16 +252,16 @@ class NlprpProcessRequest:
         """
         try:
             for document in self.content:
-                text = json_get_str(document, NKeys.TEXT, required=True)
+                text = json_get_str(document, NlprpKeys.TEXT, required=True)
                 metadata = json_get_value(
-                    document, NKeys.METADATA, default=None, required=False
+                    document, NlprpKeys.METADATA, default=None, required=False
                 )
                 metadata_str = json.dumps(
                     metadata, separators=JSON_SEPARATORS_COMPACT
                 )
                 yield text, metadata_str
         except KeyError:
-            raise key_missing_error(key=NKeys.TEXT)
+            raise key_missing_error(key=NlprpKeys.TEXT)
 
 
 # =============================================================================
@@ -321,14 +321,14 @@ class NlpWebViews:
         # Put status in HTTP header
         self.set_http_response_status(status)
         response_dict = {
-            NKeys.STATUS: status,
-            NKeys.PROTOCOL: {
-                NKeys.NAME: NlprpValues.NLPRP_PROTOCOL_NAME,
-                NKeys.VERSION: NLPRP_VERSION_STRING,
+            NlprpKeys.STATUS: status,
+            NlprpKeys.PROTOCOL: {
+                NlprpKeys.NAME: NlprpValues.NLPRP_PROTOCOL_NAME,
+                NlprpKeys.VERSION: NLPRP_VERSION_STRING,
             },
-            NKeys.SERVER_INFO: {
-                NKeys.NAME: SERVER_NAME,
-                NKeys.VERSION: SERVER_VERSION,
+            NlprpKeys.SERVER_INFO: {
+                NlprpKeys.NAME: SERVER_NAME,
+                NlprpKeys.VERSION: SERVER_VERSION,
             },
         }
         if extra_info is not None:
@@ -344,11 +344,11 @@ class NlpWebViews:
         # Turned 'errors' into array
         # Should this allow for multiple errors?
         error_info = {
-            NKeys.ERRORS: [
+            NlprpKeys.ERRORS: [
                 {
-                    NKeys.CODE: error.code,
-                    NKeys.MESSAGE: error.message,
-                    NKeys.DESCRIPTION: error.description,
+                    NlprpKeys.CODE: error.code,
+                    NlprpKeys.MESSAGE: error.message,
+                    NlprpKeys.DESCRIPTION: error.description,
                 }
             ]
         }
@@ -450,7 +450,7 @@ class NlpWebViews:
         """
         self._authenticate()
         self._set_body_json_from_request()
-        command = json_get_str(self.body, NKeys.COMMAND, required=True)
+        command = json_get_str(self.body, NlprpKeys.COMMAND, required=True)
         log.debug(
             f"NLPRP request received from {self.request.remote_addr}: "
             f"username={self.username}, command={command}"
@@ -489,7 +489,7 @@ class NlpWebViews:
         return self.create_response(
             status=HttpStatus.OK,
             extra_info={
-                NKeys.PROCESSORS: [
+                NlprpKeys.PROCESSORS: [
                     proc.infodict
                     for proc in ServerProcessor.processors.values()
                 ]
@@ -518,23 +518,23 @@ class NlpWebViews:
                     password=self.password,
                 )
                 # proc_dict = procresult.nlprp_processor_dict(processor)
-                if procresult[NKeys.NAME] is None:
-                    procresult[NKeys.NAME] = processor.name
-                    procresult[NKeys.TITLE] = processor.title
-                    procresult[NKeys.VERSION] = processor.version
+                if procresult[NlprpKeys.NAME] is None:
+                    procresult[NlprpKeys.NAME] = processor.name
+                    procresult[NlprpKeys.TITLE] = processor.title
+                    procresult[NlprpKeys.VERSION] = processor.version
                 processor_data.append(procresult)
 
             doc_result = {
-                NKeys.METADATA: metadata,
-                NKeys.PROCESSORS: processor_data,
+                NlprpKeys.METADATA: metadata,
+                NlprpKeys.PROCESSORS: processor_data,
             }
             if process_request.include_text:
-                doc_result[NKeys.TEXT] = text
+                doc_result[NlprpKeys.TEXT] = text
             results.append(doc_result)
 
         response_info = {
-            NKeys.CLIENT_JOB_ID: process_request.client_job_id,
-            NKeys.RESULTS: results,
+            NlprpKeys.CLIENT_JOB_ID: process_request.client_job_id,
+            NlprpKeys.RESULTS: results,
         }
         return self.create_response(
             status=HttpStatus.OK, extra_info=response_info
@@ -601,7 +601,7 @@ class NlpWebViews:
                 task_id=dpr_id,  # for Celery
             )
 
-        response_info = {NKeys.QUEUE_ID: queue_id}
+        response_info = {NlprpKeys.QUEUE_ID: queue_id}
         return self.create_response(
             status=HttpStatus.ACCEPTED, extra_info=response_info
         )
@@ -615,7 +615,7 @@ class NlpWebViews:
         # Args
         # ---------------------------------------------------------------------
         args = json_get_toplevel_args(self.body)
-        queue_id = json_get_str(args, NKeys.QUEUE_ID, required=True)
+        queue_id = json_get_str(args, NlprpKeys.QUEUE_ID, required=True)
 
         # ---------------------------------------------------------------------
         # Start with the DocProcRequests, because if some are still busy,
@@ -642,8 +642,8 @@ class NlpWebViews:
             return self.create_response(
                 HttpStatus.ACCEPTED,
                 {
-                    NKeys.N_DOCPROCS: n,
-                    NKeys.N_DOCPROCS_COMPLETED: n_done,
+                    NlprpKeys.N_DOCPROCS: n,
+                    NlprpKeys.N_DOCPROCS_COMPLETED: n_done,
                 },
             )
 
@@ -682,19 +682,19 @@ class NlpWebViews:
             # ... data for *all* the processors for this doc
             for dpr in doc.docprocrequests:
                 procresult = json.loads(dpr.results)  # type: Dict[str, Any]
-                if procresult[NKeys.NAME] is None:
+                if procresult[NlprpKeys.NAME] is None:
                     processor = get_processor_cached(dpr.processor_id)
-                    procresult[NKeys.NAME] = processor.name
-                    procresult[NKeys.TITLE] = processor.title
-                    procresult[NKeys.VERSION] = processor.version
+                    procresult[NlprpKeys.NAME] = processor.name
+                    procresult[NlprpKeys.TITLE] = processor.title
+                    procresult[NlprpKeys.VERSION] = processor.version
                 processor_data.append(procresult)
             metadata = json.loads(doc.client_metadata)
             doc_result = {
-                NKeys.METADATA: metadata,
-                NKeys.PROCESSORS: processor_data,
+                NlprpKeys.METADATA: metadata,
+                NlprpKeys.PROCESSORS: processor_data,
             }
             if doc.include_text:
-                doc_result[NKeys.TEXT] = doc.doctext
+                doc_result[NlprpKeys.TEXT] = doc.doctext
             doc_results.append(doc_result)
 
         # ---------------------------------------------------------------------
@@ -706,10 +706,10 @@ class NlpWebViews:
             # ... will also delete the DocProcRequests via a cascade
 
         response_info = {
-            NKeys.CLIENT_JOB_ID: (
+            NlprpKeys.CLIENT_JOB_ID: (
                 client_job_id if client_job_id is not None else ""
             ),
-            NKeys.RESULTS: doc_results,
+            NlprpKeys.RESULTS: doc_results,
         }
         return self.create_response(
             status=HttpStatus.OK, extra_info=response_info
@@ -724,7 +724,7 @@ class NlpWebViews:
         args = json_get_toplevel_args(self.body, required=False)
         if args:
             client_job_id = json_get_str(
-                args, NKeys.CLIENT_JOB_ID, default="", required=False
+                args, NlprpKeys.CLIENT_JOB_ID, default="", required=False
             )
         else:
             client_job_id = ""
@@ -738,8 +738,7 @@ class NlpWebViews:
         # noinspection PyUnresolvedReferences
         queue_ids = fetch_all_first_values(
             dbsession,
-            select([Document.queue_id])
-            .select_from(Document.__table__)
+            select(Document.queue_id)
             .where(and_(*queue_id_wheres))
             .distinct()
             .order_by(Document.queue_id),
@@ -764,15 +763,15 @@ class NlpWebViews:
 
             queue_answer.append(
                 {
-                    NKeys.QUEUE_ID: queue_id,
-                    NKeys.CLIENT_JOB_ID: client_job_id,
-                    NKeys.STATUS: (
+                    NlprpKeys.QUEUE_ID: queue_id,
+                    NlprpKeys.CLIENT_JOB_ID: client_job_id,
+                    NlprpKeys.STATUS: (
                         NlprpValues.BUSY if busy else NlprpValues.READY
                     ),
-                    NKeys.DATETIME_SUBMITTED: pendulum_to_nlprp_datetime(
+                    NlprpKeys.DATETIME_SUBMITTED: pendulum_to_nlprp_datetime(
                         dt_submitted, to_utc=True
                     ),
-                    NKeys.DATETIME_COMPLETED: (
+                    NlprpKeys.DATETIME_COMPLETED: (
                         None
                         if busy
                         else pendulum_to_nlprp_datetime(max_time, to_utc=True)
@@ -780,7 +779,7 @@ class NlpWebViews:
                 }
             )
         return self.create_response(
-            status=HttpStatus.OK, extra_info={NKeys.QUEUE: queue_answer}
+            status=HttpStatus.OK, extra_info={NlprpKeys.QUEUE: queue_answer}
         )
 
     def delete_from_queue(self) -> JsonObjectType:
@@ -788,8 +787,8 @@ class NlpWebViews:
         Deletes from the queue all entries specified by the client.
         """
         args = json_get_toplevel_args(self.body)
-        delete_all = json_get_bool(args, NKeys.DELETE_ALL, default=False)
-        client_job_ids = json_get_array_of_str(args, NKeys.CLIENT_JOB_IDS)
+        delete_all = json_get_bool(args, NlprpKeys.DELETE_ALL, default=False)
+        client_job_ids = json_get_array_of_str(args, NlprpKeys.CLIENT_JOB_IDS)
 
         # Establish what to cancel/delete
         q_dpr = (

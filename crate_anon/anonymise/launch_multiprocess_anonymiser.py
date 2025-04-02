@@ -41,7 +41,7 @@ Python version: see
 - https://stackoverflow.com/questions/23611396/python-execute-cat-subprocess-in-parallel
 - https://stackoverflow.com/questions/320232/ensuring-subprocesses-are-dead-on-exiting-python-program
 - https://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python
-"""  # noqa
+"""  # noqa: E501
 
 import argparse
 import logging

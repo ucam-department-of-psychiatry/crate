@@ -410,9 +410,9 @@ Related tools
   et al. 2014, https://pubmed.ncbi.nlm.nih.gov/25261970/) perform similar
   researcher/data separation via other methods.
 
-"""  # noqa
+"""  # noqa: E501
 
-# todo: SystmOne (CRATE traffic-light system): implement S1_ClinicalOutcome_ConsentResearch  # noqa
+# todo: SystmOne (CRATE traffic-light system): implement S1_ClinicalOutcome_ConsentResearch  # noqa: E501
 
 # =============================================================================
 # Imports
@@ -427,6 +427,7 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from cardinal_pythonlib.dicts import reversedict
 from cardinal_pythonlib.enumlike import CaseInsensitiveEnumMeta
+from cardinal_pythonlib.sql.validation import SQLTYPE_DATE
 
 from crate_anon.anonymise.altermethod import AlterMethod
 from crate_anon.anonymise.constants import (
@@ -437,7 +438,6 @@ from crate_anon.anonymise.constants import (
     SrcFlag,
 )
 from crate_anon.common.logfunc import warn_once
-from crate_anon.common.sql import SQLTYPE_DATE
 from crate_anon.anonymise.dd import DataDictionary, DataDictionaryRow
 from crate_anon.preprocess.constants import CRATE_COL_PK
 
@@ -562,7 +562,7 @@ class S1Table:
     #
     # Other tables whose name might suggest patient identifiers:
     # - SRAddressBookEntry: institutional addresses only? (FK to this from
-    #   SRSafeguardingIncidentDetails, for example.) todo: check -- institutional addresses only?  # noqa
+    #   SRSafeguardingIncidentDetails, for example.) todo: check -- institutional addresses only?  # noqa: E501
     # - SRHospitalAdmissionAndDischarge, etc. -- no external identifiers linked
     #   to HospitalAAndENumber, just SystmOne IDs.
     # - SROohEmergencyCall -- no contact numbers.
@@ -697,9 +697,9 @@ _OMIT_AND_IGNORE_TABLES_S1 = (
 )
 _OMIT_AND_IGNORE_TABLES_CPFT = (
     # CPFT extras:
-    "Deaths",  # has NHS number then multi-system ID but not consistent SystmOne patient ID  # noqa
+    "Deaths",  # has NHS number then multi-system ID but not consistent SystmOne patient ID  # noqa: E501
     "gr_workings",  # no idea
-    "InpatientAvailableBeds",  # RowIdentifier very far from unique; ?no PK; no patient info  # noqa
+    "InpatientAvailableBeds",  # RowIdentifier very far from unique; ?no PK; no patient info  # noqa: E501
 )
 OMIT_AND_IGNORE_TABLES = {
     SystmOneContext.TPP_SRE: _OMIT_AND_IGNORE_TABLES_S1,
@@ -717,7 +717,7 @@ _OMIT_AND_IGNORE_TABLES_REGEX_CPFT = (
     # This one filters for CTV3 codes "Y2c49" and "Y2ca". As d/w NP 2021-12-14:
     # - These are "local" codes.
     #   ("Official" Read codes have been frozen since 2016, according to
-    #   https://datadictionary.nhs.uk/supporting_information/read_coded_clinical_terms.html.)  # noqa
+    #   https://datadictionary.nhs.uk/supporting_information/read_coded_clinical_terms.html.)  # noqa: E501
     # - They indicate whether someone is a healthcare worker (HCW).
     # - Introduced for COVID-19, since HCW status was a clear risk factor for
     #   infection.

@@ -571,7 +571,7 @@ class DataDictionary:
             CREATE TABLE junk (intthing INT PRIMARY KEY, text1 LONGTEXT, text2 LONGTEXT);
             ALTER TABLE junk ADD FULLTEXT INDEX ftidx1 (text1);
             ALTER TABLE junk ADD FULLTEXT INDEX ftidx2 (text2);  -- OK
-        """  # noqa
+        """  # noqa: E501
         log.info("Tidying/correcting draft data dictionary")
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -591,7 +591,7 @@ class DataDictionary:
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         log.info("... Make full-text indexes follow dialect rules")
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # https://docs.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-index-transact-sql?view=sql-server-ver15  # noqa
+        # https://docs.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-index-transact-sql?view=sql-server-ver15  # noqa: E501
         if self.dest_dialect_name == SqlaDialectName.SQLSERVER:
             # -----------------------------------------------------------------
             # Checks for Microsoft SQL Server
@@ -1617,7 +1617,7 @@ class DataDictionary:
         pid_found = False
         rows_include_mrid_with_expected_name = False
         columns = []  # type: List[Column]
-        extra_kwargs = {}  # type: Dict[str, Any]
+        extra_kwargs = dict(extend_existing=True)  # type: Dict[str, Any]
         for ddr in self.get_rows_for_dest_table(
             tablename, skip_table_comments=False
         ):

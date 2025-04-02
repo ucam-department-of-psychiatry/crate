@@ -91,7 +91,7 @@ WORD_BOUNDARY = WB
 
 _NOT_EMPTY_WORD_ONLY_REGEX = regex.compile(r"^\w+$")
 _NOT_EMPTY_ALPHABETICAL_ONLY_REGEX = regex.compile("^[a-zA-Z]+$")
-# cf. https://stackoverflow.com/questions/336210/regular-expression-for-alphanumeric-and-underscores  # noqa
+# cf. https://stackoverflow.com/questions/336210/regular-expression-for-alphanumeric-and-underscores  # noqa: E501
 
 
 # =============================================================================

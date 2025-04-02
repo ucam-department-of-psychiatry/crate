@@ -87,7 +87,6 @@ from sqlalchemy.sql.sqltypes import (
 )
 from sqlalchemy.sql.type_api import TypeEngine
 
-from crate_anon.anonymise.constants import CHARSET
 from crate_anon.common.future import batched
 
 log = logging.getLogger(__name__)
@@ -1006,11 +1005,11 @@ def auto_import_db(
             "data"
         )
 
-    engine = create_engine(url, echo=echo, encoding=CHARSET)
+    engine = create_engine(url, echo=echo, future=True)
     safe_url = get_safe_url_from_engine(engine)
     log.info(f"Connected to database: {safe_url}")
-    session = sessionmaker(bind=engine)()  # type: Session
-    metadata = MetaData(bind=engine)
+    session = sessionmaker(bind=engine, future=True)()  # type: Session
+    metadata = MetaData()
 
     # Reflection:
     # - dropping doesn't need reflection
@@ -1022,7 +1021,7 @@ def auto_import_db(
     reflect = create_tables or import_data
     if reflect:
         log.info("Reading table structure from database...")
-        metadata.reflect()  # views not required, though
+        metadata.reflect(bind=engine)  # views not required, though
 
     log.info("Processing...")
     for ti in gen_tablename_info(

@@ -62,7 +62,8 @@ class TimelyCPFTRiOFilter(TimelyDDFilter):
             self.exclude_tables,
             stage=None,
             regex_strings=[
-                "cpft_core_assessment_v2_kcsa_children_in_household",  #  about people other than the patient  # noqa
+                "cpft_core_assessment_v2_kcsa_children_in_household",
+                #  ... about people other than the patient
             ],
         )
 
@@ -183,7 +184,7 @@ class TimelyCPFTRiOFilter(TimelyDDFilter):
                 "CPFT_Core_Assessment.*",
                 "Progress_Note",
                 "RskRelatedIncidents",
-                "UserAssessCAMH",  # CAMH-specific assessments (e.g. questionnaires) -- can have free-text comments.  # noqa
+                "UserAssessCAMH",  # CAMH-specific assessments (e.g. questionnaires) -- can have free-text comments.  # noqa: E501
             ],
         )
 

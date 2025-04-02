@@ -34,8 +34,13 @@ import uuid
 from cardinal_pythonlib.datetimefunc import coerce_to_pendulum
 from pendulum import DateTime as Pendulum
 from sqlalchemy import Column, Text, VARCHAR, Boolean, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import deferred, relationship, scoped_session, sessionmaker
+from sqlalchemy.orm import (
+    declarative_base,
+    deferred,
+    relationship,
+    scoped_session,
+    sessionmaker,
+)
 from sqlalchemy.sql.schema import ForeignKey
 
 # noinspection PyPackageRequirements
@@ -46,8 +51,7 @@ from zope.sqlalchemy import register
 # SQLAlchemy setup
 # =============================================================================
 
-# Session = sessionmaker(extension=ZopeTransactionExtension())
-Session = sessionmaker()
+Session = sessionmaker(future=True)
 register(Session)
 dbsession = scoped_session(Session)
 
@@ -157,7 +161,7 @@ class Document(Base):
         passive_deletes=True,
         back_populates="document",
         lazy="select",
-        # https://docs.sqlalchemy.org/en/13/orm/collections.html#using-passive-deletes  # noqa
+        # https://docs.sqlalchemy.org/en/13/orm/collections.html#using-passive-deletes  # noqa: E501
     )  # type: List[DocProcRequest]
 
     @property
@@ -187,8 +191,8 @@ class DocProcRequest(Base):
         VARCHAR(MAX_DOC_ID_LEN),
         ForeignKey("documents.document_id", ondelete="CASCADE"),
         # ... delete DocProcRequests when their Documents are deleted
-        # ... https://stackoverflow.com/questions/5033547/sqlalchemy-cascade-delete  # noqa
-        # ... https://docs.sqlalchemy.org/en/13/orm/collections.html#using-passive-deletes  # noqa
+        # ... https://stackoverflow.com/questions/5033547/sqlalchemy-cascade-delete  # noqa: E501
+        # ... https://docs.sqlalchemy.org/en/13/orm/collections.html#using-passive-deletes  # noqa: E501
         nullable=False,
         comment="Document ID (FK to documents.document_id)",
     )  # type: str

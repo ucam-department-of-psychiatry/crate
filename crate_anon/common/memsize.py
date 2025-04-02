@@ -27,7 +27,7 @@ Calculate the size of objects in memory (fast).
 
 From https://stackoverflow.com/questions/449560/how-do-i-determine-the-size-of-an-object-in-python
 
-"""  # noqa
+"""  # noqa: E501
 
 from gc import get_referents
 from sys import getsizeof
@@ -52,7 +52,7 @@ def getsize(obj: Any, assume_none_denied: bool = False) -> int:
             Skip checks for classes/modules/functions. Assume that all objects
             should be checked (typically, meaning that the caller guarantees
             not to pass stuff that doesn't need checking).
-    """  # noqa
+    """  # noqa: E501
     if not assume_none_denied:
         if isinstance(obj, DENYLIST):
             raise TypeError(

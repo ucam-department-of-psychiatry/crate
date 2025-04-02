@@ -642,7 +642,7 @@ class Bp(BaseNlpParser):
 
     # Since we produce two variables, SBP and DBP, and we use something a
     # little more complex than
-    # :class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`,  # noqa
+    # :class:`crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser`,  # noqa: E501
     # we subclass :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
     # directly.)
 

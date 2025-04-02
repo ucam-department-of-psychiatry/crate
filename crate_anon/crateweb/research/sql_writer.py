@@ -50,7 +50,7 @@ from crate_anon.common.sql import (
 )
 from crate_anon.crateweb.research.errors import DatabaseStructureNotUnderstood
 from crate_anon.crateweb.research.research_db_info import (
-    research_database_info,
+    get_research_db_info,
 )
 
 log = logging.getLogger(__name__)
@@ -105,6 +105,7 @@ def get_join_info(
     - ``INNER JOIN`` etc. is part of ANSI SQL
 
     """
+    research_database_info = get_research_db_info()
     first_from_table = get_first_from_table(parsed)
     from_table_in_join_schema = get_first_from_table(
         parsed, match_db=jointable.db, match_schema=jointable.schema

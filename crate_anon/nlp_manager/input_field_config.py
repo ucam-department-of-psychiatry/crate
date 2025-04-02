@@ -45,13 +45,22 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     table_or_view_exists,
 )
 from cardinal_pythonlib.timing import MultiTimerContext, timer
-from sqlalchemy import BigInteger, Column, DateTime, Index, String, Table
+from sqlalchemy import (
+    BigInteger,
+    Column,
+    DateTime,
+    Index,
+    Integer,
+    String,
+    Table,
+)
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import and_, column, exists, null, or_, select, table
 from sqlalchemy.sql.schema import MetaData
 
 from crate_anon.common.parallel import is_my_job_by_hash_prehashed
+from crate_anon.common.sql import decorate_index_name
 from crate_anon.common.stringfunc import relevant_for_nlp
 from crate_anon.nlp_manager.constants import (
     FN_CRATE_VERSION_FIELD,
@@ -254,7 +263,9 @@ class InputFieldConfig:
         return [
             Column(
                 FN_PK,
-                BigInteger,
+                # Autoincrement under SQLite needs a trick:
+                # https://docs.sqlalchemy.org/en/20/dialects/sqlite.html
+                BigInteger().with_variant(Integer, "sqlite"),
                 primary_key=True,
                 autoincrement=True,
                 comment="Arbitrary primary key (PK) of output record",
@@ -322,21 +333,28 @@ class InputFieldConfig:
         ]
 
     @staticmethod
-    def get_core_indexes_for_dest() -> List[Index]:
+    def get_core_indexes_for_dest(
+        tablename: str, engine: Engine
+    ) -> List[Index]:
         """
         Returns the core indexes to be applied to the destination tables.
         Primarily, these are for columns that refer to the source.
+
+        Args:
+            tablename:
+                The name of the table to be used in the destination.
+            engine:
+                The destination database SQLAlchemy Engine.
 
         Returns:
             a list of SQLAlchemy :class:`Index` objects
 
         See
-
         - https://stackoverflow.com/questions/179085/multiple-indexes-vs-multi-column-indexes
-        """  # noqa
+        """  # noqa: E501
         return [
             Index(
-                "_idx_srcref",
+                decorate_index_name("_idx_srcref", tablename, engine),
                 # Remember, order matters; more to less specific
                 # See also BaseNlpParser.delete_dest_record
                 FN_SRCPKVAL,
@@ -346,9 +364,12 @@ class InputFieldConfig:
                 FN_SRCDB,
                 FN_SRCPKSTR,
             ),
-            Index("_idx_srcdate", FN_SRCDATETIMEVAL),
             Index(
-                "_idx_deletion",
+                decorate_index_name("_idx_srcdate", tablename, engine),
+                FN_SRCDATETIMEVAL,
+            ),
+            Index(
+                decorate_index_name("_idx_deletion", tablename, engine),
                 # We sometimes delete just using the following; see
                 # BaseNlpParser.delete_where_srcpk_not
                 FN_NLPDEF,
@@ -379,7 +400,7 @@ class InputFieldConfig:
         # We read the column type from the source database.
         self._require_table_or_view_exists()
         meta = self._source_metadata
-        t = Table(self._srctable, meta, autoload=True)
+        t = Table(self._srctable, meta, autoload_with=self._source_engine)
         copy_columns = []  # type: List[Column]
         processed_copy_column_names = []  # type: List[str]
         for c in t.columns:
@@ -416,7 +437,7 @@ class InputFieldConfig:
         """
         self._require_table_or_view_exists()
         meta = self._source_metadata
-        t = Table(self._srctable, meta, autoload=True)
+        t = Table(self._srctable, meta, autoload_with=self._source_engine)
         copy_indexes = []  # type: List[Index]
         processed_copy_index_col_names = []  # type: List[str]
         for c in t.columns:
@@ -508,7 +529,7 @@ class InputFieldConfig:
         for extracol in self._copyfields:
             selectcols.append(column(extracol))
 
-        query = select(selectcols).select_from(table(self._srctable))
+        query = select(*selectcols).select_from(table(self._srctable))
         # not ordered...
         # if self._fetch_sorted:
         #     query = query.order_by(pkcol)
@@ -539,7 +560,8 @@ class InputFieldConfig:
 
                     # Deal with non-integer PKs
                     if pk_is_integer:
-                        hashed_pk = None  # remove warning about reference before assignment  # noqa
+                        hashed_pk = None
+                        # ... remove warning about reference before assignment
                     else:
                         hashed_pk = hash64(pkval)
                         if (
@@ -558,7 +580,8 @@ class InputFieldConfig:
                             f"(in total for this process) due to debugging "
                             f"limits"
                         )
-                        result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
+                        result.close()
+                        # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa: E501
                         return
 
                     # Get text
@@ -626,7 +649,7 @@ class InputFieldConfig:
             .filter(NlpRecord.nlpdef == self._nlpdef.name)
             # Order not important (though the order of the index certainly
             # is; see NlpRecord.__table_args__).
-            # https://stackoverflow.com/questions/11436469/does-order-of-where-clauses-matter-in-sql  # noqa
+            # https://stackoverflow.com/questions/11436469/does-order-of-where-clauses-matter-in-sql  # noqa: E501
         )
         if srcpkstr is not None:
             query = query.filter(NlpRecord.srcpkstr == srcpkstr)
@@ -647,7 +670,7 @@ class InputFieldConfig:
           ``TIMING_DELETE_WHERE_NO_SOURCE``.
         """
         session = self.source_session
-        query = select([column(self._srcpkfield)]).select_from(
+        query = select(column(self._srcpkfield)).select_from(
             table(self._srctable)
         )
         result = session.execute(query)
@@ -707,7 +730,7 @@ class InputFieldConfig:
             log.debug("... deleting all")
         with MultiTimerContext(timer, TIMING_PROGRESS_DB_DELETE):
             prog_deletion_query.delete(synchronize_session=False)
-            # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete  # noqa
+            # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete  # noqa: E501
         self._nlpdef.commit(progsession)
 
     def delete_all_progress_records(self) -> None:

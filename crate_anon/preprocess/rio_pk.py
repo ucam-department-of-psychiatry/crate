@@ -148,11 +148,11 @@ RIO_6_2_ATYPICAL_PKS = {  # SUPERSEDED by better PK detection
     'ReportsOutpatientWaitersHashNotSeenReferrals': None,
     'ReportsOutpatientWaitersNotSeenReferrals': None,
 
-    'UserAssesstfkcsa_childprev': 'type12_RowID',  # Keeping Children Safe Assessment subtable  # noqa
-    'UserAssesstfkcsa_childs': 'type12_RowID',  # Keeping Children Safe Assessment subtable  # noqa
+    'UserAssesstfkcsa_childprev': 'type12_RowID',  # Keeping Children Safe Assessment subtable
+    'UserAssesstfkcsa_childs': 'type12_RowID',  # Keeping Children Safe Assessment subtable
 }
 
-"""
+"""  # noqa: E501
 
 RIO_6_2_ATYPICAL_PATIENT_ID_COLS = {
     "SNOMED_Client": "SC_ClientID",

@@ -25,12 +25,10 @@ crate_anon/nlp_manager/cloud_parser.py
 
 Send text to a cloud-based NLPRP server for processing.
 
-.. todo:: cloud_parser: handle new ``tabular_schema`` info from server
-
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from cardinal_pythonlib.lists import chunks
 from sqlalchemy.schema import Column, Index
@@ -39,7 +37,7 @@ from sqlalchemy import types as sqlatypes
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.constants import ProcessorConfigKeys, NlpDefValues
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
-from crate_anon.nlprp.constants import NlprpKeys as NKeys, NlprpValues
+from crate_anon.nlprp.constants import NlprpKeys, NlprpValues
 from crate_anon.nlp_manager.base_nlp_parser import TableMaker
 from crate_anon.nlp_webserver.server_processor import ServerProcessor
 
@@ -86,10 +84,9 @@ class Cloud(TableMaker):
         self.sql_dialect = None
         self.schema = None  # type: Optional[Dict[str, Any]]
         self.available_remotely = False  # update later if available
-        # Output section - bit of repetition from the 'Gate' parser
+        # Output section
         self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]
         self._type_to_tablename = {}  # type: Dict[str, str]
-        self.tablename = None
 
         if not nlpdef and not cfg_processor_name:
             # Debugging only
@@ -107,24 +104,30 @@ class Cloud(TableMaker):
             self.format = self._cfgsection.opt_str(
                 ProcessorConfigKeys.PROCESSOR_FORMAT, required=True
             )
-
             # Output section - bit of repetition from the 'Gate' parser
             typepairs = self._cfgsection.opt_strlist(
                 ProcessorConfigKeys.OUTPUTTYPEMAP, required=True, lower=False
             )
-            # If typepairs is empty the following block won't execute
             for output_type, outputsection in chunks(typepairs, 2):
                 output_type = output_type.lower()
                 c = OutputUserConfig(
-                    nlpdef.parser, outputsection, schema_required=False
+                    config_parser=nlpdef.parser,
+                    cfg_output_name=outputsection,
+                    schema_required=False,
                 )
                 self._outputtypemap[output_type] = c
                 self._type_to_tablename[output_type] = c.dest_tablename
-                if output_type == '""':
-                    self.tablename = c.dest_tablename
+            # Also, ensure the user doesn't specify desttable (would be
+            # confusing).
+            if self._cfgsection.opt_str(ProcessorConfigKeys.DESTTABLE):
+                raise ValueError(
+                    f"For cloud processors, don't specify "
+                    f"{ProcessorConfigKeys.DESTTABLE!r}; table information is "
+                    f"in {ProcessorConfigKeys.OUTPUTTYPEMAP!r}"
+                )
 
     @staticmethod
-    def get_coltype_parts(coltype_str: str) -> List[str]:
+    def get_coltype_parts(coltype_str: str) -> Tuple[str, Union[str, int]]:
         """
         Get root column type and parameter, i.e. for VARCHAR(50)
         root column type is VARCHAR and parameter is 50.
@@ -136,7 +139,7 @@ class Cloud(TableMaker):
         else:
             try:
                 col_str, parameter = parts
-            except ValueError:
+            except ValueError:  # e.g. "too many values to unpack"
                 log.error(f"Invalid column type in response: {coltype_str}")
                 raise
             try:
@@ -144,17 +147,24 @@ class Cloud(TableMaker):
                 parameter = int(parameter)
             except ValueError:
                 pass
-        return [col_str, parameter]
+        return col_str, parameter
 
     @staticmethod
-    def str_to_coltype_general(coltype_str: str) -> Type[sqlatypes.TypeEngine]:
+    def data_type_str_to_coltype(
+        data_type_str: str,
+    ) -> Type[sqlatypes.TypeEngine]:
         """
-        Get the sqlalchemy column type class which fits with the column type.
+        Get the SQLAlchemy column type class which fits with the data type
+        specified. Currently we IGNORE self.sql_dialect.
         """
-        coltype = getattr(sqlatypes, coltype_str)
+        coltype = getattr(sqlatypes, data_type_str)
         # Check if 'coltype' is really an sqlalchemy column type
         if issubclass(coltype, sqlatypes.TypeEngine):
             return coltype
+        raise NotImplementedError(
+            f"Don't know the SQLAlchemy column type corresponding to "
+            f"data type: {data_type_str!r}"
+        )
 
     def is_tabular(self) -> bool:
         """
@@ -163,27 +173,78 @@ class Cloud(TableMaker):
         """
         return self.schema_type == NlprpValues.TABULAR
 
+    def get_tabular_schema_tablenames(self) -> List[str]:
+        """
+        Returns the names of the tables in the tabular schema (or an empty list
+        if we do not have a tabular schema).
+        """
+        if not self.is_tabular():
+            return []
+        return list(self.schema.keys())
+
+    def get_local_from_remote_tablename(self, remote_tablename: str) -> str:
+        """
+        When the remote server specifies a table name, we need to map it to
+        a local database table name.
+
+        Raises KeyError on failure.
+        """
+        try:
+            return self.get_tablename_from_type(remote_tablename)
+        except KeyError:
+            raise KeyError(
+                "No local table name defined for remote table "
+                f"{remote_tablename!r}"
+            )
+
+    def get_first_local_tablename(self) -> str:
+        """
+        Used in some circumstances when the remote processor doesn't specify
+        a table.
+        """
+        assert len(self._type_to_tablename) > 0
+        return self._type_to_tablename[0]
+
     def get_tablename_from_type(self, output_type: str) -> str:
-        return self._type_to_tablename[output_type]
+        """
+        For simple remote GATE processors, or cloud processors: for a given
+        annotation type (GATE) or remote table name (cloud), return the
+        destination table name.
+
+        Enforces lower-case lookup.
+
+        Will raise KeyError if this fails.
+        """
+        return self._type_to_tablename[output_type.lower()]
 
     def get_otconf_from_type(self, output_type: str) -> OutputUserConfig:
-        return self._outputtypemap[output_type]
+        """
+        For a GATE annotation type, or cloud remote table name, return the
+        corresponding OutputUserConfig.
+
+        Enforces lower-case lookup.
+
+        Will raise KeyError if this fails.
+        """
+        return self._outputtypemap[output_type.lower()]
 
     def _standard_columns_if_gate(self) -> List[Column]:
         """
         Returns standard columns for GATE output if ``self.format`` is GATE.
+        Returns an empty list otherwise.
         """
         if self.format == NlpDefValues.FORMAT_GATE:
             return self._standard_gate_columns()
         else:
             return []
 
-    def _standard_indexes_if_gate(self) -> List[Index]:
+    def _standard_indexes_if_gate(self, dest_tablename: str) -> List[Index]:
         """
         Returns standard indexes for GATE output if ``self.format`` is GATE.
+        Returns an empty list otherwise.
         """
         if self.format == NlpDefValues.FORMAT_GATE:
-            return self._standard_gate_indexes()
+            return self._standard_gate_indexes(dest_tablename)
         else:
             return []
 
@@ -198,17 +259,15 @@ class Cloud(TableMaker):
         self, remote_processor: ServerProcessor
     ) -> None:
         """
-        Checks if a processor dictionary, with all the nlprp specified info
+        Checks if a processor dictionary, with all the NLPLP-specified info
         a processor should have, belongs to this processor. If it does, then
         we add the information from the procesor dictionary.
         """
         if self.procname != remote_processor.name:
             return
-        # if ((self.procversion is None and
-        #         processor_dict[NKeys.IS_DEFAULT_VERSION]) or
-        if (
-            self.procversion is None and remote_processor.is_default_version
-        ) or (self.procversion == remote_processor.version):
+        if (remote_processor.is_default_version and not self.procversion) or (
+            self.procversion == remote_processor.version
+        ):
             self._set_processor_info(remote_processor)
 
     def _set_processor_info(self, remote_processor: ServerProcessor) -> None:
@@ -222,122 +281,122 @@ class Cloud(TableMaker):
         self.remote_processor_info = remote_processor
         # self.name = processor_dict[NKeys.NAME]
         self.schema_type = remote_processor.schema_type
-        if self.is_tabular():
+        if remote_processor.is_tabular():
             self.schema = remote_processor.tabular_schema
             self.sql_dialect = remote_processor.sql_dialect
         # Check that, by this stage, we either have a tabular schema from
         # the processor, or we have user-specified destfields
-        assert self.is_tabular or all(
+        assert self.is_tabular() or all(
             x.destfields for x in self._outputtypemap.values()
         ), (
             "You haven't specified a table structure and the processor hasn't "
             "provided one."
         )
 
-    def _str_to_coltype(self, data_type_str: str) -> sqlatypes.TypeEngine:
+    def dest_tables_columns(self) -> Dict[str, List[Column]]:
         """
-        This is supposed to get column types depending on the sql dialect
-        used by the server, but it's not implemented yet.
+        Describes the destination table(s) that this NLP processor wants to
+        write to.
+
+        Returns:
+             dict: a dictionary of ``{tablename: destination_columns}``, where
+             ``destination_columns`` is a list of SQLAlchemy :class:`Column`
+             objects.
+
+        If there is an NLPRP remote table specification (tabular_schema
+        method), we start with that.
+
+        Then we add any user-defined tables. If there is both a remote
+        definition and a local definition, the local definition overrides the
+        remote definition. If the destination table info has no columns,
+        however, it is not used for table creation.
+
+        There may in principle be other tables too in the local config that are
+        absent in the remote info (unusual!).
         """
-        raise NotImplementedError
-        # if self.sql_dialect == SqlDialects.MSSQL:
-        #     return self._str_to_coltype_mssql(data_type_str)
-        # elif self.sql_dialect == SqlDialects.MYSQL:
-        #     return self._str_to_coltype_mysql(data_type_str)
-        # elif self.sql_dialect == SqlDialects.ORACLE:
-        #     return self._str_to_coltype_oracle(data_type_str)
-        # elif self.sql_dialect == SqlDialects.POSTGRES:
-        #     return self._str_to_coltype_postgres(data_type_str)
-        # elif self.sql_dialect == SqlDialects.SQLITE:
-        #     return self._str_to_coltype_sqlite(data_type_str)
-        # else:
-        #     pass
+        table_columns = {}  # type: Dict[str, List[Column]]
 
-    def _dest_tables_columns_user(self) -> Dict[str, List[Column]]:
-        tables = {}  # type: Dict[str, List[Column]]
-
-        for output_type, otconfig in self._outputtypemap.items():
-            tables[
-                otconfig.dest_tablename
-            ] = self._standard_columns_if_gate() + otconfig.get_columns(
-                self.dest_engine
-            )
-        return tables
-
-    def _dest_tables_indexes_user(self) -> Dict[str, List[Index]]:
-        tables = {}  # type: Dict[str, List[Index]]
-        for output_type, otconfig in self._outputtypemap.items():
-            tables[otconfig.dest_tablename] = (
-                self._standard_indexes_if_gate() + otconfig.indexes
-            )
-        return tables
-
-    def _dest_tables_columns_auto(self) -> Dict[str, List[Column]]:
-        """
-        Gets the destination tables and their columns using the remote
-        processor information.
-        """
-        tables = {}
-        for table, columns in self.schema.items():
-            column_objects = (
-                self._standard_columns_if_gate()
-            )  # type: List[Column]
-            if self.tablename:
-                tablename = self.tablename
-            else:
-                tablename = self.get_tablename_from_type(table)
-            # ... might be empty list
-            for column in columns:
-                col_str, parameter = self.get_coltype_parts(
-                    column[NKeys.COLUMN_TYPE]
+        # 1. NLPRP remote specification.
+        if self.is_tabular():
+            for remote_tablename, columndefs in self.schema.items():
+                # We may start with predefined GATE columns (but this might
+                # return an empty list). We'll then add to it, if additional
+                # information is provided.
+                column_objects = []  # type: List[Column]
+                dest_tname = self.get_local_from_remote_tablename(
+                    remote_tablename
                 )
-                data_type_str = column[NKeys.DATA_TYPE]
-                coltype = self.str_to_coltype_general(data_type_str)
-                column_objects.append(
-                    Column(
-                        column[NKeys.COLUMN_NAME],
-                        coltype if not parameter else coltype(parameter),
-                        comment=column[NKeys.COLUMN_COMMENT],
-                        nullable=column[NKeys.IS_NULLABLE],
+                column_renames = self.get_otconf_from_type(
+                    remote_tablename
+                ).renames
+                for column_info in columndefs:
+                    colname = column_info[NlprpKeys.COLUMN_NAME]
+                    # Rename (or keep the same if no applicable rename):
+                    colname = column_renames.get(colname, colname)
+                    col_str, parameter = self.get_coltype_parts(
+                        column_info[NlprpKeys.COLUMN_TYPE]
                     )
-                )
-            tables[tablename] = column_objects
-        return tables
+                    data_type_str = column_info[NlprpKeys.DATA_TYPE]
+                    # We could use col_str or data_type_str here.
+                    coltype = self.data_type_str_to_coltype(data_type_str)
+                    column_objects.append(
+                        Column(
+                            name=colname,
+                            type_=coltype(parameter) if parameter else coltype,
+                            comment=column_info.get(NlprpKeys.COLUMN_COMMENT),
+                            nullable=column_info[NlprpKeys.IS_NULLABLE],
+                        )
+                    )
+                if not column_objects:
+                    raise ValueError(
+                        "Remote error: NLPRP server declares table "
+                        f"{remote_tablename!r} but provides no column "
+                        "information for it."
+                    )
+                table_columns[dest_tname] = column_objects
 
-    def _dest_tables_indexes_auto(self) -> Dict[str, List[Index]]:
-        if self.format != NlpDefValues.FORMAT_GATE:
-            return {}  # indexes can't be returned by the server
-        tables = {}  # type: Dict[str, List[Index]]
-        for table in self.schema:
-            tables[table] = self._standard_gate_indexes()
-        return tables
+        # 2. User specification.
+        for output_type, otconfig in self._outputtypemap.items():
+            if otconfig.destfields:
+                # The user has specified columns.
+                table_columns[
+                    otconfig.dest_tablename
+                ] = self._standard_columns_if_gate() + otconfig.get_columns(
+                    self.dest_engine
+                )
+            else:
+                # The user has noted the existence of the table, but hasn't
+                # specified columns.
+                if otconfig.dest_tablename not in table_columns:
+                    raise ValueError(
+                        f"Local table {otconfig.dest_tablename!r} has no "
+                        "remote definition, and no columns are defined for it "
+                        "in the config file either."
+                    )
+                # Otherwise: defined remotely, with no local detail; that's OK.
+                continue
+
+        # Done.
+        return table_columns
 
     def dest_tables_indexes(self) -> Dict[str, List[Index]]:
-        # Docstring in superclass
-        if self._outputtypemap and all(
-            x.destfields for x in self._outputtypemap.values()
-        ):
-            return self._dest_tables_indexes_user()
-        elif self.is_tabular():
-            return self._dest_tables_indexes_auto()
-        else:
-            raise ValueError(
-                "You haven't specified a table structure and "
-                "the processor hasn't provided one."
-            )
+        """
+        Describes indexes that this NLP processor suggests for its destination
+        table(s).
 
-    def dest_tables_columns(self) -> Dict[str, List[Column]]:
-        # Docstring in superclass
-        if self._outputtypemap and all(
-            x.destfields for x in self._outputtypemap.values()
-        ):
-            return self._dest_tables_columns_user()
-        elif self.is_tabular():
-            # Must have processor-defined schema because we already checked
-            # for it
-            return self._dest_tables_columns_auto()
-        else:
-            raise ValueError(
-                "You haven't specified a table structure and "
-                "the processor hasn't provided one."
+        Returns:
+             dict: a dictionary of ``{tablename: indexes}``, where ``indexes``
+             is a list of SQLAlchemy :class:`Index` objects.
+
+        The NLPRP remote table specification doesn't include indexing. So all
+        indexing information is from our config file, whether for GATE or
+        cloud processors.
+        """
+        table_indexes = {}  # type: Dict[str, List[Index]]
+        for output_type, otconfig in self._outputtypemap.items():
+            dest_tablename = otconfig.dest_tablename
+            table_indexes[dest_tablename] = (
+                self._standard_indexes_if_gate(dest_tablename)
+                + otconfig.indexes
             )
+        return table_indexes

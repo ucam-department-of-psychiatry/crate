@@ -282,7 +282,7 @@ def get_generic_date_regex_elements(
     Word boundaries are strongly preferred! This will match some odd things
     otherwise; see the associated unit tests.
     """
-    # https://stackoverflow.com/questions/51224/regular-expression-to-match-valid-dates  # noqa
+    # https://stackoverflow.com/questions/51224/regular-expression-to-match-valid-dates  # noqa: E501
 
     # range [1, 31]
     numeric_day = named_capture_group(
@@ -447,7 +447,7 @@ def get_code_regex_elements(
     else:
         if at_numeric_boundaries_only:
             # http://www.regular-expressions.info/lookaround.html
-            # https://stackoverflow.com/questions/15099150/regex-find-one-digit-number  # noqa
+            # https://stackoverflow.com/questions/15099150/regex-find-one-digit-number  # noqa: E501
             return [NOT_DIGIT_LOOKBEHIND + s + NOT_DIGIT_LOOKAHEAD]
         else:
             return [s]
@@ -527,7 +527,7 @@ def get_uk_postcode_regex_elements(
     See:
 
     - https://stackoverflow.com/questions/164979/regex-for-matching-uk-postcodes
-    """  # noqa
+    """  # noqa: E501
     # -------------------------------------------------------------------------
     # Old
     # -------------------------------------------------------------------------

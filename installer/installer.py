@@ -610,6 +610,7 @@ class Installer:
         self.create_data_dictionary()
         if self.should_create_demo_containers():
             self.anonymise_demo_data()
+        self.copy_example_scripts()
 
         self.report_status()
 
@@ -1211,6 +1212,9 @@ class Installer:
         crate_files_dir = os.environ.get(DockerEnvVar.FILES_HOST_DIR)
         Path(crate_files_dir).mkdir(parents=True, exist_ok=True)
 
+        crate_logs_dir = os.path.join(crate_files_dir, "logs")
+        Path(crate_logs_dir).mkdir(parents=True, exist_ok=True)
+
         crate_static_dir = os.environ.get(DockerEnvVar.STATIC_HOST_DIR)
         Path(crate_static_dir).mkdir(parents=True, exist_ok=True)
 
@@ -1450,6 +1454,29 @@ class Installer:
         self.info("Anonymising demo data...")
         self.run_crate_command(["crate_anonymise", "--full"], tty=True)
 
+    def copy_example_scripts(self) -> None:
+        scripts_dir = self.crate_scripts_host_dir()
+
+        if os.path.exists(scripts_dir):
+            self.info(
+                "Scripts directory already exists. Not copying examples."
+            )
+            return
+
+        self.info("Copying example scripts...")
+        shutil.copytree(
+            self.installer_examples_scripts_host_dir(), scripts_dir
+        )
+
+        set_crate_environment_vars = os.path.join(
+            scripts_dir, "set_crate_environment_vars"
+        )
+        replace_dict = {
+            "CRATE_HOST_BASE_DIR": self.crate_root_host_dir(),
+            "CRATE_HOST_CONFIG_DIR": self.getenv(DockerEnvVar.CONFIG_HOST_DIR),
+        }
+        self.search_replace_file(set_crate_environment_vars, replace_dict)
+
     def report_status(self) -> None:
         localhost_url = self.get_crate_server_localhost_url()
         self.success(f"The CRATE application is running at {localhost_url}")
@@ -1658,6 +1685,9 @@ class Installer:
     def src_host_dir(self) -> str:
         return os.path.join(self.installer_host_dir(), os.pardir)
 
+    def installer_examples_scripts_host_dir(self) -> str:
+        return os.path.join(self.installer_host_dir(), "example_scripts")
+
     def installer_host_dir(self) -> str:
         return os.path.dirname(os.path.realpath(__file__))
 
@@ -1675,6 +1705,9 @@ class Installer:
 
     def crate_root_host_dir(self) -> str:
         return self.getenv(InstallerEnvVar.CRATE_ROOT_HOST_DIR)
+
+    def crate_scripts_host_dir(self) -> str:
+        return os.path.join(self.crate_root_host_dir(), "scripts")
 
     # -------------------------------------------------------------------------
     # Fetching information from the user
