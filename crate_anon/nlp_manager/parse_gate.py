@@ -52,7 +52,7 @@ from crate_anon.nlp_manager.base_nlp_parser import (
 from crate_anon.nlp_manager.constants import (
     MAX_SQL_FIELD_LEN,
     ProcessorConfigKeys,
-    GateFieldNames as GateFN,
+    GateFieldNames,
 )
 from crate_anon.nlp_manager.nlp_definition import (
     NlpDefinition,
@@ -68,7 +68,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 # Have Python host the client process, communicating with stdin/stdout?
 #   http://eyalarubas.com/python-subproc-nonblock.html
-#   https://stackoverflow.com/questions/2715847/python-read-streaming-input-from-subprocess-communicate  # noqa
+#   https://stackoverflow.com/questions/2715847/python-read-streaming-input-from-subprocess-communicate  # noqa: E501
 # Java process could be a network server.
 #   http://docs.oracle.com/javase/tutorial/networking/sockets/clientServer.html
 #   http://www.tutorialspoint.com/java/java_networking.htm
@@ -173,12 +173,23 @@ class Gate(BaseNlpParser):
                 ProcessorConfigKeys.PROGARGS, required=True
             )
             logtag = nlpdef.logtag or "."
+            # Also, ensure the user doesn't specify desttable (would be
+            # confusing).
+            if self._cfgsection.opt_str(ProcessorConfigKeys.DESTTABLE):
+                raise ValueError(
+                    f"For GATE processors, don't specify "
+                    f"{ProcessorConfigKeys.DESTTABLE!r}; table information is "
+                    f"in {ProcessorConfigKeys.OUTPUTTYPEMAP!r}"
+                )
 
         self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]
         self._type_to_tablename = {}  # type: Dict[str, str]
         for annottype, outputsection in chunks(typepairs, 2):
             annottype = annottype.lower()
-            c = OutputUserConfig(nlpdef.parser, outputsection)
+            c = OutputUserConfig(
+                config_parser=nlpdef.parser,
+                cfg_output_name=outputsection,
+            )
             self._outputtypemap[annottype] = c
             self._type_to_tablename[annottype] = c.dest_tablename
 
@@ -318,7 +329,7 @@ class Gate(BaseNlpParser):
                 d = tsv_pairs_to_dict(line)
                 log.debug(f"dictionary received: {d}")
                 try:
-                    annottype = d[GateFN.TYPE].lower()
+                    annottype = d[GateFieldNames.TYPE].lower()
                 except KeyError:
                     # The absence of _type may be because the Java process
                     # returned an error log e.g. OutOfMemoryError
@@ -380,8 +391,9 @@ class Gate(BaseNlpParser):
         # docstring in superclass
         tables = {}  # type: Dict[str, List[Index]]
         for anottype, otconfig in self._outputtypemap.items():
-            tables[otconfig.dest_tablename] = (
-                self._standard_gate_indexes() + otconfig.indexes
+            dest_tablename = otconfig.dest_tablename
+            tables[dest_tablename] = (
+                self._standard_gate_indexes(dest_tablename) + otconfig.indexes
             )
         return tables
 

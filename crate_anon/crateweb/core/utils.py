@@ -67,7 +67,7 @@ def is_superuser(user: settings.AUTH_USER_MODEL) -> bool:
 
     Superuser equates to Research Database Manager.
     """
-    # https://docs.djangoproject.com/en/dev/topics/auth/default/#django.contrib.auth.decorators.user_passes_test  # noqa
+    # https://docs.djangoproject.com/en/dev/topics/auth/default/#django.contrib.auth.decorators.user_passes_test  # noqa: E501
     return user.is_superuser
 
 
@@ -184,7 +184,7 @@ def url_with_querystring(
 
     # Return the final rebuilt URL.
     # You can't write to a urllib.parse.ParseResult. So, as per
-    # https://stackoverflow.com/questions/26221669/how-do-i-replace-a-query-with-a-new-value-in-urlparse  # noqa
+    # https://stackoverflow.com/questions/26221669/how-do-i-replace-a-query-with-a-new-value-in-urlparse  # noqa: E501
     # we have do to this:
 
     components = list(pr)
@@ -237,7 +237,7 @@ def site_absolute_url(path: str) -> str:
 
     But that does at least mean we can use the same method for static and
     Django URLs.
-    """  # noqa
+    """  # noqa: E501
     url = settings.DJANGO_SITE_ROOT_ABSOLUTE_URL + path
     log.debug(f"site_absolute_url: {path} -> {url}")
     return url
@@ -467,7 +467,7 @@ class JavascriptTree(JavascriptTreeNode):
         print(t.js_str_html())
         print(t.js_data())
 
-    """  # noqa
+    """  # noqa: E501
 
     def __init__(
         self,

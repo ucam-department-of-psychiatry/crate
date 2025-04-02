@@ -70,6 +70,7 @@ from os.path import abspath, dirname, join
 import tempfile
 import time
 from typing import Dict, List, Tuple
+import urllib.parse
 
 from cardinal_pythonlib.fileops import mkdir_p
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
@@ -112,26 +113,27 @@ DEFAULT_SQLSERVER_PORT = 1433
 DEFAULT_MYSQL_PORT = 3306
 DEFAULT_POSTGRES_PORT = 5432
 
-DEFAULT_TIMEOUT_S = 120
+DEFAULT_TIMEOUT_S = 60
 
+# Different network to the CRATE Docker containers
+# See docker/dockerfiles/docker-compose.yaml
 DOCKER_NETWORK = "crate_test_net"
 
-CONTAINER_ENGINE = "crate_test_container_engine"
+CONTAINER_ENGINE_PREFIX = "crate_test_container_engine"
 CONTAINER_DBSHELL = "crate_test_container_dbshell"
 CONTAINER_BASH = "crate_test_container_bash"
 
 # The following defaults should match the Dockerfile(s):
 DB_SRC: str = "sourcedb"
 DB_ANON: str = "anondb"
+DB_SECRET: str = "secretdb"
 DB_NLP: str = "nlpdb"
-DB_TEST: str = "testdb"
-DB_ROOT_PASSWORD = "90dVM7Uv5U4q"  # random, e.g. https://www.lastpass.com
+DB_CRATE: str = "cratedb"
+DB_ROOT_PASSWORD: str = "9@dVM7?v5U4q"  # random, e.g. https://www.lastpass.com
 DB_PRIVUSER_USER: str = "administrator"
-DB_PRIVUSER_PASSWORD: str = "8z31I84qmvBX"
+DB_PRIVUSER_PASSWORD: str = "8z3?I84@mvBX"
 DB_RESEARCHER_USER: str = "researcher"
-DB_RESEARCHER_PASSWORD: str = "G6f0V31oc3Yb"
-DB_TEST_USER: str = "tester"
-DB_TEST_PASSWORD: str = "QcigecuW1myo"
+DB_RESEARCHER_PASSWORD: str = "G6f@V3?oc3Yb"
 # Postgres has an additional layer... database/schema/table.
 PG_DB_IDENT = "identdb"
 PG_DB_DEIDENT = "deidentdb"
@@ -141,8 +143,9 @@ DOCKER_BUILD_ARGS = {
     # Database names
     "DB_SRC": DB_SRC,
     "DB_ANON": DB_ANON,
+    "DB_SECRET": DB_SECRET,
     "DB_NLP": DB_NLP,
-    "DB_TEST": DB_TEST,
+    "DB_CRATE": DB_CRATE,
     "PG_DB_IDENT": PG_DB_IDENT,
     "PG_DB_DEIDENT": PG_DB_DEIDENT,
     # Usernames/passwords
@@ -151,8 +154,6 @@ DOCKER_BUILD_ARGS = {
     "DB_PRIVUSER_PASSWORD": DB_PRIVUSER_PASSWORD,
     "DB_RESEARCHER_USER": DB_RESEARCHER_USER,
     "DB_RESEARCHER_PASSWORD": DB_RESEARCHER_PASSWORD,
-    "DB_TEST_USER": DB_TEST_USER,
-    "DB_TEST_PASSWORD": DB_TEST_PASSWORD,
     # NB this is an INSECURE method; see
     # https://docs.docker.com/engine/reference/builder/#arg. But this is just
     # a quick demo with no actual sensitive information.
@@ -167,6 +168,7 @@ DOCKER_BUILD_ARGS = {
 @dataclass
 class EngineInfo:
     name: str
+    docker_container_name: str
     dockerfile: str
     tag: str
     docker_port: int
@@ -192,8 +194,10 @@ class EngineInfo:
         dialect = self.sqla_dialect
         if self.python_driver:
             dialect += "+" + self.python_driver
+
+        url_encoded_password = urllib.parse.quote_plus(password)
         return (
-            f"{dialect}://{user}:{password}@{ip_addr}:{port}/"
+            f"{dialect}://{user}:{url_encoded_password}@{ip_addr}:{port}/"
             f"{dbname}{self.sqla_url_option_suffix}"
         )
 
@@ -258,6 +262,7 @@ class EngineInfo:
 ENGINEINFO = {
     SQLSERVER: EngineInfo(
         name="Microsoft SQL Server",
+        docker_container_name=f"{CONTAINER_ENGINE_PREFIX}_sqlserver",
         dockerfile=join(THIS_SCRIPT_DIR, "sqlserver.Dockerfile"),
         tag="crate_test_sqlserver",
         docker_port=DEFAULT_SQLSERVER_PORT,
@@ -267,8 +272,9 @@ ENGINEINFO = {
         dbshellcmd=[
             # https://learn.microsoft.com/en-us/sql/tools/sqlcmd/sqlcmd-connect-database-engine?view=sql-server-ver16  # noqa: E501
             "sqlcmd",
+            "-C",  # Allow self-signed certificate
             "-S",
-            f"{CONTAINER_ENGINE},{DEFAULT_SQLSERVER_PORT}",
+            f"{CONTAINER_ENGINE_PREFIX}_sqlserver,{DEFAULT_SQLSERVER_PORT}",
             "-U",
             "sa",  # SQLServer root user
             "-P",
@@ -279,6 +285,7 @@ ENGINEINFO = {
     ),
     MYSQL: EngineInfo(
         name="MySQL (MariaDB)",
+        docker_container_name=f"{CONTAINER_ENGINE_PREFIX}_mysql",
         dockerfile=join(THIS_SCRIPT_DIR, "mysql.Dockerfile"),
         tag="crate_test_mysql",
         docker_port=DEFAULT_MYSQL_PORT,
@@ -287,7 +294,7 @@ ENGINEINFO = {
         sqla_url_option_suffix="?charset=utf8",
         dbshellcmd=[
             "mysql",
-            f"--host={CONTAINER_ENGINE}",
+            f"--host={CONTAINER_ENGINE_PREFIX}_mysql",
             f"--port={DEFAULT_MYSQL_PORT}",
             "--user=root",  # MySQL root user
             f"--password={DB_ROOT_PASSWORD}",
@@ -295,6 +302,7 @@ ENGINEINFO = {
     ),
     POSTGRESQL: EngineInfo(
         name="PostgreSQL (Postgres)",
+        docker_container_name=f"{CONTAINER_ENGINE_PREFIX}_postgres",
         dockerfile=join(THIS_SCRIPT_DIR, "postgres.Dockerfile"),
         tag="crate_test_postgres",
         docker_port=DEFAULT_POSTGRES_PORT,
@@ -303,7 +311,7 @@ ENGINEINFO = {
         dbshellenv={"PGPASSWORD": DB_ROOT_PASSWORD},
         dbshellcmd=[
             "psql",
-            f"--host={CONTAINER_ENGINE}",
+            f"--host={CONTAINER_ENGINE_PREFIX}_postgres",
             f"--port={DEFAULT_POSTGRES_PORT}",
             "--username=postgres",  # PostgreSQL root user
         ],
@@ -371,33 +379,41 @@ def start_engine(
         envs=envvars,
         publish=[(host_port, engine_info.docker_port)],
         networks=[DOCKER_NETWORK],
-        name=CONTAINER_ENGINE,
+        name=engine_info.docker_container_name,
         detach=True,
     )
 
-    ip_address = get_crate_container_engine_ip_address()
-    wait_for_databases_to_be_created(60)
+    ip_address = get_crate_container_engine_ip_address(engine_info)
+    wait_for_databases_to_be_created(engine_info, 60)
     log.info(
         f"Database engine started on {ip_address}:{engine_info.docker_port}"
     )
 
 
-def wait_for_databases_to_be_created(timeout_s: float) -> None:
+def stop_engine(engine_info: EngineInfo) -> None:
+    log.info("Stopping database engine")
+    docker.stop([engine_info.docker_container_name])
+    docker.remove([engine_info.docker_container_name])
+
+
+def wait_for_databases_to_be_created(
+    engine_info: EngineInfo, timeout_s: float
+) -> None:
     start_time = time.time()
 
     while time.time() - start_time < timeout_s:
-        logs = docker.logs(CONTAINER_ENGINE)
+        logs = docker.logs(engine_info.docker_container_name)
         if ">>> Databases created. READY." in logs:
             return
 
         time.sleep(1)
 
-    log.error(docker.logs(CONTAINER_ENGINE))
+    log.error(docker.logs(engine_info.docker_container_name))
     raise TimeoutError("Gave up waiting for the databases to be created.")
 
 
-def get_crate_container_engine_ip_address() -> str:
-    container = docker.container.inspect(CONTAINER_ENGINE)
+def get_crate_container_engine_ip_address(engine_info: EngineInfo) -> str:
+    container = docker.container.inspect(engine_info.docker_container_name)
     network_settings = container.network_settings
 
     return network_settings.networks[DOCKER_NETWORK].ip_address
@@ -564,6 +580,7 @@ def main() -> None:
     cmd_dbshell = "dbshell"
     cmd_makedb = "makedb"
     cmd_testcrate = "testcrate"
+    cmd_stopengine = "stopengine"
 
     parser = argparse.ArgumentParser(
         description=f"Test CRATE workflows including across different "
@@ -581,6 +598,7 @@ def main() -> None:
             cmd_dbshell,
             cmd_makedb,
             cmd_testcrate,
+            cmd_stopengine,
         ],
         help=f"""Command to perform.
 (1) {cmd_bash!r}: Run a Bash shell in the Docker container for a given
@@ -598,6 +616,8 @@ process (see {cmd_startengine!r}).
 (5) {cmd_testcrate!r}: Test CRATE against the database engine. Assumes the
 engine container is ALREADY RUNNING in a separate process (see
 {cmd_startengine!r}).
+
+(6) {cmd_stopengine!r}: Stop the database engine.
 """,
     )
     parser.add_argument(
@@ -662,6 +682,8 @@ engine container is ALREADY RUNNING in a separate process (see
                     tempdir=tempdir,
                     echo=args.echo,
                 )
+            elif args.action == cmd_stopengine:
+                stop_engine(engine_info)
             else:
                 raise RuntimeError("bug")
 

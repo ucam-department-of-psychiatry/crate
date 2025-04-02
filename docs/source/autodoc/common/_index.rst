@@ -37,6 +37,7 @@ crate_anon/common
     extendedconfigparser.py.rst
     file_io.py.rst
     formatting.py.rst
+    future.py.rst
     inputfunc.py.rst
     logfunc.py.rst
     memsize.py.rst

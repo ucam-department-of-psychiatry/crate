@@ -36,32 +36,74 @@ from sqlalchemy.engine.base import Engine
 
 from crate_anon.testing.providers import register_all_providers
 from crate_anon.testing.factories import (
+    AnonTestBaseFactory,
+    SecretBaseFactory,
+    SourceTestBaseFactory,
     set_sqlalchemy_session_on_all_factories,
 )
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+    from sqlalchemy.orm.session import Session
 
 
-@pytest.mark.usefixtures("setup")
-class DatabaseTestCase(TestCase):
+class CommonDatabaseTestCase(TestCase):
     """
-    Base class for testing with a database.
+    Base class for testing with a database. Do not inherit from this directly,
+    use one of the below subclasses instead, which will be associated with
+    pytest fixtures for engine, session etc.
     """
 
-    dbsession: "Session"
-    engine: Engine
-    database_on_disk: bool
-    db_filename: str
+    anon_dbsession: "Session"
+    secret_dbsession: "Session"
+    source_dbsession: "Session"
+    anon_engine: Engine
+    secret_engine: Engine
+    source_engine: Engine
+    databases_on_disk: bool
+    anon_db_filename: str
+    secret_db_filename: str
+    source_db_filename: str
 
     def setUp(self) -> None:
-        set_sqlalchemy_session_on_all_factories(self.dbsession)
+        set_sqlalchemy_session_on_all_factories(
+            AnonTestBaseFactory, self.anon_dbsession
+        )
+        set_sqlalchemy_session_on_all_factories(
+            SecretBaseFactory, self.secret_dbsession
+        )
+        set_sqlalchemy_session_on_all_factories(
+            SourceTestBaseFactory, self.source_dbsession
+        )
 
     def set_echo(self, echo: bool) -> None:
         """
         Changes the database echo status.
         """
-        self.engine.echo = echo
+        self.anon_engine.echo = echo
+        self.secret_engine.echo = echo
+        self.source_engine.echo = echo
+
+
+@pytest.mark.usefixtures("setup")
+class DatabaseTestCase(CommonDatabaseTestCase):
+    """
+    Base class for testing with a database.
+
+    The pytest fixtures defined in conftest.py run each test in a transaction,
+    rolling back the transaction at the end of the test. This all works fine,
+    unless one of the tests encounters a DatabaseError and the transaction
+    needs to be rolled back. In this case we need the approach taken by
+    SlowSecretDatabaseTestCase below.
+    """
+
+
+@pytest.mark.usefixtures("slow_secret_setup")
+class SlowSecretDatabaseTestCase(CommonDatabaseTestCase):
+    """
+    Like DatabaseTestCase but we create and drop all of the tables for the
+    secret database every time a test is run. Potentially slow if there are
+    lots of tables.
+    """
 
 
 class DemoDatabaseTestCase(DatabaseTestCase):

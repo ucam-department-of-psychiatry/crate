@@ -11,8 +11,10 @@
 #
 #   /crate              All CRATE code/binaries.
 #       /cfg            Config files are mounted here.
+#       /files          General file storage mounted here.
 #       /gate           GATE program
 #       /src            Source code for CRATE.
+#       /static         Static files (Django STATIC_ROOT) mounted here.
 #       /venv           Python 3 virtual environment.
 #           /bin        Main CRATE executables live here.
 
@@ -21,7 +23,7 @@
 # FROM: Base image
 # -----------------------------------------------------------------------------
 
-FROM python:3.8-slim-bullseye AS crate-build-1-user
+FROM python:3.9-slim-bullseye AS crate-build-1-user
 # This is a version of Debian 11 (see "cat /etc/debian_version").
 
 
@@ -44,7 +46,11 @@ ARG USER_ID
 ARG GROUP_ID
 
 RUN addgroup --gid $GROUP_ID crate
-RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID crate
+
+# The --no-log-init is necessary to prevent the image ballooning in size
+# when USER_ID is large
+# See https://github.com/moby/moby/issues/5419
+RUN useradd --no-log-init --uid $USER_ID --gid $GROUP_ID crate
 
 FROM crate-build-1-user AS crate-build-2-files
 
@@ -109,7 +115,7 @@ WORKDIR /crate
 #
 # - Testing KCL pharmacotherapy app:
 #
-#   export NLPPROGDIR=/crate/venv/lib/python3.8/site-packages/crate_anon/nlp_manager/compiled_nlp_classes/
+#   export NLPPROGDIR=/crate/venv/lib/python3.9/site-packages/crate_anon/nlp_manager/compiled_nlp_classes/
 #   export GATEDIR=/crate/gate
 #   export GATE_PHARMACOTHERAPY_DIR=/crate/brc-gate-pharmacotherapy
 #   export PLUGINFILE=/crate/src/crate_anon/nlp_manager/specimen_gate_plugin_file.ini
@@ -126,7 +132,7 @@ ARG CRATE_ROOT=/crate
 ARG CRATE_SRC=$CRATE_ROOT/src
 ARG CRATE_VENV=$CRATE_ROOT/venv
 ARG CRATE_VENV_BIN=$CRATE_VENV/bin
-ARG CRATE_PACKAGE_ROOT=$CRATE_VENV/lib/python3.8/site-packages/crate_anon
+ARG CRATE_PACKAGE_ROOT=$CRATE_VENV/lib/python3.9/site-packages/crate_anon
 ARG CRATE_GATE_PLUGIN_FILE=$CRATE_PACKAGE_ROOT/nlp_manager/specimen_gate_plugin_file.ini
 ARG BIOYODIE_DIR=$CRATE_ROOT/bioyodie
 ARG GATE_HOME=$CRATE_ROOT/gate
@@ -216,6 +222,7 @@ RUN echo "======================================================================
     && python3 -m venv /crate/venv \
     && echo "- Upgrading pip within virtual environment..." \
     && "$CRATE_VENV_BIN/python3" -m pip install --upgrade pip \
+    && "$CRATE_VENV_BIN/python3" -m pip install 'setuptools>=61' \
     && echo "- Installing wheel within virtual environment..." \
     && "$CRATE_VENV_BIN/pip" install wheel==0.35.1 \
     && echo "- Installing CRATE (crate_anon, from source) and Python database drivers..." \

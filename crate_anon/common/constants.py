@@ -52,6 +52,8 @@ LOWER_CASE_STRINGS_MEANING_TRUE = ["true", "1", "t", "y", "yes"]
 # Is this program running on readthedocs.org?
 ON_READTHEDOCS = os.environ.get("READTHEDOCS") == "True"
 
+NoneType = type(None)  # for isinstance, sometimes
+
 
 # =============================================================================
 # Constant creation
@@ -104,12 +106,14 @@ class DockerConstants:
     # Directories
     DOCKER_CRATE_ROOT_DIR = "/crate"
     CONFIG_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "cfg")
+    FILES_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "files")
+    STATIC_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "static")
     TMP_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "tmp")
     VENV_DIR = os.path.join(DOCKER_CRATE_ROOT_DIR, "venv")
 
     HOST = "0.0.0.0"
     # ... not "localhost" or "127.0.0.1"; see
-    # https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors  # noqa
+    # https://nickjanetakis.com/blog/docker-tip-54-fixing-connection-reset-by-peer-or-similar-errors  # noqa: E501
 
 
 # =============================================================================
@@ -150,6 +154,7 @@ class CrateCommand:
     """
 
     # Preprocessing
+    AUTOIMPORTDB = "crate_autoimport_db"
     FETCH_WORDLISTS = "crate_fetch_wordlists"
     POSTCODES = "crate_postcodes"
     PREPROCESS_PCMIS = "crate_preprocess_pcmis"
@@ -217,6 +222,9 @@ class CrateCommand:
     NLP_WEBSERVER_MANAGE_USERS = "crate_nlp_webserver_manage_users"
     NLP_WEBSERVER_PRINT_DEMO = "crate_nlp_webserver_print_demo"
     NLP_WEBSERVER_PSERVE = "crate_nlp_webserver_pserve"
+
+    # Testing
+    TEST_DATABASE_CONNECTION = "crate_test_database_connection"
 
 
 # =============================================================================

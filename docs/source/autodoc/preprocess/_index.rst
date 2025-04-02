@@ -29,6 +29,7 @@ crate_anon/preprocess
     :maxdepth: 1
 
     __init__.py.rst
+    autoimport_db.py.rst
     constants.py.rst
     ddhint.py.rst
     postcodes.py.rst
@@ -41,4 +42,5 @@ crate_anon/preprocess
     rio_view_func.py.rst
     rio_views.py.rst
     systmone_ddgen.py.rst
+    tests/autoimport_db_tests.py.rst
     tests/systmone_ddgen_tests.py.rst

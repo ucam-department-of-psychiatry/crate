@@ -74,7 +74,6 @@ DEFAULT_CHUNKSIZE = 100000  # 100k
 
 ANON_CONFIG_ENV_VAR = "CRATE_ANON_CONFIG"
 
-
 # =============================================================================
 # Data dictionary
 # =============================================================================
@@ -85,16 +84,6 @@ DEFAULT_INDEX_LEN = 20  # for data types where it's mandatory
 LONGTEXT = "LONGTEXT"
 
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
-
-# Better overall than string.maketrans:
-ODD_CHARS_TRANSLATE = [chr(x) for x in range(0, 256)]
-for c in "()/ ":
-    ODD_CHARS_TRANSLATE[ord(c)] = "_"
-for i in range(0, 32):
-    ODD_CHARS_TRANSLATE[i] = "_"
-for i in range(127, 256):
-    ODD_CHARS_TRANSLATE[i] = "_"
-ODD_CHARS_TRANSLATE = "".join(ODD_CHARS_TRANSLATE)
 
 TridType = Integer
 MAX_TRID = 2**31 - 1
@@ -208,7 +197,7 @@ MYSQL_MAX_IDENTIFIER_LENGTH = 64
 # MySQL: 64 -- http://dev.mysql.com/doc/refman/5.7/en/identifiers.html
 SQLSERVER_MAX_IDENTIFIER_LENGTH = 128
 # Microsoft SQL Server: 128 --
-# https://docs.microsoft.com/en-us/sql/relational-databases/databases/database-identifiers  # noqa
+# https://docs.microsoft.com/en-us/sql/relational-databases/databases/database-identifiers  # noqa: E501
 
 
 # =============================================================================
@@ -872,7 +861,7 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 {_SK.DDGEN_FILENAME_TO_TEXT_FIELDS} =
 {_SK.DDGEN_BINARY_TO_TEXT_FIELD_PAIRS} =
 
-"""  # noqa
+"""  # noqa: E501
 
 # For the style:
 #       [source_databases]
@@ -880,3 +869,12 @@ DEMO_CONFIG = rf"""# Configuration file for CRATE anonymiser (crate_anonymise).
 #       source2 = thing
 # ... you can't have multiple keys with the same name.
 # https://stackoverflow.com/questions/287757
+
+
+class PatientInfoConstants:
+    SECRET_MAP_TABLENAME = "secret_map"
+    PID_FIELDNAME = "pid"
+    MPID_FIELDNAME = "mpid"
+    RID_FIELDNAME = "rid"
+    MRID_FIELDNAME = "mrid"
+    TRID_FIELDNAME = "trid"

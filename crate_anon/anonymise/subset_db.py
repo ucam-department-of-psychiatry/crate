@@ -40,7 +40,7 @@ from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from sqlalchemy.engine.url import make_url
 
 from sqlalchemy.engine import Row
-from sqlalchemy.sql.expression import column, select, table
+from sqlalchemy.sql.expression import column, select, table, text
 from sqlalchemy.schema import Table
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
@@ -399,7 +399,7 @@ class Subsetter:
         """
         Generate unfiltered source rows from the database.
         """
-        query = select(["*"]).select_from(table(table_name))
+        query = select(text("*")).select_from(table(table_name))
         result = self.src_db.session.execute(query)
         yield from result
 

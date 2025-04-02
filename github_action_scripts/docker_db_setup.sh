@@ -5,13 +5,19 @@
 
 set -euxo pipefail
 
-if [ "$#" != "2" ]; then
-   echo "Usage: $0 <mysql|postgres|sqlserver> <port>"
+if [ $# -lt 1 ]; then
+   echo "Usage: $0 <mysql|postgres|sqlserver> [host port]"
    exit 1
 fi
 
 ENGINE=$1
-PORT=$2
+
+PORTARGS=""
+
+if [ $# -eq 2 ]; then
+    HOST_PORT=$2
+    PORTARGS="--hostport ${HOST_PORT}"
+fi
 
 PYTHON="${HOME}/venv/bin/python"
-${PYTHON} ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --engine ${ENGINE} startengine
+${PYTHON} ${GITHUB_WORKSPACE}/crate_anon/integration_tests/test_workflow.py --engine ${ENGINE} ${PORTARGS} startengine

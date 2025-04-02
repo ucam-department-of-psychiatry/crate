@@ -75,7 +75,7 @@ def gen_all_values_for_patient(
          ``scrub_src_fieldinfo``.
     """
     query = (
-        select([column(i.value_fieldname) for i in scrub_src_fieldinfo])
+        select(*[column(i.value_fieldname) for i in scrub_src_fieldinfo])
         .where(column(pid_field) == pid)
         .select_from(table(tablename))
     )
@@ -109,14 +109,12 @@ class Patient:
         self._session = config.admindb.session
 
         # Fetch or create PatientInfo object
-        self._info = self._session.query(PatientInfo).get(pid)
+        self._info = self._session.get(PatientInfo, pid)
         if self._info is None:
             self._info = PatientInfo(pid=pid)
             self._info.ensure_rid()
             self._info.ensure_trid(self._session)
             self._session.add(self._info)
-            self._session.commit()
-            # prompt commit after insert operations, to ensure no locks
 
         # Scrubber
         self.scrubber = PersonalizedScrubber(
@@ -167,6 +165,9 @@ class Patient:
         )
         self._unchanged = self.scrubber_hash == self._info.scrubber_hash
         self._info.set_scrubber_info(self.scrubber)
+
+        # May raise DatabaseError (includes OperationalError, ProgrammingError)
+        # If insert failed due to invalid mpid
         self._session.commit()
         # Commit immediately, because other processes may need this table
         # promptly. Otherwise, might get:

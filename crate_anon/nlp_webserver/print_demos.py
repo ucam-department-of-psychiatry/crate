@@ -84,7 +84,7 @@ pyramid.reload_templates = true
 
 use = egg:waitress#main
 listen = localhost:6543
-"""  # noqa:E501
+"""  # noqa: E501
 
 
 def demo_processors() -> str:

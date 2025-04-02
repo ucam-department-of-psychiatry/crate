@@ -35,23 +35,34 @@ import factory
 import factory.random
 from faker import Faker
 
-from crate_anon.testing.models import EnumColours, Note, Patient
+from crate_anon.testing.models import EnumColours, FilenameDoc, Note, Patient
 from crate_anon.testing.providers import register_all_providers
 
 if TYPE_CHECKING:
     from factory.builder import Resolver
-    from sqlalchemy.orm import Session
+    from sqlalchemy.orm.session import Session
 
 
 # When running with pytest sqlalchemy_session gets poked in by
 # DatabaseTestCase.setUp(). Otherwise call
 # set_sqlalchemy_session_on_all_factories()
-class BaseFactory(factory.alchemy.SQLAlchemyModelFactory):
+class AnonTestBaseFactory(factory.alchemy.SQLAlchemyModelFactory):
     pass
 
 
-def set_sqlalchemy_session_on_all_factories(dbsession: "Session") -> None:
-    for factory_class in all_subclasses(BaseFactory):
+class SecretBaseFactory(factory.alchemy.SQLAlchemyModelFactory):
+    pass
+
+
+class SourceTestBaseFactory(factory.alchemy.SQLAlchemyModelFactory):
+    pass
+
+
+def set_sqlalchemy_session_on_all_factories(
+    factory_base_class: factory.alchemy.SQLAlchemyModelFactory,
+    dbsession: "Session",
+) -> None:
+    for factory_class in all_subclasses(factory_base_class):
         factory_class._meta.sqlalchemy_session = dbsession
 
 
@@ -83,7 +94,7 @@ class Fake:
 register_all_providers(Fake.en_gb)
 
 
-class DemoFactory(BaseFactory):
+class DemoFactory(SourceTestBaseFactory):
     class Meta:
         abstract = True
 
@@ -150,7 +161,7 @@ class DemoNoteFactory(DemoFactory):
 
     @factory.lazy_attribute
     def note(obj: "Resolver") -> str:
-        # You get Lorem ipsum with en_GB.
+        # Use en_US because you get Lorem ipsum with en_GB.
         pad_paragraph = Fake.en_us.paragraph(
             nb_sentences=obj.words_per_note / 2,  # way more than we need
         )
@@ -166,5 +177,27 @@ class DemoNoteFactory(DemoFactory):
             relation_name=obj.patient.related_patient_name,
             relation_relationship=obj.patient.related_patient_relationship,
             words_per_note=obj.words_per_note,
+            pad_paragraph=pad_paragraph,
+        )
+
+
+class DemoFilenameDocFactory(DemoFactory):
+    class Meta:
+        model = FilenameDoc
+
+    file_datetime = factory.LazyFunction(Fake.en_gb.incrementing_date)
+
+    @factory.lazy_attribute
+    def filename(obj: "Resolver") -> str:
+        # Use en_US because you get Lorem ipsum with en_GB.
+        pad_paragraph = Fake.en_us.paragraph(nb_sentences=50)
+
+        return Fake.en_gb.patient_filename(
+            forename=obj.patient.forename,
+            surname=obj.patient.surname,
+            sex=obj.patient.sex,
+            dob=obj.patient.dob,
+            nhs_number=obj.patient.nhsnum,
+            patient_id=obj.patient.patient_id,
             pad_paragraph=pad_paragraph,
         )

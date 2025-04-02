@@ -26,11 +26,10 @@
 # variables. To run other Docker commands, it's helpful to "source" them back,
 # if found. Likewise, this file itself should be "sourced", not executed.
 
-# The default is $HOME/crate/set_crate_docker_host_envvars (per HostPath in
+# The default is /crate/config/set_crate_docker_host_envvars (per HostPath in
 # installer.py). We allow the user to pre-override this with environment
 # variables.
-CRATE_DIR=${CRATE_DIR:=$HOME/crate}
-CRATE_CONFIG_DIR=${CRATE_CONFIG_DIR:=$CRATE_DIR/config}
+CRATE_CONFIG_DIR=${CRATE_CONFIG_DIR:=$CRATE_INSTALLER_CRATE_ROOT_HOST_DIR/config}
 CRATE_ENVVAR_FILE=${CRATE_CONFIG_DIR}/set_crate_docker_host_envvars
 # ... filename itself not configurable, and written by installer.py
 

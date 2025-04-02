@@ -67,6 +67,7 @@ from crate_anon.nlp_manager.parse_haematology import (
 from crate_anon.nlp_manager.parse_substance_misuse import (
     ALL_SUBSTANCE_MISUSE_NLP_AND_VALIDATORS,
 )
+from crate_anon.nlp_webserver.server_processor import ServerProcessor
 
 ClassType = Type[object]
 
@@ -119,12 +120,16 @@ def all_local_parser_classes() -> List[Type[BaseNlpParser]]:
     Return all classes that are non-abstract subclasses of
     :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`.
 
+    ... but not test parsers.
+
     Checks that they all have unique names in lower case.
     """
     # noinspection PyTypeChecker
     classes = get_all_subclasses(
         BaseNlpParser
     )  # type: List[Type[BaseNlpParser]]
+    classes = [cls for cls in classes if not cls.is_test_nlp_parser]
+
     lower_case_short_names = set()  # type: Set[str]
     lower_case_full_names = set()  # type: Set[str]
     for cls in classes:
@@ -209,28 +214,6 @@ def make_nlp_parser(
     raise ValueError(f"Unknown NLP processor type: {classname!r}")
 
 
-def make_nlp_parser_unconfigured(
-    classname: str, raise_if_absent: bool = True
-) -> Optional[TableMaker]:
-    """
-    Get a debugging (unconfigured) instance of an NLP parser.
-
-    Args:
-        classname: the name of the NLP parser class
-        raise_if_absent: raise ``ValueError`` if there is no match?
-
-    Returns:
-        the class, or ``None`` if there isn't one with that name
-
-    """
-    cls = get_nlp_parser_class(classname)
-    if cls:
-        return cls(nlpdef=None, cfg_processor_name=None)
-    if raise_if_absent:
-        raise ValueError(f"Unknown NLP processor type: {classname!r}")
-    return None
-
-
 def possible_local_processor_names() -> List[str]:
     """
     Returns all NLP processor names that can run locally.
@@ -238,11 +221,29 @@ def possible_local_processor_names() -> List[str]:
     return [cls.classname() for cls in all_local_parser_classes()]
 
 
+def all_nlp_processor_classes() -> List[Type[TableMaker]]:
+    """
+    Returns all NLP processor classes.
+    """
+    return all_tablemaker_classes()
+
+
 def possible_processor_names_including_cloud() -> List[str]:
     """
     Returns all NLP processor names.
     """
-    return [cls.classname() for cls in all_tablemaker_classes()]
+    return [cls.classname() for cls in all_nlp_processor_classes()]
+
+
+def all_local_processor_classes_without_external_tools() -> (
+    List[Type[BaseNlpParser]]
+):
+    """
+    Returns all NLP processor classes that don't rely on external tools.
+    """
+    return [
+        cls for cls in all_local_parser_classes() if not cls.uses_external_tool
+    ]
 
 
 def possible_local_processor_names_without_external_tools() -> List[str]:
@@ -252,8 +253,7 @@ def possible_local_processor_names_without_external_tools() -> List[str]:
     """
     return [
         cls.classname()
-        for cls in all_local_parser_classes()
-        if not cls.uses_external_tool
+        for cls in all_local_processor_classes_without_external_tools()
     ]
 
 
@@ -287,10 +287,33 @@ def all_crate_python_processors_nlprp_processor_info(
         list: list of processor information dictionaries
     """
     allprocs = []  # type: JsonArrayType
-    for cls in all_local_parser_classes():
+    for cls in all_local_processor_classes_without_external_tools():
         instance = cls(None, None)
         proc_info = instance.nlprp_processor_info(sql_dialect=sql_dialect)
         if extra_dict:
             proc_info.update(extra_dict)
         allprocs.append(proc_info)
     return allprocs
+
+
+def register_all_crate_python_processors_with_serverprocessor(
+    set_parser: bool = True,
+) -> None:
+    """
+    Somewhat ugly. Register all CRATE Python NLP processors with the
+    ServerProcessor class.
+
+    See also crate_anon/nlp_webserver/procs.py, for a similar thing from JSON.
+
+    Args:
+        set_parser:
+            Set up a "free-floating" parser too?
+    """
+    for cls in all_local_processor_classes_without_external_tools():
+        instance = cls(None, None)
+        _proc = instance.nlprp_processor_info()
+        _x = ServerProcessor.from_nlprp_json_dict(_proc)
+        # ... registers with the ServerProcessor class
+        # Doing this here saves time per request
+        if set_parser:
+            _x.set_parser()

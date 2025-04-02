@@ -19,8 +19,8 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 
-Installing CRATE
-================
+Installing CRATE without Docker
+===============================
 
 .. contents::
    :local:
@@ -33,19 +33,6 @@ URLs for CRATE source code
 - https://pypi.io/project/crate-anon/ (for ``pip install crate-anon``)
 
 
-Ubuntu Linux, from Debian package
----------------------------------
-
-To install CRATE and all its dependencies, download the Debian package and use
-``gdebi``:
-
-.. code-block:: bash
-
-    sudo gdebi crate-VERSION.deb
-
-(If you don’t have ``gdebi``, install it with ``sudo apt-get install gdebi``.)
-
-
 Manual installation
 -------------------
 
@@ -56,13 +43,13 @@ tools. Here's a logical sequence.
 Python
 ~~~~~~
 
-Install Python 3.8 or higher. If it's not already installed:
+Install Python 3.9 or higher. If it's not already installed:
 
 **Linux**
 
 .. code-block:: bash
 
-    sudo apt-get install python3.8-dev
+    sudo apt-get install python3.9-dev
 
 **Windows**
 
@@ -80,7 +67,7 @@ Choose your own directory names.
 
 .. code-block:: bash
 
-    python3.7 -m venv ~/venvs/crate
+    python3.9 -m venv ~/venvs/crate
     source ~/venvs/crate/bin/activate
     python -m pip install --upgrade pip
     pip install crate-anon
@@ -89,10 +76,10 @@ Choose your own directory names.
 
 .. code-block:: bat
 
-    C:\Python37\python.exe -m ensurepip
-    C:\Python37\python.exe -m venv C:\venvs\crate
+    C:\Python39\python.exe -m ensurepip
+    C:\Python39\python.exe -m venv C:\venvs\crate
     C:\venvs\crate\Scripts\activate
-    C:\Python37\python.exe -m pip install --upgrade pip
+    C:\Python39\python.exe -m pip install --upgrade pip
     pip install crate-anon
 
 

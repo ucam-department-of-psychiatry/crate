@@ -215,6 +215,10 @@ def main():
     # -------------------------------------------------------------------------
     helpflag = "--help"
     run_cmd(
+        [CrateCommand.AUTOIMPORTDB, helpflag],
+        join(DevPath.DOCS_PREPROC_DIR, "_crate_autoimport_db_help.txt"),
+    )
+    run_cmd(
         [CrateCommand.FETCH_WORDLISTS, helpflag],
         join(DevPath.DOCS_PREPROC_DIR, "_crate_fetch_wordlists_help.txt"),
     )
@@ -297,6 +301,13 @@ def main():
     run_cmd(
         [CrateCommand.TEST_ANONYMISATION, helpflag],
         join(DevPath.DOCS_ANCILLARY_DIR, "_crate_test_anonymisation_help.txt"),
+    )
+    run_cmd(
+        [CrateCommand.TEST_DATABASE_CONNECTION, helpflag],
+        join(
+            DevPath.DOCS_ANCILLARY_DIR,
+            "_crate_test_database_connection_help.txt",
+        ),
     )
     run_cmd(
         [CrateCommand.TEST_EXTRACT_TEXT, helpflag],
@@ -393,7 +404,7 @@ SOLUTION:
     sudo npm install -g n
     sudo n stable
     sudo npm install npm@latest -g
-"""  # noqa
+"""  # noqa: E501
         )
         raise
 

@@ -85,7 +85,7 @@ from crate_anon.crateweb.core.utils import (
 )
 from crate_anon.crateweb.extra.pdf import serve_html_or_pdf
 from crate_anon.crateweb.research.research_db_info import (
-    research_database_info,
+    get_research_db_info,
 )
 from crate_anon.crateweb.research.models import PidLookup, get_mpid
 from crate_anon.crateweb.userprofile.models import UserProfile
@@ -504,6 +504,7 @@ def submit_contact_request(request: HttpRequest) -> HttpResponse:
     Args:
         request: the :class:`django.http.request.HttpRequest`
     """
+    research_database_info = get_research_db_info()
     dbinfo = research_database_info.dbinfo_for_contact_lookup
     if request.user.is_superuser:
         form = SuperuserSubmitContactRequestForm(
@@ -579,6 +580,7 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
     Args:
         request: the :class:`django.http.request.HttpRequest`
     """
+    research_database_info = get_research_db_info()
     dbinfo = research_database_info.dbinfo_for_contact_lookup
     email = request.user.email
     userprofile = UserProfile.objects.get(user=request.user)

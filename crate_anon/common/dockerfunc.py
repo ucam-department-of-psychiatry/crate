@@ -47,8 +47,10 @@ def warn_if_not_within_docker_dir(
     param_name: str,
     filespec: str,
     permit_cfg: bool = False,
-    permit_venv: bool = False,
+    permit_files: bool = False,
+    permit_static: bool = False,
     permit_tmp: bool = False,
+    permit_venv: bool = False,
     param_contains_not_is: bool = False,
     is_env_var: bool = False,
     as_file_url: bool = False,
@@ -65,10 +67,14 @@ def warn_if_not_within_docker_dir(
             Filename (or filename-like thing) to check.
         permit_cfg:
             Permit the file to be in the configuration directory.
-        permit_venv:
-            Permit the file to be in the virtual environment directory.
+        permit_files:
+            Permit the file to be in the files directory.
+        permit_static:
+            Permit the file to be in the static directory.
         permit_tmp:
             Permit the file to be in the shared temporary space.
+        permit_venv:
+            Permit the file to be in the virtual environment directory.
         param_contains_not_is:
             The parameter "contains", not "is", the filename.
         is_env_var:
@@ -89,10 +95,14 @@ def warn_if_not_within_docker_dir(
     permitted_dirs = []  # type: List[str]
     if permit_cfg:
         permitted_dirs.append(DockerConstants.CONFIG_DIR)
-    if permit_venv:
-        permitted_dirs.append(DockerConstants.VENV_DIR)
+    if permit_files:
+        permitted_dirs.append(DockerConstants.FILES_DIR)
+    if permit_static:
+        permitted_dirs.append(DockerConstants.STATIC_DIR)
     if permit_tmp:
         permitted_dirs.append(DockerConstants.TMP_DIR)
+    if permit_venv:
+        permitted_dirs.append(DockerConstants.VENV_DIR)
     ok = any(relative_filename_within_dir(filepath, d) for d in permitted_dirs)
     if not ok:
         log.warning(

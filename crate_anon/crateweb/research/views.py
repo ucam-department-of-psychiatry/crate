@@ -70,7 +70,6 @@ from pyparsing import ParseException
 
 from crate_anon.common.constants import JSON_SEPARATORS_COMPACT
 
-# from crate_anon.common.profiling import do_cprofile
 from crate_anon.common.sql import (
     ColumnId,
     escape_sql_string_literal,
@@ -145,7 +144,7 @@ from crate_anon.crateweb.research.models import (
 )
 from crate_anon.crateweb.research.research_db_info import (
     PatientFieldPythonTypes,
-    research_database_info,
+    get_research_db_info,
     SingleResearchDatabase,
 )
 from crate_anon.crateweb.research.sql_writer import (
@@ -155,6 +154,16 @@ from crate_anon.crateweb.research.sql_writer import (
 from crate_anon.crateweb.userprofile.models import (
     get_patients_per_page,
     UserProfile,
+)
+from crate_anon.nlp_manager.constants import (
+    # Fieldnames for CRATE NLP table
+    FN_NLPDEF,
+    FN_SRCDB,
+    FN_SRCFIELD,
+    FN_SRCPKFIELD,
+    FN_SRCPKSTR,
+    FN_SRCPKVAL,
+    FN_SRCTABLE,
 )
 
 log = BraceStyleAdapter(logging.getLogger(__name__))
@@ -171,16 +180,6 @@ MAX_LEN_SHOW = 20000
 # Prefix for inline pid and mpid conversion
 PID_PREFIX = "~pid"
 MPID_PREFIX = "~mpid"
-
-
-# Fieldnames for CRATE NLP table
-FN_NLPDEF = "_nlpdef"
-FN_SRCDB = "_srcdb"
-FN_SRCTABLE = "_srctable"
-FN_SRCFIELD = "_srcfield"
-FN_SRCPKFIELD = "_srcpkfield"
-FN_SRCPKVAL = "_srcpkval"
-FN_SRCPKSTR = "_srcpkstr"
 
 
 # =============================================================================
@@ -280,6 +279,7 @@ def get_db_structure_json() -> str:
     Returns the research database structure in JSON format.
     """
     log.debug("get_db_structure_json")
+    research_database_info = get_research_db_info()
     colinfolist = research_database_info.get_colinfolist()
     if not colinfolist:
         log.warning("get_db_structure_json(): colinfolist is empty")
@@ -393,11 +393,12 @@ def query_build(request: HttpRequest) -> HttpResponse:
     #   (differentially) non-collapsed at the start, e.g. on form POST.
     # - Also harder work to do this HTML manually (rather than with
     #   template rendering), because the csrf_token ends up like:
-    #   <input type='hidden' name='csrfmiddlewaretoken' value='RGN5UZnTVkLFAVNtXRpJwn5CclBRAdLr' />  # noqa
+    #   <input type='hidden' name='csrfmiddlewaretoken' value='RGN5UZnTVkLFAVNtXRpJwn5CclBRAdLr' />  # noqa: E501
 
     # noinspection PyUnresolvedReferences
     profile = request.user.profile  # type: UserProfile
     parse_error = ""
+    research_database_info = get_research_db_info()
     default_database = research_database_info.get_default_database_name()
     default_schema = research_database_info.get_default_schema_name()
     with_database = research_database_info.uses_database_level()
@@ -626,10 +627,10 @@ def get_identical_queries(
     #                   -> GetUnicodeInfo
     #                   ... and depending on the string length of the
     #                       parameter, this returns either
-    #                   SQL_WVARCHAR -> NVARCHAR on SQL Server [6], for short strings  # noqa
-    #                   SQL_WLONGVARCHAR -> NTEXT on SQL Server [6], for long strings  # noqa
+    #                   SQL_WVARCHAR -> NVARCHAR on SQL Server [6], for short strings  # noqa: E501
+    #                   SQL_WLONGVARCHAR -> NTEXT on SQL Server [6], for long strings  # noqa: E501
     #                   ... and the length depends on
-    #                       -> connection.h: cur->cnxn->GetMaxLength(info.ValueType);  # noqa
+    #                       -> connection.h: cur->cnxn->GetMaxLength(info.ValueType);  # noqa: E501
     #           -> BindParameter
     #   in cursor.cpp
     #
@@ -646,14 +647,14 @@ def get_identical_queries(
     #   (ADODB.Connection; Provider cannot be found. It may not be properly
     #   installed.) Anyway, pyodbc is good enough for SQLAlchemy.
     #
-    # [1] https://github.com/michiya/django-pyodbc-azure/blob/azure-1.10/sql_server/pyodbc/base.py  # noqa
-    # [2] https://github.com/mkleehammer/pyodbc/blob/master/tests2/informixtests.py  # noqa
+    # [1] https://github.com/michiya/django-pyodbc-azure/blob/azure-1.10/sql_server/pyodbc/base.py  # noqa: E501
+    # [2] https://github.com/mkleehammer/pyodbc/blob/master/tests2/informixtests.py  # noqa: E501
     # [3] https://stackoverflow.com/questions/13090907
     # [4] https://docs.python.org/3/c-api/bytes.html
     # [5] https://docs.python.org/3/c-api/unicode.html
-    # [6] https://documentation.progress.com/output/DataDirect/DataDirectCloud/index.html#page/queries/microsoft-sql-server-data-types.html  # noqa
+    # [6] https://documentation.progress.com/output/DataDirect/DataDirectCloud/index.html#page/queries/microsoft-sql-server-data-types.html  # noqa: E501
     # [7] https://github.com/mkleehammer/pyodbc/wiki/Data-Types
-    # [8] https://docs.djangoproject.com/en/1.10/ref/databases/#using-a-3rd-party-database-backend  # noqa
+    # [8] https://docs.djangoproject.com/en/1.10/ref/databases/#using-a-3rd-party-database-backend  # noqa: E501
     # [9] https://django-mssql.readthedocs.io/en/latest/
 
     # Screw it, let's use a hash. We can use our hash64() function and
@@ -688,6 +689,7 @@ def parse_privileged_sql(request: HttpRequest, sql: str) -> List[Any]:
     sql_components = sql.split()
     new_sql = ""
     i = 0
+    research_database_info = get_research_db_info()
     while i < len(sql_components):
         split_component = sql_components[i].split(":")
         if len(split_component) == 2 and (
@@ -911,6 +913,7 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
             # Have to use plain sql for this (not coloured) in case it cuts it
             # off after an html start tag but before the end tag
             q.truncated_sql = sql[:50]
+    research_database_info = get_research_db_info()
     context = {
         "form": form,
         "queries": queries,
@@ -1145,7 +1148,7 @@ def query_count(request: HttpRequest, query_id: str) -> HttpResponse:
         # ... will return None if not found, but may raise something derived
         # from ObjectDoesNotExist or (in principle, if this weren't a PK)
         # MultipleObjectsReturned;
-        # https://docs.djangoproject.com/en/1.9/ref/models/querysets/#django.db.models.query.QuerySet.get  # noqa
+        # https://docs.djangoproject.com/en/1.9/ref/models/querysets/#django.db.models.query.QuerySet.get  # noqa: E501
     except ObjectDoesNotExist:
         return render_bad_query_id(request, query_id)
     return render_resultcount(request, query)
@@ -1214,6 +1217,7 @@ def get_source_results(
     Returns:
         a :class:`NlpSourceResult`
     """
+    research_database_info = get_research_db_info()
     try:
         dbname = research_database_info.nlp_sourcedb_map[srcdb]
     except KeyError:
@@ -1596,10 +1600,10 @@ def resultset_html_table(
     Returns:
         str: HTML
 
-    """  # noqa
+    """  # noqa: E501
     # Considered but not implemented: hiding table columns
     # ... see esp "tr > *:nth-child(n)" at
-    # https://stackoverflow.com/questions/5440657/how-to-hide-columns-in-html-table  # noqa
+    # https://stackoverflow.com/questions/5440657/how-to-hide-columns-in-html-table  # noqa: E501
     nlptable = False
     if FN_NLPDEF in fieldnames:
         srcdb_ind = srctable_ind = srcfield_ind = None
@@ -1729,7 +1733,7 @@ def single_record_html_table(
     Returns:
         str: HTML
 
-    """  # noqa
+    """  # noqa: E501
     table_html = ""
     if FN_NLPDEF in fieldnames:
         srcdb_ind = srctable_ind = srcfield_ind = None
@@ -1770,7 +1774,9 @@ def single_record_html_table(
                     "srcpkstr": record[srcpkstr_ind],
                 },
             )
-            table_html += f'<b><a href="{source_url}">See NLP source info</a></b>\n'  # noqa
+            table_html += (
+                f'<b><a href="{source_url}">See NLP source info</a></b>\n'
+            )
     table_html += "<table>\n"
     for col_index, value in enumerate(record):
         fieldname = fieldnames[col_index]
@@ -2220,6 +2226,7 @@ def pid_rid_lookup(
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     dbinfolist = research_database_info.dbs_with_secret_map
     n = len(dbinfolist)
     if n == 0:
@@ -2267,6 +2274,7 @@ def pid_rid_lookup_with_db(
     # Union[Type[PidLookupForm], Type[RidLookupForm]] yet; we get
     # TypeError: descriptor '__subclasses__' of 'type' object needs an argument
     # ... see https://github.com/python/typing/issues/266
+    research_database_info = get_research_db_info()
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
@@ -2410,10 +2418,10 @@ def render_lookup(
 
     Returns:
         a :class:`django.http.response.HttpResponse`
-    """  # noqa
+    """  # noqa: E501
     # if not request.user.superuser:
     #    return HttpResponse('Forbidden', status=403)
-    #    # https://stackoverflow.com/questions/3297048/403-forbidden-vs-401-unauthorized-http-responses  # noqa
+    #    # https://stackoverflow.com/questions/3297048/403-forbidden-vs-401-unauthorized-http-responses  # noqa: E501
     trids = [] if trids is None else trids
     rids = [] if rids is None else rids
     mrids = [] if mrids is None else mrids
@@ -2461,6 +2469,7 @@ def structure_table_long(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     colinfolist = research_database_info.get_colinfolist()
     rowcount = len(colinfolist)
     context = {
@@ -2484,6 +2493,7 @@ def structure_table_paginated(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     colinfolist = research_database_info.get_colinfolist()
     rowcount = len(colinfolist)
     colinfolist = paginate(request, colinfolist)
@@ -2508,6 +2518,7 @@ def get_structure_tree_html() -> str:
     Returns:
         str: HTML
     """
+    research_database_info = get_research_db_info()
     table_to_colinfolist = research_database_info.get_colinfolist_by_tables()
     content = ""
     element_counter = HtmlElementCounter()
@@ -2517,8 +2528,8 @@ def get_structure_tree_html() -> str:
             "database_structure_table.html",
             {
                 "colinfolist": colinfolist,
-                "default_database": research_database_info.get_default_database_name(),  # noqa
-                "default_schema": research_database_info.get_default_schema_name(),  # noqa
+                "default_database": research_database_info.get_default_database_name(),  # noqa: E501
+                "default_schema": research_database_info.get_default_schema_name(),  # noqa: E501
                 "with_database": research_database_info.uses_database_level(),
             },
         )
@@ -2549,6 +2560,7 @@ def structure_tree(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     context = {
         "content": get_structure_tree_html(),
         "default_database": research_database_info.get_default_database_name(),
@@ -2568,6 +2580,7 @@ def structure_tsv(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     return file_response(
         research_database_info.get_tsv(),
         content_type=ContentType.TSV,
@@ -2587,6 +2600,7 @@ def structure_excel(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     return file_response(
         research_database_info.get_excel(),
         content_type=ContentType.TSV,
@@ -2719,6 +2733,7 @@ def textfinder_sql(
         raise ValueError(
             "Must supply either 'fragment' or 'drug_type' to 'textfinder_sql'"
         )
+    research_database_info = get_research_db_info()
     grammar = research_database_info.grammar
     tables = research_database_info.tables_containing_field(
         patient_id_fieldname
@@ -2896,7 +2911,7 @@ def common_find_text(
 
     Returns:
         a :class:`django.http.response.HttpResponse`
-    """  # noqa
+    """  # noqa: E501
     # When you forget about Django forms, go back to:
     # http://www.slideshare.net/pydanny/advanced-django-forms-usage
 
@@ -3094,6 +3109,7 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     if research_database_info.single_research_db:
         dbname = research_database_info.first_dbinfo.name
         return HttpResponseRedirect(
@@ -3130,6 +3146,7 @@ def sqlhelper_text_anywhere_with_db(
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
@@ -3162,6 +3179,7 @@ def sqlhelper_drug_type(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     if research_database_info.single_research_db:
         dbname = research_database_info.first_dbinfo.name
         return HttpResponseRedirect(
@@ -3195,6 +3213,7 @@ def sqlhelper_drug_type_with_db(
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
@@ -3227,6 +3246,7 @@ def all_text_from_pid(request: HttpRequest) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     dbinfolist = research_database_info.dbs_with_secret_map
     n = len(dbinfolist)
     if n == 0:
@@ -3265,6 +3285,7 @@ def all_text_from_pid_with_db(
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
+    research_database_info = get_research_db_info()
     try:
         dbinfo = research_database_info.get_dbinfo_by_name(dbname)
     except ValueError:
@@ -3302,6 +3323,7 @@ def pe_build(request: HttpRequest) -> HttpResponse:
         a :class:`django.http.response.HttpResponse`
 
     """
+    research_database_info = get_research_db_info()
     # noinspection PyUnresolvedReferences
     profile = request.user.profile  # type: UserProfile
     default_database = research_database_info.get_default_database_name()
@@ -3560,6 +3582,7 @@ def pe_results(request: HttpRequest, pe_id: str) -> HttpResponse:
         a :class:`django.http.response.HttpResponse`
     """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    research_database_info = get_research_db_info()
     grammar = research_database_info.grammar
     # noinspection PyUnresolvedReferences
     profile = request.user.profile  # type: UserProfile
@@ -3773,7 +3796,7 @@ def pe_tsv_zip(request: HttpRequest, pe_id: str) -> HttpResponse:
     Returns:
         a :class:`django.http.response.HttpResponse`
     """
-    # https://stackoverflow.com/questions/12881294/django-create-a-zip-of-multiple-files-and-make-it-downloadable  # noqa
+    # https://stackoverflow.com/questions/12881294/django-create-a-zip-of-multiple-files-and-make-it-downloadable  # noqa: E501
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
         response = file_response(
@@ -3946,6 +3969,7 @@ def pe_monster_results(request: HttpRequest, pe_id: str) -> HttpResponse:
 
     """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    research_database_info = get_research_db_info()
     grammar = research_database_info.grammar
     # noinspection PyUnresolvedReferences
     profile = request.user.profile  # type: UserProfile
@@ -4024,6 +4048,7 @@ def pe_table_browser(request: HttpRequest, pe_id: str) -> HttpResponse:
 
     """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    research_database_info = get_research_db_info()
     tables = research_database_info.get_tables()
     with_database = research_database_info.uses_database_level()
     try:
@@ -4069,6 +4094,7 @@ def pe_one_table(
 
     """
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    research_database_info = get_research_db_info()
     table_id = TableId(db=db, schema=schema, table=table)
     grammar = research_database_info.grammar
     highlights = Highlight.get_active_highlights(request)

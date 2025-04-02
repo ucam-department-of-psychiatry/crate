@@ -69,15 +69,15 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==1.1.27",  # RNC libraries
+    "cardinal_pythonlib==2.0.4",  # RNC libraries
     "cairosvg==2.7.0",  # work with SVG files
-    "celery==5.2.3",  # back-end scheduling
-    "chardet==3.0.4",  # character encoding detection for cardinal_pythonlib
+    "celery==5.2.7",  # back-end scheduling
+    "chardet==5.2.0",  # character encoding detection for cardinal_pythonlib
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==4.2.15",  # for main CRATE research database web server
-    "django-debug-toolbar==3.0a2",  # Django debug toolbar
+    "django==4.2.20",  # for main CRATE research database web server
+    "django-debug-toolbar==3.2.1",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
     "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa: E501
@@ -89,7 +89,7 @@ INSTALL_REQUIRES = [
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==2.0.1",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
-    "gunicorn==22.0.0",  # UNIX only, though will install under Windows
+    "gunicorn==23.0.0",  # UNIX only, though will install under Windows
     "gutenbergpy==0.3.4",  # Project Gutenberg API
     "jsonlines==3.0.0",  # JSON Lines format
     "kombu==5.2.3",  # AMQP library for Celery; requires VC++ under Windows
@@ -97,15 +97,15 @@ INSTALL_REQUIRES = [
     "MarkupSafe==2.0.1",  # for HTML escaping
     # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa: E501
-    "numba==0.55.2",  # just-in-time compilation of functions
-    "numpy==1.22.4",  # numerical work
-    "openpyxl==3.0.7",  # read Excel
+    "numba==0.60.0",  # just-in-time compilation of functions
+    "numpy==1.26.4",  # numerical work
+    "openpyxl==3.0.7",  # read Excel (slower?)
     "ordered-set==4.1.0",  # ordered sets; search for ordered_set
     "pendulum==2.1.2",  # dates/times
     "Pillow==10.3.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==3.2.0",  # pretty formating of text-based tables
-    "psutil==5.7.2",  # process management
+    "psutil==6.0.0",  # process management
     "pyexcel-ods==0.6.0",  # for reading/writing ODS files
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.15.0",  # syntax highlighting
@@ -118,24 +118,24 @@ INSTALL_REQUIRES = [
     "rich-argparse==0.5.0",  # colourful help
     "semantic_version==2.8.5",  # semantic versioning; better than semver
     "sortedcontainers==2.2.2",  # for SortedSet
-    "SQLAlchemy==1.4.49",  # database access
+    "SQLAlchemy==2.0.36",  # database access
     "sqlparse==0.5.0",  # [pin exact version from cardinal_pythonlib]
     "unidecode==1.1.1",  # for removing accents
     # -------------------------------------------------------------------------
     # Packages for cloud NLP:
     # -------------------------------------------------------------------------
-    "bcrypt==3.1.7",  # bcrypt encryption
-    "cryptography==42.0.6",  # cryptography library
+    "bcrypt==3.2.2",  # bcrypt encryption
+    "cryptography==44.0.1",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.4",  # Pyramid web framework
     "pyramid_tm==2.4",  # Pyramid transaction management
     "redis==4.5.4",  # interface to Redis in-memory key-value database
     "requests==2.32.2",  # HTTP requests
-    "tornado==6.4.1",  # web framework
+    "tornado==6.4.2",  # web framework
     "transaction==3.0.0",  # generic transaction management
     "urllib3==1.26.19",  # used by requests
-    "waitress==2.1.2",  # pure-Python WSGI server
+    "waitress==3.0.1",  # pure-Python WSGI server
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
     # -------------------------------------------------------------------------
     # For development only:
@@ -143,15 +143,18 @@ INSTALL_REQUIRES = [
     "black==24.3.0",  # auto code formatter, keep in sync with .pre-commit-config.yaml  # noqa: E501
     "factory_boy==3.3.0",  # easier test data creation
     "faker==13.3.1",  # test data creation
+    "faker-file[common]==0.17.13",  # test file creation
     "flake8==5.0.4",  # code checks, keep in sync with .pre-commit-config.yaml
     "docutils==0.19",
     "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
+    "paramiko==3.4.1",  # Python implementation of the SSHv2 protocol, required by faker-file  # noqa: E501
     "pre-commit==2.20.0",  # development only, various sanity checks on code
-    "pytest==8.1.1",  # automatic testing
+    "pytest==8.3.4",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
+    "pytest-env==1.1.5",  # automatic testing
     "python-on-whales==0.68.0",  # python wrappers for testing with Docker
     "sphinx==7.1.2",  # documentation
-    "sphinx_rtd_theme==2.0.0",  # documentation
+    "sphinx_rtd_theme==3.0.2",  # documentation
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
     # ---------------------------------------------------------------------
@@ -207,9 +210,9 @@ setup(
         "Natural Language :: English",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3 :: Only",
         "Topic :: System :: Hardware",
         "Topic :: System :: Networking",
@@ -227,6 +230,7 @@ setup(
             # Documentation
             "crate_help=crate_anon.tools.launch_docs:main",
             # Preprocessing
+            f"{CrateCommand.AUTOIMPORTDB}=crate_anon.preprocess.autoimport_db:main",  # noqa: E501
             f"{CrateCommand.FETCH_WORDLISTS}=crate_anon.anonymise.fetch_wordlists:main",  # noqa: E501
             f"{CrateCommand.POSTCODES}=crate_anon.preprocess.postcodes:main",
             f"{CrateCommand.PREPROCESS_PCMIS}=crate_anon.preprocess.preprocess_pcmis:main",  # noqa: E501
@@ -271,6 +275,7 @@ setup(
             f"{CrateCommand.LAUNCH_CELERY}=crate_anon.tools.launch_celery:main",  # noqa: E501
             f"{CrateCommand.LAUNCH_FLOWER}=crate_anon.tools.launch_flower:main",  # noqa: E501
             f"{CrateCommand.PRINT_DEMO_CRATEWEB_CONFIG}=crate_anon.tools.print_crateweb_demo_config:main",  # noqa: E501
+            f"{CrateCommand.TEST_DATABASE_CONNECTION}=crate_anon.tools.test_database_connection:main",  # noqa: E501
             f"{CrateCommand.WINDOWS_SERVICE}=crate_anon.tools.winservice:main",
             # Indirect shortcuts to "crate_django_manage" commands:
             f"{CrateCommand.LAUNCH_CHERRYPY_SERVER}=crate_anon.tools.launch_cherrypy_server:main",  # noqa: E501

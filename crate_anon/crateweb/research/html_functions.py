@@ -93,7 +93,7 @@ def visibility_button(
     <img class="plusminus_image" id="collapse_img_{tag}" alt="" src="{img}">
     {title_html}
 </{eltype}>
-    """  # noqa
+    """  # noqa: E501
 
 
 def visibility_contentdiv(

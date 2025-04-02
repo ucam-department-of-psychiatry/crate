@@ -9,7 +9,7 @@
 # Not this one:
 #   FROM mysql/mysql-server:latest
 # because apt-get is missing; see https://stackoverflow.com/questions/72946649.
-FROM mysql:5.7-debian
+FROM mysql:8.0-debian
 
 # -----------------------------------------------------------------------------
 # Variable setup
@@ -23,14 +23,13 @@ ARG DB_PRIVUSER_USER
 ARG DB_PRIVUSER_PASSWORD
 ARG DB_RESEARCHER_USER
 ARG DB_RESEARCHER_PASSWORD
-ARG DB_TEST_USER
-ARG DB_TEST_PASSWORD
 
 # Database names:
 ARG DB_SRC
 ARG DB_ANON
+ARG DB_SECRET
 ARG DB_NLP
-ARG DB_TEST
+ARG DB_CRATE
 
 # Used internally:
 
@@ -52,7 +51,6 @@ ARG ENTRYPOINT_SCRIPT=/_crate_entrypoint.sh
 ARG SQL="\n\
 CREATE USER '${DB_PRIVUSER_USER}'@'%' IDENTIFIED WITH mysql_native_password BY '${DB_PRIVUSER_PASSWORD}';\n\
 CREATE USER '${DB_RESEARCHER_USER}'@'%' IDENTIFIED WITH mysql_native_password BY  '${DB_RESEARCHER_PASSWORD}';\n\
-CREATE USER '${DB_TEST_USER}'@'%' IDENTIFIED WITH mysql_native_password BY  '${DB_TEST_PASSWORD}';\n\
 \n\
 CREATE DATABASE ${DB_SRC};\n\
 GRANT ALL ON ${DB_SRC}.* TO '${DB_PRIVUSER_USER}'@'%';\n\
@@ -61,12 +59,16 @@ CREATE DATABASE ${DB_ANON};\n\
 GRANT ALL ON ${DB_ANON}.* TO '${DB_PRIVUSER_USER}'@'%';\n\
 GRANT SELECT ON ${DB_ANON}.* TO '${DB_RESEARCHER_USER}'@'%';\n\
 \n\
+CREATE DATABASE ${DB_SECRET};\n\
+GRANT ALL ON ${DB_SECRET}.* TO '${DB_PRIVUSER_USER}'@'%';\n\
+\n\
 CREATE DATABASE ${DB_NLP};\n\
 GRANT ALL ON ${DB_NLP}.* TO '${DB_PRIVUSER_USER}'@'%';\n\
 GRANT SELECT ON ${DB_NLP}.* TO '${DB_RESEARCHER_USER}'@'%';\n\
 \n\
-CREATE DATABASE ${DB_TEST};\n\
-GRANT ALL ON ${DB_TEST}.* TO '${DB_TEST_USER}'@'%';\n\
+CREATE DATABASE ${DB_CRATE};\n\
+GRANT ALL ON ${DB_CRATE}.* TO '${DB_PRIVUSER_USER}'@'%';\n\
+\n\
 "
 
 ARG STARTUP_SCRIPT_CONTENTS="#!bin/bash\n\
@@ -117,7 +119,7 @@ WORKDIR /
 RUN apt-get update --allow-insecure-repositories \
     && apt-get install -y  \
         iputils-ping \
-        netcat \
+        netcat-openbsd \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/ \
     \

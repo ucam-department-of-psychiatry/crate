@@ -92,7 +92,7 @@ def inner_main() -> None:
             # Without "--pool=solo", sod all happens: tasks go into the
             # Reserved queue, but aren't executed.
             # See:
-            # http://docs.celeryproject.org/en/latest/reference/celery.bin.worker.html#module-celery.bin.worker  # noqa
+            # http://docs.celeryproject.org/en/latest/reference/celery.bin.worker.html#module-celery.bin.worker  # noqa: E501
             # https://github.com/celery/celery/issues/2146
             cmdargs += ["--pool=solo"]
 

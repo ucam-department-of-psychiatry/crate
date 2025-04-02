@@ -76,14 +76,13 @@ Versions of software etc. used by CRATE
 | Django         |   4.2.x | 2026-04-30 (LTS);                                          |
 |                |         | https://www.djangoproject.com/download/#supported-versions |
 +----------------+---------+------------------------------------------------------------+
-| Python         |     3.8 | 2024-10-31                                                 |
+| Python         |     3.9 | 2025-10-31                                                 |
 +----------------+---------+------------------------------------------------------------+
-|                |     3.9 | 2025-10-31                                                 |
+|                |    3.10 | 2026-10-31                                                 |
 +----------------+---------+------------------------------------------------------------+
-|                |    3.10 | 2026-10-31;                                                |
+|                |    3.11 | 2027-10-31                                                 |
 |                |         | https://devguide.python.org/versions/                      |
 +----------------+---------+------------------------------------------------------------+
-| SQLAlchemy     |     1.4 | Still maintained but will reach EOL when 2.1 becomes the   |
-|                |         | next major release. Upgrade to 2.0 is encouraged.          |
+| SQLAlchemy     |     2.0 | No scheduled date. 2.1 is still in development.            |
 |                |         | https://www.sqlalchemy.org/download.html                   |
 +----------------+---------+------------------------------------------------------------+

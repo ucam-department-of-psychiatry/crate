@@ -181,7 +181,6 @@ from cardinal_pythonlib.sql.sql_grammar_factory import make_grammar
 from cardinal_pythonlib.sqlalchemy.schema import (
     get_effective_int_pk_col,
     get_pk_colnames,
-    hack_in_mssql_xml_type,
     make_bigint_autoincrement_column,
 )
 from sqlalchemy import (
@@ -192,7 +191,6 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.schema import Table
 
 from crate_anon.anonymise.constants import (
-    CHARSET,
     AnonymiseDatabaseSafeConfigKeys,
     HashConfigKeys,
 )
@@ -569,7 +567,7 @@ def get_pcmis_dd_settings(ddhint: DDHint) -> str:
 
 {sk.DDGEN_FORCE_LOWER_CASE} = False
 {sk.DDGEN_CONVERT_ODD_CHARS_TO_UNDERSCORE} = True
-"""  # noqa
+"""  # noqa: E501
 
 
 # =============================================================================
@@ -698,7 +696,7 @@ def get_pcmis_views(
                     )
                 )
                 viewmaker.add_from(
-                    "LEFT JOIN {referrals} ON {t}.{case} = {referrals}.{case}".format(  # noqa
+                    "LEFT JOIN {referrals} ON {t}.{case} = {referrals}.{case}".format(  # noqa: E501
                         referrals=PCMIS_TABLE_REFERRAL_DETAILS,
                         t=q(tablename),
                         case=PCMIS_COL_CASE_NUMBER,
@@ -718,7 +716,7 @@ def get_pcmis_views(
                     )
                 )
                 viewmaker.add_from(
-                    "LEFT JOIN {contacts} ON {t}.{contact} = {contacts}.{contact}".format(  # noqa
+                    "LEFT JOIN {contacts} ON {t}.{contact} = {contacts}.{contact}".format(  # noqa: E501
                         contacts=PCMIS_TABLE_CASE_CONTACTS,
                         t=tablename,
                         contact=PCMIS_COL_CONTACT_NUMBER,
@@ -734,7 +732,7 @@ def get_pcmis_views(
                     )
                 )
                 viewmaker.add_from(
-                    "LEFT JOIN {referrals} ON {contacts}.{case} = {referrals}.{case}".format(  # noqa
+                    "LEFT JOIN {referrals} ON {contacts}.{case} = {referrals}.{case}".format(  # noqa: E501
                         referrals=PCMIS_TABLE_REFERRAL_DETAILS,
                         contacts=PCMIS_TABLE_CASE_CONTACTS,
                         case=PCMIS_COL_CASE_NUMBER,
@@ -861,9 +859,7 @@ def process_table(
         # ---------------------------------------------------------------------
         # SQL Server requires Table-bound columns in order to generate DDL:
         if adding_crate_pk:
-            crate_pk_col = make_bigint_autoincrement_column(
-                CRATE_COL_PK, engine.dialect
-            )
+            crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK)
             table.append_column(crate_pk_col)
             add_columns(engine, table, [crate_pk_col])
         ensure_columns_present(
@@ -975,16 +971,13 @@ def main() -> None:
 
     set_print_not_execute(progargs.print)
 
-    hack_in_mssql_xml_type()
-
-    engine = create_engine(progargs.url, echo=progargs.echo, encoding=CHARSET)
+    engine = create_engine(progargs.url, echo=progargs.echo, future=True)
     metadata = MetaData()
-    metadata.bind = engine
     log.info(f"Database: {engine.url!r}")  # ... repr (!r) hides p/w
     log.debug(f"Dialect: {engine.dialect.name}")
 
     log.info("Reflecting (inspecting) database...")
-    metadata.reflect(engine)
+    metadata.reflect(bind=engine)
     log.info("... inspection complete")
 
     ddhint = DDHint()

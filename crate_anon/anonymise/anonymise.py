@@ -40,11 +40,15 @@ from typing import Any, Dict, Iterable, Generator, List, Tuple, Union
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
 from cardinal_pythonlib.sqlalchemy.core_query import count_star, exists_plain
+from cardinal_pythonlib.sqlalchemy.insert_on_duplicate import (
+    insert_with_upsert_if_supported,
+)
 from cardinal_pythonlib.sqlalchemy.schema import (
     add_index,
     get_column_names,
 )
 from sortedcontainers import SortedSet
+from sqlalchemy.exc import DatabaseError, IntegrityError
 from sqlalchemy.schema import Column, Index, MetaData, Table
 from sqlalchemy.sql import column, func, or_, select, table, text
 from sqlalchemy.types import Boolean
@@ -277,18 +281,14 @@ def delete_dest_rows_with_no_src_row(
     commit_destdb()
 
     # 4. Index -- no, hang on, it's a primary key already
-    #
-    # log.debug("... creating index on temporary table")
-    # index = Index('_temptable_idx', temptable.columns[pkfield])
-    # index.create(destengine)
 
     # 5. DELETE FROM desttable
     #    WHERE destpk NOT IN (SELECT srcpk FROM temptable)
     log.debug("... deleting from destination where appropriate")
     query = dest_table.delete().where(
-        ~column(pkddr.dest_field).in_(select([temptable.columns[pkfield]]))
+        ~column(pkddr.dest_field).in_(select(temptable.columns[pkfield]))
     )
-    destengine.execute(query)
+    destsession.execute(query)
     commit_destdb()
 
     # 6. Drop temporary table
@@ -392,7 +392,7 @@ def get_valid_pid_subset(given_pids: List[str]) -> List[str]:
         pidcol = column(ddr.src_field)
         session = config.sources[ddr.src_db].session
         query = (
-            select([pidcol])
+            select(pidcol)
             .select_from(table(ddr.src_table))
             .where(pidcol is not None)
             .distinct()
@@ -477,7 +477,7 @@ def get_pid_subset_from_field(
             session = config.sources[ddr.src_db].session
             # Find pids corresponding to the given values of specified field
             query = (
-                select([pidcol])
+                select(pidcol)
                 .select_from(table(ddr.src_table))
                 .where((fieldcol.in_(values_to_find)) & (pidcol is not None))
                 .distinct()
@@ -503,7 +503,7 @@ def get_pid_subset_from_field(
     # join_obj = ddr_table.join(chosen_table,
     #                           chosen_table.c.fieldcol == ddr_table.c.pidcol)
     # query = (
-    #     select([pidcol]).
+    #     select(pidcol).
     #     select_from(join_obj).
     #     where((chosen_table.fieldcol.in_(field_elements)) &
     #                (ddr_table.pidcol is not None)).
@@ -644,7 +644,7 @@ def get_pids_from_limits(low: int, high: int) -> List[Any]:
         pidcol = column(ddr.src_field)
         session = config.sources[ddr.src_db].session
         query = (
-            select([pidcol])
+            select(pidcol)
             .select_from(table(ddr.src_table))
             .where((pidcol.between(low, high)) & (pidcol is not None))
             .distinct()
@@ -721,7 +721,7 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[Any]:
             session = config.sources[ddr.src_db].session
             # Find pids corresponding to the given values of specified field
             query = (
-                select([pidcol])
+                select(pidcol)
                 .select_from(table(ddr.src_table))
                 .where((fieldcol.between(low, high)) & (pidcol is not None))
                 .distinct()
@@ -875,7 +875,7 @@ def gen_patient_ids(
         session = config.sources[ddr.src_db].session
         pidcol = column(ddr.src_field)
         query = (
-            select([pidcol])
+            select(pidcol)
             .select_from(table(ddr.src_table))
             .where(pidcol is not None)
             .distinct()
@@ -990,7 +990,7 @@ def gen_rows(
         ``sourcefields``
     """
     t = config.sources[dbname].metadata.tables[sourcetable]
-    q = select([column(c) for c in sourcefields]).select_from(t)
+    q = select(*[column(c) for c in sourcefields]).select_from(t)
     # not ordered
 
     # Restrict to one patient?
@@ -1042,9 +1042,14 @@ def count_rows(
     """
     # Count function to match gen_rows()
     session = config.sources[dbname].session
-    query = select([func.count()]).select_from(table(sourcetable))
+    query = select(func.count()).select_from(table(sourcetable))
     if pid is not None:
         pidcol_name = config.dd.get_pid_name(dbname, sourcetable)
+        if not pidcol_name:
+            raise ValueError(
+                "No row in the data dictionary provides primary PID "
+                f"information for db:{dbname}, table: {sourcetable}"
+            )
         query = query.where(column(pidcol_name) == pid)
     return session.execute(query).scalar()
 
@@ -1138,7 +1143,7 @@ def gen_pks(
     """
     db = config.sources[srcdbname]
     t = db.metadata.tables[tablename]
-    q = select([column(pkname)]).select_from(t)
+    q = select(column(pkname)).select_from(t)
     result = db.session.execute(q)
     for row in result:
         yield row[0]
@@ -1403,8 +1408,18 @@ def process_table(
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Insert values into database
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        q = sqla_table.insert_on_duplicate().values(destvalues)
-        session.execute(q)
+        q = insert_with_upsert_if_supported(
+            table=sqla_table, values=destvalues, session=session
+        )
+        try:
+            session.execute(q)
+        except IntegrityError:
+            log.warning(
+                "Skipping record due to IntegrityError. Non-unique primary "
+                f"key? {sourcedbname}.{sourcetable}.{src_pk_name} = "
+                f"(destination) {dest_table}.{dest_pk_name} = "
+                f"{row[pkfield_index]}"
+            )
 
         # Trigger an early commit?
         config.notify_dest_db_transaction(
@@ -1519,7 +1534,19 @@ def patient_processing_fn(
         # we do as we build the scrubber).
 
         # Gather scrubbing information for a patient. (Will save.)
-        patient = Patient(pid)
+        try:
+            adminsession = config.admindb.session
+            # In case anything else is in the transaction pending commit
+            adminsession.commit()
+
+            patient = Patient(pid)
+        except DatabaseError:
+            log.warning(
+                f"Skipping patient with PID={pid} because the record could "
+                "not be saved to the secret_map table"
+            )
+            adminsession.rollback()
+            continue
 
         if patient.mandatory_scrubbers_unfulfilled:
             log.warning(
@@ -1635,9 +1662,9 @@ def wipe_destination_data_for_opt_out_patients(
         log.debug(start + f": ... {dest_table_name}")
         dest_table = config.dd.get_dest_sqla_table(dest_table_name)
         query = dest_table.delete().where(
-            column(ridfield).in_(select([temptable.columns[pkfield]]))
+            column(ridfield).in_(select(temptable.columns[pkfield]))
         )
-        destengine.execute(query)
+        destsession.execute(query)
         commit_destdb()
 
     log.debug(start + ": 6. dropping temporary table")
@@ -1836,7 +1863,7 @@ def gen_opt_out_pids_from_database(
                 optout_colname, optout_col_values
             )
 
-        query = select([idcol]).select_from(sqla_table).distinct()
+        query = select(idcol).select_from(sqla_table).distinct()
 
         if optout_col_values:
             # Note that if optout_col_values does not contain valid values,
