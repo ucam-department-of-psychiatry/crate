@@ -1726,6 +1726,10 @@ Changes
 - Ensure the Dockerfile uses a more recent ``setuptools`` so that ``fuzzy`` can
   be installed.
 
+- Drop support for Debian package given that we have PyPI, GitHub and the
+  Docker-based installer.
+
+
 To do
 -----
 
