@@ -138,7 +138,7 @@ from crate_anon.common.constants import (
     EXIT_SUCCESS,
 )
 
-_ = """
+_ = r"""
 
 ===============================================================================
 My launch command:
@@ -339,7 +339,7 @@ https://github.com/RudolfCardinal/bio-yodie-resource-prep, primarily:
 - set JVM limit to 10 GB (meaning it uses 13.9 GB) rather than 30 GB (making
   it thrash, use 36 GB, and get killed).
 
-"""  # noqa
+"""  # noqa: E501
 
 log = logging.getLogger(__name__)
 
@@ -372,7 +372,7 @@ log4j.appender.CONSOLE.layout.ConversionPattern=[%-5p] %m%n
 # - FROM /tmp/tmpg1z_uldg/umls_unzipped
 # - TO   /tmp/tmpg1z_uldg/blah
 # and using "include" rather than "exclude" mode, we got this:
-_NOTES_WORKING_CONFIG_FROM_GUI = """
+_NOTES_WORKING_CONFIG_FROM_GUI = r"""
 # Configuration Properties File
 #Mon Sep 14 17:45:02 BST 2020
 mmsys_output_stream=gov.nih.nlm.umls.mmsys.io.RRFMetamorphoSysOutputStream
@@ -413,7 +413,7 @@ gov.nih.nlm.umls.mmsys.filter.PrecedenceFilter.precedence=MTH|PN;RXNORM|MIN;MSH|
 gov.nih.nlm.umls.mmsys.io.NLMFileMetamorphoSysInputStream.meta_source_uri=/tmp/tmpg1z_uldg/umls_unzipped
 gov.nih.nlm.umls.mmsys.filter.SuppressibleFilter.confirm_default_suppressible_sabttys=HPO|OP;HPO|IS;HPO|OET;NEU|ACR;NEU|OP;NEU|IS;FMA|AB;FMA|OP;MDR|AB;CDT|OP;ICD10AE|PS;ICD10|PS;ICD10AMAE|PS;ICD10AM|PS;NCI|OP;NCI_NICHD|OP;ICPC|PS;ICPC|CS;MTHICPC2EAE|AB;ICPC2EENG|AB;ICPC2P|MTH_PT;ICPC2P|OPN;ICPC2P|MTH_OPN;ICPC2P|OP;ICPC2P|MTH_OP;HCPCS|OP;HCDT|OP;HCPT|OP;HCPCS|OM;HCPCS|OAM;GO|OP;GO|MTH_OP;GO|OET;GO|MTH_OET;GO|IS;GO|MTH_IS;PDQ|OP;PDQ|IS;NCBI|AUN;NCBI|UAUN;LNC|OLC;LNC|LO;LNC|MTH_LO;LNC|OOSN;MDR|OL;MDR|MTH_OL;ICD10PCS|HS;ICD10PCS|AB;ICD10AE|HS;ICD10|HS;HL7V3.0|OP;HL7V3.0|ONP;ICD10CM|AB;ICD9CM|AB;MSH|DEV;MSH|DSV;MSH|QAB;MSH|QEV;MSH|QSV;CPT|AB;HCPT|AB;HCPCS|AB;SNMI|PX;SNMI|HX;SNMI|SX;RCD|OP;RCD|IS;RCD|AS;RCD|AB;RCDSA|OP;RCDSY|OP;RCDAE|OP;RCDSA|IS;RCDSY|IS;RCDAE|IS;RCDSA|AB;RCDSY|AB;RCDAE|AB;RCDSA|OA;RCDSY|OA;RCDAE|OA;RCD|OA;RCDAE|AA;RCD|AA;HCPT|OA;HCPT|AM;HCPCS|OA;HCPCS|AM;HCDT|AB;ALT|AB;HCDT|OA;SNOMEDCT_VET|OAP;SNOMEDCT_VET|OP;SNOMEDCT_US|OAP;SNOMEDCT_US|OP;SNOMEDCT_VET|OAF;SNOMEDCT_VET|OF;SNOMEDCT_US|OAF;SNOMEDCT_US|OF;SNOMEDCT_VET|OAS;SNOMEDCT_VET|IS;SNOMEDCT_US|OAS;SNOMEDCT_US|IS;SNOMEDCT_US|MTH_OAP;SNOMEDCT_US|MTH_OP;SNOMEDCT_US|MTH_OAF;SNOMEDCT_US|MTH_OF;SNOMEDCT_US|MTH_OAS;SNOMEDCT_US|MTH_IS;CCPSS|TC;SCTSPA|OP;SCTSPA|OAF;SCTSPA|OAP;SCTSPA|OAS;SCTSPA|OF;SCTSPA|IS;SCTSPA|MTH_OP;SCTSPA|MTH_OAF;SCTSPA|MTH_OAP;SCTSPA|MTH_OAS;SCTSPA|MTH_OF;SCTSPA|MTH_IS;MSHNOR|DSV;MSHGER|DSV;MDRSPA|OL;MDRSPA|AB;MDRDUT|OL;MDRDUT|AB;MDRFRE|OL;MDRFRE|AB;MDRGER|OL;MDRGER|AB;MDRITA|OL;MDRITA|AB;MDRJPN|OL;MDRJPN|OLJKN;MDRJPN|OLJKN1;MDRCZE|OL;MDRHUN|OL;MDRPOR|OL;MDRCZE|AB;MDRHUN|AB;MDRPOR|AB;LNC-DE-CH|OOSN;LNC-DE-DE|LO;LNC-EL-GR|LO;LNC-ES-AR|LO;LNC-ES-AR|OOSN;LNC-ES-CH|OOSN;LNC-ES-ES|LO;LNC-ET-EE|LO;LNC-FR-BE|LO;LNC-FR-CA|LO;LNC-FR-CH|OOSN;LNC-FR-FR|OLC;LNC-FR-FR|LO;LNC-IT-CH|OOSN;LNC-IT-IT|LO;LNC-KO-KR|LO;LNC-NL-NL|LO;LNC-PT-BR|OLC;LNC-PT-BR|LO;LNC-PT-BR|OOSN;LNC-RU-RU|LO;LNC-TR-TR|LO;LNC-ZH-CN|LO;LNC-DE-AT|LO
 gov.nih.nlm.umls.mmsys.filter.SourceListFilter.enforce_dep_source_selection=true
-"""  # noqa
+"""
 
 
 # =============================================================================
@@ -524,16 +524,16 @@ def get_mmsys_configfile_text(
             awk -F '\\|' '{print $1"|"$1}' |
             perl -pe 's/\n/;/g' \
             > /tmp/sab_list.txt
-    """  # noqa
+    """  # noqa: E501
 
     # Config file that we'll use as a starting point
     start_config_filename = join(mmsys_home, "config", release, "user.a.prop")
 
     # New values to set
     new_values = {
-        "gov.nih.nlm.umls.mmsys.filter.SourceListFilter.remove_selected_sources": "false",  # noqa
-        "mmsys_input_stream": "gov.nih.nlm.umls.mmsys.io.NLMFileMetamorphoSysInputStream",  # noqa
-        "mmsys_output_stream": "gov.nih.nlm.umls.mmsys.io.RRFMetamorphoSysOutputStream",  # noqa
+        "gov.nih.nlm.umls.mmsys.filter.SourceListFilter.remove_selected_sources": "false",  # noqa: E501
+        "mmsys_input_stream": "gov.nih.nlm.umls.mmsys.io.NLMFileMetamorphoSysInputStream",  # noqa: E501
+        "mmsys_output_stream": "gov.nih.nlm.umls.mmsys.io.RRFMetamorphoSysOutputStream",  # noqa: E501
         "meta_source_uri": metadir,
         "umls_source_uri": metadir,  # ?
     }
@@ -744,7 +744,7 @@ def prepare_umls_for_bioyodie(cfg: UmlsBioyodieConversionConfig) -> None:
     # -------------------------------------------------------------------------
     log.info("Running MetamorphoSys in batch mode...")
     # -------------------------------------------------------------------------
-    # https://www.nlm.nih.gov/research/umls/implementation_resources/community/mmsys/BatchMetaMorphoSys.html  # noqa
+    # https://www.nlm.nih.gov/research/umls/implementation_resources/community/mmsys/BatchMetaMorphoSys.html  # noqa: E501
     classpath = ":".join(
         [
             umls_mmsys_home,
@@ -870,7 +870,7 @@ def main() -> NoReturn:
     parser.add_argument(
         "umls_zip",
         help="Filename of ZIP file downloaded from "
-        "https://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html, "  # noqa
+        "https://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html, "  # noqa: E501
         "e.g. /path/to/umls-2017AA-full.zip . This can't be "
         "autodownloaded, as it requires a license/login.",
     )

@@ -404,7 +404,7 @@ SOLUTION:
     sudo npm install -g n
     sudo n stable
     sudo npm install npm@latest -g
-"""  # noqa
+"""  # noqa: E501
         )
         raise
 

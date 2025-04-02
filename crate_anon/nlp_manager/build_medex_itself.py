@@ -102,9 +102,9 @@ EXTRA_ROUTES = [
 ]
 EXTRA_FREQUENCIES = [  # Tuples of (literal, TIMEX3)
     # EXTRA FOR UK FREQUENCIES; see
-    # http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations  # noqa
+    # http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations  # noqa: E501
     # TIMEX3 codes:
-    # http://www.timeml.org/tempeval2/tempeval2-trial/guidelines/timex3guidelines-072009.pdf
+    # http://www.timeml.org/tempeval2/tempeval2-trial/guidelines/timex3guidelines-072009.pdf  # noqa: E501
     # qqh, quarta quaque hora
     ("q.q.h.", "R1P4H"),
     # qds, quater die sumendum; MUST BE BEFORE COMPETING "qd" (= per day)
@@ -510,9 +510,9 @@ Exception in thread "main" java.lang.StringIndexOutOfBoundsException: String ind
     at CrateMedexPipeline.processInput(CrateMedexPipeline.java:302)
     at CrateMedexPipeline.<init>(CrateMedexPipeline.java:128)
     at CrateMedexPipeline.main(CrateMedexPipeline.java:320)
-                    """,  # noqa
-                    "wrong": r"while(cur_pos<llen & (txt.charAt(cur_pos)==' ' || txt.charAt(cur_pos)=='\n' || txt.charAt(cur_pos)=='\r') ){",  # noqa
-                    "right": r"while(cur_pos<llen && (txt.charAt(cur_pos)==' ' || txt.charAt(cur_pos)=='\n' || txt.charAt(cur_pos)=='\r') ){",  # noqa
+                    """,  # noqa: E501
+                    "wrong": r"while(cur_pos<llen & (txt.charAt(cur_pos)==' ' || txt.charAt(cur_pos)=='\n' || txt.charAt(cur_pos)=='\r') ){",  # noqa: E501
+                    "right": r"while(cur_pos<llen && (txt.charAt(cur_pos)==' ' || txt.charAt(cur_pos)=='\n' || txt.charAt(cur_pos)=='\r') ){",  # noqa: E501
                     # -----------------------------^
                 },
             ],
@@ -553,9 +553,9 @@ Offending code in SuffixArray.java:
 
 The bug may relate to what's in SA[i]... but as a simple fix:
 
-                    """,  # noqa
-                    "wrong": r"if (this.otext.charAt(pos) != ' ' && this.otext.charAt(pos) != '\n' && this.otext.charAt(pos) != this.end_char && (pos == 0 || (this.otext.charAt(pos-1) == ' ' || this.otext.charAt(pos-1) == '\n'))){",  # noqa
-                    "right": r"if (pos < this.otext.length() && this.otext.charAt(pos) != ' ' && this.otext.charAt(pos) != '\n' && this.otext.charAt(pos) != this.end_char && (pos == 0 || (this.otext.charAt(pos-1) == ' ' || this.otext.charAt(pos-1) == '\n'))){",  # noqa
+                    """,  # noqa: E501
+                    "wrong": r"if (this.otext.charAt(pos) != ' ' && this.otext.charAt(pos) != '\n' && this.otext.charAt(pos) != this.end_char && (pos == 0 || (this.otext.charAt(pos-1) == ' ' || this.otext.charAt(pos-1) == '\n'))){",  # noqa: E501
+                    "right": r"if (pos < this.otext.length() && this.otext.charAt(pos) != ' ' && this.otext.charAt(pos) != '\n' && this.otext.charAt(pos) != this.end_char && (pos == 0 || (this.otext.charAt(pos-1) == ' ' || this.otext.charAt(pos-1) == '\n'))){",  # noqa: E501
                     # -------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
                 },
             ],
@@ -591,7 +591,7 @@ all exceptions" strategy, but one would imagine the errors are unintentional
 (certainly the &/&& one!) or else they wouldn't print a stack trace and chug
 on.
 
-    """  # noqa
+    """  # noqa: E501
 
     for bf in bugfixes:
         filename = bf["filename"]

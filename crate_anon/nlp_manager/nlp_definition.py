@@ -175,7 +175,7 @@ def demo_nlp_config() -> str:
     hashphrase = "doesnotmatter"
     if_clin_docs = "INPUT_FIELD_CLINICAL_DOCUMENTS"
     if_prog_notes = "INPUT_FIELD_PROGRESS_NOTES"
-    inputfields = f"{if_clin_docs}\n" f"    {if_prog_notes}"
+    inputfields = f"{if_clin_docs}\n    {if_prog_notes}"
     truncate_text_at = "32766"
     my_env = "MY_ENV_SECTION"
     my_src_db = "SOURCE_DATABASE"
@@ -814,7 +814,7 @@ OS_PATHSEP = {os.pathsep}
 {ProcessorConfigKeys.PROCESSOR_NAME} = crate_anon.nlp_manager.parse_biochemistry.Crp
 {ProcessorConfigKeys.PROCESSOR_FORMAT} = {NlpDefValues.FORMAT_STANDARD}
 
-"""  # noqa
+"""  # noqa: E501
 
 
 # =============================================================================

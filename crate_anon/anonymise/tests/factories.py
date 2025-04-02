@@ -1,7 +1,5 @@
-#!/usr/bin/env python
-
 """
-tools/rebuild_reinstall.py
+crate_anon/anonymise/tests/factories.py
 
 ===============================================================================
 
@@ -25,24 +23,31 @@ tools/rebuild_reinstall.py
 
 ===============================================================================
 
-1. Rebuild the package.
-2. Remove the CRATE Debian package.
-3. Reinstall the package.
+**Factory Boy SQL Alchemy test factories for anonymisation.**
 
 """
 
-import os
-import subprocess
-from crate_anon.version import CRATE_VERSION
+from typing import TYPE_CHECKING
 
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-SOURCE_ROOT = os.path.abspath(os.path.join(THIS_DIR, os.pardir))
-PACKAGE_DIR = os.path.join(SOURCE_ROOT, "built_packages")
-PACKAGE = "crate"
-DEBVERSION = f"{CRATE_VERSION}-1"
-# noinspection PyUnresolvedReferences
-PACKAGEFILE = os.path.join(PACKAGE_DIR, f"{PACKAGE}_{DEBVERSION}_all.deb")
+from cardinal_pythonlib.hash import HashMethods, make_hasher
+import factory
 
-subprocess.check_call([os.path.join(THIS_DIR, "make_package.py")])
-subprocess.check_call(["sudo", "apt-get", "--yes", "remove", PACKAGE])
-subprocess.check_call(["sudo", "gdebi", "--non-interactive", PACKAGEFILE])
+from crate_anon.anonymise.models import PatientInfo
+from crate_anon.testing.factories import SecretBaseFactory, Fake
+
+if TYPE_CHECKING:
+    from factory.builder import Resolver
+
+
+class PatientInfoFactory(SecretBaseFactory):
+    class Meta:
+        exclude = ("hasher",)
+        model = PatientInfo
+
+    hasher = make_hasher(HashMethods.HMAC_MD5, "encryptionphrase")
+    pid = factory.Sequence(lambda n: n + 1)
+    mpid = factory.LazyFunction(Fake.en_gb.nhs_number)
+
+    @factory.lazy_attribute
+    def rid(obj: "Resolver") -> str:
+        return obj.hasher.hash(obj.pid)

@@ -43,13 +43,14 @@ from crate_anon.testing.factories import (
 )
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+    from sqlalchemy.orm.session import Session
 
 
-@pytest.mark.usefixtures("setup")
-class DatabaseTestCase(TestCase):
+class CommonDatabaseTestCase(TestCase):
     """
-    Base class for testing with a database.
+    Base class for testing with a database. Do not inherit from this directly,
+    use one of the below subclasses instead, which will be associated with
+    pytest fixtures for engine, session etc.
     """
 
     anon_dbsession: "Session"
@@ -81,6 +82,28 @@ class DatabaseTestCase(TestCase):
         self.anon_engine.echo = echo
         self.secret_engine.echo = echo
         self.source_engine.echo = echo
+
+
+@pytest.mark.usefixtures("setup")
+class DatabaseTestCase(CommonDatabaseTestCase):
+    """
+    Base class for testing with a database.
+
+    The pytest fixtures defined in conftest.py run each test in a transaction,
+    rolling back the transaction at the end of the test. This all works fine,
+    unless one of the tests encounters a DatabaseError and the transaction
+    needs to be rolled back. In this case we need the approach taken by
+    SlowSecretDatabaseTestCase below.
+    """
+
+
+@pytest.mark.usefixtures("slow_secret_setup")
+class SlowSecretDatabaseTestCase(CommonDatabaseTestCase):
+    """
+    Like DatabaseTestCase but we create and drop all of the tables for the
+    secret database every time a test is run. Potentially slow if there are
+    lots of tables.
+    """
 
 
 class DemoDatabaseTestCase(DatabaseTestCase):

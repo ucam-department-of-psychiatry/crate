@@ -1698,6 +1698,11 @@ Changes
   characters in the source database. Convert any unusual characters to ASCII in
   the destination database.
 
+- Update NLP handler to cope with remote NLPRP servers providing tabular_schema
+  data, and create local tables based on this, if desired. Change default
+  NLPRP server behaviour to use the more explicit format (object/dictionaries
+  by table, not plain arrays/lists of records).
+
 - Update ``crate_postcodes`` to support the November 2024 ONSPD in full. Offer
   partial support for ONSPD lookup tables in earlier/future versions by not
   failing when there is a mismatch between the created database tables and the
@@ -1712,6 +1717,18 @@ Changes
   https://github.com/ucam-department-of-psychiatry/crate/issues/163
 
 **0.20.7, in progress**
+
+- Shift from SQLAlchemy 1.4.49 to SQLALchemy 2.0.36.
+
+- Make the anonymiser more tolerant of Integrity errors and patients with
+  invalid Master PIDs
+
+- Ensure the Dockerfile uses a more recent ``setuptools`` so that ``fuzzy`` can
+  be installed.
+
+- Drop support for Debian package given that we have PyPI, GitHub and the
+  Docker-based installer.
+
 
 To do
 -----

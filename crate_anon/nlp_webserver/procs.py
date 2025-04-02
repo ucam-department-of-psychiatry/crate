@@ -33,10 +33,7 @@ import os
 
 from crate_anon.common.constants import EnvVar
 from crate_anon.nlprp.constants import NlprpKeys
-from crate_anon.nlp_webserver.constants import (
-    KEY_PROCTYPE,
-    NlpServerConfigKeys,
-)
+from crate_anon.nlp_webserver.constants import NlpServerConfigKeys
 from crate_anon.nlp_webserver.server_processor import ServerProcessor
 from crate_anon.nlp_webserver.settings import SETTINGS
 
@@ -57,16 +54,7 @@ if EnvVar.GENERATING_CRATE_DOCS not in os.environ:
         _name = _proc[NlprpKeys.NAME]
         _version = _proc[NlprpKeys.VERSION]
         log.info(f"Registering NLPRP processor {_name!r} (v{_version})")
-        _x = ServerProcessor(
-            name=_name,
-            title=_proc[NlprpKeys.TITLE],
-            version=_version,
-            is_default_version=_proc[NlprpKeys.IS_DEFAULT_VERSION],
-            description=_proc[NlprpKeys.DESCRIPTION],
-            proctype=_proc.get(KEY_PROCTYPE),  # may be None
-            schema_type=_proc[NlprpKeys.SCHEMA_TYPE],  # 'unknown' or 'tabular'
-            sql_dialect=_proc.get(NlprpKeys.SQL_DIALECT),
-            tabular_schema=_proc.get(NlprpKeys.TABULAR_SCHEMA),
-        )  # registers with the ServerProcessor class
-        # Doing this here saves time per request
+        _x = ServerProcessor.from_nlprp_json_dict(_proc)
+        # ... registers with the ServerProcessor class
+        # Doing this here saves time per request:
         _x.set_parser()

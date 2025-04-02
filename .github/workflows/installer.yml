@@ -104,4 +104,4 @@ jobs:
                 env
                 source ${GITHUB_WORKSPACE}/github_action_scripts/set_crate_installer_environment
                 cat ${CRATE_INSTALLER_CRATE_ROOT_HOST_DIR}/config/${CRATE_DOCKER_CRATEWEB_CONFIG_FILENAME}
-                sudo netstat -pvatn | greo LISTEN
+                sudo netstat -pvatn | grep LISTEN

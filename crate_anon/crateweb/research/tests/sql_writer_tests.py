@@ -28,12 +28,16 @@ Test sql_writer.py.
 """
 
 import logging
-from unittest import TestCase
 
 from cardinal_pythonlib.sql.sql_grammar_factory import make_grammar
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
+from django.test import TestCase
 
 from crate_anon.common.sql import ColumnId, WhereCondition
+from crate_anon.crateweb.core.constants import (
+    DJANGO_DEFAULT_CONNECTION,
+    RESEARCH_DB_CONNECTION_NAME,
+)
 from crate_anon.crateweb.research.errors import DatabaseStructureNotUnderstood
 from crate_anon.crateweb.research.sql_writer import (
     add_to_select,
@@ -44,6 +48,8 @@ log = logging.getLogger(__name__)
 
 
 class AddToSelectTests(TestCase):
+    databases = {DJANGO_DEFAULT_CONNECTION, RESEARCH_DB_CONNECTION_NAME}
+
     def setUp(self) -> None:
         super().setUp()
         self.grammar = make_grammar(SqlaDialectName.MYSQL)
