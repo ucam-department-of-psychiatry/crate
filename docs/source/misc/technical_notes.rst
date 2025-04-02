@@ -41,13 +41,6 @@ Resolved bugs elsewhere, previously affecting CRATE
 Cross-platform hosting
 ~~~~~~~~~~~~~~~~~~~~~~
 
-For Ubuntu, CRATE is packaged as a Debian .DEB file and will install itself,
-though will not configure the web front end (intrinsically a separate
-configuration task).
-
-If you have to run under Windows, then one option is a VirtualBox
-(https://www.virtualbox.org/).
-
 In the conversion from Ubuntu to Windows:
 
 **Python code, i.e. CRATE itself**

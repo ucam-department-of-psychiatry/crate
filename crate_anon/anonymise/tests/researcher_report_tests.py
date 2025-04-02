@@ -43,9 +43,7 @@ from sqlalchemy import (
     Integer,
     Text,
 )
-
 from sqlalchemy.orm import relationship
-
 
 from crate_anon.anonymise.researcher_report import (
     mk_researcher_report_pdf,

@@ -1045,6 +1045,11 @@ def count_rows(
     query = select(func.count()).select_from(table(sourcetable))
     if pid is not None:
         pidcol_name = config.dd.get_pid_name(dbname, sourcetable)
+        if not pidcol_name:
+            raise ValueError(
+                "No row in the data dictionary provides primary PID "
+                f"information for db:{dbname}, table: {sourcetable}"
+            )
         query = query.where(column(pidcol_name) == pid)
     return session.execute(query).scalar()
 
@@ -1530,13 +1535,16 @@ def patient_processing_fn(
 
         # Gather scrubbing information for a patient. (Will save.)
         try:
+            adminsession = config.admindb.session
+            # In case anything else is in the transaction pending commit
+            adminsession.commit()
+
             patient = Patient(pid)
         except DatabaseError:
             log.warning(
                 f"Skipping patient with PID={pid} because the record could "
                 "not be saved to the secret_map table"
             )
-            adminsession = config.admindb.session
             adminsession.rollback()
             continue
 

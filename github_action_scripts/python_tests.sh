@@ -29,7 +29,7 @@ if [ "$#" -gt 3 ]; then
     PORT=$4
 fi
 
-PYTEST_ARGS=(-v)
+PYTEST_ARGS=(-v -W error::sqlalchemy.exc.Base20DeprecationWarning -W error::sqlalchemy.exc.SAWarning)
 if [ "${ENGINE}" != "sqlite" ]; then
     if [ "${SCHEME}" != "mssql+pyodbc" ]; then
         if [ "${PORT}" == "" ]; then
