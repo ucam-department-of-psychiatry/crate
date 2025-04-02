@@ -26,7 +26,7 @@ installer/installer.py
 ===============================================================================
 
 Installs CRATE running under Docker with demonstration databases. Bootstrapped
-from ``installer.sh``. Note that the full CRATE Python environment is NOT
+from ``installer_boot.py``. Note that the full CRATE Python environment is NOT
 available.
 
 """
