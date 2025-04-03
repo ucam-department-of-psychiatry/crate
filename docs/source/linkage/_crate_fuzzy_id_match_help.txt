@@ -92,9 +92,10 @@ OPTIONS:
                         'surnames', 'dob', 'gender', 'postcodes',
                         'perfect_id', 'other_info']. (2) Semicolon-separated
                         values are allowed within ['forenames', 'surnames',
-                        'postcodes']. (3) The fields ['forenames', 'surnames',
-                        'postcodes'] are in TemporalIdentifier format.
-                        Temporal identifier format: either just IDENTIFIER, or
+                        'postcodes', 'perfect_id']. (3) The fields
+                        ['forenames', 'surnames', 'postcodes'] are in
+                        TemporalIdentifier format. Temporal identifier format:
+                        either just IDENTIFIER, or
                         IDENTIFIER/STARTDATE/ENDDATE, where dates are in
                         YYYY-MM-DD format or one of ['none', 'null', '?']
                         (case-insensitive). (4) perfect_id, if specified,
@@ -345,9 +346,10 @@ COMPARISON OPTIONS:
                         'surnames', 'dob', 'gender', 'postcodes',
                         'perfect_id', 'other_info']. (2) Semicolon-separated
                         values are allowed within ['forenames', 'surnames',
-                        'postcodes']. (3) The fields ['forenames', 'surnames',
-                        'postcodes'] are in TemporalIdentifier format.
-                        Temporal identifier format: either just IDENTIFIER, or
+                        'postcodes', 'perfect_id']. (3) The fields
+                        ['forenames', 'surnames', 'postcodes'] are in
+                        TemporalIdentifier format. Temporal identifier format:
+                        either just IDENTIFIER, or
                         IDENTIFIER/STARTDATE/ENDDATE, where dates are in
                         YYYY-MM-DD format or one of ['none', 'null', '?']
                         (case-insensitive). (4) perfect_id, if specified,
@@ -362,9 +364,10 @@ COMPARISON OPTIONS:
                         'surnames', 'dob', 'gender', 'postcodes',
                         'perfect_id', 'other_info']. (2) Semicolon-separated
                         values are allowed within ['forenames', 'surnames',
-                        'postcodes']. (3) The fields ['forenames', 'surnames',
-                        'postcodes'] are in TemporalIdentifier format.
-                        Temporal identifier format: either just IDENTIFIER, or
+                        'postcodes', 'perfect_id']. (3) The fields
+                        ['forenames', 'surnames', 'postcodes'] are in
+                        TemporalIdentifier format. Temporal identifier format:
+                        either just IDENTIFIER, or
                         IDENTIFIER/STARTDATE/ENDDATE, where dates are in
                         YYYY-MM-DD format or one of ['none', 'null', '?']
                         (case-insensitive). (4) perfect_id, if specified,
@@ -1016,9 +1019,10 @@ COMPARISON OPTIONS:
                         'surnames', 'dob', 'gender', 'postcodes',
                         'perfect_id', 'other_info']. (2) Semicolon-separated
                         values are allowed within ['forenames', 'surnames',
-                        'postcodes']. (3) The fields ['forenames', 'surnames',
-                        'postcodes'] are in TemporalIdentifier format.
-                        Temporal identifier format: either just IDENTIFIER, or
+                        'postcodes', 'perfect_id']. (3) The fields
+                        ['forenames', 'surnames', 'postcodes'] are in
+                        TemporalIdentifier format. Temporal identifier format:
+                        either just IDENTIFIER, or
                         IDENTIFIER/STARTDATE/ENDDATE, where dates are in
                         YYYY-MM-DD format or one of ['none', 'null', '?']
                         (case-insensitive). (4) perfect_id, if specified,
