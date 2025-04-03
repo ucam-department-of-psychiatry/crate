@@ -108,6 +108,7 @@ class Person:
         PersonKey.FORENAMES,
         PersonKey.SURNAMES,
         PersonKey.POSTCODES,
+        PersonKey.PERFECT_ID,
     ]
     TEMPORAL_IDENTIFIERS = SEMICOLON_DELIMIT
     PLAINTEXT_CSV_FORMAT_HELP = (
