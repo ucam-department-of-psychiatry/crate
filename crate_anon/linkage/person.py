@@ -110,7 +110,11 @@ class Person:
         PersonKey.POSTCODES,
         PersonKey.PERFECT_ID,
     ]
-    TEMPORAL_IDENTIFIERS = SEMICOLON_DELIMIT
+    TEMPORAL_IDENTIFIERS = [
+        PersonKey.FORENAMES,
+        PersonKey.SURNAMES,
+        PersonKey.POSTCODES,
+    ]
     PLAINTEXT_CSV_FORMAT_HELP = (
         f"(1) CSV format with header row. Columns: {ALL_PERSON_KEYS}. "
         f"(2) Semicolon-separated values are allowed within "
@@ -331,21 +335,31 @@ class Person:
         """
         kwargs = {}  # type: Dict[str, Any]
         for attr in cls.ALL_PERSON_KEYS:
-            vstr = rowdict[attr]
+            value = rowdict[attr]
             if attr in cls.SEMICOLON_DELIMIT:
-                v = [x.strip() for x in vstr.split(";") if x]
-                if attr == cls.PersonKey.PERFECT_ID:
-                    v = PerfectID.from_plaintext_str(cfg, vstr)
-                elif attr in cls.TEMPORAL_IDENTIFIERS:
-                    v = [
-                        TemporalIDHolder.from_plaintext_str(cfg, x) for x in v
-                    ]
-            else:
-                # All TEMPORAL_IDENTIFIERS are in SEMICOLON_DELIMIT
-                assert attr not in cls.TEMPORAL_IDENTIFIERS
-                v = vstr
-            kwargs[attr] = v
+                value = cls._get_semicolon_delimited_value(cfg, attr, value)
+            kwargs[attr] = value
         return Person(cfg=cfg, **kwargs)
+
+    @classmethod
+    def _get_semicolon_delimited_value(
+        cls, cfg: MatchConfig, attr: str, value: Any
+    ) -> Union[PerfectID, list[TemporalIDHolder]]:
+        if attr == cls.PersonKey.PERFECT_ID:
+            return PerfectID.from_plaintext_str(cfg, value)
+
+        assert attr in cls.TEMPORAL_IDENTIFIERS
+
+        return cls._get_temporal_id_holder_list(cfg, value)
+
+    @classmethod
+    def _get_temporal_id_holder_list(
+        cls, cfg: MatchConfig, value: Any
+    ) -> list[TemporalIDHolder]:
+        temp_id_values = [v.strip() for v in value.split(";") if v]
+        return [
+            TemporalIDHolder.from_plaintext_str(cfg, v) for v in temp_id_values
+        ]
 
     @classmethod
     def from_json_dict(
