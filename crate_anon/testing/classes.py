@@ -46,7 +46,15 @@ if TYPE_CHECKING:
     from sqlalchemy.orm.session import Session
 
 
-class CommonDatabaseTestCase(TestCase):
+class CrateTestCase(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.fake = Faker("en_GB")
+        register_all_providers(self.fake)
+
+
+class CommonDatabaseTestCase(CrateTestCase):
     """
     Base class for testing with a database. Do not inherit from this directly,
     use one of the below subclasses instead, which will be associated with
@@ -111,9 +119,3 @@ class DemoDatabaseTestCase(DatabaseTestCase):
     Base class for use with test factories such as
     DemoPatientFactory
     """
-
-    def setUp(self) -> None:
-        super().setUp()
-
-        self.fake = Faker("en_GB")
-        register_all_providers(self.fake)
