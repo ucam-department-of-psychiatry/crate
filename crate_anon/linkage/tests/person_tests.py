@@ -28,7 +28,7 @@ crate_anon/linkage/tests/person_tests.py
 """
 
 from crate_anon.linkage.helpers import standardize_name, standardize_postcode
-from crate_anon.linkage.matchconfig import MatchConfig
+from crate_anon.linkage.matchconfig import mk_dummy_match_config
 from crate_anon.linkage.person import Person
 from crate_anon.testing.classes import CrateTestCase
 
@@ -56,7 +56,7 @@ class PersonTests(CrateTestCase):
             "other_info": "",
         }
 
-        config = MatchConfig()
+        config = mk_dummy_match_config()
 
         person = Person.from_plaintext_csv(config, rowdict)
         standardized_forenames = [f.name for f in person.forenames]
