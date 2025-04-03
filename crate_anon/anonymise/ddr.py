@@ -1125,7 +1125,6 @@ class DataDictionaryRow:
         srccfg = self.config.sources[self.src_db].srccfg
 
         assert self.src_table, "Need src_table"
-        ensure_valid_table_name(self.src_table)
 
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Check destination table is OK
