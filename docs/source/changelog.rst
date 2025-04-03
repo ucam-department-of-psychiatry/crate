@@ -1729,6 +1729,8 @@ Changes
 - Drop support for Debian package given that we have PyPI, GitHub and the
   Docker-based installer.
 
+- Fix bug in import of plaintext CSV for linkage with semicolon-delimited
+  identifiers.
 
 To do
 -----
