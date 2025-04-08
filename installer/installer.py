@@ -1215,6 +1215,9 @@ class Installer:
         crate_logs_dir = os.path.join(crate_files_dir, "logs")
         Path(crate_logs_dir).mkdir(parents=True, exist_ok=True)
 
+        crate_linkage_dir = os.path.join(crate_files_dir, "linkage")
+        Path(crate_linkage_dir).mkdir(parents=True, exist_ok=True)
+
         crate_static_dir = os.environ.get(DockerEnvVar.STATIC_HOST_DIR)
         Path(crate_static_dir).mkdir(parents=True, exist_ok=True)
 
