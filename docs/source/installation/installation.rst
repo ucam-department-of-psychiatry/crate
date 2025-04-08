@@ -217,7 +217,7 @@ Built in.
 **Windows**
 
 Install Visual C++ 14.x [#vs2015]_ (or later?), the official compiler for
-Python 3.10-3.12 under Windows [#pythonvstudio]_. Visual Studio Community is
+Python 3.10-3.11 under Windows [#pythonvstudio]_. Visual Studio Community is
 free [#vscommunity]_.
 
 
