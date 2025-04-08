@@ -224,7 +224,7 @@ RUN echo "======================================================================
     && "$CRATE_VENV_BIN/python3" -m pip install --upgrade pip \
     && "$CRATE_VENV_BIN/python3" -m pip install 'setuptools>=61' \
     && echo "- Installing wheel within virtual environment..." \
-    && "$CRATE_VENV_BIN/pip" install wheel==0.35.1 \
+    && "$CRATE_VENV_BIN/pip" install wheel==0.45.1 \
     && echo "- Installing CRATE (crate_anon, from source) and Python database drivers..." \
     && echo "  * MySQL [mysqlclient]" \
     && echo "  * PostgreSQL [psycopg2]" \
