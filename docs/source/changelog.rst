@@ -1732,6 +1732,11 @@ Changes
 - Fix bug in import of plaintext CSV for linkage with semicolon-delimited
   identifiers.
 
+- Use later urllib3 for Databricks compatibility. This means dropping support
+  for Python 3.9, which reaches end-of-life in October 2025. The Docker image is
+  now based on Python 3.10.
+
+
 To do
 -----
 
