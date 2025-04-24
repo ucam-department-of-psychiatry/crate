@@ -223,6 +223,7 @@ crate_anon/crateweb
     research/templates/sqlhelper_form_drugtype.html.rst
     research/templates/sqlhelper_form_text_anywhere.html.rst
     research/templates/sqlhelper_form_text_anywhere_choose_db.html.rst
+    research/tests/__init__.py.rst
     research/tests/factories.py.rst
     research/tests/models_tests.py.rst
     research/tests/research_db_info_tests.py.rst

@@ -60,9 +60,11 @@ crate_anon/anonymise
     templates/researcher_report/table.html.rst
     test_anonymisation.py.rst
     test_extract_text.py.rst
+    tests/__init__.py.rst
     tests/anonregex_tests.py.rst
     tests/anonymise_tests.py.rst
     tests/ddr_tests.py.rst
     tests/factories.py.rst
+    tests/models_tests.py.rst
     tests/researcher_report_tests.py.rst
     tests/scrub_tests.py.rst

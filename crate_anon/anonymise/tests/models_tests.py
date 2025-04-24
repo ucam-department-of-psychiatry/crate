@@ -1,5 +1,5 @@
 """
-crate_anon/nlp_manager/tests/__init__.py
+crate_anon/anonymise/tests/models_tests.py
 
 ===============================================================================
 
@@ -23,6 +23,26 @@ crate_anon/nlp_manager/tests/__init__.py
 
 ===============================================================================
 
-The mere existence of this file makes Python treat the directory as a package.
-
 """
+
+import random
+from unittest import mock
+
+from crate_anon.anonymise.models import PatientInfo
+from crate_anon.testing.classes import SlowSecretDatabaseTestCase
+
+
+class PatientInfoTests(SlowSecretDatabaseTestCase):
+    def test_patient_saved_with_random_trid(self) -> None:
+        expected_trids = [7, 1, 5, 6, 4, 10, 3, 2, 9, 8]
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.models",
+            MAX_TRID=10,
+        ):
+            random.seed(12345)
+
+            for i, expected_trid in enumerate(expected_trids):
+                patient = PatientInfo(pid=i + 1)
+                patient.ensure_trid(self.secret_dbsession)
+                self.assertEqual(patient.trid, expected_trid)

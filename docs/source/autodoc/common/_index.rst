@@ -47,6 +47,7 @@ crate_anon/common
     spreadsheet.py.rst
     sql.py.rst
     stringfunc.py.rst
+    tests/__init__.py.rst
     tests/regex_helper_tests.py.rst
     tests/spreadsheet_tests.py.rst
     tests/sql_tests.py.rst

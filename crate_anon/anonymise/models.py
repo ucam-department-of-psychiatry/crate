@@ -262,7 +262,7 @@ class TridRecord(SecretBase):
         may be doing the same thing at the same time).
         """
         while True:
-            session.begin_nested()
+            session.commit()
             candidate = random.randint(1, MAX_TRID)
             log.debug(f"Trying candidate TRID: {candidate}")
             # noinspection PyArgumentList
