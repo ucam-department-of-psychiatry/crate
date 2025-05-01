@@ -1732,6 +1732,9 @@ Changes
 - Fix bug in import of plaintext CSV for linkage with semicolon-delimited
   identifiers.
 
+- Remove SAVEPOINT when creating Transient Research ID (TRID) on patient records
+  in the secret database. Databricks does not support SAVEPOINT.
+
 - Use later urllib3 for Databricks compatibility. This means dropping support
   for Python 3.9, which reaches end-of-life in October 2025. The Docker image is
   now based on Python 3.10.

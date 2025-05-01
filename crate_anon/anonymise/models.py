@@ -260,9 +260,15 @@ class TridRecord(SecretBase):
         We check for existence by inserting and asking the database if it's
         happy, not by asking the database if it exists (since other processes
         may be doing the same thing at the same time).
+
+        Note that MAX_TRID (currently 2.1 billion) must far exceed the number
+        of patients on the system otherwise this will be slow or in the worst
+        case get into an infinite loop. If we choose to redesign this in future
+        we could consider using UUIDs instead of integers. This would also
+        avoid the need for the IntegrityError check and rollback.
         """
         while True:
-            session.begin_nested()
+            session.commit()
             candidate = random.randint(1, MAX_TRID)
             log.debug(f"Trying candidate TRID: {candidate}")
             # noinspection PyArgumentList
