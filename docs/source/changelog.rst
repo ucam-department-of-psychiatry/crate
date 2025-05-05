@@ -1716,7 +1716,7 @@ Changes
   anonymisation, NLP etc under Docker.
   https://github.com/ucam-department-of-psychiatry/crate/issues/163
 
-**0.20.7, in progress**
+**0.20.7, 2025-05-05**
 
 - Shift from SQLAlchemy 1.4.49 to SQLALchemy 2.0.36.
 
@@ -1738,6 +1738,8 @@ Changes
 - Use later urllib3 for Databricks compatibility. This means dropping support
   for Python 3.9, which reaches end-of-life in October 2025. The Docker image is
   now based on Python 3.10.
+
+**0.20.8, in progress**
 
 
 To do

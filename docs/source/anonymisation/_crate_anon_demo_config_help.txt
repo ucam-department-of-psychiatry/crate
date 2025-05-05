@@ -1,7 +1,7 @@
 USAGE: crate_anon_demo_config [-h] [--output OUTPUT] [--leave_placeholders]
 
-Print a demo config file for the CRATE anonymiser. (CRATE version 0.20.6,
-2025-01-09. Created by Rudolf Cardinal.)
+Print a demo config file for the CRATE anonymiser. (CRATE version 0.20.7,
+2025-05-05. Created by Rudolf Cardinal.)
 
 OPTIONS:
   -h, --help            show this help message and exit

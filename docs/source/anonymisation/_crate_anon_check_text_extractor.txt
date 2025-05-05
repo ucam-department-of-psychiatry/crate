@@ -1,7 +1,7 @@
 USAGE: crate_anon_check_text_extractor [-h] [checkextractor ...]
 
 Check availability of tools to extract text from different document formats.
-(CRATE version 0.20.6, 2025-01-09. Created by Rudolf Cardinal.)
+(CRATE version 0.20.7, 2025-05-05. Created by Rudolf Cardinal.)
 
 POSITIONAL ARGUMENTS:
   checkextractor  File extensions to check for availability of a text

@@ -1,7 +1,7 @@
 USAGE: crate_anon_show_counts [-h] [--config CONFIG] [--verbose]
 
-Print record counts from source/destination databases. (CRATE version 0.20.6,
-2025-01-09. Created by Rudolf Cardinal.)
+Print record counts from source/destination databases. (CRATE version 0.20.7,
+2025-05-05. Created by Rudolf Cardinal.)
 
 OPTIONS:
   -h, --help       show this help message and exit
