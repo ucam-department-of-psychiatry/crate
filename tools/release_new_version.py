@@ -445,9 +445,13 @@ class VersionReleaser:
         os.chdir(PROJECT_ROOT)
 
         # "bdist_wheel" removed from below to allow GitHub dependencies
-        # Currenly fhirclient is on a fork
         self.run_with_check(["python", "setup.py", "sdist"])
         pypi_packages = [str(f) for f in self.get_pypi_builds()]
+
+        if not pypi_packages:
+            log.error("No PYPI packages were found to upload.")
+            sys.exit(EXIT_FAILURE)
+
         print("Uploading to PyPI...")
         self.run_with_check(["twine", "upload"] + pypi_packages)
 
@@ -458,7 +462,7 @@ class VersionReleaser:
         """
         Iterates through old PyPI upload files
         """
-        return Path(DIST_DIR).glob("crate-anon-*")
+        return Path(DIST_DIR).glob("crate?anon-*")
 
     def remove_old_pypi_builds(self) -> None:
         """
