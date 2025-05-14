@@ -9,7 +9,9 @@ VENV_BIN="${HOME}/venv/bin"
 PYTHON="${VENV_BIN}/python"
 SAFETY="${VENV_BIN}/safety"
 
-${PYTHON} -m pip install mysqlclient
+# Duplicate Docker setup (see crate.Dockerfile)
+${PYTHON} -m pip install mssql-django==1.5 mysqlclient==1.4.6 psycopg2==2.8.5 pyodbc==4.0.35
+
 echo checking packages for conflicts
 ${PYTHON} -m pip check
 echo installing vulnerability checker

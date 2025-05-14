@@ -234,7 +234,7 @@ RUN echo "======================================================================
         mssql-django==1.5 \
         mysqlclient==1.4.6 \
         psycopg2==2.8.5 \
-        pyodbc==4.0.35 \
+        pyodbc==4.0.36 \
     && echo "- Installing remote debugger..." \
     && "$CRATE_VENV_BIN/python3" -m pip install remote-pdb
 
