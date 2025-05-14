@@ -37,7 +37,10 @@ from cardinal_pythonlib.dbfunc import dictfetchall
 from cardinal_pythonlib.django.django_constants import ConnectionVendors
 from cardinal_pythonlib.django.function_cache import django_cache_function
 from cardinal_pythonlib.excel import excel_to_bytes
-from cardinal_pythonlib.json.serialize import METHOD_NO_ARGS, register_for_json
+from cardinal_pythonlib.json_utils.serialize import (
+    METHOD_NO_ARGS,
+    register_for_json,
+)
 from cardinal_pythonlib.logs import BraceStyleAdapter
 from cardinal_pythonlib.reprfunc import auto_repr
 from cardinal_pythonlib.sql.sql_grammar import SqlGrammar

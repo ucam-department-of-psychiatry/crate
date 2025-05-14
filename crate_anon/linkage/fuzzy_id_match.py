@@ -56,7 +56,7 @@ from cardinal_pythonlib.lists import chunks
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.maths_py import round_sf
 from cardinal_pythonlib.probability import probability_from_log_odds
-from cardinal_pythonlib.profile import do_cprofile
+from cardinal_pythonlib.profiling import do_cprofile
 from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.common.argparse_assist import (

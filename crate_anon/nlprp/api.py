@@ -41,7 +41,7 @@ from cardinal_pythonlib.datetimefunc import (
     pendulum_to_utc_datetime_without_tz,
 )
 from cardinal_pythonlib.httpconst import HttpStatus
-from cardinal_pythonlib.json.typing_helpers import (
+from cardinal_pythonlib.json_utils.typing_helpers import (
     JsonArrayType,
     JsonAsStringType,
     JsonObjectType,

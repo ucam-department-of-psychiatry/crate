@@ -59,7 +59,7 @@ from cardinal_pythonlib.datetimefunc import (
 from cardinal_pythonlib.hash import HashMethods
 from cardinal_pythonlib.nhs import is_test_nhs_number, is_valid_nhs_number
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
-from cardinal_pythonlib.profile import do_cprofile
+from cardinal_pythonlib.profiling import do_cprofile
 from pendulum import Date
 from rich_argparse import ArgumentDefaultsRichHelpFormatter
 from sqlalchemy.engine import create_engine, CursorResult, Row

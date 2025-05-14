@@ -42,7 +42,7 @@ from cardinal_pythonlib.hash import (
     get_longest_supported_hasher_output_length,
     hash64,
 )
-from cardinal_pythonlib.json.serialize import (
+from cardinal_pythonlib.json_utils.serialize import (
     json_encode,
     METHOD_STRIP_UNDERSCORE,
     register_for_json,

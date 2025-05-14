@@ -34,7 +34,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from cardinal_pythonlib.httpconst import HttpStatus
-from cardinal_pythonlib.json.typing_helpers import (
+from cardinal_pythonlib.json_utils.typing_helpers import (
     JsonArrayType,
     JsonObjectType,
 )
