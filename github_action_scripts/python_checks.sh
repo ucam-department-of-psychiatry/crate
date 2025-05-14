@@ -10,7 +10,7 @@ PYTHON="${VENV_BIN}/python"
 SAFETY="${VENV_BIN}/safety"
 
 # Duplicate Docker setup (see crate.Dockerfile)
-${PYTHON} -m pip install mssql-django==1.5 mysqlclient==1.4.6 psycopg2==2.8.5 pyodbc==4.0.39
+${PYTHON} -m pip install mssql-django==1.5 mysqlclient==1.4.6 psycopg2==2.9.10 pyodbc==4.0.39
 
 echo checking packages for conflicts
 ${PYTHON} -m pip check
