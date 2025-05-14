@@ -35,7 +35,7 @@ from typing import Dict, Generator, List, Optional, Tuple, Any
 import redis
 
 from cardinal_pythonlib.httpconst import HttpStatus
-from cardinal_pythonlib.json.typing_helpers import (
+from cardinal_pythonlib.json_utils.typing_helpers import (
     JsonArrayType,
     JsonObjectType,
     JsonValueType,
