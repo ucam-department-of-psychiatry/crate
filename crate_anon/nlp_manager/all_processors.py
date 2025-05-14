@@ -34,7 +34,7 @@ crate_anon/nlp_manager/all_processors.py
 from inspect import isabstract
 from typing import Any, List, Optional, Set, Type
 
-from cardinal_pythonlib.json.typing_helpers import (
+from cardinal_pythonlib.json_utils.typing_helpers import (
     JsonArrayType,
     JsonObjectType,
 )
