@@ -69,7 +69,7 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==2.1.0",  # RNC libraries
+    "cardinal_pythonlib==2.1.1",  # RNC libraries
     "cairosvg==2.7.0",  # work with SVG files
     "celery==5.2.7",  # back-end scheduling
     "chardet==5.2.0",  # character encoding detection for cardinal_pythonlib
@@ -86,6 +86,7 @@ INSTALL_REQUIRES = [
     "django-sslserver==0.22",  # SSL development server for Django
     "drf-spectacular==0.27.2",  # Open API Schema and documentation
     "drf-spectacular-sidecar==2024.7.1",  # Static files for drf-spectacular
+    "extract_msg==0.54.1",  # Extract text from Outlook .msg files
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==2.0.1",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
