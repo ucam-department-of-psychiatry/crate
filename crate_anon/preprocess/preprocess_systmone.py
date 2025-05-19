@@ -31,14 +31,19 @@ crate_anon/preprocess/preprocess_systmone.py
 
 import argparse
 import logging
-from typing import List, TYPE_CHECKING
+import os
+import re
+from typing import Generator, List, Tuple, TYPE_CHECKING
 
 from cardinal_pythonlib.enumlike import keys_descriptions_from_enum
+from cardinal_pythonlib.extract_text import document_to_text, ext_map
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.sqlalchemy.schema import (
     make_bigint_autoincrement_column,
 )
+from pendulum import DateTime as Pendulum
 from rich_argparse import RawDescriptionRichHelpFormatter
+from sqlalchemy import Column, DateTime, String, Text, update
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.sql.schema import MetaData
@@ -55,7 +60,10 @@ from crate_anon.common.sql import (
     set_print_not_execute,
 )
 from crate_anon.preprocess.constants import (
+    CRATE_COL_FILE_PATH,
     CRATE_COL_PK,
+    CRATE_COL_TEXT,
+    CRATE_COL_TEXT_LAST_EXTRACTED,
     CRATE_IDX_PREFIX,
     DEFAULT_GEOG_COLS,
     ONSPD_TABLE_POSTCODE,
@@ -80,7 +88,7 @@ from crate_anon.preprocess.systmone_ddgen import (
 )
 
 if TYPE_CHECKING:
-    from sqlalchemy.schema import Column, Table
+    from sqlalchemy.schema import Table
 
 log = logging.getLogger(__name__)
 
@@ -226,6 +234,51 @@ def add_testpatient_view(
     create_view(engine, view_name, select_sql)
 
 
+def extract_text_from_docstore(
+    engine: Engine, table: "Table", docstore_root: str
+) -> None:
+    with engine.begin() as connection:
+        for file_path, row_identifier, document_uid in _gen_docstore_filenames(
+            docstore_root
+        ):
+            # TODO: TextProcessingConfig
+            text = document_to_text(file_path)
+            statement = (
+                update(table)
+                .where(table.c.RowIdentifier == row_identifier)
+                .where(table.c.DocumentUID == document_uid)
+                .values(
+                    crate_file_path=file_path,
+                    crate_text=text,
+                    crate_text_last_extracted=Pendulum.now(),
+                )
+            )
+            connection.execute(statement)
+
+
+def _gen_docstore_filenames(
+    docstore_root: str,
+) -> Generator[Tuple[str, int, str], None, None]:
+    extensions = list(ext_map)
+    extensions.remove(None)
+
+    extensions_str = "|".join(extensions)
+
+    regex = rf"(\d{{10}})_([0-9a-f]{{16}})_(\d+)_(\d+)({extensions_str})"
+    print(regex)
+
+    for dirpath, dirnames, filenames in os.walk(docstore_root):
+        print(dirpath)
+        for filename in filenames:
+            print(filename)
+            if m := re.match(regex, filename):
+                file_path = os.path.join(dirpath, filename)
+                row_identifier = int(m.group(1))
+                document_uid = m.group(2)
+
+                yield file_path, row_identifier, document_uid
+
+
 def preprocess_systmone(
     engine: Engine,
     context: SystmOneContext,
@@ -233,6 +286,7 @@ def preprocess_systmone(
     drop_danger_drop: bool = False,
     postcode_db_name: str = None,
     geog_cols: List[str] = None,
+    docstore_root: str = None,
 ) -> None:
     """
     Add indexes to a SystmOne source database. Without this, anonymisation is
@@ -328,6 +382,49 @@ def preprocess_systmone(
                 geog_cols=geog_cols,
             )
 
+    # Documents
+    if docstore_root:
+        documents_table = metadata.tables[
+            contextual_tablename(S1Table.DOCUMENTS, context)
+        ]
+
+        if drop_danger_drop:
+            drop_columns(
+                engine,
+                documents_table,
+                [
+                    CRATE_COL_FILE_PATH,
+                    CRATE_COL_TEXT,
+                    CRATE_COL_TEXT_LAST_EXTRACTED,
+                ],
+            )
+
+        file_path_col = Column(
+            CRATE_COL_FILE_PATH,
+            String(255),
+            comment="Path relative to docstore",
+        )
+        text_col = Column(
+            CRATE_COL_TEXT, Text, comment="Extracted text from file"
+        )
+        text_last_extracted_col = Column(
+            CRATE_COL_TEXT_LAST_EXTRACTED,
+            DateTime,
+            comment="Date/time text was last extracted",
+        )
+        documents_table.append_column(file_path_col, replace_existing=True)
+        documents_table.append_column(text_col, replace_existing=True)
+        documents_table.append_column(
+            text_last_extracted_col, replace_existing=True
+        )
+        add_columns(
+            engine,
+            documents_table,
+            [file_path_col, text_col, text_last_extracted_col],
+        )
+
+        extract_text_from_docstore(engine, documents_table, docstore_root)
+
 
 # =============================================================================
 # Main
@@ -386,6 +483,10 @@ def main() -> None:
         f"identifying. Default: {' '.join(DEFAULT_GEOG_COLS)}",
     )
     parser.add_argument(
+        "--docstore_root",
+        help="Root directory of document store",
+    )
+    parser.add_argument(
         "--drop_danger_drop",
         action="store_true",
         help="REMOVES new columns and indexes, rather than creating them. "
@@ -412,6 +513,7 @@ def main() -> None:
         drop_danger_drop=args.drop_danger_drop,
         postcode_db_name=args.postcodedb,
         geog_cols=args.geogcols,
+        docstore_root=args.docstore_root,
     )
 
 
