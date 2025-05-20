@@ -32,7 +32,9 @@ crate_anon/preprocess/preprocess_systmone.py
 import argparse
 import logging
 import os
+from pathlib import Path
 import re
+import traceback
 from typing import Generator, List, Tuple, TYPE_CHECKING
 
 from cardinal_pythonlib.enumlike import keys_descriptions_from_enum
@@ -43,9 +45,10 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 )
 from pendulum import DateTime as Pendulum
 from rich_argparse import RawDescriptionRichHelpFormatter
-from sqlalchemy import Column, DateTime, String, Text, update
+from sqlalchemy import Column, DateTime, select, String, Text, update
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
+from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 from sqlalchemy.sql.schema import MetaData
 
 from crate_anon.common.sql import (
@@ -238,17 +241,51 @@ def extract_text_from_docstore(
     engine: Engine, table: "Table", docstore_root: str
 ) -> None:
     with engine.begin() as connection:
-        for file_path, row_identifier, document_uid in _gen_docstore_filenames(
+        for full_path, row_identifier, document_uid in _gen_docstore_filenames(
             docstore_root
         ):
-            # TODO: TextProcessingConfig
-            text = document_to_text(file_path)
+            statement = (
+                select(table)
+                .where(table.c.RowIdentifier == row_identifier)
+                .where(table.c.DocumentUID == document_uid)
+            )
+            try:
+                row = connection.execute(statement).one()
+            except NoResultFound:
+                log.error(
+                    f"No row found for RowIdentifier: {row_identifier} "
+                    f"and DocumentUID: {document_uid}"
+                )
+                continue
+            except MultipleResultsFound:
+                log.error(
+                    "Multiple rows found with RowIdentifier: "
+                    f"{row_identifier} and DocumentUID: {document_uid}"
+                )
+                continue
+
+            if row._mapping[CRATE_COL_TEXT_LAST_EXTRACTED] is not None:
+                log.info("...already processed")
+                continue
+
+            try:
+                # TODO: TextProcessingConfig
+                text = document_to_text(full_path)
+                log.info("...extracted")
+
+            except Exception as e:
+                traceback.print_exc()
+                log.error(f"Caught exception from document_to_text: {e}")
+                continue
+
+            relative_path = str(Path(*Path(full_path).parts[-2:]))
             statement = (
                 update(table)
                 .where(table.c.RowIdentifier == row_identifier)
                 .where(table.c.DocumentUID == document_uid)
+                .where(table.c.crate_text_last_extracted.is_(None))
                 .values(
-                    crate_file_path=file_path,
+                    crate_file_path=relative_path,
                     crate_text=text,
                     crate_text_last_extracted=Pendulum.now(),
                 )
@@ -263,20 +300,19 @@ def _gen_docstore_filenames(
     extensions.remove(None)
 
     extensions_str = "|".join(extensions)
-
     regex = rf"(\d{{10}})_([0-9a-f]{{16}})_(\d+)_(\d+)({extensions_str})"
-    print(regex)
 
+    log.info("Extracting text...")
     for dirpath, dirnames, filenames in os.walk(docstore_root):
-        print(dirpath)
         for filename in filenames:
-            print(filename)
+            file_path = os.path.join(dirpath, filename)
             if m := re.match(regex, filename):
-                file_path = os.path.join(dirpath, filename)
+                log.info(f"Processing {file_path}...")
                 row_identifier = int(m.group(1))
                 document_uid = m.group(2)
-
                 yield file_path, row_identifier, document_uid
+            else:
+                log.info(f"Ignoring {file_path}.")
 
 
 def preprocess_systmone(
