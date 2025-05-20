@@ -306,7 +306,7 @@ def _gen_docstore_filenames(
     for dirpath, dirnames, filenames in os.walk(docstore_root):
         for filename in filenames:
             file_path = os.path.join(dirpath, filename)
-            if m := re.match(regex, filename):
+            if m := re.match(regex, filename, re.IGNORECASE):
                 log.info(f"Processing {file_path}...")
                 row_identifier = int(m.group(1))
                 document_uid = m.group(2)
