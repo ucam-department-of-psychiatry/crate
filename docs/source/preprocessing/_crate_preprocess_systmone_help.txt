@@ -3,6 +3,7 @@ USAGE: crate_preprocess_systmone [-h] --url URL [-v] [--print] [--echo]
                                  [--systmone_allow_unprefixed_tables]
                                  [--postcodedb POSTCODEDB]
                                  [--geogcols [GEOGCOLS ...]]
+                                 [--docstore_root DOCSTORE_ROOT]
                                  [--drop_danger_drop]
 
 Indexes a SystmOne database to be suitable for CRATE.
@@ -34,6 +35,8 @@ OPTIONS:
                         buasd11 casward imd lea lsoa01 lsoa11 msoa01 msoa11
                         nuts oac01 oac11 parish pcon pct ru11ind statsward
                         ur01ind
+  --docstore_root DOCSTORE_ROOT
+                        Root directory of document store
   --drop_danger_drop    REMOVES new columns and indexes, rather than creating
                         them. (There's not very much danger; no real
                         information is lost, but it might take a while to
