@@ -35,7 +35,7 @@ import os
 from pathlib import Path
 import re
 import traceback
-from typing import Generator, List, Tuple, TYPE_CHECKING
+from typing import Generator, List, Tuple
 
 from cardinal_pythonlib.enumlike import keys_descriptions_from_enum
 from cardinal_pythonlib.extract_text import document_to_text, ext_map
@@ -45,10 +45,20 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 )
 from pendulum import DateTime as Pendulum
 from rich_argparse import RawDescriptionRichHelpFormatter
-from sqlalchemy import Column, DateTime, select, String, Text, update
+from sqlalchemy import (
+    BigInteger,
+    Column,
+    DateTime,
+    insert,
+    select,
+    String,
+    Table,
+    UnicodeText,
+    update,
+)
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
-from sqlalchemy.exc import MultipleResultsFound, NoResultFound
+from sqlalchemy.exc import IntegrityError, MultipleResultsFound, NoResultFound
 from sqlalchemy.sql.schema import MetaData
 
 from crate_anon.common.sql import (
@@ -68,6 +78,7 @@ from crate_anon.preprocess.constants import (
     CRATE_COL_TEXT,
     CRATE_COL_TEXT_LAST_EXTRACTED,
     CRATE_IDX_PREFIX,
+    CRATE_TABLE_EXTRACTED_TEXT,
     DEFAULT_GEOG_COLS,
     ONSPD_TABLE_POSTCODE,
 )
@@ -89,9 +100,6 @@ from crate_anon.preprocess.systmone_ddgen import (
     SystmOneContext,
     TABLES_REQUIRING_CRATE_PK_REGEX,
 )
-
-if TYPE_CHECKING:
-    from sqlalchemy.schema import Table
 
 log = logging.getLogger(__name__)
 
@@ -238,19 +246,28 @@ def add_testpatient_view(
 
 
 def extract_text_from_docstore(
-    engine: Engine, table: "Table", docstore_root: str
+    engine: Engine,
+    documents_table: "Table",
+    extracted_text_table: "Table",
+    docstore_root: str,
 ) -> None:
-    with engine.begin() as connection:
-        for full_path, row_identifier, document_uid in _gen_docstore_filenames(
-            docstore_root
-        ):
+    extensions = list(ext_map)
+    extensions.remove(None)
+
+    with engine.connect() as connection:
+        for (
+            full_path,
+            row_identifier,
+            document_uid,
+            extension,
+        ) in _gen_docstore_filenames(docstore_root):
             statement = (
-                select(table)
-                .where(table.c.RowIdentifier == row_identifier)
-                .where(table.c.DocumentUID == document_uid)
+                select(documents_table)
+                .where(documents_table.c.RowIdentifier == row_identifier)
+                .where(documents_table.c.DocumentUID == document_uid)
             )
             try:
-                row = connection.execute(statement).one()
+                connection.execute(statement).one()
             except NoResultFound:
                 log.error(
                     f"No row found for RowIdentifier: {row_identifier} "
@@ -264,55 +281,73 @@ def extract_text_from_docstore(
                 )
                 continue
 
-            if row._mapping[CRATE_COL_TEXT_LAST_EXTRACTED] is not None:
-                log.info("...already processed")
-                continue
-
-            try:
-                # TODO: TextProcessingConfig
-                text = document_to_text(full_path)
-                log.info("...extracted")
-
-            except Exception as e:
-                traceback.print_exc()
-                log.error(f"Caught exception from document_to_text: {e}")
-                continue
+            # TODO: Read last_extracted and only update if None (or do
+            # something clever by checking when the file was last written)
+            text = None
+            last_extracted = None
+            if extension in extensions:
+                log.info(f"Extracting text from {full_path}")
+                try:
+                    # TODO: TextProcessingConfig
+                    text = document_to_text(full_path)
+                    log.info("...extracted")
+                    last_extracted = Pendulum.now()
+                except Exception as e:
+                    traceback.print_exc()
+                    log.error(f"Caught exception from document_to_text: {e}")
+            else:
+                log.info(
+                    f"Unsupported file extension '{extension}': {full_path}"
+                )
 
             relative_path = str(Path(*Path(full_path).parts[-2:]))
-            statement = (
-                update(table)
-                .where(table.c.RowIdentifier == row_identifier)
-                .where(table.c.DocumentUID == document_uid)
-                .where(table.c.crate_text_last_extracted.is_(None))
-                .values(
-                    crate_file_path=relative_path,
-                    crate_text=text,
-                    crate_text_last_extracted=Pendulum.now(),
-                )
+            statement = insert(extracted_text_table).values(
+                RowIdentifier=row_identifier,
+                DocumentUID=document_uid,
+                crate_file_path=relative_path,
+                crate_text=text,
+                crate_text_last_extracted=last_extracted,
             )
-            connection.execute(statement)
+
+            try:
+                connection.execute(statement)
+            except IntegrityError:
+                statement = (
+                    update(extracted_text_table)
+                    .values(
+                        RowIdentifier=row_identifier,
+                        DocumentUID=document_uid,
+                        crate_text=text,
+                        crate_text_last_extracted=last_extracted,
+                    )
+                    .where(
+                        extracted_text_table.c.crate_file_path == relative_path
+                    )
+                )
+            connection.commit()
 
 
 def _gen_docstore_filenames(
     docstore_root: str,
-) -> Generator[Tuple[str, int, str], None, None]:
-    extensions = list(ext_map)
-    extensions.remove(None)
-
-    extensions_str = "|".join(extensions)
-    regex = rf"(\d{{10}})_([0-9a-f]{{16}})_(\d+)_(\d+)({extensions_str})"
+) -> Generator[Tuple[str, int, str, str], None, None]:
+    # Groups:
+    # 1: RowIdentifier
+    # 2: DocumentUID (sometimes incorrectly set to IDOrganisation)
+    # 3: Subfolder 1-4
+    # 4: Extension, mixed case
+    regex = r"(\d{10})_([0-9a-f]{16})_(\d+)_(\d+)(\.\S+)"
 
     log.info("Extracting text...")
     for dirpath, dirnames, filenames in os.walk(docstore_root):
         for filename in filenames:
             file_path = os.path.join(dirpath, filename)
-            if m := re.match(regex, filename, re.IGNORECASE):
-                log.info(f"Processing {file_path}...")
+            if m := re.match(regex, filename):
                 row_identifier = int(m.group(1))
                 document_uid = m.group(2)
-                yield file_path, row_identifier, document_uid
+                extension = m.group(5).lower()
+                yield file_path, row_identifier, document_uid, extension
             else:
-                log.info(f"Ignoring {file_path}.")
+                log.info(f"Completely ignoring {file_path}")
 
 
 def preprocess_systmone(
@@ -424,42 +459,49 @@ def preprocess_systmone(
             contextual_tablename(S1Table.DOCUMENTS, context)
         ]
 
-        if drop_danger_drop:
-            drop_columns(
-                engine,
-                documents_table,
-                [
+        extracted_text_table = metadata.tables.get(CRATE_TABLE_EXTRACTED_TEXT)
+        if extracted_text_table is None:
+            extracted_text_table = Table(
+                CRATE_TABLE_EXTRACTED_TEXT,
+                metadata,
+                make_bigint_autoincrement_column(CRATE_COL_PK),
+                Column(
+                    "RowIdentifier",
+                    BigInteger,
+                    comment="FK to S1_Documents",
+                    nullable=False,
+                ),
+                Column(
+                    "DocumentUID",
+                    String(16),
+                    comment="Unique ID of document",
+                    nullable=False,
+                ),
+                Column(
                     CRATE_COL_FILE_PATH,
+                    String(255),
+                    comment="Path relative to docstore",
+                    unique=True,
+                ),
+                Column(
                     CRATE_COL_TEXT,
+                    UnicodeText,
+                    comment="Extracted text from file",
+                ),
+                Column(
                     CRATE_COL_TEXT_LAST_EXTRACTED,
-                ],
+                    DateTime,
+                    comment="Date/time text was last extracted",
+                ),
             )
 
-        file_path_col = Column(
-            CRATE_COL_FILE_PATH,
-            String(255),
-            comment="Path relative to docstore",
-        )
-        text_col = Column(
-            CRATE_COL_TEXT, Text, comment="Extracted text from file"
-        )
-        text_last_extracted_col = Column(
-            CRATE_COL_TEXT_LAST_EXTRACTED,
-            DateTime,
-            comment="Date/time text was last extracted",
-        )
-        documents_table.append_column(file_path_col, replace_existing=True)
-        documents_table.append_column(text_col, replace_existing=True)
-        documents_table.append_column(
-            text_last_extracted_col, replace_existing=True
-        )
-        add_columns(
-            engine,
-            documents_table,
-            [file_path_col, text_col, text_last_extracted_col],
-        )
+        if drop_danger_drop:
+            extracted_text_table.drop(checkfirst=True)
 
-        extract_text_from_docstore(engine, documents_table, docstore_root)
+        extracted_text_table.create(engine, checkfirst=True)
+        extract_text_from_docstore(
+            engine, documents_table, extracted_text_table, docstore_root
+        )
 
 
 # =============================================================================
