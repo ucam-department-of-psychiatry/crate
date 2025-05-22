@@ -4,6 +4,8 @@ USAGE: crate_preprocess_systmone [-h] --url URL [-v] [--print] [--echo]
                                  [--postcodedb POSTCODEDB]
                                  [--geogcols [GEOGCOLS ...]]
                                  [--docstore_root DOCSTORE_ROOT]
+                                 [--extract_text_plain | --no-extract_text_plain]
+                                 [--extract_text_width EXTRACT_TEXT_WIDTH]
                                  [--drop_danger_drop]
 
 Indexes a SystmOne database to be suitable for CRATE.
@@ -37,6 +39,10 @@ OPTIONS:
                         ur01ind
   --docstore_root DOCSTORE_ROOT
                         Root directory of document store
+  --extract_text_plain, --no-extract_text_plain
+                        extract text as plainly as possibly (e.g. for NLP)
+  --extract_text_width EXTRACT_TEXT_WIDTH
+                        Word wrapping width
   --drop_danger_drop    REMOVES new columns and indexes, rather than creating
                         them. (There's not very much danger; no real
                         information is lost, but it might take a while to

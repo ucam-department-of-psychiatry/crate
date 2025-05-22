@@ -38,7 +38,11 @@ import traceback
 from typing import Generator, List, Tuple
 
 from cardinal_pythonlib.enumlike import keys_descriptions_from_enum
-from cardinal_pythonlib.extract_text import document_to_text, ext_map
+from cardinal_pythonlib.extract_text import (
+    document_to_text,
+    ext_map,
+    TextProcessingConfig,
+)
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.sqlalchemy.schema import (
     make_bigint_autoincrement_column,
@@ -103,6 +107,9 @@ from crate_anon.preprocess.systmone_ddgen import (
 
 log = logging.getLogger(__name__)
 
+# Same as crate_anon config defaults
+DEFAULT_EXTRACT_TEXT_PLAIN = True
+DEFAULT_EXTRACT_TEXT_WIDTH = 80
 
 # =============================================================================
 # Preprocessing
@@ -250,6 +257,8 @@ def extract_text_from_docstore(
     documents_table: "Table",
     extracted_text_table: "Table",
     docstore_root: str,
+    plain: bool = DEFAULT_EXTRACT_TEXT_PLAIN,
+    width: int = DEFAULT_EXTRACT_TEXT_WIDTH,
 ) -> None:
     extensions = list(ext_map)
     extensions.remove(None)
@@ -288,8 +297,8 @@ def extract_text_from_docstore(
             if extension in extensions:
                 log.info(f"Extracting text from {full_path}")
                 try:
-                    # TODO: TextProcessingConfig
-                    text = document_to_text(full_path)
+                    config = TextProcessingConfig(width=width, plain=plain)
+                    text = document_to_text(filename=full_path, config=config)
                     log.info("...extracted")
                     last_extracted = Pendulum.now()
                 except Exception as e:
@@ -358,6 +367,8 @@ def preprocess_systmone(
     postcode_db_name: str = None,
     geog_cols: List[str] = None,
     docstore_root: str = None,
+    extract_text_plain: bool = DEFAULT_EXTRACT_TEXT_PLAIN,
+    extract_text_width: int = DEFAULT_EXTRACT_TEXT_WIDTH,
 ) -> None:
     """
     Add indexes to a SystmOne source database. Without this, anonymisation is
@@ -500,7 +511,12 @@ def preprocess_systmone(
 
         extracted_text_table.create(engine, checkfirst=True)
         extract_text_from_docstore(
-            engine, documents_table, extracted_text_table, docstore_root
+            engine,
+            documents_table,
+            extracted_text_table,
+            docstore_root,
+            plain=extract_text_plain,
+            width=extract_text_width,
         )
 
 
@@ -565,6 +581,18 @@ def main() -> None:
         help="Root directory of document store",
     )
     parser.add_argument(
+        "--extract_text_plain",
+        action=argparse.BooleanOptionalAction,
+        help="extract text as plainly as possibly (e.g. for NLP)",
+    )
+    parser.set_defaults(extract_text_plain=DEFAULT_EXTRACT_TEXT_PLAIN)
+    parser.add_argument(
+        "--extract_text_width",
+        type=int,
+        help="Word wrapping width",
+        default=DEFAULT_EXTRACT_TEXT_WIDTH,
+    )
+    parser.add_argument(
         "--drop_danger_drop",
         action="store_true",
         help="REMOVES new columns and indexes, rather than creating them. "
@@ -592,6 +620,8 @@ def main() -> None:
         postcode_db_name=args.postcodedb,
         geog_cols=args.geogcols,
         docstore_root=args.docstore_root,
+        extract_text_plain=args.extract_text_plain,
+        extract_text_width=args.extract_text_width,
     )
 
 
