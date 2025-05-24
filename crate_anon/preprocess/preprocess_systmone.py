@@ -270,13 +270,12 @@ def extract_text_from_docstore(
             document_uid,
             extension,
         ) in _gen_docstore_filenames(docstore_root):
-            statement = (
-                select(documents_table)
-                .where(documents_table.c.RowIdentifier == row_identifier)
-                .where(documents_table.c.DocumentUID == document_uid)
+            statement = select(documents_table).where(
+                documents_table.c.RowIdentifier == row_identifier
             )
             try:
-                connection.execute(statement).one()
+                row = connection.execute(statement).one()
+                id_patient = row._mapping["IDPatient"]
             except NoResultFound:
                 log.error(
                     f"No row found for RowIdentifier: {row_identifier} "
@@ -310,25 +309,22 @@ def extract_text_from_docstore(
                 )
 
             relative_path = str(Path(*Path(full_path).parts[-2:]))
-            statement = insert(extracted_text_table).values(
+            values = dict(
                 RowIdentifier=row_identifier,
                 DocumentUID=document_uid,
+                IDPatient=id_patient,
                 crate_file_path=relative_path,
                 crate_text=text,
                 crate_text_last_extracted=last_extracted,
             )
 
+            statement = insert(extracted_text_table).values(**values)
             try:
                 connection.execute(statement)
             except IntegrityError:
                 statement = (
                     update(extracted_text_table)
-                    .values(
-                        RowIdentifier=row_identifier,
-                        DocumentUID=document_uid,
-                        crate_text=text,
-                        crate_text_last_extracted=last_extracted,
-                    )
+                    .values(**values)
                     .where(
                         extracted_text_table.c.crate_file_path == relative_path
                     )
@@ -343,8 +339,9 @@ def _gen_docstore_filenames(
     # 1: RowIdentifier
     # 2: DocumentUID (sometimes incorrectly set to IDOrganisation)
     # 3: Subfolder 1-4
-    # 4: Extension, mixed case
-    regex = r"(\d{10})_([0-9a-f]{16})_(\d+)_(\d+)(\.\S+)"
+    # 4: Index where document split across files
+    # 5: Extension, mixed case
+    regex = r"(\d{10})_([0-9a-f]+)_(\d+)_(\d+)(\.\S+)"
 
     log.info("Extracting text...")
     for dirpath, dirnames, filenames in os.walk(docstore_root):
@@ -480,6 +477,12 @@ def preprocess_systmone(
                     "RowIdentifier",
                     BigInteger,
                     comment="FK to S1_Documents",
+                    nullable=False,
+                ),
+                Column(
+                    "IDPatient",
+                    BigInteger,
+                    comment="Patient ID from S1_Documents",
                     nullable=False,
                 ),
                 Column(
