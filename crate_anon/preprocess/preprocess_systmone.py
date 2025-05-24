@@ -277,15 +277,11 @@ def extract_text_from_docstore(
                 row = connection.execute(statement).one()
                 id_patient = row._mapping["IDPatient"]
             except NoResultFound:
-                log.error(
-                    f"No row found for RowIdentifier: {row_identifier} "
-                    f"and DocumentUID: {document_uid}"
-                )
+                log.error(f"No row found for RowIdentifier: {row_identifier}")
                 continue
             except MultipleResultsFound:
                 log.error(
-                    "Multiple rows found with RowIdentifier: "
-                    f"{row_identifier} and DocumentUID: {document_uid}"
+                    f"Multiple rows found with RowIdentifier: {row_identifier}"
                 )
                 continue
 
