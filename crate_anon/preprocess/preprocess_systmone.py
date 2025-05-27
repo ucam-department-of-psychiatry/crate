@@ -341,7 +341,7 @@ def _gen_docstore_filenames(
     # 3: Subfolder 1-4
     # 4: Index where document split across files
     # 5: Extension, mixed case
-    regex = r"(\d{10})_([0-9a-f]+)_(\d+)_(\d+)(\.\S+)"
+    regex = r"(\d+)_([0-9a-f]+)_(\d+)_(\d+)(\.\S+)"
 
     log.info("Extracting text...")
     for dirpath, dirnames, filenames in os.walk(docstore_root):
