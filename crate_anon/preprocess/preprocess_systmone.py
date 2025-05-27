@@ -270,6 +270,7 @@ def extract_text_from_docstore(
             document_uid,
             extension,
         ) in _gen_docstore_filenames(docstore_root):
+            log.info(f"Processing {full_path}...")
             statement = select(documents_table).where(
                 documents_table.c.RowIdentifier == row_identifier
             )
@@ -277,11 +278,14 @@ def extract_text_from_docstore(
                 row = connection.execute(statement).one()
                 id_patient = row._mapping["IDPatient"]
             except NoResultFound:
-                log.error(f"No row found for RowIdentifier: {row_identifier}")
+                log.error(
+                    f"... no row found for RowIdentifier: {row_identifier}"
+                )
                 continue
             except MultipleResultsFound:
                 log.error(
-                    f"Multiple rows found with RowIdentifier: {row_identifier}"
+                    "... multiple rows found with RowIdentifier: "
+                    f"{row_identifier}"
                 )
                 continue
 
@@ -290,19 +294,19 @@ def extract_text_from_docstore(
             text = None
             last_extracted = None
             if extension in extensions:
-                log.info(f"Extracting text from {full_path}")
+                log.info("... extracting text...")
                 try:
                     config = TextProcessingConfig(width=width, plain=plain)
                     text = document_to_text(filename=full_path, config=config)
-                    log.info("...extracted")
+                    log.info("... extracted.")
                     last_extracted = Pendulum.now()
                 except Exception as e:
                     traceback.print_exc()
-                    log.error(f"Caught exception from document_to_text: {e}")
+                    log.error(
+                        f"... caught exception from document_to_text: {e}"
+                    )
             else:
-                log.info(
-                    f"Unsupported file extension '{extension}': {full_path}"
-                )
+                log.info(f"... unsupported file extension '{extension}'.")
 
             relative_path = str(Path(*Path(full_path).parts[-2:]))
             values = dict(
