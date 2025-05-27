@@ -276,7 +276,7 @@ def extract_text_from_docstore(
             )
             try:
                 row = connection.execute(statement).one()
-                id_patient = row._mapping["IDPatient"]
+                id_patient = row._mapping[S1GenericCol.PATIENT_ID]
             except NoResultFound:
                 log.error(
                     f"... no row found for RowIdentifier: {row_identifier}"
@@ -354,6 +354,72 @@ def _gen_docstore_filenames(
                 yield file_path, row_identifier, document_uid, extension
             else:
                 log.info(f"Completely ignoring {file_path}")
+
+
+def _create_extracted_text_table(
+    engine: Engine, metadata: MetaData, drop_danger_drop: bool
+) -> None:
+    extracted_text_table = Table(
+        CRATE_TABLE_EXTRACTED_TEXT,
+        metadata,
+        make_bigint_autoincrement_column(CRATE_COL_PK),
+        Column(
+            S1GenericCol.ROW_ID,
+            BigInteger,
+            comment="FK to S1_Documents",
+            nullable=False,
+        ),
+        Column(
+            S1GenericCol.PATIENT_ID,
+            BigInteger,
+            comment="Patient ID from S1_Documents",
+            nullable=False,
+        ),
+        Column(
+            "DocumentUID",
+            String(16),
+            comment="Unique ID of document",
+            nullable=False,
+        ),
+        Column(
+            CRATE_COL_FILE_PATH,
+            String(255),
+            comment="Path relative to docstore",
+            unique=True,
+        ),
+        Column(
+            CRATE_COL_TEXT,
+            UnicodeText,
+            comment="Extracted text from file",
+        ),
+        Column(
+            CRATE_COL_TEXT_LAST_EXTRACTED,
+            DateTime,
+            comment="Date/time text was last extracted",
+        ),
+    )
+
+    if drop_danger_drop:
+        extracted_text_table.drop(checkfirst=True)
+
+    extracted_text_table.create(engine, checkfirst=True)
+
+    for column in [
+        CRATE_COL_PK,
+        S1GenericCol.ROW_ID,
+        S1GenericCol.PATIENT_ID,
+    ]:
+        colname = column.name
+        idxname = f"{CRATE_IDX_PREFIX}_{colname}"
+        add_indexes(
+            engine,
+            extracted_text_table,
+            IndexCreationInfo(
+                index_name=idxname, column=colname, unique=False
+            ),
+        )
+
+    return extracted_text_table
 
 
 def preprocess_systmone(
@@ -469,50 +535,10 @@ def preprocess_systmone(
 
         extracted_text_table = metadata.tables.get(CRATE_TABLE_EXTRACTED_TEXT)
         if extracted_text_table is None:
-            extracted_text_table = Table(
-                CRATE_TABLE_EXTRACTED_TEXT,
-                metadata,
-                make_bigint_autoincrement_column(CRATE_COL_PK),
-                Column(
-                    "RowIdentifier",
-                    BigInteger,
-                    comment="FK to S1_Documents",
-                    nullable=False,
-                ),
-                Column(
-                    "IDPatient",
-                    BigInteger,
-                    comment="Patient ID from S1_Documents",
-                    nullable=False,
-                ),
-                Column(
-                    "DocumentUID",
-                    String(16),
-                    comment="Unique ID of document",
-                    nullable=False,
-                ),
-                Column(
-                    CRATE_COL_FILE_PATH,
-                    String(255),
-                    comment="Path relative to docstore",
-                    unique=True,
-                ),
-                Column(
-                    CRATE_COL_TEXT,
-                    UnicodeText,
-                    comment="Extracted text from file",
-                ),
-                Column(
-                    CRATE_COL_TEXT_LAST_EXTRACTED,
-                    DateTime,
-                    comment="Date/time text was last extracted",
-                ),
+            extracted_text_table = _create_extracted_text_table(
+                engine, metadata, drop_danger_drop
             )
 
-        if drop_danger_drop:
-            extracted_text_table.drop(checkfirst=True)
-
-        extracted_text_table.create(engine, checkfirst=True)
         extract_text_from_docstore(
             engine,
             documents_table,
