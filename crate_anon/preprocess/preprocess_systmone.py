@@ -404,20 +404,23 @@ def _create_extracted_text_table(
 
     extracted_text_table.create(engine, checkfirst=True)
 
-    for column in [
-        CRATE_COL_PK,
-        S1GenericCol.ROW_ID,
-        S1GenericCol.PATIENT_ID,
-    ]:
+    for column in extracted_text_table.columns:
         colname = column.name
-        idxname = f"{CRATE_IDX_PREFIX}_{colname}"
-        add_indexes(
-            engine,
-            extracted_text_table,
-            IndexCreationInfo(
-                index_name=idxname, column=colname, unique=False
-            ),
-        )
+        if colname in [
+            CRATE_COL_PK,
+            S1GenericCol.ROW_ID,
+            S1GenericCol.PATIENT_ID,
+        ]:
+            idxname = f"{CRATE_IDX_PREFIX}_{colname}"
+            add_indexes(
+                engine,
+                extracted_text_table,
+                [
+                    IndexCreationInfo(
+                        index_name=idxname, column=colname, unique=False
+                    )
+                ],
+            )
 
     return extracted_text_table
 
