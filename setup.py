@@ -131,7 +131,7 @@ INSTALL_REQUIRES = [
     "pyramid==1.10.4",  # Pyramid web framework
     "pyramid_tm==2.4",  # Pyramid transaction management
     "redis==4.5.4",  # interface to Redis in-memory key-value database
-    "requests==2.32.2",  # HTTP requests
+    "requests==2.32.4",  # HTTP requests
     "tornado==6.5",  # web framework
     "transaction==3.0.0",  # generic transaction management
     "urllib3==2.3.0",  # used by requests
