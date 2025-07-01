@@ -103,6 +103,9 @@ Available subcommands:
 [drf_spectacular]
     spectacular
 
+[nlp_classification]
+    make_test_data
+
 [rest_framework]
     generateschema
 
