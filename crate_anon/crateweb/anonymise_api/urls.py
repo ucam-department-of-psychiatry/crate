@@ -1,5 +1,5 @@
 """
-crate_anon/crateweb/anonymise_api/anonymiser/urls.py
+crate_anon/crateweb/anonymise_api/urls.py
 
 ===============================================================================
 
