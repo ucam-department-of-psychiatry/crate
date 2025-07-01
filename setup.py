@@ -84,7 +84,7 @@ INSTALL_REQUIRES = [
     # "django-silk==4.0.1",  # Django profiler
     "djangorestframework==3.15.2",  # Anonymisation API support
     "django-sslserver==0.22",  # SSL development server for Django
-    "django-tables2=2.7.5",  # Support for HTML tables within Django templates
+    "django-tables2==2.7.5",  # Support for HTML tables within Django templates
     "drf-spectacular==0.27.2",  # Open API Schema and documentation
     "drf-spectacular-sidecar==2024.7.1",  # Static files for drf-spectacular
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
