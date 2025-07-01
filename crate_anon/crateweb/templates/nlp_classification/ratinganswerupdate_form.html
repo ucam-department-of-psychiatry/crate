@@ -1,0 +1,20 @@
+{# crate_anon/crateweb/templates/nlp_classification/ratinganswerupdate_form.html #}
+{% extends "base.html" %}
+{% load render_table from django_tables2 %}
+
+{% block content %}
+<h1>CRATE NLP Classification</h1>
+<h2>{{ object.question }}</h2>
+
+<p style="font-size: medium">
+{{ object.before }}<span style="background-color: yellow;">{{ object.match }}</span>{{ object.after }}
+</p>
+
+{% render_table table %}
+
+<form action="" method="post">
+  {% csrf_token %}
+  {{ form.as_div }}
+  <input type="submit" value="Submit">
+</form>
+{% endblock %}

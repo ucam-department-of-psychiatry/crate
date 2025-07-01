@@ -71,3 +71,11 @@ class ApiConfig(AppConfig):
 
     default_auto_field = "django.db.models.BigAutoField"
     name = "crate_anon.crateweb.anonymise_api"
+
+
+class NlpClassificationConfig(AppConfig):
+    """
+    Django :class:`django.apps.AppConfig` for NLP Classification.
+    """
+
+    name = "crate_anon.crateweb.nlp_classification"

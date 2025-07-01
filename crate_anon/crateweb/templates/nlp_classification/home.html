@@ -1,0 +1,9 @@
+{# crate_anon/crateweb/templates/nlp_classification/home.html #}
+{% extends "base.html" %}
+{% load render_table from django_tables2 %}
+
+{% block content %}
+            <h1>CRATE NLP Classification</h1>
+            <h2>My Jobs</h2>
+            {% render_table table %}
+{% endblock %}
