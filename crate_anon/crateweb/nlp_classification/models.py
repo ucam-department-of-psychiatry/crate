@@ -4,6 +4,10 @@ from django.conf import settings
 from django.db import connections, models
 from django.db.backends.utils import CursorWrapper
 
+from crate_anon.crateweb.core.constants import (
+    NLP_DB_CONNECTION_NAME,
+    RESEARCH_DB_CONNECTION_NAME,
+)
 from crate_anon.nlp_manager.constants import (
     FN_SRCFIELD,
     FN_SRCPKFIELD,
@@ -89,7 +93,7 @@ class NlpResult(models.Model):
     @property
     def nlp_record(self) -> CursorWrapper:
         if self._nlp_record is None:
-            with connections["nlp"].cursor() as cursor:
+            with connections[NLP_DB_CONNECTION_NAME].cursor() as cursor:
                 column_names = [
                     FN_SRCFIELD,
                     FN_SRCTABLE,
@@ -122,7 +126,7 @@ class NlpResult(models.Model):
     @property
     def source_record(self) -> CursorWrapper:
         if self._source_record is None:
-            with connections["research"].cursor() as cursor:
+            with connections[RESEARCH_DB_CONNECTION_NAME].cursor() as cursor:
                 srcfield = self.nlp_record[FN_SRCFIELD]
                 srctable = self.nlp_record[FN_SRCTABLE]
                 srcpkfield = self.nlp_record[FN_SRCPKFIELD]
