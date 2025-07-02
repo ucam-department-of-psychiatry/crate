@@ -61,6 +61,7 @@ INSTALLED_APPS = (
     "django.contrib.humanize",  # for nice comma formatting of numbers
     "debug_toolbar",  # for debugging
     "django_extensions",  # for graph_models, show_urls etc.
+    "django_tables2",  # for HTML tables
     "sslserver",  # for SSL testing
     "rest_framework",
     "drf_spectacular",
@@ -73,6 +74,7 @@ INSTALLED_APPS = (
     "crate_anon.crateweb.config.apps.ConsentAppConfig",  # the consent-to-contact app  # noqa: E501
     "crate_anon.crateweb.config.apps.CoreAppConfig",  # for e.g. the runcpserver command  # noqa: E501
     "crate_anon.crateweb.config.apps.ApiConfig",  # for the anonymisation API
+    "crate_anon.crateweb.config.apps.NlpClassificationConfig",  # for NLP classification  # noqa: E501
 )
 
 RESEARCH_DB_DIALECT = "mysql"
