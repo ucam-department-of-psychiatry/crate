@@ -44,6 +44,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import importlib.machinery
 import logging
 import os
+import sys
 
 from cardinal_pythonlib.docker import running_under_docker
 
@@ -563,7 +564,7 @@ else:
         )
 
     if EnvVar.GENERATING_CRATE_DOCS not in os.environ:
-        print(f"Loading local settings from: {filename}")
+        print(f"Loading local settings from: {filename}", file=sys.stderr)
     # ... NB logger not yet set to a reasonable priority; use warning level
     # ... no, logger not even configured, and this is loaded via Django;
     #     use print()!
