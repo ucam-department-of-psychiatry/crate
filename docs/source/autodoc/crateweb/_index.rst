@@ -162,7 +162,7 @@ crate_anon/crateweb
     nlp_classification/migrations/__init__.py.rst
     nlp_classification/models.py.rst
     nlp_classification/tables.py.rst
-    nlp_classification/tests.py.rst
+    nlp_classification/tests/models_tests.py.rst
     nlp_classification/urls.py.rst
     nlp_classification/views.py.rst
     research/__init__.py.rst
@@ -297,9 +297,9 @@ crate_anon/crateweb
     templates/include_jquery.html.rst
     templates/logged_out.html.rst
     templates/login.html.rst
+    templates/nlp_classification/answerupdate_form.html.rst
     templates/nlp_classification/home.html.rst
     templates/nlp_classification/job.html.rst
-    templates/nlp_classification/ratinganswerupdate_form.html.rst
     templates/page_nav.html.rst
     templates/password_change.html.rst
     templates/pdf.css.rst

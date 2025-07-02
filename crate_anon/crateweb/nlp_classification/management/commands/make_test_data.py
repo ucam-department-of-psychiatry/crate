@@ -8,12 +8,12 @@ from crate_anon.crateweb.nlp_classification.models import (
     NlpColumnName,
     NlpResult,
     NlpTableDefinition,
-    RatingAnswer,
-    RatingJob,
-    RatingOption,
-    RatingQuestion,
-    RatingSample,
-    RatingTask,
+    Answer,
+    Job,
+    Option,
+    Question,
+    Sample,
+    Task,
 )
 
 
@@ -21,36 +21,30 @@ class Command(BaseCommand):
     help = "Insert test data into the database"
 
     def handle(self, *args: Any, **options: Any):
-        RatingSample.objects.all().delete()
-        RatingTask.objects.all().delete()
+        Sample.objects.all().delete()
+        Task.objects.all().delete()
         NlpResult.objects.all().delete()
 
-        sample = RatingSample.objects.create(name="Test sample", size=100)
-        task = RatingTask.objects.create(name="Test task")
-        crp_question = RatingQuestion.objects.create(
+        sample = Sample.objects.create(name="Test sample", size=100)
+        task = Task.objects.create(name="Test task")
+        crp_question = Question.objects.create(
             task=task,
             title=(
                 "Does this text show a C-reactive protein (CRP) value "
                 "AND that value matches the NLP output?"
             ),
         )
-        RatingOption.objects.create(question=crp_question, description="Yes")
-        RatingOption.objects.create(question=crp_question, description="No")
+        Option.objects.create(question=crp_question, description="Yes")
+        Option.objects.create(question=crp_question, description="No")
 
-        fruit_question = RatingQuestion.objects.create(
+        fruit_question = Question.objects.create(
             task=task, title="Which fruit do you prefer?"
         )
-        RatingOption.objects.create(
-            question=fruit_question, description="Apple"
-        )
-        RatingOption.objects.create(
-            question=fruit_question, description="Banana"
-        )
-        RatingOption.objects.create(
-            question=fruit_question, description="Pear"
-        )
+        Option.objects.create(question=fruit_question, description="Apple")
+        Option.objects.create(question=fruit_question, description="Banana")
+        Option.objects.create(question=fruit_question, description="Pear")
 
-        job = RatingJob.objects.create(task=task, sample=sample)
+        job = Job.objects.create(task=task, sample=sample)
 
         get_user_model().objects.get(username="test").delete()
         user = get_user_model().objects.create(username="test")
@@ -78,7 +72,7 @@ class Command(BaseCommand):
                 nlp_result = NlpResult.objects.create(
                     table_definition=table_definition, pk_value=row[0]
                 )
-                RatingAnswer.objects.create(
+                Answer.objects.create(
                     result=nlp_result,
                     question=crp_question,
                     job=job,

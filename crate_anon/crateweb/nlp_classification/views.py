@@ -33,15 +33,12 @@ from django.urls import reverse
 from django.views.generic import TemplateView, UpdateView
 import django_tables2 as tables
 
-from crate_anon.crateweb.nlp_classification.forms import RatingAnswerForm
-from crate_anon.crateweb.nlp_classification.models import (
-    RatingAnswer,
-    RatingJob,
-)
+from crate_anon.crateweb.nlp_classification.forms import AnswerForm
+from crate_anon.crateweb.nlp_classification.models import Answer, Job
 from crate_anon.crateweb.nlp_classification.tables import (
-    RatingAnswerTable,
-    RatingFieldTable,
-    RatingJobTable,
+    AnswerTable,
+    FieldTable,
+    JobTable,
 )
 
 
@@ -58,10 +55,10 @@ class HomeView(TemplateView):
         return context
 
     def _get_table(self) -> tables.Table:
-        return RatingJobTable(RatingJob.objects.all())
+        return JobTable(Job.objects.all())
 
 
-class RatingJobView(TemplateView):
+class JobView(TemplateView):
     template_name = "nlp_classification/job.html"
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
@@ -74,19 +71,19 @@ class RatingJobView(TemplateView):
         return context
 
     def _get_table(self) -> tables.Table:
-        job = RatingJob.objects.get(pk=self.kwargs["pk"])
+        job = Job.objects.get(pk=self.kwargs["pk"])
 
-        return RatingAnswerTable(RatingAnswer.objects.filter(job=job))
+        return AnswerTable(Answer.objects.filter(job=job))
 
 
-class RatingAnswerView(UpdateView):
-    model = RatingAnswer
+class AnswerView(UpdateView):
+    model = Answer
     template_name_suffix = "update_form"
-    form_class = RatingAnswerForm
+    form_class = AnswerForm
 
     def get_success_url(self, **kwargs) -> str:
         next_record = (
-            RatingAnswer.objects.filter(answer=None)
+            Answer.objects.filter(answer=None)
             .exclude(pk=self.object.pk)
             .first()
         )
@@ -116,4 +113,4 @@ class RatingAnswerView(UpdateView):
         for name, value in self.object.extra_fields.items():
             table_data.append({"name": name, "value": value})
 
-        return RatingFieldTable(table_data)
+        return FieldTable(table_data)

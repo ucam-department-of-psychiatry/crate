@@ -31,20 +31,20 @@ from django.urls import path, re_path
 
 from crate_anon.crateweb.nlp_classification.views import (
     HomeView,
-    RatingJobView,
-    RatingAnswerView,
+    JobView,
+    AnswerView,
 )
 
 urlpatterns = [
     re_path(r"^$", HomeView.as_view(), name="nlp_classification_home"),
     path(
         "job/<int:pk>",
-        RatingJobView.as_view(),
+        JobView.as_view(),
         name="nlp_classification_job",
     ),
     path(
         "answer/<int:pk>",
-        RatingAnswerView.as_view(),
+        AnswerView.as_view(),
         name="nlp_classification_answer",
     ),
 ]

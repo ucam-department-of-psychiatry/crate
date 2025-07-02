@@ -22,30 +22,30 @@ from crate_anon.nlp_manager.regex_parser import (
 )
 
 
-class RatingTask(models.Model):
+class Task(models.Model):
     name = models.CharField(max_length=100)
 
     def __str__(self) -> Any:
         return self.name
 
 
-class RatingQuestion(models.Model):
+class Question(models.Model):
     title = models.CharField(max_length=100)
-    task = models.ForeignKey(RatingTask, on_delete=models.CASCADE)
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
 
     def __str__(self) -> Any:
         return self.title
 
 
-class RatingOption(models.Model):
-    question = models.ForeignKey(RatingQuestion, on_delete=models.CASCADE)
+class Option(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
     description = models.CharField(max_length=100)
 
     def __str__(self) -> Any:
         return self.description
 
 
-class RatingSample(models.Model):
+class Sample(models.Model):
     name = models.CharField(max_length=100)
     size = models.IntegerField()
 
@@ -153,20 +153,18 @@ class NlpResult(models.Model):
         )
 
 
-class RatingJob(models.Model):
-    task = models.ForeignKey(RatingTask, on_delete=models.CASCADE)
-    sample = models.ForeignKey(RatingSample, on_delete=models.CASCADE)
+class Job(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
 
 
-class RatingAnswer(models.Model):
+class Answer(models.Model):
     result = models.OneToOneField(
         NlpResult, on_delete=models.CASCADE, primary_key=True
     )
-    question = models.ForeignKey(RatingQuestion, on_delete=models.CASCADE)
-    answer = models.ForeignKey(
-        RatingOption, null=True, on_delete=models.SET_NULL
-    )
-    job = models.ForeignKey(RatingJob, on_delete=models.CASCADE)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    answer = models.ForeignKey(Option, null=True, on_delete=models.SET_NULL)
+    job = models.ForeignKey(Job, on_delete=models.CASCADE)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE
     )

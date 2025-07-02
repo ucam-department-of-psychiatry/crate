@@ -2,40 +2,40 @@ from django.test import TestCase
 
 from crate_anon.crateweb.core.constants import DJANGO_DEFAULT_CONNECTION
 from crate_anon.crateweb.nlp_classification.models import (
-    RatingOption,
-    RatingQuestion,
-    RatingSample,
-    RatingTask,
+    Option,
+    Question,
+    Sample,
+    Task,
 )
 
 
-class RatingTaskTests(TestCase):
+class TaskTests(TestCase):
     databases = {DJANGO_DEFAULT_CONNECTION}
 
     def test_str_is_name(self) -> None:
-        task = RatingTask(name="Test")
+        task = Task(name="Test")
         self.assertEqual(str(task), "Test")
 
 
-class RatingQuestionTests(TestCase):
+class QuestionTests(TestCase):
     databases = {DJANGO_DEFAULT_CONNECTION}
 
     def test_str_is_title(self) -> None:
-        question = RatingQuestion(title="Test")
+        question = Question(title="Test")
         self.assertEqual(str(question), "Test")
 
 
-class RatingOptionTests(TestCase):
+class OptionTests(TestCase):
     databases = {DJANGO_DEFAULT_CONNECTION}
 
     def test_str_is_description(self) -> None:
-        option = RatingOption(description="Test")
+        option = Option(description="Test")
         self.assertEqual(str(option), "Test")
 
 
-class RatingSampleTests(TestCase):
+class SampleTests(TestCase):
     databases = {DJANGO_DEFAULT_CONNECTION}
 
     def test_str_is_name(self) -> None:
-        sample = RatingSample(name="Test")
+        sample = Sample(name="Test")
         self.assertEqual(str(sample), "Test")
