@@ -72,6 +72,8 @@ class UserFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = settings.AUTH_USER_MODEL
 
+    username = factory.Sequence(lambda n: f"User {n+1}")
+
 
 class AnswerFactory(factory.django.DjangoModelFactory):
     class Meta:
