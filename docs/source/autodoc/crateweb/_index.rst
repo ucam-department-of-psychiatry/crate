@@ -156,12 +156,14 @@ crate_anon/crateweb
     nlp_classification/__init__.py.rst
     nlp_classification/admin.py.rst
     nlp_classification/apps.py.rst
+    nlp_classification/database_connection.py.rst
     nlp_classification/forms.py.rst
     nlp_classification/management/commands/make_test_data.py.rst
     nlp_classification/migrations/0001_initial.py.rst
     nlp_classification/migrations/__init__.py.rst
     nlp_classification/models.py.rst
     nlp_classification/tables.py.rst
+    nlp_classification/tests/factories.py.rst
     nlp_classification/tests/models_tests.py.rst
     nlp_classification/urls.py.rst
     nlp_classification/views.py.rst

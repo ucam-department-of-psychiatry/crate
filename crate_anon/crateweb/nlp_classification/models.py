@@ -1,12 +1,11 @@
 from typing import Any
 
 from django.conf import settings
-from django.db import connections, models
-from django.db.backends.utils import CursorWrapper
+from django.db import models
 
-from crate_anon.crateweb.core.constants import (
-    NLP_DB_CONNECTION_NAME,
-    RESEARCH_DB_CONNECTION_NAME,
+from crate_anon.crateweb.nlp_classification.database_connection import (
+    NlpDatabaseConnection,
+    ResearchDatabaseConnection,
 )
 from crate_anon.nlp_manager.constants import (
     FN_SRCFIELD,
@@ -75,7 +74,7 @@ class NlpResult(models.Model):
         super().__init__(*args, **kwargs)
 
         self._nlp_record: dict[str, Any] = None
-        self._source_record: dict[str, Any] = None
+        self._source_text: str = None
         self._extra_column_names = None
 
     @property
@@ -91,60 +90,42 @@ class NlpResult(models.Model):
         return self._extra_column_names
 
     @property
-    def nlp_record(self) -> CursorWrapper:
+    def nlp_record(self) -> dict[str, Any]:
         if self._nlp_record is None:
-            with connections[NLP_DB_CONNECTION_NAME].cursor() as cursor:
-                column_names = [
-                    FN_SRCFIELD,
-                    FN_SRCTABLE,
-                    FN_SRCPKFIELD,
-                    FN_SRCPKVAL,
-                    FN_CONTENT,
-                    FN_START,
-                    FN_END,
-                ] + self.extra_column_names
+            column_names = [
+                FN_SRCFIELD,
+                FN_SRCTABLE,
+                FN_SRCPKFIELD,
+                FN_SRCPKVAL,
+                FN_CONTENT,
+                FN_START,
+                FN_END,
+            ] + self.extra_column_names
 
-                column_names_str = ", ".join(column_names)
-
-                cursor.execute(
-                    (
-                        f"SELECT {column_names_str} "
-                        f"FROM {self.table_definition.table_name} WHERE "
-                        f"{self.table_definition.pk_column_name} = %s"
-                    ),
-                    [
-                        self.pk_value,
-                    ],
-                )
-                row = cursor.fetchone()
-                self._nlp_record = {}
-                for index, column_name in enumerate(column_names):
-                    self._nlp_record[column_name] = row[index]
+            self._nlp_record = NlpDatabaseConnection.fetchone_as_dict(
+                column_names,
+                self.table_definition.table_name,
+                where=f"{self.table_definition.pk_column_name} = %s",
+                params=[self.pk_value],
+            )
 
         return self._nlp_record
 
     @property
-    def source_record(self) -> CursorWrapper:
-        if self._source_record is None:
-            with connections[RESEARCH_DB_CONNECTION_NAME].cursor() as cursor:
-                srcfield = self.nlp_record[FN_SRCFIELD]
-                srctable = self.nlp_record[FN_SRCTABLE]
-                srcpkfield = self.nlp_record[FN_SRCPKFIELD]
+    def source_text(self) -> str:
+        if self._source_text is None:
+            srcfield = self.nlp_record[FN_SRCFIELD]
+            srctable = self.nlp_record[FN_SRCTABLE]
+            srcpkfield = self.nlp_record[FN_SRCPKFIELD]
+            row = ResearchDatabaseConnection.fetchone_as_dict(
+                [srcfield],
+                srctable,
+                where=f"{srcpkfield} = %s",
+                params=[self.nlp_record[FN_SRCPKVAL]],
+            )
+            self._source_text = row[srcfield]
 
-                cursor.execute(
-                    (
-                        f"SELECT {srcfield} FROM {srctable} "
-                        f"WHERE {srcpkfield} = %s"
-                    ),
-                    [
-                        self.nlp_record[FN_SRCPKVAL],
-                    ],
-                )
-
-                row = cursor.fetchone()
-                self._source_record = dict(text=row[0])
-
-        return self._source_record
+        return self._source_text
 
     def __str__(self) -> Any:
         return (
@@ -171,7 +152,7 @@ class Answer(models.Model):
 
     @property
     def source_text(self) -> str:
-        return self.result.source_record["text"]
+        return self.result.source_text
 
     @property
     def before(self) -> str:
