@@ -3,6 +3,10 @@ from unittest import mock
 from django.test import TestCase
 
 from crate_anon.crateweb.core.constants import DJANGO_DEFAULT_CONNECTION
+from crate_anon.crateweb.nlp_classification.database_connection import (
+    NlpDatabaseConnection,
+    ResearchDatabaseConnection,
+)
 from crate_anon.crateweb.nlp_classification.models import (
     Option,
     Question,
@@ -10,6 +14,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     Task,
 )
 from crate_anon.crateweb.nlp_classification.tests.factories import (
+    AnswerFactory,
     NlpColumnNameFactory,
     NlpResultFactory,
     NlpTableDefinitionFactory,
@@ -74,7 +79,7 @@ class NlpResultTests(TestCase):
 
         mock_fetch = mock.Mock(return_value=fake_result)
         with mock.patch.multiple(
-            "crate_anon.crateweb.nlp_classification.models.NlpDatabaseConnection",  # noqa: E501
+            NlpDatabaseConnection,
             fetchone_as_dict=mock_fetch,
         ):
             self.assertEqual(nlp_result.nlp_record, fake_result)
@@ -121,11 +126,11 @@ class NlpResultTests(TestCase):
         fake_research_result = {"source_field": "source text"}
         mock_fetch_from_research = mock.Mock(return_value=fake_research_result)
         with mock.patch.multiple(
-            "crate_anon.crateweb.nlp_classification.models.NlpDatabaseConnection",  # noqa: E501
+            NlpDatabaseConnection,
             fetchone_as_dict=mock_fetch_from_nlp,
         ):
             with mock.patch.multiple(
-                "crate_anon.crateweb.nlp_classification.models.ResearchDatabaseConnection",  # noqa: E501
+                ResearchDatabaseConnection,
                 fetchone_as_dict=mock_fetch_from_research,
             ):
                 self.assertEqual(nlp_result.source_text, "source text")
@@ -150,3 +155,11 @@ class NlpResultTests(TestCase):
         )
 
         self.assertEqual(str(nlp_result), "Item id=12345 of nlp_table")
+
+
+class AnswerTests(TestCase):
+    def test_source_text_fetched_from_nlp_result(self) -> None:
+        answer = AnswerFactory()
+
+        with mock.patch.multiple(answer.result, _source_text="source text"):
+            self.assertEqual(answer.source_text, "source text")
