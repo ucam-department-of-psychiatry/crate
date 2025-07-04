@@ -16,13 +16,13 @@ class DatabaseConnection:
         cls,
         column_names: Iterable[str],
         table_name: str,
-        where: Optional[str],
-        params: Optional[Iterable[Any]],
+        where: Optional[str] = None,
+        params: Optional[Iterable[Any]] = None,
     ) -> dict[str, Any]:
         column_names_str = ", ".join(column_names)
-        sql = f"SELECT {column_names_str} FROM {table_name} "
+        sql = f"SELECT {column_names_str} FROM {table_name}"
         if where:
-            sql += f"WHERE {where}"
+            sql += f" WHERE {where}"
 
         out = {}
 
