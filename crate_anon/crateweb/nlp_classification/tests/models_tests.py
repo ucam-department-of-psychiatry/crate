@@ -1,3 +1,4 @@
+import re
 from unittest import mock
 
 from django.test import TestCase
@@ -163,3 +164,17 @@ class AnswerTests(TestCase):
 
         with mock.patch.multiple(answer.result, _source_text="source text"):
             self.assertEqual(answer.source_text, "source text")
+
+    def test_source_text_before_match(self) -> None:
+        answer = AnswerFactory()
+        source_text = "before match after"
+        match = re.search("match", source_text)
+
+        fake_nlp_record = {FN_START: match.start()}
+
+        with mock.patch.multiple(
+            answer.result,
+            _source_text="before match after",
+            _nlp_record=fake_nlp_record,
+        ):
+            self.assertEqual(answer.before, "before ")
