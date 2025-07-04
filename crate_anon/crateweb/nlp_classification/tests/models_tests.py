@@ -203,3 +203,22 @@ class AnswerTests(TestCase):
             _nlp_record=fake_nlp_record,
         ):
             self.assertEqual(answer.match, "match")
+
+    def test_extra_fields_copied_from_nlp_record(self) -> None:
+        answer = AnswerFactory()
+
+        # Not a complete real world example
+        fake_nlp_record = {
+            FN_CONTENT: "CRP was <13 mg/dl",
+            "value_text": "13",
+            "units": "mg/dl",
+        }
+
+        with mock.patch.multiple(
+            answer.result,
+            _nlp_record=fake_nlp_record,
+            _extra_column_names=["value_text", "units"],
+        ):
+            self.assertEqual(
+                answer.extra_fields, {"value_text": "13", "units": "mg/dl"}
+            )
