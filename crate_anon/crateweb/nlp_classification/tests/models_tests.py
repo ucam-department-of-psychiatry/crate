@@ -138,3 +138,15 @@ class NlpResultTests(TestCase):
                     where="source_pk_field = %s",
                     params=[test_pk_value],
                 )
+
+    def test_str_reports_table_definition_info(self) -> None:
+        test_pk_value = "12345"
+
+        table_definition = NlpTableDefinitionFactory(
+            table_name="nlp_table", pk_column_name="id"
+        )
+        nlp_result = NlpResultFactory(
+            table_definition=table_definition, pk_value=test_pk_value
+        )
+
+        self.assertEqual(str(nlp_result), "Item id=12345 of nlp_table")
