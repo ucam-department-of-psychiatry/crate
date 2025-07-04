@@ -167,14 +167,28 @@ class AnswerTests(TestCase):
 
     def test_source_text_before_match(self) -> None:
         answer = AnswerFactory()
-        source_text = "before match after"
-        match = re.search("match", source_text)
+        fake_source_text = "before match after"
+        match = re.search("match", fake_source_text)
 
         fake_nlp_record = {FN_START: match.start()}
 
         with mock.patch.multiple(
             answer.result,
-            _source_text="before match after",
+            _source_text=fake_source_text,
             _nlp_record=fake_nlp_record,
         ):
             self.assertEqual(answer.before, "before ")
+
+    def test_source_text_after_match(self) -> None:
+        answer = AnswerFactory()
+        fake_source_text = "before match after"
+        match = re.search("match", fake_source_text)
+
+        fake_nlp_record = {FN_END: match.end()}
+
+        with mock.patch.multiple(
+            answer.result,
+            _source_text=fake_source_text,
+            _nlp_record=fake_nlp_record,
+        ):
+            self.assertEqual(answer.after, " after")
