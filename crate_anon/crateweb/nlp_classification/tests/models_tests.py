@@ -192,3 +192,14 @@ class AnswerTests(TestCase):
             _nlp_record=fake_nlp_record,
         ):
             self.assertEqual(answer.after, " after")
+
+    def test_match_text_from_nlp_result_content(self) -> None:
+        answer = AnswerFactory()
+
+        fake_nlp_record = {FN_CONTENT: "match"}
+
+        with mock.patch.multiple(
+            answer.result,
+            _nlp_record=fake_nlp_record,
+        ):
+            self.assertEqual(answer.match, "match")
