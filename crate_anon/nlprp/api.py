@@ -315,7 +315,7 @@ def json_get_array(
         if required:
             raise key_missing_error(key)
         else:
-            return []  # type: JsonArrayType
+            return []
     if not isinstance(value, list):
         mkerror(BAD_REQUEST, f"{key!r} parameter not a JSON array (list)")
     return value
@@ -344,7 +344,7 @@ def json_get_array_of_str(
         if required:
             raise key_missing_error(key)
         else:
-            return []  # type: JsonArrayType
+            return []
     if not isinstance(value, list):
         mkerror(BAD_REQUEST, f"{key!r} parameter not a JSON array (list)")
     if not all(isinstance(x, str) for x in value):
@@ -375,7 +375,7 @@ def json_get_object(
         if required:
             raise key_missing_error(key)
         else:
-            return {}  # type: JsonArrayType
+            return {}
     if not isinstance(value, dict):
         mkerror(
             BAD_REQUEST, f"{key!r} parameter not a JSON object (dictionary)"
@@ -438,7 +438,7 @@ def json_get_toplevel_args(
         if required:
             raise key_missing_error(NlprpKeys.ARGS, is_args=True)
         else:
-            return {}  # type: JsonArrayType
+            return {}
     if not isinstance(value, dict):
         mkerror(
             BAD_REQUEST,
