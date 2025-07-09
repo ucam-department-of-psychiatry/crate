@@ -7,10 +7,16 @@
 <h2>{{ object.question }}</h2>
 
 <p style="font-size: medium">
-{{ object.before }}<span style="background-color: yellow;">{{ object.match }}</span>{{ object.after }}
+{{ object.result.before }}<span style="background-color: yellow;">{{ object.result.match }}</span>{{ object.result.after }}
 </p>
 
-{% render_table table %}
+{% if nlp_table %}
+{% render_table nlp_table %}
+{% else %}
+<p class="no_nlp" style="font-size:medium">
+  There is no NLP record.
+</p>
+{% endif %}
 
 <form action="" method="post">
   {% csrf_token %}

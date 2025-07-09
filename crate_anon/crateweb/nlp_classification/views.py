@@ -27,7 +27,7 @@ CRATE NLP classification views.
 
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from django.urls import reverse
 from django.views.generic import TemplateView, UpdateView
@@ -83,7 +83,7 @@ class AnswerView(UpdateView):
 
     def get_success_url(self, **kwargs) -> str:
         next_record = (
-            Answer.objects.filter(answer=None)
+            Answer.objects.filter(choice=None)
             .exclude(pk=self.object.pk)
             .first()
         )
@@ -101,16 +101,21 @@ class AnswerView(UpdateView):
         context = super().get_context_data(**kwargs)
 
         table = self._get_table()
-        tables.RequestConfig(self.request).configure(table)
 
-        context.update(table=table)
+        if table:
+            tables.RequestConfig(self.request).configure(table)
+
+        context.update(nlp_table=table)
 
         return context
 
-    def _get_table(self) -> tables.Table:
+    def _get_table(self) -> Optional[tables.Table]:
         table_data = []
 
-        for name, value in self.object.extra_fields.items():
+        for name, value in self.object.result.extra_nlp_fields.items():
             table_data.append({"name": name, "value": value})
 
-        return FieldTable(table_data)
+        if table_data:
+            return FieldTable(table_data)
+
+        return None

@@ -6,10 +6,6 @@ from crate_anon.crateweb.nlp_classification.database_connection import (
 )
 
 
-class TestDatabaseConnection(DatabaseConnection):
-    connection_name = "test"
-
-
 class DatabaseConnectionTest(TestCase):
     def test_fetchone_as_dict_no_condition(self) -> None:
         column_names = ["column_one", "column_two", "column_three"]
@@ -24,17 +20,14 @@ class DatabaseConnectionTest(TestCase):
                 __exit__=mock.Mock(),
             )
         )
-        mock_connections = {
-            TestDatabaseConnection.connection_name: mock.Mock(cursor=mock_cm)
-        }
+        connection = DatabaseConnection("test")
+        mock_connections = {"test": mock.Mock(cursor=mock_cm)}
 
         with mock.patch.multiple(
             "crate_anon.crateweb.nlp_classification.database_connection",
             connections=mock_connections,
         ):
-            row_dict = TestDatabaseConnection.fetchone_as_dict(
-                column_names, table_name
-            )
+            row_dict = connection.fetchone_as_dict(column_names, table_name)
             self.assertEqual(
                 row_dict, {"column_one": 1, "column_two": 2, "column_three": 3}
             )
@@ -58,15 +51,14 @@ class DatabaseConnectionTest(TestCase):
                 __exit__=mock.Mock(),
             )
         )
-        mock_connections = {
-            TestDatabaseConnection.connection_name: mock.Mock(cursor=mock_cm)
-        }
+        connection = DatabaseConnection("test")
+        mock_connections = {"test": mock.Mock(cursor=mock_cm)}
 
         with mock.patch.multiple(
             "crate_anon.crateweb.nlp_classification.database_connection",
             connections=mock_connections,
         ):
-            TestDatabaseConnection.fetchone_as_dict(
+            connection.fetchone_as_dict(
                 column_names, table_name, "column_one = %s", ["1"]
             )
             mock_execute.assert_called_once_with(

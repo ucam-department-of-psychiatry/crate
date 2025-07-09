@@ -4,13 +4,13 @@ from django.conf import settings
 
 from crate_anon.crateweb.nlp_classification.models import (
     Answer,
+    Choice,
+    Column,
     Job,
-    NlpColumnName,
-    NlpResult,
-    NlpTableDefinition,
-    Option,
     Question,
+    Result,
     Sample,
+    TableDefinition,
     Task,
 )
 
@@ -20,52 +20,34 @@ class TaskFactory(factory.django.DjangoModelFactory):
         model = Task
 
 
-class NlpTableDefinitionFactory(factory.django.DjangoModelFactory):
+class TableDefinitionFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = NlpTableDefinition
+        model = TableDefinition
 
 
-class NlpResultFactory(factory.django.DjangoModelFactory):
+class ColumnFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = NlpResult
+        model = Column
 
-    table_definition = factory.SubFactory(NlpTableDefinitionFactory)
+    table_definition = factory.SubFactory(TableDefinitionFactory)
 
 
-class NlpColumnNameFactory(factory.django.DjangoModelFactory):
+class ResultFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = NlpColumnName
+        model = Result
 
-    table_definition = factory.SubFactory(NlpTableDefinitionFactory)
+    source_column = factory.SubFactory(ColumnFactory)
+    nlp_table_definition = factory.SubFactory(TableDefinitionFactory)
 
 
 class SampleFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Sample
 
+    source_column = factory.SubFactory(ColumnFactory)
+    nlp_table_definition = factory.SubFactory(TableDefinitionFactory)
+    seed = factory.Faker("pyint", min_value=0, max_value=2147483647)
     size = factory.Faker("pyint", min_value=100, max_value=1000)
-
-
-class JobFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = Job
-
-    task = factory.SubFactory(TaskFactory)
-    sample = factory.SubFactory(SampleFactory)
-
-
-class QuestionFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = Question
-
-    task = factory.SubFactory(TaskFactory)
-
-
-class OptionFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = Option
-
-    question = factory.SubFactory(QuestionFactory)
 
 
 class UserFactory(factory.django.DjangoModelFactory):
@@ -75,12 +57,34 @@ class UserFactory(factory.django.DjangoModelFactory):
     username = factory.Sequence(lambda n: f"User {n+1}")
 
 
+class JobFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Job
+
+    task = factory.SubFactory(TaskFactory)
+    sample = factory.SubFactory(SampleFactory)
+    user = factory.SubFactory(UserFactory)
+
+
+class QuestionFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Question
+
+    task = factory.SubFactory(TaskFactory)
+
+
+class ChoiceFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Choice
+
+    question = factory.SubFactory(QuestionFactory)
+
+
 class AnswerFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Answer
 
-    result = factory.SubFactory(NlpResultFactory)
+    result = factory.SubFactory(ResultFactory)
     question = factory.SubFactory(QuestionFactory)
-    answer = factory.SubFactory(OptionFactory)
+    choice = factory.SubFactory(ChoiceFactory)
     job = factory.SubFactory(JobFactory)
-    user = factory.SubFactory(UserFactory)

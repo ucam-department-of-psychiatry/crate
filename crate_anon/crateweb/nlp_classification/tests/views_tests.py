@@ -9,9 +9,9 @@ from crate_anon.crateweb.nlp_classification.views import AnswerView
 
 class AnswerViewTests(TestCase):
     def test_success_url_is_next_unanswered(self) -> None:
-        this_answer = AnswerFactory(answer=None)
+        this_answer = AnswerFactory(choice=None)
         AnswerFactory()  # answered
-        unanswered = AnswerFactory(answer=None)
+        unanswered = AnswerFactory(choice=None)
 
         view = AnswerView()
         view.object = this_answer
@@ -22,7 +22,7 @@ class AnswerViewTests(TestCase):
         )
 
     def test_success_url_is_job_list_if_all_answered(self) -> None:
-        this_answer = AnswerFactory(answer=None)
+        this_answer = AnswerFactory(choice=None)
 
         view = AnswerView()
         view.object = this_answer

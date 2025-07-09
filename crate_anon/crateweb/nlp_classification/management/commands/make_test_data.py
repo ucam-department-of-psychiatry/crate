@@ -2,18 +2,21 @@ from typing import Any
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
-from django.db import connections
 
 from crate_anon.crateweb.nlp_classification.models import (
-    NlpColumnName,
-    NlpResult,
-    NlpTableDefinition,
     Answer,
+    Choice,
+    Column,
     Job,
-    Option,
     Question,
+    Result,
     Sample,
+    TableDefinition,
     Task,
+)
+from crate_anon.crateweb.core.constants import (
+    NLP_DB_CONNECTION_NAME,
+    RESEARCH_DB_CONNECTION_NAME,
 )
 
 
@@ -23,34 +26,20 @@ class Command(BaseCommand):
     def handle(self, *args: Any, **options: Any):
         Sample.objects.all().delete()
         Task.objects.all().delete()
-        NlpResult.objects.all().delete()
+        Result.objects.all().delete()
 
-        sample = Sample.objects.create(name="Test sample", size=100)
-        task = Task.objects.create(name="Test task")
-        crp_question = Question.objects.create(
-            task=task,
-            title=(
-                "Does this text show a C-reactive protein (CRP) value "
-                "AND that value matches the NLP output?"
-            ),
+        source_note = TableDefinition.objects.create(
+            db_connection_name=RESEARCH_DB_CONNECTION_NAME,
+            table_name="note",
+            pk_column_name="note_id",
         )
-        Option.objects.create(question=crp_question, description="Yes")
-        Option.objects.create(question=crp_question, description="No")
-
-        fruit_question = Question.objects.create(
-            task=task, title="Which fruit do you prefer?"
+        note_column = Column.objects.create(
+            table_definition=source_note, name="note"
         )
-        Option.objects.create(question=fruit_question, description="Apple")
-        Option.objects.create(question=fruit_question, description="Banana")
-        Option.objects.create(question=fruit_question, description="Pear")
-
-        job = Job.objects.create(task=task, sample=sample)
-
-        get_user_model().objects.get(username="test").delete()
-        user = get_user_model().objects.create(username="test")
-
-        table_definition = NlpTableDefinition.objects.create(
-            table_name="crp", pk_column_name="_pk"
+        crp_table_definition = TableDefinition.objects.create(
+            db_connection_name=NLP_DB_CONNECTION_NAME,
+            table_name="crp",
+            pk_column_name="_pk",
         )
         for column_name in [
             "variable_text",
@@ -62,19 +51,44 @@ class Command(BaseCommand):
             "tense_text",
             "tense",
         ]:
-            NlpColumnName.objects.create(
-                table_definition=table_definition, name=column_name
+            Column.objects.create(
+                table_definition=crp_table_definition, name=column_name
             )
 
-        with connections["nlp"].cursor() as cursor:
-            cursor.execute("SELECT _pk FROM crp")
-            for row in cursor.fetchall():
-                nlp_result = NlpResult.objects.create(
-                    table_definition=table_definition, pk_value=row[0]
-                )
-                Answer.objects.create(
-                    result=nlp_result,
-                    question=crp_question,
-                    job=job,
-                    user=user,
-                )
+        sample = Sample.objects.create(
+            source_column=note_column,
+            nlp_table_definition=crp_table_definition,
+            size=100,
+            search_term="",
+            seed=123456,
+        )
+
+        task = Task.objects.create(name="Test task")
+        crp_question = Question.objects.create(
+            task=task,
+            title=(
+                "Does this text show a C-reactive protein (CRP) value "
+                "AND that value matches the NLP output?"
+            ),
+        )
+        Choice.objects.create(question=crp_question, description="Yes")
+        Choice.objects.create(question=crp_question, description="No")
+
+        fruit_question = Question.objects.create(
+            task=task, title="Which fruit do you prefer?"
+        )
+        Choice.objects.create(question=fruit_question, description="Apple")
+        Choice.objects.create(question=fruit_question, description="Banana")
+        Choice.objects.create(question=fruit_question, description="Pear")
+
+        get_user_model().objects.get(username="test").delete()
+        user = get_user_model().objects.create(username="test")
+
+        job = Job.objects.create(task=task, sample=sample, user=user)
+
+        job.create_results()
+
+        for result in job.results.all():
+            Answer.objects.create(
+                result=result, question=crp_question, job=job
+            )

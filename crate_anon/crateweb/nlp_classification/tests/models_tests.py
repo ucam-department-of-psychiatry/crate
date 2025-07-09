@@ -3,22 +3,19 @@ from unittest import mock
 
 from django.test import TestCase
 
-from crate_anon.crateweb.core.constants import DJANGO_DEFAULT_CONNECTION
-from crate_anon.crateweb.nlp_classification.database_connection import (
-    NlpDatabaseConnection,
-    ResearchDatabaseConnection,
+from crate_anon.crateweb.core.constants import (
+    DJANGO_DEFAULT_CONNECTION,
 )
 from crate_anon.crateweb.nlp_classification.models import (
-    Option,
+    Choice,
     Question,
-    Sample,
     Task,
 )
 from crate_anon.crateweb.nlp_classification.tests.factories import (
-    AnswerFactory,
-    NlpColumnNameFactory,
-    NlpResultFactory,
-    NlpTableDefinitionFactory,
+    ColumnFactory,
+    ResultFactory,
+    SampleFactory,
+    TableDefinitionFactory,
 )
 from crate_anon.nlp_manager.constants import (
     FN_SRCFIELD,
@@ -49,30 +46,44 @@ class QuestionTests(TestCase):
         self.assertEqual(str(question), "Test")
 
 
-class OptionTests(TestCase):
+class ChoiceTests(TestCase):
     databases = {DJANGO_DEFAULT_CONNECTION}
 
     def test_str_is_description(self) -> None:
-        option = Option(description="Test")
-        self.assertEqual(str(option), "Test")
+        choice = Choice(description="Test")
+        self.assertEqual(str(choice), "Test")
 
 
 class SampleTests(TestCase):
     databases = {DJANGO_DEFAULT_CONNECTION}
 
-    def test_str_is_name(self) -> None:
-        sample = Sample(name="Test")
-        self.assertEqual(str(sample), "Test")
+    def test_str_shows_sample_source(self) -> None:
+        table_definition = TableDefinitionFactory(
+            table_name="note",
+            pk_column_name="id",
+            db_connection_name="test",
+        )
+        column = ColumnFactory(table_definition=table_definition, name="note")
+        sample = SampleFactory(
+            source_column=column, search_term="CRP", size=100, seed=12345
+        )
+        self.assertEqual(
+            str(sample),
+            (
+                "100 records from 'test.note.note' "
+                "with seed 12345 and search term 'CRP'"
+            ),
+        )
 
 
-class NlpResultTests(TestCase):
+class ResultTests(TestCase):
     def test_nlp_record_fetched(self) -> None:
-        table_definition = NlpTableDefinitionFactory(
+        nlp_table_definition = TableDefinitionFactory(
             table_name="nlp_table", pk_column_name="id"
         )
-        NlpColumnNameFactory(table_definition=table_definition, name="extra")
-        nlp_result = NlpResultFactory(
-            table_definition=table_definition, pk_value="12345"
+        ColumnFactory(table_definition=nlp_table_definition, name="extra")
+        result = ResultFactory(
+            nlp_table_definition=nlp_table_definition, nlp_pk_value="12345"
         )
 
         # Not realistic
@@ -80,10 +91,10 @@ class NlpResultTests(TestCase):
 
         mock_fetch = mock.Mock(return_value=fake_result)
         with mock.patch.multiple(
-            NlpDatabaseConnection,
+            "crate_anon.crateweb.nlp_classification.models.DatabaseConnection",
             fetchone_as_dict=mock_fetch,
         ):
-            self.assertEqual(nlp_result.nlp_record, fake_result)
+            self.assertEqual(result.nlp_record, fake_result)
 
             expected_column_names = [
                 FN_SRCFIELD,
@@ -106,106 +117,98 @@ class NlpResultTests(TestCase):
     def test_source_text_fetched(self) -> None:
         test_pk_value = "12345"
 
-        table_definition = NlpTableDefinitionFactory(
-            table_name="nlp_table", pk_column_name="id"
-        )
-        NlpColumnNameFactory(table_definition=table_definition, name="extra")
-        nlp_result = NlpResultFactory(
-            table_definition=table_definition, pk_value=test_pk_value
+        source_table_definition = TableDefinitionFactory(
+            table_name="source_table",
+            pk_column_name="source_pk_field",
         )
 
-        # There would be more than this in the real world, but this is enough
-        # for the research database query.
-        fake_nlp_result = {
-            FN_SRCFIELD: "source_field",
-            FN_SRCTABLE: "source_table",
-            FN_SRCPKFIELD: "source_pk_field",
-            FN_SRCPKVAL: test_pk_value,
-        }
-        mock_fetch_from_nlp = mock.Mock(return_value=fake_nlp_result)
+        result = ResultFactory(
+            source_column=ColumnFactory(
+                table_definition=source_table_definition, name="source_field"
+            ),
+            source_pk_value=test_pk_value,
+        )
+        fake_source_result = {"source_field": "source text"}
+        mock_fetch_from_source = mock.Mock(return_value=fake_source_result)
 
-        fake_research_result = {"source_field": "source text"}
-        mock_fetch_from_research = mock.Mock(return_value=fake_research_result)
+        source_connection = mock.Mock(fetchone_as_dict=mock_fetch_from_source)
         with mock.patch.multiple(
-            NlpDatabaseConnection,
-            fetchone_as_dict=mock_fetch_from_nlp,
+            result,
+            get_source_database_connection=mock.Mock(
+                return_value=source_connection
+            ),
         ):
-            with mock.patch.multiple(
-                ResearchDatabaseConnection,
-                fetchone_as_dict=mock_fetch_from_research,
-            ):
-                self.assertEqual(nlp_result.source_text, "source text")
+            self.assertEqual(result.source_text, "source text")
 
-                expected_column_names = ["source_field"]
+            expected_column_names = ["source_field"]
 
-                mock_fetch_from_research.assert_called_with(
-                    expected_column_names,
-                    "source_table",
-                    where="source_pk_field = %s",
-                    params=[test_pk_value],
-                )
+            mock_fetch_from_source.assert_called_with(
+                expected_column_names,
+                "source_table",
+                where="source_pk_field = %s",
+                params=[test_pk_value],
+            )
 
     def test_str_reports_table_definition_info(self) -> None:
         test_pk_value = "12345"
 
-        table_definition = NlpTableDefinitionFactory(
-            table_name="nlp_table", pk_column_name="id"
+        source_table_definition = TableDefinitionFactory(
+            table_name="source_table",
+            pk_column_name="id",
+            db_connection_name="test",
         )
-        nlp_result = NlpResultFactory(
-            table_definition=table_definition, pk_value=test_pk_value
+        source_column = ColumnFactory(table_definition=source_table_definition)
+
+        result = ResultFactory(
+            source_column=source_column,
+            source_pk_value=test_pk_value,
         )
 
-        self.assertEqual(str(nlp_result), "Item id=12345 of nlp_table")
-
-
-class AnswerTests(TestCase):
-    def test_source_text_fetched_from_nlp_result(self) -> None:
-        answer = AnswerFactory()
-
-        with mock.patch.multiple(answer.result, _source_text="source text"):
-            self.assertEqual(answer.source_text, "source text")
+        self.assertEqual(
+            str(result), f"Item test.source_table.id={test_pk_value}"
+        )
 
     def test_source_text_before_match(self) -> None:
-        answer = AnswerFactory()
+        result = ResultFactory()
         fake_source_text = "before match after"
         match = re.search("match", fake_source_text)
 
         fake_nlp_record = {FN_START: match.start()}
 
         with mock.patch.multiple(
-            answer.result,
+            result,
             _source_text=fake_source_text,
             _nlp_record=fake_nlp_record,
         ):
-            self.assertEqual(answer.before, "before ")
+            self.assertEqual(result.before, "before ")
 
     def test_source_text_after_match(self) -> None:
-        answer = AnswerFactory()
+        result = ResultFactory()
         fake_source_text = "before match after"
         match = re.search("match", fake_source_text)
 
         fake_nlp_record = {FN_END: match.end()}
 
         with mock.patch.multiple(
-            answer.result,
+            result,
             _source_text=fake_source_text,
             _nlp_record=fake_nlp_record,
         ):
-            self.assertEqual(answer.after, " after")
+            self.assertEqual(result.after, " after")
 
-    def test_match_text_from_nlp_result_content(self) -> None:
-        answer = AnswerFactory()
+    def test_match_text_from_result_content(self) -> None:
+        result = ResultFactory()
 
         fake_nlp_record = {FN_CONTENT: "match"}
 
         with mock.patch.multiple(
-            answer.result,
+            result,
             _nlp_record=fake_nlp_record,
         ):
-            self.assertEqual(answer.match, "match")
+            self.assertEqual(result.match, "match")
 
     def test_extra_fields_copied_from_nlp_record(self) -> None:
-        answer = AnswerFactory()
+        result = ResultFactory()
 
         # Not a complete real world example
         fake_nlp_record = {
@@ -215,10 +218,10 @@ class AnswerTests(TestCase):
         }
 
         with mock.patch.multiple(
-            answer.result,
+            result,
             _nlp_record=fake_nlp_record,
-            _extra_column_names=["value_text", "units"],
+            _extra_nlp_column_names=["value_text", "units"],
         ):
             self.assertEqual(
-                answer.extra_fields, {"value_text": "13", "units": "mg/dl"}
+                result.extra_nlp_fields, {"value_text": "13", "units": "mg/dl"}
             )
