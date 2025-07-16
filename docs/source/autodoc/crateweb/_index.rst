@@ -301,9 +301,9 @@ crate_anon/crateweb
     templates/include_jquery.html.rst
     templates/logged_out.html.rst
     templates/login.html.rst
-    templates/nlp_classification/answerupdate_form.html.rst
+    templates/nlp_classification/assignment.html.rst
     templates/nlp_classification/home.html.rst
-    templates/nlp_classification/job.html.rst
+    templates/nlp_classification/useranswerupdate_form.html.rst
     templates/page_nav.html.rst
     templates/password_change.html.rst
     templates/pdf.css.rst
