@@ -27,7 +27,10 @@ CRATE NLP classification tables.
 
 """
 
-from crate_anon.crateweb.nlp_classification.models import Answer, Job
+from crate_anon.crateweb.nlp_classification.models import (
+    Assignment,
+    UserAnswer,
+)
 
 import django_tables2 as tables
 
@@ -42,26 +45,26 @@ class NlpClassificationTable(tables.Table):
     recall = tables.Column()
 
 
-class AnswerTable(tables.Table):
+class UserAnswerTable(tables.Table):
     class Meta:
-        model = Answer
+        model = UserAnswer
 
     user = tables.Column()
-    result = tables.Column()
-    answer = tables.Column()
+    source_record = tables.Column()
+    decision = tables.Column()
     rate = tables.LinkColumn(
         "nlp_classification_answer", text="Rate", args=[tables.A("pk")]
     )
 
 
-class JobTable(tables.Table):
+class AssignmentTable(tables.Table):
     class Meta:
-        model = Job
+        model = Assignment
 
     task = tables.Column()
     sample = tables.Column()
     view = tables.LinkColumn(
-        "nlp_classification_job", text="View", args=[tables.A("pk")]
+        "nlp_classification_assignment", text="View", args=[tables.A("pk")]
     )
 
 

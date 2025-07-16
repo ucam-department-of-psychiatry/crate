@@ -2,18 +2,18 @@ from django.test import TestCase
 from django.urls import reverse
 
 from crate_anon.crateweb.nlp_classification.tests.factories import (
-    AnswerFactory,
+    UserAnswerFactory,
 )
-from crate_anon.crateweb.nlp_classification.views import AnswerView
+from crate_anon.crateweb.nlp_classification.views import UserAnswerView
 
 
-class AnswerViewTests(TestCase):
+class UserAnswerViewTests(TestCase):
     def test_success_url_is_next_unanswered(self) -> None:
-        this_answer = AnswerFactory(choice=None)
-        AnswerFactory()  # answered
-        unanswered = AnswerFactory(choice=None)
+        this_answer = UserAnswerFactory(decision=None)
+        UserAnswerFactory()  # answered
+        unanswered = UserAnswerFactory(decision=None)
 
-        view = AnswerView()
+        view = UserAnswerView()
         view.object = this_answer
 
         self.assertEqual(
@@ -21,15 +21,16 @@ class AnswerViewTests(TestCase):
             reverse("nlp_classification_answer", kwargs={"pk": unanswered.pk}),
         )
 
-    def test_success_url_is_job_list_if_all_answered(self) -> None:
-        this_answer = AnswerFactory(choice=None)
+    def test_success_url_is_assignment_list_if_all_answered(self) -> None:
+        this_answer = UserAnswerFactory(decision=None)
 
-        view = AnswerView()
+        view = UserAnswerView()
         view.object = this_answer
 
         self.assertEqual(
             view.get_success_url(),
             reverse(
-                "nlp_classification_job", kwargs={"pk": this_answer.job.pk}
+                "nlp_classification_assignment",
+                kwargs={"pk": this_answer.assignment.pk},
             ),
         )

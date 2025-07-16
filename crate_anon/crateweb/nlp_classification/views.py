@@ -33,12 +33,15 @@ from django.urls import reverse
 from django.views.generic import TemplateView, UpdateView
 import django_tables2 as tables
 
-from crate_anon.crateweb.nlp_classification.forms import AnswerForm
-from crate_anon.crateweb.nlp_classification.models import Answer, Job
+from crate_anon.crateweb.nlp_classification.forms import UserAnswerForm
+from crate_anon.crateweb.nlp_classification.models import (
+    Assignment,
+    UserAnswer,
+)
 from crate_anon.crateweb.nlp_classification.tables import (
-    AnswerTable,
+    AssignmentTable,
     FieldTable,
-    JobTable,
+    UserAnswerTable,
 )
 
 
@@ -55,11 +58,11 @@ class HomeView(TemplateView):
         return context
 
     def _get_table(self) -> tables.Table:
-        return JobTable(Job.objects.all())
+        return AssignmentTable(Assignment.objects.all())
 
 
-class JobView(TemplateView):
-    template_name = "nlp_classification/job.html"
+class AssignmentView(TemplateView):
+    template_name = "nlp_classification/assignment.html"
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
@@ -71,19 +74,21 @@ class JobView(TemplateView):
         return context
 
     def _get_table(self) -> tables.Table:
-        job = Job.objects.get(pk=self.kwargs["pk"])
+        assignment = Assignment.objects.get(pk=self.kwargs["pk"])
 
-        return AnswerTable(Answer.objects.filter(job=job))
+        return UserAnswerTable(
+            UserAnswer.objects.filter(assignment=assignment)
+        )
 
 
-class AnswerView(UpdateView):
-    model = Answer
+class UserAnswerView(UpdateView):
+    model = UserAnswer
     template_name_suffix = "update_form"
-    form_class = AnswerForm
+    form_class = UserAnswerForm
 
     def get_success_url(self, **kwargs) -> str:
         next_record = (
-            Answer.objects.filter(choice=None)
+            UserAnswer.objects.filter(decision=None)
             .exclude(pk=self.object.pk)
             .first()
         )
@@ -94,7 +99,8 @@ class AnswerView(UpdateView):
             )
 
         return reverse(
-            "nlp_classification_job", kwargs={"pk": self.object.job.pk}
+            "nlp_classification_assignment",
+            kwargs={"pk": self.object.assignment.pk},
         )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
@@ -112,7 +118,7 @@ class AnswerView(UpdateView):
     def _get_table(self) -> Optional[tables.Table]:
         table_data = []
 
-        for name, value in self.object.result.extra_nlp_fields.items():
+        for name, value in self.object.source_record.extra_nlp_fields.items():
             table_data.append({"name": name, "value": value})
 
         if table_data:

@@ -24,8 +24,8 @@ from crate_anon.nlp_manager.regex_parser import (
 class Task(models.Model):
     """
     Task is the overall concept, e.g. "assessing CRP accuracy for Bob's study".
-    Everything else hangs off this. There may be more than one Job per task
-    (TODO: Names a bit ambiguous here...).
+    Everything else hangs off this. There may be more than one Assignment per
+    task.
     """
 
     name = models.CharField(max_length=100)
@@ -36,8 +36,7 @@ class Task(models.Model):
 
 class Question(models.Model):
     """
-    Question is presented to the user doing the validation of NLP
-    results.
+    Question is presented to the user validating the NLP records.
 
     Example: "Does this text show a C-reactive protein (CRP) value?"
     (has NLP identified CRP at all even if it didn't extract the right value)
@@ -46,7 +45,7 @@ class Question(models.Model):
     value AND that value matches the NLP output?".
 
     A yes/no answer makes it easier to assess precision and recall. We will
-    support multiple choice, however.
+    support more than two choices, however.
     """
 
     title = models.CharField(max_length=100)
@@ -56,7 +55,7 @@ class Question(models.Model):
         return self.title
 
 
-class Choice(models.Model):
+class Option(models.Model):
     """
     Associated with one or more questions.
 
@@ -101,10 +100,8 @@ class Column(models.Model):
 
 class Sample(models.Model):
     """
-    Used to Results across one or more source tables and corresponding NLP
-    records.
-
-    Need:
+    Used to create SourceRecords across one or more source tables and
+    corresponding NLP records.
 
     Size might be maximum. What happens if there are fewer matching records in
     the sample?
@@ -125,10 +122,9 @@ class Sample(models.Model):
         )
 
 
-class Result(models.Model):
+class SourceRecord(models.Model):
     """
-    This is an individual entry for a source table with optional NLP table.
-    Linked one-to-one with an Answer.
+    This is an individual entry for a source table with optional NLP record.
     """
 
     source_column = models.ForeignKey(Column, on_delete=models.CASCADE)
@@ -136,7 +132,7 @@ class Result(models.Model):
         TableDefinition,
         null=True,
         on_delete=models.SET_NULL,
-        related_name="nlp_results",
+        related_name="source_records",
     )
     source_pk_value = models.CharField(max_length=100)
     nlp_pk_value = models.CharField(max_length=100)
@@ -144,7 +140,7 @@ class Result(models.Model):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        self._nlp_record: dict[str, Any] = None
+        self._nlp_dict: dict[str, Any] = None
         self._source_text: str = None
         self._extra_nlp_column_names = None
 
@@ -161,8 +157,8 @@ class Result(models.Model):
         return self._extra_nlp_column_names
 
     @property
-    def nlp_record(self) -> dict[str, Any]:
-        if self._nlp_record is None:
+    def nlp_dict(self) -> dict[str, Any]:
+        if self._nlp_dict is None:
             column_names = [
                 FN_SRCFIELD,
                 FN_SRCTABLE,
@@ -174,42 +170,42 @@ class Result(models.Model):
             ] + self.extra_nlp_column_names
 
             connection = self.get_nlp_database_connection()
-            self._nlp_record = connection.fetchone_as_dict(
+            self._nlp_dict = connection.fetchone_as_dict(
                 column_names,
                 self.nlp_table_definition.table_name,
                 where=f"{self.nlp_table_definition.pk_column_name} = %s",
                 params=[self.nlp_pk_value],
             )
 
-        return self._nlp_record
+        return self._nlp_dict
 
     @property
     def before(self) -> str:
-        if self.nlp_record:
-            return self.source_text[: self.nlp_record[FN_START]]
+        if self.nlp_dict:
+            return self.source_text[: self.nlp_dict[FN_START]]
 
         return self.source_text
 
     @property
     def after(self) -> str:
-        if self.nlp_record:
-            return self.source_text[self.nlp_record[FN_END] :]
+        if self.nlp_dict:
+            return self.source_text[self.nlp_dict[FN_END] :]
 
         return ""
 
     @property
     def match(self) -> str:
-        if self.nlp_record:
-            return self.nlp_record[FN_CONTENT]
+        if self.nlp_dict:
+            return self.nlp_dict[FN_CONTENT]
 
         return ""
 
     @property
     def extra_nlp_fields(self) -> dict[str, Any]:
         return dict(
-            (k, self.nlp_record[k])
+            (k, self.nlp_dict[k])
             for k in self.extra_nlp_column_names
-            if k in self.nlp_record
+            if k in self.nlp_dict
         )
 
     @property
@@ -250,16 +246,16 @@ class Result(models.Model):
         )
 
 
-class Job(models.Model):
+class Assignment(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE
     )
 
-    results = models.ManyToManyField(Result)
+    source_records = models.ManyToManyField(SourceRecord)
 
-    def create_results(self) -> None:
+    def assign_source_records(self) -> None:
         source_table_definition = self.sample.source_column.table_definition
         source_connection_name = source_table_definition.db_connection_name
         source_pk_column_name = source_table_definition.pk_column_name
@@ -285,29 +281,26 @@ class Job(models.Model):
             if nlp_dict:
                 nlp_pk_value = nlp_dict[nlp_pk_column_name]
 
-            result, created = Result.objects.get_or_create(
+            source_record, created = SourceRecord.objects.get_or_create(
                 source_column=self.sample.source_column,
                 nlp_table_definition=nlp_table_definition,
                 source_pk_value=source_row[0],
                 nlp_pk_value=nlp_pk_value,
             )
 
-            self.results.add(result)
+            self.source_records.add(source_record)
 
 
-class Answer(models.Model):
+class UserAnswer(models.Model):
     """
-    A user classification result. Currently linked one-to-one with Result,
-    which has an optional NLP record.
+    A user's answer to a Question. Linked with SourceRecord, which has an
+    optional NLP record.
 
-    - A Question can have many Answers... Maybe Answer is a poor choice of
-      name?
-
-    - The answer is specific to the user. Users might classify differently.
+    - Note that in this analogy a question can have many answers.
 
     """
 
-    result = models.ForeignKey(Result, on_delete=models.CASCADE)
+    source_record = models.ForeignKey(SourceRecord, on_delete=models.CASCADE)
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    choice = models.ForeignKey(Choice, null=True, on_delete=models.SET_NULL)
-    job = models.ForeignKey(Job, on_delete=models.CASCADE)
+    decision = models.ForeignKey(Option, null=True, on_delete=models.SET_NULL)
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)

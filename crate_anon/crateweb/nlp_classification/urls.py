@@ -30,21 +30,21 @@ crate_anon/crateweb/nlp_classification/urls.py
 from django.urls import path, re_path
 
 from crate_anon.crateweb.nlp_classification.views import (
+    AssignmentView,
     HomeView,
-    JobView,
-    AnswerView,
+    UserAnswerView,
 )
 
 urlpatterns = [
     re_path(r"^$", HomeView.as_view(), name="nlp_classification_home"),
     path(
-        "job/<int:pk>",
-        JobView.as_view(),
-        name="nlp_classification_job",
+        "assignment/<int:pk>",
+        AssignmentView.as_view(),
+        name="nlp_classification_assignment",
     ),
     path(
         "answer/<int:pk>",
-        AnswerView.as_view(),
+        UserAnswerView.as_view(),
         name="nlp_classification_answer",
     ),
 ]
