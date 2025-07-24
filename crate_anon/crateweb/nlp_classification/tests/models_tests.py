@@ -13,7 +13,7 @@ from crate_anon.crateweb.nlp_classification.models import (
 )
 from crate_anon.crateweb.nlp_classification.tests.factories import (
     ColumnFactory,
-    SampleFactory,
+    SampleSpecFactory,
     SourceRecordFactory,
     TableDefinitionFactory,
 )
@@ -54,21 +54,21 @@ class OptionTests(TestCase):
         self.assertEqual(str(choice), "Test")
 
 
-class SampleTests(TestCase):
+class SampleSpecTests(TestCase):
     databases = {DJANGO_DEFAULT_CONNECTION}
 
-    def test_str_shows_sample_source(self) -> None:
+    def test_str_shows_sample_spec_source(self) -> None:
         table_definition = TableDefinitionFactory(
             table_name="note",
             pk_column_name="id",
             db_connection_name="test",
         )
         column = ColumnFactory(table_definition=table_definition, name="note")
-        sample = SampleFactory(
+        sample_spec = SampleSpecFactory(
             source_column=column, search_term="CRP", size=100, seed=12345
         )
         self.assertEqual(
-            str(sample),
+            str(sample_spec),
             (
                 "100 records from 'test.note.note' "
                 "with seed 12345 and search term 'CRP'"

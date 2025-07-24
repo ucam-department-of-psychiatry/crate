@@ -98,7 +98,7 @@ class Column(models.Model):
         return f"{self.table_definition}.{self.name}"
 
 
-class Sample(models.Model):
+class SampleSpec(models.Model):
     """
     Used to create SourceRecords across one or more source tables and
     corresponding NLP records.
@@ -248,7 +248,7 @@ class SourceRecord(models.Model):
 
 class Assignment(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
-    sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
+    sample_spec = models.ForeignKey(SampleSpec, on_delete=models.CASCADE)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE
     )
@@ -256,13 +256,15 @@ class Assignment(models.Model):
     source_records = models.ManyToManyField(SourceRecord)
 
     def assign_source_records(self) -> None:
-        source_table_definition = self.sample.source_column.table_definition
+        source_table_definition = (
+            self.sample_spec.source_column.table_definition
+        )
         source_connection_name = source_table_definition.db_connection_name
         source_pk_column_name = source_table_definition.pk_column_name
         source_table_name = source_table_definition.table_name
         source_connection = DatabaseConnection(source_connection_name)
 
-        nlp_table_definition = self.sample.nlp_table_definition
+        nlp_table_definition = self.sample_spec.nlp_table_definition
         nlp_connection_name = nlp_table_definition.db_connection_name
         nlp_pk_column_name = nlp_table_definition.pk_column_name
         nlp_table_name = nlp_table_definition.table_name
@@ -282,7 +284,7 @@ class Assignment(models.Model):
                 nlp_pk_value = nlp_dict[nlp_pk_column_name]
 
             source_record, created = SourceRecord.objects.get_or_create(
-                source_column=self.sample.source_column,
+                source_column=self.sample_spec.source_column,
                 nlp_table_definition=nlp_table_definition,
                 source_pk_value=source_row[0],
                 nlp_pk_value=nlp_pk_value,
