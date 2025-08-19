@@ -78,7 +78,7 @@ class AdminTaskListView(TemplateView):
 
 class AdminTaskCreateView(CreateView):
     model = Task
-    template_name = "nlp_classification/admin/taskupdate_form.html"
+    template_name = "nlp_classification/admin/update_form.html"
     form_class = TaskForm
 
     def get_success_url(self):
@@ -93,7 +93,7 @@ class AdminTaskCreateView(CreateView):
 
 class AdminTaskEditView(UpdateView):
     model = Task
-    template_name = "nlp_classification/admin/taskupdate_form.html"
+    template_name = "nlp_classification/admin/update_form.html"
     form_class = TaskForm
 
     def get_success_url(self):
@@ -124,7 +124,7 @@ class AdminQuestionListView(TemplateView):
 
 class AdminQuestionCreateView(CreateView):
     model = Question
-    template_name = "nlp_classification/admin/questionupdate_form.html"
+    template_name = "nlp_classification/admin/update_form.html"
     form_class = QuestionForm
 
     def get_success_url(self):
@@ -139,7 +139,7 @@ class AdminQuestionCreateView(CreateView):
 
 class AdminQuestionEditView(UpdateView):
     model = Question
-    template_name = "nlp_classification/admin/questionupdate_form.html"
+    template_name = "nlp_classification/admin/update_form.html"
     form_class = QuestionForm
 
     def get_success_url(self):
@@ -170,7 +170,7 @@ class AdminOptionListView(TemplateView):
 
 class AdminOptionCreateView(CreateView):
     model = Option
-    template_name = "nlp_classification/admin/optionupdate_form.html"
+    template_name = "nlp_classification/admin/update_form.html"
     form_class = OptionForm
 
     def get_success_url(self):
@@ -185,7 +185,7 @@ class AdminOptionCreateView(CreateView):
 
 class AdminOptionEditView(UpdateView):
     model = Option
-    template_name = "nlp_classification/admin/optionupdate_form.html"
+    template_name = "nlp_classification/admin/update_form.html"
     form_class = OptionForm
 
     def get_success_url(self):
