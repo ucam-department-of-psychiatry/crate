@@ -18,7 +18,9 @@ class UserAnswerViewTests(TestCase):
 
         self.assertEqual(
             view.get_success_url(),
-            reverse("nlp_classification_answer", kwargs={"pk": unanswered.pk}),
+            reverse(
+                "nlp_classification_user_answer", kwargs={"pk": unanswered.pk}
+            ),
         )
 
     def test_success_url_is_assignment_list_if_all_answered(self) -> None:
@@ -30,7 +32,7 @@ class UserAnswerViewTests(TestCase):
         self.assertEqual(
             view.get_success_url(),
             reverse(
-                "nlp_classification_assignment",
+                "nlp_classification_user_assignment",
                 kwargs={"pk": this_answer.assignment.pk},
             ),
         )

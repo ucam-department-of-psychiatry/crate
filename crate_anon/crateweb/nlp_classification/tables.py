@@ -53,7 +53,7 @@ class UserAnswerTable(tables.Table):
     source_record = tables.Column()
     decision = tables.Column()
     rate = tables.LinkColumn(
-        "nlp_classification_answer", text="Rate", args=[tables.A("pk")]
+        "nlp_classification_user_answer", text="Rate", args=[tables.A("pk")]
     )
 
 

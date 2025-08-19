@@ -54,27 +54,27 @@ urlpatterns = [
         name="nlp_classification_admin_task_list",
     ),
     re_path(
-        r"^admin/questions/$",
+        r"^admin/question/$",
         AdminQuestionListView.as_view(),
         name="nlp_classification_admin_question_list",
     ),
     re_path(
-        r"^admin/options/$",
+        r"^admin/option/$",
         AdminOptionListView.as_view(),
         name="nlp_classification_admin_option_list",
     ),
     re_path(
-        r"^admin/sample_specs/$",
+        r"^admin/sample_spec/$",
         AdminSampleSpecListView.as_view(),
         name="nlp_classification_admin_sample_spec_list",
     ),
     re_path(
-        r"^admin/table_definitions/$",
+        r"^admin/table_definition/$",
         AdminTableDefinitionListView.as_view(),
         name="nlp_classification_admin_table_definition_list",
     ),
     re_path(
-        r"^admin/assignments/$",
+        r"^admin/assignment/$",
         AdminAssignmentListView.as_view(),
         name="nlp_classification_admin_assignment_list",
     ),
@@ -82,13 +82,13 @@ urlpatterns = [
         r"^user/$", UserHomeView.as_view(), name="nlp_classification_user_home"
     ),
     path(
-        "assignment/<int:pk>",
+        "user/assignment/<int:pk>",
         AssignmentView.as_view(),
-        name="nlp_classification_assignment",
+        name="nlp_classification_user_assignment",
     ),
     path(
-        "answer/<int:pk>",
+        "user/answer/<int:pk>",
         UserAnswerView.as_view(),
-        name="nlp_classification_answer",
+        name="nlp_classification_user_answer",
     ),
 ]

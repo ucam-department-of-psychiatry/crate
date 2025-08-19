@@ -123,11 +123,11 @@ class UserAnswerView(UpdateView):
 
         if next_record is not None:
             return reverse(
-                "nlp_classification_answer", kwargs={"pk": next_record.pk}
+                "nlp_classification_user_answer", kwargs={"pk": next_record.pk}
             )
 
         return reverse(
-            "nlp_classification_assignment",
+            "nlp_classification_user_assignment",
             kwargs={"pk": self.object.assignment.pk},
         )
 
