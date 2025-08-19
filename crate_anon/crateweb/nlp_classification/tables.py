@@ -29,6 +29,7 @@ CRATE NLP classification tables.
 
 from crate_anon.crateweb.nlp_classification.models import (
     Assignment,
+    Task,
     UserAnswer,
 )
 
@@ -64,10 +65,21 @@ class AssignmentTable(tables.Table):
     task = tables.Column()
     sample_spec = tables.Column()
     view = tables.LinkColumn(
-        "nlp_classification_assignment", text="View", args=[tables.A("pk")]
+        "nlp_classification_user_assignment",
+        text="View",
+        args=[tables.A("pk")],
     )
 
 
 class FieldTable(tables.Table):
     name = tables.Column()
     value = tables.Column()
+
+
+class TaskTable(tables.Table):
+    class Meta:
+        model = Task
+
+    name = tables.LinkColumn(
+        "nlp_classification_admin_task_edit", args=[tables.A("pk")]
+    )

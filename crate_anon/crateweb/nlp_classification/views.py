@@ -30,17 +30,22 @@ CRATE NLP classification views.
 from typing import Any, Optional
 
 from django.urls import reverse
-from django.views.generic import TemplateView, UpdateView
+from django.views.generic import CreateView, TemplateView, UpdateView
 import django_tables2 as tables
 
-from crate_anon.crateweb.nlp_classification.forms import UserAnswerForm
+from crate_anon.crateweb.nlp_classification.forms import (
+    TaskForm,
+    UserAnswerForm,
+)
 from crate_anon.crateweb.nlp_classification.models import (
     Assignment,
+    Task,
     UserAnswer,
 )
 from crate_anon.crateweb.nlp_classification.tables import (
     AssignmentTable,
     FieldTable,
+    TaskTable,
     UserAnswerTable,
 )
 
@@ -51,6 +56,48 @@ class AdminHomeView(TemplateView):
 
 class AdminTaskListView(TemplateView):
     template_name = "nlp_classification/admin/task_list.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+
+        table = self._get_table()
+        tables.RequestConfig(self.request).configure(table)
+        context.update(table=table)
+
+        return context
+
+    def _get_table(self) -> tables.Table:
+        return TaskTable(Task.objects.all())
+
+
+class AdminTaskCreateView(CreateView):
+    model = Task
+    template_name = "nlp_classification/admin/taskupdate_form.html"
+    form_class = TaskForm
+
+    def get_success_url(self):
+        return reverse("nlp_classification_admin_task_list")
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(title="New Task")
+
+        return context
+
+
+class AdminTaskEditView(UpdateView):
+    model = Task
+    template_name = "nlp_classification/admin/taskupdate_form.html"
+    form_class = TaskForm
+
+    def get_success_url(self):
+        return reverse("nlp_classification_admin_task_list")
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(title=self.object)
+
+        return context
 
 
 class AdminQuestionListView(TemplateView):

@@ -3,7 +3,17 @@ from typing import Any
 from django.forms import ModelForm, ModelChoiceField, RadioSelect
 
 
-from crate_anon.crateweb.nlp_classification.models import UserAnswer, Option
+from crate_anon.crateweb.nlp_classification.models import (
+    Task,
+    UserAnswer,
+    Option,
+)
+
+
+class TaskForm(ModelForm):
+    class Meta:
+        model = Task
+        fields = ["name"]
 
 
 class UserAnswerForm(ModelForm):

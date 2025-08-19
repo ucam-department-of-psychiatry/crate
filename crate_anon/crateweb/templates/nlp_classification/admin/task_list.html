@@ -1,6 +1,9 @@
 {# crate_anon/crateweb/templates/nlp_classification/admin/task_list.html #}
 {% extends "nlp_classification/base.html" %}
+{% load render_table from django_tables2 %}
 
 {% block nlp_classification_content %}
             <h2>Tasks</h2>
+            <a href="{% url 'nlp_classification_admin_task_create'  %}">New task</a>
+            {% render_table table %}
 {% endblock %}
