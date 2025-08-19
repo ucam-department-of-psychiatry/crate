@@ -31,12 +31,56 @@ from django.urls import path, re_path
 
 from crate_anon.crateweb.nlp_classification.views import (
     AssignmentView,
-    HomeView,
+    AdminHomeView,
+    AdminTaskListView,
+    AdminQuestionListView,
+    AdminOptionListView,
+    AdminSampleSpecListView,
+    AdminTableDefinitionListView,
+    AdminAssignmentListView,
     UserAnswerView,
+    UserHomeView,
 )
 
 urlpatterns = [
-    re_path(r"^$", HomeView.as_view(), name="nlp_classification_home"),
+    re_path(
+        r"^admin/$",
+        AdminHomeView.as_view(),
+        name="nlp_classification_admin_home",
+    ),
+    re_path(
+        r"^admin/tasks/$",
+        AdminTaskListView.as_view(),
+        name="nlp_classification_admin_task_list",
+    ),
+    re_path(
+        r"^admin/questions/$",
+        AdminQuestionListView.as_view(),
+        name="nlp_classification_admin_question_list",
+    ),
+    re_path(
+        r"^admin/options/$",
+        AdminOptionListView.as_view(),
+        name="nlp_classification_admin_option_list",
+    ),
+    re_path(
+        r"^admin/sample_specs/$",
+        AdminSampleSpecListView.as_view(),
+        name="nlp_classification_admin_sample_spec_list",
+    ),
+    re_path(
+        r"^admin/table_definitions/$",
+        AdminTableDefinitionListView.as_view(),
+        name="nlp_classification_admin_table_definition_list",
+    ),
+    re_path(
+        r"^admin/assignments/$",
+        AdminAssignmentListView.as_view(),
+        name="nlp_classification_admin_assignment_list",
+    ),
+    re_path(
+        r"^user/$", UserHomeView.as_view(), name="nlp_classification_user_home"
+    ),
     path(
         "assignment/<int:pk>",
         AssignmentView.as_view(),

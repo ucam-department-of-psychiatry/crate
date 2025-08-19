@@ -1,0 +1,15 @@
+{# crate_anon/crateweb/templates/nlp_classification/admin_home.html #}
+{% extends "base.html" %}
+
+{% block content %}
+            <h1>CRATE NLP Classification</h1>
+            <h2>Administration</h2>
+            <ul>
+              <li><a href="{% url 'nlp_classification_admin_task_list' %}">Tasks</a></li>
+              <li><a href="{% url 'nlp_classification_admin_question_list' %}">Questions</a></li>
+              <li><a href="{% url 'nlp_classification_admin_option_list' %}">Options</a></li>
+              <li><a href="{% url 'nlp_classification_admin_sample_spec_list' %}">Sample specs</a></li>
+              <li><a href="{% url 'nlp_classification_admin_table_definition_list' %}">Table definitions</a></li>
+              <li><a href="{% url 'nlp_classification_admin_assignment_list' %}">Assignments</a></li>
+            </ul>
+{% endblock %}

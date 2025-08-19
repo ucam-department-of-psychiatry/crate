@@ -45,20 +45,32 @@ from crate_anon.crateweb.nlp_classification.tables import (
 )
 
 
-class HomeView(TemplateView):
-    template_name = "nlp_classification/home.html"
+class AdminHomeView(TemplateView):
+    template_name = "nlp_classification/admin_home.html"
 
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
 
-        table = self._get_table()
-        tables.RequestConfig(self.request).configure(table)
-        context.update(table=table)
+class AdminTaskListView(TemplateView):
+    template_name = "nlp_classification/admin_task_list.html"
 
-        return context
 
-    def _get_table(self) -> tables.Table:
-        return AssignmentTable(Assignment.objects.all())
+class AdminQuestionListView(TemplateView):
+    template_name = "nlp_classification/admin_question_list.html"
+
+
+class AdminOptionListView(TemplateView):
+    template_name = "nlp_classification/admin_option_list.html"
+
+
+class AdminSampleSpecListView(TemplateView):
+    template_name = "nlp_classification/admin_sample_spec_list.html"
+
+
+class AdminTableDefinitionListView(TemplateView):
+    template_name = "nlp_classification/admin_table_definition_list.html"
+
+
+class AdminAssignmentListView(TemplateView):
+    template_name = "nlp_classification/admin_assignment_list.html"
 
 
 class AssignmentView(TemplateView):
@@ -79,6 +91,22 @@ class AssignmentView(TemplateView):
         return UserAnswerTable(
             UserAnswer.objects.filter(assignment=assignment)
         )
+
+
+class UserHomeView(TemplateView):
+    template_name = "nlp_classification/user_home.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+
+        table = self._get_table()
+        tables.RequestConfig(self.request).configure(table)
+        context.update(table=table)
+
+        return context
+
+    def _get_table(self) -> tables.Table:
+        return AssignmentTable(Assignment.objects.all())
 
 
 class UserAnswerView(UpdateView):
