@@ -34,17 +34,20 @@ from django.views.generic import CreateView, TemplateView, UpdateView
 import django_tables2 as tables
 
 from crate_anon.crateweb.nlp_classification.forms import (
+    QuestionForm,
     TaskForm,
     UserAnswerForm,
 )
 from crate_anon.crateweb.nlp_classification.models import (
     Assignment,
+    Question,
     Task,
     UserAnswer,
 )
 from crate_anon.crateweb.nlp_classification.tables import (
     AssignmentTable,
     FieldTable,
+    QuestionTable,
     TaskTable,
     UserAnswerTable,
 )
@@ -80,7 +83,7 @@ class AdminTaskCreateView(CreateView):
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
-        context.update(title="New Task")
+        context.update(title="New task")
 
         return context
 
@@ -95,13 +98,55 @@ class AdminTaskEditView(UpdateView):
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
-        context.update(title=self.object)
+        context.update(title="Edit task")
 
         return context
 
 
 class AdminQuestionListView(TemplateView):
     template_name = "nlp_classification/admin/question_list.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+
+        table = self._get_table()
+        tables.RequestConfig(self.request).configure(table)
+        context.update(table=table)
+
+        return context
+
+    def _get_table(self) -> tables.Table:
+        return QuestionTable(Question.objects.all())
+
+
+class AdminQuestionCreateView(CreateView):
+    model = Question
+    template_name = "nlp_classification/admin/questionupdate_form.html"
+    form_class = QuestionForm
+
+    def get_success_url(self):
+        return reverse("nlp_classification_admin_question_list")
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(title="New question")
+
+        return context
+
+
+class AdminQuestionEditView(UpdateView):
+    model = Question
+    template_name = "nlp_classification/admin/questionupdate_form.html"
+    form_class = QuestionForm
+
+    def get_success_url(self):
+        return reverse("nlp_classification_admin_question_list")
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(title="Edit question")
+
+        return context
 
 
 class AdminOptionListView(TemplateView):

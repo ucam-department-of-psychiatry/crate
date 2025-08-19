@@ -7,7 +7,14 @@ from crate_anon.crateweb.nlp_classification.models import (
     Task,
     UserAnswer,
     Option,
+    Question,
 )
+
+
+class QuestionForm(ModelForm):
+    class Meta:
+        model = Question
+        fields = ["title", "task", "options"]
 
 
 class TaskForm(ModelForm):

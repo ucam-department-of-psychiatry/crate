@@ -34,6 +34,20 @@ class Task(models.Model):
         return self.name
 
 
+class Option(models.Model):
+    """
+    Associated with one or more questions.
+
+    Examples: "Yes", "No"
+
+    """
+
+    description = models.CharField(max_length=100)
+
+    def __str__(self) -> Any:
+        return self.description
+
+
 class Question(models.Model):
     """
     Question is presented to the user validating the NLP records.
@@ -50,24 +64,10 @@ class Question(models.Model):
 
     title = models.CharField(max_length=100)
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    options = models.ManyToManyField(Option)
 
     def __str__(self) -> Any:
         return self.title
-
-
-class Option(models.Model):
-    """
-    Associated with one or more questions.
-
-    Examples: "Yes", "No"
-
-    """
-
-    question = models.ForeignKey(Question, on_delete=models.CASCADE)
-    description = models.CharField(max_length=100)
-
-    def __str__(self) -> Any:
-        return self.description
 
 
 class TableDefinition(models.Model):

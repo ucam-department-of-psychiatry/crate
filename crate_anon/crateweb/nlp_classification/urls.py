@@ -32,9 +32,11 @@ from django.urls import path, re_path
 from crate_anon.crateweb.nlp_classification.views import (
     AssignmentView,
     AdminHomeView,
+    AdminQuestionCreateView,
     AdminTaskCreateView,
     AdminTaskEditView,
     AdminTaskListView,
+    AdminQuestionEditView,
     AdminQuestionListView,
     AdminOptionListView,
     AdminSampleSpecListView,
@@ -69,6 +71,16 @@ urlpatterns = [
         r"^admin/question/$",
         AdminQuestionListView.as_view(),
         name="nlp_classification_admin_question_list",
+    ),
+    path(
+        r"admin/question/new",
+        AdminQuestionCreateView.as_view(),
+        name="nlp_classification_admin_question_create",
+    ),
+    path(
+        "admin/question/<int:pk>",
+        AdminQuestionEditView.as_view(),
+        name="nlp_classification_admin_question_edit",
     ),
     re_path(
         r"^admin/option/$",

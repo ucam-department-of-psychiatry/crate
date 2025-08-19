@@ -71,15 +71,22 @@ class Command(BaseCommand):
                 "AND that value matches the NLP output?"
             ),
         )
-        Option.objects.create(question=crp_question, description="Yes")
-        Option.objects.create(question=crp_question, description="No")
+        yes = Option.objects.create(description="Yes")
+        no = Option.objects.create(description="No")
+
+        crp_question.options.add(yes)
+        crp_question.options.add(no)
 
         fruit_question = Question.objects.create(
             task=task, title="Which fruit do you prefer?"
         )
-        Option.objects.create(question=fruit_question, description="Apple")
-        Option.objects.create(question=fruit_question, description="Banana")
-        Option.objects.create(question=fruit_question, description="Pear")
+        apple = Option.objects.create(description="Apple")
+        banana = Option.objects.create(description="Banana")
+        pear = Option.objects.create(description="Pear")
+
+        fruit_question.options.add(apple)
+        fruit_question.options.add(banana)
+        fruit_question.options.add(pear)
 
         get_user_model().objects.get(username="test").delete()
         user = get_user_model().objects.create(username="test")
