@@ -110,7 +110,7 @@ INSTALL_REQUIRES = [
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.15.0",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
-    "pypdf==3.17.1",  # create PDF files
+    "pypdf==6.0.0",  # create PDF files
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html
