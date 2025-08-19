@@ -62,7 +62,7 @@ class UserAnswerTable(tables.Table):
     )
 
 
-class AssignmentTable(tables.Table):
+class UserAssignmentTable(tables.Table):
     class Meta:
         model = Assignment
 
@@ -71,6 +71,24 @@ class AssignmentTable(tables.Table):
     view = tables.LinkColumn(
         "nlp_classification_user_assignment",
         text="View",
+        args=[tables.A("pk")],
+    )
+
+
+class AdminAssignmentTable(tables.Table):
+    class Meta:
+        model = Assignment
+
+    task = tables.LinkColumn(
+        "nlp_classification_admin_assignment_edit",
+        args=[tables.A("pk")],
+    )
+    sample_spec = tables.LinkColumn(
+        "nlp_classification_admin_assignment_edit",
+        args=[tables.A("pk")],
+    )
+    user = tables.LinkColumn(
+        "nlp_classification_admin_assignment_edit",
         args=[tables.A("pk")],
     )
 

@@ -30,7 +30,9 @@ crate_anon/crateweb/nlp_classification/urls.py
 from django.urls import path, re_path
 
 from crate_anon.crateweb.nlp_classification.views import (
-    AssignmentView,
+    AdminAssignmentCreateView,
+    AdminAssignmentEditView,
+    AdminAssignmentListView,
     AdminHomeView,
     AdminOptionCreateView,
     AdminOptionEditView,
@@ -47,8 +49,8 @@ from crate_anon.crateweb.nlp_classification.views import (
     AdminTableDefinitionCreateView,
     AdminTableDefinitionEditView,
     AdminTableDefinitionListView,
-    AdminAssignmentListView,
     UserAnswerView,
+    UserAssignmentView,
     UserHomeView,
 )
 
@@ -62,6 +64,16 @@ urlpatterns = [
         r"^admin/assignment/$",
         AdminAssignmentListView.as_view(),
         name="nlp_classification_admin_assignment_list",
+    ),
+    path(
+        r"admin/assignment/new",
+        AdminAssignmentCreateView.as_view(),
+        name="nlp_classification_admin_assignment_create",
+    ),
+    path(
+        "admin/assignment/<int:pk>",
+        AdminAssignmentEditView.as_view(),
+        name="nlp_classification_admin_assignment_edit",
     ),
     re_path(
         r"^admin/option/$",
@@ -143,7 +155,7 @@ urlpatterns = [
     ),
     path(
         "user/assignment/<int:pk>",
-        AssignmentView.as_view(),
+        UserAssignmentView.as_view(),
         name="nlp_classification_user_assignment",
     ),
     path(

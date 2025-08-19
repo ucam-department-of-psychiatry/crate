@@ -4,6 +4,7 @@ from django.forms import ModelForm, ModelChoiceField, RadioSelect
 
 
 from crate_anon.crateweb.nlp_classification.models import (
+    Assignment,
     Option,
     Question,
     SampleSpec,
@@ -11,6 +12,12 @@ from crate_anon.crateweb.nlp_classification.models import (
     Task,
     UserAnswer,
 )
+
+
+class AssignmentForm(ModelForm):
+    class Meta:
+        model = Assignment
+        fields = ["task", "sample_spec", "user"]
 
 
 class OptionForm(ModelForm):

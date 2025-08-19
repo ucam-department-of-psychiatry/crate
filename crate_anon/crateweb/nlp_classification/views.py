@@ -34,6 +34,7 @@ from django.views.generic import CreateView, TemplateView, UpdateView
 import django_tables2 as tables
 
 from crate_anon.crateweb.nlp_classification.forms import (
+    AssignmentForm,
     OptionForm,
     QuestionForm,
     SampleSpecForm,
@@ -51,7 +52,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     UserAnswer,
 )
 from crate_anon.crateweb.nlp_classification.tables import (
-    AssignmentTable,
+    AdminAssignmentTable,
     FieldTable,
     OptionTable,
     QuestionTable,
@@ -59,6 +60,7 @@ from crate_anon.crateweb.nlp_classification.tables import (
     TableDefinitionTable,
     TaskTable,
     UserAnswerTable,
+    UserAssignmentTable,
 )
 
 
@@ -299,8 +301,50 @@ class AdminTableDefinitionEditView(UpdateView):
 class AdminAssignmentListView(TemplateView):
     template_name = "nlp_classification/admin/assignment_list.html"
 
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
 
-class AssignmentView(TemplateView):
+        table = self._get_table()
+        tables.RequestConfig(self.request).configure(table)
+        context.update(table=table)
+
+        return context
+
+    def _get_table(self) -> tables.Table:
+        return AdminAssignmentTable(Assignment.objects.all())
+
+
+class AdminAssignmentCreateView(CreateView):
+    model = Assignment
+    template_name = "nlp_classification/admin/update_form.html"
+    form_class = AssignmentForm
+
+    def get_success_url(self):
+        return reverse("nlp_classification_admin_assignment_list")
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(title="New assignment")
+
+        return context
+
+
+class AdminAssignmentEditView(UpdateView):
+    model = Assignment
+    template_name = "nlp_classification/admin/update_form.html"
+    form_class = AssignmentForm
+
+    def get_success_url(self):
+        return reverse("nlp_classification_admin_assignment_list")
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(title="Edit assigment")
+
+        return context
+
+
+class UserAssignmentView(TemplateView):
     template_name = "nlp_classification/user/assignment.html"
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
@@ -333,7 +377,7 @@ class UserHomeView(TemplateView):
         return context
 
     def _get_table(self) -> tables.Table:
-        return AssignmentTable(Assignment.objects.all())
+        return UserAssignmentTable(Assignment.objects.all())
 
 
 class UserAnswerView(UpdateView):
