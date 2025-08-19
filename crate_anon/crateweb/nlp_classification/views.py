@@ -37,6 +37,7 @@ from crate_anon.crateweb.nlp_classification.forms import (
     OptionForm,
     QuestionForm,
     SampleSpecForm,
+    TableDefinitionForm,
     TaskForm,
     UserAnswerForm,
 )
@@ -45,6 +46,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     Option,
     Question,
     SampleSpec,
+    TableDefinition,
     Task,
     UserAnswer,
 )
@@ -54,6 +56,7 @@ from crate_anon.crateweb.nlp_classification.tables import (
     OptionTable,
     QuestionTable,
     SampleSpecTable,
+    TableDefinitionTable,
     TaskTable,
     UserAnswerTable,
 )
@@ -249,6 +252,48 @@ class AdminSampleSpecEditView(UpdateView):
 
 class AdminTableDefinitionListView(TemplateView):
     template_name = "nlp_classification/admin/table_definition_list.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+
+        table = self._get_table()
+        tables.RequestConfig(self.request).configure(table)
+        context.update(table=table)
+
+        return context
+
+    def _get_table(self) -> tables.Table:
+        return TableDefinitionTable(TableDefinition.objects.all())
+
+
+class AdminTableDefinitionCreateView(CreateView):
+    model = TableDefinition
+    template_name = "nlp_classification/admin/update_form.html"
+    form_class = TableDefinitionForm
+
+    def get_success_url(self):
+        return reverse("nlp_classification_admin_table_definition_list")
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(title="New table definition")
+
+        return context
+
+
+class AdminTableDefinitionEditView(UpdateView):
+    model = TableDefinition
+    template_name = "nlp_classification/admin/update_form.html"
+    form_class = TableDefinitionForm
+
+    def get_success_url(self):
+        return reverse("nlp_classification_admin_table_definition_list")
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(title="Edit table definition")
+
+        return context
 
 
 class AdminAssignmentListView(TemplateView):

@@ -44,6 +44,8 @@ from crate_anon.crateweb.nlp_classification.views import (
     AdminSampleSpecCreateView,
     AdminSampleSpecEditView,
     AdminSampleSpecListView,
+    AdminTableDefinitionCreateView,
+    AdminTableDefinitionEditView,
     AdminTableDefinitionListView,
     AdminAssignmentListView,
     UserAnswerView,
@@ -110,6 +112,16 @@ urlpatterns = [
         r"^admin/table_definition/$",
         AdminTableDefinitionListView.as_view(),
         name="nlp_classification_admin_table_definition_list",
+    ),
+    path(
+        r"admin/table_definition/new",
+        AdminTableDefinitionCreateView.as_view(),
+        name="nlp_classification_admin_table_definition_create",
+    ),
+    path(
+        "admin/table_definition/<int:pk>",
+        AdminTableDefinitionEditView.as_view(),
+        name="nlp_classification_admin_table_definition_edit",
     ),
     re_path(
         r"^admin/task/$",

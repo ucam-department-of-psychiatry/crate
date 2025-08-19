@@ -32,6 +32,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     Option,
     Question,
     SampleSpec,
+    TableDefinition,
     Task,
     UserAnswer,
 )
@@ -116,6 +117,21 @@ class SampleSpecTable(tables.Table):
     )
     seed = tables.LinkColumn(
         "nlp_classification_admin_sample_spec_edit", args=[tables.A("pk")]
+    )
+
+
+class TableDefinitionTable(tables.Table):
+    class Meta:
+        model = TableDefinition
+
+    db_connection_name = tables.LinkColumn(
+        "nlp_classification_admin_table_definition_edit", args=[tables.A("pk")]
+    )
+    table_name = tables.LinkColumn(
+        "nlp_classification_admin_table_definition_edit", args=[tables.A("pk")]
+    )
+    pk_column_name = tables.LinkColumn(
+        "nlp_classification_admin_table_definition_edit", args=[tables.A("pk")]
     )
 
 

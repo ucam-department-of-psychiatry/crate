@@ -4,11 +4,12 @@ from django.forms import ModelForm, ModelChoiceField, RadioSelect
 
 
 from crate_anon.crateweb.nlp_classification.models import (
-    Task,
-    UserAnswer,
     Option,
     Question,
     SampleSpec,
+    TableDefinition,
+    Task,
+    UserAnswer,
 )
 
 
@@ -34,6 +35,12 @@ class SampleSpecForm(ModelForm):
             "size",
             "seed",
         ]
+
+
+class TableDefinitionForm(ModelForm):
+    class Meta:
+        model = TableDefinition
+        fields = ["db_connection_name", "table_name", "pk_column_name"]
 
 
 class TaskForm(ModelForm):
