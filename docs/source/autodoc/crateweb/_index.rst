@@ -301,16 +301,17 @@ crate_anon/crateweb
     templates/include_jquery.html.rst
     templates/logged_out.html.rst
     templates/login.html.rst
-    templates/nlp_classification/admin_assignment_list.html.rst
-    templates/nlp_classification/admin_home.html.rst
-    templates/nlp_classification/admin_option_list.html.rst
-    templates/nlp_classification/admin_question_list.html.rst
-    templates/nlp_classification/admin_sample_spec_list.html.rst
-    templates/nlp_classification/admin_table_definition_list.html.rst
-    templates/nlp_classification/admin_task_list.html.rst
-    templates/nlp_classification/assignment.html.rst
-    templates/nlp_classification/user_home.html.rst
-    templates/nlp_classification/useranswerupdate_form.html.rst
+    templates/nlp_classification/admin/assignment_list.html.rst
+    templates/nlp_classification/admin/home.html.rst
+    templates/nlp_classification/admin/option_list.html.rst
+    templates/nlp_classification/admin/question_list.html.rst
+    templates/nlp_classification/admin/sample_spec_list.html.rst
+    templates/nlp_classification/admin/table_definition_list.html.rst
+    templates/nlp_classification/admin/task_list.html.rst
+    templates/nlp_classification/base.html.rst
+    templates/nlp_classification/user/assignment.html.rst
+    templates/nlp_classification/user/home.html.rst
+    templates/nlp_classification/user/useranswerupdate_form.html.rst
     templates/page_nav.html.rst
     templates/password_change.html.rst
     templates/pdf.css.rst

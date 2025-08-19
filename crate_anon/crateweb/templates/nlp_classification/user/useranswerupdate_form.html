@@ -1,9 +1,8 @@
-{# crate_anon/crateweb/templates/nlp_classification/answerupdate_form.html #}
-{% extends "base.html" %}
+{# crate_anon/crateweb/templates/nlp_classification/user/answerupdate_form.html #}
+{% extends "nlp_classification/base.html" %}
 {% load render_table from django_tables2 %}
 
-{% block content %}
-<h1>CRATE NLP Classification</h1>
+{% block nlp_classification_content %}
 <h2>{{ object.question }}</h2>
 
 <p style="font-size: medium">

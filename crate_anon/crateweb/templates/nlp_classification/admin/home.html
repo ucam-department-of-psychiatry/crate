@@ -1,8 +1,7 @@
-{# crate_anon/crateweb/templates/nlp_classification/admin_home.html #}
-{% extends "base.html" %}
+{# crate_anon/crateweb/templates/nlp_classification/admin/home.html #}
+{% extends "nlp_classification/base.html" %}
 
-{% block content %}
-            <h1>CRATE NLP Classification</h1>
+{% block nlp_classification_content %}
             <h2>Administration</h2>
             <ul>
               <li><a href="{% url 'nlp_classification_admin_task_list' %}">Tasks</a></li>

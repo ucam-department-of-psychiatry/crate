@@ -46,35 +46,35 @@ from crate_anon.crateweb.nlp_classification.tables import (
 
 
 class AdminHomeView(TemplateView):
-    template_name = "nlp_classification/admin_home.html"
+    template_name = "nlp_classification/admin/home.html"
 
 
 class AdminTaskListView(TemplateView):
-    template_name = "nlp_classification/admin_task_list.html"
+    template_name = "nlp_classification/admin/task_list.html"
 
 
 class AdminQuestionListView(TemplateView):
-    template_name = "nlp_classification/admin_question_list.html"
+    template_name = "nlp_classification/admin/question_list.html"
 
 
 class AdminOptionListView(TemplateView):
-    template_name = "nlp_classification/admin_option_list.html"
+    template_name = "nlp_classification/admin/option_list.html"
 
 
 class AdminSampleSpecListView(TemplateView):
-    template_name = "nlp_classification/admin_sample_spec_list.html"
+    template_name = "nlp_classification/admin/sample_spec_list.html"
 
 
 class AdminTableDefinitionListView(TemplateView):
-    template_name = "nlp_classification/admin_table_definition_list.html"
+    template_name = "nlp_classification/admin/table_definition_list.html"
 
 
 class AdminAssignmentListView(TemplateView):
-    template_name = "nlp_classification/admin_assignment_list.html"
+    template_name = "nlp_classification/admin/assignment_list.html"
 
 
 class AssignmentView(TemplateView):
-    template_name = "nlp_classification/assignment.html"
+    template_name = "nlp_classification/user/assignment.html"
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
@@ -94,7 +94,7 @@ class AssignmentView(TemplateView):
 
 
 class UserHomeView(TemplateView):
-    template_name = "nlp_classification/user_home.html"
+    template_name = "nlp_classification/user/home.html"
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
@@ -111,7 +111,7 @@ class UserHomeView(TemplateView):
 
 class UserAnswerView(UpdateView):
     model = UserAnswer
-    template_name_suffix = "update_form"
+    template_name = "nlp_classification/user/useranswerupdate_form.html"
     form_class = UserAnswerForm
 
     def get_success_url(self, **kwargs) -> str:
