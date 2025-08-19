@@ -1,6 +1,9 @@
 {# crate_anon/crateweb/templates/nlp_classification/admin/option_list.html #}
 {% extends "nlp_classification/base.html" %}
+{% load render_table from django_tables2 %}
 
 {% block nlp_classification_content %}
             <h2>Options</h2>
+            <a href="{% url 'nlp_classification_admin_option_create' %}">New option</a>
+            {% render_table table %}
 {% endblock %}

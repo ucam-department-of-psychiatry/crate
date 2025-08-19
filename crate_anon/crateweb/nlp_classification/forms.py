@@ -11,6 +11,12 @@ from crate_anon.crateweb.nlp_classification.models import (
 )
 
 
+class OptionForm(ModelForm):
+    class Meta:
+        model = Option
+        fields = ["description"]
+
+
 class QuestionForm(ModelForm):
     class Meta:
         model = Question

@@ -34,12 +34,14 @@ from django.views.generic import CreateView, TemplateView, UpdateView
 import django_tables2 as tables
 
 from crate_anon.crateweb.nlp_classification.forms import (
+    OptionForm,
     QuestionForm,
     TaskForm,
     UserAnswerForm,
 )
 from crate_anon.crateweb.nlp_classification.models import (
     Assignment,
+    Option,
     Question,
     Task,
     UserAnswer,
@@ -47,6 +49,7 @@ from crate_anon.crateweb.nlp_classification.models import (
 from crate_anon.crateweb.nlp_classification.tables import (
     AssignmentTable,
     FieldTable,
+    OptionTable,
     QuestionTable,
     TaskTable,
     UserAnswerTable,
@@ -151,6 +154,48 @@ class AdminQuestionEditView(UpdateView):
 
 class AdminOptionListView(TemplateView):
     template_name = "nlp_classification/admin/option_list.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+
+        table = self._get_table()
+        tables.RequestConfig(self.request).configure(table)
+        context.update(table=table)
+
+        return context
+
+    def _get_table(self) -> tables.Table:
+        return OptionTable(Option.objects.all())
+
+
+class AdminOptionCreateView(CreateView):
+    model = Option
+    template_name = "nlp_classification/admin/optionupdate_form.html"
+    form_class = OptionForm
+
+    def get_success_url(self):
+        return reverse("nlp_classification_admin_option_list")
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(title="New option")
+
+        return context
+
+
+class AdminOptionEditView(UpdateView):
+    model = Option
+    template_name = "nlp_classification/admin/optionupdate_form.html"
+    form_class = OptionForm
+
+    def get_success_url(self):
+        return reverse("nlp_classification_admin_option_list")
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(title="Edit option")
+
+        return context
 
 
 class AdminSampleSpecListView(TemplateView):

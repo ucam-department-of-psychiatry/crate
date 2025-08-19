@@ -304,6 +304,7 @@ crate_anon/crateweb
     templates/nlp_classification/admin/assignment_list.html.rst
     templates/nlp_classification/admin/home.html.rst
     templates/nlp_classification/admin/option_list.html.rst
+    templates/nlp_classification/admin/optionupdate_form.html.rst
     templates/nlp_classification/admin/question_list.html.rst
     templates/nlp_classification/admin/questionupdate_form.html.rst
     templates/nlp_classification/admin/sample_spec_list.html.rst

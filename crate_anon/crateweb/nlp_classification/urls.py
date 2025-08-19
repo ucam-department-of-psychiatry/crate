@@ -32,13 +32,15 @@ from django.urls import path, re_path
 from crate_anon.crateweb.nlp_classification.views import (
     AssignmentView,
     AdminHomeView,
+    AdminOptionCreateView,
+    AdminOptionEditView,
+    AdminOptionListView,
     AdminQuestionCreateView,
+    AdminQuestionEditView,
+    AdminQuestionListView,
     AdminTaskCreateView,
     AdminTaskEditView,
     AdminTaskListView,
-    AdminQuestionEditView,
-    AdminQuestionListView,
-    AdminOptionListView,
     AdminSampleSpecListView,
     AdminTableDefinitionListView,
     AdminAssignmentListView,
@@ -53,19 +55,24 @@ urlpatterns = [
         name="nlp_classification_admin_home",
     ),
     re_path(
-        r"^admin/task/$",
-        AdminTaskListView.as_view(),
-        name="nlp_classification_admin_task_list",
+        r"^admin/assignment/$",
+        AdminAssignmentListView.as_view(),
+        name="nlp_classification_admin_assignment_list",
+    ),
+    re_path(
+        r"^admin/option/$",
+        AdminOptionListView.as_view(),
+        name="nlp_classification_admin_option_list",
     ),
     path(
-        r"admin/task/new",
-        AdminTaskCreateView.as_view(),
-        name="nlp_classification_admin_task_create",
+        r"admin/option/new",
+        AdminOptionCreateView.as_view(),
+        name="nlp_classification_admin_option_create",
     ),
     path(
-        "admin/task/<int:pk>",
-        AdminTaskEditView.as_view(),
-        name="nlp_classification_admin_task_edit",
+        "admin/option/<int:pk>",
+        AdminOptionEditView.as_view(),
+        name="nlp_classification_admin_option_edit",
     ),
     re_path(
         r"^admin/question/$",
@@ -83,11 +90,6 @@ urlpatterns = [
         name="nlp_classification_admin_question_edit",
     ),
     re_path(
-        r"^admin/option/$",
-        AdminOptionListView.as_view(),
-        name="nlp_classification_admin_option_list",
-    ),
-    re_path(
         r"^admin/sample_spec/$",
         AdminSampleSpecListView.as_view(),
         name="nlp_classification_admin_sample_spec_list",
@@ -98,9 +100,19 @@ urlpatterns = [
         name="nlp_classification_admin_table_definition_list",
     ),
     re_path(
-        r"^admin/assignment/$",
-        AdminAssignmentListView.as_view(),
-        name="nlp_classification_admin_assignment_list",
+        r"^admin/task/$",
+        AdminTaskListView.as_view(),
+        name="nlp_classification_admin_task_list",
+    ),
+    path(
+        r"admin/task/new",
+        AdminTaskCreateView.as_view(),
+        name="nlp_classification_admin_task_create",
+    ),
+    path(
+        "admin/task/<int:pk>",
+        AdminTaskEditView.as_view(),
+        name="nlp_classification_admin_task_edit",
     ),
     re_path(
         r"^user/$", UserHomeView.as_view(), name="nlp_classification_user_home"
