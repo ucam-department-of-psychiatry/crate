@@ -31,6 +31,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     Assignment,
     Option,
     Question,
+    SampleSpec,
     Task,
     UserAnswer,
 )
@@ -95,6 +96,27 @@ class QuestionTable(tables.Table):
         "nlp_classification_admin_question_edit", args=[tables.A("pk")]
     )
     task = tables.Column()
+
+
+class SampleSpecTable(tables.Table):
+    class Meta:
+        model = SampleSpec
+
+    source_column = tables.LinkColumn(
+        "nlp_classification_admin_sample_spec_edit", args=[tables.A("pk")]
+    )
+    nlp_table_definition = tables.LinkColumn(
+        "nlp_classification_admin_sample_spec_edit", args=[tables.A("pk")]
+    )
+    search_term = tables.LinkColumn(
+        "nlp_classification_admin_sample_spec_edit", args=[tables.A("pk")]
+    )
+    size = tables.LinkColumn(
+        "nlp_classification_admin_sample_spec_edit", args=[tables.A("pk")]
+    )
+    seed = tables.LinkColumn(
+        "nlp_classification_admin_sample_spec_edit", args=[tables.A("pk")]
+    )
 
 
 class TaskTable(tables.Table):

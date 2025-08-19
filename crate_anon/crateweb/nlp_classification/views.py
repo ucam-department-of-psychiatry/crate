@@ -36,6 +36,7 @@ import django_tables2 as tables
 from crate_anon.crateweb.nlp_classification.forms import (
     OptionForm,
     QuestionForm,
+    SampleSpecForm,
     TaskForm,
     UserAnswerForm,
 )
@@ -43,6 +44,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     Assignment,
     Option,
     Question,
+    SampleSpec,
     Task,
     UserAnswer,
 )
@@ -51,6 +53,7 @@ from crate_anon.crateweb.nlp_classification.tables import (
     FieldTable,
     OptionTable,
     QuestionTable,
+    SampleSpecTable,
     TaskTable,
     UserAnswerTable,
 )
@@ -200,6 +203,48 @@ class AdminOptionEditView(UpdateView):
 
 class AdminSampleSpecListView(TemplateView):
     template_name = "nlp_classification/admin/sample_spec_list.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+
+        table = self._get_table()
+        tables.RequestConfig(self.request).configure(table)
+        context.update(table=table)
+
+        return context
+
+    def _get_table(self) -> tables.Table:
+        return SampleSpecTable(SampleSpec.objects.all())
+
+
+class AdminSampleSpecCreateView(CreateView):
+    model = SampleSpec
+    template_name = "nlp_classification/admin/update_form.html"
+    form_class = SampleSpecForm
+
+    def get_success_url(self):
+        return reverse("nlp_classification_admin_sample_spec_list")
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(title="New sample specification")
+
+        return context
+
+
+class AdminSampleSpecEditView(UpdateView):
+    model = SampleSpec
+    template_name = "nlp_classification/admin/update_form.html"
+    form_class = SampleSpecForm
+
+    def get_success_url(self):
+        return reverse("nlp_classification_admin_sample_spec_list")
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(title="Edit sample specification")
+
+        return context
 
 
 class AdminTableDefinitionListView(TemplateView):

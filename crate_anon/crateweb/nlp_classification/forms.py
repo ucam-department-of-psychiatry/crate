@@ -8,6 +8,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     UserAnswer,
     Option,
     Question,
+    SampleSpec,
 )
 
 
@@ -21,6 +22,18 @@ class QuestionForm(ModelForm):
     class Meta:
         model = Question
         fields = ["title", "task", "options"]
+
+
+class SampleSpecForm(ModelForm):
+    class Meta:
+        model = SampleSpec
+        fields = [
+            "source_column",
+            "nlp_table_definition",
+            "search_term",
+            "size",
+            "seed",
+        ]
 
 
 class TaskForm(ModelForm):
