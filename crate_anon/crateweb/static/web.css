@@ -29,7 +29,7 @@ Basic CSS for the CRATE web site.
 */
 
 #main {
-    font-size: small;
+    font-size: medium;
 }
 th {
     border-bottom: 1px solid #000;
