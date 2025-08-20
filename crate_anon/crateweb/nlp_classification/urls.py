@@ -49,6 +49,7 @@ from crate_anon.crateweb.nlp_classification.views import (
     AdminTableDefinitionCreateView,
     AdminTableDefinitionEditView,
     AdminTableDefinitionListView,
+    ClassificationWizardView,
     UserAnswerView,
     UserAssignmentView,
     UserHomeView,
@@ -149,6 +150,11 @@ urlpatterns = [
         "admin/task/<int:pk>",
         AdminTaskEditView.as_view(),
         name="nlp_classification_admin_task_edit",
+    ),
+    path(
+        "admin/wizard",
+        ClassificationWizardView.as_view(),
+        name="nlp_classification_admin_wizard",
     ),
     re_path(
         r"^user/$", UserHomeView.as_view(), name="nlp_classification_user_home"

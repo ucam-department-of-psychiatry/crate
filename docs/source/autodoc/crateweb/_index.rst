@@ -156,6 +156,7 @@ crate_anon/crateweb
     nlp_classification/__init__.py.rst
     nlp_classification/admin.py.rst
     nlp_classification/apps.py.rst
+    nlp_classification/constants.py.rst
     nlp_classification/database_connection.py.rst
     nlp_classification/forms.py.rst
     nlp_classification/management/commands/make_test_data.py.rst
@@ -309,6 +310,7 @@ crate_anon/crateweb
     templates/nlp_classification/admin/table_definition_list.html.rst
     templates/nlp_classification/admin/task_list.html.rst
     templates/nlp_classification/admin/update_form.html.rst
+    templates/nlp_classification/admin/wizard_form.html.rst
     templates/nlp_classification/base.html.rst
     templates/nlp_classification/user/assignment.html.rst
     templates/nlp_classification/user/home.html.rst

@@ -29,10 +29,14 @@ CRATE NLP classification views.
 
 from typing import Any, Optional
 
+from django.http.response import HttpResponse, HttpResponseRedirect
+from django.forms import Form
 from django.urls import reverse
 from django.views.generic import CreateView, TemplateView, UpdateView
 import django_tables2 as tables
+from formtools.wizard.views import SessionWizardView
 
+from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
 from crate_anon.crateweb.nlp_classification.forms import (
     AssignmentForm,
     OptionForm,
@@ -40,6 +44,7 @@ from crate_anon.crateweb.nlp_classification.forms import (
     SampleSpecForm,
     TableDefinitionForm,
     TaskForm,
+    TaskSelectionForm,
     UserAnswerForm,
 )
 from crate_anon.crateweb.nlp_classification.models import (
@@ -424,3 +429,42 @@ class UserAnswerView(UpdateView):
             return FieldTable(table_data)
 
         return None
+
+
+def should_create_task(wizard: SessionWizardView) -> bool:
+    cleaned_data = wizard.get_cleaned_data_for_step(ws.SELECT_TASK) or {}
+
+    return cleaned_data.get("task") is None
+
+
+class ClassificationWizardView(SessionWizardView):
+    condition_dict = {
+        ws.CREATE_TASK: should_create_task,
+    }
+    form_list = [
+        (ws.SELECT_TASK, TaskSelectionForm),
+        (ws.CREATE_TASK, TaskForm),
+    ]
+
+    template_name = "nlp_classification/admin/wizard_form.html"
+
+    instructions = {
+        "select_task": "Select an existing task or create a new task",
+        "create_task": "Enter the details for the new task",
+    }
+
+    def get_context_data(self, form: Form, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(form=form, **kwargs)
+
+        context["instructions"] = self.instructions[self.steps.current]
+
+        return context
+
+    def done(
+        self, form_list: list[Form], form_dict: dict[str, Form], **kwargs: Any
+    ) -> HttpResponse:
+        for step_name, form in form_dict.items():
+            if step_name == ws.CREATE_TASK:
+                form.save()
+
+        return HttpResponseRedirect(reverse("nlp_classification_admin_home"))

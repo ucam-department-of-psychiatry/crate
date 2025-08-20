@@ -1,6 +1,41 @@
+"""
+crate_anon/crateweb/nlp_classification/forms.py
+
+===============================================================================
+
+    Copyright (C) 2015, University of Cambridge, Department of Psychiatry.
+    Created by Rudolf Cardinal (rnc1001@cam.ac.uk).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
+
+===============================================================================
+
+CRATE NLP classification forms.
+
+"""
+
 from typing import Any
 
-from django.forms import ChoiceField, ModelForm, ModelChoiceField, RadioSelect
+from django.forms import (
+    ChoiceField,
+    Form,
+    ModelForm,
+    ModelChoiceField,
+    RadioSelect,
+)
 
 from crate_anon.crateweb.core.constants import (
     NLP_DB_CONNECTION_NAME,
@@ -64,6 +99,14 @@ class TaskForm(ModelForm):
     class Meta:
         model = Task
         fields = ["name"]
+
+
+class TaskSelectionForm(Form):
+    task = ModelChoiceField(
+        queryset=Task.objects.all(),
+        required=False,
+        empty_label="-- Create new task --",
+    )
 
 
 class UserAnswerForm(ModelForm):
