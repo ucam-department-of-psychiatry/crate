@@ -1,8 +1,11 @@
 from typing import Any
 
-from django.forms import ModelForm, ModelChoiceField, RadioSelect
+from django.forms import ChoiceField, ModelForm, ModelChoiceField, RadioSelect
 
-
+from crate_anon.crateweb.core.constants import (
+    NLP_DB_CONNECTION_NAME,
+    RESEARCH_DB_CONNECTION_NAME,
+)
 from crate_anon.crateweb.nlp_classification.models import (
     Assignment,
     Option,
@@ -48,6 +51,13 @@ class TableDefinitionForm(ModelForm):
     class Meta:
         model = TableDefinition
         fields = ["db_connection_name", "table_name", "pk_column_name"]
+
+    db_connection_name = ChoiceField(
+        choices=[
+            (NLP_DB_CONNECTION_NAME, "Research database"),
+            (RESEARCH_DB_CONNECTION_NAME, "NLP database"),
+        ]
+    )
 
 
 class TaskForm(ModelForm):
