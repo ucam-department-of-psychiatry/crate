@@ -70,6 +70,26 @@ class QuestionForm(ModelForm):
         fields = ["title", "task", "options"]
 
 
+class QuestionWizardForm(QuestionForm):
+    pass
+
+
+class QuestionSelectionForm(Form):
+    question = ModelChoiceField(
+        queryset=Question.objects.all(),
+        required=False,
+        empty_label="-- Create new question --",
+    )
+
+    def __init__(self, *args: Any, task=None, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        if task is not None:
+            self.fields["question"].queryset = Question.objects.filter(
+                task=task
+            )
+
+
 class SampleSpecForm(ModelForm):
     class Meta:
         model = SampleSpec

@@ -41,6 +41,8 @@ from crate_anon.crateweb.nlp_classification.forms import (
     AssignmentForm,
     OptionForm,
     QuestionForm,
+    QuestionSelectionForm,
+    QuestionWizardForm,
     SampleSpecForm,
     TableDefinitionForm,
     TaskForm,
@@ -432,9 +434,7 @@ class UserAnswerView(UpdateView):
 
 
 def should_create_task(wizard: SessionWizardView) -> bool:
-    cleaned_data = wizard.get_cleaned_data_for_step(ws.SELECT_TASK) or {}
-
-    return cleaned_data.get("task") is None
+    return wizard.get_task() is None
 
 
 class ClassificationWizardView(SessionWizardView):
@@ -444,14 +444,40 @@ class ClassificationWizardView(SessionWizardView):
     form_list = [
         (ws.SELECT_TASK, TaskSelectionForm),
         (ws.CREATE_TASK, TaskForm),
+        (ws.SELECT_QUESTION, QuestionSelectionForm),
+        (ws.CREATE_QUESTION, QuestionWizardForm),
     ]
 
     template_name = "nlp_classification/admin/wizard_form.html"
 
     instructions = {
-        "select_task": "Select an existing task or create a new task",
-        "create_task": "Enter the details for the new task",
+        ws.SELECT_TASK: "Select an existing task or create a new task",
+        ws.CREATE_TASK: "Enter the details for the new task",
+        ws.SELECT_QUESTION: (
+            "Select an existing question or create a new question"
+        ),
+        ws.CREATE_QUESTION: "Enter the details for the new question",
     }
+
+    def get_form_kwargs(self, step=None) -> Any:
+        kwargs = super().get_form_kwargs(step)
+        if step == ws.SELECT_QUESTION:
+            kwargs["task"] = self.get_task()
+
+        return kwargs
+
+    def get_form_initial(self, step: str) -> dict[str, Any]:
+        initial = super().get_form_initial(step)
+
+        if step == ws.CREATE_QUESTION:
+            initial["task"] = self.get_task()
+
+        return initial
+
+    def get_task(self) -> Optional[Task]:
+        cleaned_data = self.get_cleaned_data_for_step(ws.SELECT_TASK) or {}
+
+        return cleaned_data.get("task")
 
     def get_context_data(self, form: Form, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(form=form, **kwargs)
@@ -464,7 +490,7 @@ class ClassificationWizardView(SessionWizardView):
         self, form_list: list[Form], form_dict: dict[str, Form], **kwargs: Any
     ) -> HttpResponse:
         for step_name, form in form_dict.items():
-            if step_name == ws.CREATE_TASK:
+            if step_name in (ws.CREATE_TASK, ws.CREATE_QUESTION):
                 form.save()
 
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))
