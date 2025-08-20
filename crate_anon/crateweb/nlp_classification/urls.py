@@ -67,7 +67,7 @@ urlpatterns = [
         name="nlp_classification_admin_assignment_list",
     ),
     path(
-        r"admin/assignment/new",
+        "admin/assignment/new",
         AdminAssignmentCreateView.as_view(),
         name="nlp_classification_admin_assignment_create",
     ),
@@ -82,7 +82,7 @@ urlpatterns = [
         name="nlp_classification_admin_option_list",
     ),
     path(
-        r"admin/option/new",
+        "admin/option/new",
         AdminOptionCreateView.as_view(),
         name="nlp_classification_admin_option_create",
     ),
@@ -97,7 +97,7 @@ urlpatterns = [
         name="nlp_classification_admin_question_list",
     ),
     path(
-        r"admin/question/new",
+        "admin/question/new",
         AdminQuestionCreateView.as_view(),
         name="nlp_classification_admin_question_create",
     ),
@@ -112,7 +112,7 @@ urlpatterns = [
         name="nlp_classification_admin_sample_spec_list",
     ),
     path(
-        r"admin/sample_spec/new",
+        "admin/sample_spec/new",
         AdminSampleSpecCreateView.as_view(),
         name="nlp_classification_admin_sample_spec_create",
     ),
@@ -127,7 +127,7 @@ urlpatterns = [
         name="nlp_classification_admin_table_definition_list",
     ),
     path(
-        r"admin/table_definition/new",
+        "admin/table_definition/new",
         AdminTableDefinitionCreateView.as_view(),
         name="nlp_classification_admin_table_definition_create",
     ),
@@ -142,7 +142,7 @@ urlpatterns = [
         name="nlp_classification_admin_task_list",
     ),
     path(
-        r"admin/task/new",
+        "admin/task/new",
         AdminTaskCreateView.as_view(),
         name="nlp_classification_admin_task_create",
     ),
