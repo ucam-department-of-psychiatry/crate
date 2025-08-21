@@ -21,7 +21,7 @@
 {% endif %}
   </fieldset>
 {% if wizard.steps.prev %}
-<button name="wizard_goto_step" type="submit" value="{{ wizard.steps.first }}">Start again</button>
+<button name="wizard_goto_step" type="submit" value="{{ wizard.steps.first }}" formnovalidate>Start again</button>
 <button name="wizard_goto_step" type="submit" value="{{ wizard.steps.prev }}" formnovalidate>Previous</button>
 {% endif %}
 <input type="submit" value="Next"/>
