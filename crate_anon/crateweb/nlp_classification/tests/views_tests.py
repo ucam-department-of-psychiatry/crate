@@ -1,10 +1,46 @@
+"""
+crate_anon/crateweb/nlp_classification/tests/views_tests.py
+
+===============================================================================
+
+    Copyright (C) 2015, University of Cambridge, Department of Psychiatry.
+    Created by Rudolf Cardinal (rnc1001@cam.ac.uk).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
+
+===============================================================================
+
+Tests for CRATE NLP classification views.
+
+"""
+
+from unittest import mock
+
 from django.test import TestCase
 from django.urls import reverse
-
+from formtools.wizard.storage import BaseStorage
+from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
 from crate_anon.crateweb.nlp_classification.tests.factories import (
+    TaskFactory,
     UserAnswerFactory,
 )
-from crate_anon.crateweb.nlp_classification.views import UserAnswerView
+from crate_anon.crateweb.nlp_classification.views import (
+    ClassificationWizardView,
+    UserAnswerView,
+)
 
 
 class UserAnswerViewTests(TestCase):
@@ -36,3 +72,34 @@ class UserAnswerViewTests(TestCase):
                 kwargs={"pk": this_answer.assignment.pk},
             ),
         )
+
+
+class TestStorage(BaseStorage):
+    pass
+
+
+class ClassificationWizardViewTests(TestCase):
+    def test_task_passed_to_select_question_form(self) -> None:
+        post_data = {
+            "classification_wizard_view-current_step": ws.SELECT_QUESTION,
+        }
+        mock_request = mock.Mock(method="POST", POST=post_data)
+        storage = TestStorage("test", request=mock_request)
+        storage.init_data()
+        task = TaskFactory()
+
+        storage.data.update(
+            step_data={
+                ws.SELECT_TASK: {
+                    f"{ws.SELECT_TASK}-task": [task.id],
+                }
+            }
+        )
+
+        initkwargs = ClassificationWizardView.get_initkwargs()
+        view = ClassificationWizardView(**initkwargs)
+        view.setup(mock_request)
+        view.storage = storage
+        kwargs = view.get_form_kwargs(step=ws.SELECT_QUESTION)
+
+        self.assertEqual(kwargs.get("task"), task)
