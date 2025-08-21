@@ -79,27 +79,33 @@ class TestStorage(BaseStorage):
 
 
 class ClassificationWizardViewTests(TestCase):
-    def test_task_passed_to_select_question_form(self) -> None:
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.mock_request = mock.Mock(method="POST")
+        self.storage = TestStorage("test", request=self.mock_request)
+        self.storage.init_data()
+
+        initkwargs = ClassificationWizardView.get_initkwargs()
+        self.view = ClassificationWizardView(**initkwargs)
+        self.view.setup(self.mock_request)
+        self.view.storage = self.storage
+
+    def test_selected_task_passed_to_select_question_form(self) -> None:
         post_data = {
             "classification_wizard_view-current_step": ws.SELECT_QUESTION,
         }
-        mock_request = mock.Mock(method="POST", POST=post_data)
-        storage = TestStorage("test", request=mock_request)
-        storage.init_data()
+        self.mock_request.POST = post_data
         task = TaskFactory()
 
-        storage.data.update(
+        self.storage.data.update(
             step_data={
-                ws.SELECT_TASK: {
+                ws.SELECT_TASK: {  # previous step
                     f"{ws.SELECT_TASK}-task": [task.id],
                 }
             }
         )
 
-        initkwargs = ClassificationWizardView.get_initkwargs()
-        view = ClassificationWizardView(**initkwargs)
-        view.setup(mock_request)
-        view.storage = storage
-        kwargs = view.get_form_kwargs(step=ws.SELECT_QUESTION)
+        kwargs = self.view.get_form_kwargs(step=ws.SELECT_QUESTION)
 
         self.assertEqual(kwargs.get("task"), task)
