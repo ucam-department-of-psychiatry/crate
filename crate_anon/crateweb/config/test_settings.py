@@ -32,6 +32,7 @@ from pathlib import Path
 from crate_anon.common.constants import mebibytes
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
 
+# Will be the default from Django 5.0. This will suppress warnings until then.
 USE_TZ = True
 
 BASE_DIR = Path(__file__).resolve().parent
