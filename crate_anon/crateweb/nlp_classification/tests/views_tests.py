@@ -128,3 +128,23 @@ class ClassificationWizardViewTests(TestCase):
         initial = self.view.get_form_initial(ws.CREATE_QUESTION)
 
         self.assertEqual(initial.get("task"), task)
+
+    def test_forms_saved(self) -> None:
+        form_dict = {}
+        for step in [
+            ws.SELECT_TASK,
+            ws.CREATE_TASK,
+            ws.SELECT_QUESTION,
+            ws.CREATE_QUESTION,
+        ]:
+            mock_form = mock.Mock(save=mock.Mock())
+            form_dict[step] = mock_form
+
+        form_list = []  # not used
+        self.view.done(form_list, form_dict)
+
+        form_dict[ws.CREATE_TASK].save.assert_called()
+        form_dict[ws.CREATE_QUESTION].save.assert_called()
+
+        form_dict[ws.SELECT_TASK].save.assert_not_called()
+        form_dict[ws.SELECT_QUESTION].save.assert_not_called()
