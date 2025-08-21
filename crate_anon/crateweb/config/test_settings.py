@@ -32,6 +32,8 @@ from pathlib import Path
 from crate_anon.common.constants import mebibytes
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
 
+USE_TZ = True
+
 BASE_DIR = Path(__file__).resolve().parent
 
 DATABASES = {
