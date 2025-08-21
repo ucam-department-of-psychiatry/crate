@@ -166,6 +166,7 @@ crate_anon/crateweb
     nlp_classification/tables.py.rst
     nlp_classification/tests/database_connection_tests.py.rst
     nlp_classification/tests/factories.py.rst
+    nlp_classification/tests/forms_tests.py.rst
     nlp_classification/tests/models_tests.py.rst
     nlp_classification/tests/views_tests.py.rst
     nlp_classification/urls.py.rst
