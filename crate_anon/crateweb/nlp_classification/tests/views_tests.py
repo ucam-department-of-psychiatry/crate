@@ -109,3 +109,22 @@ class ClassificationWizardViewTests(TestCase):
         kwargs = self.view.get_form_kwargs(step=ws.SELECT_QUESTION)
 
         self.assertEqual(kwargs.get("task"), task)
+
+    def test_selected_task_passed_to_create_question_form(self) -> None:
+        post_data = {
+            "classification_wizard_view-current_step": ws.SELECT_QUESTION,
+        }
+        self.mock_request.POST = post_data
+        task = TaskFactory()
+
+        self.storage.data.update(
+            step_data={
+                ws.SELECT_TASK: {  # earlier step
+                    f"{ws.SELECT_TASK}-task": [task.id],
+                }
+            }
+        )
+
+        initial = self.view.get_form_initial(ws.CREATE_QUESTION)
+
+        self.assertEqual(initial.get("task"), task)
