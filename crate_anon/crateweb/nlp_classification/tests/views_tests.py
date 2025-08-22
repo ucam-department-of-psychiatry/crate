@@ -86,6 +86,7 @@ class ClassificationWizardViewTests(TestCase):
         super().setUp()
 
         self.mock_request = mock.Mock(method="POST", FILES={})
+        self.mock_request.POST = QueryDict(mutable=True)
         self.storage = TestStorage("test", request=self.mock_request)
         self.storage.init_data()
 
@@ -114,10 +115,6 @@ class ClassificationWizardViewTests(TestCase):
         self.assertEqual(kwargs.get("task"), task)
 
     def test_selected_task_passed_to_create_question_form(self) -> None:
-        post_data = {
-            "classification_wizard_view-current_step": ws.SELECT_QUESTION,
-        }
-        self.mock_request.POST = post_data
         task = TaskFactory()
 
         self.storage.data.update(
@@ -138,8 +135,6 @@ class ClassificationWizardViewTests(TestCase):
 
         # GET request would do this
         self.storage.current_step = ws.SELECT_TASK
-
-        self.mock_request.POST = QueryDict(mutable=True)
 
         with mock.patch.multiple(
             "formtools.wizard.views", get_storage=mock_get_storage
