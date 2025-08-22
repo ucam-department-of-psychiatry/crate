@@ -489,8 +489,11 @@ class ClassificationWizardView(SessionWizardView):
     def done(
         self, form_list: list[Form], form_dict: dict[str, Form], **kwargs: Any
     ) -> HttpResponse:
-        for step_name, form in form_dict.items():
-            if step_name in (ws.CREATE_TASK, ws.CREATE_QUESTION):
-                form.save()
+
+        task = self.get_task()
+
+        create_question_form = form_dict[ws.CREATE_QUESTION]
+        create_question_form.instance.task = task
+        create_question_form.save()
 
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))

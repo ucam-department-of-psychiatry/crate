@@ -27,12 +27,15 @@ Tests for CRATE NLP classification views.
 
 """
 
+from typing import Any
 from unittest import mock
 
+from django.http import QueryDict
 from django.test import TestCase
 from django.urls import reverse
 from formtools.wizard.storage import BaseStorage
 from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
+from crate_anon.crateweb.nlp_classification.models import Question
 from crate_anon.crateweb.nlp_classification.tests.factories import (
     TaskFactory,
     UserAnswerFactory,
@@ -82,7 +85,7 @@ class ClassificationWizardViewTests(TestCase):
     def setUp(self) -> None:
         super().setUp()
 
-        self.mock_request = mock.Mock(method="POST")
+        self.mock_request = mock.Mock(method="POST", FILES={})
         self.storage = TestStorage("test", request=self.mock_request)
         self.storage.init_data()
 
@@ -129,22 +132,49 @@ class ClassificationWizardViewTests(TestCase):
 
         self.assertEqual(initial.get("task"), task)
 
-    def test_forms_saved(self) -> None:
-        form_dict = {}
-        for step in [
-            ws.SELECT_TASK,
-            ws.CREATE_TASK,
-            ws.SELECT_QUESTION,
-            ws.CREATE_QUESTION,
-        ]:
-            mock_form = mock.Mock(save=mock.Mock())
-            form_dict[step] = mock_form
+    def test_question_saved_with_existing_task(self) -> None:
+        task = TaskFactory()
+        mock_get_storage = mock.Mock(return_value=self.storage)
 
-        form_list = []  # not used
-        self.view.done(form_list, form_dict)
+        # GET request would do this
+        self.storage.current_step = ws.SELECT_TASK
 
-        form_dict[ws.CREATE_TASK].save.assert_called()
-        form_dict[ws.CREATE_QUESTION].save.assert_called()
+        self.mock_request.POST = QueryDict(mutable=True)
 
-        form_dict[ws.SELECT_TASK].save.assert_not_called()
-        form_dict[ws.SELECT_QUESTION].save.assert_not_called()
+        with mock.patch.multiple(
+            "formtools.wizard.views", get_storage=mock_get_storage
+        ):
+            # Select task
+            self._post(ws.SELECT_TASK, {"task": task.id})
+            self.assertEqual(
+                self.view.steps.current,
+                ws.SELECT_QUESTION,
+                msg="Did not go to the next step. Are there form errors?",
+            )
+
+            # Select question
+            self._post(ws.SELECT_QUESTION, {"question": None})
+            self.assertEqual(
+                self.view.steps.current,
+                ws.CREATE_QUESTION,
+                msg="Did not go to the next step. Are there form errors?",
+            )
+
+            # Create question
+            self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
+
+        self.assertTrue(
+            Question.objects.filter(task=task, title="Test Question").exists()
+        )
+
+    def _post(self, step: str, post_dict: dict[str, Any]) -> None:
+        self.mock_request.POST.clear()
+        for key, value in post_dict.items():
+            name = f"{step}-{key}"
+            self.mock_request.POST[name] = value
+
+        self.mock_request.POST["classification_wizard_view-current_step"] = (
+            step
+        )
+
+        self.view.dispatch(self.mock_request)

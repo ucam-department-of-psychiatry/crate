@@ -32,6 +32,7 @@ from typing import Any
 from django.forms import (
     ChoiceField,
     Form,
+    HiddenInput,
     ModelForm,
     ModelChoiceField,
     RadioSelect,
@@ -70,8 +71,14 @@ class QuestionForm(ModelForm):
         fields = ["title", "task", "options"]
 
 
-class QuestionWizardForm(QuestionForm):
-    pass
+class QuestionWizardForm(ModelForm):
+    class Meta:
+        model = Question
+        fields = ["title", "task"]
+
+    task = ModelChoiceField(
+        queryset=Task.objects.all(), widget=HiddenInput, required=False
+    )
 
 
 class QuestionSelectionForm(Form):
