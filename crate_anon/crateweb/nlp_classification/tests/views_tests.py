@@ -35,7 +35,7 @@ from django.test import TestCase
 from django.urls import reverse
 from formtools.wizard.storage import BaseStorage
 from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
-from crate_anon.crateweb.nlp_classification.models import Question
+from crate_anon.crateweb.nlp_classification.models import Question, Task
 from crate_anon.crateweb.nlp_classification.tests.factories import (
     TaskFactory,
     UserAnswerFactory,
@@ -141,23 +141,44 @@ class ClassificationWizardViewTests(TestCase):
         ):
             # Select task
             self._post(ws.SELECT_TASK, {"task": task.id})
-            self.assertEqual(
-                self.view.steps.current,
-                ws.SELECT_QUESTION,
-                msg="Did not go to the next step. Are there form errors?",
-            )
+            self._assert_next_step(ws.SELECT_QUESTION)
 
             # Select question
-            self._post(ws.SELECT_QUESTION, {"question": None})
-            self.assertEqual(
-                self.view.steps.current,
-                ws.CREATE_QUESTION,
-                msg="Did not go to the next step. Are there form errors?",
-            )
+            self._post(ws.SELECT_QUESTION, {"question": ""})
+            self._assert_next_step(ws.CREATE_QUESTION)
 
             # Create question
             self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
 
+        self.assertTrue(
+            Question.objects.filter(task=task, title="Test Question").exists()
+        )
+
+    def test_question_saved_with_new_task(self) -> None:
+        mock_get_storage = mock.Mock(return_value=self.storage)
+
+        # GET request would do this
+        self.storage.current_step = ws.SELECT_TASK
+
+        with mock.patch.multiple(
+            "formtools.wizard.views", get_storage=mock_get_storage
+        ):
+            # Select task
+            self._post(ws.SELECT_TASK, {"task": ""})
+            self._assert_next_step(ws.CREATE_TASK)
+
+            # Create task
+            self._post(ws.CREATE_TASK, {"name": "Test Task"})
+            self._assert_next_step(ws.SELECT_QUESTION)
+
+            # Select question
+            self._post(ws.SELECT_QUESTION, {"question": ""})
+            self._assert_next_step(ws.CREATE_QUESTION)
+
+            # Create question
+            self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
+
+        task = Task.objects.get(name="Test Task")
         self.assertTrue(
             Question.objects.filter(task=task, title="Test Question").exists()
         )
@@ -173,3 +194,10 @@ class ClassificationWizardViewTests(TestCase):
         )
 
         self.view.dispatch(self.mock_request)
+
+    def _assert_next_step(self, expected: str) -> None:
+        self.assertEqual(
+            self.view.steps.current,
+            expected,
+            msg="Did not go to the next step. Are there form errors?",
+        )

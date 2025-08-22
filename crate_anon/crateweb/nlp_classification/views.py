@@ -491,6 +491,9 @@ class ClassificationWizardView(SessionWizardView):
     ) -> HttpResponse:
 
         task = self.get_task()
+        if task is None:
+            create_task_form = form_dict[ws.CREATE_TASK]
+            task = create_task_form.save()
 
         create_question_form = form_dict[ws.CREATE_QUESTION]
         create_question_form.instance.task = task
