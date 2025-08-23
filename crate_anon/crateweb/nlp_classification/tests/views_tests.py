@@ -89,6 +89,7 @@ class ClassificationWizardViewTests(TestCase):
         self.mock_request.POST = QueryDict(mutable=True)
         self.storage = TestStorage("test", request=self.mock_request)
         self.storage.init_data()
+        self.mock_get_storage = mock.Mock(return_value=self.storage)
 
         initkwargs = ClassificationWizardView.get_initkwargs()
         self.view = ClassificationWizardView(**initkwargs)
@@ -116,49 +117,40 @@ class ClassificationWizardViewTests(TestCase):
 
     def test_question_saved_with_existing_task(self) -> None:
         task = TaskFactory()
-        mock_get_storage = mock.Mock(return_value=self.storage)
 
         # GET request would do this
         self.storage.current_step = ws.SELECT_TASK
 
-        with mock.patch.multiple(
-            "formtools.wizard.views", get_storage=mock_get_storage
-        ):
-            # Select task
-            self._post(ws.SELECT_TASK, {"task": task.id})
-            self._assert_next_step(ws.SELECT_QUESTION)
+        # Select task
+        self._post(ws.SELECT_TASK, {"task": task.id})
+        self._assert_next_step(ws.SELECT_QUESTION)
 
-            # Select question
-            self._post(ws.SELECT_QUESTION, {"question": ""})
-            self._assert_next_step(ws.CREATE_QUESTION)
+        # Select question
+        self._post(ws.SELECT_QUESTION, {"question": ""})
+        self._assert_next_step(ws.CREATE_QUESTION)
 
-            # Create question
-            self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
+        # Create question
+        self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
 
         self.assertTrue(
             Question.objects.filter(task=task, title="Test Question").exists()
         )
 
     def test_question_saved_with_new_task(self) -> None:
-        mock_get_storage = mock.Mock(return_value=self.storage)
-
         # GET request would do this
         self.storage.current_step = ws.SELECT_TASK
 
-        with mock.patch.multiple(
-            "formtools.wizard.views", get_storage=mock_get_storage
-        ):
-            # Select task
-            self._post(ws.SELECT_TASK, {"task": ""})
-            self._assert_next_step(ws.CREATE_TASK)
+        # Select task
+        self._post(ws.SELECT_TASK, {"task": ""})
+        self._assert_next_step(ws.CREATE_TASK)
 
-            # Create task
-            self._post(ws.CREATE_TASK, {"name": "Test Task"})
-            # Because we can't select an existing question for a new task
-            self._assert_next_step(ws.CREATE_QUESTION)
+        # Create task
+        self._post(ws.CREATE_TASK, {"name": "Test Task"})
+        # Because we can't select an existing question for a new task
+        self._assert_next_step(ws.CREATE_QUESTION)
 
-            # Create question
-            self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
+        # Create question
+        self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
 
         task = Task.objects.get(name="Test Task")
         self.assertTrue(
@@ -166,16 +158,19 @@ class ClassificationWizardViewTests(TestCase):
         )
 
     def _post(self, step: str, post_dict: dict[str, Any]) -> None:
-        self.mock_request.POST.clear()
-        for key, value in post_dict.items():
-            name = f"{step}-{key}"
-            self.mock_request.POST[name] = value
+        with mock.patch.multiple(
+            "formtools.wizard.views", get_storage=self.mock_get_storage
+        ):
+            self.mock_request.POST.clear()
+            for key, value in post_dict.items():
+                name = f"{step}-{key}"
+                self.mock_request.POST[name] = value
 
-        self.mock_request.POST["classification_wizard_view-current_step"] = (
-            step
-        )
+                self.mock_request.POST[
+                    "classification_wizard_view-current_step"
+                ] = step
 
-        self.view.dispatch(self.mock_request)
+            self.view.dispatch(self.mock_request)
 
     def _assert_next_step(self, expected: str) -> None:
         self.assertEqual(
