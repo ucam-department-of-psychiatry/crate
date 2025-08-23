@@ -114,21 +114,6 @@ class ClassificationWizardViewTests(TestCase):
 
         self.assertEqual(kwargs.get("task"), task)
 
-    def test_selected_task_passed_to_create_question_form(self) -> None:
-        task = TaskFactory()
-
-        self.storage.data.update(
-            step_data={
-                ws.SELECT_TASK: {  # earlier step
-                    f"{ws.SELECT_TASK}-task": [task.id],
-                }
-            }
-        )
-
-        initial = self.view.get_form_initial(ws.CREATE_QUESTION)
-
-        self.assertEqual(initial.get("task"), task)
-
     def test_question_saved_with_existing_task(self) -> None:
         task = TaskFactory()
         mock_get_storage = mock.Mock(return_value=self.storage)
@@ -169,10 +154,7 @@ class ClassificationWizardViewTests(TestCase):
 
             # Create task
             self._post(ws.CREATE_TASK, {"name": "Test Task"})
-            self._assert_next_step(ws.SELECT_QUESTION)
-
-            # Select question
-            self._post(ws.SELECT_QUESTION, {"question": ""})
+            # Because we can't select an existing question for a new task
             self._assert_next_step(ws.CREATE_QUESTION)
 
             # Create question

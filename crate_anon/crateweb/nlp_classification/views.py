@@ -434,12 +434,17 @@ class UserAnswerView(UpdateView):
 
 
 def should_create_task(wizard: SessionWizardView) -> bool:
-    return wizard.get_task() is None
+    return not wizard.has_selected_task
+
+
+def should_select_question(wizard: SessionWizardView) -> bool:
+    return wizard.has_selected_task
 
 
 class ClassificationWizardView(SessionWizardView):
     condition_dict = {
         ws.CREATE_TASK: should_create_task,
+        ws.SELECT_QUESTION: should_select_question,
     }
     form_list = [
         (ws.SELECT_TASK, TaskSelectionForm),
@@ -462,19 +467,16 @@ class ClassificationWizardView(SessionWizardView):
     def get_form_kwargs(self, step=None) -> Any:
         kwargs = super().get_form_kwargs(step)
         if step == ws.SELECT_QUESTION:
-            kwargs["task"] = self.get_task()
+            kwargs["task"] = self.selected_task
 
         return kwargs
 
-    def get_form_initial(self, step: str) -> dict[str, Any]:
-        initial = super().get_form_initial(step)
+    @property
+    def has_selected_task(self) -> bool:
+        return self.selected_task is not None
 
-        if step == ws.CREATE_QUESTION:
-            initial["task"] = self.get_task()
-
-        return initial
-
-    def get_task(self) -> Optional[Task]:
+    @property
+    def selected_task(self) -> Optional[Task]:
         cleaned_data = self.get_cleaned_data_for_step(ws.SELECT_TASK) or {}
 
         return cleaned_data.get("task")
@@ -490,7 +492,7 @@ class ClassificationWizardView(SessionWizardView):
         self, form_list: list[Form], form_dict: dict[str, Form], **kwargs: Any
     ) -> HttpResponse:
 
-        task = self.get_task()
+        task = self.selected_task
         if task is None:
             create_task_form = form_dict[ws.CREATE_TASK]
             task = create_task_form.save()
