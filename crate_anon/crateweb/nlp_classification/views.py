@@ -41,12 +41,13 @@ from crate_anon.crateweb.nlp_classification.forms import (
     AssignmentForm,
     OptionForm,
     QuestionForm,
-    QuestionSelectionForm,
-    QuestionWizardForm,
     SampleSpecForm,
     TableDefinitionForm,
     TaskForm,
-    TaskSelectionForm,
+    WizardCreateQuestionForm,
+    WizardCreateTaskForm,
+    WizardSelectQuestionForm,
+    WizardSelectTaskForm,
     UserAnswerForm,
 )
 from crate_anon.crateweb.nlp_classification.models import (
@@ -447,10 +448,10 @@ class ClassificationWizardView(SessionWizardView):
         ws.SELECT_QUESTION: should_select_question,
     }
     form_list = [
-        (ws.SELECT_TASK, TaskSelectionForm),
-        (ws.CREATE_TASK, TaskForm),
-        (ws.SELECT_QUESTION, QuestionSelectionForm),
-        (ws.CREATE_QUESTION, QuestionWizardForm),
+        (ws.SELECT_TASK, WizardSelectTaskForm),
+        (ws.CREATE_TASK, WizardCreateTaskForm),
+        (ws.SELECT_QUESTION, WizardSelectQuestionForm),
+        (ws.CREATE_QUESTION, WizardCreateQuestionForm),
     ]
 
     template_name = "nlp_classification/admin/wizard_form.html"

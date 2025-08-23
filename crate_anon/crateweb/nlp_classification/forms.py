@@ -53,6 +53,7 @@ from crate_anon.crateweb.nlp_classification.models import (
 )
 
 
+# Standard create/edit forms in alphabetical order
 class AssignmentForm(ModelForm):
     class Meta:
         model = Assignment
@@ -69,32 +70,6 @@ class QuestionForm(ModelForm):
     class Meta:
         model = Question
         fields = ["title", "task", "options"]
-
-
-class QuestionWizardForm(ModelForm):
-    class Meta:
-        model = Question
-        fields = ["title", "task"]
-
-    task = ModelChoiceField(
-        queryset=Task.objects.all(), widget=HiddenInput, required=False
-    )
-
-
-class QuestionSelectionForm(Form):
-    question = ModelChoiceField(
-        queryset=Question.objects.all(),
-        required=False,
-        empty_label="-- Create new question --",
-    )
-
-    def __init__(self, *args: Any, task=None, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-
-        if task is not None:
-            self.fields["question"].queryset = Question.objects.filter(
-                task=task
-            )
 
 
 class SampleSpecForm(ModelForm):
@@ -128,14 +103,6 @@ class TaskForm(ModelForm):
         fields = ["name"]
 
 
-class TaskSelectionForm(Form):
-    task = ModelChoiceField(
-        queryset=Task.objects.all(),
-        required=False,
-        empty_label="-- Create new task --",
-    )
-
-
 class UserAnswerForm(ModelForm):
     class Meta:
         model = UserAnswer
@@ -148,3 +115,42 @@ class UserAnswerForm(ModelForm):
             queryset=Option.objects.filter(question=self.instance.question),
             widget=RadioSelect,
         )
+
+
+# Wizard forms in order of step
+class WizardSelectTaskForm(Form):
+    task = ModelChoiceField(
+        queryset=Task.objects.all(),
+        required=False,
+        empty_label="-- Create new task --",
+    )
+
+
+class WizardCreateTaskForm(TaskForm):
+    pass
+
+
+class WizardSelectQuestionForm(Form):
+    question = ModelChoiceField(
+        queryset=Question.objects.all(),
+        required=False,
+        empty_label="-- Create new question --",
+    )
+
+    def __init__(self, *args: Any, task=None, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        if task is not None:
+            self.fields["question"].queryset = Question.objects.filter(
+                task=task
+            )
+
+
+class WizardCreateQuestionForm(ModelForm):
+    class Meta:
+        model = Question
+        fields = ["title", "task"]
+
+    task = ModelChoiceField(
+        queryset=Task.objects.all(), widget=HiddenInput, required=False
+    )

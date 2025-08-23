@@ -30,7 +30,7 @@ Tests for CRATE NLP classification forms.
 from django.test import TestCase
 
 from crate_anon.crateweb.nlp_classification.forms import (
-    QuestionSelectionForm,
+    WizardSelectQuestionForm,
 )
 from crate_anon.crateweb.nlp_classification.tests.factories import (
     QuestionFactory,
@@ -38,7 +38,7 @@ from crate_anon.crateweb.nlp_classification.tests.factories import (
 )
 
 
-class QuestionSelectionFormTests(TestCase):
+class WizardSelectQuestionFormTests(TestCase):
     def test_not_filtered_by_task_by_default(self) -> None:
         task1 = TaskFactory()
         task2 = TaskFactory()
@@ -49,7 +49,7 @@ class QuestionSelectionFormTests(TestCase):
         q2_1 = QuestionFactory(task=task2)
         q2_2 = QuestionFactory(task=task2)
 
-        form = QuestionSelectionForm()
+        form = WizardSelectQuestionForm()
 
         self.assertQuerySetEqual(
             form.fields["question"].queryset,
@@ -67,7 +67,7 @@ class QuestionSelectionFormTests(TestCase):
         QuestionFactory(task=task2)
         QuestionFactory(task=task2)
 
-        form = QuestionSelectionForm(task=task1)
+        form = WizardSelectQuestionForm(task=task1)
 
         self.assertQuerySetEqual(
             form.fields["question"].queryset, [q1_1, q1_2], ordered=False
