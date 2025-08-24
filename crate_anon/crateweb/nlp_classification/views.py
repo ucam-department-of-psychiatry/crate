@@ -46,6 +46,7 @@ from crate_anon.crateweb.nlp_classification.forms import (
     TaskForm,
     WizardCreateQuestionForm,
     WizardCreateTaskForm,
+    WizardSelectOptionsForm,
     WizardSelectQuestionForm,
     WizardSelectTaskForm,
     UserAnswerForm,
@@ -442,16 +443,22 @@ def should_select_question(wizard: SessionWizardView) -> bool:
     return wizard.has_selected_task
 
 
+def should_create_question(wizard: SessionWizardView) -> bool:
+    return not wizard.has_selected_question
+
+
 class ClassificationWizardView(SessionWizardView):
     condition_dict = {
         ws.CREATE_TASK: should_create_task,
         ws.SELECT_QUESTION: should_select_question,
+        ws.CREATE_QUESTION: should_create_question,
     }
     form_list = [
         (ws.SELECT_TASK, WizardSelectTaskForm),
         (ws.CREATE_TASK, WizardCreateTaskForm),
         (ws.SELECT_QUESTION, WizardSelectQuestionForm),
         (ws.CREATE_QUESTION, WizardCreateQuestionForm),
+        (ws.SELECT_OPTIONS, WizardSelectOptionsForm),
     ]
 
     template_name = "nlp_classification/admin/wizard_form.html"
@@ -463,6 +470,7 @@ class ClassificationWizardView(SessionWizardView):
             "Select an existing question or create a new question"
         ),
         ws.CREATE_QUESTION: "Enter the details for the new question",
+        ws.SELECT_OPTIONS: "Select an existing option or create a new option",
     }
 
     def get_form_kwargs(self, step=None) -> Any:
@@ -481,6 +489,16 @@ class ClassificationWizardView(SessionWizardView):
         cleaned_data = self.get_cleaned_data_for_step(ws.SELECT_TASK) or {}
 
         return cleaned_data.get("task")
+
+    @property
+    def has_selected_question(self) -> bool:
+        return self.selected_question is not None
+
+    @property
+    def selected_question(self) -> Optional[Question]:
+        cleaned_data = self.get_cleaned_data_for_step(ws.SELECT_QUESTION) or {}
+
+        return cleaned_data.get("question")
 
     def get_context_data(self, form: Form, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(form=form, **kwargs)

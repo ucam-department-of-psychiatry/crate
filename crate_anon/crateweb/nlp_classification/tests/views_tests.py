@@ -37,6 +37,7 @@ from formtools.wizard.storage import BaseStorage
 from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
 from crate_anon.crateweb.nlp_classification.models import Question, Task
 from crate_anon.crateweb.nlp_classification.tests.factories import (
+    QuestionFactory,
     TaskFactory,
     UserAnswerFactory,
 )
@@ -131,6 +132,9 @@ class ClassificationWizardViewTests(TestCase):
 
         # Create question
         self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
+        self._assert_next_step(ws.SELECT_OPTIONS)
+
+        self._post(ws.SELECT_OPTIONS, {"option": ""})
 
         self.assertTrue(
             Question.objects.filter(task=task, title="Test Question").exists()
@@ -151,6 +155,9 @@ class ClassificationWizardViewTests(TestCase):
 
         # Create question
         self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
+        self._assert_next_step(ws.SELECT_OPTIONS)
+
+        self._post(ws.SELECT_OPTIONS, {"option": ""})
 
         task = Task.objects.get(name="Test Task")
         self.assertTrue(
@@ -178,3 +185,18 @@ class ClassificationWizardViewTests(TestCase):
             expected,
             msg="Did not go to the next step. Are there form errors?",
         )
+
+    def test_existing_task_and_question_selected(self) -> None:
+        question = QuestionFactory()
+        task = question.task
+
+        # GET request would do this
+        self.storage.current_step = ws.SELECT_TASK
+
+        # Select task
+        self._post(ws.SELECT_TASK, {"task": task.id})
+        self._assert_next_step(ws.SELECT_QUESTION)
+
+        # Select question
+        self._post(ws.SELECT_QUESTION, {"question": question.id})
+        self._assert_next_step(ws.SELECT_OPTIONS)

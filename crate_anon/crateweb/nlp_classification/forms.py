@@ -154,3 +154,11 @@ class WizardCreateQuestionForm(ModelForm):
     task = ModelChoiceField(
         queryset=Task.objects.all(), widget=HiddenInput, required=False
     )
+
+
+class WizardSelectOptionsForm(Form):
+    answer = ModelChoiceField(
+        queryset=Option.objects.all(),
+        required=False,
+        empty_label="-- Create new option --",
+    )
