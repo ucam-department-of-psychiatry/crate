@@ -35,6 +35,7 @@ from django.forms import (
     HiddenInput,
     ModelForm,
     ModelChoiceField,
+    ModelMultipleChoiceField,
     RadioSelect,
 )
 
@@ -157,8 +158,7 @@ class WizardCreateQuestionForm(ModelForm):
 
 
 class WizardSelectOptionsForm(Form):
-    answer = ModelChoiceField(
+    options = ModelMultipleChoiceField(
         queryset=Option.objects.all(),
         required=False,
-        empty_label="-- Create new option --",
     )

@@ -37,6 +37,7 @@ from formtools.wizard.storage import BaseStorage
 from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
 from crate_anon.crateweb.nlp_classification.models import Question, Task
 from crate_anon.crateweb.nlp_classification.tests.factories import (
+    OptionFactory,
     QuestionFactory,
     TaskFactory,
     UserAnswerFactory,
@@ -96,6 +97,28 @@ class ClassificationWizardViewTests(TestCase):
         self.view = ClassificationWizardView(**initkwargs)
         self.view.setup(self.mock_request)
         self.view.storage = self.storage
+
+    def _assert_next_step(self, expected: str) -> None:
+        self.assertEqual(
+            self.view.steps.current,
+            expected,
+            msg="Did not go to the next step. Are there form errors?",
+        )
+
+    def _post(self, step: str, post_dict: dict[str, Any]) -> None:
+        with mock.patch.multiple(
+            "formtools.wizard.views", get_storage=self.mock_get_storage
+        ):
+            self.mock_request.POST.clear()
+            for key, value in post_dict.items():
+                name = f"{step}-{key}"
+                self.mock_request.POST[name] = value
+
+                self.mock_request.POST[
+                    "classification_wizard_view-current_step"
+                ] = step
+
+            self.view.dispatch(self.mock_request)
 
     def test_selected_task_passed_to_select_question_form(self) -> None:
         post_data = {
@@ -164,28 +187,6 @@ class ClassificationWizardViewTests(TestCase):
             Question.objects.filter(task=task, title="Test Question").exists()
         )
 
-    def _post(self, step: str, post_dict: dict[str, Any]) -> None:
-        with mock.patch.multiple(
-            "formtools.wizard.views", get_storage=self.mock_get_storage
-        ):
-            self.mock_request.POST.clear()
-            for key, value in post_dict.items():
-                name = f"{step}-{key}"
-                self.mock_request.POST[name] = value
-
-                self.mock_request.POST[
-                    "classification_wizard_view-current_step"
-                ] = step
-
-            self.view.dispatch(self.mock_request)
-
-    def _assert_next_step(self, expected: str) -> None:
-        self.assertEqual(
-            self.view.steps.current,
-            expected,
-            msg="Did not go to the next step. Are there form errors?",
-        )
-
     def test_existing_task_and_question_selected(self) -> None:
         question = QuestionFactory()
         task = question.task
@@ -200,3 +201,33 @@ class ClassificationWizardViewTests(TestCase):
         # Select question
         self._post(ws.SELECT_QUESTION, {"question": question.id})
         self._assert_next_step(ws.SELECT_OPTIONS)
+
+    def test_existing_question_options_selected(self) -> None:
+        option_1 = OptionFactory(description="Yes")
+        option_2 = OptionFactory(description="No")
+        option_3 = OptionFactory(description="Maybe")
+
+        question = QuestionFactory(options=[option_1, option_2])
+
+        post_data = {
+            "classification_wizard_view-current_step": ws.SELECT_OPTIONS,
+        }
+        self.mock_request.POST = post_data
+
+        self.storage.data.update(
+            step_data={  # Earlier steps
+                ws.SELECT_TASK: {
+                    f"{ws.SELECT_TASK}-task": [question.task.id],
+                },
+                ws.SELECT_QUESTION: {
+                    f"{ws.SELECT_QUESTION}-question": [question.id],
+                },
+            }
+        )
+
+        initial = self.view.get_form_initial(step=ws.SELECT_OPTIONS)
+        options = initial.get("options")
+
+        self.assertIn(option_1.id, options)
+        self.assertIn(option_2.id, options)
+        self.assertNotIn(option_3.id, options)

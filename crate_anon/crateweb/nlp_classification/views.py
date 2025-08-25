@@ -473,6 +473,26 @@ class ClassificationWizardView(SessionWizardView):
         ws.SELECT_OPTIONS: "Select an existing option or create a new option",
     }
 
+    def get_cleaned_data_for_step(self, step: str) -> Optional[dict[str, Any]]:
+        # https://github.com/jazzband/django-formtools/issues/266
+        # self.get_form() can raise a KeyError if the step does not exist in
+        # the dynamic form list because it has been excluded from
+        # condition_dict. The documentation does not mention this.
+        try:
+            return super().get_cleaned_data_for_step(step)
+        except KeyError:
+            return None
+
+    def get_form_initial(self, step: str) -> dict[str, Any]:
+        initial = super().get_form_initial(step)
+
+        if step == ws.SELECT_OPTIONS:
+            question = self.selected_question
+            if question is not None:
+                initial["options"] = [o.id for o in question.options.all()]
+
+        return initial
+
     def get_form_kwargs(self, step=None) -> Any:
         kwargs = super().get_form_kwargs(step)
         if step == ws.SELECT_QUESTION:
