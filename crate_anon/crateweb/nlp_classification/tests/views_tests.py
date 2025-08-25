@@ -105,6 +105,13 @@ class ClassificationWizardViewTests(TestCase):
             msg="Did not go to the next step. Are there form errors?",
         )
 
+    def _assert_finished(self) -> None:
+        self.assertEqual(
+            self.view.steps.current,
+            ws.SELECT_TASK,  # Back to beginning
+            msg="Did not complete. Are there form errors?",
+        )
+
     def _post(self, step: str, post_dict: dict[str, Any]) -> None:
         with mock.patch.multiple(
             "formtools.wizard.views", get_storage=self.mock_get_storage
@@ -112,7 +119,11 @@ class ClassificationWizardViewTests(TestCase):
             self.mock_request.POST.clear()
             for key, value in post_dict.items():
                 name = f"{step}-{key}"
-                self.mock_request.POST[name] = value
+
+                if isinstance(value, list):
+                    self.mock_request.POST.setlist(name, value)
+                else:
+                    self.mock_request.POST[name] = value
 
                 self.mock_request.POST[
                     "classification_wizard_view-current_step"
@@ -157,7 +168,8 @@ class ClassificationWizardViewTests(TestCase):
         self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
         self._assert_next_step(ws.SELECT_OPTIONS)
 
-        self._post(ws.SELECT_OPTIONS, {"option": ""})
+        self._post(ws.SELECT_OPTIONS, {"options": []})
+        self._assert_finished()
 
         self.assertTrue(
             Question.objects.filter(task=task, title="Test Question").exists()
@@ -180,7 +192,8 @@ class ClassificationWizardViewTests(TestCase):
         self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
         self._assert_next_step(ws.SELECT_OPTIONS)
 
-        self._post(ws.SELECT_OPTIONS, {"option": ""})
+        self._post(ws.SELECT_OPTIONS, {"options": []})
+        self._assert_finished()
 
         task = Task.objects.get(name="Test Task")
         self.assertTrue(
@@ -231,3 +244,91 @@ class ClassificationWizardViewTests(TestCase):
         self.assertIn(option_1.id, options)
         self.assertIn(option_2.id, options)
         self.assertNotIn(option_3.id, options)
+
+    def test_existing_option_added_to_existing_question(self) -> None:
+        option_1 = OptionFactory(description="Yes")
+        option_2 = OptionFactory(description="No")
+        option_3 = OptionFactory(description="Maybe")
+
+        question = QuestionFactory(options=[option_1, option_2])
+
+        # GET request would do this
+        self.storage.current_step = ws.SELECT_TASK
+
+        # Select task
+        self._post(ws.SELECT_TASK, {"task": question.task.id})
+        self._assert_next_step(ws.SELECT_QUESTION)
+
+        # Select question
+        self._post(ws.SELECT_QUESTION, {"question": question.id})
+        self._assert_next_step(ws.SELECT_OPTIONS)
+
+        self._post(
+            ws.SELECT_OPTIONS,
+            {"options": [option_1.id, option_2.id, option_3.id]},
+        )
+        self._assert_finished()
+
+        options = question.options.all()
+
+        self.assertIn(option_1, options)
+        self.assertIn(option_2, options)
+        self.assertIn(option_3, options)
+
+    def test_existing_options_removed_from_question(self) -> None:
+        option_1 = OptionFactory(description="Yes")
+        option_2 = OptionFactory(description="No")
+
+        question = QuestionFactory(options=[option_1, option_2])
+
+        # GET request would do this
+        self.storage.current_step = ws.SELECT_TASK
+
+        # Select task
+        self._post(ws.SELECT_TASK, {"task": question.task.id})
+        self._assert_next_step(ws.SELECT_QUESTION)
+
+        # Select question
+        self._post(ws.SELECT_QUESTION, {"question": question.id})
+        self._assert_next_step(ws.SELECT_OPTIONS)
+
+        self._post(ws.SELECT_OPTIONS, {"options": []})
+        self._assert_finished()
+
+        options = list(question.options.all())
+        self.assertEqual(options, [])
+
+    def test_existing_options_added_to_new_question(self) -> None:
+        task = TaskFactory()
+
+        option_1 = OptionFactory(description="Yes")
+        option_2 = OptionFactory(description="No")
+        option_3 = OptionFactory(description="Maybe")
+
+        # GET request would do this
+        self.storage.current_step = ws.SELECT_TASK
+
+        # Select task
+        self._post(ws.SELECT_TASK, {"task": task.id})
+        self._assert_next_step(ws.SELECT_QUESTION)
+
+        # Select question
+        self._post(ws.SELECT_QUESTION, {"question": ""})
+        self._assert_next_step(ws.CREATE_QUESTION)
+
+        # Create question
+        self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
+        self._assert_next_step(ws.SELECT_OPTIONS)
+
+        self._post(
+            ws.SELECT_OPTIONS,
+            {"options": [option_1.id, option_2.id]},
+        )
+        self._assert_finished()
+
+        question = Question.objects.get(task=task, title="Test Question")
+        options = question.options.all()
+
+        self.assertIn(option_1, options)
+        self.assertIn(option_2, options)
+        self.assertNotIn(option_3, options)

@@ -520,6 +520,16 @@ class ClassificationWizardView(SessionWizardView):
 
         return cleaned_data.get("question")
 
+    @property
+    def selected_options(self) -> Optional[list[Option]]:
+        cleaned_data = self.get_cleaned_data_for_step(ws.SELECT_OPTIONS) or {}
+
+        options = cleaned_data.get("options")
+        if options is not None:
+            return list(options)
+
+        return None
+
     def get_context_data(self, form: Form, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(form=form, **kwargs)
 
@@ -536,8 +546,16 @@ class ClassificationWizardView(SessionWizardView):
             create_task_form = form_dict[ws.CREATE_TASK]
             task = create_task_form.save()
 
-        create_question_form = form_dict[ws.CREATE_QUESTION]
-        create_question_form.instance.task = task
-        create_question_form.save()
+        question = self.selected_question
+        if question is None:
+            create_question_form = form_dict[ws.CREATE_QUESTION]
+            question = create_question_form.instance
+
+            question.task = task
+            question.save()
+
+        options = self.selected_options
+        if options is not None:
+            question.options.set(options)
 
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))
