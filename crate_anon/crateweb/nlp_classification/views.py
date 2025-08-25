@@ -463,15 +463,33 @@ class ClassificationWizardView(SessionWizardView):
 
     template_name = "nlp_classification/admin/wizard_form.html"
 
-    instructions = {
-        ws.SELECT_TASK: "Select an existing task or create a new task",
-        ws.CREATE_TASK: "Enter the details for the new task",
-        ws.SELECT_QUESTION: (
-            "Select an existing question or create a new question"
-        ),
-        ws.CREATE_QUESTION: "Enter the details for the new question",
-        ws.SELECT_OPTIONS: "Select an existing option or create a new option",
-    }
+    def get_instructions(self, step: str) -> str:
+        if step == ws.SELECT_TASK:
+            return "Select an existing task or create a new task"
+
+        if step == ws.CREATE_TASK:
+            return "Enter the details for the new task"
+
+        if step == ws.SELECT_QUESTION:
+            return "Select an existing question or create a new question"
+
+        if step == ws.CREATE_QUESTION:
+            return "Enter the details for the new question"
+
+        if step == ws.SELECT_OPTIONS:
+            return self._get_select_options_instructions()
+
+    def _get_select_options_instructions(self) -> str:
+        question = self.selected_question
+        if question is not None:
+            title = question.title
+        else:
+            title = self.created_question_title
+
+        return (
+            f"Select options for the question '{title}'. "
+            "You can create new options in the next step."
+        )
 
     def get_cleaned_data_for_step(self, step: str) -> Optional[dict[str, Any]]:
         # https://github.com/jazzband/django-formtools/issues/266
@@ -521,6 +539,12 @@ class ClassificationWizardView(SessionWizardView):
         return cleaned_data.get("question")
 
     @property
+    def created_question_title(self) -> Optional[str]:
+        cleaned_data = self.get_cleaned_data_for_step(ws.CREATE_QUESTION) or {}
+
+        return cleaned_data.get("title")
+
+    @property
     def selected_options(self) -> Optional[list[Option]]:
         cleaned_data = self.get_cleaned_data_for_step(ws.SELECT_OPTIONS) or {}
 
@@ -533,7 +557,7 @@ class ClassificationWizardView(SessionWizardView):
     def get_context_data(self, form: Form, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(form=form, **kwargs)
 
-        context["instructions"] = self.instructions[self.steps.current]
+        context["instructions"] = self.get_instructions(self.steps.current)
 
         return context
 
