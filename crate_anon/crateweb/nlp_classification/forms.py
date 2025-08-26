@@ -30,6 +30,7 @@ CRATE NLP classification forms.
 from typing import Any
 
 from django.forms import (
+    CharField,
     ChoiceField,
     Form,
     HiddenInput,
@@ -162,3 +163,8 @@ class WizardSelectOptionsForm(Form):
         queryset=Option.objects.all(),
         required=False,
     )
+
+
+class WizardCreateOptionsForm(Form):
+    description_1 = CharField(required=False)
+    description_2 = CharField(required=False)

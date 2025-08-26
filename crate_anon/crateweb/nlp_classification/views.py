@@ -44,6 +44,7 @@ from crate_anon.crateweb.nlp_classification.forms import (
     SampleSpecForm,
     TableDefinitionForm,
     TaskForm,
+    WizardCreateOptionsForm,
     WizardCreateQuestionForm,
     WizardCreateTaskForm,
     WizardSelectOptionsForm,
@@ -459,6 +460,7 @@ class ClassificationWizardView(SessionWizardView):
         (ws.SELECT_QUESTION, WizardSelectQuestionForm),
         (ws.CREATE_QUESTION, WizardCreateQuestionForm),
         (ws.SELECT_OPTIONS, WizardSelectOptionsForm),
+        (ws.CREATE_OPTIONS, WizardCreateOptionsForm),
     ]
 
     template_name = "nlp_classification/admin/wizard_form.html"
@@ -564,7 +566,6 @@ class ClassificationWizardView(SessionWizardView):
     def done(
         self, form_list: list[Form], form_dict: dict[str, Form], **kwargs: Any
     ) -> HttpResponse:
-
         task = self.selected_task
         if task is None:
             create_task_form = form_dict[ws.CREATE_TASK]
@@ -581,5 +582,11 @@ class ClassificationWizardView(SessionWizardView):
         options = self.selected_options
         if options is not None:
             question.options.set(options)
+
+        create_options_form = form_dict[ws.CREATE_OPTIONS]
+        for name in ["description_1", "description_2"]:
+            if description := create_options_form.cleaned_data[name]:
+                option = Option.objects.create(description=description)
+                question.options.add(option)
 
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))

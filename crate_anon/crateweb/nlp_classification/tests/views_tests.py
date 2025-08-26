@@ -168,7 +168,15 @@ class ClassificationWizardViewTests(TestCase):
         self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
         self._assert_next_step(ws.SELECT_OPTIONS)
 
+        # Select options
         self._post(ws.SELECT_OPTIONS, {"options": []})
+        self._assert_next_step(ws.CREATE_OPTIONS)
+
+        # Create options
+        self._post(
+            ws.CREATE_OPTIONS,
+            {"description_1": "", "description_2": ""},
+        )
         self._assert_finished()
 
         self.assertTrue(
@@ -192,7 +200,15 @@ class ClassificationWizardViewTests(TestCase):
         self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
         self._assert_next_step(ws.SELECT_OPTIONS)
 
+        # Select options
         self._post(ws.SELECT_OPTIONS, {"options": []})
+        self._assert_next_step(ws.CREATE_OPTIONS)
+
+        # Create options
+        self._post(
+            ws.CREATE_OPTIONS,
+            {"description_1": "", "description_2": ""},
+        )
         self._assert_finished()
 
         task = Task.objects.get(name="Test Task")
@@ -302,9 +318,17 @@ class ClassificationWizardViewTests(TestCase):
         self._post(ws.SELECT_QUESTION, {"question": question.id})
         self._assert_next_step(ws.SELECT_OPTIONS)
 
+        # Select options
         self._post(
             ws.SELECT_OPTIONS,
             {"options": [option_1.id, option_2.id, option_3.id]},
+        )
+        self._assert_next_step(ws.CREATE_OPTIONS)
+
+        # Create options
+        self._post(
+            ws.CREATE_OPTIONS,
+            {"description_1": "", "description_2": ""},
         )
         self._assert_finished()
 
@@ -331,7 +355,15 @@ class ClassificationWizardViewTests(TestCase):
         self._post(ws.SELECT_QUESTION, {"question": question.id})
         self._assert_next_step(ws.SELECT_OPTIONS)
 
+        # Select options
         self._post(ws.SELECT_OPTIONS, {"options": []})
+        self._assert_next_step(ws.CREATE_OPTIONS)
+
+        # Create options
+        self._post(
+            ws.CREATE_OPTIONS,
+            {"description_1": "", "description_2": ""},
+        )
         self._assert_finished()
 
         options = list(question.options.all())
@@ -359,9 +391,17 @@ class ClassificationWizardViewTests(TestCase):
         self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
         self._assert_next_step(ws.SELECT_OPTIONS)
 
+        # Select options
         self._post(
             ws.SELECT_OPTIONS,
             {"options": [option_1.id, option_2.id]},
+        )
+        self._assert_next_step(ws.CREATE_OPTIONS)
+
+        # Create options
+        self._post(
+            ws.CREATE_OPTIONS,
+            {"description_1": "", "description_2": ""},
         )
         self._assert_finished()
 
@@ -371,3 +411,32 @@ class ClassificationWizardViewTests(TestCase):
         self.assertIn(option_1, options)
         self.assertIn(option_2, options)
         self.assertNotIn(option_3, options)
+
+    def test_new_options_added_to_existing_question(self) -> None:
+        question = QuestionFactory()
+
+        # GET request would do this
+        self.storage.current_step = ws.SELECT_TASK
+
+        # Select task
+        self._post(ws.SELECT_TASK, {"task": question.task.id})
+        self._assert_next_step(ws.SELECT_QUESTION)
+
+        # Select question
+        self._post(ws.SELECT_QUESTION, {"question": question.id})
+        self._assert_next_step(ws.SELECT_OPTIONS)
+
+        # Select options
+        self._post(ws.SELECT_OPTIONS, {"options": []})
+        self._assert_next_step(ws.CREATE_OPTIONS)
+
+        # Create options
+        self._post(
+            ws.CREATE_OPTIONS, {"description_1": "Yes", "description_2": "No"}
+        )
+        self._assert_finished()
+
+        descriptions = [o.description for o in list(question.options.all())]
+
+        self.assertIn("Yes", descriptions)
+        self.assertIn("No", descriptions)

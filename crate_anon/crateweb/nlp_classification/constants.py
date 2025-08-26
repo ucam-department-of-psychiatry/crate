@@ -34,3 +34,4 @@ class WizardSteps:
     SELECT_QUESTION = "select_question"
     CREATE_QUESTION = "create_question"
     SELECT_OPTIONS = "select_options"
+    CREATE_OPTIONS = "create_options"
