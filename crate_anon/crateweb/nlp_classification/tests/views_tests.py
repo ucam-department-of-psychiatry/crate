@@ -231,7 +231,7 @@ class ClassificationWizardViewTests(TestCase):
         self._post(ws.SELECT_QUESTION, {"question": question.id})
         self._assert_next_step(ws.SELECT_OPTIONS)
 
-    def test_option_instructions_for_existing_question(self) -> None:
+    def test_select_options_instructions_for_existing_question(self) -> None:
         question = QuestionFactory()
 
         post_data = {
@@ -251,7 +251,7 @@ class ClassificationWizardViewTests(TestCase):
 
         self.assertIn(question.title, instructions)
 
-    def test_option_instructions_for_new_question(self) -> None:
+    def test_select_options_instructions_for_new_question(self) -> None:
         post_data = {
             "classification_wizard_view-current_step": ws.SELECT_QUESTION,
         }
@@ -440,3 +440,23 @@ class ClassificationWizardViewTests(TestCase):
 
         self.assertIn("Yes", descriptions)
         self.assertIn("No", descriptions)
+
+    def test_create_options_instructions_for_existing_question(self) -> None:
+        question = QuestionFactory()
+
+        post_data = {
+            "classification_wizard_view-current_step": ws.SELECT_QUESTION,
+        }
+        self.mock_request.POST = post_data
+
+        self.storage.data.update(
+            step_data={
+                ws.SELECT_QUESTION: {  # previous step
+                    f"{ws.SELECT_QUESTION}-question": [question.id],
+                }
+            }
+        )
+
+        instructions = self.view.get_instructions(ws.CREATE_OPTIONS)
+
+        self.assertIn(question.title, instructions)

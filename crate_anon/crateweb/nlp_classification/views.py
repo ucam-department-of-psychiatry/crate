@@ -465,7 +465,7 @@ class ClassificationWizardView(SessionWizardView):
 
     template_name = "nlp_classification/admin/wizard_form.html"
 
-    def get_instructions(self, step: str) -> str:
+    def get_instructions(self, step: str) -> Optional[str]:
         if step == ws.SELECT_TASK:
             return "Select an existing task or create a new task"
 
@@ -481,17 +481,17 @@ class ClassificationWizardView(SessionWizardView):
         if step == ws.SELECT_OPTIONS:
             return self._get_select_options_instructions()
 
-    def _get_select_options_instructions(self) -> str:
-        question = self.selected_question
-        if question is not None:
-            title = question.title
-        else:
-            title = self.created_question_title
+        if step == ws.CREATE_OPTIONS:
+            return self._get_create_options_instructions()
 
+    def _get_select_options_instructions(self) -> str:
         return (
-            f"Select options for the question '{title}'. "
+            f"Select options for the question '{self.question_title}'. "
             "You can create new options in the next step."
         )
+
+    def _get_create_options_instructions(self) -> str:
+        return f"Create options for the question '{self.question_title}'."
 
     def get_cleaned_data_for_step(self, step: str) -> Optional[dict[str, Any]]:
         # https://github.com/jazzband/django-formtools/issues/266
@@ -533,6 +533,14 @@ class ClassificationWizardView(SessionWizardView):
     @property
     def has_selected_question(self) -> bool:
         return self.selected_question is not None
+
+    @property
+    def question_title(self) -> str:
+        question = self.selected_question
+        if question is not None:
+            return question.title
+
+        return self.created_question_title
 
     @property
     def selected_question(self) -> Optional[Question]:
