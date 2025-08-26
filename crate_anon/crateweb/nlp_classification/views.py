@@ -448,7 +448,7 @@ def should_create_question(wizard: SessionWizardView) -> bool:
     return not wizard.has_selected_question
 
 
-class ClassificationWizardView(SessionWizardView):
+class TaskAndQuestionWizardView(SessionWizardView):
     condition_dict = {
         ws.CREATE_TASK: should_create_task,
         ws.SELECT_QUESTION: should_select_question,

@@ -43,7 +43,7 @@ from crate_anon.crateweb.nlp_classification.tests.factories import (
     UserAnswerFactory,
 )
 from crate_anon.crateweb.nlp_classification.views import (
-    ClassificationWizardView,
+    TaskAndQuestionWizardView,
     UserAnswerView,
 )
 
@@ -83,7 +83,7 @@ class TestStorage(BaseStorage):
     pass
 
 
-class ClassificationWizardViewTests(TestCase):
+class TaskAndQuestionWizardViewTests(TestCase):
     def setUp(self) -> None:
         super().setUp()
 
@@ -93,10 +93,15 @@ class ClassificationWizardViewTests(TestCase):
         self.storage.init_data()
         self.mock_get_storage = mock.Mock(return_value=self.storage)
 
-        initkwargs = ClassificationWizardView.get_initkwargs()
-        self.view = ClassificationWizardView(**initkwargs)
+        initkwargs = TaskAndQuestionWizardView.get_initkwargs()
+        self.view = TaskAndQuestionWizardView(**initkwargs)
         self.view.setup(self.mock_request)
         self.view.storage = self.storage
+
+    @property
+    def current_step_param(self) -> str:
+        prefix = self.view.get_prefix(self.mock_request)
+        return f"{prefix}-current_step"
 
     def _assert_next_step(self, expected: str) -> None:
         self.assertEqual(
@@ -125,16 +130,12 @@ class ClassificationWizardViewTests(TestCase):
                 else:
                     self.mock_request.POST[name] = value
 
-                self.mock_request.POST[
-                    "classification_wizard_view-current_step"
-                ] = step
+                self.mock_request.POST[self.current_step_param] = step
 
             self.view.dispatch(self.mock_request)
 
     def test_selected_task_passed_to_select_question_form(self) -> None:
-        post_data = {
-            "classification_wizard_view-current_step": ws.SELECT_QUESTION,
-        }
+        post_data = {self.current_step_param: ws.SELECT_QUESTION}
         self.mock_request.POST = post_data
         task = TaskFactory()
 
@@ -234,9 +235,7 @@ class ClassificationWizardViewTests(TestCase):
     def test_select_options_instructions_for_existing_question(self) -> None:
         question = QuestionFactory()
 
-        post_data = {
-            "classification_wizard_view-current_step": ws.SELECT_QUESTION,
-        }
+        post_data = {self.current_step_param: ws.SELECT_QUESTION}
         self.mock_request.POST = post_data
 
         self.storage.data.update(
@@ -252,9 +251,7 @@ class ClassificationWizardViewTests(TestCase):
         self.assertIn(question.title, instructions)
 
     def test_select_options_instructions_for_new_question(self) -> None:
-        post_data = {
-            "classification_wizard_view-current_step": ws.SELECT_QUESTION,
-        }
+        post_data = {self.current_step_param: ws.SELECT_QUESTION}
         self.mock_request.POST = post_data
 
         self.storage.data.update(
@@ -277,9 +274,7 @@ class ClassificationWizardViewTests(TestCase):
 
         question = QuestionFactory(options=[option_1, option_2])
 
-        post_data = {
-            "classification_wizard_view-current_step": ws.SELECT_OPTIONS,
-        }
+        post_data = {self.current_step_param: ws.SELECT_OPTIONS}
         self.mock_request.POST = post_data
 
         self.storage.data.update(
@@ -444,9 +439,7 @@ class ClassificationWizardViewTests(TestCase):
     def test_create_options_instructions_for_existing_question(self) -> None:
         question = QuestionFactory()
 
-        post_data = {
-            "classification_wizard_view-current_step": ws.SELECT_QUESTION,
-        }
+        post_data = {self.current_step_param: ws.SELECT_QUESTION}
         self.mock_request.POST = post_data
 
         self.storage.data.update(

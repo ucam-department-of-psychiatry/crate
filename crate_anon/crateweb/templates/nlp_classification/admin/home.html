@@ -3,8 +3,12 @@
 
 {% block nlp_classification_content %}
             <h2>Administration</h2>
+            <h3>Quick setup</h3>
             <ul>
-              <li><a href="{% url 'nlp_classification_admin_wizard' %}">Classification wizard</a></li>
+              <li><a href="{% url 'nlp_classification_admin_task_question_wizard' %}">Tasks and questions</a></li>
+            </ul>
+            <h3>Tables</h3>
+            <ul>
               <li><a href="{% url 'nlp_classification_admin_task_list' %}">Tasks</a></li>
               <li><a href="{% url 'nlp_classification_admin_question_list' %}">Questions</a></li>
               <li><a href="{% url 'nlp_classification_admin_option_list' %}">Options</a></li>
