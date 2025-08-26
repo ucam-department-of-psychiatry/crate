@@ -103,6 +103,7 @@ class AssignmentFactory(factory.django.DjangoModelFactory):
 class QuestionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Question
+        skip_postgeneration_save = True
 
     task = factory.SubFactory(TaskFactory)
 
