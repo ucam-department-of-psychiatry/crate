@@ -99,6 +99,8 @@ class NlpClassificationWizardViewTests(TestCase):
         self.view = self.view_class(**initkwargs)
         self.view.setup(self.mock_request)
         self.view.storage = self.storage
+        # In normal use, a GET request would do this
+        self.storage.current_step = self.first_step
 
     def post(self, step: str, post_dict: dict[str, Any]) -> None:
         with mock.patch.multiple(
@@ -170,9 +172,6 @@ class TaskAndQuestionWizardViewTests(NlpClassificationWizardViewTests):
     def test_question_saved_with_existing_task(self) -> None:
         task = TaskFactory()
 
-        # GET request would do this
-        self.storage.current_step = ws.SELECT_TASK
-
         # Select task
         self.post(ws.SELECT_TASK, {"task": task.id})
         self.assert_next_step(ws.SELECT_QUESTION)
@@ -201,9 +200,6 @@ class TaskAndQuestionWizardViewTests(NlpClassificationWizardViewTests):
         )
 
     def test_question_saved_with_new_task(self) -> None:
-        # GET request would do this
-        self.storage.current_step = ws.SELECT_TASK
-
         # Select task
         self.post(ws.SELECT_TASK, {"task": ""})
         self.assert_next_step(ws.CREATE_TASK)
@@ -236,9 +232,6 @@ class TaskAndQuestionWizardViewTests(NlpClassificationWizardViewTests):
     def test_existing_task_and_question_selected(self) -> None:
         question = QuestionFactory()
         task = question.task
-
-        # GET request would do this
-        self.storage.current_step = ws.SELECT_TASK
 
         # Select task
         self.post(ws.SELECT_TASK, {"task": task.id})
@@ -318,9 +311,6 @@ class TaskAndQuestionWizardViewTests(NlpClassificationWizardViewTests):
 
         question = QuestionFactory(options=[option_1, option_2])
 
-        # GET request would do this
-        self.storage.current_step = ws.SELECT_TASK
-
         # Select task
         self.post(ws.SELECT_TASK, {"task": question.task.id})
         self.assert_next_step(ws.SELECT_QUESTION)
@@ -355,9 +345,6 @@ class TaskAndQuestionWizardViewTests(NlpClassificationWizardViewTests):
 
         question = QuestionFactory(options=[option_1, option_2])
 
-        # GET request would do this
-        self.storage.current_step = ws.SELECT_TASK
-
         # Select task
         self.post(ws.SELECT_TASK, {"task": question.task.id})
         self.assert_next_step(ws.SELECT_QUESTION)
@@ -386,9 +373,6 @@ class TaskAndQuestionWizardViewTests(NlpClassificationWizardViewTests):
         option_1 = OptionFactory(description="Yes")
         option_2 = OptionFactory(description="No")
         option_3 = OptionFactory(description="Maybe")
-
-        # GET request would do this
-        self.storage.current_step = ws.SELECT_TASK
 
         # Select task
         self.post(ws.SELECT_TASK, {"task": task.id})
@@ -425,9 +409,6 @@ class TaskAndQuestionWizardViewTests(NlpClassificationWizardViewTests):
 
     def test_new_options_added_to_existing_question(self) -> None:
         question = QuestionFactory()
-
-        # GET request would do this
-        self.storage.current_step = ws.SELECT_TASK
 
         # Select task
         self.post(ws.SELECT_TASK, {"task": question.task.id})
@@ -480,9 +461,6 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
 
     def test_existing_table_definition_selected_for_source(self) -> None:
         table_definition = TableDefinitionFactory()
-
-        # GET request would do this
-        self.storage.current_step = ws.SELECT_SOURCE_TABLE_DEFINITION
 
         # Select table definition
         self.post(
