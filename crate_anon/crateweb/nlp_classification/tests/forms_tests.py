@@ -29,11 +29,17 @@ Tests for CRATE NLP classification forms.
 
 from django.test import TestCase
 
+from crate_anon.crateweb.core.constants import (
+    NLP_DB_CONNECTION_NAME,
+    RESEARCH_DB_CONNECTION_NAME,
+)
 from crate_anon.crateweb.nlp_classification.forms import (
     WizardSelectQuestionForm,
+    WizardSelectSourceTableDefinitionForm,
 )
 from crate_anon.crateweb.nlp_classification.tests.factories import (
     QuestionFactory,
+    TableDefinitionFactory,
     TaskFactory,
 )
 
@@ -71,4 +77,23 @@ class WizardSelectQuestionFormTests(TestCase):
 
         self.assertQuerySetEqual(
             form.fields["question"].queryset, [q1_1, q1_2], ordered=False
+        )
+
+
+class WizardSelectSourceTableDefinitionFormTests(TestCase):
+    def test_filtered_by_source_db_connection(self) -> None:
+        source_td_1 = TableDefinitionFactory(
+            db_connection_name=RESEARCH_DB_CONNECTION_NAME
+        )
+        source_td_2 = TableDefinitionFactory(
+            db_connection_name=RESEARCH_DB_CONNECTION_NAME
+        )
+        TableDefinitionFactory(db_connection_name=NLP_DB_CONNECTION_NAME)
+
+        form = WizardSelectSourceTableDefinitionForm()
+
+        self.assertQuerySetEqual(
+            form.fields["table_definition"].queryset,
+            [source_td_1, source_td_2],
+            ordered=False,
         )

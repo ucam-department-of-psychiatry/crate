@@ -49,6 +49,7 @@ from crate_anon.crateweb.nlp_classification.forms import (
     WizardCreateTaskForm,
     WizardSelectOptionsForm,
     WizardSelectQuestionForm,
+    WizardSelectSourceTableDefinitionForm,
     WizardSelectTaskForm,
     UserAnswerForm,
 )
@@ -448,7 +449,23 @@ def should_create_question(wizard: SessionWizardView) -> bool:
     return not wizard.has_selected_question
 
 
-class TaskAndQuestionWizardView(SessionWizardView):
+class NlpClassificationWizardView(SessionWizardView):
+    template_name = "nlp_classification/admin/wizard_form.html"
+
+    def get_context_data(self, form: Form, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(form=form, **kwargs)
+        context["instructions"] = self.get_instructions(self.steps.current)
+
+        return context
+
+    def get_instructions(self) -> Optional[str]:
+        raise NotImplementedError(
+            "get_instructions() needs to be defined in "
+            f"{self.__class__.__name__}"
+        )
+
+
+class TaskAndQuestionWizardView(NlpClassificationWizardView):
     condition_dict = {
         ws.CREATE_TASK: should_create_task,
         ws.SELECT_QUESTION: should_select_question,
@@ -462,8 +479,6 @@ class TaskAndQuestionWizardView(SessionWizardView):
         (ws.SELECT_OPTIONS, WizardSelectOptionsForm),
         (ws.CREATE_OPTIONS, WizardCreateOptionsForm),
     ]
-
-    template_name = "nlp_classification/admin/wizard_form.html"
 
     def get_instructions(self, step: str) -> Optional[str]:
         if step == ws.SELECT_TASK:
@@ -564,13 +579,6 @@ class TaskAndQuestionWizardView(SessionWizardView):
 
         return None
 
-    def get_context_data(self, form: Form, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(form=form, **kwargs)
-
-        context["instructions"] = self.get_instructions(self.steps.current)
-
-        return context
-
     def done(
         self, form_list: list[Form], form_dict: dict[str, Form], **kwargs: Any
     ) -> HttpResponse:
@@ -596,5 +604,27 @@ class TaskAndQuestionWizardView(SessionWizardView):
             if description := create_options_form.cleaned_data[name]:
                 option = Option.objects.create(description=description)
                 question.options.add(option)
+
+        return HttpResponseRedirect(reverse("nlp_classification_admin_home"))
+
+
+class SampleDataWizardView(NlpClassificationWizardView):
+    form_list = [
+        (
+            ws.SELECT_SOURCE_TABLE_DEFINITION,
+            WizardSelectSourceTableDefinitionForm,
+        ),
+    ]
+
+    def get_instructions(self, step: str) -> Optional[str]:
+        if step == ws.SELECT_SOURCE_TABLE_DEFINITION:
+            return (
+                "Select an existing source table definition or "
+                "create a new one"
+            )
+
+    def done(
+        self, form_list: list[Form], form_dict: dict[str, Form], **kwargs: Any
+    ) -> HttpResponse:
 
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))

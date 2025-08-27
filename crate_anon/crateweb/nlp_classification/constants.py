@@ -35,3 +35,5 @@ class WizardSteps:
     CREATE_QUESTION = "create_question"
     SELECT_OPTIONS = "select_options"
     CREATE_OPTIONS = "create_options"
+
+    SELECT_SOURCE_TABLE_DEFINITION = "select_source_table_definition"

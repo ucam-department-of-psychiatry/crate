@@ -119,7 +119,7 @@ class UserAnswerForm(ModelForm):
         )
 
 
-# Wizard forms in order of step
+# TaskAndQuestionWizardView forms in order of step
 class WizardSelectTaskForm(Form):
     task = ModelChoiceField(
         queryset=Task.objects.all(),
@@ -168,3 +168,14 @@ class WizardSelectOptionsForm(Form):
 class WizardCreateOptionsForm(Form):
     description_1 = CharField(required=False)
     description_2 = CharField(required=False)
+
+
+# SampleDataWizardView forms in order of step
+class WizardSelectSourceTableDefinitionForm(Form):
+    table_definition = ModelChoiceField(
+        queryset=TableDefinition.objects.filter(
+            db_connection_name=RESEARCH_DB_CONNECTION_NAME
+        ),
+        required=False,
+        empty_label="-- Create new source table definition --",
+    )

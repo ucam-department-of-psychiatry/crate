@@ -39,10 +39,12 @@ from crate_anon.crateweb.nlp_classification.models import Question, Task
 from crate_anon.crateweb.nlp_classification.tests.factories import (
     OptionFactory,
     QuestionFactory,
+    TableDefinitionFactory,
     TaskFactory,
     UserAnswerFactory,
 )
 from crate_anon.crateweb.nlp_classification.views import (
+    SampleDataWizardView,
     TaskAndQuestionWizardView,
     UserAnswerView,
 )
@@ -83,7 +85,7 @@ class TestStorage(BaseStorage):
     pass
 
 
-class TaskAndQuestionWizardViewTests(TestCase):
+class NlpClassificationWizardViewTests(TestCase):
     def setUp(self) -> None:
         super().setUp()
 
@@ -93,31 +95,12 @@ class TaskAndQuestionWizardViewTests(TestCase):
         self.storage.init_data()
         self.mock_get_storage = mock.Mock(return_value=self.storage)
 
-        initkwargs = TaskAndQuestionWizardView.get_initkwargs()
-        self.view = TaskAndQuestionWizardView(**initkwargs)
+        initkwargs = self.view_class.get_initkwargs()
+        self.view = self.view_class(**initkwargs)
         self.view.setup(self.mock_request)
         self.view.storage = self.storage
 
-    @property
-    def current_step_param(self) -> str:
-        prefix = self.view.get_prefix(self.mock_request)
-        return f"{prefix}-current_step"
-
-    def _assert_next_step(self, expected: str) -> None:
-        self.assertEqual(
-            self.view.steps.current,
-            expected,
-            msg="Did not go to the next step. Are there form errors?",
-        )
-
-    def _assert_finished(self) -> None:
-        self.assertEqual(
-            self.view.steps.current,
-            ws.SELECT_TASK,  # Back to beginning
-            msg="Did not complete. Are there form errors?",
-        )
-
-    def _post(self, step: str, post_dict: dict[str, Any]) -> None:
+    def post(self, step: str, post_dict: dict[str, Any]) -> None:
         with mock.patch.multiple(
             "formtools.wizard.views", get_storage=self.mock_get_storage
         ):
@@ -133,6 +116,39 @@ class TaskAndQuestionWizardViewTests(TestCase):
                 self.mock_request.POST[self.current_step_param] = step
 
             self.view.dispatch(self.mock_request)
+
+    @property
+    def current_step_param(self) -> str:
+        prefix = self.view.get_prefix(self.mock_request)
+        return f"{prefix}-current_step"
+
+    def assert_next_step(self, expected: str) -> None:
+        self.assertEqual(
+            self.view.steps.current,
+            expected,
+            msg="Did not go to the next step. Are there form errors?",
+        )
+
+    def assert_finished(self) -> None:
+        self.assertEqual(
+            self.view.steps.current,
+            self.first_step,
+            msg="Did not complete. Are there form errors?",
+        )
+
+    @property
+    def first_step(self) -> str:
+        raise NotImplementedError(
+            f"first_step needs to be defined in {self.__class__.__name__}"
+        )
+
+
+class TaskAndQuestionWizardViewTests(NlpClassificationWizardViewTests):
+    view_class = TaskAndQuestionWizardView
+
+    @property
+    def first_step(self) -> str:
+        return ws.SELECT_TASK
 
     def test_selected_task_passed_to_select_question_form(self) -> None:
         post_data = {self.current_step_param: ws.SELECT_QUESTION}
@@ -158,27 +174,27 @@ class TaskAndQuestionWizardViewTests(TestCase):
         self.storage.current_step = ws.SELECT_TASK
 
         # Select task
-        self._post(ws.SELECT_TASK, {"task": task.id})
-        self._assert_next_step(ws.SELECT_QUESTION)
+        self.post(ws.SELECT_TASK, {"task": task.id})
+        self.assert_next_step(ws.SELECT_QUESTION)
 
         # Select question
-        self._post(ws.SELECT_QUESTION, {"question": ""})
-        self._assert_next_step(ws.CREATE_QUESTION)
+        self.post(ws.SELECT_QUESTION, {"question": ""})
+        self.assert_next_step(ws.CREATE_QUESTION)
 
         # Create question
-        self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
-        self._assert_next_step(ws.SELECT_OPTIONS)
+        self.post(ws.CREATE_QUESTION, {"title": "Test Question"})
+        self.assert_next_step(ws.SELECT_OPTIONS)
 
         # Select options
-        self._post(ws.SELECT_OPTIONS, {"options": []})
-        self._assert_next_step(ws.CREATE_OPTIONS)
+        self.post(ws.SELECT_OPTIONS, {"options": []})
+        self.assert_next_step(ws.CREATE_OPTIONS)
 
         # Create options
-        self._post(
+        self.post(
             ws.CREATE_OPTIONS,
             {"description_1": "", "description_2": ""},
         )
-        self._assert_finished()
+        self.assert_finished()
 
         self.assertTrue(
             Question.objects.filter(task=task, title="Test Question").exists()
@@ -189,28 +205,28 @@ class TaskAndQuestionWizardViewTests(TestCase):
         self.storage.current_step = ws.SELECT_TASK
 
         # Select task
-        self._post(ws.SELECT_TASK, {"task": ""})
-        self._assert_next_step(ws.CREATE_TASK)
+        self.post(ws.SELECT_TASK, {"task": ""})
+        self.assert_next_step(ws.CREATE_TASK)
 
         # Create task
-        self._post(ws.CREATE_TASK, {"name": "Test Task"})
+        self.post(ws.CREATE_TASK, {"name": "Test Task"})
         # Because we can't select an existing question for a new task
-        self._assert_next_step(ws.CREATE_QUESTION)
+        self.assert_next_step(ws.CREATE_QUESTION)
 
         # Create question
-        self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
-        self._assert_next_step(ws.SELECT_OPTIONS)
+        self.post(ws.CREATE_QUESTION, {"title": "Test Question"})
+        self.assert_next_step(ws.SELECT_OPTIONS)
 
         # Select options
-        self._post(ws.SELECT_OPTIONS, {"options": []})
-        self._assert_next_step(ws.CREATE_OPTIONS)
+        self.post(ws.SELECT_OPTIONS, {"options": []})
+        self.assert_next_step(ws.CREATE_OPTIONS)
 
         # Create options
-        self._post(
+        self.post(
             ws.CREATE_OPTIONS,
             {"description_1": "", "description_2": ""},
         )
-        self._assert_finished()
+        self.assert_finished()
 
         task = Task.objects.get(name="Test Task")
         self.assertTrue(
@@ -225,12 +241,12 @@ class TaskAndQuestionWizardViewTests(TestCase):
         self.storage.current_step = ws.SELECT_TASK
 
         # Select task
-        self._post(ws.SELECT_TASK, {"task": task.id})
-        self._assert_next_step(ws.SELECT_QUESTION)
+        self.post(ws.SELECT_TASK, {"task": task.id})
+        self.assert_next_step(ws.SELECT_QUESTION)
 
         # Select question
-        self._post(ws.SELECT_QUESTION, {"question": question.id})
-        self._assert_next_step(ws.SELECT_OPTIONS)
+        self.post(ws.SELECT_QUESTION, {"question": question.id})
+        self.assert_next_step(ws.SELECT_OPTIONS)
 
     def test_select_options_instructions_for_existing_question(self) -> None:
         question = QuestionFactory()
@@ -306,26 +322,26 @@ class TaskAndQuestionWizardViewTests(TestCase):
         self.storage.current_step = ws.SELECT_TASK
 
         # Select task
-        self._post(ws.SELECT_TASK, {"task": question.task.id})
-        self._assert_next_step(ws.SELECT_QUESTION)
+        self.post(ws.SELECT_TASK, {"task": question.task.id})
+        self.assert_next_step(ws.SELECT_QUESTION)
 
         # Select question
-        self._post(ws.SELECT_QUESTION, {"question": question.id})
-        self._assert_next_step(ws.SELECT_OPTIONS)
+        self.post(ws.SELECT_QUESTION, {"question": question.id})
+        self.assert_next_step(ws.SELECT_OPTIONS)
 
         # Select options
-        self._post(
+        self.post(
             ws.SELECT_OPTIONS,
             {"options": [option_1.id, option_2.id, option_3.id]},
         )
-        self._assert_next_step(ws.CREATE_OPTIONS)
+        self.assert_next_step(ws.CREATE_OPTIONS)
 
         # Create options
-        self._post(
+        self.post(
             ws.CREATE_OPTIONS,
             {"description_1": "", "description_2": ""},
         )
-        self._assert_finished()
+        self.assert_finished()
 
         options = question.options.all()
 
@@ -343,23 +359,23 @@ class TaskAndQuestionWizardViewTests(TestCase):
         self.storage.current_step = ws.SELECT_TASK
 
         # Select task
-        self._post(ws.SELECT_TASK, {"task": question.task.id})
-        self._assert_next_step(ws.SELECT_QUESTION)
+        self.post(ws.SELECT_TASK, {"task": question.task.id})
+        self.assert_next_step(ws.SELECT_QUESTION)
 
         # Select question
-        self._post(ws.SELECT_QUESTION, {"question": question.id})
-        self._assert_next_step(ws.SELECT_OPTIONS)
+        self.post(ws.SELECT_QUESTION, {"question": question.id})
+        self.assert_next_step(ws.SELECT_OPTIONS)
 
         # Select options
-        self._post(ws.SELECT_OPTIONS, {"options": []})
-        self._assert_next_step(ws.CREATE_OPTIONS)
+        self.post(ws.SELECT_OPTIONS, {"options": []})
+        self.assert_next_step(ws.CREATE_OPTIONS)
 
         # Create options
-        self._post(
+        self.post(
             ws.CREATE_OPTIONS,
             {"description_1": "", "description_2": ""},
         )
-        self._assert_finished()
+        self.assert_finished()
 
         options = list(question.options.all())
         self.assertEqual(options, [])
@@ -375,30 +391,30 @@ class TaskAndQuestionWizardViewTests(TestCase):
         self.storage.current_step = ws.SELECT_TASK
 
         # Select task
-        self._post(ws.SELECT_TASK, {"task": task.id})
-        self._assert_next_step(ws.SELECT_QUESTION)
+        self.post(ws.SELECT_TASK, {"task": task.id})
+        self.assert_next_step(ws.SELECT_QUESTION)
 
         # Select question
-        self._post(ws.SELECT_QUESTION, {"question": ""})
-        self._assert_next_step(ws.CREATE_QUESTION)
+        self.post(ws.SELECT_QUESTION, {"question": ""})
+        self.assert_next_step(ws.CREATE_QUESTION)
 
         # Create question
-        self._post(ws.CREATE_QUESTION, {"title": "Test Question"})
-        self._assert_next_step(ws.SELECT_OPTIONS)
+        self.post(ws.CREATE_QUESTION, {"title": "Test Question"})
+        self.assert_next_step(ws.SELECT_OPTIONS)
 
         # Select options
-        self._post(
+        self.post(
             ws.SELECT_OPTIONS,
             {"options": [option_1.id, option_2.id]},
         )
-        self._assert_next_step(ws.CREATE_OPTIONS)
+        self.assert_next_step(ws.CREATE_OPTIONS)
 
         # Create options
-        self._post(
+        self.post(
             ws.CREATE_OPTIONS,
             {"description_1": "", "description_2": ""},
         )
-        self._assert_finished()
+        self.assert_finished()
 
         question = Question.objects.get(task=task, title="Test Question")
         options = question.options.all()
@@ -414,22 +430,22 @@ class TaskAndQuestionWizardViewTests(TestCase):
         self.storage.current_step = ws.SELECT_TASK
 
         # Select task
-        self._post(ws.SELECT_TASK, {"task": question.task.id})
-        self._assert_next_step(ws.SELECT_QUESTION)
+        self.post(ws.SELECT_TASK, {"task": question.task.id})
+        self.assert_next_step(ws.SELECT_QUESTION)
 
         # Select question
-        self._post(ws.SELECT_QUESTION, {"question": question.id})
-        self._assert_next_step(ws.SELECT_OPTIONS)
+        self.post(ws.SELECT_QUESTION, {"question": question.id})
+        self.assert_next_step(ws.SELECT_OPTIONS)
 
         # Select options
-        self._post(ws.SELECT_OPTIONS, {"options": []})
-        self._assert_next_step(ws.CREATE_OPTIONS)
+        self.post(ws.SELECT_OPTIONS, {"options": []})
+        self.assert_next_step(ws.CREATE_OPTIONS)
 
         # Create options
-        self._post(
+        self.post(
             ws.CREATE_OPTIONS, {"description_1": "Yes", "description_2": "No"}
         )
-        self._assert_finished()
+        self.assert_finished()
 
         descriptions = [o.description for o in list(question.options.all())]
 
@@ -453,3 +469,24 @@ class TaskAndQuestionWizardViewTests(TestCase):
         instructions = self.view.get_instructions(ws.CREATE_OPTIONS)
 
         self.assertIn(question.title, instructions)
+
+
+class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
+    view_class = SampleDataWizardView
+
+    @property
+    def first_step(self) -> str:
+        return ws.SELECT_SOURCE_TABLE_DEFINITION
+
+    def test_existing_table_definition_selected_for_source(self) -> None:
+        table_definition = TableDefinitionFactory()
+
+        # GET request would do this
+        self.storage.current_step = ws.SELECT_SOURCE_TABLE_DEFINITION
+
+        # Select table definition
+        self.post(
+            ws.SELECT_SOURCE_TABLE_DEFINITION,
+            {"table_definition": table_definition.id},
+        )
+        self.assert_finished()
