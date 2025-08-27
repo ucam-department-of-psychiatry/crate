@@ -522,9 +522,18 @@ class SingleResearchDatabase:
     ) -> List[Dict[str, Any]]:
         fetcher = SchemaFetcher()
 
-        return fetcher.get_schema_infodictlist(
+        results = fetcher.get_schema_infodictlist(
             connection, self.database, self.schema_name, debug
         )
+
+        if not results:
+            log.warning(
+                f"SingleResearchDatabase.get_schema_infodictlist(): no "
+                f"results for database/schema {self.schema_identifier!r} "
+                f"database - misconfigured?"
+            )
+
+        return results
 
 
 @register_for_json(method=METHOD_NO_ARGS)

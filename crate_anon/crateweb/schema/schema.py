@@ -553,10 +553,4 @@ ORDER BY
                 f"{connection.vendor=!r}"
             )
 
-        if not results:
-            log.warning(
-                f"SingleResearchDatabase.get_schema_infodictlist(): no "
-                f"results for database/schema {self.schema_identifier!r} "
-                f"database - misconfigured?"
-            )
         return results
