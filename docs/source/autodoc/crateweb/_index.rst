@@ -247,6 +247,8 @@ crate_anon/crateweb
     research/tests/research_db_info_tests.py.rst
     research/tests/sql_writer_tests.py.rst
     research/views.py.rst
+    schema/__init__.py.rst
+    schema/schema.py.rst
     specimen_archives/basic/clinical_documents.mako.rst
     specimen_archives/basic/diagnoses.mako.rst
     specimen_archives/basic/inherit/base.mako.rst
