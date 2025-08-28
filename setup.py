@@ -130,7 +130,7 @@ INSTALL_REQUIRES = [
     "cryptography==44.0.1",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
-    "pyramid==1.10.4",  # Pyramid web framework
+    "pyramid==1.10.8",  # Pyramid web framework
     "pyramid_tm==2.4",  # Pyramid transaction management
     "redis==4.5.4",  # interface to Redis in-memory key-value database
     "requests==2.32.4",  # HTTP requests
