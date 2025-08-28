@@ -65,7 +65,7 @@ with open(os.path.join(THIS_DIR, "README.rst"), encoding="utf-8") as f:
 
 # Package dependencies
 INSTALL_REQUIRES = [
-    "amqp==5.0.9",  # amqp is used by Celery
+    "amqp==5.3.1",  # amqp is used by Celery
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
@@ -92,7 +92,7 @@ INSTALL_REQUIRES = [
     "gunicorn==23.0.0",  # UNIX only, though will install under Windows
     "gutenbergpy==0.3.4",  # Project Gutenberg API
     "jsonlines==3.0.0",  # JSON Lines format
-    "kombu==5.2.3",  # AMQP library for Celery; requires VC++ under Windows
+    "kombu==5.3.7",  # AMQP library for Celery; requires VC++ under Windows
     "mako==1.2.2",  # templates with Python in
     "MarkupSafe==2.0.1",  # for HTML escaping
     # mmh3 requires VC++
