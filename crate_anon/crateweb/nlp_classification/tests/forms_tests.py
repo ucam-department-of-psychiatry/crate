@@ -27,6 +27,8 @@ Tests for CRATE NLP classification forms.
 
 """
 
+from unittest import mock
+
 from django.test import TestCase
 
 from crate_anon.crateweb.core.constants import (
@@ -36,6 +38,7 @@ from crate_anon.crateweb.core.constants import (
 from crate_anon.crateweb.nlp_classification.forms import (
     WizardSelectQuestionForm,
     WizardSelectSourceTableDefinitionForm,
+    WizardSelectSourceTableForm,
 )
 from crate_anon.crateweb.nlp_classification.tests.factories import (
     QuestionFactory,
@@ -97,3 +100,27 @@ class WizardSelectSourceTableDefinitionFormTests(TestCase):
             [source_td_1, source_td_2],
             ordered=False,
         )
+
+
+class WizardSelectSourceTableFormTests(TestCase):
+    def test_names_are_source_tables(self) -> None:
+        mock_db_connection = mock.Mock(
+            get_table_names=mock.Mock(
+                return_value=["table_1", "table_2", "table_3"]
+            )
+        )
+
+        with mock.patch.multiple(
+            "crate_anon.crateweb.nlp_classification.forms",
+            DatabaseConnection=mock.Mock(return_value=mock_db_connection),
+        ):
+            form = WizardSelectSourceTableForm()
+
+            self.assertEqual(
+                form.fields["table_name"].choices,
+                [
+                    ("table_1", "table_1"),
+                    ("table_2", "table_2"),
+                    ("table_3", "table_3"),
+                ],
+            )

@@ -1,5 +1,5 @@
 """
-crate_anon/crateweb/schema/schema.py
+crate_anon/crateweb/raw_sql/database_connection.py
 
 ===============================================================================
 
@@ -23,19 +23,24 @@ crate_anon/crateweb/schema/schema.py
 
 ===============================================================================
 
-**Methods for selecting schema information from databases.**
+Methods for direct database access with raw SQL queries i.e. not via the Django
+ORM.
 
 """
 
 import logging
-from typing import Any
+from typing import Any, Iterable, Optional, Sequence, Tuple
 
 from cardinal_pythonlib.dbfunc import dictfetchall
 from cardinal_pythonlib.django.django_constants import ConnectionVendors
+from cardinal_pythonlib.django.function_cache import django_cache_function
+from cardinal_pythonlib.json_utils.serialize import (
+    METHOD_NO_ARGS,
+    register_for_json,
+)
 from cardinal_pythonlib.logs import BraceStyleAdapter
-
+from django.db import connections
 from django.db.backends.base.base import BaseDatabaseWrapper
-
 
 from crate_anon.common.sql import (
     SqlArgsTupleType,
@@ -45,14 +50,99 @@ from crate_anon.common.sql import (
 log = BraceStyleAdapter(logging.getLogger(__name__))
 
 
-class SchemaFetcher:
+class UnsupportedEngineException(Exception):
+    pass
+
+
+@register_for_json(method=METHOD_NO_ARGS)
+class DatabaseConnection:
+    def __init__(self, connection_name: str) -> None:
+        self.connection_name = connection_name
+
+    def fetchone_as_dict(
+        self,
+        column_names: Iterable[str],
+        table_name: str,
+        where: Optional[str] = None,
+        params: Optional[Sequence[Any]] = None,
+    ) -> dict[str, Any]:
+
+        out = {}
+
+        sql = self.get_sql(column_names, table_name, where, params)
+
+        with self.connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            row = cursor.fetchone()
+
+            if row:
+                for index, column_name in enumerate(column_names):
+                    out[column_name] = row[index]
+
+        return out
+
+    def fetchall(
+        self,
+        column_names: Iterable[str],
+        table_name: str,
+        where: Optional[str] = None,
+        params: Optional[Sequence[Any]] = None,
+    ):  # TODO: Return type
+        sql = self.get_sql(column_names, table_name, where, params)
+
+        with self.connection.cursor() as cursor:
+            cursor.execute(sql, params)
+            for row in cursor.fetchall():
+                yield row
+
+    def get_sql(
+        self,
+        column_names: Iterable[str],
+        table_name: str,
+        where: Optional[str] = None,
+        params: Optional[Sequence[Any]] = None,
+    ) -> str:
+
+        column_names_str = ", ".join(column_names)
+        sql = f"SELECT {column_names_str} FROM {table_name}"
+        if where:
+            sql += f" WHERE {where}"
+
+        return sql
+
+    def get_table_names(self) -> set[str]:
+        table_names = []
+
+        for infodict in self.get_schema_infodictlist():
+            table_names.append(
+                self.get_case_insenitive_value(infodict, "table_name")
+            )
+
+        return sorted(set(table_names))
+
+    def get_column_names_for_table(self, table_name: str) -> set[str]:
+        column_names = []
+
+        for infodict in self.get_schema_infodictlist():
+            if table_name == self.get_case_insenitive_value(
+                infodict, "table_name"
+            ):
+                column_names.append(
+                    self.get_case_insenitive_value(infodict, "column_name")
+                )
+
+        return sorted(column_names)
+
+    @staticmethod
+    def get_case_insenitive_value(infodict: dict[str, Any], key: str) -> Any:
+        return infodict.get(key) or infodict.get(key.upper())
+
     # -------------------------------------------------------------------------
     # Fetching schema info from the database: internals
     # -------------------------------------------------------------------------
 
-    @classmethod
     def _schema_query_microsoft(
-        cls, db_name: str, schema_names: list[str]
+        self, db_name: str, schema_names: list[str]
     ) -> SqlArgsTupleType:
         """
         Returns a query to fetch the database structure from an SQL Server
@@ -148,8 +238,7 @@ ORDER BY
         args = [db_name] + schema_names
         return sql, args
 
-    @classmethod
-    def _schema_query_mysql(cls, db_and_schema_name: str) -> SqlArgsTupleType:
+    def _schema_query_mysql(self, db_and_schema_name: str) -> SqlArgsTupleType:
         """
         Returns a query to fetch the database structure from a MySQL database.
 
@@ -273,9 +362,8 @@ ORDER BY
         args = [db_and_schema_name]
         return sql, args
 
-    @classmethod
     def _schema_query_postgres(
-        cls, schema_names: list[str]
+        self, schema_names: list[str]
     ) -> SqlArgsTupleType:
         """
         Returns a query to fetch the database structure from an SQL Server
@@ -378,9 +466,8 @@ ORDER BY
         args = schema_names
         return sql, args
 
-    @classmethod
     def _schema_query_sqlite_as_infodictlist(
-        cls, connection: BaseDatabaseWrapper, debug: bool = False
+        self, debug: bool = False
     ) -> list[dict[str, Any]]:
         """
         Queries an SQLite databases and returns columns as expected by
@@ -394,8 +481,8 @@ ORDER BY
             FROM sqlite_master
             WHERE type='table'
         """
-        table_info_rows = cls._exec_sql_query(
-            connection, (sql_get_tables, empty_args), debug=debug
+        table_info_rows = self._exec_sql_query(
+            (sql_get_tables, empty_args), debug=debug
         )
         table_names = [row["tablename"] for row in table_info_rows]
 
@@ -404,8 +491,8 @@ ORDER BY
         for table_name in table_names:
             # A "PRAGMA table_info()" call doesn't work with arguments.
             sql_inspect_table = f"PRAGMA table_info({table_name})"
-            column_info_rows = cls._exec_sql_query(
-                connection, (sql_inspect_table, empty_args), debug=debug
+            column_info_rows = self._exec_sql_query(
+                (sql_inspect_table, empty_args), debug=debug
             )
             for ci in column_info_rows:
                 results.append(
@@ -427,10 +514,8 @@ ORDER BY
                 # - "pk"
         return results
 
-    @classmethod
     def _exec_sql_query(
-        cls,
-        connection: BaseDatabaseWrapper,
+        self,
         sql_args: SqlArgsTupleType,
         debug: bool = False,
     ) -> list[dict[str, Any]]:
@@ -457,7 +542,7 @@ ORDER BY
         # We execute this one directly, rather than using the Query class,
         # since this is a system rather than a per-user query.
         sql, args = sql_args
-        cursor = connection.cursor()
+        cursor = self.connection.cursor()
         if debug:
             log.debug(f"- sql = {sql}\n- args = {args!r}")
         cursor.execute(sql, args)
@@ -476,22 +561,15 @@ ORDER BY
     # -------------------------------------------------------------------------
     # Fetching schema info from the database: main (still internal) interface
     # -------------------------------------------------------------------------
-
+    @django_cache_function(timeout=None)
     def get_schema_infodictlist(
-        self,
-        connection: BaseDatabaseWrapper,
-        db_name: str,
-        schema_name: str,
-        debug: bool = False,
+        self, db_name: str = None, schema_name: str = None, debug: bool = False
     ) -> list[dict[str, Any]]:
         """
         Fetch structure information for a specific database, by asking the
         database.
 
         Args:
-            connection:
-                a :class:`django.db.backends.base.base.BaseDatabaseWrapper`,
-                i.e. a Django database connection
             debug:
                 be verbose to the log?
 
@@ -501,56 +579,99 @@ ORDER BY
             :class:`ColumnInfo`.
 
         """
-        log.info(
-            f"Fetching/caching database structure (for database "
-            f"{db_name!r}, schema {schema_name!r})..."
-        )
+
+        if db_name is None and schema_name is None:
+            (db_name, schema_name) = self._get_db_and_schema_name()
+
         # The db/schema names are guaranteed to be strings by __init__().
-        if connection.vendor == ConnectionVendors.MICROSOFT:
+        if self.connection.vendor == ConnectionVendors.MICROSOFT:
             if not db_name:
                 raise ValueError(f"{db_name=!r}; required for MSSQL")
             if not schema_name:
                 raise ValueError(f"{schema_name=!r}; required for MSSQL")
             results = self._exec_sql_query(
-                connection,
                 sql_args=self._schema_query_microsoft(db_name, [schema_name]),
                 debug=debug,
             )
-        elif connection.vendor == ConnectionVendors.POSTGRESQL:
+        elif self.connection.vendor == ConnectionVendors.POSTGRESQL:
             if db_name:
                 raise ValueError(f"{db_name=!r}; must be '' for PostgreSQL")
             if not schema_name:
                 raise ValueError(f"{schema_name=!r}; required for PostgreSQL")
             results = self._exec_sql_query(
-                connection,
                 sql_args=self._schema_query_postgres([schema_name]),
                 debug=debug,
             )
-        elif connection.vendor == ConnectionVendors.MYSQL:
+        elif self.connection.vendor == ConnectionVendors.MYSQL:
             if db_name:
                 raise ValueError(f"{db_name=!r}; must be '' for MySQL")
             if not schema_name:
                 raise ValueError(f"{schema_name=!r}; required for MySQL")
             results = self._exec_sql_query(
-                connection,
                 sql_args=self._schema_query_mysql(
                     db_and_schema_name=schema_name
                 ),
                 debug=debug,
             )
-        elif connection.vendor == ConnectionVendors.SQLITE:
+        elif self.connection.vendor == ConnectionVendors.SQLITE:
             # db_name: don't care?
             # schema_name: don't care?
             # This one can't be done as a single query; the following function
             # builds up the information by querying a list of tables, then each
             # table.
-            results = self._schema_query_sqlite_as_infodictlist(
-                connection, debug=debug
-            )
+            results = self._schema_query_sqlite_as_infodictlist(debug=debug)
         else:
             raise ValueError(
                 f"Don't know how to get metadata for "
-                f"{connection.vendor=!r}"
+                f"{self.connection.vendor=!r}"
             )
 
         return results
+
+    # TODO: Duplicate code in research_db_info.py
+    def _get_db_and_schema_name(self) -> Tuple[str, str]:
+        db_name = ""
+        schema_name = ""
+
+        if self.connection.vendor == ConnectionVendors.MICROSOFT:
+            db_name = self.connection.settings_dict["NAME"]
+            schema_name = "dbo"
+        elif self.connection.vendor == ConnectionVendors.MYSQL:
+            schema_name = self.connection.settings_dict["NAME"]
+        elif self.connection.vendor == ConnectionVendors.POSTGRESQL:
+            schema_name = "public"
+        elif self.connection.vendor == ConnectionVendors.SQLITE:
+            pass
+        else:
+            raise UnsupportedEngineException(
+                f"Connection vendor '{self.connection.vendor}' "
+                "is not supported."
+            )
+
+        return (db_name, schema_name)
+        log.info(
+            f"Fetching/caching database structure (for database "
+            f"{db_name!r}, schema {schema_name!r})..."
+        )
+
+    def offers_db_above_schema(self) -> bool:
+        """
+        Does the database simultaneously offer a "database" level above its
+        "schema" level?
+
+        - True for Microsoft SQL Server
+        - False for MySQL (in which "database" and "schema" are synonymous)
+        - False for PostgreSQL (in which a connection can only talk to one
+          database at once, though there can be many schemas within each
+          database).
+
+        Args:
+            connection:
+                a :class:`django.db.backends.base.base.BaseDatabaseWrapper`,
+                i.e. a Django database connection
+        """
+        return self.connection.vendor in [ConnectionVendors.MICROSOFT]
+
+    @property
+    def connection(self) -> BaseDatabaseWrapper:
+        return connections[self.connection_name]

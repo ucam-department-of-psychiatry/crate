@@ -1,5 +1,5 @@
 """
-crate_anon/crateweb/nlp_classification/constants.py
+crate_anon/crateweb/raw_sql/tests/__init__.py
 
 ===============================================================================
 
@@ -23,19 +23,6 @@ crate_anon/crateweb/nlp_classification/constants.py
 
 ===============================================================================
 
-**Constants for CRATE NLP Classification.**
+The mere existence of this file makes Python treat the directory as a package.
 
 """
-
-
-class WizardSteps:
-    SELECT_TASK = "select_task"
-    CREATE_TASK = "create_task"
-    SELECT_QUESTION = "select_question"
-    CREATE_QUESTION = "create_question"
-    SELECT_OPTIONS = "select_options"
-    CREATE_OPTIONS = "create_options"
-
-    SELECT_SOURCE_TABLE_DEFINITION = "select_source_table_definition"
-    SELECT_SOURCE_TABLE = "select_source_table"
-    SELECT_SOURCE_PK_COLUMN = "select_source_pk_column"

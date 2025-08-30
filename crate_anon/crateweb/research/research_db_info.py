@@ -33,7 +33,6 @@ import logging
 import re
 from typing import Any, Dict, List, Optional, Set
 
-from cardinal_pythonlib.django.django_constants import ConnectionVendors
 from cardinal_pythonlib.django.function_cache import django_cache_function
 from cardinal_pythonlib.excel import excel_to_bytes
 from cardinal_pythonlib.json_utils.serialize import (
@@ -53,8 +52,6 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     POSTGRES_DEFAULT_SCHEMA,
 )
 from cardinal_pythonlib.tsv import dictlist_to_tsv
-from django.db import connections
-from django.db.backends.base.base import BaseDatabaseWrapper
 from django.conf import settings
 from openpyxl import Workbook
 from requests.structures import CaseInsensitiveDict
@@ -80,7 +77,7 @@ from crate_anon.crateweb.core.constants import (
     SettingsKeys,
 )
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys
-from crate_anon.crateweb.schema.schema import SchemaFetcher
+from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
 
 log = BraceStyleAdapter(logging.getLogger(__name__))
 
@@ -212,7 +209,7 @@ class SingleResearchDatabase:
         index: int,
         grammar: SqlGrammar,
         rdb_info: "ResearchDatabaseInfo",
-        connection: BaseDatabaseWrapper,
+        connection: DatabaseConnection,
     ) -> None:
         """
         Instantiates, reading database information as follows:
@@ -518,12 +515,10 @@ class SingleResearchDatabase:
         return False
 
     def get_schema_infodictlist(
-        self, connection: BaseDatabaseWrapper, debug: bool = False
+        self, connection: DatabaseConnection, debug: bool = False
     ) -> List[Dict[str, Any]]:
-        fetcher = SchemaFetcher()
-
-        results = fetcher.get_schema_infodictlist(
-            connection, self.database, self.schema_name, debug
+        results = connection.get_schema_infodictlist(
+            self.database, self.schema_name, debug
         )
 
         if not results:
@@ -571,7 +566,7 @@ class ResearchDatabaseInfo:
 
             self.grammar = make_grammar(self.dialect)  # not expensive
 
-            connection = self._connection()
+            self.connection = DatabaseConnection(RESEARCH_DB_CONNECTION_NAME)
 
             for index in range(len(settings.RESEARCH_DB_INFO)):
                 self.dbinfolist.append(
@@ -579,7 +574,7 @@ class ResearchDatabaseInfo:
                         index=index,
                         grammar=self.grammar,
                         rdb_info=self,
-                        connection=connection,
+                        connection=self.connection,
                     )
                 )
             assert (
@@ -620,57 +615,12 @@ class ResearchDatabaseInfo:
                     "settings.NLP_SOURCEDB_MAP is not a Dict[str, str]"
                 )
 
-    # -------------------------------------------------------------------------
-    # Classmethods, staticmethods
-    # -------------------------------------------------------------------------
-
-    @classmethod
-    def _connection(cls) -> BaseDatabaseWrapper:
-        """
-        Returns the Django connection to the research database(s), from
-        ``connections[RESEARCH_DB_CONNECTION_NAME]``, meaning
-        ``connections['research']``.
-
-        **This must be a read-only connection, enforced by the database.
-        Researchers will be allowed to execute unrestricted SQL via this
-        connection.**
-
-        """
-        return connections[RESEARCH_DB_CONNECTION_NAME]
-
-    @classmethod
-    def uses_database_level(cls) -> bool:
+    def uses_database_level(self) -> bool:
         """
         Does the database simultaneously offer a "database" level above its
         "schema" level?
         """
-        return cls._offers_db_above_schema(cls._connection())
-
-    @classmethod
-    def format_db_schema(cls, db: str, schema: str) -> str:
-        if cls.uses_database_level():
-            return f"{db}.{schema}"
-        else:
-            return schema
-
-    @staticmethod
-    def _offers_db_above_schema(connection: BaseDatabaseWrapper) -> bool:
-        """
-        Does the database simultaneously offer a "database" level above its
-        "schema" level?
-
-        - True for Microsoft SQL Server
-        - False for MySQL (in which "database" and "schema" are synonymous)
-        - False for PostgreSQL (in which a connection can only talk to one
-          database at once, though there can be many schemas within each
-          database).
-
-        Args:
-            connection:
-                a :class:`django.db.backends.base.base.BaseDatabaseWrapper`,
-                i.e. a Django database connection
-        """
-        return connection.vendor in [ConnectionVendors.MICROSOFT]
+        return self.connection.offers_db_above_schema()
 
     # -------------------------------------------------------------------------
     # Whole-database/schema information
@@ -790,6 +740,7 @@ class ResearchDatabaseInfo:
         """
         return [x.schema_id for x in self.dbinfolist]
 
+    # TODO: Duplicate code in database_connection.py
     def get_default_database_name(self) -> str:
         """
         Returns the default "database name" for our dialect.

@@ -3,10 +3,7 @@ from typing import Any
 from django.conf import settings
 from django.db import models
 
-from crate_anon.crateweb.nlp_classification.database_connection import (
-    DatabaseConnection,
-)
-
+from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
 from crate_anon.nlp_manager.constants import (
     FN_SRCFIELD,
     FN_SRCPKFIELD,

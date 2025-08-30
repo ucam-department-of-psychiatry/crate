@@ -37,7 +37,6 @@ from tempfile import TemporaryDirectory
 
 from cardinal_pythonlib.dbfunc import dictfetchall
 from cardinal_pythonlib.sql.sql_grammar import SqlGrammar
-from django.db import connections
 from django.test.testcases import TestCase  # inherits from unittest.TestCase
 
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
@@ -45,6 +44,7 @@ from crate_anon.crateweb.core.constants import (
     DJANGO_DEFAULT_CONNECTION,
     RESEARCH_DB_CONNECTION_NAME,
 )
+from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
 from crate_anon.crateweb.research.research_db_info import (
     SingleResearchDatabase,
     ResearchDatabaseInfo,
@@ -118,17 +118,16 @@ class ResearchDBInfoTests(TestCase):
                 },
             ],
         )
-        self.mainconn = connections[DJANGO_DEFAULT_CONNECTION]
-        self.resconn = connections[RESEARCH_DB_CONNECTION_NAME]
+        self.resconn = DatabaseConnection(RESEARCH_DB_CONNECTION_NAME)
         self.grammar = SqlGrammar()
-        with self.resconn.cursor() as cursor:
+        with self.resconn.connection.cursor() as cursor:
             cursor.execute("CREATE TABLE t (a INT, b INT)")
             cursor.execute("INSERT INTO t (a, b) VALUES (1, 101)")
             cursor.execute("INSERT INTO t (a, b) VALUES (2, 102)")
             cursor.execute("COMMIT")
 
     def tearDown(self) -> None:
-        with self.resconn.cursor() as cursor:
+        with self.resconn.connection.cursor() as cursor:
             cursor.execute("DROP TABLE t")
         # Otherwise, you can run one test, but if you run two, you get:
         #
@@ -140,7 +139,7 @@ class ResearchDBInfoTests(TestCase):
         # Hack: combine the tests.
 
     def test_django_dummy_database_and_sqlite_schema_reader(self) -> None:
-        with self.resconn.cursor() as cursor:
+        with self.resconn.connection.cursor() as cursor:
             cursor.execute("SELECT * FROM t")
             results = dictfetchall(cursor)
         self.assertEqual(len(results), 2)

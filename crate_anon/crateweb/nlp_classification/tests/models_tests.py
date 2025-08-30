@@ -5,6 +5,7 @@ from django.test import TestCase
 
 from crate_anon.crateweb.core.constants import (
     DJANGO_DEFAULT_CONNECTION,
+    NLP_DB_CONNECTION_NAME,
 )
 from crate_anon.crateweb.nlp_classification.models import (
     Option,
@@ -79,7 +80,9 @@ class SampleSpecTests(TestCase):
 class SourceRecordTests(TestCase):
     def test_nlp_dict_fetched(self) -> None:
         nlp_table_definition = TableDefinitionFactory(
-            table_name="nlp_table", pk_column_name="id"
+            db_connection_name=NLP_DB_CONNECTION_NAME,
+            table_name="nlp_table",
+            pk_column_name="id",
         )
         ColumnFactory(table_definition=nlp_table_definition, name="extra")
         source_record = SourceRecordFactory(
@@ -90,29 +93,35 @@ class SourceRecordTests(TestCase):
         fake_source_record = {"fake": "source_record"}
 
         mock_fetch = mock.Mock(return_value=fake_source_record)
+
+        mock_connections = {NLP_DB_CONNECTION_NAME: mock.Mock()}
         with mock.patch.multiple(
-            "crate_anon.crateweb.nlp_classification.models.DatabaseConnection",
-            fetchone_as_dict=mock_fetch,
+            "crate_anon.crateweb.raw_sql.database_connection",
+            connections=mock_connections,
         ):
-            self.assertEqual(source_record.nlp_dict, fake_source_record)
+            with mock.patch.multiple(
+                "crate_anon.crateweb.nlp_classification.models.DatabaseConnection",  # noqa: E501
+                fetchone_as_dict=mock_fetch,
+            ):
+                self.assertEqual(source_record.nlp_dict, fake_source_record)
 
-            expected_column_names = [
-                FN_SRCFIELD,
-                FN_SRCTABLE,
-                FN_SRCPKFIELD,
-                FN_SRCPKVAL,
-                FN_CONTENT,
-                FN_START,
-                FN_END,
-                "extra",
-            ]
+                expected_column_names = [
+                    FN_SRCFIELD,
+                    FN_SRCTABLE,
+                    FN_SRCPKFIELD,
+                    FN_SRCPKVAL,
+                    FN_CONTENT,
+                    FN_START,
+                    FN_END,
+                    "extra",
+                ]
 
-            mock_fetch.assert_called_with(
-                expected_column_names,
-                "nlp_table",
-                where="id = %s",
-                params=["12345"],
-            )
+                mock_fetch.assert_called_with(
+                    expected_column_names,
+                    "nlp_table",
+                    where="id = %s",
+                    params=["12345"],
+                )
 
     def test_source_text_fetched(self) -> None:
         test_pk_value = "12345"

@@ -1,9 +1,7 @@
 from unittest import mock
 from django.test import TestCase
 
-from crate_anon.crateweb.nlp_classification.database_connection import (
-    DatabaseConnection,
-)
+from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
 
 
 class DatabaseConnectionTest(TestCase):
@@ -20,13 +18,13 @@ class DatabaseConnectionTest(TestCase):
                 __exit__=mock.Mock(),
             )
         )
-        connection = DatabaseConnection("test")
         mock_connections = {"test": mock.Mock(cursor=mock_cm)}
 
         with mock.patch.multiple(
-            "crate_anon.crateweb.nlp_classification.database_connection",
+            "crate_anon.crateweb.raw_sql.database_connection",
             connections=mock_connections,
         ):
+            connection = DatabaseConnection("test")
             row_dict = connection.fetchone_as_dict(column_names, table_name)
             self.assertEqual(
                 row_dict, {"column_one": 1, "column_two": 2, "column_three": 3}
@@ -51,13 +49,13 @@ class DatabaseConnectionTest(TestCase):
                 __exit__=mock.Mock(),
             )
         )
-        connection = DatabaseConnection("test")
         mock_connections = {"test": mock.Mock(cursor=mock_cm)}
 
         with mock.patch.multiple(
-            "crate_anon.crateweb.nlp_classification.database_connection",
+            "crate_anon.crateweb.raw_sql.database_connection",
             connections=mock_connections,
         ):
+            connection = DatabaseConnection("test")
             connection.fetchone_as_dict(
                 column_names, table_name, "column_one = %s", ["1"]
             )

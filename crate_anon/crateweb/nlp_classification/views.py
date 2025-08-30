@@ -36,6 +36,7 @@ from django.views.generic import CreateView, TemplateView, UpdateView
 import django_tables2 as tables
 from formtools.wizard.views import SessionWizardView
 
+from crate_anon.crateweb.core.constants import RESEARCH_DB_CONNECTION_NAME
 from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
 from crate_anon.crateweb.nlp_classification.forms import (
     AssignmentForm,
@@ -49,7 +50,9 @@ from crate_anon.crateweb.nlp_classification.forms import (
     WizardCreateTaskForm,
     WizardSelectOptionsForm,
     WizardSelectQuestionForm,
+    WizardSelectSourcePkColumnForm,
     WizardSelectSourceTableDefinitionForm,
+    WizardSelectSourceTableForm,
     WizardSelectTaskForm,
     UserAnswerForm,
 )
@@ -614,6 +617,8 @@ class SampleDataWizardView(NlpClassificationWizardView):
             ws.SELECT_SOURCE_TABLE_DEFINITION,
             WizardSelectSourceTableDefinitionForm,
         ),
+        (ws.SELECT_SOURCE_TABLE, WizardSelectSourceTableForm),
+        (ws.SELECT_SOURCE_PK_COLUMN, WizardSelectSourcePkColumnForm),
     ]
 
     def get_instructions(self, step: str) -> Optional[str]:
@@ -623,8 +628,42 @@ class SampleDataWizardView(NlpClassificationWizardView):
                 "create a new one"
             )
 
+    def get_form_kwargs(self, step=None) -> Any:
+        kwargs = super().get_form_kwargs(step)
+        if step == ws.SELECT_SOURCE_PK_COLUMN:
+            kwargs["table_name"] = self.selected_table_name
+
+        return kwargs
+
+    @property
+    def selected_table_name(self) -> Optional[str]:
+        cleaned_data = (
+            self.get_cleaned_data_for_step(ws.SELECT_SOURCE_TABLE) or {}
+        )
+
+        return cleaned_data.get("table_name")
+
+    @property
+    def selected_pk_column_name(self) -> Optional[str]:
+        cleaned_data = (
+            self.get_cleaned_data_for_step(ws.SELECT_SOURCE_PK_COLUMN) or {}
+        )
+
+        return cleaned_data.get("pk_column_name")
+
     def done(
         self, form_list: list[Form], form_dict: dict[str, Form], **kwargs: Any
     ) -> HttpResponse:
+
+        table_name = self.selected_table_name
+
+        if table_name:
+            pk_column_name = self.selected_pk_column_name
+
+            TableDefinition.objects.create(
+                db_connection_name=RESEARCH_DB_CONNECTION_NAME,
+                table_name=table_name,
+                pk_column_name=pk_column_name,
+            )
 
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))

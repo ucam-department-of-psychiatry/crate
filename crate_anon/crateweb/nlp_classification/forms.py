@@ -53,6 +53,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     Task,
     UserAnswer,
 )
+from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
 
 
 # Standard create/edit forms in alphabetical order
@@ -179,3 +180,33 @@ class WizardSelectSourceTableDefinitionForm(Form):
         required=False,
         empty_label="-- Create new source table definition --",
     )
+
+
+class WizardSelectSourceTableForm(Form):
+    table_name = ChoiceField()
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        database_connection = DatabaseConnection(RESEARCH_DB_CONNECTION_NAME)
+        table_names = database_connection.get_table_names()
+
+        self.fields["table_name"].choices = [
+            (name, name) for name in table_names
+        ]
+
+
+class WizardSelectSourcePkColumnForm(Form):
+    pk_column_name = ChoiceField()
+
+    def __init__(self, table_name: str, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        database_connection = DatabaseConnection(RESEARCH_DB_CONNECTION_NAME)
+        column_names = database_connection.get_column_names_for_table(
+            table_name,
+        )
+
+        self.fields["pk_column_name"].choices = [
+            (name, name) for name in column_names
+        ]

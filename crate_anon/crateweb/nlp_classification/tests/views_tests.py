@@ -34,8 +34,13 @@ from django.http import QueryDict
 from django.test import TestCase
 from django.urls import reverse
 from formtools.wizard.storage import BaseStorage
+from crate_anon.crateweb.core.constants import RESEARCH_DB_CONNECTION_NAME
 from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
-from crate_anon.crateweb.nlp_classification.models import Question, Task
+from crate_anon.crateweb.nlp_classification.models import (
+    Question,
+    TableDefinition,
+    Task,
+)
 from crate_anon.crateweb.nlp_classification.tests.factories import (
     OptionFactory,
     QuestionFactory,
@@ -455,6 +460,31 @@ class TaskAndQuestionWizardViewTests(NlpClassificationWizardViewTests):
 class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
     view_class = SampleDataWizardView
 
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.test_table_names = []
+        self.test_column_names = []
+
+    @property
+    def mock_get_table_names(self) -> mock.Mock:
+        return mock.Mock(return_value=self.test_table_names)
+
+    @property
+    def mock_get_column_names_for_table(self) -> mock.Mock:
+        return mock.Mock(return_value=self.test_column_names)
+
+    def post(self, step: str, post_dict: dict[str, Any]) -> None:
+        mock_db_connection = mock.Mock(
+            get_table_names=self.mock_get_table_names,
+            get_column_names_for_table=self.mock_get_column_names_for_table,
+        )
+        with mock.patch.multiple(
+            "crate_anon.crateweb.nlp_classification.forms",
+            DatabaseConnection=mock.Mock(return_value=mock_db_connection),
+        ):
+            super().post(step, post_dict)
+
     @property
     def first_step(self) -> str:
         return ws.SELECT_SOURCE_TABLE_DEFINITION
@@ -468,3 +498,36 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
             {"table_definition": table_definition.id},
         )
         self.assert_finished()
+
+    def test_new_source_table_definition_created(self) -> None:
+        self.test_table_names = ["blob", "note", "patient"]
+        self.test_column_names = ["_pk", "note"]
+
+        # Select table definition
+        self.post(
+            ws.SELECT_SOURCE_TABLE_DEFINITION,
+            {"table_definition": ""},
+        )
+        self.assert_next_step(ws.SELECT_SOURCE_TABLE)
+
+        # Select table
+        self.post(
+            ws.SELECT_SOURCE_TABLE,
+            {"table_name": "note"},
+        )
+        self.assert_next_step(ws.SELECT_SOURCE_PK_COLUMN)
+
+        # Select PK column
+        self.post(
+            ws.SELECT_SOURCE_PK_COLUMN,
+            {"pk_column_name": "_pk"},
+        )
+        self.assert_finished()
+
+        self.assertTrue(
+            TableDefinition.objects.filter(
+                db_connection_name=RESEARCH_DB_CONNECTION_NAME,
+                table_name="note",
+                pk_column_name="_pk",
+            ).exists()
+        )
