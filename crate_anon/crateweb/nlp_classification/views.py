@@ -660,7 +660,7 @@ class SampleDataWizardView(NlpClassificationWizardView):
         if table_name:
             pk_column_name = self.selected_pk_column_name
 
-            TableDefinition.objects.create(
+            TableDefinition.objects.get_or_create(
                 db_connection_name=RESEARCH_DB_CONNECTION_NAME,
                 table_name=table_name,
                 pk_column_name=pk_column_name,

@@ -531,3 +531,43 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
                 pk_column_name="_pk",
             ).exists()
         )
+
+    def test_source_table_definition_not_created_when_exists(self) -> None:
+        TableDefinitionFactory(
+            db_connection_name=RESEARCH_DB_CONNECTION_NAME,
+            table_name="note",
+            pk_column_name="_pk",
+        )
+
+        self.test_table_names = ["blob", "note", "patient"]
+        self.test_column_names = ["_pk", "note"]
+
+        # Select table definition
+        self.post(
+            ws.SELECT_SOURCE_TABLE_DEFINITION,
+            {"table_definition": ""},
+        )
+        self.assert_next_step(ws.SELECT_SOURCE_TABLE)
+
+        # Select table
+        self.post(
+            ws.SELECT_SOURCE_TABLE,
+            {"table_name": "note"},
+        )
+        self.assert_next_step(ws.SELECT_SOURCE_PK_COLUMN)
+
+        # Select PK column
+        self.post(
+            ws.SELECT_SOURCE_PK_COLUMN,
+            {"pk_column_name": "_pk"},
+        )
+        self.assert_finished()
+
+        self.assertEqual(
+            TableDefinition.objects.filter(
+                db_connection_name=RESEARCH_DB_CONNECTION_NAME,
+                table_name="note",
+                pk_column_name="_pk",
+            ).count(),
+            1,
+        )
