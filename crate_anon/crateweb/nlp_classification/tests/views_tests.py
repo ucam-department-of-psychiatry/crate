@@ -34,7 +34,10 @@ from django.http import QueryDict
 from django.test import TestCase
 from django.urls import reverse
 from formtools.wizard.storage import BaseStorage
-from crate_anon.crateweb.core.constants import RESEARCH_DB_CONNECTION_NAME
+from crate_anon.crateweb.core.constants import (
+    NLP_DB_CONNECTION_NAME,
+    RESEARCH_DB_CONNECTION_NAME,
+)
 from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
 from crate_anon.crateweb.nlp_classification.models import (
     Question,
@@ -463,25 +466,45 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
     def setUp(self) -> None:
         super().setUp()
 
-        self.test_table_names = []
-        self.test_column_names = []
+        self.test_source_table_names = []
+        self.test_source_column_names = []
+
+        self.test_nlp_table_names = []
+        self.test_nlp_column_names = []
 
     @property
-    def mock_get_table_names(self) -> mock.Mock:
-        return mock.Mock(return_value=self.test_table_names)
+    def mock_get_source_table_names(self) -> mock.Mock:
+        return mock.Mock(return_value=self.test_source_table_names)
 
     @property
-    def mock_get_column_names_for_table(self) -> mock.Mock:
-        return mock.Mock(return_value=self.test_column_names)
+    def mock_get_source_column_names_for_table(self) -> mock.Mock:
+        return mock.Mock(return_value=self.test_source_column_names)
+
+    @property
+    def mock_get_nlp_table_names(self) -> mock.Mock:
+        return mock.Mock(return_value=self.test_nlp_table_names)
+
+    @property
+    def mock_get_nlp_column_names_for_table(self) -> mock.Mock:
+        return mock.Mock(return_value=self.test_nlp_column_names)
 
     def post(self, step: str, post_dict: dict[str, Any]) -> None:
-        mock_db_connection = mock.Mock(
-            get_table_names=self.mock_get_table_names,
-            get_column_names_for_table=self.mock_get_column_names_for_table,
+        mock_source_db_connection = mock.Mock(
+            get_table_names=self.mock_get_source_table_names,
+            get_column_names_for_table=self.mock_get_source_column_names_for_table,  # noqa: E501
+        )
+        mock_nlp_db_connection = mock.Mock(
+            get_table_names=self.mock_get_nlp_table_names,
+            get_column_names_for_table=self.mock_get_nlp_column_names_for_table,  # noqa: E501
         )
         with mock.patch.multiple(
-            "crate_anon.crateweb.nlp_classification.forms",
-            DatabaseConnection=mock.Mock(return_value=mock_db_connection),
+            self.view,
+            get_source_database_connection=mock.Mock(
+                return_value=mock_source_db_connection
+            ),
+            get_nlp_database_connection=mock.Mock(
+                return_value=mock_nlp_db_connection
+            ),
         ):
             super().post(step, post_dict)
 
@@ -489,39 +512,34 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
     def first_step(self) -> str:
         return ws.SELECT_SOURCE_TABLE_DEFINITION
 
-    def test_existing_table_definition_selected_for_source(self) -> None:
-        table_definition = TableDefinitionFactory()
+    def test_sample_spec_created_with_new_table_definitions(self) -> None:
+        self.test_source_table_names = ["blob", "note", "patient"]
+        self.test_source_column_names = ["_pk", "note"]
+
+        self.test_nlp_table_names = ["bp", "crp", "esr"]
+        self.test_nlp_column_names = ["_pk", "_nlpdef", "_srcdb"]
 
         # Select table definition
-        self.post(
-            ws.SELECT_SOURCE_TABLE_DEFINITION,
-            {"table_definition": table_definition.id},
-        )
-        self.assert_finished()
-
-    def test_new_source_table_definition_created(self) -> None:
-        self.test_table_names = ["blob", "note", "patient"]
-        self.test_column_names = ["_pk", "note"]
-
-        # Select table definition
-        self.post(
-            ws.SELECT_SOURCE_TABLE_DEFINITION,
-            {"table_definition": ""},
-        )
+        self.post(ws.SELECT_SOURCE_TABLE_DEFINITION, {"table_definition": ""})
         self.assert_next_step(ws.SELECT_SOURCE_TABLE)
 
-        # Select table
-        self.post(
-            ws.SELECT_SOURCE_TABLE,
-            {"table_name": "note"},
-        )
+        # Select source table
+        self.post(ws.SELECT_SOURCE_TABLE, {"table_name": "note"})
         self.assert_next_step(ws.SELECT_SOURCE_PK_COLUMN)
 
-        # Select PK column
-        self.post(
-            ws.SELECT_SOURCE_PK_COLUMN,
-            {"pk_column_name": "_pk"},
-        )
+        # Select source PK column
+        self.post(ws.SELECT_SOURCE_PK_COLUMN, {"pk_column_name": "_pk"})
+        self.assert_next_step(ws.SELECT_NLP_TABLE_DEFINITION)
+
+        # Select NLP table definition
+        self.post(ws.SELECT_NLP_TABLE_DEFINITION, {"table_definition": ""})
+
+        # Select NLP table
+        self.post(ws.SELECT_NLP_TABLE, {"table_name": "crp"})
+        self.assert_next_step(ws.SELECT_NLP_PK_COLUMN)
+
+        # Select NLP PK column
+        self.post(ws.SELECT_NLP_PK_COLUMN, {"pk_column_name": "_pk"})
         self.assert_finished()
 
         self.assertTrue(
@@ -532,15 +550,31 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
             ).exists()
         )
 
-    def test_source_table_definition_not_created_when_exists(self) -> None:
+        self.assertTrue(
+            TableDefinition.objects.filter(
+                db_connection_name=NLP_DB_CONNECTION_NAME,
+                table_name="crp",
+                pk_column_name="_pk",
+            ).exists()
+        )
+
+    def test_table_definitions_not_created_when_they_exist(self) -> None:
         TableDefinitionFactory(
             db_connection_name=RESEARCH_DB_CONNECTION_NAME,
             table_name="note",
             pk_column_name="_pk",
         )
+        TableDefinitionFactory(
+            db_connection_name=NLP_DB_CONNECTION_NAME,
+            table_name="crp",
+            pk_column_name="_pk",
+        )
 
-        self.test_table_names = ["blob", "note", "patient"]
-        self.test_column_names = ["_pk", "note"]
+        self.test_source_table_names = ["blob", "note", "patient"]
+        self.test_source_column_names = ["_pk", "note"]
+
+        self.test_nlp_table_names = ["bp", "crp", "esr"]
+        self.test_nlp_column_names = ["_pk", "_nlpdef", "_srcdb"]
 
         # Select table definition
         self.post(
@@ -550,17 +584,23 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         self.assert_next_step(ws.SELECT_SOURCE_TABLE)
 
         # Select table
-        self.post(
-            ws.SELECT_SOURCE_TABLE,
-            {"table_name": "note"},
-        )
+        self.post(ws.SELECT_SOURCE_TABLE, {"table_name": "note"})
         self.assert_next_step(ws.SELECT_SOURCE_PK_COLUMN)
 
         # Select PK column
-        self.post(
-            ws.SELECT_SOURCE_PK_COLUMN,
-            {"pk_column_name": "_pk"},
-        )
+        self.post(ws.SELECT_SOURCE_PK_COLUMN, {"pk_column_name": "_pk"})
+        self.assert_next_step(ws.SELECT_NLP_TABLE_DEFINITION)
+
+        # Select NLP table definition
+        self.post(ws.SELECT_NLP_TABLE_DEFINITION, {"table_definition": ""})
+        self.assert_next_step(ws.SELECT_NLP_TABLE)
+
+        # Select NLP table
+        self.post(ws.SELECT_NLP_TABLE, {"table_name": "crp"})
+        self.assert_next_step(ws.SELECT_NLP_PK_COLUMN)
+
+        # Select NLP PK column
+        self.post(ws.SELECT_NLP_PK_COLUMN, {"pk_column_name": "_pk"})
         self.assert_finished()
 
         self.assertEqual(
@@ -571,3 +611,36 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
             ).count(),
             1,
         )
+        self.assertEqual(
+            TableDefinition.objects.filter(
+                db_connection_name=NLP_DB_CONNECTION_NAME,
+                table_name="crp",
+                pk_column_name="_pk",
+            ).count(),
+            1,
+        )
+
+    def test_sample_spec_created_with_existing_table_definitions(self) -> None:
+        source_table_definition = TableDefinitionFactory(
+            db_connection_name=RESEARCH_DB_CONNECTION_NAME,
+        )
+        nlp_table_definition = TableDefinitionFactory(
+            db_connection_name=NLP_DB_CONNECTION_NAME,
+            table_name="note",
+            pk_column_name="_pk",
+        )
+
+        # Select source table definition
+        self.post(
+            ws.SELECT_SOURCE_TABLE_DEFINITION,
+            {"table_definition": source_table_definition.id},
+        )
+        self.assert_next_step(ws.SELECT_NLP_TABLE_DEFINITION)
+
+        # Select NLP table definition
+        self.post(
+            ws.SELECT_NLP_TABLE_DEFINITION,
+            {"table_definition": nlp_table_definition.id},
+        )
+
+        self.assert_finished()

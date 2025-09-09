@@ -36,7 +36,10 @@ from django.views.generic import CreateView, TemplateView, UpdateView
 import django_tables2 as tables
 from formtools.wizard.views import SessionWizardView
 
-from crate_anon.crateweb.core.constants import RESEARCH_DB_CONNECTION_NAME
+from crate_anon.crateweb.core.constants import (
+    NLP_DB_CONNECTION_NAME,
+    RESEARCH_DB_CONNECTION_NAME,
+)
 from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
 from crate_anon.crateweb.nlp_classification.forms import (
     AssignmentForm,
@@ -48,11 +51,12 @@ from crate_anon.crateweb.nlp_classification.forms import (
     WizardCreateOptionsForm,
     WizardCreateQuestionForm,
     WizardCreateTaskForm,
+    WizardSelectNlpTableDefinitionForm,
     WizardSelectOptionsForm,
     WizardSelectQuestionForm,
-    WizardSelectSourcePkColumnForm,
+    WizardSelectPkColumnForm,
     WizardSelectSourceTableDefinitionForm,
-    WizardSelectSourceTableForm,
+    WizardSelectTableForm,
     WizardSelectTaskForm,
     UserAnswerForm,
 )
@@ -76,6 +80,7 @@ from crate_anon.crateweb.nlp_classification.tables import (
     UserAnswerTable,
     UserAssignmentTable,
 )
+from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
 
 
 class AdminHomeView(TemplateView):
@@ -467,6 +472,16 @@ class NlpClassificationWizardView(SessionWizardView):
             f"{self.__class__.__name__}"
         )
 
+    def get_cleaned_data_for_step(self, step: str) -> Optional[dict[str, Any]]:
+        # https://github.com/jazzband/django-formtools/issues/266
+        # self.get_form() can raise a KeyError if the step does not exist in
+        # the dynamic form list because it has been excluded from
+        # condition_dict. The documentation does not mention this.
+        try:
+            return super().get_cleaned_data_for_step(step)
+        except KeyError:
+            return None
+
 
 class TaskAndQuestionWizardView(NlpClassificationWizardView):
     condition_dict = {
@@ -510,16 +525,6 @@ class TaskAndQuestionWizardView(NlpClassificationWizardView):
 
     def _get_create_options_instructions(self) -> str:
         return f"Create options for the question '{self.question_title}'."
-
-    def get_cleaned_data_for_step(self, step: str) -> Optional[dict[str, Any]]:
-        # https://github.com/jazzband/django-formtools/issues/266
-        # self.get_form() can raise a KeyError if the step does not exist in
-        # the dynamic form list because it has been excluded from
-        # condition_dict. The documentation does not mention this.
-        try:
-            return super().get_cleaned_data_for_step(step)
-        except KeyError:
-            return None
 
     def get_form_initial(self, step: str) -> dict[str, Any]:
         initial = super().get_form_initial(step)
@@ -611,14 +616,42 @@ class TaskAndQuestionWizardView(NlpClassificationWizardView):
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))
 
 
+def should_select_source_table(wizard: SessionWizardView) -> bool:
+    return not wizard.has_selected_source_table_definition
+
+
+def should_select_source_pk_column(wizard: SessionWizardView) -> bool:
+    return not wizard.has_selected_source_table_definition
+
+
+def should_select_nlp_table(wizard: SessionWizardView) -> bool:
+    return not wizard.has_selected_nlp_table_definition
+
+
+def should_select_nlp_pk_column(wizard: SessionWizardView) -> bool:
+    return not wizard.has_selected_nlp_table_definition
+
+
 class SampleDataWizardView(NlpClassificationWizardView):
+    condition_dict = {
+        ws.SELECT_SOURCE_TABLE: should_select_source_table,
+        ws.SELECT_SOURCE_PK_COLUMN: should_select_source_pk_column,
+        ws.SELECT_NLP_TABLE: should_select_nlp_table,
+        ws.SELECT_NLP_PK_COLUMN: should_select_nlp_pk_column,
+    }
     form_list = [
         (
             ws.SELECT_SOURCE_TABLE_DEFINITION,
             WizardSelectSourceTableDefinitionForm,
         ),
-        (ws.SELECT_SOURCE_TABLE, WizardSelectSourceTableForm),
-        (ws.SELECT_SOURCE_PK_COLUMN, WizardSelectSourcePkColumnForm),
+        (ws.SELECT_SOURCE_TABLE, WizardSelectTableForm),
+        (ws.SELECT_SOURCE_PK_COLUMN, WizardSelectPkColumnForm),
+        (
+            ws.SELECT_NLP_TABLE_DEFINITION,
+            WizardSelectNlpTableDefinitionForm,
+        ),
+        (ws.SELECT_NLP_TABLE, WizardSelectTableForm),
+        (ws.SELECT_NLP_PK_COLUMN, WizardSelectPkColumnForm),
     ]
 
     def get_instructions(self, step: str) -> Optional[str]:
@@ -630,13 +663,48 @@ class SampleDataWizardView(NlpClassificationWizardView):
 
     def get_form_kwargs(self, step=None) -> Any:
         kwargs = super().get_form_kwargs(step)
+        if step in [ws.SELECT_SOURCE_TABLE, ws.SELECT_SOURCE_PK_COLUMN]:
+            kwargs["database_connection"] = (
+                self.get_source_database_connection()
+            )
+
         if step == ws.SELECT_SOURCE_PK_COLUMN:
-            kwargs["table_name"] = self.selected_table_name
+            kwargs["table_name"] = self.selected_source_table_name
+
+        if step in [ws.SELECT_NLP_TABLE, ws.SELECT_NLP_PK_COLUMN]:
+            kwargs["database_connection"] = self.get_nlp_database_connection()
+
+        if step == ws.SELECT_NLP_PK_COLUMN:
+            kwargs["table_name"] = self.selected_nlp_table_name
 
         return kwargs
 
+    def get_source_database_connection(self) -> DatabaseConnection:
+        return DatabaseConnection(RESEARCH_DB_CONNECTION_NAME)
+
+    def get_nlp_database_connection(self) -> DatabaseConnection:
+        return DatabaseConnection(NLP_DB_CONNECTION_NAME)
+
     @property
-    def selected_table_name(self) -> Optional[str]:
+    def has_selected_source_table_definition(self) -> bool:
+        cleaned_data = (
+            self.get_cleaned_data_for_step(ws.SELECT_SOURCE_TABLE_DEFINITION)
+            or {}
+        )
+
+        return cleaned_data.get("table_definition") is not None
+
+    @property
+    def has_selected_nlp_table_definition(self) -> bool:
+        cleaned_data = (
+            self.get_cleaned_data_for_step(ws.SELECT_NLP_TABLE_DEFINITION)
+            or {}
+        )
+
+        return cleaned_data.get("table_definition") is not None
+
+    @property
+    def selected_source_table_name(self) -> Optional[str]:
         cleaned_data = (
             self.get_cleaned_data_for_step(ws.SELECT_SOURCE_TABLE) or {}
         )
@@ -644,9 +712,25 @@ class SampleDataWizardView(NlpClassificationWizardView):
         return cleaned_data.get("table_name")
 
     @property
-    def selected_pk_column_name(self) -> Optional[str]:
+    def selected_source_pk_column_name(self) -> Optional[str]:
         cleaned_data = (
             self.get_cleaned_data_for_step(ws.SELECT_SOURCE_PK_COLUMN) or {}
+        )
+
+        return cleaned_data.get("pk_column_name")
+
+    @property
+    def selected_nlp_table_name(self) -> Optional[str]:
+        cleaned_data = (
+            self.get_cleaned_data_for_step(ws.SELECT_NLP_TABLE) or {}
+        )
+
+        return cleaned_data.get("table_name")
+
+    @property
+    def selected_nlp_pk_column_name(self) -> Optional[str]:
+        cleaned_data = (
+            self.get_cleaned_data_for_step(ws.SELECT_NLP_PK_COLUMN) or {}
         )
 
         return cleaned_data.get("pk_column_name")
@@ -655,15 +739,26 @@ class SampleDataWizardView(NlpClassificationWizardView):
         self, form_list: list[Form], form_dict: dict[str, Form], **kwargs: Any
     ) -> HttpResponse:
 
-        table_name = self.selected_table_name
+        source_table_name = self.selected_source_table_name
 
-        if table_name:
-            pk_column_name = self.selected_pk_column_name
+        if source_table_name:
+            source_pk_column_name = self.selected_source_pk_column_name
 
             TableDefinition.objects.get_or_create(
                 db_connection_name=RESEARCH_DB_CONNECTION_NAME,
-                table_name=table_name,
-                pk_column_name=pk_column_name,
+                table_name=source_table_name,
+                pk_column_name=source_pk_column_name,
+            )
+
+        nlp_table_name = self.selected_nlp_table_name
+
+        if nlp_table_name:
+            nlp_pk_column_name = self.selected_nlp_pk_column_name
+
+            TableDefinition.objects.get_or_create(
+                db_connection_name=NLP_DB_CONNECTION_NAME,
+                table_name=nlp_table_name,
+                pk_column_name=nlp_pk_column_name,
             )
 
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))

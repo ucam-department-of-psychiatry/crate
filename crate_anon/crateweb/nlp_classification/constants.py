@@ -39,3 +39,6 @@ class WizardSteps:
     SELECT_SOURCE_TABLE_DEFINITION = "select_source_table_definition"
     SELECT_SOURCE_TABLE = "select_source_table"
     SELECT_SOURCE_PK_COLUMN = "select_source_pk_column"
+    SELECT_NLP_TABLE_DEFINITION = "select_nlp_table_definition"
+    SELECT_NLP_TABLE = "select_nlp_table"
+    SELECT_NLP_PK_COLUMN = "select_nlp_pk_column"

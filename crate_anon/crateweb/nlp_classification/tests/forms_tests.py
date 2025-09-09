@@ -37,8 +37,9 @@ from crate_anon.crateweb.core.constants import (
 )
 from crate_anon.crateweb.nlp_classification.forms import (
     WizardSelectQuestionForm,
+    WizardSelectPkColumnForm,
     WizardSelectSourceTableDefinitionForm,
-    WizardSelectSourceTableForm,
+    WizardSelectTableForm,
 )
 from crate_anon.crateweb.nlp_classification.tests.factories import (
     QuestionFactory,
@@ -102,7 +103,7 @@ class WizardSelectSourceTableDefinitionFormTests(TestCase):
         )
 
 
-class WizardSelectSourceTableFormTests(TestCase):
+class WizardSelectTableFormTests(TestCase):
     def test_names_are_source_tables(self) -> None:
         mock_db_connection = mock.Mock(
             get_table_names=mock.Mock(
@@ -110,17 +111,36 @@ class WizardSelectSourceTableFormTests(TestCase):
             )
         )
 
-        with mock.patch.multiple(
-            "crate_anon.crateweb.nlp_classification.forms",
-            DatabaseConnection=mock.Mock(return_value=mock_db_connection),
-        ):
-            form = WizardSelectSourceTableForm()
+        form = WizardSelectTableForm(database_connection=mock_db_connection)
 
-            self.assertEqual(
-                form.fields["table_name"].choices,
-                [
-                    ("table_1", "table_1"),
-                    ("table_2", "table_2"),
-                    ("table_3", "table_3"),
-                ],
-            )
+        self.assertEqual(
+            form.fields["table_name"].choices,
+            [
+                ("table_1", "table_1"),
+                ("table_2", "table_2"),
+                ("table_3", "table_3"),
+            ],
+        )
+
+
+class WizardSelectPkFormTests(TestCase):
+    def test_names_are_source_tables(self) -> None:
+        mock_get_column_names = mock.Mock(
+            return_value=["column_1", "column_2", "column_3"]
+        )
+        mock_db_connection = mock.Mock(
+            get_column_names_for_table=mock_get_column_names
+        )
+        form = WizardSelectPkColumnForm(
+            database_connection=mock_db_connection, table_name="test_table"
+        )
+
+        self.assertEqual(
+            form.fields["pk_column_name"].choices,
+            [
+                ("column_1", "column_1"),
+                ("column_2", "column_2"),
+                ("column_3", "column_3"),
+            ],
+        )
+        mock_get_column_names.assert_called_once_with("test_table")

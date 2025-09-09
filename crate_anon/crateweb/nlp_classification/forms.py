@@ -182,13 +182,17 @@ class WizardSelectSourceTableDefinitionForm(Form):
     )
 
 
-class WizardSelectSourceTableForm(Form):
+class WizardSelectTableForm(Form):
     table_name = ChoiceField()
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        database_connection: DatabaseConnection,
+        *args: Any,
+        **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
 
-        database_connection = DatabaseConnection(RESEARCH_DB_CONNECTION_NAME)
         table_names = database_connection.get_table_names()
 
         self.fields["table_name"].choices = [
@@ -196,13 +200,18 @@ class WizardSelectSourceTableForm(Form):
         ]
 
 
-class WizardSelectSourcePkColumnForm(Form):
+class WizardSelectPkColumnForm(Form):
     pk_column_name = ChoiceField()
 
-    def __init__(self, table_name: str, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        database_connection: DatabaseConnection,
+        table_name: str,
+        *args: Any,
+        **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
 
-        database_connection = DatabaseConnection(RESEARCH_DB_CONNECTION_NAME)
         column_names = database_connection.get_column_names_for_table(
             table_name,
         )
@@ -210,3 +219,13 @@ class WizardSelectSourcePkColumnForm(Form):
         self.fields["pk_column_name"].choices = [
             (name, name) for name in column_names
         ]
+
+
+class WizardSelectNlpTableDefinitionForm(Form):
+    table_definition = ModelChoiceField(
+        queryset=TableDefinition.objects.filter(
+            db_connection_name=NLP_DB_CONNECTION_NAME
+        ),
+        required=False,
+        empty_label="-- Create new NLP table definition --",
+    )
