@@ -680,7 +680,11 @@ class SampleDataWizardView(NlpClassificationWizardView):
             )
 
         if step in [ws.SELECT_SOURCE_PK_COLUMN, ws.SELECT_SOURCE_COLUMN]:
-            kwargs["table_name"] = self.selected_source_table_name
+            table_name = self.selected_source_table_name
+            if table_name is None:
+                table_definition = self.selected_source_table_definition
+                table_name = table_definition.table_name
+            kwargs["table_name"] = table_name
 
         if step in [ws.SELECT_NLP_TABLE, ws.SELECT_NLP_PK_COLUMN]:
             kwargs["database_connection"] = self.get_nlp_database_connection()

@@ -704,3 +704,60 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
                 size=100,  # TODO: Random seed
             ).exists()
         )
+
+    def test_selected_table_passed_to_select_column_form(self) -> None:
+        self.test_source_table_names = ["note"]
+
+        self.storage.data.update(
+            step_data={
+                ws.SELECT_SOURCE_TABLE: {  # previous step
+                    f"{ws.SELECT_SOURCE_TABLE}-table_name": ["note"],
+                }
+            }
+        )
+        mock_source_db_connection = mock.Mock(
+            get_table_names=self.mock_get_source_table_names,
+        )
+
+        with mock.patch.multiple(
+            self.view,
+            get_source_database_connection=mock.Mock(
+                return_value=mock_source_db_connection
+            ),
+        ):
+            kwargs = self.view.get_form_kwargs(step=ws.SELECT_SOURCE_COLUMN)
+
+        self.assertEqual(kwargs.get("table_name"), "note")
+
+    def test_selected_table_definition_table_passed_to_select_column_form(
+        self,
+    ) -> None:
+        source_table_definition = TableDefinitionFactory(
+            db_connection_name=RESEARCH_DB_CONNECTION_NAME,
+            table_name="note",
+            pk_column_name="_pk",
+        )
+        self.test_source_table_names = ["note"]
+
+        self.storage.data.update(
+            step_data={
+                ws.SELECT_SOURCE_TABLE_DEFINITION: {  # previous step
+                    f"{ws.SELECT_SOURCE_TABLE_DEFINITION}-table_definition": [
+                        source_table_definition
+                    ],
+                }
+            }
+        )
+        mock_source_db_connection = mock.Mock(
+            get_table_names=self.mock_get_source_table_names,
+        )
+
+        with mock.patch.multiple(
+            self.view,
+            get_source_database_connection=mock.Mock(
+                return_value=mock_source_db_connection
+            ),
+        ):
+            kwargs = self.view.get_form_kwargs(step=ws.SELECT_SOURCE_COLUMN)
+
+        self.assertEqual(kwargs.get("table_name"), "note")
