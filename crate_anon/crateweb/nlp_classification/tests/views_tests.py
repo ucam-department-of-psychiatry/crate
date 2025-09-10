@@ -554,7 +554,11 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         self.assert_next_step(ws.ENTER_SEARCH_TERM)
 
         # Enter search term
-        self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
+        with mock.patch.multiple(
+            "crate_anon.crateweb.nlp_classification.views.random",
+            randint=mock.Mock(return_value=123456),
+        ):
+            self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
         self.assert_finished()
 
         source_table_definition = TableDefinition.objects.get(
@@ -576,7 +580,8 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
                 source_column=source_column,
                 nlp_table_definition=nlp_table_definition,
                 search_term="crp",
-                size=100,  # TODO: Random seed
+                size=100,
+                seed=123456,
             ).exists()
         )
 
@@ -649,7 +654,7 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
                 source_column=source_column,
                 nlp_table_definition=nlp_table_definition,
                 search_term="crp",
-                size=100,  # TODO: Random seed
+                size=100,
             ).exists()
         )
 
@@ -701,7 +706,7 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
                 source_column=source_column,
                 nlp_table_definition=nlp_table_definition,
                 search_term="crp",
-                size=100,  # TODO: Random seed
+                size=100,
             ).exists()
         )
 
