@@ -668,6 +668,56 @@ class SampleDataWizardView(NlpClassificationWizardView):
                 "create a new one"
             )
 
+        if step == ws.SELECT_SOURCE_TABLE:
+            return "Select the table from the source database"
+
+        if step == ws.SELECT_SOURCE_PK_COLUMN:
+            return self._get_select_source_pk_column_instructions()
+
+        if step == ws.SELECT_SOURCE_COLUMN:
+            return self._get_select_source_column_instructions()
+
+        if step == ws.SELECT_NLP_TABLE_DEFINITION:
+            return (
+                "Select an existing NLP table definition or "
+                "create a new one"
+            )
+
+        if step == ws.SELECT_NLP_TABLE:
+            return "Select the table from the NLP database"
+
+        if step == ws.SELECT_NLP_PK_COLUMN:
+            return self._get_select_nlp_pk_column_instructions()
+
+        if step == ws.ENTER_SAMPLE_SIZE:
+            return "Enter the size of the sample to be classified"
+
+        if step == ws.ENTER_SEARCH_TERM:
+            return "Enter the search term to match records to be sampled"
+
+    def _get_select_source_pk_column_instructions(self) -> str:
+        source_table_name = self.source_table_name
+
+        return (
+            "Select the primary key or other unique column for the table "
+            f"'{source_table_name}'"
+        )
+
+    def _get_select_source_column_instructions(self) -> str:
+        source_table_name = self.source_table_name
+
+        return (
+            f"Select the free text column for the table '{source_table_name}'"
+        )
+
+    def _get_select_nlp_pk_column_instructions(self) -> str:
+        nlp_table_name = self.nlp_table_name
+
+        return (
+            "Select the primary key or other unique column for the table "
+            f"'{nlp_table_name}'"
+        )
+
     def get_form_kwargs(self, step=None) -> Any:
         kwargs = super().get_form_kwargs(step)
         if step in [
@@ -680,11 +730,7 @@ class SampleDataWizardView(NlpClassificationWizardView):
             )
 
         if step in [ws.SELECT_SOURCE_PK_COLUMN, ws.SELECT_SOURCE_COLUMN]:
-            table_name = self.selected_source_table_name
-            if table_name is None:
-                table_definition = self.selected_source_table_definition
-                table_name = table_definition.table_name
-            kwargs["table_name"] = table_name
+            kwargs["table_name"] = self.source_table_name
 
         if step in [ws.SELECT_NLP_TABLE, ws.SELECT_NLP_PK_COLUMN]:
             kwargs["database_connection"] = self.get_nlp_database_connection()
@@ -718,6 +764,15 @@ class SampleDataWizardView(NlpClassificationWizardView):
         return cleaned_data.get("table_definition")
 
     @property
+    def source_table_name(self) -> str:
+        table_name = self.selected_source_table_name
+        if table_name is None:
+            table_definition = self.selected_source_table_definition
+            table_name = table_definition.table_name
+
+        return table_name
+
+    @property
     def selected_source_table_name(self) -> Optional[str]:
         cleaned_data = (
             self.get_cleaned_data_for_step(ws.SELECT_SOURCE_TABLE) or {}
@@ -740,6 +795,15 @@ class SampleDataWizardView(NlpClassificationWizardView):
         )
 
         return cleaned_data.get("column_name")
+
+    @property
+    def nlp_table_name(self) -> str:
+        table_name = self.selected_nlp_table_name
+        if table_name is None:
+            table_definition = self.selected_nlp_table_definition
+            table_name = table_definition.table_name
+
+        return table_name
 
     @property
     def selected_nlp_table_definition(self) -> Optional[TableDefinition]:
