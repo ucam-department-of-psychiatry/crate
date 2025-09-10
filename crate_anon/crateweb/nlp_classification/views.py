@@ -27,6 +27,7 @@ CRATE NLP classification views.
 
 """
 
+import random
 from typing import Any, Optional
 
 from django.http.response import HttpResponse, HttpResponseRedirect
@@ -51,10 +52,12 @@ from crate_anon.crateweb.nlp_classification.forms import (
     WizardCreateOptionsForm,
     WizardCreateQuestionForm,
     WizardCreateTaskForm,
+    WizardEnterSampleSizeForm,
+    WizardEnterSearchTermForm,
+    WizardSelectColumnForm,
     WizardSelectNlpTableDefinitionForm,
     WizardSelectOptionsForm,
     WizardSelectQuestionForm,
-    WizardSelectPkColumnForm,
     WizardSelectSourceTableDefinitionForm,
     WizardSelectTableForm,
     WizardSelectTaskForm,
@@ -62,6 +65,7 @@ from crate_anon.crateweb.nlp_classification.forms import (
 )
 from crate_anon.crateweb.nlp_classification.models import (
     Assignment,
+    Column,
     Option,
     Question,
     SampleSpec,
@@ -645,13 +649,16 @@ class SampleDataWizardView(NlpClassificationWizardView):
             WizardSelectSourceTableDefinitionForm,
         ),
         (ws.SELECT_SOURCE_TABLE, WizardSelectTableForm),
-        (ws.SELECT_SOURCE_PK_COLUMN, WizardSelectPkColumnForm),
+        (ws.SELECT_SOURCE_PK_COLUMN, WizardSelectColumnForm),
+        (ws.SELECT_SOURCE_COLUMN, WizardSelectColumnForm),
         (
             ws.SELECT_NLP_TABLE_DEFINITION,
             WizardSelectNlpTableDefinitionForm,
         ),
         (ws.SELECT_NLP_TABLE, WizardSelectTableForm),
-        (ws.SELECT_NLP_PK_COLUMN, WizardSelectPkColumnForm),
+        (ws.SELECT_NLP_PK_COLUMN, WizardSelectColumnForm),
+        (ws.ENTER_SAMPLE_SIZE, WizardEnterSampleSizeForm),
+        (ws.ENTER_SEARCH_TERM, WizardEnterSearchTermForm),
     ]
 
     def get_instructions(self, step: str) -> Optional[str]:
@@ -663,12 +670,16 @@ class SampleDataWizardView(NlpClassificationWizardView):
 
     def get_form_kwargs(self, step=None) -> Any:
         kwargs = super().get_form_kwargs(step)
-        if step in [ws.SELECT_SOURCE_TABLE, ws.SELECT_SOURCE_PK_COLUMN]:
+        if step in [
+            ws.SELECT_SOURCE_TABLE,
+            ws.SELECT_SOURCE_PK_COLUMN,
+            ws.SELECT_SOURCE_COLUMN,
+        ]:
             kwargs["database_connection"] = (
                 self.get_source_database_connection()
             )
 
-        if step == ws.SELECT_SOURCE_PK_COLUMN:
+        if step in [ws.SELECT_SOURCE_PK_COLUMN, ws.SELECT_SOURCE_COLUMN]:
             kwargs["table_name"] = self.selected_source_table_name
 
         if step in [ws.SELECT_NLP_TABLE, ws.SELECT_NLP_PK_COLUMN]:
@@ -687,21 +698,20 @@ class SampleDataWizardView(NlpClassificationWizardView):
 
     @property
     def has_selected_source_table_definition(self) -> bool:
+        return self.selected_source_table_definition is not None
+
+    @property
+    def has_selected_nlp_table_definition(self) -> bool:
+        return self.selected_nlp_table_definition is not None
+
+    @property
+    def selected_source_table_definition(self) -> Optional[TableDefinition]:
         cleaned_data = (
             self.get_cleaned_data_for_step(ws.SELECT_SOURCE_TABLE_DEFINITION)
             or {}
         )
 
-        return cleaned_data.get("table_definition") is not None
-
-    @property
-    def has_selected_nlp_table_definition(self) -> bool:
-        cleaned_data = (
-            self.get_cleaned_data_for_step(ws.SELECT_NLP_TABLE_DEFINITION)
-            or {}
-        )
-
-        return cleaned_data.get("table_definition") is not None
+        return cleaned_data.get("table_definition")
 
     @property
     def selected_source_table_name(self) -> Optional[str]:
@@ -717,7 +727,24 @@ class SampleDataWizardView(NlpClassificationWizardView):
             self.get_cleaned_data_for_step(ws.SELECT_SOURCE_PK_COLUMN) or {}
         )
 
-        return cleaned_data.get("pk_column_name")
+        return cleaned_data.get("column_name")
+
+    @property
+    def selected_source_column_name(self) -> str:
+        cleaned_data = (
+            self.get_cleaned_data_for_step(ws.SELECT_SOURCE_COLUMN) or {}
+        )
+
+        return cleaned_data.get("column_name")
+
+    @property
+    def selected_nlp_table_definition(self) -> Optional[TableDefinition]:
+        cleaned_data = (
+            self.get_cleaned_data_for_step(ws.SELECT_NLP_TABLE_DEFINITION)
+            or {}
+        )
+
+        return cleaned_data.get("table_definition")
 
     @property
     def selected_nlp_table_name(self) -> Optional[str]:
@@ -733,32 +760,70 @@ class SampleDataWizardView(NlpClassificationWizardView):
             self.get_cleaned_data_for_step(ws.SELECT_NLP_PK_COLUMN) or {}
         )
 
-        return cleaned_data.get("pk_column_name")
+        return cleaned_data.get("column_name")
 
-    def done(
-        self, form_list: list[Form], form_dict: dict[str, Form], **kwargs: Any
-    ) -> HttpResponse:
+    @property
+    def entered_size(self) -> int:
+        cleaned_data = self.get_cleaned_data_for_step(ws.ENTER_SAMPLE_SIZE)
 
-        source_table_name = self.selected_source_table_name
+        return cleaned_data["size"]
 
-        if source_table_name:
+    @property
+    def entered_search_term(self) -> str:
+        cleaned_data = self.get_cleaned_data_for_step(ws.ENTER_SEARCH_TERM)
+
+        return cleaned_data["search_term"]
+
+    def get_or_create_source_table_definition(self) -> TableDefinition:
+        source_table_definition = self.selected_source_table_definition
+        if source_table_definition is None:
+            source_table_name = self.selected_source_table_name
             source_pk_column_name = self.selected_source_pk_column_name
 
-            TableDefinition.objects.get_or_create(
+            source_table_definition, _ = TableDefinition.objects.get_or_create(
                 db_connection_name=RESEARCH_DB_CONNECTION_NAME,
                 table_name=source_table_name,
                 pk_column_name=source_pk_column_name,
             )
 
-        nlp_table_name = self.selected_nlp_table_name
+        return source_table_definition
 
-        if nlp_table_name:
+    def get_or_create_nlp_table_definition(self) -> TableDefinition:
+        nlp_table_definition = self.selected_nlp_table_definition
+
+        if nlp_table_definition is None:
+            nlp_table_name = self.selected_nlp_table_name
             nlp_pk_column_name = self.selected_nlp_pk_column_name
 
-            TableDefinition.objects.get_or_create(
+            nlp_table_definition, _ = TableDefinition.objects.get_or_create(
                 db_connection_name=NLP_DB_CONNECTION_NAME,
                 table_name=nlp_table_name,
                 pk_column_name=nlp_pk_column_name,
             )
+
+        return nlp_table_definition
+
+    def done(
+        self, form_list: list[Form], form_dict: dict[str, Form], **kwargs: Any
+    ) -> HttpResponse:
+        source_table_definition = self.get_or_create_source_table_definition()
+        nlp_table_definition = self.get_or_create_nlp_table_definition()
+
+        source_column_name = self.selected_source_column_name
+
+        source_column = Column.objects.create(
+            table_definition=source_table_definition, name=source_column_name
+        )
+
+        size = self.entered_size
+        search_term = self.entered_search_term
+
+        SampleSpec.objects.create(
+            source_column=source_column,
+            nlp_table_definition=nlp_table_definition,
+            size=size,
+            search_term=search_term,
+            seed=random.randint(0, 2147483647),
+        )
 
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))

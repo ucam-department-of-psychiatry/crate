@@ -110,7 +110,7 @@ class SampleSpec(models.Model):
     )
     search_term = models.CharField(max_length=100)
     size = models.IntegerField()
-    seed = models.PositiveIntegerField()  # default range 0-2147483647
+    seed = models.PositiveIntegerField()  # default MySQL range 0-2147483647
 
     def __str__(self) -> Any:
         return (

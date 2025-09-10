@@ -34,6 +34,7 @@ from django.forms import (
     ChoiceField,
     Form,
     HiddenInput,
+    IntegerField,
     ModelForm,
     ModelChoiceField,
     ModelMultipleChoiceField,
@@ -200,8 +201,8 @@ class WizardSelectTableForm(Form):
         ]
 
 
-class WizardSelectPkColumnForm(Form):
-    pk_column_name = ChoiceField()
+class WizardSelectColumnForm(Form):
+    column_name = ChoiceField()
 
     def __init__(
         self,
@@ -216,7 +217,7 @@ class WizardSelectPkColumnForm(Form):
             table_name,
         )
 
-        self.fields["pk_column_name"].choices = [
+        self.fields["column_name"].choices = [
             (name, name) for name in column_names
         ]
 
@@ -229,3 +230,11 @@ class WizardSelectNlpTableDefinitionForm(Form):
         required=False,
         empty_label="-- Create new NLP table definition --",
     )
+
+
+class WizardEnterSampleSizeForm(Form):
+    size = IntegerField(min_value=1)
+
+
+class WizardEnterSearchTermForm(Form):
+    search_term = CharField(max_length=100)  # TODO set from model?

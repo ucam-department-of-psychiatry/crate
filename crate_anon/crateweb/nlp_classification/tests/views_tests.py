@@ -40,7 +40,9 @@ from crate_anon.crateweb.core.constants import (
 )
 from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
 from crate_anon.crateweb.nlp_classification.models import (
+    Column,
     Question,
+    SampleSpec,
     TableDefinition,
     Task,
 )
@@ -528,43 +530,65 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         self.assert_next_step(ws.SELECT_SOURCE_PK_COLUMN)
 
         # Select source PK column
-        self.post(ws.SELECT_SOURCE_PK_COLUMN, {"pk_column_name": "_pk"})
+        self.post(ws.SELECT_SOURCE_PK_COLUMN, {"column_name": "_pk"})
+        self.assert_next_step(ws.SELECT_SOURCE_COLUMN)
+
+        # Select source column
+        self.post(ws.SELECT_SOURCE_COLUMN, {"column_name": "note"})
         self.assert_next_step(ws.SELECT_NLP_TABLE_DEFINITION)
 
         # Select NLP table definition
         self.post(ws.SELECT_NLP_TABLE_DEFINITION, {"table_definition": ""})
+        self.assert_next_step(ws.SELECT_NLP_TABLE)
 
         # Select NLP table
         self.post(ws.SELECT_NLP_TABLE, {"table_name": "crp"})
         self.assert_next_step(ws.SELECT_NLP_PK_COLUMN)
 
         # Select NLP PK column
-        self.post(ws.SELECT_NLP_PK_COLUMN, {"pk_column_name": "_pk"})
+        self.post(ws.SELECT_NLP_PK_COLUMN, {"column_name": "_pk"})
+        self.assert_next_step(ws.ENTER_SAMPLE_SIZE)
+
+        # Enter sample size
+        self.post(ws.ENTER_SAMPLE_SIZE, {"size": 100})
+        self.assert_next_step(ws.ENTER_SEARCH_TERM)
+
+        # Enter search term
+        self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
         self.assert_finished()
 
-        self.assertTrue(
-            TableDefinition.objects.filter(
-                db_connection_name=RESEARCH_DB_CONNECTION_NAME,
-                table_name="note",
-                pk_column_name="_pk",
-            ).exists()
-        )
-
-        self.assertTrue(
-            TableDefinition.objects.filter(
-                db_connection_name=NLP_DB_CONNECTION_NAME,
-                table_name="crp",
-                pk_column_name="_pk",
-            ).exists()
-        )
-
-    def test_table_definitions_not_created_when_they_exist(self) -> None:
-        TableDefinitionFactory(
+        source_table_definition = TableDefinition.objects.get(
             db_connection_name=RESEARCH_DB_CONNECTION_NAME,
             table_name="note",
             pk_column_name="_pk",
         )
-        TableDefinitionFactory(
+        source_column = Column.objects.get(
+            table_definition=source_table_definition,
+            name="note",
+        )
+        nlp_table_definition = TableDefinition.objects.get(
+            db_connection_name=NLP_DB_CONNECTION_NAME,
+            table_name="crp",
+            pk_column_name="_pk",
+        )
+        self.assertTrue(
+            SampleSpec.objects.filter(
+                source_column=source_column,
+                nlp_table_definition=nlp_table_definition,
+                search_term="crp",
+                size=100,  # TODO: Random seed
+            ).exists()
+        )
+
+    def test_table_definitions_not_created_when_identical_details_entered(
+        self,
+    ) -> None:
+        source_table_definition = TableDefinitionFactory(
+            db_connection_name=RESEARCH_DB_CONNECTION_NAME,
+            table_name="note",
+            pk_column_name="_pk",
+        )
+        nlp_table_definition = TableDefinitionFactory(
             db_connection_name=NLP_DB_CONNECTION_NAME,
             table_name="crp",
             pk_column_name="_pk",
@@ -588,7 +612,11 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         self.assert_next_step(ws.SELECT_SOURCE_PK_COLUMN)
 
         # Select PK column
-        self.post(ws.SELECT_SOURCE_PK_COLUMN, {"pk_column_name": "_pk"})
+        self.post(ws.SELECT_SOURCE_PK_COLUMN, {"column_name": "_pk"})
+        self.assert_next_step(ws.SELECT_SOURCE_COLUMN)
+
+        # Select source column
+        self.post(ws.SELECT_SOURCE_COLUMN, {"column_name": "note"})
         self.assert_next_step(ws.SELECT_NLP_TABLE_DEFINITION)
 
         # Select NLP table definition
@@ -600,27 +628,34 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         self.assert_next_step(ws.SELECT_NLP_PK_COLUMN)
 
         # Select NLP PK column
-        self.post(ws.SELECT_NLP_PK_COLUMN, {"pk_column_name": "_pk"})
+        self.post(ws.SELECT_NLP_PK_COLUMN, {"column_name": "_pk"})
+        self.assert_next_step(ws.ENTER_SAMPLE_SIZE)
+
+        # Enter sample size
+        self.post(ws.ENTER_SAMPLE_SIZE, {"size": 100})
+        self.assert_next_step(ws.ENTER_SEARCH_TERM)
+
+        # Enter search term
+        self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
         self.assert_finished()
 
-        self.assertEqual(
-            TableDefinition.objects.filter(
-                db_connection_name=RESEARCH_DB_CONNECTION_NAME,
-                table_name="note",
-                pk_column_name="_pk",
-            ).count(),
-            1,
+        source_column = Column.objects.get(
+            table_definition=source_table_definition,
+            name="note",
         )
-        self.assertEqual(
-            TableDefinition.objects.filter(
-                db_connection_name=NLP_DB_CONNECTION_NAME,
-                table_name="crp",
-                pk_column_name="_pk",
-            ).count(),
-            1,
+
+        self.assertTrue(
+            SampleSpec.objects.filter(
+                source_column=source_column,
+                nlp_table_definition=nlp_table_definition,
+                search_term="crp",
+                size=100,  # TODO: Random seed
+            ).exists()
         )
 
     def test_sample_spec_created_with_existing_table_definitions(self) -> None:
+        self.test_source_column_names = ["_pk", "note"]
+
         source_table_definition = TableDefinitionFactory(
             db_connection_name=RESEARCH_DB_CONNECTION_NAME,
         )
@@ -635,6 +670,10 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
             ws.SELECT_SOURCE_TABLE_DEFINITION,
             {"table_definition": source_table_definition.id},
         )
+        self.assert_next_step(ws.SELECT_SOURCE_COLUMN)
+
+        # Select source column
+        self.post(ws.SELECT_SOURCE_COLUMN, {"column_name": "note"})
         self.assert_next_step(ws.SELECT_NLP_TABLE_DEFINITION)
 
         # Select NLP table definition
@@ -642,5 +681,26 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
             ws.SELECT_NLP_TABLE_DEFINITION,
             {"table_definition": nlp_table_definition.id},
         )
+        self.assert_next_step(ws.ENTER_SAMPLE_SIZE)
 
+        # Enter sample size
+        self.post(ws.ENTER_SAMPLE_SIZE, {"size": 100})
+        self.assert_next_step(ws.ENTER_SEARCH_TERM)
+
+        # Enter search term
+        self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
         self.assert_finished()
+
+        source_column = Column.objects.get(
+            table_definition=source_table_definition,
+            name="note",
+        )
+
+        self.assertTrue(
+            SampleSpec.objects.filter(
+                source_column=source_column,
+                nlp_table_definition=nlp_table_definition,
+                search_term="crp",
+                size=100,  # TODO: Random seed
+            ).exists()
+        )

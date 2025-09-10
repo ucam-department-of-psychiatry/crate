@@ -37,7 +37,7 @@ from crate_anon.crateweb.core.constants import (
 )
 from crate_anon.crateweb.nlp_classification.forms import (
     WizardSelectQuestionForm,
-    WizardSelectPkColumnForm,
+    WizardSelectColumnForm,
     WizardSelectSourceTableDefinitionForm,
     WizardSelectTableForm,
 )
@@ -123,7 +123,7 @@ class WizardSelectTableFormTests(TestCase):
         )
 
 
-class WizardSelectPkFormTests(TestCase):
+class WizardSelectFormTests(TestCase):
     def test_names_are_source_tables(self) -> None:
         mock_get_column_names = mock.Mock(
             return_value=["column_1", "column_2", "column_3"]
@@ -131,12 +131,12 @@ class WizardSelectPkFormTests(TestCase):
         mock_db_connection = mock.Mock(
             get_column_names_for_table=mock_get_column_names
         )
-        form = WizardSelectPkColumnForm(
+        form = WizardSelectColumnForm(
             database_connection=mock_db_connection, table_name="test_table"
         )
 
         self.assertEqual(
-            form.fields["pk_column_name"].choices,
+            form.fields["column_name"].choices,
             [
                 ("column_1", "column_1"),
                 ("column_2", "column_2"),
