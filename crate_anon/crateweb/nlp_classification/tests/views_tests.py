@@ -44,6 +44,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     Column,
     Question,
     SampleSpec,
+    SourceRecord,
     TableDefinition,
     Task,
 )
@@ -912,6 +913,8 @@ class UserAssignmentWizardViewTests(NlpClassificationWizardViewTests):
         )
         nlp_table_definition = TableDefinitionFactory(
             db_connection_name=NLP_DB_CONNECTION_NAME,
+            table_name="crp",
+            pk_column_name="_pk",
         )
 
         source_column = ColumnFactory(table_definition=source_table_definition)
@@ -931,13 +934,90 @@ class UserAssignmentWizardViewTests(NlpClassificationWizardViewTests):
         self.assert_next_step(ws.SELECT_USER)
 
         # Select user
-        self.post(ws.SELECT_USER, {"user": user.id})
+        mock_source_rows = [(1,), (2,), (3,), (4,), (5,)]
+        mock_source_fetchall = mock.Mock(return_value=mock_source_rows)
+        mock_source_db_connection = mock.Mock(fetchall=mock_source_fetchall)
+
+        mock_nlp_result_dicts = [
+            {"_pk": 10},
+            {"_pk": 11},
+            None,  # No NLP result
+            {"_pk": 12},
+            None,  # No NLP result
+        ]
+        mock_nlp_fetchone_as_dict = mock.Mock(
+            side_effect=mock_nlp_result_dicts
+        )
+        mock_nlp_db_connection = mock.Mock(
+            fetchone_as_dict=mock_nlp_fetchone_as_dict
+        )
+
+        mock_get_source_database_connection = mock.Mock(
+            return_value=mock_source_db_connection
+        )
+        mock_get_nlp_database_connection = mock.Mock(
+            return_value=mock_nlp_db_connection
+        )
+
+        with mock.patch.multiple(
+            "crate_anon.crateweb.nlp_classification.models.Assignment",
+            get_source_database_connection=mock_get_source_database_connection,
+            get_nlp_database_connection=mock_get_nlp_database_connection,
+        ):
+            self.post(ws.SELECT_USER, {"user": user.id})
         self.assert_finished()
+        mock_get_source_database_connection.assert_called_once_with(
+            source_table_definition
+        )
+        mock_get_nlp_database_connection.assert_called_once_with(
+            nlp_table_definition
+        )
 
         self.assertTrue(
             Assignment.objects.filter(
                 task=task,
                 sample_spec=sample_spec,
                 user=user,
+            ).exists()
+        )
+
+        self.assertTrue(
+            SourceRecord.objects.filter(
+                source_column=sample_spec.source_column,
+                nlp_table_definition=nlp_table_definition,
+                source_pk_value=1,
+                nlp_pk_value=10,
+            ).exists()
+        )
+        self.assertTrue(
+            SourceRecord.objects.filter(
+                source_column=sample_spec.source_column,
+                nlp_table_definition=nlp_table_definition,
+                source_pk_value=2,
+                nlp_pk_value=11,
+            ).exists()
+        )
+        self.assertTrue(
+            SourceRecord.objects.filter(
+                source_column=sample_spec.source_column,
+                nlp_table_definition=nlp_table_definition,
+                source_pk_value=3,
+                nlp_pk_value="",
+            ).exists()
+        )
+        self.assertTrue(
+            SourceRecord.objects.filter(
+                source_column=sample_spec.source_column,
+                nlp_table_definition=nlp_table_definition,
+                source_pk_value=4,
+                nlp_pk_value=12,
+            ).exists()
+        )
+        self.assertTrue(
+            SourceRecord.objects.filter(
+                source_column=sample_spec.source_column,
+                nlp_table_definition=nlp_table_definition,
+                source_pk_value=5,
+                nlp_pk_value="",
             ).exists()
         )

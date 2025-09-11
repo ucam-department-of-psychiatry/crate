@@ -256,16 +256,16 @@ class Assignment(models.Model):
         source_table_definition = (
             self.sample_spec.source_column.table_definition
         )
-        source_connection_name = source_table_definition.db_connection_name
         source_pk_column_name = source_table_definition.pk_column_name
         source_table_name = source_table_definition.table_name
-        source_connection = DatabaseConnection(source_connection_name)
+        source_connection = self.get_source_database_connection(
+            source_table_definition
+        )
 
         nlp_table_definition = self.sample_spec.nlp_table_definition
-        nlp_connection_name = nlp_table_definition.db_connection_name
         nlp_pk_column_name = nlp_table_definition.pk_column_name
         nlp_table_name = nlp_table_definition.table_name
-        nlp_connection = DatabaseConnection(nlp_connection_name)
+        nlp_connection = self.get_nlp_database_connection(nlp_table_definition)
         for source_row in source_connection.fetchall(
             [source_pk_column_name], source_table_name
         ):
@@ -288,6 +288,16 @@ class Assignment(models.Model):
             )
 
             self.source_records.add(source_record)
+
+    def get_source_database_connection(
+        self, source_table_definition: TableDefinition
+    ) -> DatabaseConnection:
+        return DatabaseConnection(source_table_definition.db_connection_name)
+
+    def get_nlp_database_connection(
+        self, nlp_table_definition: TableDefinition
+    ) -> DatabaseConnection:
+        return DatabaseConnection(nlp_table_definition.db_connection_name)
 
 
 class UserAnswer(models.Model):
