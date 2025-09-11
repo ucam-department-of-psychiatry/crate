@@ -34,7 +34,7 @@ from django.contrib.auth import get_user_model
 from django.http.response import HttpResponse, HttpResponseRedirect
 from django.forms import Form
 from django.urls import reverse
-from django.views.generic import CreateView, TemplateView, UpdateView
+from django.views.generic import TemplateView, UpdateView
 import django_tables2 as tables
 from formtools.wizard.views import SessionWizardView
 
@@ -44,13 +44,7 @@ from crate_anon.crateweb.core.constants import (
 )
 from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
 from crate_anon.crateweb.nlp_classification.forms import (
-    AssignmentForm,
-    ColumnForm,
-    OptionForm,
-    QuestionForm,
-    SampleSpecForm,
-    TableDefinitionForm,
-    TaskForm,
+    UserAnswerForm,
     WizardCreateOptionsForm,
     WizardCreateQuestionForm,
     WizardCreateTaskForm,
@@ -67,7 +61,6 @@ from crate_anon.crateweb.nlp_classification.forms import (
     WizardSelectTableForm,
     WizardSelectTaskForm,
     WizardSelectUserForm,
-    UserAnswerForm,
 )
 from crate_anon.crateweb.nlp_classification.models import (
     Assignment,
@@ -80,14 +73,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     UserAnswer,
 )
 from crate_anon.crateweb.nlp_classification.tables import (
-    AdminAssignmentTable,
-    ColumnTable,
     FieldTable,
-    OptionTable,
-    QuestionTable,
-    SampleSpecTable,
-    TableDefinitionTable,
-    TaskTable,
     UserAnswerTable,
     UserAssignmentTable,
 )
@@ -98,328 +84,6 @@ User = get_user_model()
 
 class AdminHomeView(TemplateView):
     template_name = "nlp_classification/admin/home.html"
-
-
-class AdminTaskListView(TemplateView):
-    template_name = "nlp_classification/admin/task_list.html"
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-
-        table = self._get_table()
-        tables.RequestConfig(self.request).configure(table)
-        context.update(table=table)
-
-        return context
-
-    def _get_table(self) -> tables.Table:
-        return TaskTable(Task.objects.all())
-
-
-class AdminTaskCreateView(CreateView):
-    model = Task
-    template_name = "nlp_classification/admin/update_form.html"
-    form_class = TaskForm
-
-    def get_success_url(self):
-        return reverse("nlp_classification_admin_task_list")
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(title="New task")
-
-        return context
-
-
-class AdminTaskEditView(UpdateView):
-    model = Task
-    template_name = "nlp_classification/admin/update_form.html"
-    form_class = TaskForm
-
-    def get_success_url(self):
-        return reverse("nlp_classification_admin_task_list")
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(title="Edit task")
-
-        return context
-
-
-class AdminQuestionListView(TemplateView):
-    template_name = "nlp_classification/admin/question_list.html"
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-
-        table = self._get_table()
-        tables.RequestConfig(self.request).configure(table)
-        context.update(table=table)
-
-        return context
-
-    def _get_table(self) -> tables.Table:
-        return QuestionTable(Question.objects.all())
-
-
-class AdminQuestionCreateView(CreateView):
-    model = Question
-    template_name = "nlp_classification/admin/update_form.html"
-    form_class = QuestionForm
-
-    def get_success_url(self):
-        return reverse("nlp_classification_admin_question_list")
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(title="New question")
-
-        return context
-
-
-class AdminQuestionEditView(UpdateView):
-    model = Question
-    template_name = "nlp_classification/admin/update_form.html"
-    form_class = QuestionForm
-
-    def get_success_url(self):
-        return reverse("nlp_classification_admin_question_list")
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(title="Edit question")
-
-        return context
-
-
-class AdminOptionListView(TemplateView):
-    template_name = "nlp_classification/admin/option_list.html"
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-
-        table = self._get_table()
-        tables.RequestConfig(self.request).configure(table)
-        context.update(table=table)
-
-        return context
-
-    def _get_table(self) -> tables.Table:
-        return OptionTable(Option.objects.all())
-
-
-class AdminOptionCreateView(CreateView):
-    model = Option
-    template_name = "nlp_classification/admin/update_form.html"
-    form_class = OptionForm
-
-    def get_success_url(self):
-        return reverse("nlp_classification_admin_option_list")
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(title="New option")
-
-        return context
-
-
-class AdminOptionEditView(UpdateView):
-    model = Option
-    template_name = "nlp_classification/admin/update_form.html"
-    form_class = OptionForm
-
-    def get_success_url(self):
-        return reverse("nlp_classification_admin_option_list")
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(title="Edit option")
-
-        return context
-
-
-class AdminSampleSpecListView(TemplateView):
-    template_name = "nlp_classification/admin/sample_spec_list.html"
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-
-        table = self._get_table()
-        tables.RequestConfig(self.request).configure(table)
-        context.update(table=table)
-
-        return context
-
-    def _get_table(self) -> tables.Table:
-        return SampleSpecTable(SampleSpec.objects.all())
-
-
-class AdminSampleSpecCreateView(CreateView):
-    model = SampleSpec
-    template_name = "nlp_classification/admin/update_form.html"
-    form_class = SampleSpecForm
-
-    def get_success_url(self):
-        return reverse("nlp_classification_admin_sample_spec_list")
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(title="New sample specification")
-
-        return context
-
-
-class AdminSampleSpecEditView(UpdateView):
-    model = SampleSpec
-    template_name = "nlp_classification/admin/update_form.html"
-    form_class = SampleSpecForm
-
-    def get_success_url(self):
-        return reverse("nlp_classification_admin_sample_spec_list")
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(title="Edit sample specification")
-
-        return context
-
-
-class AdminTableDefinitionListView(TemplateView):
-    template_name = "nlp_classification/admin/table_definition_list.html"
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-
-        table = self._get_table()
-        tables.RequestConfig(self.request).configure(table)
-        context.update(table=table)
-
-        return context
-
-    def _get_table(self) -> tables.Table:
-        return TableDefinitionTable(TableDefinition.objects.all())
-
-
-class AdminTableDefinitionCreateView(CreateView):
-    model = TableDefinition
-    template_name = "nlp_classification/admin/update_form.html"
-    form_class = TableDefinitionForm
-
-    def get_success_url(self):
-        return reverse("nlp_classification_admin_table_definition_list")
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(title="New table definition")
-
-        return context
-
-
-class AdminTableDefinitionEditView(UpdateView):
-    model = TableDefinition
-    template_name = "nlp_classification/admin/update_form.html"
-    form_class = TableDefinitionForm
-
-    def get_success_url(self):
-        return reverse("nlp_classification_admin_table_definition_list")
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(title="Edit table definition")
-
-        return context
-
-
-class AdminColumnListView(TemplateView):
-    template_name = "nlp_classification/admin/column_list.html"
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-
-        table = self._get_table()
-        tables.RequestConfig(self.request).configure(table)
-        context.update(table=table)
-
-        return context
-
-    def _get_table(self) -> tables.Table:
-        return ColumnTable(Column.objects.all())
-
-
-class AdminColumnCreateView(CreateView):
-    model = Column
-    template_name = "nlp_classification/admin/update_form.html"
-    form_class = ColumnForm
-
-    def get_success_url(self):
-        return reverse("nlp_classification_admin_column_list")
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(title="New column")
-
-        return context
-
-
-class AdminColumnEditView(UpdateView):
-    model = Column
-    template_name = "nlp_classification/admin/update_form.html"
-    form_class = ColumnForm
-
-    def get_success_url(self):
-        return reverse("nlp_classification_admin_column_list")
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(title="Edit column")
-
-        return context
-
-
-class AdminAssignmentListView(TemplateView):
-    template_name = "nlp_classification/admin/assignment_list.html"
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-
-        table = self._get_table()
-        tables.RequestConfig(self.request).configure(table)
-        context.update(table=table)
-
-        return context
-
-    def _get_table(self) -> tables.Table:
-        return AdminAssignmentTable(Assignment.objects.all())
-
-
-class AdminAssignmentCreateView(CreateView):
-    model = Assignment
-    template_name = "nlp_classification/admin/update_form.html"
-    form_class = AssignmentForm
-
-    def get_success_url(self):
-        return reverse("nlp_classification_admin_assignment_list")
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(title="New assignment")
-
-        return context
-
-
-class AdminAssignmentEditView(UpdateView):
-    model = Assignment
-    template_name = "nlp_classification/admin/update_form.html"
-    form_class = AssignmentForm
-
-    def get_success_url(self):
-        return reverse("nlp_classification_admin_assignment_list")
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-        context.update(title="Edit assignment")
-
-        return context
 
 
 class UserAssignmentView(TemplateView):

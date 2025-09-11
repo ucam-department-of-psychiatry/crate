@@ -1,9 +1,0 @@
-{# crate_anon/crateweb/templates/nlp_classification/admin/sample_spec_list.html #}
-{% extends "nlp_classification/base.html" %}
-{% load render_table from django_tables2 %}
-
-{% block nlp_classification_content %}
-            <h2>Sample Specifications</h2>
-            <a href="{% url 'nlp_classification_admin_sample_spec_create' %}">New sample specification</a>
-            {% render_table table %}
-{% endblock %}

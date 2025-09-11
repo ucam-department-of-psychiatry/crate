@@ -87,6 +87,17 @@ from crate_anon.crateweb.extra.admin import (
     EditOnlyModelAdmin,
     ReadOnlyModelAdmin,
 )
+from crate_anon.crateweb.nlp_classification.models import (
+    Assignment,
+    Column,
+    Option,
+    Question,
+    SampleSpec,
+    SourceRecord,
+    TableDefinition,
+    Task,
+    UserAnswer,
+)
 from crate_anon.crateweb.research.models import (
     ArchiveAttachmentAudit,
     ArchiveTemplateAudit,
@@ -1889,3 +1900,19 @@ Problem with non-superusers not seeing any apps:
     def has_change_permission(self, request: HttpRequest, obj=None) -> bool:
         return request.user.is_staff
 """
+
+
+class NlpAdminSite(admin.AdminSite):
+    pass
+
+
+nlp_admin_site = NlpAdminSite(name=AdminSiteNames.NLPADMIN)
+nlp_admin_site.register(Assignment)
+nlp_admin_site.register(Column)
+nlp_admin_site.register(Option)
+nlp_admin_site.register(Question)
+nlp_admin_site.register(SampleSpec)
+nlp_admin_site.register(SourceRecord)
+nlp_admin_site.register(TableDefinition)
+nlp_admin_site.register(Task)
+nlp_admin_site.register(UserAnswer)

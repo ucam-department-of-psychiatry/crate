@@ -306,14 +306,7 @@ crate_anon/crateweb
     templates/include_jquery.html.rst
     templates/logged_out.html.rst
     templates/login.html.rst
-    templates/nlp_classification/admin/assignment_list.html.rst
-    templates/nlp_classification/admin/column_list.html.rst
     templates/nlp_classification/admin/home.html.rst
-    templates/nlp_classification/admin/option_list.html.rst
-    templates/nlp_classification/admin/question_list.html.rst
-    templates/nlp_classification/admin/sample_spec_list.html.rst
-    templates/nlp_classification/admin/table_definition_list.html.rst
-    templates/nlp_classification/admin/task_list.html.rst
     templates/nlp_classification/admin/update_form.html.rst
     templates/nlp_classification/admin/wizard_form.html.rst
     templates/nlp_classification/base.html.rst

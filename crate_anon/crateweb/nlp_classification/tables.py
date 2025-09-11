@@ -29,12 +29,6 @@ CRATE NLP classification tables.
 
 from crate_anon.crateweb.nlp_classification.models import (
     Assignment,
-    Column,
-    Option,
-    Question,
-    SampleSpec,
-    TableDefinition,
-    Task,
     UserAnswer,
 )
 
@@ -76,100 +70,6 @@ class UserAssignmentTable(tables.Table):
     )
 
 
-class AdminAssignmentTable(tables.Table):
-    class Meta:
-        model = Assignment
-
-    task = tables.LinkColumn(
-        "nlp_classification_admin_assignment_edit",
-        args=[tables.A("pk")],
-    )
-    sample_spec = tables.LinkColumn(
-        "nlp_classification_admin_assignment_edit",
-        args=[tables.A("pk")],
-    )
-    user = tables.LinkColumn(
-        "nlp_classification_admin_assignment_edit",
-        args=[tables.A("pk")],
-    )
-
-
-class ColumnTable(tables.Table):
-    class Meta:
-        model = Column
-
-    table_definition = tables.LinkColumn(
-        "nlp_classification_admin_column_edit", args=[tables.A("pk")]
-    )
-    name = tables.LinkColumn(
-        "nlp_classification_admin_column_edit", args=[tables.A("pk")]
-    )
-
-
 class FieldTable(tables.Table):
     name = tables.Column()
     value = tables.Column()
-
-
-class OptionTable(tables.Table):
-    class Meta:
-        model = Option
-
-    description = tables.LinkColumn(
-        "nlp_classification_admin_option_edit", args=[tables.A("pk")]
-    )
-
-
-class QuestionTable(tables.Table):
-    class Meta:
-        model = Question
-
-    title = tables.LinkColumn(
-        "nlp_classification_admin_question_edit", args=[tables.A("pk")]
-    )
-    task = tables.Column()
-
-
-class SampleSpecTable(tables.Table):
-    class Meta:
-        model = SampleSpec
-
-    source_column = tables.LinkColumn(
-        "nlp_classification_admin_sample_spec_edit", args=[tables.A("pk")]
-    )
-    nlp_table_definition = tables.LinkColumn(
-        "nlp_classification_admin_sample_spec_edit", args=[tables.A("pk")]
-    )
-    search_term = tables.LinkColumn(
-        "nlp_classification_admin_sample_spec_edit", args=[tables.A("pk")]
-    )
-    size = tables.LinkColumn(
-        "nlp_classification_admin_sample_spec_edit", args=[tables.A("pk")]
-    )
-    seed = tables.LinkColumn(
-        "nlp_classification_admin_sample_spec_edit", args=[tables.A("pk")]
-    )
-
-
-class TableDefinitionTable(tables.Table):
-    class Meta:
-        model = TableDefinition
-
-    db_connection_name = tables.LinkColumn(
-        "nlp_classification_admin_table_definition_edit", args=[tables.A("pk")]
-    )
-    table_name = tables.LinkColumn(
-        "nlp_classification_admin_table_definition_edit", args=[tables.A("pk")]
-    )
-    pk_column_name = tables.LinkColumn(
-        "nlp_classification_admin_table_definition_edit", args=[tables.A("pk")]
-    )
-
-
-class TaskTable(tables.Table):
-    class Meta:
-        model = Task
-
-    name = tables.LinkColumn(
-        "nlp_classification_admin_task_edit", args=[tables.A("pk")]
-    )

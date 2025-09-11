@@ -48,8 +48,6 @@ from crate_anon.crateweb.core.constants import (
     RESEARCH_DB_CONNECTION_NAME,
 )
 from crate_anon.crateweb.nlp_classification.models import (
-    Assignment,
-    Column,
     Option,
     Question,
     SampleSpec,
@@ -60,62 +58,6 @@ from crate_anon.crateweb.nlp_classification.models import (
 from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
 
 User = get_user_model()
-
-
-# Standard create/edit forms in alphabetical order
-class AssignmentForm(ModelForm):
-    class Meta:
-        model = Assignment
-        fields = ["task", "sample_spec", "user"]
-
-
-class ColumnForm(ModelForm):
-    class Meta:
-        model = Column
-        fields = ["table_definition", "name"]
-
-
-class OptionForm(ModelForm):
-    class Meta:
-        model = Option
-        fields = ["description"]
-
-
-class QuestionForm(ModelForm):
-    class Meta:
-        model = Question
-        fields = ["title", "task", "options"]
-
-
-class SampleSpecForm(ModelForm):
-    class Meta:
-        model = SampleSpec
-        fields = [
-            "source_column",
-            "nlp_table_definition",
-            "search_term",
-            "size",
-            "seed",
-        ]
-
-
-class TableDefinitionForm(ModelForm):
-    class Meta:
-        model = TableDefinition
-        fields = ["db_connection_name", "table_name", "pk_column_name"]
-
-    db_connection_name = ChoiceField(
-        choices=[
-            (NLP_DB_CONNECTION_NAME, "Research database"),
-            (RESEARCH_DB_CONNECTION_NAME, "NLP database"),
-        ]
-    )
-
-
-class TaskForm(ModelForm):
-    class Meta:
-        model = Task
-        fields = ["name"]
 
 
 class UserAnswerForm(ModelForm):
@@ -141,8 +83,10 @@ class WizardSelectTaskForm(Form):
     )
 
 
-class WizardCreateTaskForm(TaskForm):
-    pass
+class WizardCreateTaskForm(ModelForm):
+    class Meta:
+        model = Task
+        fields = ["name"]
 
 
 class WizardSelectQuestionForm(Form):
@@ -269,12 +213,10 @@ class WizardEnterSampleSizeForm(Form):
 
 
 class WizardEnterSearchTermForm(Form):
-    search_term = CharField(max_length=100)  # TODO set from model?
+    search_term = CharField(max_length=100)  # TODO set max_length from model?
 
 
 # UserAssignmentWizardView forms in order of step
-
-
 class WizardSelectRequiredTaskForm(Form):
     task = ModelChoiceField(queryset=Task.objects.all(), required=True)
 

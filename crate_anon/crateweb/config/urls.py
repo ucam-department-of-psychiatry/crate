@@ -61,8 +61,9 @@ from crate_anon.crateweb.config.constants import (
     UrlNames,
 )
 from crate_anon.crateweb.core.admin import (
-    mgr_admin_site,
     dev_admin_site,
+    mgr_admin_site,
+    nlp_admin_site,
     res_admin_site,
 )
 import crate_anon.crateweb.core.auth_views as core_auth_views
@@ -111,6 +112,7 @@ urlpatterns = [
     re_path(r"^mgr_admin/", mgr_admin_site.urls),
     re_path(r"^dev_admin/", dev_admin_site.urls),
     re_path(r"^res_admin/", res_admin_site.urls),
+    re_path(r"^nlp_admin/", nlp_admin_site.urls),
     # ... namespace is defined in call to AdminSite(); see core/admin.py
     # -------------------------------------------------------------------------
     # Anonymisation API
