@@ -970,7 +970,7 @@ class SampleDataWizardView(NlpClassificationWizardView):
 
         source_column_name = self.selected_source_column_name
 
-        source_column = Column.objects.create(
+        source_column, _ = Column.objects.get_or_create(
             table_definition=source_table_definition, name=source_column_name
         )
 
