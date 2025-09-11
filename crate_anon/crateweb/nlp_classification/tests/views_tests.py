@@ -853,3 +853,38 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
             kwargs = self.view.get_form_kwargs(step=ws.SELECT_SOURCE_COLUMN)
 
         self.assertEqual(kwargs.get("table_name"), "note")
+
+    def test_existing_nlp_columns_selected(self) -> None:
+        nlp_table_definition = TableDefinitionFactory(
+            db_connection_name=NLP_DB_CONNECTION_NAME,
+            table_name="note",
+            pk_column_name="_pk",
+        )
+
+        column_1 = ColumnFactory(
+            name="one", table_definition=nlp_table_definition
+        )
+        column_2 = ColumnFactory(
+            name="two", table_definition=nlp_table_definition
+        )
+        column_3 = ColumnFactory(name="three")
+
+        post_data = {self.current_step_param: ws.SELECT_NLP_COLUMNS}
+        self.mock_request.POST = post_data
+
+        self.storage.data.update(
+            step_data={  # Earlier steps
+                ws.SELECT_NLP_TABLE_DEFINITION: {
+                    f"{ws.SELECT_NLP_TABLE_DEFINITION}-table_definition": [
+                        nlp_table_definition.id
+                    ],
+                },
+            }
+        )
+
+        initial = self.view.get_form_initial(step=ws.SELECT_NLP_COLUMNS)
+        column_names = initial.get("column_names")
+
+        self.assertIn(column_1.name, column_names)
+        self.assertIn(column_2.name, column_names)
+        self.assertNotIn(column_3.name, column_names)

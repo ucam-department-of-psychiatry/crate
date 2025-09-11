@@ -779,6 +779,18 @@ class SampleDataWizardView(NlpClassificationWizardView):
             f"results from the table '{nlp_table_name}'"
         )
 
+    def get_form_initial(self, step: str) -> dict[str, Any]:
+        initial = super().get_form_initial(step)
+
+        if step == ws.SELECT_NLP_COLUMNS:
+            nlp_table_definition = self.selected_nlp_table_definition
+            if nlp_table_definition is not None:
+                initial["column_names"] = [
+                    c.name for c in nlp_table_definition.column_set.all()
+                ]
+
+        return initial
+
     def get_form_kwargs(self, step=None) -> Any:
         kwargs = super().get_form_kwargs(step)
         if step in [
