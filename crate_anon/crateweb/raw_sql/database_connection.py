@@ -33,7 +33,6 @@ from typing import Any, Iterable, Optional, Sequence, Tuple
 
 from cardinal_pythonlib.dbfunc import dictfetchall
 from cardinal_pythonlib.django.django_constants import ConnectionVendors
-from cardinal_pythonlib.django.function_cache import django_cache_function
 from cardinal_pythonlib.json_utils.serialize import (
     METHOD_NO_ARGS,
     register_for_json,
@@ -58,6 +57,7 @@ class UnsupportedEngineException(Exception):
 class DatabaseConnection:
     def __init__(self, connection_name: str) -> None:
         self.connection_name = connection_name
+        self._schema_infodictlist = None
 
     def fetchone_as_dict(
         self,
@@ -561,7 +561,6 @@ ORDER BY
     # -------------------------------------------------------------------------
     # Fetching schema info from the database: main (still internal) interface
     # -------------------------------------------------------------------------
-    @django_cache_function(timeout=None)
     def get_schema_infodictlist(
         self, db_name: str = None, schema_name: str = None, debug: bool = False
     ) -> list[dict[str, Any]]:
@@ -580,6 +579,16 @@ ORDER BY
 
         """
 
+        if self._schema_infodictlist is None:
+            self._schema_infodictlist = self._get_schema_results_for_vendor(
+                db_name, schema_name, debug
+            )
+
+        return self._schema_infodictlist
+
+    def _get_schema_results_for_vendor(
+        self, db_name: str = None, schema_name: str = None, debug: bool = False
+    ) -> list[dict[str, Any]]:
         if db_name is None and schema_name is None:
             (db_name, schema_name) = self._get_db_and_schema_name()
 
