@@ -55,6 +55,7 @@ from crate_anon.crateweb.nlp_classification.forms import (
     WizardEnterSampleSizeForm,
     WizardEnterSearchTermForm,
     WizardSelectColumnForm,
+    WizardSelectMultipleColumnsForm,
     WizardSelectNlpTableDefinitionForm,
     WizardSelectOptionsForm,
     WizardSelectQuestionForm,
@@ -657,6 +658,7 @@ class SampleDataWizardView(NlpClassificationWizardView):
         ),
         (ws.SELECT_NLP_TABLE, WizardSelectTableForm),
         (ws.SELECT_NLP_PK_COLUMN, WizardSelectColumnForm),
+        (ws.SELECT_NLP_COLUMNS, WizardSelectMultipleColumnsForm),
         (ws.ENTER_SAMPLE_SIZE, WizardEnterSampleSizeForm),
         (ws.ENTER_SEARCH_TERM, WizardEnterSearchTermForm),
     ]
@@ -689,6 +691,9 @@ class SampleDataWizardView(NlpClassificationWizardView):
         if step == ws.SELECT_NLP_PK_COLUMN:
             return self._get_select_nlp_pk_column_instructions()
 
+        if step == ws.SELECT_NLP_COLUMNS:
+            return self._get_select_nlp_columns_instructions()
+
         if step == ws.ENTER_SAMPLE_SIZE:
             return "Enter the size of the sample to be classified"
 
@@ -718,6 +723,14 @@ class SampleDataWizardView(NlpClassificationWizardView):
             f"'{nlp_table_name}'"
         )
 
+    def _get_select_nlp_columns_instructions(self) -> str:
+        nlp_table_name = self.nlp_table_name
+
+        return (
+            "Select any additional columns to be displayed when classifying "
+            f"results from the table '{nlp_table_name}'"
+        )
+
     def get_form_kwargs(self, step=None) -> Any:
         kwargs = super().get_form_kwargs(step)
         if step in [
@@ -732,11 +745,15 @@ class SampleDataWizardView(NlpClassificationWizardView):
         if step in [ws.SELECT_SOURCE_PK_COLUMN, ws.SELECT_SOURCE_COLUMN]:
             kwargs["table_name"] = self.source_table_name
 
-        if step in [ws.SELECT_NLP_TABLE, ws.SELECT_NLP_PK_COLUMN]:
+        if step in [
+            ws.SELECT_NLP_TABLE,
+            ws.SELECT_NLP_PK_COLUMN,
+            ws.SELECT_NLP_COLUMNS,
+        ]:
             kwargs["database_connection"] = self.get_nlp_database_connection()
 
-        if step == ws.SELECT_NLP_PK_COLUMN:
-            kwargs["table_name"] = self.selected_nlp_table_name
+        if step in [ws.SELECT_NLP_PK_COLUMN, ws.SELECT_NLP_COLUMNS]:
+            kwargs["table_name"] = self.nlp_table_name
 
         return kwargs
 
@@ -831,6 +848,14 @@ class SampleDataWizardView(NlpClassificationWizardView):
         return cleaned_data.get("column_name")
 
     @property
+    def selected_nlp_column_names(self) -> list[str]:
+        cleaned_data = (
+            self.get_cleaned_data_for_step(ws.SELECT_NLP_COLUMNS) or {}
+        )
+
+        return cleaned_data.get("column_names") or []
+
+    @property
     def entered_size(self) -> int:
         cleaned_data = self.get_cleaned_data_for_step(ws.ENTER_SAMPLE_SIZE)
 
@@ -885,6 +910,11 @@ class SampleDataWizardView(NlpClassificationWizardView):
 
         size = self.entered_size
         search_term = self.entered_search_term
+
+        for nlp_column_name in self.selected_nlp_column_names:
+            Column.objects.create(
+                table_definition=nlp_table_definition, name=nlp_column_name
+            )
 
         SampleSpec.objects.create(
             source_column=source_column,

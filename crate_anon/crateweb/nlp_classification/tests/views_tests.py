@@ -519,7 +519,7 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         self.test_source_column_names = ["_pk", "note"]
 
         self.test_nlp_table_names = ["bp", "crp", "esr"]
-        self.test_nlp_column_names = ["_pk", "_nlpdef", "_srcdb"]
+        self.test_nlp_column_names = ["_pk", "_nlpdef", "_srcdb", "units"]
 
         # Select table definition
         self.post(ws.SELECT_SOURCE_TABLE_DEFINITION, {"table_definition": ""})
@@ -547,6 +547,10 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
 
         # Select NLP PK column
         self.post(ws.SELECT_NLP_PK_COLUMN, {"column_name": "_pk"})
+        self.assert_next_step(ws.SELECT_NLP_COLUMNS)
+
+        # Select NLP columns
+        self.post(ws.SELECT_NLP_COLUMNS, {"column_names": ["units"]})
         self.assert_next_step(ws.ENTER_SAMPLE_SIZE)
 
         # Enter sample size
@@ -603,7 +607,7 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         self.test_source_column_names = ["_pk", "note"]
 
         self.test_nlp_table_names = ["bp", "crp", "esr"]
-        self.test_nlp_column_names = ["_pk", "_nlpdef", "_srcdb"]
+        self.test_nlp_column_names = ["_pk", "_nlpdef", "_srcdb", "units"]
 
         # Select table definition
         self.post(
@@ -634,6 +638,10 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
 
         # Select NLP PK column
         self.post(ws.SELECT_NLP_PK_COLUMN, {"column_name": "_pk"})
+        self.assert_next_step(ws.SELECT_NLP_COLUMNS)
+
+        # Select NLP columns
+        self.post(ws.SELECT_NLP_COLUMNS, {"column_names": ["units"]})
         self.assert_next_step(ws.ENTER_SAMPLE_SIZE)
 
         # Enter sample size
@@ -660,6 +668,7 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
 
     def test_sample_spec_created_with_existing_table_definitions(self) -> None:
         self.test_source_column_names = ["_pk", "note"]
+        self.test_nlp_column_names = ["units"]
 
         source_table_definition = TableDefinitionFactory(
             db_connection_name=RESEARCH_DB_CONNECTION_NAME,
@@ -686,6 +695,10 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
             ws.SELECT_NLP_TABLE_DEFINITION,
             {"table_definition": nlp_table_definition.id},
         )
+        self.assert_next_step(ws.SELECT_NLP_COLUMNS)
+
+        # Select NLP columns
+        self.post(ws.SELECT_NLP_COLUMNS, {"column_names": ["units"]})
         self.assert_next_step(ws.ENTER_SAMPLE_SIZE)
 
         # Enter sample size
@@ -708,6 +721,76 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
                 search_term="crp",
                 size=100,
             ).exists()
+        )
+
+    def test_column_objects_created_for_existing_nlp_definition(self) -> None:
+        self.test_source_column_names = ["_pk", "note"]
+        self.test_nlp_column_names = [
+            "relation",
+            "relation_text",
+            "tense",
+            "tense_text",
+            "units",
+            "value_mg_L",
+            "value_text",
+            "variable_text",
+        ]
+
+        source_table_definition = TableDefinitionFactory(
+            db_connection_name=RESEARCH_DB_CONNECTION_NAME,
+        )
+        nlp_table_definition = TableDefinitionFactory(
+            db_connection_name=NLP_DB_CONNECTION_NAME,
+            table_name="note",
+            pk_column_name="_pk",
+        )
+
+        # Select source table definition
+        self.post(
+            ws.SELECT_SOURCE_TABLE_DEFINITION,
+            {"table_definition": source_table_definition.id},
+        )
+        self.assert_next_step(ws.SELECT_SOURCE_COLUMN)
+
+        # Select source column
+        self.post(ws.SELECT_SOURCE_COLUMN, {"column_name": "note"})
+        self.assert_next_step(ws.SELECT_NLP_TABLE_DEFINITION)
+
+        # Select NLP table definition
+        self.post(
+            ws.SELECT_NLP_TABLE_DEFINITION,
+            {"table_definition": nlp_table_definition.id},
+        )
+        self.assert_next_step(ws.SELECT_NLP_COLUMNS)
+
+        # Select NLP columns
+        self.post(
+            ws.SELECT_NLP_COLUMNS,
+            {"column_names": ["units", "value_mg_L", "value_text"]},
+        )
+        self.assert_next_step(ws.ENTER_SAMPLE_SIZE)
+
+        # Enter sample size
+        self.post(ws.ENTER_SAMPLE_SIZE, {"size": 100})
+        self.assert_next_step(ws.ENTER_SEARCH_TERM)
+
+        # Enter search term
+        self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
+        self.assert_finished()
+
+        nlp_columns = Column.objects.filter(
+            table_definition=nlp_table_definition
+        ).order_by("name")
+
+        column_names = [c.name for c in nlp_columns]
+
+        self.assertListEqual(
+            column_names,
+            [
+                "units",
+                "value_mg_L",
+                "value_text",
+            ],
         )
 
     def test_selected_table_passed_to_select_column_form(self) -> None:

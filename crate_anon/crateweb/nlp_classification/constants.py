@@ -43,5 +43,6 @@ class WizardSteps:
     SELECT_NLP_TABLE_DEFINITION = "select_nlp_table_definition"
     SELECT_NLP_TABLE = "select_nlp_table"
     SELECT_NLP_PK_COLUMN = "select_nlp_pk_column"
+    SELECT_NLP_COLUMNS = "select_nlp_columns"
     ENTER_SAMPLE_SIZE = "enter_sample_size"
     ENTER_SEARCH_TERM = "enter_search_term"

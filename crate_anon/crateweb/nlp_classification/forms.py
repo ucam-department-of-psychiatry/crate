@@ -38,6 +38,7 @@ from django.forms import (
     ModelForm,
     ModelChoiceField,
     ModelMultipleChoiceField,
+    MultipleChoiceField,
     RadioSelect,
 )
 
@@ -218,6 +219,27 @@ class WizardSelectColumnForm(Form):
         )
 
         self.fields["column_name"].choices = [
+            (name, name) for name in column_names
+        ]
+
+
+class WizardSelectMultipleColumnsForm(Form):
+    column_names = MultipleChoiceField()
+
+    def __init__(
+        self,
+        database_connection: DatabaseConnection,
+        table_name: str,
+        *args: Any,
+        **kwargs: Any
+    ) -> None:
+        super().__init__(*args, **kwargs)
+
+        column_names = database_connection.get_column_names_for_table(
+            table_name,
+        )
+
+        self.fields["column_names"].choices = [
             (name, name) for name in column_names
         ]
 
