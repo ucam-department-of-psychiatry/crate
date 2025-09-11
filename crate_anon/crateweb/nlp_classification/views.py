@@ -411,7 +411,7 @@ class AdminAssignmentEditView(UpdateView):
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
-        context.update(title="Edit assigment")
+        context.update(title="Edit assignment")
 
         return context
 
