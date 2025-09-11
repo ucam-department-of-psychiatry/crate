@@ -115,7 +115,7 @@ class DatabaseConnection:
 
         for infodict in self.get_schema_infodictlist():
             table_names.append(
-                self.get_case_insenitive_value(infodict, "table_name")
+                self.get_case_insensitive_value(infodict, "table_name")
             )
 
         return sorted(set(table_names))
@@ -124,17 +124,17 @@ class DatabaseConnection:
         column_names = []
 
         for infodict in self.get_schema_infodictlist():
-            if table_name == self.get_case_insenitive_value(
+            if table_name == self.get_case_insensitive_value(
                 infodict, "table_name"
             ):
                 column_names.append(
-                    self.get_case_insenitive_value(infodict, "column_name")
+                    self.get_case_insensitive_value(infodict, "column_name")
                 )
 
         return sorted(column_names)
 
     @staticmethod
-    def get_case_insenitive_value(infodict: dict[str, Any], key: str) -> Any:
+    def get_case_insensitive_value(infodict: dict[str, Any], key: str) -> Any:
         return infodict.get(key) or infodict.get(key.upper())
 
     # -------------------------------------------------------------------------
