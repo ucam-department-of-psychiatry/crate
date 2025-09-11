@@ -48,6 +48,7 @@ from crate_anon.crateweb.core.constants import (
 )
 from crate_anon.crateweb.nlp_classification.models import (
     Assignment,
+    Column,
     Option,
     Question,
     SampleSpec,
@@ -63,6 +64,12 @@ class AssignmentForm(ModelForm):
     class Meta:
         model = Assignment
         fields = ["task", "sample_spec", "user"]
+
+
+class ColumnForm(ModelForm):
+    class Meta:
+        model = Column
+        fields = ["table_definition", "name"]
 
 
 class OptionForm(ModelForm):

@@ -29,6 +29,7 @@ CRATE NLP classification tables.
 
 from crate_anon.crateweb.nlp_classification.models import (
     Assignment,
+    Column,
     Option,
     Question,
     SampleSpec,
@@ -90,6 +91,18 @@ class AdminAssignmentTable(tables.Table):
     user = tables.LinkColumn(
         "nlp_classification_admin_assignment_edit",
         args=[tables.A("pk")],
+    )
+
+
+class ColumnTable(tables.Table):
+    class Meta:
+        model = Column
+
+    table_definition = tables.LinkColumn(
+        "nlp_classification_admin_column_edit", args=[tables.A("pk")]
+    )
+    name = tables.LinkColumn(
+        "nlp_classification_admin_column_edit", args=[tables.A("pk")]
     )
 
 

@@ -307,6 +307,7 @@ crate_anon/crateweb
     templates/logged_out.html.rst
     templates/login.html.rst
     templates/nlp_classification/admin/assignment_list.html.rst
+    templates/nlp_classification/admin/column_list.html.rst
     templates/nlp_classification/admin/home.html.rst
     templates/nlp_classification/admin/option_list.html.rst
     templates/nlp_classification/admin/question_list.html.rst

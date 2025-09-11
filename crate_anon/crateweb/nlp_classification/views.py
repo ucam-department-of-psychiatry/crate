@@ -44,6 +44,7 @@ from crate_anon.crateweb.core.constants import (
 from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
 from crate_anon.crateweb.nlp_classification.forms import (
     AssignmentForm,
+    ColumnForm,
     OptionForm,
     QuestionForm,
     SampleSpecForm,
@@ -76,6 +77,7 @@ from crate_anon.crateweb.nlp_classification.models import (
 )
 from crate_anon.crateweb.nlp_classification.tables import (
     AdminAssignmentTable,
+    ColumnTable,
     FieldTable,
     OptionTable,
     QuestionTable,
@@ -318,6 +320,52 @@ class AdminTableDefinitionEditView(UpdateView):
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context.update(title="Edit table definition")
+
+        return context
+
+
+class AdminColumnListView(TemplateView):
+    template_name = "nlp_classification/admin/column_list.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+
+        table = self._get_table()
+        tables.RequestConfig(self.request).configure(table)
+        context.update(table=table)
+
+        return context
+
+    def _get_table(self) -> tables.Table:
+        return ColumnTable(Column.objects.all())
+
+
+class AdminColumnCreateView(CreateView):
+    model = Column
+    template_name = "nlp_classification/admin/update_form.html"
+    form_class = ColumnForm
+
+    def get_success_url(self):
+        return reverse("nlp_classification_admin_column_list")
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(title="New column")
+
+        return context
+
+
+class AdminColumnEditView(UpdateView):
+    model = Column
+    template_name = "nlp_classification/admin/update_form.html"
+    form_class = ColumnForm
+
+    def get_success_url(self):
+        return reverse("nlp_classification_admin_column_list")
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context.update(title="Edit column")
 
         return context
 

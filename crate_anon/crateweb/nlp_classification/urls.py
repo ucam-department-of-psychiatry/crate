@@ -33,6 +33,9 @@ from crate_anon.crateweb.nlp_classification.views import (
     AdminAssignmentCreateView,
     AdminAssignmentEditView,
     AdminAssignmentListView,
+    AdminColumnCreateView,
+    AdminColumnEditView,
+    AdminColumnListView,
     AdminHomeView,
     AdminOptionCreateView,
     AdminOptionEditView,
@@ -76,6 +79,21 @@ urlpatterns = [
         "admin/assignment/<int:pk>",
         AdminAssignmentEditView.as_view(),
         name="nlp_classification_admin_assignment_edit",
+    ),
+    re_path(
+        r"^admin/column/$",
+        AdminColumnListView.as_view(),
+        name="nlp_classification_admin_column_list",
+    ),
+    path(
+        "admin/column/new",
+        AdminColumnCreateView.as_view(),
+        name="nlp_classification_admin_column_create",
+    ),
+    path(
+        "admin/column/<int:pk>",
+        AdminColumnEditView.as_view(),
+        name="nlp_classification_admin_column_edit",
     ),
     re_path(
         r"^admin/option/$",
