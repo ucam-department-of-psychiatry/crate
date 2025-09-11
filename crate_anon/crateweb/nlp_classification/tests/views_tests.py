@@ -47,6 +47,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     SourceRecord,
     TableDefinition,
     Task,
+    UserAnswer,
 )
 from crate_anon.crateweb.nlp_classification.tests.factories import (
     ColumnFactory,
@@ -907,6 +908,7 @@ class UserAssignmentWizardViewTests(NlpClassificationWizardViewTests):
 
     def test_assignment_created_for_user(self) -> None:
         task = TaskFactory()
+        question = QuestionFactory(task=task)
 
         source_table_definition = TableDefinitionFactory(
             db_connection_name=RESEARCH_DB_CONNECTION_NAME,
@@ -927,6 +929,10 @@ class UserAssignmentWizardViewTests(NlpClassificationWizardViewTests):
 
         # Select task
         self.post(ws.SELECT_TASK, {"task": task.id})
+        self.assert_next_step(ws.SELECT_QUESTION)
+
+        # Select question
+        self.post(ws.SELECT_QUESTION, {"question": question.id})
         self.assert_next_step(ws.SELECT_SAMPLE_SPEC)
 
         # Select sample specification
@@ -973,51 +979,73 @@ class UserAssignmentWizardViewTests(NlpClassificationWizardViewTests):
             nlp_table_definition
         )
 
-        self.assertTrue(
-            Assignment.objects.filter(
-                task=task,
-                sample_spec=sample_spec,
-                user=user,
-            ).exists()
+        assignment = Assignment.objects.get(
+            task=task,
+            sample_spec=sample_spec,
+            user=user,
         )
-
-        self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample_spec.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=1,
-                nlp_pk_value=10,
-            ).exists()
+        source_record_1 = SourceRecord.objects.get(
+            source_column=sample_spec.source_column,
+            nlp_table_definition=nlp_table_definition,
+            source_pk_value=1,
+            nlp_pk_value=10,
         )
-        self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample_spec.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=2,
-                nlp_pk_value=11,
-            ).exists()
+        source_record_2 = SourceRecord.objects.get(
+            source_column=sample_spec.source_column,
+            nlp_table_definition=nlp_table_definition,
+            source_pk_value=2,
+            nlp_pk_value=11,
         )
-        self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample_spec.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=3,
-                nlp_pk_value="",
-            ).exists()
+        source_record_3 = SourceRecord.objects.get(
+            source_column=sample_spec.source_column,
+            nlp_table_definition=nlp_table_definition,
+            source_pk_value=3,
+            nlp_pk_value="",
         )
-        self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample_spec.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=4,
-                nlp_pk_value=12,
-            ).exists()
+        source_record_4 = SourceRecord.objects.get(
+            source_column=sample_spec.source_column,
+            nlp_table_definition=nlp_table_definition,
+            source_pk_value=4,
+            nlp_pk_value=12,
+        )
+        source_record_5 = SourceRecord.objects.get(
+            source_column=sample_spec.source_column,
+            nlp_table_definition=nlp_table_definition,
+            source_pk_value=5,
+            nlp_pk_value="",
         )
         self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample_spec.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=5,
-                nlp_pk_value="",
+            UserAnswer.objects.filter(
+                source_record=source_record_1,
+                question=question,
+                assignment=assignment,
+            ).exists()
+        )
+        self.assertTrue(
+            UserAnswer.objects.filter(
+                source_record=source_record_2,
+                question=question,
+                assignment=assignment,
+            ).exists()
+        )
+        self.assertTrue(
+            UserAnswer.objects.filter(
+                source_record=source_record_3,
+                question=question,
+                assignment=assignment,
+            ).exists()
+        )
+        self.assertTrue(
+            UserAnswer.objects.filter(
+                source_record=source_record_4,
+                question=question,
+                assignment=assignment,
+            ).exists()
+        )
+        self.assertTrue(
+            UserAnswer.objects.filter(
+                source_record=source_record_5,
+                question=question,
+                assignment=assignment,
             ).exists()
         )

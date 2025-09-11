@@ -51,5 +51,6 @@ class WizardSteps:
 
     # UserAssignmentWizardView
     # SELECT_TASK as above
+    # SELECT_QUESTION as above
     SELECT_SAMPLE_SPEC = "select_sample_spec"
     SELECT_USER = "select_user"

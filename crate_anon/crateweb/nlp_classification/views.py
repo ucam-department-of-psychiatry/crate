@@ -55,6 +55,7 @@ from crate_anon.crateweb.nlp_classification.forms import (
     WizardSelectNlpTableDefinitionForm,
     WizardSelectOptionsForm,
     WizardSelectQuestionForm,
+    WizardSelectRequiredQuestionForm,
     WizardSelectRequiredTaskForm,
     WizardSelectSampleSpecForm,
     WizardSelectSourceTableDefinitionForm,
@@ -660,6 +661,7 @@ class SampleDataWizardView(NlpClassificationWizardView):
 class UserAssignmentWizardView(NlpClassificationWizardView):
     form_list = [
         (ws.SELECT_TASK, WizardSelectRequiredTaskForm),
+        (ws.SELECT_QUESTION, WizardSelectRequiredQuestionForm),
         (ws.SELECT_SAMPLE_SPEC, WizardSelectSampleSpecForm),
         (ws.SELECT_USER, WizardSelectUserForm),
     ]
@@ -672,6 +674,12 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
         cleaned_data = self.get_cleaned_data_for_step(ws.SELECT_TASK) or {}
 
         return cleaned_data.get("task")
+
+    @property
+    def selected_question(self) -> Optional[Question]:
+        cleaned_data = self.get_cleaned_data_for_step(ws.SELECT_QUESTION) or {}
+
+        return cleaned_data.get("question")
 
     @property
     def selected_sample_spec(self) -> Optional[SampleSpec]:
@@ -692,6 +700,7 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
     ) -> HttpResponse:
 
         task = self.selected_task
+        question = self.selected_question
         sample_spec = self.selected_sample_spec
         user = self.selected_user
 
@@ -702,5 +711,12 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
         )
 
         assignment.assign_source_records()
+
+        for source_record in assignment.source_records.all():
+            UserAnswer.objects.create(
+                source_record=source_record,
+                question=question,
+                assignment=assignment,
+            )
 
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))

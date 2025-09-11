@@ -221,6 +221,18 @@ class WizardSelectRequiredTaskForm(Form):
     task = ModelChoiceField(queryset=Task.objects.all(), required=True)
 
 
+class WizardSelectRequiredQuestionForm(Form):
+    question = ModelChoiceField(queryset=Question.objects.all())
+
+    def __init__(self, *args: Any, task=None, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        if task is not None:
+            self.fields["question"].queryset = Question.objects.filter(
+                task=task
+            )
+
+
 class WizardSelectSampleSpecForm(Form):
     sample_spec = ModelChoiceField(
         queryset=SampleSpec.objects.all(), required=True
