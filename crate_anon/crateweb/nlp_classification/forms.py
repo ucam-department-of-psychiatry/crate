@@ -29,6 +29,7 @@ CRATE NLP classification forms.
 
 from typing import Any
 
+from django.contrib.auth import get_user_model
 from django.forms import (
     CharField,
     ChoiceField,
@@ -57,6 +58,8 @@ from crate_anon.crateweb.nlp_classification.models import (
     UserAnswer,
 )
 from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
+
+User = get_user_model()
 
 
 # Standard create/edit forms in alphabetical order
@@ -267,3 +270,20 @@ class WizardEnterSampleSizeForm(Form):
 
 class WizardEnterSearchTermForm(Form):
     search_term = CharField(max_length=100)  # TODO set from model?
+
+
+# UserAssignmentWizardView forms in order of step
+
+
+class WizardSelectRequiredTaskForm(Form):
+    task = ModelChoiceField(queryset=Task.objects.all(), required=True)
+
+
+class WizardSelectSampleSpecForm(Form):
+    sample_spec = ModelChoiceField(
+        queryset=SampleSpec.objects.all(), required=True
+    )
+
+
+class WizardSelectUserForm(Form):
+    user = ModelChoiceField(queryset=User.objects.all(), required=True)

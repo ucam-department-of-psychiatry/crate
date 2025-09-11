@@ -29,6 +29,7 @@ crate_anon/crateweb/nlp_classification/constants.py
 
 
 class WizardSteps:
+    # TaskAndQuestionWizardView
     SELECT_TASK = "select_task"
     CREATE_TASK = "create_task"
     SELECT_QUESTION = "select_question"
@@ -36,6 +37,7 @@ class WizardSteps:
     SELECT_OPTIONS = "select_options"
     CREATE_OPTIONS = "create_options"
 
+    # SampleDataWizardView
     SELECT_SOURCE_TABLE_DEFINITION = "select_source_table_definition"
     SELECT_SOURCE_TABLE = "select_source_table"
     SELECT_SOURCE_PK_COLUMN = "select_source_pk_column"
@@ -46,3 +48,8 @@ class WizardSteps:
     SELECT_NLP_COLUMNS = "select_nlp_columns"
     ENTER_SAMPLE_SIZE = "enter_sample_size"
     ENTER_SEARCH_TERM = "enter_search_term"
+
+    # UserAssignmentWizardView
+    # SELECT_TASK as above
+    SELECT_SAMPLE_SPEC = "select_sample_spec"
+    SELECT_USER = "select_user"

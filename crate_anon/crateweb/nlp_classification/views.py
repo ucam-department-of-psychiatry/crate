@@ -30,6 +30,7 @@ CRATE NLP classification views.
 import random
 from typing import Any, Optional
 
+from django.contrib.auth import get_user_model
 from django.http.response import HttpResponse, HttpResponseRedirect
 from django.forms import Form
 from django.urls import reverse
@@ -60,9 +61,12 @@ from crate_anon.crateweb.nlp_classification.forms import (
     WizardSelectNlpTableDefinitionForm,
     WizardSelectOptionsForm,
     WizardSelectQuestionForm,
+    WizardSelectRequiredTaskForm,
+    WizardSelectSampleSpecForm,
     WizardSelectSourceTableDefinitionForm,
     WizardSelectTableForm,
     WizardSelectTaskForm,
+    WizardSelectUserForm,
     UserAnswerForm,
 )
 from crate_anon.crateweb.nlp_classification.models import (
@@ -88,6 +92,8 @@ from crate_anon.crateweb.nlp_classification.tables import (
     UserAssignmentTable,
 )
 from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
+
+User = get_user_model()
 
 
 class AdminHomeView(TemplateView):
@@ -982,6 +988,53 @@ class SampleDataWizardView(NlpClassificationWizardView):
             size=size,
             search_term=search_term,
             seed=random.randint(0, 2147483647),
+        )
+
+        return HttpResponseRedirect(reverse("nlp_classification_admin_home"))
+
+
+class UserAssignmentWizardView(NlpClassificationWizardView):
+    form_list = [
+        (ws.SELECT_TASK, WizardSelectRequiredTaskForm),
+        (ws.SELECT_SAMPLE_SPEC, WizardSelectSampleSpecForm),
+        (ws.SELECT_USER, WizardSelectUserForm),
+    ]
+
+    def get_instructions(self, step: str) -> Optional[str]:
+        pass
+
+    @property
+    def selected_task(self) -> Optional[Task]:
+        cleaned_data = self.get_cleaned_data_for_step(ws.SELECT_TASK) or {}
+
+        return cleaned_data.get("task")
+
+    @property
+    def selected_sample_spec(self) -> Optional[SampleSpec]:
+        cleaned_data = (
+            self.get_cleaned_data_for_step(ws.SELECT_SAMPLE_SPEC) or {}
+        )
+
+        return cleaned_data.get("sample_spec")
+
+    @property
+    def selected_user(self) -> Optional[User]:
+        cleaned_data = self.get_cleaned_data_for_step(ws.SELECT_USER) or {}
+
+        return cleaned_data.get("user")
+
+    def done(
+        self, form_list: list[Form], form_dict: dict[str, Form], **kwargs: Any
+    ) -> HttpResponse:
+
+        task = self.selected_task
+        sample_spec = self.selected_sample_spec
+        user = self.selected_user
+
+        Assignment.objects.get_or_create(
+            task=task,
+            sample_spec=sample_spec,
+            user=user,
         )
 
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))

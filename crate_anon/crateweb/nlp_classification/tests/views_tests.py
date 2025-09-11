@@ -40,6 +40,7 @@ from crate_anon.crateweb.core.constants import (
 )
 from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
 from crate_anon.crateweb.nlp_classification.models import (
+    Assignment,
     Column,
     Question,
     SampleSpec,
@@ -50,14 +51,17 @@ from crate_anon.crateweb.nlp_classification.tests.factories import (
     ColumnFactory,
     OptionFactory,
     QuestionFactory,
+    SampleSpecFactory,
     TableDefinitionFactory,
     TaskFactory,
     UserAnswerFactory,
+    UserFactory,
 )
 from crate_anon.crateweb.nlp_classification.views import (
     SampleDataWizardView,
     TaskAndQuestionWizardView,
     UserAnswerView,
+    UserAssignmentWizardView,
 )
 
 
@@ -888,3 +892,52 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         self.assertIn(column_1.name, column_names)
         self.assertIn(column_2.name, column_names)
         self.assertNotIn(column_3.name, column_names)
+
+
+class UserAssignmentWizardViewTests(NlpClassificationWizardViewTests):
+    view_class = UserAssignmentWizardView
+
+    def setUp(self) -> None:
+        super().setUp()
+
+    @property
+    def first_step(self) -> str:
+        return ws.SELECT_TASK
+
+    def test_assignment_created_for_user(self) -> None:
+        task = TaskFactory()
+
+        source_table_definition = TableDefinitionFactory(
+            db_connection_name=RESEARCH_DB_CONNECTION_NAME,
+        )
+        nlp_table_definition = TableDefinitionFactory(
+            db_connection_name=NLP_DB_CONNECTION_NAME,
+        )
+
+        source_column = ColumnFactory(table_definition=source_table_definition)
+
+        sample_spec = SampleSpecFactory(
+            source_column=source_column,
+            nlp_table_definition=nlp_table_definition,
+        )
+        user = UserFactory()
+
+        # Select task
+        self.post(ws.SELECT_TASK, {"task": task.id})
+        self.assert_next_step(ws.SELECT_SAMPLE_SPEC)
+
+        # Select sample specification
+        self.post(ws.SELECT_SAMPLE_SPEC, {"sample_spec": sample_spec.id})
+        self.assert_next_step(ws.SELECT_USER)
+
+        # Select user
+        self.post(ws.SELECT_USER, {"user": user.id})
+        self.assert_finished()
+
+        self.assertTrue(
+            Assignment.objects.filter(
+                task=task,
+                sample_spec=sample_spec,
+                user=user,
+            ).exists()
+        )
