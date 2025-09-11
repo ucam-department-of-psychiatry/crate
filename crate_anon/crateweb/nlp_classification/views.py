@@ -525,7 +525,7 @@ class NlpClassificationWizardView(SessionWizardView):
 
         return context
 
-    def get_instructions(self) -> Optional[str]:
+    def get_instructions(self, step: str) -> Optional[str]:
         raise NotImplementedError(
             "get_instructions() needs to be defined in "
             f"{self.__class__.__name__}"
