@@ -912,7 +912,7 @@ class SampleDataWizardView(NlpClassificationWizardView):
         search_term = self.entered_search_term
 
         for nlp_column_name in self.selected_nlp_column_names:
-            Column.objects.create(
+            Column.objects.get_or_create(
                 table_definition=nlp_table_definition, name=nlp_column_name
             )
 

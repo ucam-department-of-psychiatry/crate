@@ -47,6 +47,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     Task,
 )
 from crate_anon.crateweb.nlp_classification.tests.factories import (
+    ColumnFactory,
     OptionFactory,
     QuestionFactory,
     TableDefinitionFactory,
@@ -744,6 +745,9 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
             table_name="note",
             pk_column_name="_pk",
         )
+
+        # New column objects should not be created for these
+        ColumnFactory(table_definition=nlp_table_definition, name="units")
 
         # Select source table definition
         self.post(
