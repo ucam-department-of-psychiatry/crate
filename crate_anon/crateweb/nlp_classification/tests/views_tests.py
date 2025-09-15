@@ -43,7 +43,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     Assignment,
     Column,
     Question,
-    SampleSpec,
+    Sample,
     SourceRecord,
     TableDefinition,
     Task,
@@ -53,7 +53,7 @@ from crate_anon.crateweb.nlp_classification.tests.factories import (
     ColumnFactory,
     OptionFactory,
     QuestionFactory,
-    SampleSpecFactory,
+    SampleFactory,
     TableDefinitionFactory,
     TaskFactory,
     UserAnswerFactory,
@@ -521,7 +521,7 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
     def first_step(self) -> str:
         return ws.SELECT_SOURCE_TABLE_DEFINITION
 
-    def test_sample_spec_created_with_new_table_definitions(self) -> None:
+    def test_sample_created_with_new_table_definitions(self) -> None:
         self.test_source_table_names = ["blob", "note", "patient"]
         self.test_source_column_names = ["_pk", "note"]
 
@@ -587,7 +587,7 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
             pk_column_name="_pk",
         )
         self.assertTrue(
-            SampleSpec.objects.filter(
+            Sample.objects.filter(
                 source_column=source_column,
                 nlp_table_definition=nlp_table_definition,
                 search_term="crp",
@@ -665,7 +665,7 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         )
 
         self.assertTrue(
-            SampleSpec.objects.filter(
+            Sample.objects.filter(
                 source_column=source_column,
                 nlp_table_definition=nlp_table_definition,
                 search_term="crp",
@@ -673,7 +673,7 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
             ).exists()
         )
 
-    def test_sample_spec_created_with_existing_table_definitions(self) -> None:
+    def test_sample_created_with_existing_table_definitions(self) -> None:
         self.test_source_column_names = ["_pk", "note"]
         self.test_nlp_column_names = ["units"]
 
@@ -722,7 +722,7 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         )
 
         self.assertTrue(
-            SampleSpec.objects.filter(
+            Sample.objects.filter(
                 source_column=source_column,
                 nlp_table_definition=nlp_table_definition,
                 search_term="crp",
@@ -921,7 +921,7 @@ class UserAssignmentWizardViewTests(NlpClassificationWizardViewTests):
 
         source_column = ColumnFactory(table_definition=source_table_definition)
 
-        sample_spec = SampleSpecFactory(
+        sample = SampleFactory(
             source_column=source_column,
             nlp_table_definition=nlp_table_definition,
         )
@@ -933,10 +933,10 @@ class UserAssignmentWizardViewTests(NlpClassificationWizardViewTests):
 
         # Select question
         self.post(ws.SELECT_QUESTION, {"question": question.id})
-        self.assert_next_step(ws.SELECT_SAMPLE_SPEC)
+        self.assert_next_step(ws.SELECT_SAMPLE)
 
         # Select sample specification
-        self.post(ws.SELECT_SAMPLE_SPEC, {"sample_spec": sample_spec.id})
+        self.post(ws.SELECT_SAMPLE, {"sample": sample.id})
         self.assert_next_step(ws.SELECT_USER)
 
         # Select user
@@ -966,7 +966,7 @@ class UserAssignmentWizardViewTests(NlpClassificationWizardViewTests):
         )
 
         with mock.patch.multiple(
-            "crate_anon.crateweb.nlp_classification.models.SampleSpec",
+            "crate_anon.crateweb.nlp_classification.models.Sample",
             get_source_database_connection=mock_get_source_database_connection,
             get_nlp_database_connection=mock_get_nlp_database_connection,
         ):
@@ -977,35 +977,35 @@ class UserAssignmentWizardViewTests(NlpClassificationWizardViewTests):
 
         assignment = Assignment.objects.get(
             task=task,
-            sample_spec=sample_spec,
+            sample=sample,
             user=user,
         )
         source_record_1 = SourceRecord.objects.get(
-            source_column=sample_spec.source_column,
+            source_column=sample.source_column,
             nlp_table_definition=nlp_table_definition,
             source_pk_value=1,
             nlp_pk_value=10,
         )
         source_record_2 = SourceRecord.objects.get(
-            source_column=sample_spec.source_column,
+            source_column=sample.source_column,
             nlp_table_definition=nlp_table_definition,
             source_pk_value=2,
             nlp_pk_value=11,
         )
         source_record_3 = SourceRecord.objects.get(
-            source_column=sample_spec.source_column,
+            source_column=sample.source_column,
             nlp_table_definition=nlp_table_definition,
             source_pk_value=3,
             nlp_pk_value="",
         )
         source_record_4 = SourceRecord.objects.get(
-            source_column=sample_spec.source_column,
+            source_column=sample.source_column,
             nlp_table_definition=nlp_table_definition,
             source_pk_value=4,
             nlp_pk_value=12,
         )
         source_record_5 = SourceRecord.objects.get(
-            source_column=sample_spec.source_column,
+            source_column=sample.source_column,
             nlp_table_definition=nlp_table_definition,
             source_pk_value=5,
             nlp_pk_value="",

@@ -50,7 +50,7 @@ from crate_anon.crateweb.core.constants import (
 from crate_anon.crateweb.nlp_classification.models import (
     Option,
     Question,
-    SampleSpec,
+    Sample,
     TableDefinition,
     Task,
     UserAnswer,
@@ -234,10 +234,8 @@ class WizardSelectRequiredQuestionForm(Form):
             )
 
 
-class WizardSelectSampleSpecForm(Form):
-    sample_spec = ModelChoiceField(
-        queryset=SampleSpec.objects.all(), required=True
-    )
+class WizardSelectSampleForm(Form):
+    sample = ModelChoiceField(queryset=Sample.objects.all(), required=True)
 
 
 class WizardSelectUserForm(Form):

@@ -57,7 +57,7 @@ from crate_anon.crateweb.nlp_classification.forms import (
     WizardSelectQuestionForm,
     WizardSelectRequiredQuestionForm,
     WizardSelectRequiredTaskForm,
-    WizardSelectSampleSpecForm,
+    WizardSelectSampleForm,
     WizardSelectSourceTableDefinitionForm,
     WizardSelectTableForm,
     WizardSelectTaskForm,
@@ -68,7 +68,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     Column,
     Option,
     Question,
-    SampleSpec,
+    Sample,
     TableDefinition,
     Task,
     UserAnswer,
@@ -647,7 +647,7 @@ class SampleDataWizardView(NlpClassificationWizardView):
                 table_definition=nlp_table_definition, name=nlp_column_name
             )
 
-        SampleSpec.objects.create(
+        Sample.objects.create(
             source_column=source_column,
             nlp_table_definition=nlp_table_definition,
             size=size,
@@ -662,7 +662,7 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
     form_list = [
         (ws.SELECT_TASK, WizardSelectRequiredTaskForm),
         (ws.SELECT_QUESTION, WizardSelectRequiredQuestionForm),
-        (ws.SELECT_SAMPLE_SPEC, WizardSelectSampleSpecForm),
+        (ws.SELECT_SAMPLE, WizardSelectSampleForm),
         (ws.SELECT_USER, WizardSelectUserForm),
     ]
 
@@ -673,7 +673,7 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
         if step == ws.SELECT_QUESTION:
             return "Select question"
 
-        if step == ws.SELECT_SAMPLE_SPEC:
+        if step == ws.SELECT_SAMPLE:
             return "Select the sample of records"
 
         if step == ws.SELECT_USER:
@@ -692,12 +692,10 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
         return cleaned_data.get("question")
 
     @property
-    def selected_sample_spec(self) -> Optional[SampleSpec]:
-        cleaned_data = (
-            self.get_cleaned_data_for_step(ws.SELECT_SAMPLE_SPEC) or {}
-        )
+    def selected_sample(self) -> Optional[Sample]:
+        cleaned_data = self.get_cleaned_data_for_step(ws.SELECT_SAMPLE) or {}
 
-        return cleaned_data.get("sample_spec")
+        return cleaned_data.get("sample")
 
     @property
     def selected_user(self) -> Optional[User]:
@@ -711,14 +709,14 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
 
         task = self.selected_task
         question = self.selected_question
-        sample_spec = self.selected_sample_spec
+        sample = self.selected_sample
         user = self.selected_user
 
-        sample_spec.create_source_records()
+        sample.create_source_records()
 
         assignment, _ = Assignment.objects.get_or_create(
             task=task,
-            sample_spec=sample_spec,
+            sample=sample,
             user=user,
         )
 

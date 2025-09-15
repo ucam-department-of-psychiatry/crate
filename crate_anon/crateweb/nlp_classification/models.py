@@ -219,10 +219,10 @@ class SourceRecord(models.Model):
         )
 
 
-class SampleSpec(models.Model):
+class Sample(models.Model):
     """
-    Used to create SourceRecords across one or more source tables and
-    corresponding NLP records.
+    Used to create SourceRecords from a source tables linking to corresponding
+    NLP records.
 
     Size might be maximum. What happens if there are fewer matching records in
     the sample?
@@ -294,13 +294,13 @@ class SampleSpec(models.Model):
 
 class Assignment(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
-    sample_spec = models.ForeignKey(SampleSpec, on_delete=models.CASCADE)
+    sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE
     )
 
     def create_user_answers(self, question: Question) -> None:
-        for source_record in self.sample_spec.source_records.all():
+        for source_record in self.sample.source_records.all():
             UserAnswer.objects.create(
                 source_record=source_record,
                 question=question,

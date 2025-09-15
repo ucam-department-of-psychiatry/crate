@@ -8,7 +8,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     Column,
     Option,
     Question,
-    SampleSpec,
+    Sample,
     SourceRecord,
     TableDefinition,
     Task,
@@ -24,7 +24,7 @@ class Command(BaseCommand):
     help = "Insert test data into the database"
 
     def handle(self, *args: Any, **options: Any):
-        SampleSpec.objects.all().delete()
+        Sample.objects.all().delete()
         Task.objects.all().delete()
         SourceRecord.objects.all().delete()
 
@@ -55,7 +55,7 @@ class Command(BaseCommand):
                 table_definition=crp_table_definition, name=column_name
             )
 
-        sample_spec = SampleSpec.objects.create(
+        sample = Sample.objects.create(
             source_column=note_column,
             nlp_table_definition=crp_table_definition,
             size=100,
@@ -92,7 +92,7 @@ class Command(BaseCommand):
         user = get_user_model().objects.create(username="test")
 
         assignment = Assignment.objects.create(
-            task=task, sample_spec=sample_spec, user=user
+            task=task, sample=sample, user=user
         )
 
         assignment.assign_source_records()

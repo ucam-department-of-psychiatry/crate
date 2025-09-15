@@ -39,7 +39,7 @@ class NlpClassificationTable(tables.Table):
     name = tables.Column()
     dest_table = tables.Column()
     dest_column = tables.Column()
-    sample_spec = tables.Column()
+    sample = tables.Column()
     classified = tables.Column()
     precision = tables.Column()
     recall = tables.Column()
@@ -62,7 +62,7 @@ class UserAssignmentTable(tables.Table):
         model = Assignment
 
     task = tables.Column()
-    sample_spec = tables.Column()
+    sample = tables.Column()
     view = tables.LinkColumn(
         "nlp_classification_user_assignment",
         text="View",

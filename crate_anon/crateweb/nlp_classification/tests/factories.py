@@ -38,7 +38,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     Column,
     Option,
     Question,
-    SampleSpec,
+    Sample,
     SourceRecord,
     TableDefinition,
     Task,
@@ -74,9 +74,9 @@ class SourceRecordFactory(factory.django.DjangoModelFactory):
     nlp_table_definition = factory.SubFactory(TableDefinitionFactory)
 
 
-class SampleSpecFactory(factory.django.DjangoModelFactory):
+class SampleFactory(factory.django.DjangoModelFactory):
     class Meta:
-        model = SampleSpec
+        model = Sample
 
     source_column = factory.SubFactory(ColumnFactory)
     nlp_table_definition = factory.SubFactory(TableDefinitionFactory)
@@ -96,7 +96,7 @@ class AssignmentFactory(factory.django.DjangoModelFactory):
         model = Assignment
 
     task = factory.SubFactory(TaskFactory)
-    sample_spec = factory.SubFactory(SampleSpecFactory)
+    sample = factory.SubFactory(SampleFactory)
     user = factory.SubFactory(UserFactory)
 
 

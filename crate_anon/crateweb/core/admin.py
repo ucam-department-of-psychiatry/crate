@@ -92,7 +92,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     Column,
     Option,
     Question,
-    SampleSpec,
+    Sample,
     SourceRecord,
     TableDefinition,
     Task,
@@ -1911,7 +1911,7 @@ nlp_admin_site.register(Assignment)
 nlp_admin_site.register(Column)
 nlp_admin_site.register(Option)
 nlp_admin_site.register(Question)
-nlp_admin_site.register(SampleSpec)
+nlp_admin_site.register(Sample)
 nlp_admin_site.register(SourceRecord)
 nlp_admin_site.register(TableDefinition)
 nlp_admin_site.register(Task)
