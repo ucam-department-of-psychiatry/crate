@@ -714,19 +714,14 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
         sample_spec = self.selected_sample_spec
         user = self.selected_user
 
+        sample_spec.create_source_records()
+
         assignment, _ = Assignment.objects.get_or_create(
             task=task,
             sample_spec=sample_spec,
             user=user,
         )
 
-        assignment.assign_source_records()
-
-        for source_record in assignment.source_records.all():
-            UserAnswer.objects.create(
-                source_record=source_record,
-                question=question,
-                assignment=assignment,
-            )
+        assignment.create_user_answers(question)
 
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))

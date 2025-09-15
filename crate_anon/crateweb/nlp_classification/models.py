@@ -95,30 +95,6 @@ class Column(models.Model):
         return f"{self.table_definition}.{self.name}"
 
 
-class SampleSpec(models.Model):
-    """
-    Used to create SourceRecords across one or more source tables and
-    corresponding NLP records.
-
-    Size might be maximum. What happens if there are fewer matching records in
-    the sample?
-    """
-
-    source_column = models.ForeignKey(Column, on_delete=models.CASCADE)
-    nlp_table_definition = models.ForeignKey(
-        TableDefinition, on_delete=models.CASCADE
-    )
-    search_term = models.CharField(max_length=100)
-    size = models.IntegerField()
-    seed = models.PositiveIntegerField()  # default MySQL range 0-2147483647
-
-    def __str__(self) -> Any:
-        return (
-            f"{self.size} records from '{self.source_column}' "
-            f"with seed {self.seed} and search term '{self.search_term}'"
-        )
-
-
 class SourceRecord(models.Model):
     """
     This is an individual entry for a source table with optional NLP record.
@@ -243,36 +219,48 @@ class SourceRecord(models.Model):
         )
 
 
-class Assignment(models.Model):
-    task = models.ForeignKey(Task, on_delete=models.CASCADE)
-    sample_spec = models.ForeignKey(SampleSpec, on_delete=models.CASCADE)
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+class SampleSpec(models.Model):
+    """
+    Used to create SourceRecords across one or more source tables and
+    corresponding NLP records.
+
+    Size might be maximum. What happens if there are fewer matching records in
+    the sample?
+    """
+
+    source_column = models.ForeignKey(Column, on_delete=models.CASCADE)
+    nlp_table_definition = models.ForeignKey(
+        TableDefinition, on_delete=models.CASCADE
     )
+    search_term = models.CharField(max_length=100)
+    size = models.IntegerField()
+    seed = models.PositiveIntegerField()  # default MySQL range 0-2147483647
 
     source_records = models.ManyToManyField(SourceRecord)
 
-    def assign_source_records(self) -> None:
-        source_column = self.sample_spec.source_column
+    def get_source_database_connection(self) -> DatabaseConnection:
+        source_table_definition = self.source_column.table_definition
 
-        source_table_definition = (
-            self.sample_spec.source_column.table_definition
-        )
-        source_connection = self.get_source_database_connection(
-            source_table_definition
-        )
+        return DatabaseConnection(source_table_definition.db_connection_name)
+
+    def get_nlp_database_connection(self) -> DatabaseConnection:
+        return DatabaseConnection(self.nlp_table_definition.db_connection_name)
+
+    def create_source_records(self) -> None:
+        source_column = self.source_column
+
+        source_connection = self.get_source_database_connection()
+        source_table_definition = source_column.table_definition
         source_table_name = source_table_definition.table_name
         source_pk_column_name = source_table_definition.pk_column_name
         source_column_name = source_column.name
-        search_term = self.sample_spec.search_term
 
-        nlp_table_definition = self.sample_spec.nlp_table_definition
-        nlp_pk_column_name = nlp_table_definition.pk_column_name
-        nlp_table_name = nlp_table_definition.table_name
-        nlp_connection = self.get_nlp_database_connection(nlp_table_definition)
+        nlp_pk_column_name = self.nlp_table_definition.pk_column_name
+        nlp_table_name = self.nlp_table_definition.table_name
+        nlp_connection = self.get_nlp_database_connection()
 
         where = f"{source_column_name} LIKE %s"
-        params = [f"%{search_term}%"]
+        params = [f"%{self.search_term}%"]
 
         for source_row in source_connection.fetchall(
             [source_pk_column_name], source_table_name, where, params
@@ -289,23 +277,35 @@ class Assignment(models.Model):
                 nlp_pk_value = nlp_dict[nlp_pk_column_name]
 
             source_record, created = SourceRecord.objects.get_or_create(
-                source_column=self.sample_spec.source_column,
-                nlp_table_definition=nlp_table_definition,
+                source_column=self.source_column,
+                nlp_table_definition=self.nlp_table_definition,
                 source_pk_value=source_row[0],
                 nlp_pk_value=nlp_pk_value,
             )
 
             self.source_records.add(source_record)
 
-    def get_source_database_connection(
-        self, source_table_definition: TableDefinition
-    ) -> DatabaseConnection:
-        return DatabaseConnection(source_table_definition.db_connection_name)
+    def __str__(self) -> Any:
+        return (
+            f"{self.size} records from '{self.source_column}' "
+            f"with seed {self.seed} and search term '{self.search_term}'"
+        )
 
-    def get_nlp_database_connection(
-        self, nlp_table_definition: TableDefinition
-    ) -> DatabaseConnection:
-        return DatabaseConnection(nlp_table_definition.db_connection_name)
+
+class Assignment(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    sample_spec = models.ForeignKey(SampleSpec, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+    )
+
+    def create_user_answers(self, question: Question) -> None:
+        for source_record in self.sample_spec.source_records.all():
+            UserAnswer.objects.create(
+                source_record=source_record,
+                question=question,
+                assignment=self,
+            )
 
 
 class UserAnswer(models.Model):

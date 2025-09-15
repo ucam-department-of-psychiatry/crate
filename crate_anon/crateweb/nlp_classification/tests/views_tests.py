@@ -966,18 +966,14 @@ class UserAssignmentWizardViewTests(NlpClassificationWizardViewTests):
         )
 
         with mock.patch.multiple(
-            "crate_anon.crateweb.nlp_classification.models.Assignment",
+            "crate_anon.crateweb.nlp_classification.models.SampleSpec",
             get_source_database_connection=mock_get_source_database_connection,
             get_nlp_database_connection=mock_get_nlp_database_connection,
         ):
             self.post(ws.SELECT_USER, {"user": user.id})
         self.assert_finished()
-        mock_get_source_database_connection.assert_called_once_with(
-            source_table_definition
-        )
-        mock_get_nlp_database_connection.assert_called_once_with(
-            nlp_table_definition
-        )
+        mock_get_source_database_connection.assert_called_once()
+        mock_get_nlp_database_connection.assert_called_once()
 
         assignment = Assignment.objects.get(
             task=task,
