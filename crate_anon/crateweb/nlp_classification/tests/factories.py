@@ -91,15 +91,6 @@ class UserFactory(factory.django.DjangoModelFactory):
     username = factory.Sequence(lambda n: f"User {n+1}")
 
 
-class AssignmentFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = Assignment
-
-    task = factory.SubFactory(TaskFactory)
-    sample = factory.SubFactory(SampleFactory)
-    user = factory.SubFactory(UserFactory)
-
-
 class QuestionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Question
@@ -115,6 +106,16 @@ class QuestionFactory(factory.django.DjangoModelFactory):
             obj.options.add(*extracted)
 
 
+class AssignmentFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Assignment
+
+    task = factory.SubFactory(TaskFactory)
+    sample = factory.SubFactory(SampleFactory)
+    user = factory.SubFactory(UserFactory)
+    question = factory.SubFactory(QuestionFactory)
+
+
 class OptionFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Option
@@ -125,6 +126,5 @@ class UserAnswerFactory(factory.django.DjangoModelFactory):
         model = UserAnswer
 
     source_record = factory.SubFactory(SourceRecordFactory)
-    question = factory.SubFactory(QuestionFactory)
     decision = factory.SubFactory(OptionFactory)
     assignment = factory.SubFactory(AssignmentFactory)

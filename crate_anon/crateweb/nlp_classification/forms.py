@@ -69,7 +69,9 @@ class UserAnswerForm(ModelForm):
         super().__init__(*args, **kwargs)
 
         self.fields["decision"] = ModelChoiceField(
-            queryset=Option.objects.filter(question=self.instance.question),
+            queryset=Option.objects.filter(
+                question=self.instance.assignment.question
+            ),
             widget=RadioSelect,
         )
 

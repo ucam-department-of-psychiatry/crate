@@ -718,8 +718,9 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
             task=task,
             sample=sample,
             user=user,
+            question=question,
         )
 
-        assignment.create_user_answers(question)
+        assignment.create_user_answers()
 
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))

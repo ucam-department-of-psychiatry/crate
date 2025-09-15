@@ -1013,35 +1013,30 @@ class UserAssignmentWizardViewTests(NlpClassificationWizardViewTests):
         self.assertTrue(
             UserAnswer.objects.filter(
                 source_record=source_record_1,
-                question=question,
                 assignment=assignment,
             ).exists()
         )
         self.assertTrue(
             UserAnswer.objects.filter(
                 source_record=source_record_2,
-                question=question,
                 assignment=assignment,
             ).exists()
         )
         self.assertTrue(
             UserAnswer.objects.filter(
                 source_record=source_record_3,
-                question=question,
                 assignment=assignment,
             ).exists()
         )
         self.assertTrue(
             UserAnswer.objects.filter(
                 source_record=source_record_4,
-                question=question,
                 assignment=assignment,
             ).exists()
         )
         self.assertTrue(
             UserAnswer.objects.filter(
                 source_record=source_record_5,
-                question=question,
                 assignment=assignment,
             ).exists()
         )

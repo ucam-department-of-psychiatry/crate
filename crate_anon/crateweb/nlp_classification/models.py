@@ -298,12 +298,12 @@ class Assignment(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE
     )
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
 
-    def create_user_answers(self, question: Question) -> None:
+    def create_user_answers(self) -> None:
         for source_record in self.sample.source_records.all():
             UserAnswer.objects.create(
                 source_record=source_record,
-                question=question,
                 assignment=self,
             )
 
@@ -318,6 +318,5 @@ class UserAnswer(models.Model):
     """
 
     source_record = models.ForeignKey(SourceRecord, on_delete=models.CASCADE)
-    question = models.ForeignKey(Question, on_delete=models.CASCADE)
     decision = models.ForeignKey(Option, null=True, on_delete=models.SET_NULL)
     assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)
