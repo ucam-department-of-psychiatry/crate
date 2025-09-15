@@ -667,7 +667,17 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
     ]
 
     def get_instructions(self, step: str) -> Optional[str]:
-        pass
+        if step == ws.SELECT_TASK:
+            return "Select task"
+
+        if step == ws.SELECT_QUESTION:
+            return "Select question"
+
+        if step == ws.SELECT_SAMPLE_SPEC:
+            return "Select the sample of records"
+
+        if step == ws.SELECT_USER:
+            return "Select the user"
 
     @property
     def selected_task(self) -> Optional[Task]:
