@@ -253,21 +253,29 @@ class Assignment(models.Model):
     source_records = models.ManyToManyField(SourceRecord)
 
     def assign_source_records(self) -> None:
+        source_column = self.sample_spec.source_column
+
         source_table_definition = (
             self.sample_spec.source_column.table_definition
         )
-        source_pk_column_name = source_table_definition.pk_column_name
-        source_table_name = source_table_definition.table_name
         source_connection = self.get_source_database_connection(
             source_table_definition
         )
+        source_table_name = source_table_definition.table_name
+        source_pk_column_name = source_table_definition.pk_column_name
+        source_column_name = source_column.name
+        search_term = self.sample_spec.search_term
 
         nlp_table_definition = self.sample_spec.nlp_table_definition
         nlp_pk_column_name = nlp_table_definition.pk_column_name
         nlp_table_name = nlp_table_definition.table_name
         nlp_connection = self.get_nlp_database_connection(nlp_table_definition)
+
+        where = f"{source_column_name} LIKE %s"
+        params = [f"%{search_term}%"]
+
         for source_row in source_connection.fetchall(
-            [source_pk_column_name], source_table_name
+            [source_pk_column_name], source_table_name, where, params
         ):
             nlp_dict = nlp_connection.fetchone_as_dict(
                 [nlp_pk_column_name],
