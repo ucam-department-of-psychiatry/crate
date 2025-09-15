@@ -69,7 +69,7 @@ class DatabaseConnection:
 
         out = {}
 
-        sql = self.get_sql(column_names, table_name, where, params)
+        sql = self.get_sql(column_names, table_name, where)
 
         with self.connection.cursor() as cursor:
             cursor.execute(sql, params)
@@ -88,7 +88,7 @@ class DatabaseConnection:
         where: Optional[str] = None,
         params: Optional[Sequence[Any]] = None,
     ):  # TODO: Return type
-        sql = self.get_sql(column_names, table_name, where, params)
+        sql = self.get_sql(column_names, table_name, where)
 
         with self.connection.cursor() as cursor:
             cursor.execute(sql, params)
@@ -100,7 +100,6 @@ class DatabaseConnection:
         column_names: Iterable[str],
         table_name: str,
         where: Optional[str] = None,
-        params: Optional[Sequence[Any]] = None,
     ) -> str:
 
         column_names_str = ", ".join(column_names)
