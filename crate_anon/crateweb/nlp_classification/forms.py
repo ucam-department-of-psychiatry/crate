@@ -213,7 +213,8 @@ class WizardEnterSampleSizeForm(Form):
 
 
 class WizardEnterSearchTermForm(Form):
-    search_term = CharField(max_length=100)  # TODO set max_length from model?
+    # TODO set max_length from model?
+    search_term = CharField(max_length=100, required=False)
 
 
 # UserAssignmentWizardView forms in order of step
