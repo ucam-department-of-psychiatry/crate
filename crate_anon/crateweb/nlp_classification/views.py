@@ -647,13 +647,14 @@ class SampleDataWizardView(NlpClassificationWizardView):
                 table_definition=nlp_table_definition, name=nlp_column_name
             )
 
-        Sample.objects.create(
+        sample = Sample.objects.create(
             source_column=source_column,
             nlp_table_definition=nlp_table_definition,
             size=size,
             search_term=search_term,
             seed=random.randint(0, 2147483647),
         )
+        sample.create_source_records()
 
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))
 
@@ -711,8 +712,6 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
         question = self.selected_question
         sample = self.selected_sample
         user = self.selected_user
-
-        sample.create_source_records()
 
         assignment, _ = Assignment.objects.get_or_create(
             task=task,
