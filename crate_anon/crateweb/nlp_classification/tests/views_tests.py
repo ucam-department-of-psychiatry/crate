@@ -475,9 +475,7 @@ class TaskAndQuestionWizardViewTests(NlpClassificationWizardViewTests):
         self.assert_next_step(ws.CREATE_OPTIONS)
 
         # Create options
-        self.post(
-            ws.CREATE_OPTIONS, {"description_1": "Yes", "description_2": "No"}
-        )
+        self.post(ws.CREATE_OPTIONS, {"option_1": "Yes", "option_2": "No"})
         self.assert_finished()
 
         descriptions = [o.description for o in list(question.options.all())]
