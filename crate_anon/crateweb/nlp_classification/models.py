@@ -1,4 +1,34 @@
-from typing import Any
+"""
+crate_anon/crateweb/nlp_classification/models.py
+
+===============================================================================
+
+    Copyright (C) 2015, University of Cambridge, Department of Psychiatry.
+    Created by Rudolf Cardinal (rnc1001@cam.ac.uk).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
+
+===============================================================================
+
+CRATE NLP classification models.
+
+"""
+
+from itertools import islice
+from typing import Any, Generator
 
 from django.conf import settings
 from django.db import models
@@ -301,11 +331,31 @@ class Assignment(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
 
     def create_user_answers(self) -> None:
-        for source_record in self.sample.source_records.all():
-            UserAnswer.objects.create(
-                source_record=source_record,
-                assignment=self,
-            )
+        # https://docs.djangoproject.com/en/4.2/ref/models/querysets/#bulk-create
+        batch_size = 1000
+
+        for batch in self._gen_user_answers(batch_size):
+            UserAnswer.objects.bulk_create(batch, batch_size)
+
+    def _gen_user_answers(
+        self, batch_size: int
+    ) -> Generator[list["UserAnswer"], None, None]:
+
+        source_records = self.sample.source_records.all()
+
+        start = 0
+
+        while True:
+            stop = start + batch_size
+            batch = [
+                UserAnswer(assignment=self, source_record=sr)
+                for sr in islice(source_records, start, stop)
+            ]
+            if not batch:
+                break
+            yield batch
+
+            start += batch_size
 
 
 class UserAnswer(models.Model):
