@@ -221,7 +221,7 @@ body {
 }
 
 #main p, h3, h4 {
-    margin: 1em !important;
+    margin: 1em;
 }
 
 #db-info {
@@ -361,4 +361,26 @@ body {
 
 .dropdown:hover .dropdown-content {
     display: block;
+}
+
+.nlp-classification-wizard {
+    margin-bottom: 1em;
+}
+
+.nlp-classification-wizard #id_create_question-title,
+.nlp-classification-wizard #id_enter_search_term-search_term {
+    width: 50em;
+}
+
+.nlp-classification-wizard select[multiple=""] {
+    min-width: 10em;
+    min-height: 20em;
+}
+
+#main p.wizard-step {
+    margin: 1em 0;
+}
+
+#main .nlp-classification-wizard p {
+    margin: 1em;
 }

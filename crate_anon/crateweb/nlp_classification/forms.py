@@ -125,8 +125,8 @@ class WizardSelectOptionsForm(Form):
 
 
 class WizardCreateOptionsForm(Form):
-    description_1 = CharField(required=False)
-    description_2 = CharField(required=False)
+    option_1 = CharField(required=False)
+    option_2 = CharField(required=False)
 
 
 # SampleDataWizardView forms in order of step

@@ -6,9 +6,9 @@
 {% endblock %}
 
 {% block nlp_classification_content %}
-<p>Step {{ wizard.steps.step1 }} of {{ wizard.steps.count }}</p>
+<p class="wizard-step">Step {{ wizard.steps.step1 }} of {{ wizard.steps.count }}</p>
 <form action="" method="post">{% csrf_token %}
-  <fieldset>
+  <fieldset class="nlp-classification-wizard">
     <legend>{{ instructions }}</legend>
 {{ wizard.management_form }}
 {% if wizard.form.forms %}
@@ -17,7 +17,7 @@
         {{ form.as_p }}
     {% endfor %}
 {% else %}
-    {{ wizard.form }}
+    {{ wizard.form.as_p }}
 {% endif %}
   </fieldset>
 {% if wizard.steps.prev %}

@@ -332,7 +332,7 @@ class TaskAndQuestionWizardView(NlpClassificationWizardView):
             question.options.set(options)
 
         create_options_form = form_dict[ws.CREATE_OPTIONS]
-        for name in ["description_1", "description_2"]:
+        for name in ["option_1", "option_2"]:
             if description := create_options_form.cleaned_data[name]:
                 option = Option.objects.create(description=description)
                 question.options.add(option)
