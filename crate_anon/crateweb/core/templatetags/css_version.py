@@ -39,6 +39,13 @@ register = template.Library()
 
 @register.simple_tag
 def css_version() -> str:
+    # Ensure style sheets update by setting a version template tag
+    # e.g.:
+    # {% load css_version %}
+    # <link rel="stylesheet" href="{% static 'foo.css' %}?v={% css_version %}" type="text/css">  # noqa: E501
+    #
+    # During development generate a new version every time, in production use
+    # the CRATE version.
     if settings.DEBUG:
         return str(uuid.uuid4())
 
