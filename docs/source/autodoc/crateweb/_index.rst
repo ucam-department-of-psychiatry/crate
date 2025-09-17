@@ -146,6 +146,10 @@ crate_anon/crateweb
     core/management/commands/ensuresuperuser.py.rst
     core/management/commands/runcpserver.py.rst
     core/middleware.py.rst
+    core/templatetags/__init__.py.rst
+    core/templatetags/css_version.py.rst
+    core/tests/__init__.py.rst
+    core/tests/templatetags_tests.py.rst
     core/utils.py.rst
     core/views.py.rst
     extra/__init__.py.rst

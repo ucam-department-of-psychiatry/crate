@@ -1,6 +1,7 @@
 {# crate_anon/crateweb/templates/base.html #}
 
 {% load static %}
+{% load css_version %}
 
 {% comment %}
     template parameters:
@@ -19,9 +20,9 @@
             {% endblock %}
         </title>
         <meta charset="utf-8">
-        <link rel="stylesheet" href="{% static 'base.css' %}?v=1" type="text/css">
-        <link rel="stylesheet" href="{% static 'web.css' %}?v=1" type="text/css">
-        <link rel="stylesheet" href="{% static 'extra_styles.css' %}?v=1" type="text/css">
+        <link rel="stylesheet" href="{% static 'base.css' %}?v={% css_version %}" type="text/css">
+        <link rel="stylesheet" href="{% static 'web.css' %}?v={% css_version %}" type="text/css">
+        <link rel="stylesheet" href="{% static 'extra_styles.css' %}?v={% css_version %}" type="text/css">
         <link rel="icon" href="{% static 'scrubber.ico' %}" type="image/x-icon">
         {% block collapsejs %}
             <script>
