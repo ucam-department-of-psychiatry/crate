@@ -583,6 +583,7 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
             ):
                 self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
         self.assert_finished()
+        self.mock_sample_get_source_db_connection.assert_called_once()
 
         source_table_definition = TableDefinition.objects.get(
             db_connection_name=RESEARCH_DB_CONNECTION_NAME,
@@ -686,6 +687,7 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         ):
             self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
         self.assert_finished()
+        self.mock_sample_get_source_db_connection.assert_called_once()
 
         source_column = Column.objects.get(
             table_definition=source_table_definition,
@@ -756,8 +758,8 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         ):
             self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
         self.assert_finished()
-        # self.mock_sample_get_source_db_connection.assert_called_once()
-        # self.mock_sample_get_nlp_db_connection.assert_called_once()
+        self.mock_sample_get_source_db_connection.assert_called_once()
+        self.mock_sample_get_nlp_db_connection.assert_called_once()
 
         source_column = Column.objects.get(
             table_definition=source_table_definition,
@@ -877,6 +879,8 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         ):
             self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
         self.assert_finished()
+        self.mock_sample_get_source_db_connection.assert_called_once()
+        self.mock_sample_get_nlp_db_connection.assert_called_once()
 
         nlp_columns = Column.objects.filter(
             table_definition=nlp_table_definition
