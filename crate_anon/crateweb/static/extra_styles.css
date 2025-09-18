@@ -367,6 +367,7 @@ body {
     margin-bottom: 1em;
 }
 
+.nlp-classification-wizard #id_create_task-name,
 .nlp-classification-wizard #id_create_question-title,
 .nlp-classification-wizard #id_enter_search_term-search_term {
     width: 50em;
