@@ -277,6 +277,7 @@ class Sample(models.Model):
         return DatabaseConnection(self.nlp_table_definition.db_connection_name)
 
     def create_source_records(self) -> None:
+        batch_size = 1000
         source_column = self.source_column
 
         source_connection = self.get_source_database_connection()
@@ -292,28 +293,45 @@ class Sample(models.Model):
         where = f"{source_column_name} LIKE %s"
         params = [f"%{self.search_term}%"]
 
-        for source_row in source_connection.fetchall(
+        source_rows = source_connection.fetchall(
             [source_pk_column_name], source_table_name, where, params
-        ):
-            nlp_dict = nlp_connection.fetchone_as_dict(
-                [nlp_pk_column_name],
+        )
+
+        start = 0
+
+        while True:
+            stop = start + batch_size
+
+            source_pks = []
+
+            for source_row in islice(source_rows, start, stop):
+                source_pks.append(source_row[0])
+
+            if not source_pks:
+                break
+
+            source_pk_format = ", ".join(["%s"] * len(source_pks))
+
+            nlp_rows = nlp_connection.fetchall(
+                [FN_SRCPKVAL, nlp_pk_column_name],
                 nlp_table_name,
-                where=f"{FN_SRCPKVAL} = %s",
-                params=[source_row[0]],
+                where=f"{FN_SRCPKVAL} IN ({source_pk_format})",
+                params=source_pks,
             )
 
-            nlp_pk_value = ""
-            if nlp_dict:
-                nlp_pk_value = nlp_dict[nlp_pk_column_name]
+            nlp_dict = {src_pk: nlp_pk for (src_pk, nlp_pk) in nlp_rows}
 
-            source_record, created = SourceRecord.objects.get_or_create(
-                source_column=self.source_column,
-                nlp_table_definition=self.nlp_table_definition,
-                source_pk_value=source_row[0],
-                nlp_pk_value=nlp_pk_value,
-            )
+            for source_pk in source_pks:
+                source_record, created = SourceRecord.objects.get_or_create(
+                    source_column=self.source_column,
+                    nlp_table_definition=self.nlp_table_definition,
+                    source_pk_value=source_pk,
+                    nlp_pk_value=nlp_dict.get(source_pk, ""),
+                )
 
-            self.source_records.add(source_record)
+                self.source_records.add(source_record)
+
+            start += batch_size
 
     def __str__(self) -> Any:
         return (

@@ -141,11 +141,11 @@ class NlpClassificationWizardViewTests(TestCase):
 
         self.mock_get_nlp_table_names = mock.Mock(return_value=[])
         self.mock_get_nlp_column_names_for_table = mock.Mock(return_value=[])
-        self.mock_nlp_fetchone_as_dict = mock.Mock(side_effect=[])
+        self.mock_nlp_fetchall = mock.Mock(return_value=[])
         self.mock_nlp_db_connection = mock.Mock(
             get_table_names=self.mock_get_nlp_table_names,
             get_column_names_for_table=self.mock_get_nlp_column_names_for_table,  # noqa: E501
-            fetchone_as_dict=self.mock_nlp_fetchone_as_dict,
+            fetchall=self.mock_nlp_fetchall,
         )
         self.mock_view_get_nlp_db_connection = mock.Mock(
             return_value=self.mock_nlp_db_connection
@@ -747,13 +747,7 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         # This is the last step so we expect all of the object creation
         # to happen.
         self.mock_source_fetchall.return_value = [(1,), (2,), (3,), (4,), (5,)]
-        self.mock_nlp_fetchone_as_dict.side_effect = [
-            {"_pk": 10},
-            {"_pk": 11},
-            None,  # No NLP result
-            {"_pk": 12},
-            None,  # No NLP result
-        ]
+        self.mock_nlp_fetchall.return_value = [(1, 10), (2, 11), (4, 12)]
 
         with mock.patch.multiple(
             "crate_anon.crateweb.nlp_classification.models.Sample",
