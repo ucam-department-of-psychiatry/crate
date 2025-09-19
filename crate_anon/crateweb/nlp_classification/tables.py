@@ -35,16 +35,6 @@ from crate_anon.crateweb.nlp_classification.models import (
 import django_tables2 as tables
 
 
-class NlpClassificationTable(tables.Table):
-    name = tables.Column()
-    dest_table = tables.Column()
-    dest_column = tables.Column()
-    sample = tables.Column()
-    classified = tables.Column()
-    precision = tables.Column()
-    recall = tables.Column()
-
-
 class UserAnswerTable(tables.Table):
     class Meta:
         model = UserAnswer
