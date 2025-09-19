@@ -385,3 +385,7 @@ body {
 #main .nlp-classification-wizard p {
     margin: 1em;
 }
+
+#main > .table-container > .pagination > li {
+    display: inline;
+}
