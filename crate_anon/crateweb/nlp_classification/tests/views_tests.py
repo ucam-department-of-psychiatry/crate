@@ -50,6 +50,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     UserAnswer,
 )
 from crate_anon.crateweb.nlp_classification.tests.factories import (
+    AssignmentFactory,
     ColumnFactory,
     OptionFactory,
     QuestionFactory,
@@ -69,29 +70,44 @@ from crate_anon.crateweb.nlp_classification.views import (
 
 
 class UserAnswerViewTests(TestCase):
-    def test_success_url_is_next_unanswered(self) -> None:
-        this_answer = UserAnswerFactory(decision=None)
-        UserAnswerFactory()  # answered
-        unanswered = UserAnswerFactory(decision=None)
+    def setUp(self) -> None:
+        super().setUp()
 
-        view = UserAnswerView()
-        view.object = this_answer
+        self.user = UserFactory()
+        self.mock_request = mock.Mock(user=self.user)
+        self.view = UserAnswerView()
+        self.view.setup(self.mock_request)
+        self.assignment = AssignmentFactory(user=self.user)
+
+    def test_success_url_is_next_unanswered(self) -> None:
+        this_answer = UserAnswerFactory(
+            assignment=self.assignment, decision=None
+        )
+        UserAnswerFactory(assignment=self.assignment)  # answered
+        unanswered = UserAnswerFactory(
+            assignment=self.assignment, decision=None
+        )
+        UserAnswerFactory()  # for a different user
+
+        self.view.object = this_answer
 
         self.assertEqual(
-            view.get_success_url(),
+            self.view.get_success_url(),
             reverse(
                 "nlp_classification_user_answer", kwargs={"pk": unanswered.pk}
             ),
         )
 
     def test_success_url_is_assignment_list_if_all_answered(self) -> None:
-        this_answer = UserAnswerFactory(decision=None)
+        this_answer = UserAnswerFactory(
+            assignment=self.assignment, decision=None
+        )
+        UserAnswerFactory()  # for a different user
 
-        view = UserAnswerView()
-        view.object = this_answer
+        self.view.object = this_answer
 
         self.assertEqual(
-            view.get_success_url(),
+            self.view.get_success_url(),
             reverse(
                 "nlp_classification_user_assignment",
                 kwargs={"pk": this_answer.assignment.pk},

@@ -130,7 +130,9 @@ class UserAnswerView(UpdateView):
 
     def get_success_url(self, **kwargs) -> str:
         next_record = (
-            UserAnswer.objects.filter(decision=None)
+            UserAnswer.objects.filter(
+                decision=None, assignment__user=self.request.user
+            )
             .exclude(pk=self.object.pk)
             .first()
         )
