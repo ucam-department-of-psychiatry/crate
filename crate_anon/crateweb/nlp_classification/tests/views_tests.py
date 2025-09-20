@@ -108,10 +108,7 @@ class UserAnswerViewTests(TestCase):
 
         self.assertEqual(
             self.view.get_success_url(),
-            reverse(
-                "nlp_classification_user_assignment",
-                kwargs={"pk": this_answer.assignment.pk},
-            ),
+            reverse("nlp_classification_user_home"),
         )
 
 

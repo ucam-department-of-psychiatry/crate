@@ -75,7 +75,6 @@ from crate_anon.crateweb.nlp_classification.models import (
 )
 from crate_anon.crateweb.nlp_classification.tables import (
     FieldTable,
-    UserAnswerTable,
     UserAssignmentTable,
 )
 from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
@@ -85,26 +84,6 @@ User = get_user_model()
 
 class AdminHomeView(TemplateView):
     template_name = "nlp_classification/admin/home.html"
-
-
-class UserAssignmentView(TemplateView):
-    template_name = "nlp_classification/user/assignment.html"
-
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-
-        table = self._get_table()
-        tables.RequestConfig(self.request).configure(table)
-        context.update(table=table)
-
-        return context
-
-    def _get_table(self) -> tables.Table:
-        assignment = Assignment.objects.get(pk=self.kwargs["pk"])
-
-        return UserAnswerTable(
-            UserAnswer.objects.filter(assignment=assignment)
-        )
 
 
 class UserHomeView(TemplateView):
@@ -142,10 +121,7 @@ class UserAnswerView(UpdateView):
                 "nlp_classification_user_answer", kwargs={"pk": next_record.pk}
             )
 
-        return reverse(
-            "nlp_classification_user_assignment",
-            kwargs={"pk": self.object.assignment.pk},
-        )
+        return reverse("nlp_classification_user_home")
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)

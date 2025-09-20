@@ -28,7 +28,7 @@ CRATE NLP classification models.
 """
 
 from itertools import islice
-from typing import Any, Generator
+from typing import Any, Generator, Optional
 
 from django.conf import settings
 from django.db import models
@@ -374,6 +374,9 @@ class Assignment(models.Model):
             yield batch
 
             start += batch_size
+
+    def first_unanswered(self) -> Optional["UserAnswer"]:
+        return self.useranswer_set.filter(decision=None).first()
 
 
 class UserAnswer(models.Model):

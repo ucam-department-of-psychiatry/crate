@@ -27,37 +27,48 @@ CRATE NLP classification tables.
 
 """
 
+from typing import Optional
+
 from crate_anon.crateweb.nlp_classification.models import (
     Assignment,
     UserAnswer,
 )
 
+from django.template import loader
+from django.urls import reverse
+
 import django_tables2 as tables
-
-
-class UserAnswerTable(tables.Table):
-    class Meta:
-        model = UserAnswer
-
-    user = tables.Column()
-    source_record = tables.Column()
-    decision = tables.Column()
-    rate = tables.LinkColumn(
-        "nlp_classification_user_answer", text="Rate", args=[tables.A("pk")]
-    )
 
 
 class UserAssignmentTable(tables.Table):
     class Meta:
         model = Assignment
+        exclude = ("id", "user")
 
     task = tables.Column()
     sample = tables.Column()
-    view = tables.LinkColumn(
-        "nlp_classification_user_assignment",
-        text="View",
-        args=[tables.A("pk")],
+    status = tables.TemplateColumn(
+        template_name="nlp_classification/user/status_column.html",
+        orderable=False,
+        accessor="first_unanswered",
     )
+
+    def render_status(
+        self, record: Assignment, value: Optional[UserAnswer]
+    ) -> str:
+        if value is None:
+            return "Complete"
+
+        Template = loader.get_template(
+            "nlp_classification/user/status_column.html"
+        )
+
+        context = self.context
+        context["href"] = reverse(
+            "nlp_classification_user_answer", kwargs={"pk": value.id}
+        )
+
+        return Template.render(context.flatten())
 
 
 class FieldTable(tables.Table):

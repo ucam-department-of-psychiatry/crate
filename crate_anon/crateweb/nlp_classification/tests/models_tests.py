@@ -13,10 +13,12 @@ from crate_anon.crateweb.nlp_classification.models import (
     Task,
 )
 from crate_anon.crateweb.nlp_classification.tests.factories import (
+    AssignmentFactory,
     ColumnFactory,
     SampleFactory,
     SourceRecordFactory,
     TableDefinitionFactory,
+    UserAnswerFactory,
 )
 from crate_anon.nlp_manager.constants import (
     FN_SRCFIELD,
@@ -237,3 +239,14 @@ class SourceRecordTests(TestCase):
                 source_record.extra_nlp_fields,
                 {"value_text": "13", "units": "mg/dl"},
             )
+
+
+class AssignmentTests(TestCase):
+    def test_first_unanswered(self) -> None:
+        assignment = AssignmentFactory()
+
+        answer = UserAnswerFactory(assignment=assignment, decision=None)
+        UserAnswerFactory(assignment=assignment)
+        UserAnswerFactory(assignment=assignment)
+
+        self.assertEqual(assignment.first_unanswered(), answer)

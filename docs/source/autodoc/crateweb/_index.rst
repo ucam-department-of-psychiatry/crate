@@ -316,6 +316,7 @@ crate_anon/crateweb
     templates/nlp_classification/base.html.rst
     templates/nlp_classification/user/assignment.html.rst
     templates/nlp_classification/user/home.html.rst
+    templates/nlp_classification/user/status_column.html.rst
     templates/nlp_classification/user/useranswerupdate_form.html.rst
     templates/page_nav.html.rst
     templates/password_change.html.rst
