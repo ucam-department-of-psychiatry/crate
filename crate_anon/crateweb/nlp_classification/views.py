@@ -99,7 +99,9 @@ class UserHomeView(TemplateView):
         return context
 
     def _get_table(self) -> tables.Table:
-        return UserAssignmentTable(Assignment.objects.all())
+        return UserAssignmentTable(
+            Assignment.objects.filter(user=self.request.user)
+        )
 
 
 class UserAnswerView(UpdateView):
