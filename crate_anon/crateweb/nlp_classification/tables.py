@@ -63,12 +63,17 @@ class AssignmentTable(tables.Table):
             "nlp_classification/user/status_column.html"
         )
 
-        context = self.context
-        context["href"] = reverse(
-            "nlp_classification_user_answer", kwargs={"pk": value.id}
+        context_dict = self.context.flatten()
+
+        context_dict.update(
+            href=reverse(
+                "nlp_classification_user_answer", kwargs={"pk": value.id}
+            ),
+            total_answers=record.useranswer_set.all().count(),
+            count=record.num_answered,
         )
 
-        return Template.render(context.flatten())
+        return Template.render(context_dict)
 
 
 class FieldTable(tables.Table):
