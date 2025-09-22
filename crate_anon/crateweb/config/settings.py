@@ -514,6 +514,11 @@ SPECTACULAR_SETTINGS = {
 }
 
 # =============================================================================
+# NLP Classification settings
+# =============================================================================
+CRATE_NLP_BATCH_SIZE = 1000  # No. of records to hold in memory when creating
+
+# =============================================================================
 # Import from a site-specific file
 # =============================================================================
 # First attempt: import file with a fixed name from the PYTHONPATH.

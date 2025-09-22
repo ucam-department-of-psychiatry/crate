@@ -277,7 +277,7 @@ class Sample(models.Model):
         return DatabaseConnection(self.nlp_table_definition.db_connection_name)
 
     def create_source_records(self) -> None:
-        batch_size = 1000
+        batch_size = settings.CRATE_NLP_BATCH_SIZE
         source_column = self.source_column
 
         source_connection = self.get_source_database_connection()
@@ -350,7 +350,7 @@ class Assignment(models.Model):
 
     def create_user_answers(self) -> None:
         # https://docs.djangoproject.com/en/4.2/ref/models/querysets/#bulk-create
-        batch_size = 1000
+        batch_size = settings.CRATE_NLP_BATCH_SIZE
 
         for batch in self._gen_user_answers(batch_size):
             UserAnswer.objects.bulk_create(batch, batch_size)

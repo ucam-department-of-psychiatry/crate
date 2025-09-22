@@ -31,7 +31,7 @@ from typing import Any
 from unittest import mock
 
 from django.http import QueryDict
-from django.test import TestCase
+from django.test import override_settings, TestCase
 from django.urls import reverse
 from formtools.wizard.storage import BaseStorage
 from crate_anon.crateweb.core.constants import (
@@ -515,6 +515,7 @@ class TaskAndQuestionWizardViewTests(NlpClassificationWizardViewTests):
         self.assertIn(question.title, instructions)
 
 
+@override_settings(CRATE_NLP_BATCH_SIZE=1000)
 class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
     view_class = SampleDataWizardView
 
@@ -990,6 +991,7 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         self.assertNotIn(column_3.name, column_names)
 
 
+@override_settings(CRATE_NLP_BATCH_SIZE=1000)
 class UserAssignmentWizardViewTests(NlpClassificationWizardViewTests):
     view_class = UserAssignmentWizardView
 
