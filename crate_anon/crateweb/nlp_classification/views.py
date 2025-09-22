@@ -31,6 +31,7 @@ import random
 from typing import Any, Optional
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http.response import HttpResponse, HttpResponseRedirect
 from django.forms import Form
 from django.urls import reverse
@@ -104,10 +105,14 @@ class UserHomeView(TemplateView):
         )
 
 
-class UserAnswerView(UpdateView):
+class UserAnswerView(UserPassesTestMixin, UpdateView):
     model = UserAnswer
     template_name = "nlp_classification/user/useranswerupdate_form.html"
     form_class = UserAnswerForm
+
+    def test_func(self) -> bool:
+        answer = self.get_object()
+        return answer.assignment.user == self.request.user
 
     def get_success_url(self, **kwargs) -> str:
         next_record = (
