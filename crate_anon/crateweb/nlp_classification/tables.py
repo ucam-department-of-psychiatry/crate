@@ -40,7 +40,7 @@ from django.urls import reverse
 import django_tables2 as tables
 
 
-class UserAssignmentTable(tables.Table):
+class AssignmentTable(tables.Table):
     class Meta:
         model = Assignment
         exclude = ("id", "user")

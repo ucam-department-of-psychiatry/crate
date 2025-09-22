@@ -76,7 +76,7 @@ from crate_anon.crateweb.nlp_classification.models import (
 )
 from crate_anon.crateweb.nlp_classification.tables import (
     FieldTable,
-    UserAssignmentTable,
+    AssignmentTable,
 )
 from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
 
@@ -100,7 +100,7 @@ class UserHomeView(TemplateView):
         return context
 
     def _get_table(self) -> tables.Table:
-        return UserAssignmentTable(
+        return AssignmentTable(
             Assignment.objects.filter(user=self.request.user)
         )
 
