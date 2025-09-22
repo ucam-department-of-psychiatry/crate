@@ -5,6 +5,10 @@
 {% block nlp_classification_content %}
 <h2>{{ object.assignment.question }}</h2>
 
+<p>
+{{ count }}/{{ total_answers }}
+</p>
+
 <p style="font-size: medium">
 {{ object.source_record.before }}<span style="background-color: yellow;">{{ object.source_record.match }}</span>{{ object.source_record.after }}
 </p>

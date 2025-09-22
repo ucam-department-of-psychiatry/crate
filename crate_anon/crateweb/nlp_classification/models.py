@@ -376,7 +376,23 @@ class Assignment(models.Model):
             start += batch_size
 
     def first_unanswered(self) -> Optional["UserAnswer"]:
-        return self.useranswer_set.filter(decision=None).first()
+        return self.unanswered.first()
+
+    @property
+    def num_unanswered(self) -> int:
+        return self.unanswered.count()
+
+    @property
+    def unanswered(self) -> models.QuerySet:
+        return self.useranswer_set.filter(decision=None)
+
+    @property
+    def num_answered(self) -> int:
+        return self.answered.count()
+
+    @property
+    def answered(self) -> models.QuerySet:
+        return self.useranswer_set.exclude(decision=None)
 
 
 class UserAnswer(models.Model):

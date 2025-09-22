@@ -131,7 +131,11 @@ class UserAnswerView(UpdateView):
         if table:
             tables.RequestConfig(self.request).configure(table)
 
-        context.update(nlp_table=table)
+        context.update(
+            nlp_table=table,
+            total_answers=self.object.assignment.useranswer_set.all().count(),
+            count=self.object.assignment.num_answered + 1,
+        )
 
         return context
 
