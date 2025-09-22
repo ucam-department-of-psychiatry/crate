@@ -7,6 +7,7 @@ on:
         paths:
             - '**.py'
             - .github/workflows/python-tests.yml
+            - github_action_scripts/change_apt_mirror.sh
             - github_action_scripts/install_wkhtmltopdf.sh
             - github_action_scripts/python_setup.sh
             - github_action_scripts/python_tests.sh
@@ -41,24 +42,28 @@ jobs:
             - uses: actions/setup-python@v5
               with:
                   python-version: ${{ matrix.python-version }}
+            - name: Change apt mirror
+              run: |
+                  set -euo pipefail
+                  ${GITHUB_WORKSPACE}/github_action_scripts/change_apt_mirror.sh
             - name: Install wkhtmltopdf
               run: |
-                set -euxo pipefail
+                set -euo pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/install_wkhtmltopdf.sh
             - name: Redis setup
               run: |
-                set -euxo pipefail
+                set -euo pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/redis_setup.sh
             - name: Python setup
               run: |
-                set -euxo pipefail
+                set -euo pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh
             - name: Docker DB setup
               if: matrix.engine != 'sqlite'
               run: |
-                set -euxo pipefail
+                set -euo pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/docker_db_setup.sh ${{ matrix.engine }} ${{ matrix.port }}
             - name: Python tests
               run: |
-                set -euxo pipefail
+                set -euo pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/python_tests.sh ${HOME}/venv/bin/pytest ${{ matrix.engine }} ${{ matrix.scheme }} ${{ matrix.port }}
