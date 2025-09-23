@@ -28,10 +28,12 @@ CRATE NLP classification models.
 """
 
 from itertools import islice
+import random
 from typing import Any, Generator, Optional
 
+from cardinal_pythonlib.django.django_constants import ConnectionVendors
 from django.conf import settings
-from django.db import models
+from django.db import connection, models
 
 from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
 from crate_anon.nlp_manager.constants import (
@@ -139,6 +141,7 @@ class SourceRecord(models.Model):
     )
     source_pk_value = models.CharField(max_length=100)
     nlp_pk_value = models.CharField(max_length=100)
+    random_order = models.PositiveBigIntegerField()
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -299,6 +302,12 @@ class Sample(models.Model):
 
         start = 0
 
+        rng = random.Random(self.seed)
+        if connection.vendor == ConnectionVendors.SQLITE:
+            max_rand_bits = 32
+        else:
+            max_rand_bits = 64
+
         while True:
             stop = start + batch_size
 
@@ -322,7 +331,9 @@ class Sample(models.Model):
             nlp_dict = {src_pk: nlp_pk for (src_pk, nlp_pk) in nlp_rows}
 
             for source_pk in source_pks:
+                random_order = rng.getrandbits(max_rand_bits)
                 source_record, created = SourceRecord.objects.get_or_create(
+                    random_order=random_order,
                     source_column=self.source_column,
                     nlp_table_definition=self.nlp_table_definition,
                     source_pk_value=source_pk,
@@ -359,7 +370,9 @@ class Assignment(models.Model):
         self, batch_size: int
     ) -> Generator[list["UserAnswer"], None, None]:
 
-        source_records = self.sample.source_records.all()
+        source_records = self.sample.source_records.order_by(
+            "random_order", "pk"
+        )[: self.sample.size]
 
         start = 0
 

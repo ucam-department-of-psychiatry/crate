@@ -72,6 +72,7 @@ class SourceRecordFactory(factory.django.DjangoModelFactory):
 
     source_column = factory.SubFactory(ColumnFactory)
     nlp_table_definition = factory.SubFactory(TableDefinitionFactory)
+    random_order = factory.Faker("pyint", min_value=0)
 
 
 class SampleFactory(factory.django.DjangoModelFactory):
