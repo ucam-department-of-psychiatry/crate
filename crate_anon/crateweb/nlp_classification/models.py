@@ -31,9 +31,8 @@ from itertools import islice
 import random
 from typing import Any, Generator, Optional
 
-from cardinal_pythonlib.django.django_constants import ConnectionVendors
 from django.conf import settings
-from django.db import connection, models
+from django.db import models
 
 from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
 from crate_anon.nlp_manager.constants import (
@@ -141,7 +140,7 @@ class SourceRecord(models.Model):
     )
     source_pk_value = models.CharField(max_length=100)
     nlp_pk_value = models.CharField(max_length=100)
-    random_order = models.PositiveBigIntegerField()
+    random_order = models.PositiveIntegerField()
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -303,10 +302,7 @@ class Sample(models.Model):
         start = 0
 
         rng = random.Random(self.seed)
-        if connection.vendor == ConnectionVendors.SQLITE:
-            max_rand_bits = 32
-        else:
-            max_rand_bits = 64
+        max_rand_bits = 32
 
         while True:
             stop = start + batch_size
