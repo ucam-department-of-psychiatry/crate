@@ -140,7 +140,7 @@ class SourceRecord(models.Model):
     )
     source_pk_value = models.CharField(max_length=100)
     nlp_pk_value = models.CharField(max_length=100)
-    random_order = models.PositiveIntegerField()
+    random_order = models.PositiveBigIntegerField()
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -302,6 +302,10 @@ class Sample(models.Model):
         start = 0
 
         rng = random.Random(self.seed)
+        # Lowest common denominator:
+        # SQLite doesn't have big integer so the maximum bits is 32.
+        # SQL Server does not have unsigned int types so we can't have 64 bits
+        # and if we use a regular Integer, we can only store 31 bits
         max_rand_bits = 32
 
         while True:
