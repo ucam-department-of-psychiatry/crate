@@ -1,0 +1,36 @@
+{# crate_anon/crateweb/templates/nlp_classification/admin/sample_data_progress.html #}
+{% extends "nlp_classification/base.html" %}
+{% load static %}
+
+{% block extrahead %}
+{% include "include_jquery.html" %}
+{% endblock %}
+
+{% block nlp_classification_content %}
+<div class="container" style="padding-top: 20px;">
+	<div class="card" style="height: 120px;">
+        <div class="text-center" style="font-size: 14px">
+	        <div id="progress-bar-message">
+	        </div>
+        </div>
+        <div class='progress-wrapper' style="padding-top: 10px;">
+            <div id='progress-bar' class='progress-bar progress-bar-striped' role='progressbar' style="height:30px; width: 0%; border-radius: 5px">&nbsp;</div>
+        </div>
+        <div id="celery-result">
+        </div>
+	</div>
+</div>
+
+{% block progress_bar_js %}
+{% if task_id %}
+<script type="text/javascript" src="{% static 'celery_progress/celery_progress.js' %}"></script>
+<script type="text/javascript">
+	$(function () {
+		var progressUrl = "{% url 'celery_progress:task_status' task_id %}";
+		CeleryProgressBar.initProgressBar(progressUrl, {})
+	});
+</script>
+{% endif %}
+{% endblock progress_bar_js %}
+
+{% endblock %}

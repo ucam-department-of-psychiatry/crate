@@ -117,6 +117,8 @@ INSTALLED_APPS = (
     # 'kombu.transport.django',  # for Celery with Django database as broker
     # 'template_profiler_panel',
     # 'silk',
+    "celery",
+    "celery_progress",
     "crate_anon.crateweb.config.apps.UserProfileAppConfig",  # for user-specific settings  # noqa: E501
     "crate_anon.crateweb.config.apps.ResearchAppConfig",  # the research database query app  # noqa: E501
     "crate_anon.crateweb.config.apps.ConsentAppConfig",  # the consent-to-contact app  # noqa: E501

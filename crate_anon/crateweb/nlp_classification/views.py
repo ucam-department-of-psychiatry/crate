@@ -34,6 +34,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.http.response import HttpResponse, HttpResponseRedirect
 from django.forms import Form
+from django.shortcuts import render
 from django.urls import reverse
 from django.views.generic import TemplateView, UpdateView
 import django_tables2 as tables
@@ -77,6 +78,9 @@ from crate_anon.crateweb.nlp_classification.models import (
 from crate_anon.crateweb.nlp_classification.tables import (
     FieldTable,
     AssignmentTable,
+)
+from crate_anon.crateweb.nlp_classification.tasks import (
+    create_source_records_from_sample,
 )
 from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
 
@@ -643,9 +647,16 @@ class SampleDataWizardView(NlpClassificationWizardView):
             search_term=search_term,
             seed=random.randint(0, 2147483647),
         )
-        sample.create_source_records()
 
-        return HttpResponseRedirect(reverse("nlp_classification_admin_home"))
+        task = create_source_records_from_sample.delay(sample.pk)
+
+        context = dict(task_id=task.id)
+
+        return render(
+            self.request,
+            "nlp_classification/admin/sample_data_progress.html",
+            context=context,
+        )
 
 
 class UserAssignmentWizardView(NlpClassificationWizardView):

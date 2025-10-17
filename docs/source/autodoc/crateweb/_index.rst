@@ -167,6 +167,7 @@ crate_anon/crateweb
     nlp_classification/migrations/__init__.py.rst
     nlp_classification/models.py.rst
     nlp_classification/tables.py.rst
+    nlp_classification/tasks.py.rst
     nlp_classification/tests/__init__.py.rst
     nlp_classification/tests/factories.py.rst
     nlp_classification/tests/forms_tests.py.rst
@@ -311,6 +312,7 @@ crate_anon/crateweb
     templates/logged_out.html.rst
     templates/login.html.rst
     templates/nlp_classification/admin/home.html.rst
+    templates/nlp_classification/admin/sample_data_progress.html.rst
     templates/nlp_classification/admin/update_form.html.rst
     templates/nlp_classification/admin/wizard_form.html.rst
     templates/nlp_classification/base.html.rst

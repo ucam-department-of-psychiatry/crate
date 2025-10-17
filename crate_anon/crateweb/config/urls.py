@@ -595,6 +595,7 @@ urlpatterns = [
         consent_views.draft_researcher_cover_letter,
         name=UrlNames.DRAFT_RESEARCHER_COVER_LETTER,
     ),
+    re_path(r"^celery_progress/", include("celery_progress.urls")),
     # -------------------------------------------------------------------------
     # Other test views
     # -------------------------------------------------------------------------

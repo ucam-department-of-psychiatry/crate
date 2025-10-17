@@ -28,7 +28,6 @@ CRATE NLP classification models.
 """
 
 from itertools import islice
-import random
 from typing import Any, Generator, Optional
 
 from django.conf import settings
@@ -277,72 +276,6 @@ class Sample(models.Model):
 
     def get_nlp_database_connection(self) -> DatabaseConnection:
         return DatabaseConnection(self.nlp_table_definition.db_connection_name)
-
-    def create_source_records(self) -> None:
-        batch_size = settings.CRATE_NLP_BATCH_SIZE
-        source_column = self.source_column
-
-        source_connection = self.get_source_database_connection()
-        source_table_definition = source_column.table_definition
-        source_table_name = source_table_definition.table_name
-        source_pk_column_name = source_table_definition.pk_column_name
-        source_column_name = source_column.name
-
-        nlp_pk_column_name = self.nlp_table_definition.pk_column_name
-        nlp_table_name = self.nlp_table_definition.table_name
-        nlp_connection = self.get_nlp_database_connection()
-
-        where = f"{source_column_name} LIKE %s"
-        params = [f"%{self.search_term}%"]
-
-        source_rows = source_connection.fetchall(
-            [source_pk_column_name], source_table_name, where, params
-        )
-
-        start = 0
-
-        rng = random.Random(self.seed)
-        # Lowest common denominator:
-        # SQLite doesn't have big integer so the maximum bits is 32.
-        # SQL Server does not have unsigned int types so we can't have 64 bits
-        # and if we use a regular Integer, we can only store 31 bits
-        max_rand_bits = 32
-
-        while True:
-            stop = start + batch_size
-
-            source_pks = []
-
-            for source_row in islice(source_rows, start, stop):
-                source_pks.append(source_row[0])
-
-            if not source_pks:
-                break
-
-            source_pk_format = ", ".join(["%s"] * len(source_pks))
-
-            nlp_rows = nlp_connection.fetchall(
-                [FN_SRCPKVAL, nlp_pk_column_name],
-                nlp_table_name,
-                where=f"{FN_SRCPKVAL} IN ({source_pk_format})",
-                params=source_pks,
-            )
-
-            nlp_dict = {src_pk: nlp_pk for (src_pk, nlp_pk) in nlp_rows}
-
-            for source_pk in source_pks:
-                random_order = rng.getrandbits(max_rand_bits)
-                source_record, created = SourceRecord.objects.get_or_create(
-                    random_order=random_order,
-                    source_column=self.source_column,
-                    nlp_table_definition=self.nlp_table_definition,
-                    source_pk_value=source_pk,
-                    nlp_pk_value=nlp_dict.get(source_pk, ""),
-                )
-
-                self.source_records.add(source_record)
-
-            start += batch_size
 
     def __str__(self) -> Any:
         return (
