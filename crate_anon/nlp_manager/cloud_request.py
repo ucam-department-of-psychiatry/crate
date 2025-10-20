@@ -39,7 +39,7 @@ from sqlalchemy.exc import DatabaseError
 
 from cardinal_pythonlib.compression import gzip_string
 from cardinal_pythonlib.rate_limiting import rate_limited
-from cardinal_pythonlib.json.typing_helpers import (
+from cardinal_pythonlib.json_utils.typing_helpers import (
     JsonArrayType,
     JsonObjectType,
     JsonValueType,

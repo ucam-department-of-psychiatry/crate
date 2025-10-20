@@ -38,7 +38,7 @@ import logging
 import re
 from typing import Any, Dict, Iterable, List, Tuple, Union, Optional
 
-from cardinal_pythonlib.json.serialize import (
+from cardinal_pythonlib.json_utils.serialize import (
     METHOD_PROVIDES_INIT_KWARGS,
     METHOD_STRIP_UNDERSCORE,
     register_for_json,
