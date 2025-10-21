@@ -45,8 +45,6 @@ Database connections
 
 Most of the CRATE tools talk to one or more databases. They do this via
 SQLAlchemy_, which uses a unified URL scheme to define a database connection.
-You will need to create a URL for every database you wish to use. In some cases
-you may need to install drivers. See “Internal database interfaces” below.
 
 
 Preprocessing
@@ -71,6 +69,7 @@ CRATE provides the following optional pre-processing steps:
   data to make it simpler for end users. This program also generates data
   dictionary options for the next step.
 
+- :ref:`crate_preprocess_systmone <crate_preprocess_systmone>`: indexes a SystmOne database.
 
 Data dictionary generation and editing
 --------------------------------------
@@ -111,8 +110,9 @@ existing tables and starting from scratch, or in an “incremental” way, looki
 for changes to the source database (with respect to the anonymised database)
 and changing the anonymised database accordingly.
 
-This tool uses a :ref:`configuration file <anon_config_file>` that you create
-and edit. Use ``crate_anon_demo_config`` to generate a demonstration file.
+This tool uses a :ref:`configuration file <anon_config_file>` that is initially
+created by the installer in the ``config`` directory and can be edited.
+
 
 .. note::
 
@@ -131,10 +131,10 @@ to a database table.
 CRATE includes some built-in natural language tools, including regular
 expression (regex) parsers for numerical results.
 
-The GATE NLP system is also supported, via a Java program. Use
-:ref:`crate_nlp_build_gate_java_interface
-<crate_nlp_build_gate_java_interface>` to build this before you use it for the
-first time.
+The GATE NLP system is also supported, via a Java program. This is built into
+the CRATE Docker image or use :ref:`crate_nlp_build_gate_java_interface
+<crate_nlp_build_gate_java_interface>` to build this if you are not using
+Docker.
 
 The MedEx-UIMA system is also supported, via a Java program. Use
 :ref:`crate_nlp_build_medex_java_interface
@@ -162,11 +162,12 @@ Web front end
 CRATE offers a web front end that supports researcher access to the data, and
 allows managers to operate a specific consent-to-contact process.
 
-It uses a configuration file. Use :ref:`crate_print_demo_crateweb_config
+It uses a configuration file, which is created automatically by the CRATE
+installer. Alternatively use :ref:`crate_print_demo_crateweb_config
 <crate_print_demo_crateweb_config>` to create a starting config that you can
 edit, and :ref:`crate_generate_new_django_secret_key
-<crate_generate_new_django_secret_key>` to generate a random secret key for
-your site (which goes into the config).
+<crate_generate_new_django_secret_key>` to generate a random secret key for your
+site (which goes into the config).
 
 The :ref:`crate_django_manage <crate_django_manage>` command provides options
 for:

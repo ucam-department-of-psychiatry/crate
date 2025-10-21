@@ -18,14 +18,16 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
+.. _installation:
+
 Installing CRATE
 ================
 
 ..  toctree::
     :maxdepth: 2
 
-    firewall.rst
+    prerequisites.rst
     docker.rst
-    installation.rst
+    manual_installation.rst
     database_drivers.rst
     upgrading.rst
