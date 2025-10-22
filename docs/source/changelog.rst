@@ -1741,6 +1741,12 @@ Changes
 
 **0.20.8, in progress**
 
+- Update the installer with example scripts to:
+
+  - enter the Docker container (useful when troubleshooting problems).
+
+  - create wordlists e.g. for removing all personal names that are not medical
+    eponyms.
 
 To do
 -----
