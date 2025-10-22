@@ -429,7 +429,7 @@ CRATE_DOCKER_ODBC_USER_CONFIG
 
 When using external databases with ODBC, this is the basename of the config file
 that contains definitions of those databases. The ``ODBCINI`` environment variable
-is set in the ``crate_server`` Docker container to point to this file. See (see
+is set in the ``crate_crate_server`` Docker container to point to this file. See (see
 CRATE_DOCKER_CONFIG_HOST_DIR_)
 
 
@@ -458,7 +458,7 @@ CRATE_DOCKER_REMOTE_PDB_CRATE_SERVER_HOST_PORT
 
 *Default: 44444*
 
-Used in development to debug the Python code in the ``crate_server`` Docker
+Used in development to debug the Python code in the ``crate_crate_server`` Docker
 container. Use ``breakpoint()`` in the code and then connect to this port on the
 host: e.g. ``telnet 127.0.0.1 44444``.
 
@@ -788,45 +788,112 @@ CRATE_INSTALLER_SOURCE_DATABASE_PORT
 The port on the server hosting the source database to be anonymised by CRATE.
 
 
+Example scripts
+---------------
 
-.. todo:: fix below here; see CamCOPS help
+The installer copies example Bash scripts for running commonly used CRATE
+commands to the ``scripts`` directory of your CRATE installation. Some of these
+should work without modification and others will need to be customised for your
+particular CRATE setup.
 
-.. _web_config_file_docker:
+
+anonymise_FULL.sh
+^^^^^^^^^^^^^^^^^
+
+Runs full anonymisation on the databases specified in the anonymisation
+configuration.
 
 
+anonymise_INCREMENTAL.sh
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-Tools
------
+Runs incremental anonymisation on the databases specified in the anonymisation
+configuration.
 
-All live in the ``installer`` directory.
+
+email_rdbm.sh
+^^^^^^^^^^^^^
+
+Emails the Research Database Manager. Can be used to send an email once a job
+(e.g. full anonymisation) has completed. This is configured in the CRATE web
+application configuration (`crateweb_local_settings.py`). See the ``RDBM_*` and
+``EMAIL_*`` settings in this file.
 
 
 enter_crate_container.sh
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Starts a container with the CRATE image and runs a Bash shell within it.
+Starts a container with the CRATE image and runs a Bash shell within it. This
+can be useful for troubleshooting.
 
 .. warning::
 
     Running a shell within a container allows you to break things! Be careful.
 
 
-start_crate.sh
-^^^^^^^^^^^^^^
+exec_crate_command.sh
+^^^^^^^^^^^^^^^^^^^^^
 
-Shortcut for ``docker compose up -d`` with the relevant ``docker-compose-*.yaml`` files. The ``-d`` switch is short for
-``--detach`` (or daemon mode).
-
-
-
-stop_crate.sh
-^^^^^^^^^^^^^
-
-Shortcut for ``docker compose down``.
+Executes a command (using ``docker compose exec``) within the existing
+``crate_crate_server`` Docker container.
 
 
-run_crate_command
+fetch_wordlists.sh
+^^^^^^^^^^^^^^^^^^
+
+Fetches common word lists such as lists of names to anonymise and words to
+exclude from these lists (such as English words or medical eponyms). See
+:ref:`crate_fetch_wordlists <crate_fetch_wordlists>`
+
+
+generate_draft_data_dict.sh
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Generates a draft Data Dictionary, to use with anonymisation.
+
+
+generate_nlp_config.sh
+^^^^^^^^^^^^^^^^^^^^^^
+
+Generates a config file for Natural Language Processing (NLP).
+
+
+load_ons_postcode_database.sh
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Loads the Office of National Statistics Postcode Database from spreadsheet files
+to a specified database.
+
+
+nlp_BIOMARKERS_FULL.sh
+^^^^^^^^^^^^^^^^^^^^^^
+
+Runs full "biomarkers" Natural Language Processing on an anonymised database.
+
+
+nlp_BIOMARKERS_INCREMENTAL.sh
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Run incremental "biomarkers" NLP on an anonymised database.
+
+
+preprocess_rio.sh
 ^^^^^^^^^^^^^^^^^
+
+Preprocesses a RiO database prior to data dictionary generation and anonymisation. See :ref:`crate_preprocess_rio <crate_preprocess_rio>`.
+
+
+preprocess_systmone.sh
+^^^^^^^^^^^^^^^^^^^^^^
+
+Preprocesses a RiO database prior to data dictionary generation and anonymisation. See :ref:`crate_preprocess_systmone`.
+
+
+run_crate_command.sh
+^^^^^^^^^^^^^^^^^^^^
+
+Runs a command in a CRATE container. Shortcut for ``docker compose run`` with
+the relevant ``docker-compose-*.yaml`` files.
 
 This script starts a container with the CRATE image, activates the CRATE
 virtual environment, and runs a command within it. For example, to explore this
@@ -836,17 +903,20 @@ container, you can do
 
         ./run_crate_command.sh /bin/bash
 
-... which is equivalent to the ``enter_docker_container`` script (see above and
-note the warning).
+... which is similar to the ``enter_docker_container`` script (see above and
+note the warning) except that it runs in a new Docker container instead of
+the existing ``crate_crate_server`` one.
 
 
-exec_crate_command
-^^^^^^^^^^^^^^^^^^
+start_crate.sh
+^^^^^^^^^^^^^^
 
-Runs a command in the existing ``crate_server`` container.
+Starts the CRATE Docker containers. Shortcut for ``docker compose up -d`` with
+the relevant ``docker-compose-*.yaml`` files. The ``-d`` switch is short for
+``--detach`` (or daemon mode).
 
 
-Development notes
------------------
+stop_crate.sh
+^^^^^^^^^^^^^
 
-- See https://camcops.readthedocs.io/en/latest/administrator/docker.html.
+Stops the CRATE Docker containers Shortcut for ``docker compose down``.

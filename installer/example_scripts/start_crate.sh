@@ -25,7 +25,7 @@
 # ==============================================================================
 
 # Starts the CRATE Docker containers. This is equivalent to:
-# docker compose up
+# docker compose up -d
 # including all of the relevant docker-compose-*.yaml files
 
 
