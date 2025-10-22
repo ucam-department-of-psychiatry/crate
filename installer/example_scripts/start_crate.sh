@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# installer/enter_crate_container.sh
+# installer/example_scripts/start_crate.sh
 
 # ==============================================================================
 #
@@ -24,18 +24,15 @@
 #
 # ==============================================================================
 
-# Run a bash shell in the CRATE container
+# Starts the CRATE Docker containers. This is equivalent to:
+# docker compose up
+# including all of the relevant docker-compose-*.yaml files
+
 
 set -euo pipefail
 
-# Activate Python virtual environment
-CRATE_INSTALLER_VENV=${HOME}/.virtualenvs/crate-installer
-source "${CRATE_INSTALLER_VENV}/bin/activate"
+THISDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+# shellcheck source-path=SCRIPTDIR source=set_crate_environment_vars
+source "${THISDIR}"/set_crate_environment_vars
 
-# Restore user's environment variables, if found
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-source "${SCRIPT_DIR}/restore_crate_envvars.sh"
-
-# Run Python installer script with a command
-INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
-python "${INSTALLER_HOME}/installer.py" shell "$@"
+${PYTHON} "${CRATE_HOST_INSTALLER_BASE_DIR}/installer.py" start
