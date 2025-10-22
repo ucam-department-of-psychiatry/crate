@@ -62,6 +62,9 @@ Supported engines include:
 Recommended database drivers
 ----------------------------
 
+If you have installed CRATE using the Docker-based installer, the recommended
+database drives are automatically included.
+
 CRATE needs to talk to several databases, potentially of several types (e.g. an
 `SQL Server`_ source and a MySQL_ destination), and from several operating
 systems (e.g. if it runs on Windows or Linux). It’s therefore important to be
@@ -73,8 +76,8 @@ Summarizing the discussion below:
   want to avoid dependencies, use :ref:`MySQL Connector/Python
   <mysqlconnector>` or :ref:`PyMySQL <pymysql>`.
 
-- For `SQL Server`_: with Django use :ref:`django-mssql-backend
-  <django_mssql_backend>`, and with SQLAlchemy use pyodbc_, both via ODBC. For
+- For `SQL Server`_: with Django use :ref:`mssql-django
+  <mssql_django>`, and with SQLAlchemy use pyodbc_, both via ODBC. For
   the ODBC drivers:
 
   - under Windows, use native drivers
@@ -88,9 +91,8 @@ Summarizing the discussion below:
 - For PostgreSQL_: use psycopg2_, though you may have to install prerequisites
   (e.g. PostgreSQL itself).
 
-CRATE doesn’t bundle in database drivers, since they are OS-specific in many
-instances, and can be installed as required by the user. The exception is the
-:ref:`Docker setup <crate_docker>`, which does bundle recommended drivers.
+When installed manually, CRATE doesn’t bundle in database drivers, since they
+are OS-specific in many instances, and can be installed as required by the user.
 
 
 More detail
@@ -120,40 +122,6 @@ hard to upgrade. Keep things modular.
 
 A catalogue of Python database drivers
 --------------------------------------
-
-.. _mysqldb:
-
-MySQL + MySQLdb
-~~~~~~~~~~~~~~~
-
-**Deprecated.** ``MySQLdb`` is an open-source Python interface to the `MySQL C
-API`_. It has largely been replaced by mysqlclient_. It doesn't support Python
-3 [#mysqldbnotpython3]_: Python 2 only.
-
-==================  ===========================================================
-Driver              MySQLdb
-Home page           | https://pypi.org/project/MySQL-python/
-                    | https://github.com/farcepest/MySQLdb1
-Database            MySQL_
-Installation        ``pip install mysql-python``
-Import              ``import MySQLdb``
-Django ``ENGINE``   ``django.db.backends.mysql``
-SQLAlchemy URL      ``mysql+mysqldb://user:password@host:port/database?charset=utf8``
-Licence             GPL
-==================  ===========================================================
-
-"MySQLdb" and "mysql-python" are synonyms.
-
-.. include:: include_needs_compiler.rst
-
-It also requires appropriate libraries to build itself, so can fail to
-autoinstall. It doesn’t autoinstall on a clean Linux box. You will need the
-MySQL libraries installed; under Ubuntu Linux, you can do this:
-
-.. code-block:: bash
-
-    sudo apt-get install mysql
-
 
 .. _mysqlclient:
 
@@ -234,17 +202,6 @@ https://dev.mysql.com/doc/connector-python/en/connector-python-django-backend.ht
 
 It's slower than C-based interfaces, obviously [#mysqlconnectorslow]_.
 
-**Problems.** MySQL Connector/Python 2.0.4 doesn’t work with Django 1.9.7
-(“cannot import name ‘BaseDatabaseFeatures’”), as of 2016-06-14
-[https://code.djangoproject.com/ticket/24355]. At this time, 2.0.4 was the most
-recent MySQL Connector/Python version cited in PyPI, but the direct-download
-version from Oracle was 2.1.3. Don’t use the .MSI download; use “pip install
-https://cdn.mysql.com/Downloads/Connector-Python/mysql-connector-python-2.1.3.tar.gz”
-from within the virtual environment. This version does better with Django
-1.9.7. However, it fails with errors like “django.db.utils.DatabaseError:
-Incorrect datetime value: ‘2016-06-14 12:41:52.320665+00:00’ for column
-‘applied’ at row 1” [https://code.djangoproject.com/ticket/26113].
-
 
 .. _pymysql:
 
@@ -278,97 +235,6 @@ CRATE implements this fix, though actually if you want to run Celery as well,
 you need the fix via the Celery entry point, so it’s easier to put one fix in
 ``settings.py``.
 
-
-.. _django_mssql:
-
-SQL Server + django-mssql
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Not recommended.**
-
-An ADO_-based Django database backend for Microsoft SQL Server.
-
-==================  ===========================================================
-Driver              django-mssql
-Home page           http://django-mssql.readthedocs.io/
-Database            `SQL Server`_
-Installation        ``pip install django-mssql``
-Import              –
-Django ``ENGINE``   ``sqlserver_ado``
-SQLAlchemy URL      –
-==================  ===========================================================
-
-Django doesn’t support SQL Server officially
-[https://docs.djangoproject.com/en/1.9/ref/databases/]; django-mssql is a
-third-party back-end, but it’s the semi-official one
-[http://django-mssql.readthedocs.org/en/latest/]. It is **Windows-only**
-[https://stackoverflow.com/questions/22604732].
-
-With django-mssql==1.7 and Django==1.9.7, it doesn’t work (the error being “No
-module named ‘django.db.backends.util’). It’s possible to hack around this, but
-it doesn’t work out of the box
-[https://stackoverflow.com/questions/9944204/setting-up-django-mssql-issues].
-Also, the SQL Server version supported appears
-to be somewhat specific to the django-mssql version [https://bitbucket.org/Manfre/django-mssql/].
-
-With django-mssql==1.8 and Django==1.10.5, it works (tested with SQL Server
-2014), but you have to edit the ‘provider’ option, or you get errors like
-‘ADODB.Connection’ / ‘Provider cannot be found. It may not be properly
-installed.’ [See also
-https://stackoverflow.com/questions/26406943/establishing-connection-to-ms-sql-server-2014-with-django-mssql-1-6.]
-For compatibility with the way django-pyodbc-azure works, you also need to set
-``use_legacy_date_fields``. Here’s an example:
-
-.. code-block:: none
-
-    ‘my_rio': {
-        'ENGINE': 'sqlserver_ado',
-        'NAME': 'RIO_TEST',  # database name
-        'OPTIONS': {
-             'use_mars': True,  # the default is True
-             'provider’: ‘SQLOLEDB’,
-             'use_legacy_date_fields’: True,
-        },
-        'USER': 'XXX',
-        'PASSWORD': 'XXX',
-    }
-
-It works to a degree, but even with ``use_legacy_date_fields``, lots of date
-comparisons failed. It was easier to hack django-pyodbc-azure slightly.
-
-
-.. _django_pymssql:
-
-SQL Server + django-pymssql
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Not recommended.**
-
-This is no longer maintained (2018-12-06). It is a wrapper around
-:ref:`django-mssql <django_mssql>` that uses pymssql_ instead of ADO_ to
-connect to SQL Server.
-
-==================  ===========================================================
-Driver              django-pymssql
-Home page           https://github.com/aaugustin/django-pymssql
-Database            `SQL Server`_
-Installation        ``pip install django-pymssql`` and also needs pymssql_
-Import              –
-Django ``ENGINE``   ``sqlserver_pymssql``
-SQLAlchemy URL      –
-Licence             MIT License
-==================  ===========================================================
-
-- The project self-reports as not quite passing the Django test suite. It’s
-  probably this or the :ref:`django-pyodbc-azure <django_pyodbc_azure>` route.
-  This has the simpler stack.
-
-- Doesn't work with Django 1.8. Using ‘sqlserver_pymssql’ engine leads to
-  sqlserver_ado failing to import ‘django.db.backends.util’, etc. See
-  https://stackoverflow.com/questions/30051839;
-  https://stackoverflow.com/questions/9944204.
-
-
 .. _pymssql:
 
 SQL Server + pymssql
@@ -392,104 +258,25 @@ with SQL Server. Under Ubuntu, there are prerequisites: ``sudo apt-get install
 freetds-dev`` first.
 
 
-.. _django_pyodbc_azure:
+.. _mssql_django:
 
-SQL Server (or other) + django-pyodbc-azure
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SQL Server + mssql-django
+-------------------------
 
-``django-pyodbc-azure`` is a Django interface to any database via :ref:`PyODBC
-<pyodbc>`. It was subsequently replaced (e.g. for Django 3) by
-:ref:`django-mssql-backend <django_mssql_backend>` (q.v.).
+A replacement for :ref:`django-mssql-backend <django_mssql_backend>` (q.v.)
 
 ==================  ===========================================================
-Driver              django-pyodbc-azure
-Home page           | https://pypi.org/project/django-pyodbc-azure/
-                    | https://github.com/michiya/django-pyodbc-azure
+Driver              mssql-django
+Home page           | https://pypi.org/project/mssql-django/
+                    | https://github.com/microsoft/mssql-django
 Database            Any with an :ref:`ODBC <odbc>` connection
-Installation        ``pip install django-pyodbc-azure`` and also needs :ref:`PyODBC <pyodbc>`
-Import              –
-Django ``ENGINE``   ``sql_server.pyodbc``
-SQLAlchemy URL      –
-Licence             BSD License
-==================  ===========================================================
-
-Under Linux, you can use the FreeTDS_ ODBC driver, in which case read the
-``'OPTIONS': {'host_is_server': ...}`` option carefully in the docs.
-
-The Django database dictionary can be configured to use a Windows ODBC DSN with
-e.g.: [#djangopyodbcazuremethod]_
-
-.. code-block:: none
-
-    ‘my_rio': {
-        'ENGINE': 'sql_server.pyodbc',
-        'NAME': 'RIO_TEST',  # database name
-        'OPTIONS': {
-             'driver': 'SQL Server Native Client 11.0',
-             # ... 'driver' is optional
-
-             'dsn': 'RIO_TEST_SANDPIT',  # ODBC DSN
-             # ... note lower case key as of django-pyodbc-azure 2.0.6
-
-             # 'MARS_Connection': True,
-             # ... no longer in django-pyodbc-azure 2.0.6; automatic
-        },
-        'USER': '',  # blank for Microsoft Integrated Security
-        'PASSWORD': '',
-    }
-
-
-It is not possible to avoid specifying NAME (without hacking the
-sql_server.pyodbc source) – even if it’s unnecessary because database name is
-also in the ODBC configuration for the specified DSN. Just supply it again.
-(Note that if you specify a NAME that is a mismatch to the ODBC configuration,
-you get odd effects – e.g. no data when you try to describe the database or
-view its structure.)
-
-If you are running as a service, you may have to specify the username/password,
-since the program will be running as a system account.
-
-.. note::
-
-    ``django-pyodbc-azure`` generally works well. However, with
-    ``django-pyodbc-azure==1.10.4.0``, ``pyodbc==4.0.3``, and
-    ``Django==1.10.5``, there appears to be a bug in using
-    ``cursor.fetchone()``, in that PyODBC automatically calls
-    ``self.cursor.nextset()``, and this can lead to crashes with errors like
-    “No results. Previous SQL was not a query.” This can be fixed by hacking
-    that call out of ``sql_server/pyodbc/base.py``, in ``Cursor.fetchone()``,
-    and CRATE does this in a dynamic fashion if
-    ``DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET`` is set (see
-    :ref:`web_config_file`). This proved easier than switching to
-    ``django-mssql``.
-
-
-.. todo::
-    Check if ``DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET`` with
-    more recent of ``django-pyodbc-azure`` (and if not necessary, document
-    successful version).
-
-
-.. _django_mssql_backend:
-
-SQL Server + django-mssql-backend
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-A replacement for :ref:`django-pyodbc-azure <django_pyodbc_azure>` (q.v.)
-
-==================  ===========================================================
-Driver              django-mssql-backend
-Home page           | https://pypi.org/project/django-mssql-backend/
-                    | https://github.com/ESSolutions/django-mssql-backend
-Database            Any with an :ref:`ODBC <odbc>` connection
-Installation        ``pip install django-mssql-backend`` and also needs
+Installation        ``pip install mssql-django`` and also needs
                     :ref:`PyODBC <pyodbc>`
 Import              –
-Django ``ENGINE``   ``sql_server.pyodbc``
+Django ``ENGINE``   ``mssql``
 SQLAlchemy URL      –
 Licence             BSD License
 ==================  ===========================================================
-
 
 .. _psycopg2:
 
@@ -566,6 +353,29 @@ http://docs.sqlalchemy.org/en/rel_1_0/dialects/mysql.html.
 
 Others to ignore
 ~~~~~~~~~~~~~~~~
+
+.. _django_mssql_backend:
+
+- **django-mssql-backend** superseded by :ref:`mssql-django <mssql_django>`
+  [https://pypi.org/project/django-mssql-backend/].
+
+.. _django_pyodbc_azure:
+
+- **django-pyodbc-azure** superseded by django-mssql-backend and most recently
+  :ref:`mssql-django <mssql_django>`.
+  [https://pypi.org/project/django-pyodbc-azure/].
+
+- **django-pymssql**. Not maintained
+  since 2016.
+  [https://pypi.org/project/django-pymssql/].
+
+- **django-mssql**. Not maintained since 2016.
+  [https://pypi.org/project/django-mssql/]
+
+.. _mysqldb:
+
+- **MySQL-python / MySQLdb** doesn't support Python 3. Not maintained since 2014.
+  [https://pypi.org/project/MySQL-python/]
 
 - **django-pyodbc** doesn't support Python 3
   [https://pypi.python.org/pypi/django-pyodbc].
