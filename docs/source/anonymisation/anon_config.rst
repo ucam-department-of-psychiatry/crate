@@ -1817,9 +1817,6 @@ Many options are not shown and most comments have been removed.
     :language: ini
 
 
-.. todo:: Check minimal anonymiser config example works.
-
-
 .. _specimen_anonymiser_config:
 
 .. _crate_anon_demo_config:

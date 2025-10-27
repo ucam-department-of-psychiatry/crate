@@ -628,7 +628,3 @@ not shown for clarity.
     mydb    documents  patientnum   INTEGER(11)   P                                   OMIT                                                                                      Patient ID will be replaced by RID+TRID
     mydb    documents  when_added   DATETIME                                          include                           documents   when_added  DATETIME         I
     mydb    documents  filename     VARCHAR(255)                                      include   filename_to_text,scrub  documents   contents    LONGTEXT         F              Becomes scrubbed document contents with FULLTEXT index.
-
-
-
-.. todo:: Check minimal data dictionary example works.

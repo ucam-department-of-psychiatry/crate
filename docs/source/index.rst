@@ -70,7 +70,6 @@ CRATE is an open-source software system that:
 
     licences/licences.rst
     changelog.rst
-    to_do.rst
     glossary.rst
 
 
