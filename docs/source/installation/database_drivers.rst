@@ -356,44 +356,87 @@ Others to ignore
 
 .. _django_mssql_backend:
 
-- **django-mssql-backend** superseded by :ref:`mssql-django <mssql_django>`
-  [https://pypi.org/project/django-mssql-backend/].
+django-mssql-backend
+^^^^^^^^^^^^^^^^^^^^
+
+[https://pypi.org/project/django-mssql-backend/]. Superseded by :ref:`mssql-django <mssql_django>`.
+
 
 .. _django_pyodbc_azure:
 
-- **django-pyodbc-azure** superseded by django-mssql-backend and most recently
-  :ref:`mssql-django <mssql_django>`.
-  [https://pypi.org/project/django-pyodbc-azure/].
+django-pyodbc-azure
+^^^^^^^^^^^^^^^^^^^
 
-- **django-pymssql**. Not maintained
-  since 2016.
-  [https://pypi.org/project/django-pymssql/].
+[https://pypi.org/project/django-pyodbc-azure/]. Superseded by
+:ref:`django-mssql-backend <django_mssql_backend>` and most recently
+:ref:`mssql-django <mssql_django>`
 
-- **django-mssql**. Not maintained since 2016.
-  [https://pypi.org/project/django-mssql/]
+
+.. _django_pymssql:
+
+django-pymssql
+^^^^^^^^^^^^^^
+
+[https://pypi.org/project/django-pymssql/]. Not maintained since 2016.
+
+
+.. _django_mssql:
+
+django-mssql
+^^^^^^^^^^^^
+
+[https://pypi.org/project/django-mssql/]. Not maintained since 2016.
+
 
 .. _mysqldb:
 
-- **MySQL-python / MySQLdb** doesn't support Python 3. Not maintained since 2014.
-  [https://pypi.org/project/MySQL-python/]
+MySQL-python / MySQLdb
+^^^^^^^^^^^^^^^^^^^^^^
 
-- **django-pyodbc** doesn't support Python 3
-  [https://pypi.python.org/pypi/django-pyodbc].
+[https://pypi.org/project/MySQL-python/]. Doesn't support Python 3. Not maintained since 2014.
 
-- **django-sqlserver** failed in 2015 with Django 1.9rc1, and is documented as
-  buggy [https://github.com/denisenkom/django-sqlserver; older version was
+
+.. _django_pyodbc:
+
+django-pyodbc
+^^^^^^^^^^^^^
+
+[https://pypi.python.org/pypi/django-pyodbc/]. Doesn't support Python 3.
+
+
+.. _django_sqlserver:
+
+django-sqlserver
+^^^^^^^^^^^^^^^^
+
+[https://github.com/denisenkom/django-sqlserver/]. Failed in 2015 with Django 1.9rc1,
+  and is documented as buggy [older version was
   https://bitbucket.org/denisenkom/django-pytds]. It was formerly known as
   ``django-pytds`` and uses the python-tds interface
   [https://pypi.python.org/pypi/python-tds].
 
-- **django-jython** (via **zxJDBC** then JDBC, then jTDS or a native driver):
-  this requires running Django under Jython, adding complexity.
 
-- **mxODBC**: ignored; commercial
-  [http://www.egenix.com/products/python/mxODBC/].
+.. _django_jython:
 
-- **adodbapi**: Not implemented in SQLAlchemy 0.6+
-  [http://docs.sqlalchemy.org/en/latest/dialects/mssql.html].
+django-jython
+^^^^^^^^^^^^^
+
+[https://pypi.org/project/django-jython/]. (via **zxJDBC** then JDBC, then jTDS or a
+  native driver): this requires running Django under Jython, adding
+  complexity. Not maintained since 2012.
+
+
+mxODBC
+^^^^^^
+
+[http://www.egenix.com/products/python/mxODBC/]. Ignored; commercial
+
+
+adodbapi
+^^^^^^^^
+
+[https://pypi.org/project/adodbapi/]. Not implemented in SQLAlchemy. Not maintained since 2019.  [http://docs.sqlalchemy.org/en/latest/dialects/mssql.html].
+
 
 
 Other database connection components
