@@ -68,6 +68,12 @@ if __name__ == "__main__":
         formatter_class=ArgumentDefaultsRichHelpFormatter
     )
     parser.add_argument(
+        "--skip_inclusion_files",
+        action="store_true",
+        help="Don't rebuild inclusion files",
+        default=False,
+    )
+    parser.add_argument(
         "--skip_medex",
         action="store_true",
         help="Don't try to build Medex help files",
@@ -107,7 +113,9 @@ if __name__ == "__main__":
 
     if args.skip_medex:
         recreate_args.append("--skip_medex")
-    subprocess.check_call(recreate_args)
+
+    if not args.skip_inclusion_files:
+        subprocess.check_call(recreate_args)
 
     # -------------------------------------------------------------------------
     # Make HTML docs
