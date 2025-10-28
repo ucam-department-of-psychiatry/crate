@@ -36,7 +36,7 @@ URLs for CRATE source code
 Manual installation
 -------------------
 
-Installing CRATE itself is very easy, but you probably want a lot of supporting
+Installing CRATE itself is straightforward, but you probably want a lot of supporting
 tools. Here's a logical sequence.
 
 
