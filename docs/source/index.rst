@@ -45,10 +45,12 @@ CRATE is an open-source software system that:
     research database, see the :ref:`Overview for clinicians and researchers
     <crateweb_clinician_researcher_overview>`.
 
+Contents
+--------
+
 ..  toctree::
     :maxdepth: 2
     :numbered:
-    :caption: Contents:
     :glob:
 
     introduction/index.rst
@@ -74,7 +76,7 @@ CRATE is an open-source software system that:
 
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`search`
