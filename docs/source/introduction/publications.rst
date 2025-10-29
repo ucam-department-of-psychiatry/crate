@@ -19,7 +19,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 Reference publications
-======================
+----------------------
 
 The primary reference publication is:
 
