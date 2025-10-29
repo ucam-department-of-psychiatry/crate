@@ -793,7 +793,7 @@ https://dev.mysql.com/doc/refman/5.0/en/fulltext-search.html
 
 
 SQL Server
-----------
+~~~~~~~~~~
 
 .. _configure_odbc_mars:
 
