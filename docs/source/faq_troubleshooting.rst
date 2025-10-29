@@ -23,14 +23,14 @@
 .. _RabbitMQ: https://www.rabbitmq.com/
 
 FAQs and troubleshooting
-========================
+------------------------
 
 .. contents::
    :local:
 
 
 Known bugs elsewhere affecting CRATE
-------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - wkhtmltopdf font size bug
 
@@ -46,10 +46,10 @@ Known bugs elsewhere affecting CRATE
 
 
 General
--------
+~~~~~~~
 
 ImportError: No module named ‘{mysqldb, pyodbc, ...}’
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You haven’t installed the right drivers for the database URL(s) that you have
 specified in your CRATE configuration file. Make sure the virtualenv is
@@ -58,7 +58,7 @@ then install it (see :ref:`Database drivers <database_drivers>`).
 
 
 Which Python modules should be installed?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Use ``pip freeze`` to show what you have installed. The ones you have to
 install manually are marked with ``# MANUAL``; CRATE installs the others.
@@ -70,16 +70,16 @@ install manually are marked with ``# MANUAL``; CRATE installs the others.
 
 
 Pretty colours all gone (anonymiser, NLP, etc.)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 That’s what happens when you pipe the tool through ``tee``.
 
 
 CRATE anonymiser
-----------------
+~~~~~~~~~~~~~~~~
 
 Anonymisation is slow
-~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^
 
 Make sure you have indexes created on all patient_id fields, because the tool
 will use this to find (a) values for scrubbing, and (b) records for
@@ -87,7 +87,7 @@ anonymisation. Indexing here makes a huge difference!
 
 
 CRATE uses lots of memory
-~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A normal run should see CRATE using roughly 60–80 Mb per process. Values much
 in excess of this likely relate to the text extraction process, which uses
@@ -96,7 +96,7 @@ third-party software over which CRATE has no control (I’ve seen >1 Gb)
 
 
 “File is not a zip file”
-~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 In full: “Caught exception from document_to_text: File is not a zip file” when
 extracting text from DOCX documents
@@ -106,7 +106,7 @@ anonymiser will not be able to read these, and this error can be ignored.
 
 
 “UnRtf: ... has stopped working”
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If a third-party program is used by CRATE for text extraction and fails, you
 may get lots of messages from Windows like “UnRtf: convert document in RTF
@@ -132,7 +132,7 @@ entries [#disabledebugcloseapplication]_:
 
 
 "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can get this error when you try to use a config file in Windows, certainly
 by using Notepad to create/edit a CRATE config file. Notepad can default to
@@ -140,10 +140,10 @@ by using Notepad to create/edit a CRATE config file. Notepad can default to
 
 
 CRATE NLP
----------
+~~~~~~~~~
 
 How can I update a source file in KConnect/Bio-YODIE
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Example: replacing `plugins/Tagger_ConText/src/gate/context/ContextFeaturesTagger.java`.
 
@@ -160,10 +160,10 @@ Example: replacing `plugins/Tagger_ConText/src/gate/context/ContextFeaturesTagge
 
 
 CRATE web site
---------------
+~~~~~~~~~~~~~~
 
 crate_launch_cherrypy_server can’t find its config files
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Use forward slashes (``/``) rather than backslashes (``\``) for filename paths
 in the environment variable `CRATE_CHERRYPY_ARGS` (e.g.
@@ -174,7 +174,7 @@ in the environment variable `CRATE_CHERRYPY_ARGS` (e.g.
 .. _faq_port_443_not_free:
 
 Port 443 not free on ‘127.0.0.1’
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Problem: Under Windows Server: `OSError(“Port 443 not free on ‘127.0.0.1’”)`
 
@@ -209,7 +209,7 @@ A common choice might be 8443 [#port8443]_.
 
 
 OSError: No socket could be created... permission denied
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The error ``OSError: No socket could be created -- (('127.0.0.1', 443): [Errno
 13] Permission denied)`` may be seen on Linux and is similar to :ref:`port 443
@@ -224,7 +224,7 @@ https://superuser.com/questions/710253/allow-non-root-process-to-bind-to-port-80
 
 
 “Your connection is not private...” browser error
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You will always get this error until you get a proper HTTPS certificate. This
 error occurs when you self-sign a certificate. Browers will offer you a way
@@ -233,7 +233,7 @@ Proceed... (unsafe)`].
 
 
 403 Forbidden: CSRF verification failed
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There are at least two possible reasons:
 
@@ -250,7 +250,7 @@ There are at least two possible reasons:
 
 
 "Unknown, invalid, or unsupported option... in a getsockopt or setsockopt call"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Problem: the front end might produce the error: “An unknown, invalid, or
 unsupported option or level was specified in a getsockopt or setsockopt call”
@@ -274,7 +274,7 @@ other requirements are also downgraded (`celery` to 4.0.1; `kombu` to 4.0.1).
 
 
 Static files not served via CherryPy
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Problem: Static files are not served (e.g. broken icons rather than plus/minus
 symbols; broken-looking admin site) when using the CherryPy server for CRATE.
@@ -293,7 +293,7 @@ exist”. If you use `https://mysite/crate/` as your site root, with
 
 
 I can’t restart the CRATE Windows Service cleanly
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There may be a problem whereby the CRATE web service doesn’t entirely shut down
 when its service is stopped. You can manually kill leftover processes (which
@@ -303,7 +303,7 @@ This should be fixed now.
 
 
 CRATE service doesn't start... errors in Windows Event Log
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If your CRATE service doesn't start and you see this error in the Event
 Log:
@@ -373,7 +373,7 @@ So the general rescue method:
 
 
 “No connection could be made because the target machine actively refused it”
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Problem: From the front end, you see: “No connection could be made because the
 target machine actively refused it”.
@@ -504,16 +504,16 @@ If you see something like that, all should be well.
 
 
 MySQL
------
+~~~~~
 
 Can’t connect to MySQL, even manually
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 See https://dev.mysql.com/doc/refman/5.5/en/problems-connecting.html.
 
 
 How do I reconfigure MySQL?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Edit the MySQL configuration file.
 
@@ -607,7 +607,7 @@ reboot.
 
 
 Table names are always lower case using MySQL under Windows
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Under Windows, MySQL converts table names to lower case by default (but is
 happy with mixed-case column names, and is happy with table and column names
@@ -624,7 +624,7 @@ MySQL advice. This is the default behaviour under Windows.
 
 
 “Got a packet bigger than ‘max_allowed_packet’ bytes” or “MySQL has gone away”
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Problem: `sqlalchem.exc.OperationalError:
 (mysql.connector.errors.OperationalError)... Got a packet bigger than
@@ -654,7 +654,7 @@ CRATE anonymiser.
 
 
 How do I hot-swap two MySQL databases?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Since anonymisation is slow, you may want a live research database and another
 that you can update offline. When you're ready to swap, you'll want to
@@ -679,7 +679,7 @@ How?
 
 
 "MySQL server has gone away"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 One possibility is that you are processing a big binary field, and MySQL's
 ``max_allowed_packet`` parameter is too small. Try increasing it (e.g. from 16M
@@ -688,7 +688,7 @@ https://camcops.readthedocs.io/en/latest/administrator/server_troubleshooting.ht
 
 
 How to convert a database from SQL Server to MySQL?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This facility is provided by MySQL Workbench, which will connect to an SQL
 Server instance. Use the "ODBC via connection string" option if other methods
@@ -701,7 +701,7 @@ tables (i.e. doing no actual anonymisation).
 
 
 What settings do I need in /etc/mysql/my.cnf?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Probably these:
 
@@ -729,7 +729,7 @@ Probably these:
 
 
 "_mysql_exceptions.OperationalError: (1118, 'Row size too large (> 8126)"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In full, the error is:
 
@@ -745,14 +745,14 @@ https://dev.mysql.com/doc/refman/5.0/en/innodb-data-log-reconfiguration.html
 
 
 "Segmentation fault (core dumped)..."
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This error can be seen when using the Microsoft ODBC driver for Linux, which is
 buggy. In this situation, use the Microsoft JDBC driver instead.
 
 
 "Killed."
-~~~~~~~~~
+^^^^^^^^^
 
 You may be out of memory, on a small computer. Try reducing MySQL's memory
 footprint. (Steps have already been taken to reduce memory usage by the
@@ -760,7 +760,7 @@ anonymiser itself.)
 
 
 Can't create FULLTEXT index(es)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 MySQL v5.6 is required to use FULLTEXT indexes with InnoDB tables (as opposed
 to MyISAM tables, which don't support transactions).
@@ -774,7 +774,7 @@ On Ubuntu 14.04, the default MySQL version is 5.5, so use:
 
 
 How to search with FULLTEXT indexes?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In conventional SQL, you would use:
 
@@ -798,7 +798,7 @@ SQL Server
 .. _configure_odbc_mars:
 
 […] “Connection is busy with results for another command” […]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Or: configuring Windows ODBC for MARS.**
 
@@ -849,7 +849,7 @@ query) to a single database at once. There are several ways:
 
 
 "The data types nvarchar(max) and ntext are incompatible..."
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Problem: Using SQL Server, you get an error from the CRATE web front end saying
 “The data types nvarchar(max) and ntext are incompatible in the equal to
@@ -863,7 +863,7 @@ rather than NVARCHAR(MAX).
 
 
 "A default full-text catalog does not exist in database..."
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Problem: Using SQL Server: “A default full-text catalog does not exist in database ‘XXX’ or user does not have permission to perform this action.”
 
@@ -879,7 +879,7 @@ See https://technet.microsoft.com/en-us/library/dd283095(v=sql.100).aspx.
 
 
 New tables are named like mydb.[SERVERNAME\USERNAME].mytable
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Problem: Under SQL Server, new tables (e.g. from NLP) look like
 `mydatabase.[SERVERNAME\USERNAME].tablename` rather than
