@@ -51,7 +51,6 @@ Contents
 ..  toctree::
     :maxdepth: 2
     :numbered:
-    :glob:
 
     introduction/index.rst
     installation/index.rst
