@@ -19,14 +19,14 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 Prerequisites
-=============
+-------------
 
 ..  contents::
     :local:
     :depth: 3
 
 System specification
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 Any contemporary desktop or laptop computer is capable of running CRATE. The
 specification of the hardware really depends on:
@@ -66,14 +66,14 @@ components required by CRATE separately. See :ref:`Versions of software etc. use
 .. _data_and_database_prerequisites:
 
 Data and database prerequisites
--------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Unless you are just evaluating CRATE and wish the installer to create
 demonstration databases for you, you will need either to create or point CRATE
 to the following databases:
 
 Source database(s)
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
 - There should be a database-wide integer patient ID field, present in every
   table (or view, if you need to add it) containing patient-identifiable data.
@@ -90,7 +90,7 @@ If you are working with a RiO database, the preprocessor will do this for you.
 See below.
 
 Destination database(s)
-~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^
 
 You are likely to want one destination database for every set of source
 databases that share the same PID. So, for example (EMR = electronic medical
@@ -113,14 +113,14 @@ the MRID (= hashed NHS number in this example).
 
 
 Secret administrative database(s)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You will need one secret administrative database for every destination
 database. This will store information like the PID-to-RID mapping, the
 MPID-to-MRID mapping, and state information to make incremental updates faster.
 
 Web site administrative database
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You will need a database (and it’s probably easiest to have it separate) to store
 secret administrative information for the CRATE web application. You can
@@ -128,7 +128,7 @@ optionally have the CRATE installer create a MySQL database running in a Docker
 container for this purpose
 
 File system prerequisites
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The CRATE installer needs access to a file system, which is writeable by the
 user running the installer. The installer will download the CRATE source code
@@ -157,7 +157,7 @@ default the file hierarchy looks like this:
 
 
 List of domains that the CRATE installer will need to access
-------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you are installing CRATE behind a firewall that restricts access to the
 internet, you will need to ensure the following domains are allowed. This list is
