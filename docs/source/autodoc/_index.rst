@@ -25,7 +25,6 @@ Automatic documentation of source code
 
 
 
-
 ..  toctree::
     :maxdepth: 2
 

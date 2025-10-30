@@ -164,6 +164,8 @@ def make_autodoc(make: bool, destroy_first: bool) -> None:
         autodoc_rst_root_dir=DevPath.DOCS_AUTODOC_DIR,
         highest_code_dir=CratePath.CRATE_ANON_DIR,
         toctree_maxdepth=2,
+        index_heading_underline_char="=",
+        source_rst_heading_underline_char="-",
         rst_prefix=RST_COPYRIGHT_COMMENT,
     )
     top_idx.add_indexes(
