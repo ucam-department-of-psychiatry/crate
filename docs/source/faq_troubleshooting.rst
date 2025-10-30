@@ -48,7 +48,7 @@ Known bugs elsewhere affecting CRATE
 General
 ~~~~~~~
 
-ImportError: No module named ‘{mysqldb, pyodbc, ...}’
+ImportError: No module named '{mysqldb, pyodbc, ...}'
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You haven’t installed the right drivers for the database URL(s) that you have
@@ -95,7 +95,7 @@ third-party software over which CRATE has no control (I’ve seen >1 Gb)
 [#debugginghighmemusage]_.
 
 
-“File is not a zip file”
+"File is not a zip file"
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 In full: “Caught exception from document_to_text: File is not a zip file” when
@@ -105,7 +105,7 @@ This error usually appears with encrypted, password-protected DOCX files. The
 anonymiser will not be able to read these, and this error can be ignored.
 
 
-“UnRtf: ... has stopped working”
+"UnRtf: ... has stopped working"
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If a third-party program is used by CRATE for text extraction and fails, you
@@ -162,7 +162,7 @@ Example: replacing `plugins/Tagger_ConText/src/gate/context/ContextFeaturesTagge
 CRATE web site
 ~~~~~~~~~~~~~~
 
-crate_launch_cherrypy_server can’t find its config files
+crate_launch_cherrypy_server can't find its config files
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Use forward slashes (``/``) rather than backslashes (``\``) for filename paths
@@ -173,7 +173,7 @@ in the environment variable `CRATE_CHERRYPY_ARGS` (e.g.
 
 .. _faq_port_443_not_free:
 
-Port 443 not free on ‘127.0.0.1’
+Port 443 not free on '127.0.0.1'
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Problem: Under Windows Server: `OSError(“Port 443 not free on ‘127.0.0.1’”)`
@@ -223,7 +223,7 @@ Apache <config_apache>`. Alternative approaches are outlined at
 https://superuser.com/questions/710253/allow-non-root-process-to-bind-to-port-80-and-443.
 
 
-“Your connection is not private...” browser error
+"Your connection is not private..." browser error
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You will always get this error until you get a proper HTTPS certificate. This
@@ -292,7 +292,7 @@ exist”. If you use `https://mysite/crate/` as your site root, with
 `https://mysite/crate_static/` as your static root, then the software is happy.
 
 
-I can’t restart the CRATE Windows Service cleanly
+I can't restart the CRATE Windows Service cleanly
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 There may be a problem whereby the CRATE web service doesn’t entirely shut down
@@ -372,7 +372,7 @@ So the general rescue method:
     crate_windows_service install
 
 
-“No connection could be made because the target machine actively refused it”
+"No connection could be made because the target machine actively refused it"
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Problem: From the front end, you see: “No connection could be made because the
@@ -506,7 +506,7 @@ If you see something like that, all should be well.
 MySQL
 ~~~~~
 
-Can’t connect to MySQL, even manually
+Can't connect to MySQL, even manually
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 See https://dev.mysql.com/doc/refman/5.5/en/problems-connecting.html.
@@ -623,7 +623,7 @@ probably better off always using ``lower_case_table_names = 1``, as per the
 MySQL advice. This is the default behaviour under Windows.
 
 
-“Got a packet bigger than ‘max_allowed_packet’ bytes” or “MySQL has gone away”
+"Got a packet bigger than 'max_allowed_packet' bytes" or "MySQL has gone away"
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Problem: `sqlalchem.exc.OperationalError:
@@ -797,8 +797,8 @@ SQL Server
 
 .. _configure_odbc_mars:
 
-[…] “Connection is busy with results for another command” […]
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[...] "Connection is busy with results for another command" [...]
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Or: configuring Windows ODBC for MARS.**
 
@@ -878,16 +878,16 @@ beforehand:**
 See https://technet.microsoft.com/en-us/library/dd283095(v=sql.100).aspx.
 
 
-New tables are named like mydb.[SERVERNAME\USERNAME].mytable
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+New tables are named like mydb.[SERVERNAME\\USERNAME].mytable
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Problem: Under SQL Server, new tables (e.g. from NLP) look like
-`mydatabase.[SERVERNAME\USERNAME].tablename` rather than
-`mydatabase.dbo.tablename`.
+``mydatabase.[SERVERNAME\USERNAME].tablename`` rather than
+``mydatabase.dbo.tablename``.
 
 Under Microsoft SQL Server, the standard full notation for a table is
-`database.schema.table`. The default schema is often `dbo`, so tables look like
-`mydatabase.dbo.mytable`. However [#sqlserverschemas]_:
+``database.schema.table``. The default schema is often ``dbo``, so tables look like
+``mydatabase.dbo.mytable``. However [#sqlserverschemas]_:
 
     The default schema for a user can be defined by using the
     ``DEFAULT_SCHEMA`` option of ``CREATE USER`` or ``ALTER USER``. If no
@@ -898,7 +898,7 @@ Under Microsoft SQL Server, the standard full notation for a table is
     the user creates an object, a new schema will be created and named the same
     as the user, and the object will be associated with that user schema.**
 
-So, for example, if your username is `RCardinal` and you authenticate to SQL
+So, for example, if your username is ``RCardinal`` and you authenticate to SQL
 Server via Windows authentication, and then create a table, it is likely to be
 called something like ``[mydatabase].[myserver\RCardinal].[mytable]``. You can
 try this:

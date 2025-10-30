@@ -25,7 +25,8 @@
 
 
 Launch Celery
-=============
+-------------
+
 
 When web sites want to do something slow, or spontaneously, they should not do
 so within a user interaction. If the user says "build me a 1 Gb file for
@@ -53,7 +54,8 @@ initial HTTP request.
 .. _crate_launch_celery:
 
 crate_launch_celery
--------------------
+~~~~~~~~~~~~~~~~~~~
+
 
 This launches the CRATE Celery system. You need this to be running for CRATE
 to work properly. (See also :ref:`Windows service <windows_service>`.)
@@ -67,7 +69,8 @@ Options:
 .. _crate_celery_status:
 
 crate_celery_status
--------------------
+~~~~~~~~~~~~~~~~~~~
+
 
 This executes the command ``celery -A crate_anon.crateweb.consent status``.
 
@@ -75,7 +78,8 @@ This executes the command ``celery -A crate_anon.crateweb.consent status``.
 .. _crate_launch_flower:
 
 crate_launch_flower
--------------------
+~~~~~~~~~~~~~~~~~~~
+
 
 This command has no options. It launches the Celery Flower_ tool, which is for
 monitoring Celery, and associates it with the CRATE NLP web server. It starts a
@@ -85,7 +89,8 @@ http://127.0.0.1:5555/, you can monitor what's happening.
 
 
 See also
---------
+~~~~~~~~
+
 
 If Celery jobs are taken out of the queue and then crash inside CRATE, you may
 wish to resubmit unprocessed work. For this, use

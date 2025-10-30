@@ -38,7 +38,8 @@ It has a single header row, and columns as defined below.
 .. _crate_anon_draft_dd:
 
 Drafting a data dictionary
-++++++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 Once you have edited your :ref:`anonymiser config file <anon_config_file>` to
 point to your source database, you can generate a **draft data dictionary**
@@ -58,7 +59,8 @@ Full options for this tool are:
 
 
 Columns in the data dictionary
-++++++++++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 - The DD columns can be in any order as long as the header row matches the
   data, and the column headings include the headings shown here.
@@ -72,7 +74,8 @@ Columns in the data dictionary
 
 
 src_db
-~~~~~~
+^^^^^^
+
 
 *String.*
 
@@ -81,7 +84,8 @@ the ``source_databases`` list in the config file.
 
 
 src_table
-~~~~~~~~~
+^^^^^^^^^
+
 
 *String.*
 
@@ -89,7 +93,8 @@ This column specifies the table name in the source database.
 
 
 src_field
-~~~~~~~~~
+^^^^^^^^^
+
 
 *String.*
 
@@ -97,7 +102,8 @@ This column specifies the field (column) name in the source database.
 
 
 src_datatype
-~~~~~~~~~~~~
+^^^^^^^^^^^^
+
 
 *String.*
 
@@ -108,7 +114,8 @@ This column gives the source column's SQL data type (e.g. `INT`,
 .. _dd_src_flags:
 
 src_flags
-~~~~~~~~~
+^^^^^^^^^
+
 
 *String.*
 
@@ -242,7 +249,8 @@ Character   Meaning
 .. _dd_scrub_src:
 
 scrub_src
-~~~~~~~~~
+^^^^^^^^^
+
 
 *String.*
 
@@ -276,7 +284,8 @@ Value                   Meaning
 .. _dd_scrub_method:
 
 scrub_method
-~~~~~~~~~~~~
+^^^^^^^^^^^^
+
 
 *String.*
 
@@ -329,7 +338,8 @@ Value                       Meaning
 .. _dd_decision:
 
 decision
-~~~~~~~~
+^^^^^^^^
+
 
 *String.*
 
@@ -346,7 +356,8 @@ This is case sensitive, for safety.
 
 
 inclusion_values
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
+
 
 *String.*
 
@@ -374,7 +385,8 @@ Examples:
 
 
 exclusion_values
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
+
 
 *String.*
 
@@ -385,7 +397,8 @@ the exclusion_values list.
 .. _dd_alter_method:
 
 alter_method
-~~~~~~~~~~~~
+^^^^^^^^^^^^
+
 
 *String.*
 
@@ -495,7 +508,8 @@ or:
 
 
 dest_table
-~~~~~~~~~~
+^^^^^^^^^^
+
 
 *String.*
 
@@ -503,7 +517,8 @@ Table name in the destination database.
 
 
 dest_field
-~~~~~~~~~~
+^^^^^^^^^^
+
 
 *String.*
 
@@ -511,7 +526,8 @@ Field (column) name in the destination database.
 
 
 dest_datatype
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^
+
 
 *String.* Default: none.
 
@@ -521,7 +537,8 @@ If omitted, the source SQL data type is translated appropriately.
 
 
 index
-~~~~~
+^^^^^
+
 
 *String.*
 
@@ -547,7 +564,8 @@ Value       Meaning
 
 
 indexlen
-~~~~~~~~
+^^^^^^^^
+
 
 *Integer.* Default: none.
 
@@ -557,7 +575,8 @@ is not required for `FULLTEXT` indexes.
 
 
 comment
-~~~~~~~
+^^^^^^^
+
 
 *String.*
 
@@ -565,7 +584,8 @@ Field (column) comment, stored in the destination database.
 
 
 Minimal data dictionary example
-+++++++++++++++++++++++++++++++
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 This illustrates a data dictionary for a fictional database.
 

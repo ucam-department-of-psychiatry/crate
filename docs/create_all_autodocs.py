@@ -138,6 +138,8 @@ def make_subindex(directory: str) -> AutodocIndex:
             os.path.join(CratePath.CRATE_ANON_DIR, directory, "**/*.java"),
             os.path.join(CratePath.CRATE_ANON_DIR, directory, "**/*.js"),
         ],
+        index_heading_underline_char="=",
+        source_rst_heading_underline_char="-",
         rst_prefix=RST_COPYRIGHT_COMMENT,
         title="crate_anon/" + directory,  # path style, not module style
         skip_globs=SKIP_GLOBS,

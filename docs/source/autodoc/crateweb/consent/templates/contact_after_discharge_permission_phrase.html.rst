@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/consent/templates/contact_after_discharge_permission_phrase.html
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------------------------------------------------
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/contact_after_discharge_permission_phrase.html
     :language: html+django

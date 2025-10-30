@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.common.dockerfunc
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------
 
 .. automodule:: crate_anon.common.dockerfunc
     :members:
