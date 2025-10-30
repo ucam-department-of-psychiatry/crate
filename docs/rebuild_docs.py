@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
     # Tables of contents sometimes do not update properly so delete doctrees
     # as well as html.
-    shutil.rmtree(BUILD_DIR, ignore_errors=False)
+    shutil.rmtree(BUILD_DIR, ignore_errors=True)
 
     # Build docs
     print("Making HTML version of documentation")
