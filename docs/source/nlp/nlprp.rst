@@ -228,6 +228,7 @@ The top-level structure of a request is a JSON object with the following keys.
   .. list-table::
     :widths: 15 15 15 55
     :header-rows: 1
+    :class: compact-table
 
     * - Key
       - JSON type
@@ -280,6 +281,7 @@ The top-level structure of a response is a JSON object with the following keys.
   .. list-table::
     :widths: 15 15 15 55
     :header-rows: 1
+    :class: compact-table
 
     * - Key
       - JSON type
@@ -336,6 +338,7 @@ No additional parameters are required, but there is an optional parameter.
   .. list-table::
     :widths: 15 15 15 55
     :header-rows: 1
+    :class: compact-table
 
     * - Key
       - JSON type
@@ -362,6 +365,7 @@ The relevant part of the response is:
   .. list-table::
     :widths: 15 15 15 55
     :header-rows: 1
+    :class: compact-table
 
     * - Key
       - JSON type
@@ -454,6 +458,7 @@ store results, and has the following keys.
 
   .. list-table::
     :header-rows: 1
+    :class: compact-table
 
     * - Key
       - JSON type
@@ -699,6 +704,7 @@ the following structure:
   .. list-table::
     :widths: 15 15 15 55
     :header-rows: 1
+    :class: compact-table
 
     * - Key
       - JSON type
@@ -770,6 +776,7 @@ format (on top of the basic response structure):
   .. list-table::
     :widths: 15 15 15 55
     :header-rows: 1
+    :class: compact-table
 
     * - Key
       - JSON type
@@ -1169,6 +1176,7 @@ one optional argument:
   .. list-table::
     :widths: 15 15 15 55
     :header-rows: 1
+    :class: compact-table
 
     * - Key
       - JSON type
@@ -1190,6 +1198,7 @@ The reply contains this extra information:
   .. list-table::
     :widths: 15 15 15 55
     :header-rows: 1
+    :class: compact-table
 
     * - Key
       - JSON type
@@ -1293,6 +1302,7 @@ the queue ID.
     .. list-table::
       :widths: 15 15 15 55
       :header-rows: 1
+      :class: compact-table
 
       * - Key
         - JSON type
@@ -1324,6 +1334,7 @@ keys:
   .. list-table::
     :widths: 15 15 15 55
     :header-rows: 1
+    :class: compact-table
 
     * - Key
       - JSON type
