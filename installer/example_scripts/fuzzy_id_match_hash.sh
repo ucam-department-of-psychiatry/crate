@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-# installer/example_scripts/load_ons_postcode_database.sh
+# installer/example_scripts/crate_fuzzy_id_match.sh
 
 # ==============================================================================
 #
@@ -24,8 +24,7 @@
 #
 # ==============================================================================
 
-# Example script to load the Office of National Statistics Postcode Database
-# from spreadsheet files to a database specified by CRATE_ONSPD_URL
+# Execute a command (docker compose exec) within the CRATE Docker environment
 
 set -euo pipefail
 
@@ -33,14 +32,9 @@ THISDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 # shellcheck source-path=SCRIPTDIR source=set_crate_environment_vars
 source "${THISDIR}"/set_crate_environment_vars
 
-# -- REMOVE ONCE CONFIGURED CORRECTLY
-echo "Before using this script, please:"
-echo "1. Download and extract a copy of ONSPD from e.g. https://geoportal.statistics.gov.uk/search?q=PRD_ONSPD%20NOV_2024 into ${CRATE_HOST_ONSPD_DIR}"
-echo "2. Create an empty database and set CRATE_ONSPD URL in set_crate_environment_vars to point to it."
-echo "3. Remove these lines from the script"
-exit 0
-# -- REMOVE TO HERE
-
-${PYTHON} "${CRATE_HOST_INSTALLER_BASE_DIR}/installer.py" exec "crate_postcodes \
-    --dir ${CRATE_CONTAINER_ONSPD_DIR}/ \
-    --url ${CRATE_ONSPD_URL}"
+${PYTHON} "${CRATE_HOST_INSTALLER_BASE_DIR}/installer.py" exec "crate_fuzzy_id_match \
+    hash \
+    --forename_cache_filename=${CRATE_CONTAINER_FORENAME_CACHE_FILENAME} \
+    --surname_cache_filename=${CRATE_CONTAINER_SURNAME_CACHE_FILENAME} \
+    --postcode_cache_filename=${CRATE_CONTAINER_POSTCODE_CACHE_FILENAME} \
+    $*"
