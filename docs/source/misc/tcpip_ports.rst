@@ -29,7 +29,8 @@
 .. _tcpip_ports:
 
 Common relevant TCP/IP ports
-============================
+----------------------------
+
 
 ... plus some that are less relevant here.
 

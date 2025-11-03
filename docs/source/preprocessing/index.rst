@@ -25,7 +25,8 @@
 
 
 Preprocessing tools
--------------------
+===================
+
 
 These tools:
 
@@ -55,7 +56,8 @@ to read the :ref:`Anonymisation <anonymisation>` section first.
 .. _crate_preprocess_pcmis:
 
 crate_preprocess_pcmis
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
+
 
 Options:
 
@@ -66,7 +68,8 @@ Options:
 .. _crate_preprocess_rio:
 
 crate_preprocess_rio
-~~~~~~~~~~~~~~~~~~~~
+--------------------
+
 
 The RiO preprocessor creates a unique integer field named `crate_pk` in all
 tables (copying the existing integer PK, creating one from an existing
@@ -96,7 +99,8 @@ Options:
 .. _crate_preprocess_systmone:
 
 crate_preprocess_systmone
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------
+
 
 Preprocess SystmOne_ data, by indexing it. (It shouldn't need further
 reshaping.)
@@ -110,7 +114,8 @@ Options:
 .. _crate_postcodes:
 
 crate_postcodes
-~~~~~~~~~~~~~~~
+---------------
+
 
 Options:
 
@@ -121,7 +126,8 @@ Options:
 .. _crate_fetch_wordlists:
 
 crate_fetch_wordlists
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
+
 
 This tool assists in fetching common word lists, such as name lists for global
 denial, and words to exclude from such lists (such as English words or medical
@@ -171,7 +177,8 @@ Specimen usage:
 .. _crate_autoimport_db:
 
 crate_autoimport_db
-~~~~~~~~~~~~~~~~~~~
+-------------------
+
 
 This tool reads tabular data from files, and imports it into a database.
 

@@ -87,7 +87,8 @@ Format of the configuration file
 ~~~~~~~~~~~~~~
 
 Data dictionary
-+++++++++++++++
+^^^^^^^^^^^^^^^
+
 
 data_dictionary_filename
 ########################
@@ -99,7 +100,8 @@ with a header row. See :ref:`Data Dictionary <data_dictionary>`.
 
 
 Critical field types
-++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^
+
 
 sqlatype_pid
 ############
@@ -170,12 +172,14 @@ SQL Server's ``BIGINT``). If you do specify them, you may specify EITHER
 
 
 Encryption phrases/passwords
-++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 .. _anon_config_hash_method:
 
 hash_method
 ###########
+
 
 *String.* Default ``HMAC_MD5``.
 
@@ -233,7 +237,8 @@ define these.
 
 
 Text extraction
-+++++++++++++++
+^^^^^^^^^^^^^^^
+
 
 .. _anon_config_extract_text_extensions_permitted:
 
@@ -331,7 +336,8 @@ Default width (in columns) to word-wrap extracted text to.
 
 
 Anonymisation
-+++++++++++++
+^^^^^^^^^^^^^
+
 
 .. _allow_no_patient_info:
 
@@ -865,14 +871,16 @@ true.
 
 
 Other anonymisation options
-+++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 You can also specify additional "nonspecific" regular expressions yourself.
 See :ref:`extra_regexes <anon_config_extra_regexes>`.
 
 
 Output fields and formatting
-++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 timefield_name
 ##############
@@ -946,7 +954,8 @@ data dictionary.
 
 
 Destination database configuration
-++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 max_rows_before_commit
 ######################
@@ -980,7 +989,8 @@ of a real destination table. It lives in the destination database.
 
 
 Choose databases (defined in their own sections)
-++++++++++++++++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 Parameter values in this section are themselves config file section names.
 For example, if you refer to a database called ``mydb``, CRATE will look for a
@@ -1012,7 +1022,8 @@ Secret admin database. Just one.
 
 
 Processing options, to limit data quantity for testing
-++++++++++++++++++++++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 .. _anon_config_debug_max_n_patients:
 
@@ -1038,7 +1049,8 @@ patient ID source specified in the data dictionary, and overriding
 
 
 Opting out entirely
-+++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^
+
 
 Patients who elect to opt out entirely have their PIDs stored in the ``OptOut``
 table of the admin database. ENTRIES ARE NEVER REMOVED FROM THIS LIST BY
@@ -1141,7 +1153,8 @@ options, as below.
 
 
 Connection details
-++++++++++++++++++
+^^^^^^^^^^^^^^^^^^
+
 
 url
 ###
@@ -1166,7 +1179,8 @@ You may need to install additional drivers, e.g.
 
 
 Data dictionary generation: source fields
-+++++++++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 |ddgen_only|
 
@@ -1621,7 +1635,8 @@ where ``case_number_hashdef`` is an extra hash definition (see
 
 
 Data dictionary generation: destination fields
-++++++++++++++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 |ddgen_only|
 
@@ -1691,7 +1706,8 @@ applied?
 
 
 Other options for source databases
-++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 .. _anon_config_debug_row_limit:
 
@@ -1743,7 +1759,7 @@ parameters:
 
 
 hash_method
-+++++++++++
+^^^^^^^^^^^
 
 *String.*
 
@@ -1752,7 +1768,8 @@ of the :ref:`[main] <anon_config_main_section>` section.
 
 
 secret_key
-++++++++++
+^^^^^^^^^^
+
 
 *String.*
 

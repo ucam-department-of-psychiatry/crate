@@ -20,28 +20,32 @@
 
 
 Installing CRATE without Docker
-===============================
+-------------------------------
+
 
 .. contents::
    :local:
 
 
 URLs for CRATE source code
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 - https://github.com/ucam-department-of-psychiatry/crate (for source)
 - https://pypi.io/project/crate-anon/ (for ``pip install crate-anon``)
 
 
 Manual installation
--------------------
+~~~~~~~~~~~~~~~~~~~
+
 
 Installing CRATE itself is very easy, but you probably want a lot of supporting
 tools. Here's a logical sequence.
 
 
 Python
-~~~~~~
+^^^^^^
+
 
 Install Python 3.10 or higher. If it's not already installed:
 
@@ -57,7 +61,8 @@ Install Python 3.10 or higher. If it's not already installed:
 
 
 Python virtual environment and CRATE itself
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 Create a Python virtual environment (an isolated set of Python programs
 that won’t interfere with any other Python things) and install CRATE.
@@ -86,7 +91,8 @@ Choose your own directory names.
 .. _activate_venv:
 
 Activating your virtual environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 **Every time you want to work within your virtual environment, you should
 activate it, by running (Windows) or sourcing (Linux) the ``activate`` script
@@ -109,7 +115,8 @@ See:
 
 
 RabbitMQ
-~~~~~~~~
+^^^^^^^^
+
 
 Install RabbitMQ, required by the CRATE web site.
 
@@ -141,7 +148,8 @@ Install RabbitMQ, required by the CRATE web site.
 
 
 Java
-~~~~
+^^^^
+
 
 Install a Java development kit, to compile support for GATE natural language
 processing (NLP).
@@ -156,7 +164,8 @@ processing (NLP).
 
 
 GATE
-~~~~
+^^^^
+
 
 Install GATE, for NLP.
 
@@ -166,7 +175,8 @@ Install GATE, for NLP.
 .. _third_party_text_extractors:
 
 Third-party text extractors
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 Ensure any necessary third-party text extractor tools are installed and on the
 PATH.
@@ -204,7 +214,8 @@ To check that your text extractors are available and visible to CRATE via the
 
 
 C/C++ compiler
-~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^
+
 
 .. note::
     This is optional. If you want to install C-based Python libraries, you’ll
@@ -222,7 +233,8 @@ free [#vscommunity]_.
 
 
 Database and database drivers
------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 You'll want drivers for at least one database. See :ref:`Recommended database
 drivers <recommended_database_drivers>`.
@@ -235,7 +247,8 @@ In the CPFT NHS environment, we use SQL Server and these:
 
 
 Build the CRATE Java NLP interfaces
------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 .. code-block:: bash
 
@@ -256,7 +269,8 @@ parameter to launch the GATE framework in an interactive demonstration mode
 
 
 Configure CRATE for your system
--------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 The anonymiser and NLP manager are run on an ad-hoc or regularly scheduled
 basis, and do not need to be kept running continuously.
@@ -280,7 +294,8 @@ own settings.
 
 
 Set up the web site infrastructure
-----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 Create the database yourself using your normal database management tool. Make
 sure that the config file pointed to by the `CRATE_WEB_LOCAL_SETTINGS`
@@ -297,7 +312,8 @@ static files, populate relevant parts of the database, and create a superuser:
 
 
 Test the web server and message queue
--------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 In two separate command windows, with the virtual environment activated in
 each, run the following two programs:
@@ -333,7 +349,8 @@ arrives, check:
 
 
 Configure the CRATE web service to run automatically
-----------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 CRATE's web service has two parts: the web site itself runs Django, and the
 offline message handling part (e.g. to send emails) runs Celery.
@@ -391,7 +408,8 @@ rather than as a service [#taskscheduler]_, e.g. with tasks like
 
 
 Retest the web server and message queue
----------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 Going to a “behind-the-scenes” (service) mode of operation has the potential to
 go wrong, so retest that the web server and the e-mail transmission task work.

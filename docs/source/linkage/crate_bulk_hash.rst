@@ -22,7 +22,8 @@
 .. _crate_bulk_hash:
 
 crate_bulk_hash
-~~~~~~~~~~~~~~~
+---------------
+
 
 A tool to hash IDs in bulk, for linkages.
 

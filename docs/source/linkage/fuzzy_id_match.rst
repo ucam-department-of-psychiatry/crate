@@ -22,7 +22,8 @@
 .. _crate_fuzzy_id_match:
 
 crate_fuzzy_id_match
-~~~~~~~~~~~~~~~~~~~~
+--------------------
+
 
 A tool to match people from two databases that don't share a person-unique
 identifier, using information from names, dates of birth, sex/gender, and

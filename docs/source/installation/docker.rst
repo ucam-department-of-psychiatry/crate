@@ -34,7 +34,8 @@
 .. _crate_docker:
 
 Installing and running CRATE via Docker (recommended)
-=====================================================
+-----------------------------------------------------
+
 
 ..  contents::
     :local:
@@ -42,7 +43,8 @@ Installing and running CRATE via Docker (recommended)
 
 
 Overview
---------
+~~~~~~~~
+
 
 Docker_ is a cross-platform system for running applications in "containers". A
 computer (or computing cluster) can run lots of containers. They allow
@@ -83,7 +85,8 @@ Additionally, you can run a number of important one-off commands using the
 .. _quick_start:
 
 Quick start
------------
+~~~~~~~~~~~
+
 
 Windows
 ^^^^^^^
@@ -183,7 +186,8 @@ will need to be writeable by the user running the installer.
 .. _docker_environment_variables:
 
 Docker Environment variables
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 The Docker environment variables with prefix ``CRATE_DOCKER`` are used by both
 the CRATE installer and the running Docker instance. For some of these settings,
@@ -617,7 +621,8 @@ containers in this project.
 .. _installer_environment_variables:
 
 Installer Environment variables
--------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 The Installer environment variables with prefix ``CRATE_INSTALLER`` are used by
 the CRATE installer to write the various config files written by CRATE but not
@@ -777,7 +782,8 @@ The port on the server hosting the source database to be anonymised by CRATE.
 
 
 Tools
------
+~~~~~
+
 
 All live in the ``installer`` directory.
 
@@ -828,6 +834,7 @@ Runs a command in the existing ``crate_server`` container.
 
 
 Development notes
------------------
+~~~~~~~~~~~~~~~~~
+
 
 - See https://camcops.readthedocs.io/en/latest/administrator/docker.html.

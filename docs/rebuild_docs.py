@@ -35,7 +35,6 @@ import os
 import shutil
 import subprocess
 import sys
-from typing import List
 
 from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
@@ -46,9 +45,7 @@ log = logging.getLogger(__name__)
 
 # Work out directories
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
-BUILD_HTML_DIR = os.path.join(THIS_DIR, "build", "html")
-
-DEST_DIRS = []  # type: List[str]
+BUILD_DIR = os.path.join(THIS_DIR, "build")
 
 EXIT_FAILURE = 1
 
@@ -66,6 +63,12 @@ if __name__ == "__main__":
     # step.
     parser = argparse.ArgumentParser(
         formatter_class=ArgumentDefaultsRichHelpFormatter
+    )
+    parser.add_argument(
+        "--skip_inclusion_files",
+        action="store_true",
+        help="Don't rebuild inclusion files",
+        default=False,
     )
     parser.add_argument(
         "--skip_medex",
@@ -88,9 +91,10 @@ if __name__ == "__main__":
     # -------------------------------------------------------------------------
     # Remove anything old
     # -------------------------------------------------------------------------
-    for destdir in [BUILD_HTML_DIR] + DEST_DIRS:
-        print(f"Deleting directory {destdir!r}")
-        shutil.rmtree(destdir, ignore_errors=True)
+
+    # Tables of contents sometimes do not update properly so delete doctrees
+    # as well as html.
+    shutil.rmtree(BUILD_DIR, ignore_errors=True)
 
     # Build docs
     print("Making HTML version of documentation")
@@ -107,7 +111,9 @@ if __name__ == "__main__":
 
     if args.skip_medex:
         recreate_args.append("--skip_medex")
-    subprocess.check_call(recreate_args)
+
+    if not args.skip_inclusion_files:
+        subprocess.check_call(recreate_args)
 
     # -------------------------------------------------------------------------
     # Make HTML docs
@@ -133,11 +139,3 @@ if __name__ == "__main__":
         )
 
         raise e
-
-    # -------------------------------------------------------------------------
-    # Copy
-    # -------------------------------------------------------------------------
-
-    for destdir in DEST_DIRS:
-        print(f"Copying {BUILD_HTML_DIR!r} -> {destdir!r}")
-        shutil.copytree(BUILD_HTML_DIR, destdir)

@@ -37,14 +37,16 @@
 .. _database_drivers:
 
 Databases and database drivers
-==============================
+------------------------------
+
 
 .. contents::
    :local:
 
 
 Database engines
-----------------
+~~~~~~~~~~~~~~~~
+
 
 Supported engines include:
 
@@ -60,7 +62,8 @@ Supported engines include:
 .. _recommended_database_drivers:
 
 Recommended database drivers
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 CRATE needs to talk to several databases, potentially of several types (e.g. an
 `SQL Server`_ source and a MySQL_ destination), and from several operating
@@ -94,7 +97,8 @@ instances, and can be installed as required by the user. The exception is the
 
 
 More detail
------------
+~~~~~~~~~~~
+
 
 Internally, CRATE is written primarily in Python_ 3. It uses SQLAlchemy_ for
 the anonymisation, and it uses Django_ for its web interface.
@@ -119,12 +123,14 @@ hard to upgrade. Keep things modular.
 
 
 A catalogue of Python database drivers
---------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 .. _mysqldb:
 
 MySQL + MySQLdb
-~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^
+
 
 **Deprecated.** ``MySQLdb`` is an open-source Python interface to the `MySQL C
 API`_. It has largely been replaced by mysqlclient_. It doesn't support Python
@@ -158,7 +164,8 @@ MySQL libraries installed; under Ubuntu Linux, you can do this:
 .. _mysqlclient:
 
 MySQL + mysqlclient
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
+
 
 ``mysqlclient`` is an open-source fork of :ref:`MySQLdb (MySQL-python)
 <mysqldb>` that adds Python 3 support and fixes bugs. (Similarly, it is a
@@ -205,7 +212,8 @@ https://github.com/PyMySQL/mysqlclient-python/issues/54.
 .. _mysqlconnector:
 
 MySQL + MySQL Connector/Python
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 MySQL Connector/Python is a pure Python driver for MySQL from MySQL themselves
 (well, Oracle; Oracle own MySQL).
@@ -249,7 +257,8 @@ Incorrect datetime value: ‘2016-06-14 12:41:52.320665+00:00’ for column
 .. _pymysql:
 
 MySQL + PyMySQL
-~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^
+
 
 PyMySQL is a pure-Python MySQL client library. It's slower than mysqlclient_ as
 a result.
@@ -282,7 +291,8 @@ you need the fix via the Celery entry point, so it’s easier to put one fix in
 .. _django_mssql:
 
 SQL Server + django-mssql
-~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 **Not recommended.**
 
@@ -340,7 +350,8 @@ comparisons failed. It was easier to hack django-pyodbc-azure slightly.
 .. _django_pymssql:
 
 SQL Server + django-pymssql
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 **Not recommended.**
 
@@ -372,7 +383,8 @@ Licence             MIT License
 .. _pymssql:
 
 SQL Server + pymssql
-~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^
+
 
 A Python interface to `SQL Server`_ via FreeTDS_.
 
@@ -395,7 +407,8 @@ freetds-dev`` first.
 .. _django_pyodbc_azure:
 
 SQL Server (or other) + django-pyodbc-azure
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``django-pyodbc-azure`` is a Django interface to any database via :ref:`PyODBC
 <pyodbc>`. It was subsequently replaced (e.g. for Django 3) by
@@ -473,7 +486,8 @@ since the program will be running as a system account.
 .. _django_mssql_backend:
 
 SQL Server + django-mssql-backend
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 A replacement for :ref:`django-pyodbc-azure <django_pyodbc_azure>` (q.v.)
 
@@ -494,7 +508,8 @@ Licence             BSD License
 .. _psycopg2:
 
 PostgreSQL + psycopg2
-~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^
+
 
 Python interface to PostgreSQL_.
 
@@ -515,7 +530,8 @@ Licence             LGPL
 .. _pyodbc:
 
 Any database + PyODBC
-~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^
+
 
 A Python interface to any database via :ref:`ODBC <odbc>`.
 
@@ -565,7 +581,8 @@ http://docs.sqlalchemy.org/en/rel_1_0/dialects/mysql.html.
 
 
 Others to ignore
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
+
 
 - **django-pyodbc** doesn't support Python 3
   [https://pypi.python.org/pypi/django-pyodbc].
@@ -587,13 +604,15 @@ Others to ignore
 
 
 Other database connection components
-------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 
 .. _odbc:
 
 ODBC
-~~~~
+^^^^
+
 
 ODBC is a generic API for talking to databases; see
 https://en.wikipedia.org/wiki/Open_Database_Connectivity.
@@ -624,7 +643,8 @@ Jython → django-jython → zxJDBC → jTDS → SQL Server).
 .. _FreeTDS:
 
 FreeTDS
-~~~~~~~
+^^^^^^^
+
 
 FreeTDS is a set of Unix/Linux C libraries to communicate natively with `SQL
 Server`_, via an open-source implementation of the TDS protocol. See

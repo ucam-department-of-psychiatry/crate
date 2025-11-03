@@ -25,7 +25,8 @@
 .. _web_config_file:
 
 Web config file
-===============
+---------------
+
 
 ..  contents::
     :local:
@@ -33,7 +34,8 @@ Web config file
 
 
 General
--------
+~~~~~~~
+
 
 Settings here are a combination of standard Django settings and settings custom
 to CRATE. Not all standard Django options are described here; see e.g.
@@ -45,10 +47,12 @@ fashion). The "normal" settings to consider are described below.
 
 
 Site URL configuration
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
+
 
 DJANGO_SITE_ROOT_ABSOLUTE_URL
-#############################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -57,7 +61,8 @@ under Apache). Don't add a trailing slash.
 
 
 FORCE_SCRIPT_NAME
-#################
+^^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -66,14 +71,16 @@ location such as ``https://mymachine.mydomain/crate``.
 
 
 Site security
--------------
+~~~~~~~~~~~~~
+
 
 See also the site security deployment checklist at
 https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/.
 
 
 SECRET_KEY
-##########
+^^^^^^^^^^
+
 
 ``type: str``
 
@@ -92,7 +99,8 @@ Use this command to generate a new random secret key:
 
 
 DEBUG
-#####
+^^^^^
+
 
 ``type: bool``
 
@@ -112,7 +120,8 @@ that static files are served properly.
 
 
 CRATE_HTTPS
-###########
+^^^^^^^^^^^
+
 
 ``type: bool``
 
@@ -130,17 +139,20 @@ Django settings are applied (and that's what has the real effect):
 
 
 ALLOWED_HOSTS
-#############
+^^^^^^^^^^^^^
+
 
 This is a Django setting; see
 https://docs.djangoproject.com/en/2.2/ref/settings/#std:setting-ALLOWED_HOSTS.
 
 
 Celery configuration
---------------------
+~~~~~~~~~~~~~~~~~~~~
+
 
 BROKER_URL
-##########
+^^^^^^^^^^
+
 
 ``type: str``
 
@@ -154,7 +166,8 @@ Optionally, this can be overridden. By default, it is ``amqp://``.
 
 
 CELERYBEAT_SCHEDULE
-###################
+^^^^^^^^^^^^^^^^^^^
+
 
 Schedule back-end (Celery) tasks for specific times. See:
 
@@ -203,12 +216,14 @@ Celery picks up these definitions as follows:
 
 
 Database configuration
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
+
 
 .. _DATABASES:
 
 DATABASES
-#########
+^^^^^^^^^
+
 
 This is a Django setting:
 https://docs.djangoproject.com/en/2.2/ref/settings/#std:setting-DATABASES.
@@ -240,7 +255,8 @@ You require databases with the following names:
 
 
 CLINICAL_LOOKUP_DB
-##################
+^^^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -255,7 +271,8 @@ It must be
 
 
 CLINICAL_LOOKUP_CONSENT_DB
-##########################
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -263,7 +280,8 @@ Which database (from DATABASES_) should be used to look up consent modes?
 
 
 RESEARCH_DB_TITLE
-#################
+^^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -273,7 +291,8 @@ Research database title (displayed in web site).
 .. _RESEARCH_DB_INFO:
 
 RESEARCH_DB_INFO
-################
+^^^^^^^^^^^^^^^^
+
 
 ``type: List[Dict[str, Any]]``
 
@@ -459,7 +478,8 @@ by :meth:`crate_anon.crateweb.research.research_db_info.SingleResearchDatabase.g
 
 
 RESEARCH_DB_FOR_CONTACT_LOOKUP
-##############################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -471,7 +491,8 @@ Its ``secret_lookup_db`` will be used for the actual lookup process.
 
 
 NLP_SOURCEDB_MAP
-################
+^^^^^^^^^^^^^^^^
+
 
 ``type: Dict[str, str]``
 
@@ -488,7 +509,8 @@ names of databases in RESEARCH_DB_INFO_, and this will enable the auto-linking.
 
 
 RESEARCH_DB_DIALECT
-###################
+^^^^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -500,7 +522,8 @@ Options are
 
 
 DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET
-###################################################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: bool``
 
@@ -514,12 +537,14 @@ at startup (q.v.).
 .. _webconfig_archive:
 
 Archive views
--------------
+~~~~~~~~~~~~~
+
 
 .. _ARCHIVE_TEMPLATE_DIR:
 
 ARCHIVE_TEMPLATE_DIR
-####################
+^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -529,7 +554,8 @@ Root directory of the :ref:`archive <archive>` template system.
 
 
 ARCHIVE_ROOT_TEMPLATE
-#####################
+^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -540,7 +566,8 @@ found within ARCHIVE_TEMPLATE_DIR_.
 
 
 ARCHIVE_ATTACHMENT_DIR
-######################
+^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -552,7 +579,8 @@ Root directory for archive attachments.
 .. _ARCHIVE_STATIC_DIR:
 
 ARCHIVE_STATIC_DIR
-##################
+^^^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -564,7 +592,8 @@ Root directory for archive static files.
 .. _ARCHIVE_TEMPLATE_CACHE_DIR:
 
 ARCHIVE_TEMPLATE_CACHE_DIR
-##########################
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -576,7 +605,8 @@ Directory in which to store compiled versions of the archive templates.
 .. _ARCHIVE_CONTEXT:
 
 ARCHIVE_CONTEXT
-###############
+^^^^^^^^^^^^^^^
+
 
 ``type: Dict[str, Any]``
 
@@ -589,7 +619,8 @@ templates. See :ref:`archive Python context <archive_mako_context>`.
 .. _CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC:
 
 CACHE_CONTROL_MAX_AGE_ARCHIVE_STATIC
-####################################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: int``
 
@@ -604,7 +635,8 @@ time will not prevent automatic reloading if the file changes.
 
 
 CACHE_CONTROL_MAX_AGE_ARCHIVE_ATTACHMENTS
-#########################################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: int``
 
@@ -615,7 +647,8 @@ archive.
 
 
 CACHE_CONTROL_MAX_AGE_ARCHIVE_TEMPLATES
-#######################################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: int``
 
@@ -626,12 +659,14 @@ templates.
 
 
 Site-specific help
-------------------
+~~~~~~~~~~~~~~~~~~
+
 
 .. _DATABASE_HELP_HTML_FILENAME:
 
 DATABASE_HELP_HTML_FILENAME
-###########################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: Optional[str]``
 
@@ -642,10 +677,12 @@ your database structure (see :ref:`Help on local database structure
 
 
 Local file storage
-------------------
+~~~~~~~~~~~~~~~~~~
+
 
 PRIVATE_FILE_STORAGE_ROOT
-#########################
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -655,7 +692,8 @@ it be served by a generic web server that doesn't check permissions).
 
 
 XSENDFILE
-#########
+^^^^^^^^^
+
 
 ``type: bool``
 
@@ -668,7 +706,8 @@ called by several functions within :mod:`crate_anon.crateweb.consent.views`.
 
 
 MAX_UPLOAD_SIZE_BYTES
-#####################
+^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: int``
 
@@ -680,10 +719,12 @@ How big an upload will we accept? Example:
 
 
 Outgoing e-mail
----------------
+~~~~~~~~~~~~~~~
+
 
 EMAIL_*
-#######
+^^^^^^^
+
 
 First, there are general settings for sending e-mail from Django; see
 https://docs.djangoproject.com/en/1.8/ref/settings/#email-backend. Example:
@@ -712,7 +753,8 @@ Then there are some additional custom settings:
 .. _SAFETY_CATCH_ON:
 
 SAFETY_CATCH_ON
-###############
+^^^^^^^^^^^^^^^
+
 
 ``type: bool``
 
@@ -724,7 +766,8 @@ e-mails to the developer, specified by DEVELOPER_EMAIL_. Switch
 .. _DEVELOPER_EMAIL:
 
 DEVELOPER_EMAIL
-###############
+^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -732,7 +775,8 @@ E-mail address of a person developing CRATE (for SAFETY_CATCH_ON_).
 
 
 VALID_RESEARCHER_EMAIL_DOMAINS
-##############################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: List[str]``
 
@@ -749,10 +793,12 @@ the researcher sets their e-mail to something insecure, e.g.
 
 
 Research Database Manager (RDBM) settings
------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 RDBM_NAME
-#########
+^^^^^^^^^
+
 
 ``type: str``
 
@@ -760,7 +806,8 @@ Name of the RDBM, e.g. "John Smith".
 
 
 RDBM_TITLE
-##########
+^^^^^^^^^^
+
 
 ``type: str``
 
@@ -768,7 +815,8 @@ The RDBM's title, e.g. "Research Database Manager".
 
 
 RDBM_TELEPHONE
-##############
+^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -778,7 +826,8 @@ The RDBM's telephone number, which is provided to clinicians and researchers.
 .. _RDBM_EMAIL:
 
 RDBM_EMAIL
-##########
+^^^^^^^^^^
+
 
 ``type: str``
 
@@ -786,7 +835,8 @@ E-mail address of the Research Database Manager (RDBM).
 
 
 RDBM_ADDRESS
-############
+^^^^^^^^^^^^
+
 
 ``type: List[str]``
 
@@ -796,10 +846,12 @@ DATABASE MANAGER"]``.
 
 
 Web site administrators
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
+
 
 ADMINS
-######
+^^^^^^
+
 
 ``type: List[Tuple[str, str], ...]``
 
@@ -811,10 +863,12 @@ https://docs.djangoproject.com/en/2.2/ref/settings/#std:setting-ADMINS.
 
 
 PDF creation
-------------
+~~~~~~~~~~~~
+
 
 WKHTMLTOPDF_FILENAME
-####################
+^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -859,7 +913,8 @@ using "patched Qt"; see above.
 
 
 WKHTMLTOPDF_OPTIONS
-###################
+^^^^^^^^^^^^^^^^^^^
+
 
 ``type: Dict[str, str]``
 
@@ -882,7 +937,8 @@ https://wkhtmltopdf.org/usage/wkhtmltopdf.txt. Specimen:
 .. _PDF_LOGO_ABS_URL:
 
 PDF_LOGO_ABS_URL
-################
+^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -902,7 +958,8 @@ This URL is read by ``wkhtmltopdf``. Example:
 
 
 PDF_LOGO_WIDTH
-##############
+^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -916,7 +973,8 @@ Tune this to your logo file (see PDF_LOGO_ABS_URL_). Example:
 
 
 TRAFFIC_LIGHT_*
-###############
+^^^^^^^^^^^^^^^
+
 
 The PDF generator also needs to be able to find the traffic-light icons, on
 disk (not via your web site), so specify ``file://`` URLs for the following:
@@ -929,10 +987,12 @@ disk (not via your web site), so specify ``file://`` URLs for the following:
 
 
 Consent-for-contact settings
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS
-###################################################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: int``
 
@@ -941,7 +1001,8 @@ without specific permission? Use 0 for "not at all".
 
 
 CHARITY_AMOUNT_CLINICIAN_RESPONSE
-#################################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: float``
 
@@ -951,7 +1012,8 @@ currency (e.g. GBP).
 
 
 PDF_LETTER_FOOTER_ADDRESS_HTML
-##############################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -971,7 +1033,8 @@ Example:
 
 
 ETHICS_INFO
-###########
+^^^^^^^^^^^
+
 
 ``type: instance of class crate_anon.crateweb.consent.EthicsInfo``
 
@@ -980,12 +1043,14 @@ Information class instance providing ethics reference information. Can be
 
 
 Local information links
------------------------
+~~~~~~~~~~~~~~~~~~~~~~~
+
 
 .. _CHARITY_URL:
 
 CHARITY_URL
-###########
+^^^^^^^^^^^
+
 
 ``type: str``
 
@@ -997,7 +1062,8 @@ Absolute URL to an information page about your charity donation system, e.g.
 
 
 CHARITY_URL_SHORT
-#################
+^^^^^^^^^^^^^^^^^
+
 
 Short "humanized" version of CHARITY_URL_, for use as clickable text; e.g.
 
@@ -1007,7 +1073,8 @@ Short "humanized" version of CHARITY_URL_, for use as clickable text; e.g.
 
 
 LEAFLET_URL_CPFTRD_CLINRES_SHORT
-################################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 Short "humanized" version of where to click to get the patient leaflet about
 your research database. (Used by ``.html`` templates.)
@@ -1018,7 +1085,8 @@ your research database. (Used by ``.html`` templates.)
 
 
 Specimen config file
---------------------
+~~~~~~~~~~~~~~~~~~~~
+
 
 To obtain a specimen file, use
 
