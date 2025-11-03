@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/consent/templates/clinician_response.js
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------------------------------
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/clinician_response.js
     :language: JavaScript

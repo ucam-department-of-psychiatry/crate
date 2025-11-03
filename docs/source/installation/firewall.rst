@@ -19,14 +19,16 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 Firewall setup
-==============
+--------------
+
 
 ..  contents::
     :local:
     :depth: 3
 
 List of domains that the CRATE installer will need to access
-------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 If you are installing CRATE behind a firewall that restricts access to the internet, you will need to ensure the following domains are allowed.This list is correct as of May 2023 and is likely to change over time:
 

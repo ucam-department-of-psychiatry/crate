@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/nlp_manager/CrateGatePipeline.java
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------------------
 
 .. literalinclude:: ../../../../crate_anon/nlp_manager/CrateGatePipeline.java
     :language: Java

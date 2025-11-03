@@ -18,6 +18,9 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
+Introduction
+============
+
 ..  toctree::
     :maxdepth: 2
 

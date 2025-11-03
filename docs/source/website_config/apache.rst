@@ -22,7 +22,8 @@
 .. _config_apache:
 
 Configuring for Apache
-======================
+----------------------
+
 
 Apache is a powerful but fairly complex web server. A suggested method of using
 it with CRATE under Windows is as follows:

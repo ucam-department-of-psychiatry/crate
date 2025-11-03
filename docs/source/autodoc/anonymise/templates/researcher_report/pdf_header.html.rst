@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/anonymise/templates/researcher_report/pdf_header.html
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------------------------------------
 
 .. literalinclude:: ../../../../../../crate_anon/anonymise/templates/researcher_report/pdf_header.html
     :language: html+django

@@ -23,12 +23,14 @@
 
 
 Launch the CRATE web server
-===========================
+---------------------------
+
 
 .. _crate_launch_cherrypy_server:
 
 crate_launch_cherrypy_server
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 This is the standard cross-platform production server for CRATE, using
 CherryPy_.
@@ -40,7 +42,8 @@ The command is a shortcut to :ref:`crate_django_manage runcpserver
 .. _crate_launch_django_server:
 
 crate_launch_django_server
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 This is a lightweight test server, using Django_ itself.
 

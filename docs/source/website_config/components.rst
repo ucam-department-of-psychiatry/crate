@@ -33,7 +33,8 @@
 
 
 Web site components
-===================
+-------------------
+
 
 - A **front-end web server** such as Apache_ runs on your server and talks to
   the world. It serves static files and may run other web sites, but it routes
