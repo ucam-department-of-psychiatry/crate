@@ -33,8 +33,9 @@ fashion.
 
 You will need to download a CSV file of postcode geography from UK Census/ONS
 data from e.g. https://geoportal.statistics.gov.uk/search?q=PRD_ONSPD%20NOV_2024
-and place it in the ``files`` directory under the top level directory of the
-CRATE installation.
+and place it somewhere accessible to CRATE. If you are running CRATE under
+Docker this needs to be under the ``files`` directory, which is under the top
+level directory of the CRATE installation.
 
 
 Example
@@ -73,7 +74,7 @@ The database manager then runs the following script in CRATE:
 
 .. code-block:: bash
 
-    # If using the CRATE installer (from the scripts directory)
+    # If using the Docker-based CRATE installer (from the scripts directory)
     ./fuzzy_id_match_hash.sh --population_size=100000 --input /crate/files/patients_for_hashing.csv --key mysecretpassphrase --output /crate/files/hashed_patients.jsonl --postcode_csv_filename=/crate/files/ONSPD_NOV_2024_UK.csv
 
     # otherwise
@@ -93,7 +94,7 @@ They then run the following script in their CRATE installation:
 
 .. code-block:: bash
 
-    # If using the CRATE installer (from the scripts directory)
+    # If using the Docker-based CRATE installer (from the scripts directory)
     ./fuzzy_id_match_compare_hashed_to_plaintext.sh --probands /crate/files/hashed_patients.jsonl --sample /crate/files/students_for_hashing.csv --sample_cache /crate/files/sample_cache.jsonl --output /crate/files/sample_comparison.csv --key mysecretpassphrase --population_size=100000 --postcode_csv_filename=/crate/files/ONSPD_NOV_2024_UK.csv
 
     # otherwise
