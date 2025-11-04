@@ -260,8 +260,8 @@ freetds-dev`` first.
 
 .. _mssql_django:
 
-SQL Server + mssql-django
-^^^^^^^^^^^^^^^^^^^^^^^^^
+mssql-django
+^^^^^^^^^^^^
 
 A replacement for :ref:`django-mssql-backend <django_mssql_backend>` (q.v.)
 

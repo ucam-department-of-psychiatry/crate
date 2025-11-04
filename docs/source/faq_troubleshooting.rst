@@ -913,7 +913,8 @@ try this:
 
 
 "Restricted data type attribute violation"
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 We've seen this whilst performing an initial scan (data dictionary
 autogeneration) of a source database using the ``SQL Server Native Client
@@ -926,10 +927,12 @@ read-only connection. The SQLAlchemy URL for this setup is
 
 
 Windows
--------
+~~~~~~~
+
 
 Control Panel looks blank in Windows 2008 Server
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 This isn’t a CRATE problem. However, it’s something we encountered as a problem
 when using CRATE. If your Control Panel looks blank, (1) run ``gpedit.msc``
@@ -941,10 +944,12 @@ command line instead.
 
 
 MedEx-UIMA
-----------
+~~~~~~~~~~
+
 
 MedEx-UIMA gives Java errors
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 Yes. Frankly, it’s just fairly badly written, from a programmer’s perspective.
 I’ve fixed a few of its bugs in a nasty patch-based way; see
@@ -1010,7 +1015,8 @@ Here are a couple of MedEx bugs I haven’t fixed, so you might see them:
 
 
 CRATE reports an encoding error when talking to MedEx
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 You have probably missed out the ``-Dfile.encoding=UTF-8`` setting for Java in
 your config file; see the example.

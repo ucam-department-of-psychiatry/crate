@@ -1772,7 +1772,6 @@ of the :ref:`[main] <anon_config_main_section>` section.
 secret_key
 ##########
 
-
 *String.*
 
 Secret key for the hasher.
