@@ -1204,24 +1204,31 @@ class Installer:
 
         self.setenv(DockerEnvVar.CRATE_WAIT_FOR, " ".join(wait_for))
 
-    @staticmethod
-    def create_directories() -> None:
-        crate_config_dir = os.environ.get(DockerEnvVar.CONFIG_HOST_DIR)
-        Path(crate_config_dir).mkdir(parents=True, exist_ok=True)
+    def create_directories(self) -> None:
+        crate_config_dir = self.getenv(DockerEnvVar.CONFIG_HOST_DIR)
+        self.create_directory(crate_config_dir)
 
-        crate_files_dir = os.environ.get(DockerEnvVar.FILES_HOST_DIR)
-        Path(crate_files_dir).mkdir(parents=True, exist_ok=True)
+        crate_files_dir = self.getenv(DockerEnvVar.FILES_HOST_DIR)
+        self.create_directory(crate_files_dir)
 
         crate_logs_dir = os.path.join(crate_files_dir, "logs")
-        Path(crate_logs_dir).mkdir(parents=True, exist_ok=True)
+        self.create_directory(crate_logs_dir)
 
-        crate_static_dir = os.environ.get(DockerEnvVar.STATIC_HOST_DIR)
-        Path(crate_static_dir).mkdir(parents=True, exist_ok=True)
+        crate_static_dir = self.getenv(DockerEnvVar.STATIC_HOST_DIR)
+        self.create_directory(crate_static_dir)
 
-        bioyodie_resources_dir = os.environ.get(
+        bioyodie_resources_dir = self.getenv(
             DockerEnvVar.GATE_BIOYODIE_RESOURCES_HOST_DIR
         )
-        Path(bioyodie_resources_dir).mkdir(parents=True, exist_ok=True)
+        self.create_directory(bioyodie_resources_dir)
+
+    def create_directory(self, dirname: str) -> None:
+        path = Path(dirname)
+        path.mkdir(parents=True, exist_ok=True)
+
+        uid = int(self.getenv(DockerEnvVar.INSTALL_USER_ID))
+        gid = int(self.getenv(DockerEnvVar.INSTALL_GROUP_ID))
+        os.chown(path, uid, gid)
 
     def write_odbc_config(self) -> None:
         demo_config = r"""# Example ODBC DSN definition
