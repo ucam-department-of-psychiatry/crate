@@ -76,6 +76,7 @@ class InstallerBoot:
     light_mode: bool
     run_locally: bool
     recreate_venv: bool
+    skip_wsl2_filesystem_check: bool
     version: Optional[str]
     update: bool
     verbose: bool
@@ -96,7 +97,7 @@ class InstallerBoot:
     def boot(self) -> None:
         self.ensure_root_dir_exists()
 
-        if not self.skip_wsl2_filesystem_check():
+        if not self.skip_wsl2_filesystem_check:
             self.check_root_dir_not_in_windows_share()
 
         if not self.run_locally:
@@ -116,8 +117,12 @@ class InstallerBoot:
         if "microsoft-standard" not in sys_info.release:
             return
 
-        fs_type_name = subprocess.check_output(
-            ["stat", "-f", "-c", "%T", self.crate_root_dir], check=True
+        fs_type_name = (
+            subprocess.check_output(
+                ["stat", "-f", "-c", "%T", self.crate_root_dir],
+            )
+            .decode("utf-8")
+            .strip()
         )
 
         known_linux_types = [
@@ -128,7 +133,7 @@ class InstallerBoot:
         if fs_type_name not in known_linux_types:
             print(
                 f"You are trying to install CRATE in {self.crate_root_dir}. "
-                f"This looks like a Windows filesystem ('{fs_type_name}')."
+                f"This looks like a Windows filesystem ('{fs_type_name}'). "
                 "If this is the case, this will be slow and lead to problems "
                 "with file permissions not being set correctly. If you think "
                 "this is a mistake, rerun installer_boot.py with the "
