@@ -51,6 +51,7 @@ import getpass
 import json
 import os
 from pathlib import Path
+from platform import uname
 import subprocess
 import sys
 from typing import Optional
@@ -94,6 +95,10 @@ class InstallerBoot:
 
     def boot(self) -> None:
         self.ensure_root_dir_exists()
+
+        if not self.skip_wsl2_filesystem_check():
+            self.check_root_dir_not_in_windows_share()
+
         if not self.run_locally:
             self.checkout_code()
 
@@ -102,6 +107,35 @@ class InstallerBoot:
             self.install_requirements()
 
         self.run_installer()
+
+    def check_root_dir_not_in_windows_share(self) -> None:
+        # In Windows Subsystem for Linux, check if the root
+        # directory is in the Windows share and warn the user if so.
+        sys_info = uname()
+
+        if "microsoft-standard" not in sys_info.release:
+            return
+
+        fs_type_name = subprocess.check_output(
+            ["stat", "-f", "-c", "%T", self.crate_root_dir], check=True
+        )
+
+        known_linux_types = [
+            "ext2/ext3",
+            "btrfs",
+        ]
+
+        if fs_type_name not in known_linux_types:
+            print(
+                f"You are trying to install CRATE in {self.crate_root_dir}. "
+                f"This looks like a Windows filesystem ('{fs_type_name}')."
+                "If this is the case, this will be slow and lead to problems "
+                "with file permissions not being set correctly. If you think "
+                "this is a mistake, rerun installer_boot.py with the "
+                "--skip_wsl2_filesystem_check option and send "
+                "this message to the CRATE developers."
+            )
+            sys.exit(EXIT_USER)
 
     def ensure_root_dir_exists(self) -> None:
         try:
@@ -240,6 +274,12 @@ def main() -> None:
         "--recreate_venv",
         action="store_true",
         help="Recreate the CRATE installer virtual environment",
+    )
+    parser.add_argument(
+        "--skip_wsl2_filesystem_check",
+        action="store_true",
+        default=False,
+        help=("(WSL2 only). Do not check the file system for suitability."),
     )
     parser.add_argument(
         "--version",
