@@ -104,7 +104,8 @@ Your settings
 ~~~~~~~~~~~~~
 
 Change your settings
-####################
+^^^^^^^^^^^^^^^^^^^^
+
 
 You can change your display formatting settings here (such as the default
 number of items to show per page, and how long textual result fields need to be
@@ -112,7 +113,8 @@ before the site "collapses" the result so you have to click to see everything).
 
 
 Change your password
-####################
+^^^^^^^^^^^^^^^^^^^^
+
 
 You can change your CRATE password here.
 

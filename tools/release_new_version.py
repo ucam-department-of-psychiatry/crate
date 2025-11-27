@@ -211,7 +211,7 @@ class VersionReleaser:
                         )
                     targets.append((target_year, target_year))
 
-                if year_heading is not None and line == "~~~~\n":
+                if year_heading is not None and line == "^^^^\n":
                     if (year_heading, year_heading) not in refs:
                         self.errors.append(
                             f"No :ref:  for year {year_heading} in "

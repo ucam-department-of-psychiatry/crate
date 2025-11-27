@@ -25,7 +25,8 @@
 .. _crate_django_manage:
 
 Manage the CRATE web server
-===========================
+---------------------------
+
 
 The CRATE web front end uses Django_, which comes with a number of built-in
 management comments; to these, CRATE adds some more. All are available as
@@ -43,10 +44,12 @@ The available commands are:
 Particularly relevant functions are as follows.
 
 [auth]
-------
+~~~~~~
+
 
 changepassword
-##############
+^^^^^^^^^^^^^^
+
 
 Change a user's password from the command line.
 
@@ -55,7 +58,8 @@ Change a user's password from the command line.
 
 
 createsuperuser
-###############
+^^^^^^^^^^^^^^^
+
 
 Create a superuser from the command line.
 
@@ -64,10 +68,12 @@ Create a superuser from the command line.
 
 
 [consent]
----------
+~~~~~~~~~
+
 
 fetch_optouts
-#############
+^^^^^^^^^^^^^
+
 
 Show PIDs/MPIDs for patients who have opted out entirely from the anonymised
 research database. See
@@ -80,7 +86,8 @@ RDBMs <rdbm_view_optouts>`.
 
 
 lookup_consent
-##############
+^^^^^^^^^^^^^^
+
 
 Tests patient identity lookup from the command line, without saving anything.
 See
@@ -93,7 +100,8 @@ developers <dev_lookup_consent_mode>`.
 
 
 lookup_patient
-##############
+^^^^^^^^^^^^^^
+
 
 Tests patient identity lookup from the command line, without saving anything.
 See
@@ -106,7 +114,8 @@ developers <dev_lookup_patient>`.
 
 
 populate
-########
+^^^^^^^^
+
 
 Ensures the database has entries for all the master leaflets used by CRATE.
 (Will not destroy any existing leaflet records.)
@@ -121,7 +130,8 @@ See
 
 
 resubmit_unprocessed_tasks
-##########################
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 Ask Celery to catch up on any unprocessed CRATE tasks. Use this with caution!
 See :func:`crate_anon.crateweb.consent.tasks.resubmit_unprocessed_tasks_task`.
@@ -131,7 +141,8 @@ See :func:`crate_anon.crateweb.consent.tasks.resubmit_unprocessed_tasks_task`.
 
 
 test_email
-##########
+^^^^^^^^^^
+
 
 Tests the backend and e-mail systems by sending an e-mail to the RDBM. Also
 available from the :ref:`front-end web site <rdbm_test_message_queue>`.
@@ -143,7 +154,8 @@ available from the :ref:`front-end web site <rdbm_test_message_queue>`.
 .. _django_manage_email_rdbm:
 
 email_rdbm
-##########
+^^^^^^^^^^
+
 
 E-mails the RDBM.
 
@@ -152,12 +164,14 @@ E-mails the RDBM.
 
 
 [core]
-------
+~~~~~~
+
 
 .. _django_manage_runcpserver:
 
 runcpserver
-###########
+^^^^^^^^^^^
+
 
 Launches the CherryPy web server.
 
@@ -166,10 +180,12 @@ Launches the CherryPy web server.
 
 
 [staticfiles]
--------------
+~~~~~~~~~~~~~
+
 
 collectstatic
-#############
+^^^^^^^^^^^^^
+
 
 Copy relevant static files from their source location to the place that CRATE
 will serve them to users (or another front-end server, like Apache, will on its
@@ -182,7 +198,8 @@ behalf). Needs to be run as part of site setup.
 .. _django_manage_runserver:
 
 runserver
-#########
+^^^^^^^^^
+
 
 Launches the Django test web server.
 

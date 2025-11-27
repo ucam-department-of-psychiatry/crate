@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.tools.email_rdbm
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 .. automodule:: crate_anon.tools.email_rdbm
     :members:

@@ -27,7 +27,6 @@ Anonymisation
     :maxdepth: 2
 
     overview.rst
-    data_prerequisites.rst
     anon_config.rst
     data_dictionary.rst
     anonymise.rst

@@ -20,7 +20,8 @@
 
 
 Configuring the web front end
-=============================
+-----------------------------
+
 
 You’ll need to make a new (e.g. MySQL) database for the web front end, and an
 admin user with full access rights to it.

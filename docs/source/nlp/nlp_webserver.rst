@@ -115,7 +115,8 @@ Here's a specimen config file:
 
 
 Application section
-+++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^
+
 
 The ``[app:main]`` section defines an *application* named *main*, which is
 the default name. Options within this section are provided as keyword arguments
@@ -241,7 +242,8 @@ Database number for Redis_.
 
 
 Web server section
-++++++++++++++++++
+^^^^^^^^^^^^^^^^^^
+
 
 The ``[server:main]`` section defines the web server configuration for the app
 named ``main``.

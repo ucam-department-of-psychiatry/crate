@@ -323,9 +323,9 @@ def main():
     run_cmd([CrateCommand.DJANGO_MANAGE, "spectacular"], api_schema_file)
 
     # Ideally we would use https://github.com/sphinx-contrib/openapi but it
-    # hasn't been maintained since 2020 and doesn't work with our schema.
-    # Plus the lead contributor is based in Ukraine and probably has more
-    # important things to worry about right now.
+    # doesn't work with our schema.
+    #
+    # https://github.com/sphinx-contrib/openapi/issues/107
     #
     # So we create a static HTML page of the API docs and include this in
     # docs/source/anonymisation/api.rst

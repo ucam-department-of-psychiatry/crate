@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.anonymise.models
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 .. automodule:: crate_anon.anonymise.models
     :members:

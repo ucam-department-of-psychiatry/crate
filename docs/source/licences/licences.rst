@@ -20,17 +20,20 @@
 
 
 Licences
-========
+--------
+
 
 CRATE
------
+~~~~~
+
 
 ..  literalinclude:: licence_crate.txt
     :language: none
 
 
 GATE-related code
------------------
+~~~~~~~~~~~~~~~~~
+
 
 - Aspects of ``CamAnonGatePipeline.java`` are based on demonstration GATE code,
   copyright © University of Sheffield, and licensed under the GNU LGPL; see
@@ -38,7 +41,8 @@ GATE-related code
 
 
 US name frequency data
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
+
 
 Some name/frequency data is supplied, derived from data freely available at
 https://www.ssa.gov/OACT/babynames/ (United States Department of Social
@@ -51,7 +55,8 @@ https://en.wikipedia.org/wiki/Copyright_status_of_works_by_the_federal_governmen
 
 
 UK postcode-related data
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 Limited UK postcode data is reproduced for convenience. This is under the UK
 Open Government Licence; see
