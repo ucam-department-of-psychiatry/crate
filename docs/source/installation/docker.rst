@@ -150,10 +150,9 @@ To start the installer on all platforms, run the below command, replacing
 should be installed. The installer will create this if it doesn't exist but it
 will need to be writeable by the user running the installer.
 
-    .. code-block:: bash
+.. parsed-literal::
 
-        curl --location https://github.com/ucam-department-of-psychiatry/crate/releases/download/latest/installer_boot.py --fail --output installer_boot.py && chmod u+x installer_boot.py && python3 installer_boot.py --crate_root_dir /path/to/top/level/crate/dir
-
+    curl --location \https://github.com/ucam-department-of-psychiatry/crate/releases/download/v\ |version|\ /installer_boot.py --fail --output installer_boot.py && chmod u+x installer_boot.py && python3 installer_boot.py --crate_root_dir /path/to/top/level/crate/dir
 
 .. _example_settings_file:
 
