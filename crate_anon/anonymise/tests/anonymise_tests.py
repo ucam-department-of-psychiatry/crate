@@ -821,7 +821,7 @@ class ProcessPatientTablesPKTests(DatabaseTestCase):
         self.assertEqual(self.anon_dbsession.query(TestAnonRecord).count(), 1)
 
 
-class ProcessTableIncrementalTests(DatabaseTestCase):
+class ProcessTableTests(DatabaseTestCase):
     def setUp(self) -> None:
         super().setUp()
 
@@ -950,6 +950,79 @@ class ProcessTableIncrementalTests(DatabaseTestCase):
         expected_message = (
             "... ... skipping unchanged record (identical by hash): "
         )
+
+        self.assertTrue(
+            any(
+                f"DEBUG:{logger_name}:{expected_message}" in line
+                for line in logging_cm.output
+            )
+        )
+
+    def test_does_nothing_if_all_ddrows_omitted(self) -> None:
+        patient = TestPatientFactory()
+        self.source_dbsession.commit()
+        TestRecordFactory(pid=patient.pid, row_identifier=123456)
+        self.source_dbsession.commit()
+
+        mock_rows = [
+            mock.Mock(
+                omit=True,
+                src_field="pk",
+                skip_row_by_value=mock.Mock(return_value=False),
+                primary_pid=False,
+                master_pid=False,
+                third_party_pid=False,
+                alter_methods=[],
+                dest_table="test_anon_record",
+                dest_field="pk",
+                add_src_hash=True,
+            ),
+            mock.Mock(
+                omit=True,
+                src_field="pid",
+                skip_row_by_value=mock.Mock(return_value=False),
+                primary_pid=False,
+                master_pid=False,
+                third_party_pid=False,
+                alter_methods=[],
+                dest_table="test_anon_record",
+                dest_field="pid",
+                add_src_hash=True,
+            ),
+            mock.Mock(
+                omit=True,
+                src_field="row_identifier",
+                skip_row_by_value=mock.Mock(return_value=False),
+                primary_pid=False,
+                master_pid=False,
+                third_party_pid=False,
+                alter_methods=[],
+                dest_table="test_anon_record",
+                dest_field="row_identifier",
+                add_src_hash=True,
+            ),
+        ]
+        mock_rows_for_src_table = mock.Mock(return_value=mock_rows)
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            with self.assertLogs(level=logging.DEBUG) as logging_cm:
+                process_table("source", "test_record", incremental=True)
+
+        logger_name = "crate_anon.anonymise.anonymise"
+        expected_message = "... ... all columns omitted"
 
         self.assertTrue(
             any(

@@ -1209,6 +1209,7 @@ def process_table(
 
     ddrows = config.dd.get_rows_for_src_table(sourcedbname, sourcetable)
     if all(ddr.omit for ddr in ddrows):
+        log.debug("... ... all columns omitted.")
         return
     addhash = any(ddr.add_src_hash for ddr in ddrows)
     addtrid = any(ddr.primary_pid and not ddr.omit for ddr in ddrows)
