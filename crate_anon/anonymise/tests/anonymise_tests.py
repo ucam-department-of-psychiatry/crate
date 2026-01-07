@@ -123,6 +123,17 @@ class TestAnonNote(AnonTestBase):
     note2 = Column(Text, comment="Text of note 2")
 
 
+class TestPatient(SourceTestBase):
+    __tablename__ = "test_patient"
+
+    pid = Column(Integer, primary_key=True, comment="Patient ID")
+
+
+class TestPatientFactory(SourceTestBaseFactory):
+    class Meta:
+        model = TestPatient
+
+
 class TestPatientWithStringMPID(SourceTestBase):
     __tablename__ = "test_patient_with_string_mpid"
 
@@ -167,6 +178,31 @@ class TestAnonRecord(AnonTestBase):
 class TestAnonRecordFactory(AnonTestBaseFactory):
     class Meta:
         model = TestAnonRecord
+
+
+class TestPidAsPkRecord(SourceTestBase):
+    __tablename__ = "test_pid_as_pk_record"
+
+    pid = Column(Integer, primary_key=True, comment="Patient ID")
+    other = Column(String(50), comment="Other column")
+
+
+class TestPidAsPkRecordFactory(SourceTestBaseFactory):
+    class Meta:
+        model = TestPidAsPkRecord
+
+
+class TestAnonPidAsPkRecord(AnonTestBase):
+    __tablename__ = "test_anon_pid_as_pk_record"
+
+    rid = Column(String(32), primary_key=True, comment="Research ID")
+    _src_hash = Column(String(32))
+    _when_processed_utc = Column(DateTime())
+
+
+class TestAnonPidAsPkRecordFactory(AnonTestBaseFactory):
+    class Meta:
+        model = TestAnonPidAsPkRecord
 
 
 # =============================================================================
@@ -797,6 +833,25 @@ class ProcessTableIncrementalTests(DatabaseTestCase):
             metadata=SourceTestBase.metadata,
         )
 
+        self.mock_destdb = mock.Mock(
+            session=self.anon_dbsession,
+            engine=self.anon_engine,
+            metadata=AnonTestBase.metadata,
+        )
+
+    def test_unchanged_record_matching_hash_with_plain_rid_skipped(
+        self,
+    ) -> None:
+        patient = TestPatientFactory()
+        self.source_dbsession.commit()
+        test_record = TestRecordFactory(pid=patient.pid, row_identifier=123456)
+        self.source_dbsession.commit()
+        TestAnonRecordFactory(
+            row_identifier=test_record.row_identifier,
+            _src_hash="e605003d8ef879dbb22b165f39dcda3c",
+        )
+        self.anon_dbsession.commit()
+
         mock_row = mock.Mock(
             omit=False,
             src_field="row_identifier",
@@ -811,32 +866,15 @@ class ProcessTableIncrementalTests(DatabaseTestCase):
         )
         mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
 
-        self.mock_dd = mock.Mock(
+        mock_dd = mock.Mock(
             get_rows_for_src_table=mock_rows_for_src_table,
             get_dest_sqla_table=mock.Mock(
                 return_value=TestAnonRecord.__table__
             ),
         )
-        self.mock_destdb = mock.Mock(
-            session=self.anon_dbsession,
-            engine=self.anon_engine,
-            metadata=AnonTestBase.metadata,
-        )
-
-    def test_unchanged_record_identical_by_hash_skipped(self) -> None:
-        patient = TestPatientWithStringMPIDFactory()
-        self.source_dbsession.commit()
-        test_record = TestRecordFactory(pid=patient.pid, row_identifier=123456)
-        self.source_dbsession.commit()
-        TestAnonRecordFactory(
-            row_identifier=test_record.row_identifier,
-            _src_hash="e605003d8ef879dbb22b165f39dcda3c",
-        )
-        self.anon_dbsession.commit()
-
         with mock.patch.multiple(
             "crate_anon.anonymise.anonymise.config",
-            dd=self.mock_dd,
+            dd=mock_dd,
             sources={"source": self.mock_sourcedb},
             _destination_database_url=self.anon_engine.url,
             destdb=self.mock_destdb,
@@ -844,6 +882,69 @@ class ProcessTableIncrementalTests(DatabaseTestCase):
         ):
             with self.assertLogs(level=logging.DEBUG) as logging_cm:
                 process_table("source", "test_record", incremental=True)
+
+        logger_name = "crate_anon.anonymise.anonymise"
+        expected_message = (
+            "... ... skipping unchanged record (identical by hash): "
+        )
+
+        self.assertTrue(
+            any(
+                f"DEBUG:{logger_name}:{expected_message}" in line
+                for line in logging_cm.output
+            )
+        )
+
+    def test_unchanged_record_matching_hash_with_hashed_rid_skipped(
+        self,
+    ) -> None:
+        patient = TestPatientFactory()
+        self.source_dbsession.commit()
+        TestPidAsPkRecordFactory(pid=patient.pid, other="Other")
+        self.source_dbsession.commit()
+        TestAnonPidAsPkRecordFactory(
+            rid="a1205cca5cda3cfc69f85bb10cfc17b2",
+            _src_hash="83cdbf2ac8b1ef061f84fdab8df2cf40",
+        )
+        self.anon_dbsession.commit()
+
+        mock_row = mock.Mock(
+            omit=False,
+            src_field="pid",
+            skip_row_by_value=mock.Mock(return_value=False),
+            primary_pid=True,
+            master_pid=False,
+            third_party_pid=False,
+            alter_methods=[],
+            dest_table="test_anon_pid_as_pk_record",
+            dest_field="rid",
+            add_src_hash=True,
+        )
+        mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonPidAsPkRecord.__table__
+            ),
+            get_pid_name=mock.Mock(return_value="pid"),
+        )
+        mock_patient = mock.Mock(pid=patient.pid)
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_pid_as_pk_record"): 0},
+        ):
+            with self.assertLogs(level=logging.DEBUG) as logging_cm:
+                process_table(
+                    "source",
+                    "test_pid_as_pk_record",
+                    patient=mock_patient,
+                    incremental=True,
+                )
 
         logger_name = "crate_anon.anonymise.anonymise"
         expected_message = (
