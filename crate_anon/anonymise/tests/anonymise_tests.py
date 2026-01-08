@@ -1047,6 +1047,56 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             )
         )
 
+    def test_constant_record_matching_pk_skipped(
+        self,
+    ) -> None:
+        patient = TestPatientFactory()
+        self.source_dbsession.commit()
+        test_record = TestRecordFactory(pid=patient.pid)
+        self.source_dbsession.commit()
+        TestAnonRecordFactory(
+            row_identifier=test_record.row_identifier,
+        )
+        self.anon_dbsession.commit()
+
+        mock_row = self.mock_dd_row(
+            src_field="row_identifier",
+            dest_table="test_anon_record",
+            dest_field="row_identifier",
+            constant=True,
+        )
+        mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            with self.assertLogs(level=logging.DEBUG) as logging_cm:
+                process_table("source", "test_record", incremental=True)
+
+        logger_name = "crate_anon.anonymise.anonymise"
+        expected_message = (
+            "... ... skipping unchanged record (identical by PK and "
+            "marked as constant): "
+        )
+
+        self.assertTrue(
+            any(
+                f"DEBUG:{logger_name}:{expected_message}" in line
+                for line in logging_cm.output
+            )
+        )
+
     def test_does_nothing_if_all_ddrows_omitted(self) -> None:
         patient = TestPatientFactory()
         self.source_dbsession.commit()
