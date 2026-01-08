@@ -33,6 +33,7 @@ import logging
 from typing import Any, Dict, Generator, List, Tuple, TYPE_CHECKING
 from unittest import mock
 
+from cardinal_pythonlib.hash import HmacMD5Hasher
 from cardinal_pythonlib.sqlalchemy.schema import (
     execute_ddl,
     mssql_table_has_ft_index,
@@ -58,6 +59,7 @@ from crate_anon.anonymise.anonymise import (
     process_table,
     validate_optouts,
 )
+from crate_anon.anonymise.altermethod import AlterMethod
 from crate_anon.anonymise.constants import IndexType, ScrubMethod
 from crate_anon.anonymise.models import PatientInfo
 from crate_anon.anonymise.dd import ScrubSourceFieldInfo
@@ -127,11 +129,19 @@ class TestPatient(SourceTestBase):
     __tablename__ = "test_patient"
 
     pid = Column(Integer, primary_key=True, comment="Patient ID")
+    forename = Column(String(50), comment="Forename")
+    surname = Column(String(50), comment="Surname")
+
+    def name(self) -> str:
+        return f"{self.forename} {self.surname}"
 
 
 class TestPatientFactory(SourceTestBaseFactory):
     class Meta:
         model = TestPatient
+
+    forename = factory.LazyFunction(Fake.en_gb.first_name)
+    surname = factory.LazyFunction(Fake.en_gb.last_name)
 
 
 class TestPatientWithStringMPID(SourceTestBase):
@@ -165,12 +175,14 @@ class TestRecordFactory(SourceTestBaseFactory):
         model = TestRecord
 
     pk = factory.Sequence(lambda n: n + 1)
+    row_identifier = factory.Sequence(lambda n: n + 10000)
 
 
 class TestAnonRecord(AnonTestBase):
     __tablename__ = "test_anon_record"
 
     row_identifier = Column(Integer, primary_key=True, comment="Row ID")
+    other = Column(String(50), comment="Other column")
     _src_hash = Column(String(32))
     _when_processed_utc = Column(DateTime())
 
@@ -208,6 +220,34 @@ class TestAnonPidAsPkRecordFactory(AnonTestBaseFactory):
 # =============================================================================
 # Unit tests
 # =============================================================================
+class AnonymiseTestMixin:
+    def mock_dd_row(
+        self,
+        omit: bool = False,
+        skip_row_by_value: mock.Mock = None,
+        primary_pid: bool = False,
+        master_pid: bool = False,
+        third_party_pid: bool = False,
+        alter_methods: list[AlterMethod] = None,
+        add_src_hash: bool = False,
+        **kwargs,
+    ) -> mock.Mock:
+        if skip_row_by_value is None:
+            skip_row_by_value = mock.Mock(return_value=False)
+
+        if alter_methods is None:
+            alter_methods = []
+
+        return mock.Mock(
+            omit=omit,
+            skip_row_by_value=skip_row_by_value,
+            primary_pid=primary_pid,
+            master_pid=master_pid,
+            third_party_pid=third_party_pid,
+            alter_methods=alter_methods,
+            add_src_hash=add_src_hash,
+            **kwargs,
+        )
 
 
 class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
@@ -493,7 +533,9 @@ class CreateIndexesTests(DatabaseTestCase):
                 create_indexes()
 
 
-class ProcessPatientTablesMPidTests(SlowSecretDatabaseTestCase):
+class ProcessPatientTablesMPidTests(
+    SlowSecretDatabaseTestCase, AnonymiseTestMixin
+):
     def setUp(self) -> None:
         super().setUp()
 
@@ -529,16 +571,9 @@ class ProcessPatientTablesMPidTests(SlowSecretDatabaseTestCase):
         self.mock_estimate_count_patients = mock.Mock(return_value=1)
         self.mock_opting_out_pid = mock.Mock(return_value=False)
 
-        mock_row = mock.Mock(
-            omit=False,
+        mock_row = self.mock_dd_row(
             src_field="row_identifier",
-            skip_row_by_value=mock.Mock(return_value=False),
-            primary_pid=False,
-            master_pid=False,
-            third_party_pid=False,
-            alter_methods=[],
             dest_field="row_identifier",
-            add_src_hash=False,
         )
         mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
 
@@ -704,7 +739,7 @@ class ProcessPatientTablesMPidTests(SlowSecretDatabaseTestCase):
         self.assertIn(int(valid_patient2.nhsnum), nhsnums)
 
 
-class ProcessPatientTablesPKTests(DatabaseTestCase):
+class ProcessPatientTablesPKTests(DatabaseTestCase, AnonymiseTestMixin):
     def setUp(self) -> None:
         super().setUp()
 
@@ -745,16 +780,9 @@ class ProcessPatientTablesPKTests(DatabaseTestCase):
         self.mock_estimate_count_patients = mock.Mock(return_value=1)
         self.mock_opting_out_pid = mock.Mock(return_value=False)
 
-        mock_row = mock.Mock(
-            omit=False,
+        mock_row = self.mock_dd_row(
             src_field="row_identifier",
-            skip_row_by_value=mock.Mock(return_value=False),
-            primary_pid=False,
-            master_pid=False,
-            third_party_pid=False,
-            alter_methods=[],
             dest_field="row_identifier",
-            add_src_hash=False,
         )
         mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
 
@@ -780,13 +808,18 @@ class ProcessPatientTablesPKTests(DatabaseTestCase):
         )
 
     def test_duplicate_primary_key_skipped(self) -> None:
+        # row_identifier is the primary key in the destination
+        # database but not in the source
+
         # MySQL supports ON DUPLICATE KEY UPDATE
         if self.anon_engine.dialect.name == "mysql":
             pytest.skip("Skipping different behaviour for MySQL")
 
         patient = TestPatientWithStringMPIDFactory()
-        TestRecordFactory(pid=patient.pid, row_identifier=123456)
-        TestRecordFactory(pid=patient.pid, row_identifier=123456)
+        record = TestRecordFactory(pid=patient.pid)
+        TestRecordFactory(
+            pid=patient.pid, row_identifier=record.row_identifier
+        )
         self.source_dbsession.commit()
 
         pids = [patient.pid]
@@ -821,9 +854,14 @@ class ProcessPatientTablesPKTests(DatabaseTestCase):
         self.assertEqual(self.anon_dbsession.query(TestAnonRecord).count(), 1)
 
 
-class ProcessTableTests(DatabaseTestCase):
+class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
     def setUp(self) -> None:
         super().setUp()
+
+        # Passphrases match those in get_demo_config()
+        self.pid_hasher = HmacMD5Hasher("SOME_PASSPHRASE_REPLACE_ME")
+        self.mpid_hasher = HmacMD5Hasher("SOME_OTHER_PASSPHRASE_REPLACE_ME")
+        self.change_hasher = HmacMD5Hasher("YETANOTHER")
 
         mock_srccfg = mock.Mock(debug_limited_tables=[])
         self.mock_sourcedb = mock.Mock(
@@ -844,22 +882,18 @@ class ProcessTableTests(DatabaseTestCase):
     ) -> None:
         patient = TestPatientFactory()
         self.source_dbsession.commit()
-        test_record = TestRecordFactory(pid=patient.pid, row_identifier=123456)
+        test_record = TestRecordFactory(pid=patient.pid)
         self.source_dbsession.commit()
         TestAnonRecordFactory(
             row_identifier=test_record.row_identifier,
-            _src_hash="e605003d8ef879dbb22b165f39dcda3c",
+            _src_hash=self.change_hasher.hash(
+                repr([test_record.row_identifier])
+            ),
         )
         self.anon_dbsession.commit()
 
-        mock_row = mock.Mock(
-            omit=False,
+        mock_row = self.mock_dd_row(
             src_field="row_identifier",
-            skip_row_by_value=mock.Mock(return_value=False),
-            primary_pid=False,
-            master_pid=False,
-            third_party_pid=False,
-            alter_methods=[],
             dest_table="test_anon_record",
             dest_field="row_identifier",
             add_src_hash=True,
@@ -900,22 +934,17 @@ class ProcessTableTests(DatabaseTestCase):
     ) -> None:
         patient = TestPatientFactory()
         self.source_dbsession.commit()
-        TestPidAsPkRecordFactory(pid=patient.pid, other="Other")
+        test_record = TestPidAsPkRecordFactory(pid=patient.pid, other="Other")
         self.source_dbsession.commit()
         TestAnonPidAsPkRecordFactory(
-            rid="a1205cca5cda3cfc69f85bb10cfc17b2",
-            _src_hash="83cdbf2ac8b1ef061f84fdab8df2cf40",
+            rid=self.pid_hasher.hash(patient.pid),
+            _src_hash=self.change_hasher.hash(repr([test_record.pid])),
         )
         self.anon_dbsession.commit()
 
-        mock_row = mock.Mock(
-            omit=False,
+        mock_row = self.mock_dd_row(
             src_field="pid",
-            skip_row_by_value=mock.Mock(return_value=False),
             primary_pid=True,
-            master_pid=False,
-            third_party_pid=False,
-            alter_methods=[],
             dest_table="test_anon_pid_as_pk_record",
             dest_field="rid",
             add_src_hash=True,
@@ -961,42 +990,27 @@ class ProcessTableTests(DatabaseTestCase):
     def test_does_nothing_if_all_ddrows_omitted(self) -> None:
         patient = TestPatientFactory()
         self.source_dbsession.commit()
-        TestRecordFactory(pid=patient.pid, row_identifier=123456)
+        TestRecordFactory(pid=patient.pid)
         self.source_dbsession.commit()
 
         mock_rows = [
-            mock.Mock(
+            self.mock_dd_row(
                 omit=True,
                 src_field="pk",
-                skip_row_by_value=mock.Mock(return_value=False),
-                primary_pid=False,
-                master_pid=False,
-                third_party_pid=False,
-                alter_methods=[],
                 dest_table="test_anon_record",
                 dest_field="pk",
                 add_src_hash=True,
             ),
-            mock.Mock(
+            self.mock_dd_row(
                 omit=True,
                 src_field="pid",
-                skip_row_by_value=mock.Mock(return_value=False),
-                primary_pid=False,
-                master_pid=False,
-                third_party_pid=False,
-                alter_methods=[],
                 dest_table="test_anon_record",
                 dest_field="pid",
                 add_src_hash=True,
             ),
-            mock.Mock(
+            self.mock_dd_row(
                 omit=True,
                 src_field="row_identifier",
-                skip_row_by_value=mock.Mock(return_value=False),
-                primary_pid=False,
-                master_pid=False,
-                third_party_pid=False,
-                alter_methods=[],
                 dest_table="test_anon_record",
                 dest_field="row_identifier",
                 add_src_hash=True,
