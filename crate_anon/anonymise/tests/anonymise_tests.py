@@ -330,13 +330,14 @@ class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
             with self.assertLogs(level=logging.INFO) as logging_cm:
                 list(gen_opt_out_pids_from_database())
 
-                logger_name = "crate_anon.anonymise.anonymise"
-                expected_message = (
-                    "... ignoring non-boolean value (1), type 'str' "
-                    "for boolean column 'opt_out'"
-                )
-                self.assertIn(
-                    f"INFO:{logger_name}:{expected_message}", logging_cm.output
+                self.assert_logged(
+                    "crate_anon.anonymise.anonymise",
+                    logging.INFO,
+                    (
+                        "... ignoring non-boolean value (1), type 'str' "
+                        "for boolean column 'opt_out'"
+                    ),
+                    logging_cm,
                 )
 
     def test_string_in_optout_col_values_valid_for_string_column(
@@ -685,13 +686,14 @@ class ProcessPatientTablesMPidTests(
         self.assertIsNone(
             self.secret_dbsession.query(PatientInfo).one_or_none()
         )
-        logger_name = "crate_anon.anonymise.anonymise"
-        expected_message = (
-            f"Skipping patient with PID={pid} because the record could "
-            "not be saved to the secret_map table"
-        )
-        self.assertIn(
-            f"WARNING:{logger_name}:{expected_message}", logging_cm.output
+        self.assert_logged(
+            "crate_anon.anonymise.anonymise",
+            logging.WARNING,
+            (
+                f"Skipping patient with PID={pid} because the record could "
+                "not be saved to the secret_map table"
+            ),
+            logging_cm,
         )
 
     def test_valid_patients_added_when_invalid_mpid_skipped(self) -> None:
@@ -844,14 +846,12 @@ class ProcessPatientTablesPKTests(DatabaseTestCase, AnonymiseTestMixin):
                 with self.assertLogs(level=logging.WARNING) as logging_cm:
                     process_patient_tables(specified_pids=pids)
 
-        logger_name = "crate_anon.anonymise.anonymise"
-        expected_message = "Skipping record due to IntegrityError"
-        self.assertTrue(
-            any(
-                f"WARNING:{logger_name}:{expected_message}" in line
-                for line in logging_cm.output
+            self.assert_logged(
+                "crate_anon.anonymise.anonymise",
+                logging.WARNING,
+                "Skipping record due to IntegrityError",
+                logging_cm,
             )
-        )
 
         self.assertEqual(self.anon_dbsession.query(TestAnonRecord).count(), 1)
 
@@ -977,16 +977,11 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             with self.assertLogs(level=logging.DEBUG) as logging_cm:
                 process_table("source", "test_record", incremental=True)
 
-        logger_name = "crate_anon.anonymise.anonymise"
-        expected_message = (
-            "... ... skipping unchanged record (identical by hash): "
-        )
-
-        self.assertTrue(
-            any(
-                f"DEBUG:{logger_name}:{expected_message}" in line
-                for line in logging_cm.output
-            )
+        self.assert_logged(
+            "crate_anon.anonymise.anonymise",
+            logging.DEBUG,
+            "... ... skipping unchanged record (identical by hash): ",
+            logging_cm,
         )
 
     def test_unchanged_record_matching_hash_with_hashed_rid_skipped(
@@ -1035,16 +1030,11 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
                     incremental=True,
                 )
 
-        logger_name = "crate_anon.anonymise.anonymise"
-        expected_message = (
-            "... ... skipping unchanged record (identical by hash): "
-        )
-
-        self.assertTrue(
-            any(
-                f"DEBUG:{logger_name}:{expected_message}" in line
-                for line in logging_cm.output
-            )
+        self.assert_logged(
+            "crate_anon.anonymise.anonymise",
+            logging.DEBUG,
+            "... ... skipping unchanged record (identical by hash): ",
+            logging_cm,
         )
 
     def test_constant_record_matching_pk_skipped(
@@ -1084,17 +1074,14 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             with self.assertLogs(level=logging.DEBUG) as logging_cm:
                 process_table("source", "test_record", incremental=True)
 
-        logger_name = "crate_anon.anonymise.anonymise"
-        expected_message = (
-            "... ... skipping unchanged record (identical by PK and "
-            "marked as constant): "
-        )
-
-        self.assertTrue(
-            any(
-                f"DEBUG:{logger_name}:{expected_message}" in line
-                for line in logging_cm.output
-            )
+        self.assert_logged(
+            "crate_anon.anonymise.anonymise",
+            logging.DEBUG,
+            (
+                "... ... skipping unchanged record (identical by PK and "
+                "marked as constant): "
+            ),
+            logging_cm,
         )
 
     def test_does_nothing_if_all_ddrows_omitted(self) -> None:
@@ -1145,14 +1132,11 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             with self.assertLogs(level=logging.DEBUG) as logging_cm:
                 process_table("source", "test_record", incremental=True)
 
-        logger_name = "crate_anon.anonymise.anonymise"
-        expected_message = "... ... all columns omitted"
-
-        self.assertTrue(
-            any(
-                f"DEBUG:{logger_name}:{expected_message}" in line
-                for line in logging_cm.output
-            )
+        self.assert_logged(
+            "crate_anon.anonymise.anonymise",
+            logging.DEBUG,
+            "... ... all columns omitted",
+            logging_cm,
         )
 
     def test_row_skipped_by_value(self) -> None:
