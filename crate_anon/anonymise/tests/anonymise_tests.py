@@ -1154,3 +1154,47 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
                 for line in logging_cm.output
             )
         )
+
+    def test_row_skipped_by_value(self) -> None:
+        patient = TestPatientFactory()
+        self.source_dbsession.commit()
+        TestRecordFactory(pid=patient.pid)
+        self.source_dbsession.commit()
+
+        mock_rows = [
+            self.mock_dd_row(
+                src_field="row_identifier",
+                dest_table="test_anon_record",
+                dest_field="row_identifier",
+                skip_row_by_value=mock.Mock(return_value=True),
+            ),
+        ]
+        mock_rows_for_src_table = mock.Mock(return_value=mock_rows)
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            with self.assertLogs(level=logging.DEBUG) as logging_cm:
+                process_table("source", "test_record")
+
+        self.assert_logged(
+            "crate_anon.anonymise.anonymise",
+            logging.DEBUG,
+            "... ... skipping row based on inclusion/exclusion values",
+            logging_cm,
+        )
+
+        self.assertIsNone(
+            self.anon_dbsession.query(TestAnonRecord).one_or_none()
+        )

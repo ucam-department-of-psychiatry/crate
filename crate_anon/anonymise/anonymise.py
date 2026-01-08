@@ -1344,7 +1344,9 @@ def process_table(
             # Skip row?
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             if ddr.skip_row_by_value(value):
-                # log.debug("skipping row based on inclusion/exclusion values")
+                log.debug(
+                    "... ... skipping row based on inclusion/exclusion values"
+                )
                 skip_row = True
                 break  # skip row
             # NOTE: would be most efficient if ddrows were ordered with
