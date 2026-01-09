@@ -42,6 +42,7 @@ import factory
 import pytest
 from sortedcontainers import SortedSet
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Column,
     create_engine,
@@ -170,7 +171,7 @@ class TestRecord(SourceTestBase):
     pid = Column(Integer, comment="Patient ID")
     row_identifier = Column(Integer, comment="Row ID")
     third_party_pid = Column(Integer, comment="Third party PID")
-    nhsnum = Column(Integer, comment="NHS Number")
+    nhsnum = Column(BigInteger, comment="NHS Number")
     other = Column(String(50), comment="Other column")
 
 
