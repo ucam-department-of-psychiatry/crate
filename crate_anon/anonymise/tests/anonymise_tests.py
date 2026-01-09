@@ -1059,6 +1059,62 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
 
         self.assertEqual(anon_record.third_party_pid_hash, expected_hash)
 
+    def test_row_skipped_by_alter_method(self) -> None:
+        TestRecordFactory(pid=self.patient.pid, other="Personal information")
+        self.source_dbsession.commit()
+
+        mock_alter_method = mock.Mock(
+            alter=mock.Mock(return_value=(None, True))
+        )
+
+        mock_rows = [
+            self.mock_dd_row(
+                omit=True,
+                src_field="pk",
+                dest_table="test_anon_record",
+                dest_field="pk",
+            ),
+            self.mock_dd_row(
+                omit=True,
+                src_field="pid",
+                dest_table="test_anon_record",
+                dest_field="pid",
+            ),
+            self.mock_dd_row(
+                src_field="row_identifier",
+                dest_table="test_anon_record",
+                dest_field="row_identifier",
+            ),
+            self.mock_dd_row(
+                src_field="other",
+                dest_table="test_anon_record",
+                dest_field="other",
+                alter_methods=[mock_alter_method],
+            ),
+        ]
+        mock_rows_for_src_table = mock.Mock(return_value=mock_rows)
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            process_table("source", "test_record")
+
+        self.assertIsNone(
+            self.anon_dbsession.query(TestAnonRecord).one_or_none()
+        )
+
     def test_unchanged_record_matching_hash_with_plain_rid_skipped(
         self,
     ) -> None:

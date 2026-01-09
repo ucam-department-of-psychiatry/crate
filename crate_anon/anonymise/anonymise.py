@@ -1380,14 +1380,14 @@ def process_table(
             else:
                 # Value alteration: other methods
                 for alter_method in ddr.alter_methods:
-                    value, skiprow = alter_method.alter(
+                    value, skip_row = alter_method.alter(
                         value=value,
                         ddr=ddr,
                         row=row,
                         ddrows=ddrows,
                         patient=patient,
                     )
-                    if skiprow:
+                    if skip_row:
                         break  # from alter method loop
 
             if skip_row:
