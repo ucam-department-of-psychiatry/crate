@@ -110,7 +110,7 @@ INSTALL_REQUIRES = [
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.15.0",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
-    "pypdf==6.4.2",  # create PDF files
+    "pypdf==6.6.0",  # create PDF files
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html
@@ -134,7 +134,7 @@ INSTALL_REQUIRES = [
     "requests==2.32.4",  # HTTP requests
     "tornado==6.5",  # web framework
     "transaction==3.0.0",  # generic transaction management
-    "urllib3==2.6.2",  # used by requests
+    "urllib3==2.6.3",  # used by requests
     "waitress==3.0.1",  # pure-Python WSGI server
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
     # -------------------------------------------------------------------------
