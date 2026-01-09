@@ -169,6 +169,7 @@ class TestRecord(SourceTestBase):
     pk = Column(Integer, primary_key=True, comment="PK")
     pid = Column(Integer, comment="Patient ID")
     row_identifier = Column(Integer, comment="Row ID")
+    nhsnum = Column(Integer, comment="NHS Number")
     other = Column(String(50), comment="Other column")
 
 
@@ -178,12 +179,14 @@ class TestRecordFactory(SourceTestBaseFactory):
 
     pk = factory.Sequence(lambda n: n + 1)
     row_identifier = factory.Sequence(lambda n: n + 10000)
+    nhsnum = factory.LazyFunction(Fake.en_gb.nhs_number)
 
 
 class TestAnonRecord(AnonTestBase):
     __tablename__ = "test_anon_record"
 
     row_identifier = Column(Integer, primary_key=True, comment="Row ID")
+    nhshash = Column(String(32))
     other = Column(String(50), comment="Other column")
     _src_hash = Column(String(32))
     _when_processed_utc = Column(DateTime())
@@ -210,6 +213,7 @@ class TestAnonPidAsPkRecord(AnonTestBase):
     __tablename__ = "test_anon_pid_as_pk_record"
 
     rid = Column(String(32), primary_key=True, comment="Research ID")
+    trid = Column(Integer)
     _src_hash = Column(String(32))
     _when_processed_utc = Column(DateTime())
 
@@ -860,6 +864,9 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
     def setUp(self) -> None:
         super().setUp()
 
+        self.patient = TestPatientFactory()
+        self.source_dbsession.commit()
+
         # Passphrases match those in get_demo_config()
         self.pid_hasher = HmacMD5Hasher("SOME_PASSPHRASE_REPLACE_ME")
         self.mpid_hasher = HmacMD5Hasher("SOME_OTHER_PASSPHRASE_REPLACE_ME")
@@ -880,9 +887,7 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
         )
 
     def test_record_anonymised(self) -> None:
-        patient = TestPatientFactory()
-        self.source_dbsession.commit()
-        TestRecordFactory(pid=patient.pid, other="Personal information")
+        TestRecordFactory(pid=self.patient.pid, other="Personal information")
         self.source_dbsession.commit()
 
         mock_alter_method = mock.Mock(
@@ -937,12 +942,88 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
 
         self.assertEqual(anon_record.other, "ANONYMISED")
 
+    def test_primary_pid_altered_to_patient_rid(self) -> None:
+        TestPidAsPkRecordFactory(pid=self.patient.pid, other="Other")
+        self.source_dbsession.commit()
+
+        mock_row = self.mock_dd_row(
+            src_field="pid",
+            primary_pid=True,
+            dest_table="test_anon_pid_as_pk_record",
+            dest_field="rid",
+            add_src_hash=True,
+        )
+        mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonPidAsPkRecord.__table__
+            ),
+            get_pid_name=mock.Mock(return_value="pid"),
+        )
+        mock_patient = mock.Mock(
+            pid=self.patient.pid, rid="not-a-real-rid", trid=123456
+        )
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_pid_as_pk_record"): 0},
+            add_mrid_wherever_rid_added=False,
+        ):
+            process_table(
+                "source",
+                "test_pid_as_pk_record",
+                patient=mock_patient,
+            )
+
+        anon_record = self.anon_dbsession.query(TestAnonPidAsPkRecord).one()
+
+        self.assertEqual(anon_record.rid, mock_patient.rid)
+
+    def test_master_pid_encrypted(self) -> None:
+        test_record = TestRecordFactory(pid=self.patient.pid)
+        self.source_dbsession.commit()
+
+        mock_row = self.mock_dd_row(
+            src_field="nhsnum",
+            dest_table="test_anon_record",
+            dest_field="nhshash",
+            master_pid=True,
+        )
+        mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            process_table(
+                "source",
+                "test_record",
+            )
+
+        anon_record = self.anon_dbsession.query(TestAnonRecord).one()
+        expected_hash = self.mpid_hasher.hash(test_record.nhsnum)
+
+        self.assertEqual(anon_record.nhshash, expected_hash)
+
     def test_unchanged_record_matching_hash_with_plain_rid_skipped(
         self,
     ) -> None:
-        patient = TestPatientFactory()
-        self.source_dbsession.commit()
-        test_record = TestRecordFactory(pid=patient.pid)
+        test_record = TestRecordFactory(pid=self.patient.pid)
         self.source_dbsession.commit()
         TestAnonRecordFactory(
             row_identifier=test_record.row_identifier,
@@ -987,12 +1068,12 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
     def test_unchanged_record_matching_hash_with_hashed_rid_skipped(
         self,
     ) -> None:
-        patient = TestPatientFactory()
-        self.source_dbsession.commit()
-        test_record = TestPidAsPkRecordFactory(pid=patient.pid, other="Other")
+        test_record = TestPidAsPkRecordFactory(
+            pid=self.patient.pid, other="Other"
+        )
         self.source_dbsession.commit()
         TestAnonPidAsPkRecordFactory(
-            rid=self.pid_hasher.hash(patient.pid),
+            rid=self.pid_hasher.hash(self.patient.pid),
             _src_hash=self.change_hasher.hash(repr([test_record.pid])),
         )
         self.anon_dbsession.commit()
@@ -1013,7 +1094,7 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             ),
             get_pid_name=mock.Mock(return_value="pid"),
         )
-        mock_patient = mock.Mock(pid=patient.pid)
+        mock_patient = mock.Mock(pid=self.patient.pid)
         with mock.patch.multiple(
             "crate_anon.anonymise.anonymise.config",
             dd=mock_dd,
@@ -1040,9 +1121,7 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
     def test_constant_record_matching_pk_skipped(
         self,
     ) -> None:
-        patient = TestPatientFactory()
-        self.source_dbsession.commit()
-        test_record = TestRecordFactory(pid=patient.pid)
+        test_record = TestRecordFactory(pid=self.patient.pid)
         self.source_dbsession.commit()
         TestAnonRecordFactory(
             row_identifier=test_record.row_identifier,
@@ -1085,9 +1164,7 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
         )
 
     def test_does_nothing_if_all_ddrows_omitted(self) -> None:
-        patient = TestPatientFactory()
-        self.source_dbsession.commit()
-        TestRecordFactory(pid=patient.pid)
+        TestRecordFactory(pid=self.patient.pid)
         self.source_dbsession.commit()
 
         mock_rows = [
@@ -1140,9 +1217,7 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
         )
 
     def test_row_skipped_by_value(self) -> None:
-        patient = TestPatientFactory()
-        self.source_dbsession.commit()
-        TestRecordFactory(pid=patient.pid)
+        TestRecordFactory(pid=self.patient.pid)
         self.source_dbsession.commit()
 
         mock_rows = [
