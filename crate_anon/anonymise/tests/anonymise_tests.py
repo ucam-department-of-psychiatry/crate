@@ -169,6 +169,7 @@ class TestRecord(SourceTestBase):
     pk = Column(Integer, primary_key=True, comment="PK")
     pid = Column(Integer, comment="Patient ID")
     row_identifier = Column(Integer, comment="Row ID")
+    third_party_pid = Column(Integer, comment="Third party PID")
     nhsnum = Column(Integer, comment="NHS Number")
     other = Column(String(50), comment="Other column")
 
@@ -180,6 +181,7 @@ class TestRecordFactory(SourceTestBaseFactory):
     pk = factory.Sequence(lambda n: n + 1)
     row_identifier = factory.Sequence(lambda n: n + 10000)
     nhsnum = factory.LazyFunction(Fake.en_gb.nhs_number)
+    third_party_pid = factory.Sequence(lambda n: n + 1000)
 
 
 class TestAnonRecord(AnonTestBase):
@@ -187,6 +189,7 @@ class TestAnonRecord(AnonTestBase):
 
     row_identifier = Column(Integer, primary_key=True, comment="Row ID")
     nhshash = Column(String(32))
+    third_party_pid_hash = Column(String(32))
     other = Column(String(50), comment="Other column")
     _src_hash = Column(String(32))
     _when_processed_utc = Column(DateTime())
@@ -1019,6 +1022,42 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
         expected_hash = self.mpid_hasher.hash(test_record.nhsnum)
 
         self.assertEqual(anon_record.nhshash, expected_hash)
+
+    def test_third_party_pid_encrypted(self) -> None:
+        test_record = TestRecordFactory(pid=self.patient.pid)
+        self.source_dbsession.commit()
+
+        mock_row = self.mock_dd_row(
+            src_field="third_party_pid",
+            dest_table="test_anon_record",
+            dest_field="third_party_pid_hash",
+            third_party_pid=True,
+        )
+        mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            process_table(
+                "source",
+                "test_record",
+            )
+
+        anon_record = self.anon_dbsession.query(TestAnonRecord).one()
+        expected_hash = self.pid_hasher.hash(test_record.third_party_pid)
+
+        self.assertEqual(anon_record.third_party_pid_hash, expected_hash)
 
     def test_unchanged_record_matching_hash_with_plain_rid_skipped(
         self,
