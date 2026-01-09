@@ -940,7 +940,7 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             destdb=self.mock_destdb,
             rows_inserted_per_table={("source", "test_record"): 0},
         ):
-            process_table("source", "test_record", incremental=True)
+            process_table("source", "test_record")
 
         anon_record = self.anon_dbsession.query(TestAnonRecord).one()
 
@@ -1381,7 +1381,7 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             rows_inserted_per_table={("source", "test_record"): 0},
         ):
             with self.assertLogs(level=logging.DEBUG) as logging_cm:
-                process_table("source", "test_record", incremental=True)
+                process_table("source", "test_record")
 
         self.assert_logged(
             "crate_anon.anonymise.anonymise",
