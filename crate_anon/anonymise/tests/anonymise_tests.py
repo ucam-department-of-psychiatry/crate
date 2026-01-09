@@ -1121,6 +1121,41 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             self.anon_dbsession.query(TestAnonRecord).one_or_none()
         )
 
+    def test_skipped_by_free_text_limit(self) -> None:
+        TestRecordFactory(pid=self.patient.pid)
+        self.source_dbsession.commit()
+
+        mock_rows = [
+            self.mock_dd_row(
+                src_field="other",
+                dest_table="test_anon_record",
+                dest_field="other",
+                src_textlength=100,
+            ),
+        ]
+        mock_rows_for_src_table = mock.Mock(return_value=mock_rows)
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            process_table("source", "test_record", free_text_limit=50)
+
+        self.assertIsNone(
+            self.anon_dbsession.query(TestAnonRecord).one_or_none()
+        )
+
     def test_unchanged_record_matching_hash_with_plain_rid_skipped(
         self,
     ) -> None:
