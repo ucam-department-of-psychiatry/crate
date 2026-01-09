@@ -1389,6 +1389,9 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             "... ... all columns omitted",
             logging_cm,
         )
+        self.assertIsNone(
+            self.anon_dbsession.query(TestAnonRecord).one_or_none()
+        )
 
     def test_row_skipped_by_value(self) -> None:
         TestRecordFactory(pid=self.patient.pid)
