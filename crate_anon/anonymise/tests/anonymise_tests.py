@@ -217,6 +217,7 @@ class TestAnonPidAsPkRecord(AnonTestBase):
 
     rid = Column(String(32), primary_key=True, comment="Research ID")
     trid = Column(Integer)
+    mrid = Column(String(32))
     _src_hash = Column(String(32))
     _when_processed_utc = Column(DateTime())
 
@@ -966,7 +967,10 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             get_pid_name=mock.Mock(return_value="pid"),
         )
         mock_patient = mock.Mock(
-            pid=self.patient.pid, rid="not-a-real-rid", trid=123456
+            pid=self.patient.pid,
+            rid="not-a-real-rid",
+            trid=123456,
+            mrid="not-a-real-mrid",
         )
         with mock.patch.multiple(
             "crate_anon.anonymise.anonymise.config",
@@ -975,7 +979,8 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             _destination_database_url=self.anon_engine.url,
             destdb=self.mock_destdb,
             rows_inserted_per_table={("source", "test_pid_as_pk_record"): 0},
-            add_mrid_wherever_rid_added=False,
+            add_mrid_wherever_rid_added=True,
+            master_research_id_fieldname="mrid",
         ):
             process_table(
                 "source",
@@ -986,6 +991,7 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
         anon_record = self.anon_dbsession.query(TestAnonPidAsPkRecord).one()
 
         self.assertEqual(anon_record.rid, mock_patient.rid)
+        self.assertEqual(anon_record.mrid, mock_patient.mrid)
 
     def test_master_pid_encrypted(self) -> None:
         test_record = TestRecordFactory(pid=self.patient.pid)
