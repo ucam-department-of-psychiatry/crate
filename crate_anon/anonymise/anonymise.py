@@ -1209,6 +1209,7 @@ def process_table(
 
     ddrows = config.dd.get_rows_for_src_table(sourcedbname, sourcetable)
     if all(ddr.omit for ddr in ddrows):
+        log.debug("... ... all columns omitted.")
         return
     addhash = any(ddr.add_src_hash for ddr in ddrows)
     addtrid = any(ddr.primary_pid and not ddr.omit for ddr in ddrows)
@@ -1251,12 +1252,15 @@ def process_table(
     pkfield_index = None
     src_pk_name = None
     dest_pk_name = None
+    pid_is_hashed_in_dest = False
     for i, ddr in enumerate(ddrows):
         # log.debug(f"DD row: {str(ddr)}")
         if ddr.pk:
             pkfield_index = i
             src_pk_name = ddr.src_field
             dest_pk_name = ddr.dest_field
+            if ddr.add_src_hash and ddr.primary_pid:
+                pid_is_hashed_in_dest = True
         sourcefields.append(ddr.src_field)
     srchash = None
     timefield = config.timefield
@@ -1299,28 +1303,34 @@ def process_table(
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Change detection: source hash and constant rows
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        pkvalue = None
+        if pkfield_index is not None:
+            pkvalue = row[pkfield_index]
+            if pid_is_hashed_in_dest:
+                pkvalue = config.encrypt_primary_pid(pkvalue)
+
         if addhash:
             srchash = config.hash_object(row)
             if incremental and identical_record_exists_by_hash(
-                dest_table, dest_pk_name, row[pkfield_index], srchash
+                dest_table, dest_pk_name, pkvalue, srchash
             ):
                 log.debug(
                     f"... ... skipping unchanged record (identical by hash): "
                     f"{sourcedbname}.{sourcetable}.{src_pk_name} = "
                     f"(destination) {dest_table}.{dest_pk_name} = "
-                    f"{row[pkfield_index]}"
+                    f"{pkvalue}"
                 )
                 continue
         if constant:
             if incremental and identical_record_exists_by_pk(
-                dest_table, dest_pk_name, row[pkfield_index]
+                dest_table, dest_pk_name, pkvalue
             ):
                 log.debug(
                     f"... ... skipping unchanged record (identical by PK and "
                     f"marked as constant): "
                     f"{sourcedbname}.{sourcetable}.{src_pk_name} = "
                     f"(destination) {dest_table}.{dest_pk_name} = "
-                    f"{row[pkfield_index]}"
+                    f"{pkvalue}"
                 )
                 continue
         # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1334,7 +1344,9 @@ def process_table(
             # Skip row?
             # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             if ddr.skip_row_by_value(value):
-                # log.debug("skipping row based on inclusion/exclusion values")
+                log.debug(
+                    "... ... skipping row based on inclusion/exclusion values"
+                )
                 skip_row = True
                 break  # skip row
             # NOTE: would be most efficient if ddrows were ordered with
@@ -1368,14 +1380,14 @@ def process_table(
             else:
                 # Value alteration: other methods
                 for alter_method in ddr.alter_methods:
-                    value, skiprow = alter_method.alter(
+                    value, skip_row = alter_method.alter(
                         value=value,
                         ddr=ddr,
                         row=row,
                         ddrows=ddrows,
                         patient=patient,
                     )
-                    if skiprow:
+                    if skip_row:
                         break  # from alter method loop
 
             if skip_row:
@@ -1418,7 +1430,7 @@ def process_table(
                 "Skipping record due to IntegrityError. Non-unique primary "
                 f"key? {sourcedbname}.{sourcetable}.{src_pk_name} = "
                 f"(destination) {dest_table}.{dest_pk_name} = "
-                f"{row[pkfield_index]}"
+                f"{pkvalue}"
             )
 
         # Trigger an early commit?

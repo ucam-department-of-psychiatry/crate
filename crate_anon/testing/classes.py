@@ -27,7 +27,8 @@ Test classes for more complex tests e.g. where a database session is required.
 
 """
 
-from typing import TYPE_CHECKING
+import logging
+from typing import Generator, TYPE_CHECKING
 from unittest import TestCase
 
 from faker import Faker
@@ -52,6 +53,21 @@ class CrateTestCase(TestCase):
 
         self.fake = Faker("en_GB")
         register_all_providers(self.fake)
+
+    def assert_logged(
+        self,
+        logger_name: str,
+        level: int,
+        expected_message: str,
+        logging_cm: Generator[None, None, None],
+    ) -> None:
+        level_name = logging.getLevelName(level)
+        search = f"{level_name}:{logger_name}:{expected_message}"
+
+        self.assertTrue(
+            any(search in line for line in logging_cm.output),
+            msg=f"Failed to find '{search}' in {logging_cm.output}",
+        )
 
 
 class CommonDatabaseTestCase(CrateTestCase):
