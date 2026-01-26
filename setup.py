@@ -65,7 +65,7 @@ with open(os.path.join(THIS_DIR, "README.rst"), encoding="utf-8") as f:
 
 # Package dependencies
 INSTALL_REQUIRES = [
-    "amqp==5.0.9",  # amqp is used by Celery
+    "amqp==5.3.1",  # amqp is used by Celery
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.13.4",  # [pin exact version from cardinal_pythonlib]
@@ -76,7 +76,7 @@ INSTALL_REQUIRES = [
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==4.2.21",  # for main CRATE research database web server
+    "django==4.2.27",  # for main CRATE research database web server
     "django-debug-toolbar==3.2.1",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
@@ -93,7 +93,7 @@ INSTALL_REQUIRES = [
     "gunicorn==23.0.0",  # UNIX only, though will install under Windows
     "gutenbergpy==0.3.4",  # Project Gutenberg API
     "jsonlines==3.0.0",  # JSON Lines format
-    "kombu==5.2.3",  # AMQP library for Celery; requires VC++ under Windows
+    "kombu==5.3.7",  # AMQP library for Celery; requires VC++ under Windows
     "mako==1.2.2",  # templates with Python in
     "MarkupSafe==2.0.1",  # for HTML escaping
     # mmh3 requires VC++
@@ -111,16 +111,16 @@ INSTALL_REQUIRES = [
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.15.0",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
-    "pypdf==3.17.1",  # create PDF files
+    "pypdf==6.6.0",  # create PDF files
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html
-    "regex==2024.11.6",  # better regexes (cf. re)
+    "regex==2025.9.1",  # better regexes (cf. re)
     "rich-argparse==0.5.0",  # colourful help
     "semantic_version==2.8.5",  # semantic versioning; better than semver
     "sortedcontainers==2.2.2",  # for SortedSet
     "SQLAlchemy==2.0.36",  # database access
-    "sqlparse==0.5.0",  # [pin exact version from cardinal_pythonlib]
+    "sqlparse==0.5.5",  # [pin exact version from cardinal_pythonlib]
     "unidecode==1.1.1",  # for removing accents
     # -------------------------------------------------------------------------
     # Packages for cloud NLP:
@@ -129,13 +129,13 @@ INSTALL_REQUIRES = [
     "cryptography==44.0.1",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
-    "pyramid==1.10.4",  # Pyramid web framework
+    "pyramid==1.10.8",  # Pyramid web framework
     "pyramid_tm==2.4",  # Pyramid transaction management
     "redis==4.5.4",  # interface to Redis in-memory key-value database
-    "requests==2.32.2",  # HTTP requests
+    "requests==2.32.4",  # HTTP requests
     "tornado==6.5",  # web framework
     "transaction==3.0.0",  # generic transaction management
-    "urllib3==2.3.0",  # used by requests
+    "urllib3==2.6.3",  # used by requests
     "waitress==3.0.1",  # pure-Python WSGI server
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
     # -------------------------------------------------------------------------

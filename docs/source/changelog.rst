@@ -1741,6 +1741,19 @@ Changes
 
 **0.20.8, in progress**
 
+- Update the installer with example scripts to:
+
+  - enter the Docker container (useful when troubleshooting problems).
+
+  - create wordlists e.g. for removing all personal names that are not medical
+    eponyms.
+
+- Fix bug where incremental anonymisation would fail for data dictionary rows
+  with K, H and P flags.
+  https://github.com/ucam-department-of-psychiatry/crate/issues/232
+
+- Fix bug where a data dictionary row would not be skipped if its
+  ``AlterMethod`` returned ``True`` for the ``skip_row`` value.
 
 To do
 -----
