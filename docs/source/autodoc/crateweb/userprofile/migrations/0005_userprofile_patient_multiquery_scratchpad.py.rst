@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.crateweb.userprofile.migrations.0005_userprofile_patient_multiquery_scratchpad
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------------------------------------------------------------
 
 .. automodule:: crate_anon.crateweb.userprofile.migrations.0005_userprofile_patient_multiquery_scratchpad
     :members:

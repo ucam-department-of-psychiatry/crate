@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.crateweb.research.migrations.0012_archiveattachmentaudit_archivetemplateaudit
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------------------------------------------------------------
 
 .. automodule:: crate_anon.crateweb.research.migrations.0012_archiveattachmentaudit_archivetemplateaudit
     :members:

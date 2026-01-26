@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.linkage.tests.fuzzy_id_match_tests
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------------------
 
 .. automodule:: crate_anon.linkage.tests.fuzzy_id_match_tests
     :members:

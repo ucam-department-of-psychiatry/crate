@@ -27,17 +27,30 @@ Burchell. See :ref:`contributors <contributors>`.
 
 .. image:: images/scrubber.png
 
+CRATE is an open-source software system that:
+
+- anonymises or de-identifies arbitrary relational databases.
+- maps patient identifiers to research identifiers (pseudonyms).
+- connects relational databases to external tools for Natural Language Processing (NLP).
+- provides a web front end for research and administrative functions.
+- supports a means by which patients may consent to be contacted about research.
+
+.. note::
+
+    To install CRATE, see :ref:`Installation <installation>`
+
 .. note::
 
     If you're a clinician or a researcher using a CRATE web site to explore a
     research database, see the :ref:`Overview for clinicians and researchers
     <crateweb_clinician_researcher_overview>`.
 
+Contents
+--------
+
 ..  toctree::
     :maxdepth: 2
     :numbered:
-    :caption: Contents:
-    :glob:
 
     introduction/index.rst
     installation/index.rst
@@ -58,12 +71,11 @@ Burchell. See :ref:`contributors <contributors>`.
 
     licences/licences.rst
     changelog.rst
-    to_do.rst
     glossary.rst
 
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`search`

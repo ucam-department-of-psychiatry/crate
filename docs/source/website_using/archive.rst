@@ -51,7 +51,8 @@ How to customize the archive view
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Write your archive
-##################
+^^^^^^^^^^^^^^^^^^
+
 
 Within a directory tree of your choice, write Mako_ templates. Some specimen
 miniature web sites are provided to show you how, in:
@@ -76,7 +77,8 @@ There are assistance functions that you can import, such as those in
 .. _archive_mako_context:
 
 The archive's Python context
-############################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 Mako templates have a context, which is a collection of Python objects
 "visible" to template code (see `Mako Runtime Environment`_). In the CRATE
@@ -194,7 +196,8 @@ currently in use.
 
 
 Point CRATE at your archive
-###########################
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 See the relevant section of the :ref:`web config file <webconfig_archive>`.
 

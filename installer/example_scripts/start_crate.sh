@@ -1,4 +1,6 @@
-# installer/restore_crate_envvars.sh
+#!/bin/bash
+
+# installer/example_scripts/start_crate.sh
 
 # ==============================================================================
 #
@@ -22,21 +24,15 @@
 #
 # ==============================================================================
 
-# When the installer first runs, it stores a copy of the relevant environment
-# variables. To run other Docker commands, it's helpful to "source" them back,
-# if found. Likewise, this file itself should be "sourced", not executed.
+# Starts the CRATE Docker containers. This is equivalent to:
+# docker compose up -d
+# including all of the relevant docker-compose-*.yaml files
 
-# The default is /crate/config/set_crate_docker_host_envvars (per HostPath in
-# installer.py). We allow the user to pre-override this with environment
-# variables.
-CRATE_CONFIG_DIR=${CRATE_CONFIG_DIR:=$CRATE_INSTALLER_CRATE_ROOT_HOST_DIR/config}
-CRATE_ENVVAR_FILE=${CRATE_CONFIG_DIR}/set_crate_docker_host_envvars
-# ... filename itself not configurable, and written by installer.py
 
-if [ -f "${CRATE_ENVVAR_FILE}" ]; then
-    echo "- Restoring user-supplied environment variables from: ${CRATE_ENVVAR_FILE}"
-    # shellcheck disable=SC1090
-    source "${CRATE_ENVVAR_FILE}"
-else
-    echo "- No previous environment variable file found at: ${CRATE_ENVVAR_FILE}"
-fi
+set -euo pipefail
+
+THISDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+# shellcheck source-path=SCRIPTDIR source=set_crate_environment_vars
+source "${THISDIR}"/set_crate_environment_vars
+
+${PYTHON} "${CRATE_HOST_INSTALLER_BASE_DIR}/installer.py" start

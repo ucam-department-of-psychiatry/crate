@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.crateweb.userprofile.migrations.0002_userprofile_sql_scratchpad
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------------------------------------------
 
 .. automodule:: crate_anon.crateweb.userprofile.migrations.0002_userprofile_sql_scratchpad
     :members:

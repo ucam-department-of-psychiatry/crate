@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/anonymise/templates/researcher_report/style.css
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------------------------------
 
 .. literalinclude:: ../../../../../../crate_anon/anonymise/templates/researcher_report/style.css
     :language: css+django

@@ -20,7 +20,8 @@
 
 
 Technical notes
-===============
+---------------
+
 
 .. contents::
    :local:

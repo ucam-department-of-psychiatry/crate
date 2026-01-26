@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/static/querybuilder.js
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/static/querybuilder.js
     :language: JavaScript

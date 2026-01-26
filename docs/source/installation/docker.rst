@@ -19,6 +19,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 .. _AMQP: https://en.wikipedia.org/wiki/Advanced_Message_Queuing_Protocol
+.. _Celery: https://docs.celeryq.dev/en/stable/
 .. _CherryPy: https://cherrypy.org/
 .. _Docker: https://www.docker.com/
 .. _Docker Compose: https://docs.docker.com/compose/
@@ -34,7 +35,7 @@
 .. _crate_docker:
 
 Installing and running CRATE via Docker (recommended)
-=====================================================
+-----------------------------------------------------
 
 ..  contents::
     :local:
@@ -42,7 +43,7 @@ Installing and running CRATE via Docker (recommended)
 
 
 Overview
---------
+~~~~~~~~
 
 Docker_ is a cross-platform system for running applications in "containers". A
 computer (or computing cluster) can run lots of containers. They allow
@@ -54,54 +55,44 @@ The core of Docker is called Docker Engine. The `Docker Compose`_ tool allows
 multiple containers to be created, started, and connected together
 automatically.
 
-CRATE provides an installer script to make installation using Docker easy.
-The script uses Docker Compose to set up several containers, specifically:
+CRATE provides an installer script to make installation using Docker simpler.
+The installer uses Docker Compose to set up several containers, specifically:
 
-- a database system, via MySQL_ on Linux (internal container name ``mysql``);
-- a message queue, via RabbitMQ_ on Linux (``rabbitmq``);
-- the CRATE web server itself, offering SSL directly via CherryPy_ on Linux
-  (``crate_server``);
-- the CRATE web site back-end (``crate_workers``);
-- a background task monitor, using Flower_ (``crate_monitor``).
-- demonstration source and destination MySQL databases for anonymisation
++-------------------------+--------------------------------------------------------------------------+
+| Name                    | Description                                                              |
++=========================+==========================================================================+
+| ``crate_crate_server``  | Runs the various CRATE commands for anonymisation etc and                |
+|                         | provides the web server for the CRATE web application,                   |
+|                         | offering SSL directly via CherryPy_.                                     |
++-------------------------+--------------------------------------------------------------------------+
+| ``crate_crate_workers`` | Processes background tasks for the CRATE web application via Celery_     |
++-------------------------+--------------------------------------------------------------------------+
+| ``crate_rabbit_mq``     | Message queue, via RabbitMQ_.                                            |
++-------------------------+--------------------------------------------------------------------------+
+| ``crate_flower``        | Background task monitor, using Flower_.                                  |
++-------------------------+--------------------------------------------------------------------------+
+| ``crate_crate_db``      | An optional database container for the CRATE web                         |
+|                         | application via MySQL_ if you have not provided your own.                |
++-------------------------+--------------------------------------------------------------------------+
+| ``crate_source_db``     | Optional MySQL databases used to demonstrate anonymisation with          |
+| ``crate_research_db``   | CRATE. See                                                               |
+| ``crate_secret_db``     | :ref:`Data and database prerequisites <data_and_database_prerequisites>` |
++-------------------------+--------------------------------------------------------------------------+
 
-Additionally, you can run a number of important one-off commands using the
-``crate`` Docker image. Apart from CRATE itself, this image also includes:
+The installer will generate the configuration files for anonymisation and the
+CRATE web application, build and start the Docker containers. If you have opted
+for the installer to create the demonstration databases it will also create some
+fictitious patient records and anonymise them.
 
-- Database drivers:
+The installer also copies example Bash scripts for anonymisation etc to the
+``scripts`` directory of the CRATE file system. These can be modified as
+required.
 
-  - MySQL [:ref:`mysqlclient <mysqlclient>`]
-  - PostgreSQL [:ref:`psycopg2 <psycopg2>`]
-  - SQL Server [:ref:`django-mssql-backend <django_mssql_backend>`,
-    :ref:`pyodbc <pyodbc>`, Microsoft ODBC Driver for SQL Server (Linux)]
-
-- External NLP tools:
-
-  - GATE_ (for :ref:`GATE NLP applications <gate_nlp>`)
-  - :ref:`KCL BRC Pharmacotherapy <kcl_pharmacotherapy>` tool
 
 .. _quick_start:
 
 Quick start
------------
-
-Windows
-^^^^^^^
-
-Note that whilst CRATE will run under Docker Desktop and WSL2 on Windows, this
-is not well-suited to an environment where several Windows users can access the
-same instance of CRATE. To work around this you could designate a single Windows
-account to be shared by multiple users.
-
-- Install Windows Subsystem for Linux 2 (WSL2):
-  https://docs.microsoft.com/en-us/windows/wsl/install. CRATE under WSL2 has
-  been tested with Ubuntu 20.04.
-- Install Docker Desktop: https://docs.docker.com/desktop/
-- Enable WSL2 in Docker Desktop: https://docs.docker.com/desktop/windows/wsl/
-- From the Linux terminal install python3-virtualenv:
-  Ubuntu: ``sudo apt -y install python3-virtualenv python3-venv``
-- See "All platforms" below.
-
+~~~~~~~~~~~
 
 Linux
 ^^^^^
@@ -113,7 +104,24 @@ Linux
 
   - Ubuntu: ``sudo apt -y install python3-virtualenv python3-venv``
 
-- See "All platforms" below.
+- See :ref:`All platforms <all_platforms>`.
+
+
+Windows
+^^^^^^^
+
+Note that whilst CRATE will run under Docker Desktop and Windows Subsystem for
+Linux 2 (WSL2) on Windows, this is not well-suited to an environment where
+several Windows users can access the same instance of CRATE. To work around this
+you could designate a single Windows account to be shared by multiple users.
+
+- Install Windows Subsystem for Linux 2 (WSL2):
+  https://docs.microsoft.com/en-us/windows/wsl/install.
+- Install Docker Desktop: https://docs.docker.com/desktop/
+- Enable WSL2 in Docker Desktop: https://docs.docker.com/desktop/windows/wsl/
+- From the Linux terminal install python3-virtualenv:
+  Ubuntu: ``sudo apt -y install python3-virtualenv python3-venv``
+- See :ref:`All platforms <all_platforms>`
 
 
 MacOS
@@ -121,8 +129,10 @@ MacOS
 
 - Install Docker Desktop: https://docs.docker.com/desktop/
 - Install python3 and python3-virtualenv
-- See "All platforms" below.
+- See :ref:`All platforms <all_platforms>`.
 
+
+.. _all_platforms:
 
 All platforms
 ^^^^^^^^^^^^^
@@ -131,8 +141,23 @@ The installer can be run interactively, where you will be prompted to enter
 settings specific to your CRATE installation. The installer will save these
 settings as environment variables and will also write these to a file, which you
 can execute before the next time you run the installer (e.g. ``source
-/crate/config/set_crate_docker_host_envvars``). If you prefer, you can
-create this file yourself and execute it before running the installer.
+/crate/config/set_crate_docker_host_envvars``). If you prefer, you can create
+this file yourself and ``source`` it before running the installer. See
+:ref:`Example settings file <example_settings_file>`
+
+To start the installer on all platforms, run the below command, replacing
+``/path/to/top/level/crate/dir`` with the top-level directory where CRATE
+should be installed. The installer will create this if it doesn't exist but it
+will need to be writeable by the user running the installer.
+
+.. parsed-literal::
+
+    curl --location \https://github.com/ucam-department-of-psychiatry/crate/releases/download/v\ |version|\ /installer_boot.py --fail --output installer_boot.py && chmod u+x installer_boot.py && python3 installer_boot.py --crate_root_dir /path/to/top/level/crate/dir
+
+.. _example_settings_file:
+
+Example settings file
+^^^^^^^^^^^^^^^^^^^^^
 
 Here is an example settings file. See :ref:`environment_variables
 <docker_environment_variables>` and :ref:`environment_variables
@@ -170,20 +195,11 @@ Here is an example settings file. See :ref:`environment_variables
         export CRATE_INSTALLER_SOURCE_DATABASE_HOST="source_db_host"
         export CRATE_INSTALLER_SOURCE_DATABASE_PORT="3306"
 
-To start the installer on all platforms, run the below command, replacing
-``/path/to/top/level/crate/dir`` with the top-level directory where CRATE
-should be installed. The installer will create this if it doesn't exist but it
-will need to be writeable by the user running the installer.
-
-    .. code-block:: bash
-
-        curl --location https://github.com/ucam-department-of-psychiatry/crate/releases/download/latest/installer_boot.py --fail --output installer_boot.py && chmod u+x installer_boot.py && python3 installer_boot.py --crate_root_dir /path/to/top/level/crate/dir
-
 
 .. _docker_environment_variables:
 
 Docker Environment variables
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The Docker environment variables with prefix ``CRATE_DOCKER`` are used by both
 the CRATE installer and the running Docker instance. For some of these settings,
@@ -370,6 +386,8 @@ CRATE_DOCKER_FLOWER_HOST_PORT
 Host port on which to launch the Flower_ monitor.
 
 
+.. _CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR:
+
 CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -410,7 +428,7 @@ CRATE_DOCKER_ODBC_USER_CONFIG
 
 When using external databases with ODBC, this is the basename of the config file
 that contains definitions of those databases. The ``ODBCINI`` environment variable
-is set in the ``crate_server`` Docker container to point to this file. See (see
+is set in the ``crate_crate_server`` Docker container to point to this file. See (see
 CRATE_DOCKER_CONFIG_HOST_DIR_)
 
 
@@ -439,7 +457,7 @@ CRATE_DOCKER_REMOTE_PDB_CRATE_SERVER_HOST_PORT
 
 *Default: 44444*
 
-Used in development to debug the Python code in the ``crate_server`` Docker
+Used in development to debug the Python code in the ``crate_crate_server`` Docker
 container. Use ``breakpoint()`` in the code and then connect to this port on the
 host: e.g. ``telnet 127.0.0.1 44444``.
 
@@ -617,7 +635,7 @@ containers in this project.
 .. _installer_environment_variables:
 
 Installer Environment variables
--------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The Installer environment variables with prefix ``CRATE_INSTALLER`` are used by
 the CRATE installer to write the various config files written by CRATE but not
@@ -769,45 +787,112 @@ CRATE_INSTALLER_SOURCE_DATABASE_PORT
 The port on the server hosting the source database to be anonymised by CRATE.
 
 
+Example scripts
+~~~~~~~~~~~~~~~
 
-.. todo:: fix below here; see CamCOPS help
+The installer copies example Bash scripts for running commonly used CRATE
+commands to the ``scripts`` directory of your CRATE installation. Some of these
+should work without modification and others will need to be customised for your
+particular CRATE setup.
 
-.. _web_config_file_docker:
+
+anonymise_FULL.sh
+^^^^^^^^^^^^^^^^^
+
+Runs full anonymisation on the databases specified in the anonymisation
+configuration.
 
 
+anonymise_INCREMENTAL.sh
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-Tools
------
+Runs incremental anonymisation on the databases specified in the anonymisation
+configuration.
 
-All live in the ``installer`` directory.
+
+email_rdbm.sh
+^^^^^^^^^^^^^
+
+Emails the Research Database Manager. Can be used to send an email once a job
+(e.g. full anonymisation) has completed. This is configured in the CRATE web
+application configuration (`crateweb_local_settings.py`). See the ``RDBM_*` and
+``EMAIL_*`` settings in this file.
 
 
 enter_crate_container.sh
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Starts a container with the CRATE image and runs a Bash shell within it.
+Starts a container with the CRATE image and runs a Bash shell within it. This
+can be useful for troubleshooting.
 
 .. warning::
 
     Running a shell within a container allows you to break things! Be careful.
 
 
-start_crate.sh
-^^^^^^^^^^^^^^
+exec_crate_command.sh
+^^^^^^^^^^^^^^^^^^^^^
 
-Shortcut for ``docker compose up -d`` with the relevant ``docker-compose-*.yaml`` files. The ``-d`` switch is short for
-``--detach`` (or daemon mode).
-
-
-
-stop_crate.sh
-^^^^^^^^^^^^^
-
-Shortcut for ``docker compose down``.
+Executes a command (using ``docker compose exec``) within the existing
+``crate_crate_server`` Docker container.
 
 
-run_crate_command
+fetch_wordlists.sh
+^^^^^^^^^^^^^^^^^^
+
+Fetches common word lists such as lists of names to anonymise and words to
+exclude from these lists (such as English words or medical eponyms). See
+:ref:`crate_fetch_wordlists <crate_fetch_wordlists>`
+
+
+generate_draft_data_dict.sh
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Generates a draft Data Dictionary, to use with anonymisation.
+
+
+generate_nlp_config.sh
+^^^^^^^^^^^^^^^^^^^^^^
+
+Generates a config file for Natural Language Processing (NLP).
+
+
+load_ons_postcode_database.sh
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Loads the Office of National Statistics Postcode Database from spreadsheet files
+to a specified database.
+
+
+nlp_BIOMARKERS_FULL.sh
+^^^^^^^^^^^^^^^^^^^^^^
+
+Runs full "biomarkers" Natural Language Processing on an anonymised database.
+
+
+nlp_BIOMARKERS_INCREMENTAL.sh
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Run incremental "biomarkers" NLP on an anonymised database.
+
+
+preprocess_rio.sh
 ^^^^^^^^^^^^^^^^^
+
+Preprocesses a RiO database prior to data dictionary generation and anonymisation. See :ref:`crate_preprocess_rio <crate_preprocess_rio>`.
+
+
+preprocess_systmone.sh
+^^^^^^^^^^^^^^^^^^^^^^
+
+Preprocesses a RiO database prior to data dictionary generation and anonymisation. See :ref:`crate_preprocess_systmone`.
+
+
+run_crate_command.sh
+^^^^^^^^^^^^^^^^^^^^
+
+Runs a command in a CRATE container. Shortcut for ``docker compose run`` with
+the relevant ``docker-compose-*.yaml`` files.
 
 This script starts a container with the CRATE image, activates the CRATE
 virtual environment, and runs a command within it. For example, to explore this
@@ -817,17 +902,20 @@ container, you can do
 
         ./run_crate_command.sh /bin/bash
 
-... which is equivalent to the ``enter_docker_container`` script (see above and
-note the warning).
+... which is similar to the ``enter_docker_container`` script (see above and
+note the warning) except that it runs in a new Docker container instead of
+the existing ``crate_crate_server`` one.
 
 
-exec_crate_command
-^^^^^^^^^^^^^^^^^^
+start_crate.sh
+^^^^^^^^^^^^^^
 
-Runs a command in the existing ``crate_server`` container.
+Starts the CRATE Docker containers. Shortcut for ``docker compose up -d`` with
+the relevant ``docker-compose-*.yaml`` files. The ``-d`` switch is short for
+``--detach`` (or daemon mode).
 
 
-Development notes
------------------
+stop_crate.sh
+^^^^^^^^^^^^^
 
-- See https://camcops.readthedocs.io/en/latest/administrator/docker.html.
+Stops the CRATE Docker containers Shortcut for ``docker compose down``.

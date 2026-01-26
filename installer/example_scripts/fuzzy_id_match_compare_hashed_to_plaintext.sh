@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# installer/enter_crate_container.sh
+# installer/example_scripts/crate_fuzzy_id_match.sh
 
 # ==============================================================================
 #
@@ -24,18 +24,17 @@
 #
 # ==============================================================================
 
-# Run a bash shell in the CRATE container
+# Execute a command (docker compose exec) within the CRATE Docker environment
 
 set -euo pipefail
 
-# Activate Python virtual environment
-CRATE_INSTALLER_VENV=${HOME}/.virtualenvs/crate-installer
-source "${CRATE_INSTALLER_VENV}/bin/activate"
+THISDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+# shellcheck source-path=SCRIPTDIR source=set_crate_environment_vars
+source "${THISDIR}"/set_crate_environment_vars
 
-# Restore user's environment variables, if found
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-source "${SCRIPT_DIR}/restore_crate_envvars.sh"
-
-# Run Python installer script with a command
-INSTALLER_HOME="$( cd "$( dirname "$0" )" && pwd )"
-python "${INSTALLER_HOME}/installer.py" shell "$@"
+${PYTHON} "${CRATE_HOST_INSTALLER_BASE_DIR}/installer.py" exec "crate_fuzzy_id_match \
+    compare_hashed_to_plaintext \
+    --forename_cache_filename=${CRATE_CONTAINER_FORENAME_CACHE_FILENAME} \
+    --surname_cache_filename=${CRATE_CONTAINER_SURNAME_CACHE_FILENAME} \
+    --postcode_cache_filename=${CRATE_CONTAINER_POSTCODE_CACHE_FILENAME} \
+    $*"

@@ -22,7 +22,7 @@
 .. _overview:
 
 Overview
-========
+--------
 
 A description is provided in Cardinal (2017) “Clinical records anonymisation
 and text extraction (CRATE): an open-source software system”, BMC Medical

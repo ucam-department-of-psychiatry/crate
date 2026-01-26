@@ -25,7 +25,8 @@
 .. _windows_service:
 
 CRATE Windows service
-=====================
+---------------------
+
 
 The most convenient way of running the CRATE web site is via a Windows service.
 The service starts both the CRATE internal web server (via CherryPy_) and the
@@ -45,7 +46,8 @@ logs. However, output from the service itself goes to the Windows logs: see
 .. _crate_windows_service:
 
 crate_windows_service
----------------------
+~~~~~~~~~~~~~~~~~~~~~
+
 
 Options:
 
