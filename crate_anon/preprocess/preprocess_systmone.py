@@ -343,8 +343,9 @@ def _gen_docstore_filenames(
     # 5: Extension, mixed case
     regex = r"(\d+)_([0-9a-f]+)_(\d+)_(\d+)(\.\S+)"
 
-    log.info("Extracting text...")
+    log.info(f"Extracting text from {docstore_root}...")
     for dirpath, dirnames, filenames in os.walk(docstore_root):
+        log.debug(f"Processing {dirpath}")
         for filename in filenames:
             file_path = os.path.join(dirpath, filename)
             if m := re.match(regex, filename):
