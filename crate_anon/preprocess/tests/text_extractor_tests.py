@@ -267,6 +267,44 @@ class SystmOneTextExtractorTests(CrateTestCase):
 
         self.mock_insert_values.assert_called_once_with(**values)
 
+    def test_null_text_inserted_when_extension_not_supported(self) -> None:
+        content = self.fake.paragraph(nb_sentences=10)
+        filename = os.path.join(
+            self.root_directory,
+            self.generate_filename("tex"),
+        )
+        self.storage.write_text(filename, content)
+
+        patient_id = self.fake.patient_id()
+        self.mock_one.return_value = mock.Mock(
+            _mapping={
+                S1GenericCol.PATIENT_ID: patient_id,
+            }
+        )
+        self.mock_document_to_text.return_value = content
+
+        with mock.patch.multiple(
+            "crate_anon.preprocess.text_extractor",
+            select=self.mock_select_fn,
+            document_to_text=self.mock_document_to_text,
+            Pendulum=mock.Mock(
+                now=mock.Mock(return_value=self.mock_last_extracted)
+            ),
+            insert=self.mock_insert,
+        ):
+            with self.assertLogs(level=logging.INFO) as logging_cm:
+                self.extractor.extract_all()
+
+            self.assert_logged(
+                "crate_anon.preprocess.text_extractor",
+                logging.INFO,
+                "... unsupported file extension '.tex'.",
+                logging_cm,
+            )
+
+        args, kwargs = self.mock_insert_values.call_args
+        self.assertIsNone(kwargs["crate_text"])
+
     def test_row_updated_in_table(self) -> None:
         content = self.fake.paragraph(nb_sentences=10)
         row_identifier = self.fake.row_identifier()
