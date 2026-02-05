@@ -33,13 +33,36 @@ import shutil
 import tempfile
 from unittest import mock
 
+from faker.providers import BaseProvider
 from faker_file.storages.filesystem import FileSystemStorage
-from sqlalchemy.exc import NoResultFound
+from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 
 from crate_anon.preprocess.constants import CRATE_TABLE_EXTRACTED_TEXT
 from crate_anon.preprocess.systmone_ddgen import SystmOneContext
 from crate_anon.preprocess.text_extractor import SystmOneTextExtractor
 from crate_anon.testing.classes import CrateTestCase
+
+
+class RowIdentifierProvider(BaseProvider):
+    def row_identifier(self) -> int:
+        return self.generator.pyint(1_000_000_000, 9_000_000_000)
+
+
+class DocumentUidProvider(BaseProvider):
+    def document_uid(self) -> int:
+        return self.generator.pyint(
+            0x1000_0000_0000_0000, 0xFFFF_FFFF_FFFF_FFFF
+        )
+
+
+class SubfolderProvider(BaseProvider):
+    def subfolder(self) -> int:
+        return self.generator.pyint(1, 4)
+
+
+class IndexProvider(BaseProvider):
+    def index(self) -> int:
+        return self.generator.pyint(0, 9)
 
 
 class SystmOneTextExtractorTests(CrateTestCase):
@@ -83,14 +106,45 @@ class SystmOneTextExtractorTests(CrateTestCase):
         )
         self.mock_select_object = mock.Mock()
         self.mock_select_fn = mock.Mock(return_value=self.mock_select_object)
+        self.register_providers()
+
+    def register_providers(self) -> None:
+        self.fake.add_provider(RowIdentifierProvider)
+        self.fake.add_provider(DocumentUidProvider)
+        self.fake.add_provider(SubfolderProvider)
+        self.fake.add_provider(IndexProvider)
 
     def tearDown(self) -> None:
         shutil.rmtree(self.root_directory)
 
+    def generate_filename(
+        self,
+        extension: str,
+        row_identifier: int = None,
+        document_uid: int = None,
+        subfolder: int = None,
+        index: int = None,
+    ) -> str:
+        if row_identifier is None:
+            row_identifier = self.fake.row_indentifier()
+
+        if document_uid is None:
+            document_uid = self.fake.document_uid()
+
+        if subfolder is None:
+            subfolder = self.fake.subfolder()
+
+        if index is None:
+            index = self.fake.index()
+
+        return f"{row_identifier}_{document_uid:x}_{subfolder}_{index}.{extension}"  # noqa: E501
+
     def test_unknown_row_identifier_skipped(self) -> None:
         content = self.fake.paragraph(nb_sentences=10)
+        row_identifier = self.fake.row_identifier()
         filename = os.path.join(
-            self.root_directory, self.generate_filename("txt")
+            self.root_directory,
+            self.generate_filename("txt", row_identifier=row_identifier),
         )
         self.storage.write_text(filename, content)
 
@@ -105,17 +159,34 @@ class SystmOneTextExtractorTests(CrateTestCase):
             self.assert_logged(
                 "crate_anon.preprocess.text_extractor",
                 logging.ERROR,
-                "... no row found for RowIdentifier:",
+                f"... no row found for RowIdentifier: {row_identifier}",
                 logging_cm,
             )
 
-    def generate_filename(self, extension: str) -> str:
-        row_identifier = self.fake.pyint(1_000_000_000, 9_000_000_000)
-        document_uid = self.fake.pyint(
-            0x1000_0000_0000_0000, 0xFFFF_FFFF_FFFF_FFFF
+    def test_multiple_results_skipped(self) -> None:
+        # Not seen in the real world but theoretically possible.
+        content = self.fake.paragraph(nb_sentences=10)
+        row_identifier = self.fake.row_identifier()
+        filename = os.path.join(
+            self.root_directory,
+            self.generate_filename("txt", row_identifier=row_identifier),
         )
+        self.storage.write_text(filename, content)
 
-        subfolder = self.fake.pyint(1, 4)
-        index = self.fake.pyint(0, 9)
+        with mock.patch.multiple(
+            "crate_anon.preprocess.text_extractor",
+            select=self.mock_select_fn,
+        ):
+            self.mock_one.side_effect = MultipleResultsFound()
+            with self.assertLogs(level=logging.ERROR) as logging_cm:
+                self.extractor.extract_all()
 
-        return f"{row_identifier}_{document_uid:x}_{subfolder}_{index}.{extension}"  # noqa: E501
+            self.assert_logged(
+                "crate_anon.preprocess.text_extractor",
+                logging.ERROR,
+                (
+                    "... multiple rows found with RowIdentifier:"
+                    f"{row_identifier}"
+                ),
+                logging_cm,
+            )
