@@ -29,6 +29,7 @@ crate_anon/preprocess/tests/text_extractor_tests.py
 
 import logging
 import os
+from pathlib import Path
 import shutil
 import tempfile
 from unittest import mock
@@ -38,7 +39,7 @@ from faker_file.storages.filesystem import FileSystemStorage
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound
 
 from crate_anon.preprocess.constants import CRATE_TABLE_EXTRACTED_TEXT
-from crate_anon.preprocess.systmone_ddgen import SystmOneContext
+from crate_anon.preprocess.systmone_ddgen import S1GenericCol, SystmOneContext
 from crate_anon.preprocess.text_extractor import SystmOneTextExtractor
 from crate_anon.testing.classes import CrateTestCase
 
@@ -63,6 +64,11 @@ class SubfolderProvider(BaseProvider):
 class IndexProvider(BaseProvider):
     def index(self) -> int:
         return self.generator.pyint(0, 9)
+
+
+class PatientIdProvider(BaseProvider):
+    def patient_id(self) -> int:
+        return self.generator.pyint(1, 10_000_000)
 
 
 class SystmOneTextExtractorTests(CrateTestCase):
@@ -106,6 +112,13 @@ class SystmOneTextExtractorTests(CrateTestCase):
         )
         self.mock_select_object = mock.Mock()
         self.mock_select_fn = mock.Mock(return_value=self.mock_select_object)
+
+        self.mock_document_to_text = mock.Mock()
+        self.mock_last_extracted = self.fake.past_datetime()
+        self.mock_values = mock.Mock()
+        self.mock_insert_result = mock.Mock(values=self.mock_values)
+        self.mock_insert = mock.Mock(return_value=self.mock_insert_result)
+
         self.register_providers()
 
     def register_providers(self) -> None:
@@ -113,6 +126,7 @@ class SystmOneTextExtractorTests(CrateTestCase):
         self.fake.add_provider(DocumentUidProvider)
         self.fake.add_provider(SubfolderProvider)
         self.fake.add_provider(IndexProvider)
+        self.fake.add_provider(PatientIdProvider)
 
     def tearDown(self) -> None:
         shutil.rmtree(self.root_directory)
@@ -190,3 +204,45 @@ class SystmOneTextExtractorTests(CrateTestCase):
                 ),
                 logging_cm,
             )
+
+    def test_row_inserted_into_table(self) -> None:
+        content = self.fake.paragraph(nb_sentences=10)
+        row_identifier = self.fake.row_identifier()
+        document_uid = self.fake.document_uid()
+        filename = os.path.join(
+            self.root_directory,
+            self.generate_filename(
+                "txt", row_identifier=row_identifier, document_uid=document_uid
+            ),
+        )
+        self.storage.write_text(filename, content)
+
+        patient_id = self.fake.patient_id()
+        self.mock_one.return_value = mock.Mock(
+            _mapping={
+                S1GenericCol.PATIENT_ID: patient_id,
+            }
+        )
+        self.mock_document_to_text.return_value = content
+
+        with mock.patch.multiple(
+            "crate_anon.preprocess.text_extractor",
+            select=self.mock_select_fn,
+            document_to_text=self.mock_document_to_text,
+            Pendulum=mock.Mock(
+                now=mock.Mock(return_value=self.mock_last_extracted)
+            ),
+            insert=self.mock_insert,
+        ):
+            self.extractor.extract_all()
+
+        values = dict(
+            RowIdentifier=row_identifier,
+            DocumentUID=f"{document_uid:x}",
+            IDPatient=patient_id,
+            crate_file_path=str(Path(*Path(filename).parts[-2:])),
+            crate_text=content,
+            crate_text_last_extracted=self.mock_last_extracted,
+        )
+
+        self.mock_values.assert_called_once_with(**values)
