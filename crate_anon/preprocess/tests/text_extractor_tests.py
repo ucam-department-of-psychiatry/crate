@@ -158,6 +158,21 @@ class SystmOneTextExtractorTests(CrateTestCase):
 
         return f"{row_identifier}_{document_uid:x}_{subfolder}_{index}.{extension}"  # noqa: E501
 
+    def test_invalid_filename_skipped(self) -> None:
+        filename = os.path.join(self.root_directory, "test.txt")
+        content = self.fake.paragraph(nb_sentences=10)
+        self.storage.write_text(filename, content)
+
+        with self.assertLogs(level=logging.INFO) as logging_cm:
+            self.extractor.extract_all()
+
+        self.assert_logged(
+            "crate_anon.preprocess.text_extractor",
+            logging.INFO,
+            f"Completely ignoring {filename}",
+            logging_cm,
+        )
+
     def test_unknown_row_identifier_skipped(self) -> None:
         content = self.fake.paragraph(nb_sentences=10)
         row_identifier = self.fake.row_identifier()
