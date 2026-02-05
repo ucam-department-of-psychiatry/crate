@@ -31,40 +31,23 @@ crate_anon/preprocess/preprocess_systmone.py
 
 import argparse
 import logging
-import os
-from pathlib import Path
-import re
-import traceback
-from typing import Generator, List, Tuple
+from typing import List
 
 from cardinal_pythonlib.enumlike import keys_descriptions_from_enum
-from cardinal_pythonlib.extract_text import (
-    document_to_text,
-    ext_map,
-    TextProcessingConfig,
-)
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.sqlalchemy.schema import (
     make_bigint_autoincrement_column,
 )
-from pendulum import DateTime as Pendulum
 from rich_argparse import RawDescriptionRichHelpFormatter
 from sqlalchemy import (
-    BigInteger,
     Column,
-    DateTime,
-    insert,
-    select,
-    String,
     Table,
-    UnicodeText,
-    update,
 )
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
-from sqlalchemy.exc import IntegrityError, MultipleResultsFound, NoResultFound
 from sqlalchemy.sql.schema import MetaData
 
+from crate_anon.anonymise.constants import AnonymiseConfigDefaults
 from crate_anon.common.sql import (
     add_columns,
     add_indexes,
@@ -77,12 +60,8 @@ from crate_anon.common.sql import (
     set_print_not_execute,
 )
 from crate_anon.preprocess.constants import (
-    CRATE_COL_FILE_PATH,
     CRATE_COL_PK,
-    CRATE_COL_TEXT,
-    CRATE_COL_TEXT_LAST_EXTRACTED,
     CRATE_IDX_PREFIX,
-    CRATE_TABLE_EXTRACTED_TEXT,
     DEFAULT_GEOG_COLS,
     ONSPD_TABLE_POSTCODE,
 )
@@ -104,12 +83,9 @@ from crate_anon.preprocess.systmone_ddgen import (
     SystmOneContext,
     TABLES_REQUIRING_CRATE_PK_REGEX,
 )
+from crate_anon.preprocess.text_extractor import SystmOneTextExtractor
 
 log = logging.getLogger(__name__)
-
-# Same as crate_anon config defaults
-DEFAULT_EXTRACT_TEXT_PLAIN = True
-DEFAULT_EXTRACT_TEXT_WIDTH = 80
 
 # =============================================================================
 # Preprocessing
@@ -252,180 +228,6 @@ def add_testpatient_view(
     create_view(engine, view_name, select_sql)
 
 
-def extract_text_from_docstore(
-    engine: Engine,
-    documents_table: "Table",
-    extracted_text_table: "Table",
-    docstore_root: str,
-    plain: bool = DEFAULT_EXTRACT_TEXT_PLAIN,
-    width: int = DEFAULT_EXTRACT_TEXT_WIDTH,
-) -> None:
-    extensions = list(ext_map)
-    extensions.remove(None)
-
-    with engine.connect() as connection:
-        for (
-            full_path,
-            row_identifier,
-            document_uid,
-            extension,
-        ) in _gen_docstore_filenames(docstore_root):
-            log.info(f"Processing {full_path}...")
-            statement = select(documents_table).where(
-                documents_table.c.RowIdentifier == row_identifier
-            )
-            try:
-                row = connection.execute(statement).one()
-                id_patient = row._mapping[S1GenericCol.PATIENT_ID]
-            except NoResultFound:
-                log.error(
-                    f"... no row found for RowIdentifier: {row_identifier}"
-                )
-                continue
-            except MultipleResultsFound:
-                log.error(
-                    "... multiple rows found with RowIdentifier: "
-                    f"{row_identifier}"
-                )
-                continue
-
-            # TODO: Read last_extracted and only update if None (or do
-            # something clever by checking when the file was last written)
-            text = None
-            last_extracted = None
-            if extension in extensions:
-                log.info("... extracting text...")
-                try:
-                    config = TextProcessingConfig(width=width, plain=plain)
-                    text = document_to_text(filename=full_path, config=config)
-                    log.info("... extracted.")
-                    last_extracted = Pendulum.now()
-                except Exception as e:
-                    traceback.print_exc()
-                    log.error(
-                        f"... caught exception from document_to_text: {e}"
-                    )
-            else:
-                log.info(f"... unsupported file extension '{extension}'.")
-
-            relative_path = str(Path(*Path(full_path).parts[-2:]))
-            values = dict(
-                RowIdentifier=row_identifier,
-                DocumentUID=document_uid,
-                IDPatient=id_patient,
-                crate_file_path=relative_path,
-                crate_text=text,
-                crate_text_last_extracted=last_extracted,
-            )
-
-            statement = insert(extracted_text_table).values(**values)
-            try:
-                connection.execute(statement)
-            except IntegrityError:
-                statement = (
-                    update(extracted_text_table)
-                    .values(**values)
-                    .where(
-                        extracted_text_table.c.crate_file_path == relative_path
-                    )
-                )
-            connection.commit()
-
-
-def _gen_docstore_filenames(
-    docstore_root: str,
-) -> Generator[Tuple[str, int, str, str], None, None]:
-    # Groups:
-    # 1: RowIdentifier
-    # 2: DocumentUID (sometimes incorrectly set to IDOrganisation)
-    # 3: Subfolder 1-4
-    # 4: Index where document split across files
-    # 5: Extension, mixed case
-    regex = r"(\d+)_([0-9a-f]+)_(\d+)_(\d+)(\.\S+)"
-
-    log.info(f"Extracting text from {docstore_root}...")
-    for dirpath, dirnames, filenames in os.walk(docstore_root):
-        log.debug(f"Processing {dirpath}")
-        for filename in filenames:
-            file_path = os.path.join(dirpath, filename)
-            if m := re.match(regex, filename):
-                row_identifier = int(m.group(1))
-                document_uid = m.group(2)
-                extension = m.group(5).lower()
-                yield file_path, row_identifier, document_uid, extension
-            else:
-                log.info(f"Completely ignoring {file_path}")
-
-
-def _create_extracted_text_table(
-    engine: Engine, metadata: MetaData, drop_danger_drop: bool
-) -> None:
-    extracted_text_table = Table(
-        CRATE_TABLE_EXTRACTED_TEXT,
-        metadata,
-        make_bigint_autoincrement_column(CRATE_COL_PK),
-        Column(
-            S1GenericCol.ROW_ID,
-            BigInteger,
-            comment="FK to S1_Documents",
-            nullable=False,
-        ),
-        Column(
-            S1GenericCol.PATIENT_ID,
-            BigInteger,
-            comment="Patient ID from S1_Documents",
-            nullable=False,
-        ),
-        Column(
-            "DocumentUID",
-            String(16),
-            comment="Unique ID of document",
-            nullable=False,
-        ),
-        Column(
-            CRATE_COL_FILE_PATH,
-            String(255),
-            comment="Path relative to docstore",
-            unique=True,
-        ),
-        Column(
-            CRATE_COL_TEXT,
-            UnicodeText,
-            comment="Extracted text from file",
-        ),
-        Column(
-            CRATE_COL_TEXT_LAST_EXTRACTED,
-            DateTime,
-            comment="Date/time text was last extracted",
-        ),
-    )
-
-    if drop_danger_drop:
-        extracted_text_table.drop(checkfirst=True)
-
-    extracted_text_table.create(engine, checkfirst=True)
-
-    for column in extracted_text_table.columns:
-        colname = column.name
-        if colname in [
-            CRATE_COL_PK,
-            S1GenericCol.ROW_ID,
-            S1GenericCol.PATIENT_ID,
-        ]:
-            idxname = f"{CRATE_IDX_PREFIX}_{colname}"
-            add_indexes(
-                engine,
-                extracted_text_table,
-                [
-                    IndexCreationInfo(
-                        index_name=idxname, column=colname, unique=False
-                    )
-                ],
-            )
-
-    return extracted_text_table
-
-
 def preprocess_systmone(
     engine: Engine,
     context: SystmOneContext,
@@ -434,8 +236,8 @@ def preprocess_systmone(
     postcode_db_name: str = None,
     geog_cols: List[str] = None,
     docstore_root: str = None,
-    extract_text_plain: bool = DEFAULT_EXTRACT_TEXT_PLAIN,
-    extract_text_width: int = DEFAULT_EXTRACT_TEXT_WIDTH,
+    extract_text_plain: bool = AnonymiseConfigDefaults.EXTRACT_TEXT_PLAIN,
+    extract_text_width: int = AnonymiseConfigDefaults.EXTRACT_TEXT_WIDTH,
 ) -> None:
     """
     Add indexes to a SystmOne source database. Without this, anonymisation is
@@ -533,24 +335,15 @@ def preprocess_systmone(
 
     # Documents
     if docstore_root:
-        documents_table = metadata.tables[
-            contextual_tablename(S1Table.DOCUMENTS, context)
-        ]
-
-        extracted_text_table = metadata.tables.get(CRATE_TABLE_EXTRACTED_TEXT)
-        if extracted_text_table is None:
-            extracted_text_table = _create_extracted_text_table(
-                engine, metadata, drop_danger_drop
-            )
-
-        extract_text_from_docstore(
+        extractor = SystmOneTextExtractor(
             engine,
-            documents_table,
-            extracted_text_table,
+            metadata,
+            context,
             docstore_root,
             plain=extract_text_plain,
             width=extract_text_width,
         )
+        extractor.extract()
 
 
 # =============================================================================
@@ -618,12 +411,14 @@ def main() -> None:
         action=argparse.BooleanOptionalAction,
         help="extract text as plainly as possibly (e.g. for NLP)",
     )
-    parser.set_defaults(extract_text_plain=DEFAULT_EXTRACT_TEXT_PLAIN)
+    parser.set_defaults(
+        extract_text_plain=AnonymiseConfigDefaults.EXTRACT_TEXT_PLAIN
+    )
     parser.add_argument(
         "--extract_text_width",
         type=int,
         help="Word wrapping width",
-        default=DEFAULT_EXTRACT_TEXT_WIDTH,
+        default=AnonymiseConfigDefaults.EXTRACT_TEXT_WIDTH,
     )
     parser.add_argument(
         "--drop_danger_drop",
@@ -645,17 +440,18 @@ def main() -> None:
     log.info(f"Database: {engine.url!r}")  # ... repr (!r) hides p/w
     log.debug(f"Dialect: {engine.dialect.name}")
 
-    preprocess_systmone(
-        engine,
-        context=SystmOneContext[args.systmone_context],
-        allow_unprefixed_tables=args.systmone_allow_unprefixed_tables,
-        drop_danger_drop=args.drop_danger_drop,
-        postcode_db_name=args.postcodedb,
-        geog_cols=args.geogcols,
-        docstore_root=args.docstore_root,
-        extract_text_plain=args.extract_text_plain,
-        extract_text_width=args.extract_text_width,
-    )
+    if args.docstore_root:
+        preprocess_systmone(
+            engine,
+            context=SystmOneContext[args.systmone_context],
+            allow_unprefixed_tables=args.systmone_allow_unprefixed_tables,
+            drop_danger_drop=args.drop_danger_drop,
+            postcode_db_name=args.postcodedb,
+            geog_cols=args.geogcols,
+            docstore_root=args.docstore_root,
+            extract_text_plain=args.extract_text_plain,
+            extract_text_width=args.extract_text_width,
+        )
 
 
 if __name__ == "__main__":
