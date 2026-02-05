@@ -36,7 +36,7 @@ from unittest import mock
 
 from faker.providers import BaseProvider
 from faker_file.storages.filesystem import FileSystemStorage
-from sqlalchemy.exc import MultipleResultsFound, NoResultFound
+from sqlalchemy.exc import IntegrityError, MultipleResultsFound, NoResultFound
 
 from crate_anon.preprocess.constants import CRATE_TABLE_EXTRACTED_TEXT
 from crate_anon.preprocess.systmone_ddgen import S1GenericCol, SystmOneContext
@@ -115,9 +115,14 @@ class SystmOneTextExtractorTests(CrateTestCase):
 
         self.mock_document_to_text = mock.Mock()
         self.mock_last_extracted = self.fake.past_datetime()
-        self.mock_values = mock.Mock()
-        self.mock_insert_result = mock.Mock(values=self.mock_values)
+
+        self.mock_insert_values = mock.Mock()
+        self.mock_insert_result = mock.Mock(values=self.mock_insert_values)
         self.mock_insert = mock.Mock(return_value=self.mock_insert_result)
+
+        self.mock_update_values = mock.Mock()
+        self.mock_update_result = mock.Mock(values=self.mock_update_values)
+        self.mock_update = mock.Mock(return_value=self.mock_update_result)
 
         self.register_providers()
 
@@ -245,4 +250,52 @@ class SystmOneTextExtractorTests(CrateTestCase):
             crate_text_last_extracted=self.mock_last_extracted,
         )
 
-        self.mock_values.assert_called_once_with(**values)
+        self.mock_insert_values.assert_called_once_with(**values)
+
+    def test_row_updated_in_table(self) -> None:
+        content = self.fake.paragraph(nb_sentences=10)
+        row_identifier = self.fake.row_identifier()
+        document_uid = self.fake.document_uid()
+        filename = os.path.join(
+            self.root_directory,
+            self.generate_filename(
+                "txt", row_identifier=row_identifier, document_uid=document_uid
+            ),
+        )
+        self.storage.write_text(filename, content)
+
+        patient_id = self.fake.patient_id()
+        self.mock_one.return_value = mock.Mock(
+            _mapping={
+                S1GenericCol.PATIENT_ID: patient_id,
+            }
+        )
+        self.mock_document_to_text.return_value = content
+
+        self.mock_execute.side_effect = [
+            self.mock_result,
+            IntegrityError(None, None, None),
+        ]
+
+        with mock.patch.multiple(
+            "crate_anon.preprocess.text_extractor",
+            select=self.mock_select_fn,
+            document_to_text=self.mock_document_to_text,
+            Pendulum=mock.Mock(
+                now=mock.Mock(return_value=self.mock_last_extracted)
+            ),
+            insert=self.mock_insert,
+            update=self.mock_update,
+        ):
+            self.extractor.extract_all()
+
+        values = dict(
+            RowIdentifier=row_identifier,
+            DocumentUID=f"{document_uid:x}",
+            IDPatient=patient_id,
+            crate_file_path=str(Path(*Path(filename).parts[-2:])),
+            crate_text=content,
+            crate_text_last_extracted=self.mock_last_extracted,
+        )
+
+        self.mock_update_values.assert_called_once_with(**values)
