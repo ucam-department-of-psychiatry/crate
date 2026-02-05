@@ -145,7 +145,7 @@ class SystmOneTextExtractorTests(CrateTestCase):
         index: int = None,
     ) -> str:
         if row_identifier is None:
-            row_identifier = self.fake.row_indentifier()
+            row_identifier = self.fake.row_identifier()
 
         if document_uid is None:
             document_uid = self.fake.document_uid()
