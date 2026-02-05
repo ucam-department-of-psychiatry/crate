@@ -314,3 +314,43 @@ class SystmOneTextExtractorTests(CrateTestCase):
         )
 
         self.mock_update_values.assert_called_once_with(**values)
+
+    def test_exception_from_text_conversion_handled(self) -> None:
+        content = self.fake.paragraph(nb_sentences=10)
+        row_identifier = self.fake.row_identifier()
+        document_uid = self.fake.document_uid()
+        filename = os.path.join(
+            self.root_directory,
+            self.generate_filename(
+                "txt", row_identifier=row_identifier, document_uid=document_uid
+            ),
+        )
+        self.storage.write_text(filename, content)
+
+        patient_id = self.fake.patient_id()
+        self.mock_one.return_value = mock.Mock(
+            _mapping={
+                S1GenericCol.PATIENT_ID: patient_id,
+            }
+        )
+        self.mock_document_to_text.side_effect = Exception(
+            "Something bad happened"
+        )
+
+        with mock.patch.multiple(
+            "crate_anon.preprocess.text_extractor",
+            select=self.mock_select_fn,
+            document_to_text=self.mock_document_to_text,
+        ):
+            with self.assertLogs(level=logging.ERROR) as logging_cm:
+                self.extractor.extract_all()
+
+            self.assert_logged(
+                "crate_anon.preprocess.text_extractor",
+                logging.ERROR,
+                (
+                    "... caught exception from document_to_text: "
+                    "Something bad happened"
+                ),
+                logging_cm,
+            )
