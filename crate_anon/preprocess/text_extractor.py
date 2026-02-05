@@ -23,6 +23,8 @@ crate_anon/preprocess/text_extractor.py
 
 ===============================================================================
 
+**Extract text from a document store prior to anonymisation.**
+
 """
 
 import logging

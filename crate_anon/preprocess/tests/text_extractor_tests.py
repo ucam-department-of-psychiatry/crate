@@ -23,6 +23,8 @@ crate_anon/preprocess/tests/text_extractor_tests.py
 
 ===============================================================================
 
+**Test text extraction from documents.**
+
 """
 
 import logging
