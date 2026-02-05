@@ -86,8 +86,10 @@ class SystmOneTextExtractorTests(CrateTestCase):
         self.mock_connect_cm.__exit__ = mock.Mock()
         self.mock_connect = mock.Mock(return_value=self.mock_connect_cm)
         self.mock_engine = mock.Mock(connect=self.mock_connect)
+
         self.mock_s1_documents_table = mock.Mock()
-        self.mock_extracted_text_table = mock.Mock()
+        self.mock_drop = mock.Mock()
+        self.mock_extracted_text_table = mock.Mock(drop=self.mock_drop)
         self.mock_metadata = mock.Mock(
             tables={
                 "S1_Documents": self.mock_s1_documents_table,
@@ -392,3 +394,15 @@ class SystmOneTextExtractorTests(CrateTestCase):
                 ),
                 logging_cm,
             )
+
+    def test_table_dropped(self) -> None:
+        self.extractor.drop_table = True
+        self.mock_table_class.return_value = self.mock_extracted_text_table
+        self.mock_extracted_text_table.columns = []
+
+        with mock.patch.multiple(
+            "crate_anon.preprocess.text_extractor",
+            Table=self.mock_table_class,
+        ):
+            self.extractor.extract_all()
+        self.mock_drop.assert_called_once_with(checkfirst=True)
