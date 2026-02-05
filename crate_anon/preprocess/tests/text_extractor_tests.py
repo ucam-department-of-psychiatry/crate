@@ -185,7 +185,7 @@ class SystmOneTextExtractorTests(CrateTestCase):
                 "crate_anon.preprocess.text_extractor",
                 logging.ERROR,
                 (
-                    "... multiple rows found with RowIdentifier:"
+                    "... multiple rows found with RowIdentifier: "
                     f"{row_identifier}"
                 ),
                 logging_cm,
