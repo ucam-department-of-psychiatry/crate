@@ -40,6 +40,7 @@ from sqlalchemy.exc import IntegrityError, MultipleResultsFound, NoResultFound
 
 from crate_anon.preprocess.constants import (
     CRATE_COL_PK,
+    CRATE_COL_TEXT_LAST_EXTRACTED,
     CRATE_IDX_PREFIX,
     CRATE_TABLE_EXTRACTED_TEXT,
 )
@@ -79,8 +80,12 @@ class SystmOneTextExtractorTests(CrateTestCase):
     def setUp(self) -> None:
         super().setUp()
 
-        self.mock_one = mock.Mock()
-        self.mock_result = mock.Mock(one=self.mock_one)
+        self.mock_document_row = mock.Mock()
+        self.mock_extracted_text_row = mock.Mock()
+        self.mock_result = mock.Mock(
+            one=self.mock_document_row,
+            one_or_none=self.mock_extracted_text_row,
+        )
         self.mock_execute = mock.Mock(return_value=self.mock_result)
         self.mock_connection = mock.Mock(execute=self.mock_execute)
         self.mock_connect_cm = mock.Mock()
@@ -188,11 +193,13 @@ class SystmOneTextExtractorTests(CrateTestCase):
         )
         self.storage.write_text(filename, content)
 
+        self.mock_extracted_text_row.return_value = None
+
         with mock.patch.multiple(
             "crate_anon.preprocess.text_extractor",
             select=self.mock_select_fn,
         ):
-            self.mock_one.side_effect = NoResultFound()
+            self.mock_document_row.side_effect = NoResultFound()
             with self.assertLogs(level=logging.ERROR) as logging_cm:
                 self.extractor.extract_all()
 
@@ -213,11 +220,12 @@ class SystmOneTextExtractorTests(CrateTestCase):
         )
         self.storage.write_text(filename, content)
 
+        self.mock_extracted_text_row.return_value = None
         with mock.patch.multiple(
             "crate_anon.preprocess.text_extractor",
             select=self.mock_select_fn,
         ):
-            self.mock_one.side_effect = MultipleResultsFound()
+            self.mock_document_row.side_effect = MultipleResultsFound()
             with self.assertLogs(level=logging.ERROR) as logging_cm:
                 self.extractor.extract_all()
 
@@ -243,8 +251,9 @@ class SystmOneTextExtractorTests(CrateTestCase):
         )
         self.storage.write_text(filename, content)
 
+        self.mock_extracted_text_row.return_value = None
         patient_id = self.fake.patient_id()
-        self.mock_one.return_value = mock.Mock(
+        self.mock_document_row.return_value = mock.Mock(
             _mapping={
                 S1GenericCol.PATIENT_ID: patient_id,
             }
@@ -273,6 +282,35 @@ class SystmOneTextExtractorTests(CrateTestCase):
 
         self.mock_insert_values.assert_called_once_with(**values)
 
+    def test_row_not_inserted_when_already_extracted(self) -> None:
+        content = self.fake.paragraph(nb_sentences=10)
+        filename = os.path.join(
+            self.root_directory,
+            self.generate_filename("txt"),
+        )
+        self.storage.write_text(filename, content)
+        self.mock_extracted_text_row.return_value = mock.Mock(
+            _mapping={
+                CRATE_COL_TEXT_LAST_EXTRACTED: self.fake.past_datetime(),
+            }
+        )
+
+        with mock.patch.multiple(
+            "crate_anon.preprocess.text_extractor",
+            select=self.mock_select_fn,
+            insert=self.mock_insert,
+        ):
+            with self.assertLogs(level=logging.INFO) as logging_cm:
+                self.extractor.extract_all()
+
+        self.mock_insert_values.assert_not_called()
+        self.assert_logged(
+            "crate_anon.preprocess.text_extractor",
+            logging.INFO,
+            "... already extracted.",
+            logging_cm,
+        )
+
     def test_null_text_inserted_when_extension_not_supported(self) -> None:
         content = self.fake.paragraph(nb_sentences=10)
         filename = os.path.join(
@@ -281,8 +319,9 @@ class SystmOneTextExtractorTests(CrateTestCase):
         )
         self.storage.write_text(filename, content)
 
+        self.mock_extracted_text_row.return_value = None
         patient_id = self.fake.patient_id()
-        self.mock_one.return_value = mock.Mock(
+        self.mock_document_row.return_value = mock.Mock(
             _mapping={
                 S1GenericCol.PATIENT_ID: patient_id,
             }
@@ -323,8 +362,10 @@ class SystmOneTextExtractorTests(CrateTestCase):
         )
         self.storage.write_text(filename, content)
 
+        self.mock_extracted_text_row.return_value = None
+
         patient_id = self.fake.patient_id()
-        self.mock_one.return_value = mock.Mock(
+        self.mock_document_row.return_value = mock.Mock(
             _mapping={
                 S1GenericCol.PATIENT_ID: patient_id,
             }
@@ -332,8 +373,9 @@ class SystmOneTextExtractorTests(CrateTestCase):
         self.mock_document_to_text.return_value = content
 
         self.mock_execute.side_effect = [
-            self.mock_result,
-            IntegrityError(None, None, None),
+            self.mock_result,  # check existing text
+            self.mock_result,  # check documents table
+            IntegrityError(None, None, None),  # insert
         ]
 
         with mock.patch.multiple(
@@ -372,7 +414,8 @@ class SystmOneTextExtractorTests(CrateTestCase):
         self.storage.write_text(filename, content)
 
         patient_id = self.fake.patient_id()
-        self.mock_one.return_value = mock.Mock(
+        self.mock_extracted_text_row.return_value = None
+        self.mock_document_row.return_value = mock.Mock(
             _mapping={
                 S1GenericCol.PATIENT_ID: patient_id,
             }

@@ -27,6 +27,7 @@ crate_anon/preprocess/text_extractor.py
 
 """
 
+from dataclasses import dataclass
 import logging
 import os
 from pathlib import Path
@@ -46,6 +47,8 @@ from pendulum import DateTime as Pendulum
 from sqlalchemy import (
     BigInteger,
     Column,
+    Connection,
+    CursorResult,
     DateTime,
     insert,
     select,
@@ -162,8 +165,6 @@ class TextExtractor:
     def extract_text_from_file(
         self, full_path: str, extension: str
     ) -> Tuple[Optional[str], Pendulum]:
-        # TODO: Read last_extracted and only update if None (or do
-        # something clever by checking when the file was last written)
         last_extracted = None
         text = None
         if extension in self.extensions:
@@ -184,6 +185,17 @@ class TextExtractor:
             last_extracted = Pendulum.now()
 
         return text, last_extracted
+
+
+@dataclass
+class SystmOneDocumentInfo:
+    full_path: str
+    row_identifier: int
+    document_uid: str
+    extension: str
+
+    def __post_init__(self) -> None:
+        self.relative_path = str(Path(*Path(self.full_path).parts[-2:]))
 
 
 class SystmOneTextExtractor(TextExtractor):
@@ -242,62 +254,101 @@ class SystmOneTextExtractor(TextExtractor):
 
     def process_files(self) -> None:
         with self.engine.connect() as connection:
-            for (
-                full_path,
-                row_identifier,
-                document_uid,
-                extension,
-            ) in self.generate_matches():
-                log.info(f"Processing {full_path}...")
-                statement = select(self.documents_table).where(
-                    self.documents_table.c.RowIdentifier == row_identifier
-                )
-                try:
-                    row = connection.execute(statement).one()
-                except NoResultFound:
-                    log.error(
-                        f"... no row found for RowIdentifier: {row_identifier}"
-                    )
-                    continue
-                except MultipleResultsFound:
-                    log.error(
-                        "... multiple rows found with RowIdentifier: "
-                        f"{row_identifier}"
-                    )
-                    continue
-
-                id_patient = row._mapping[S1GenericCol.PATIENT_ID]
-                text, last_extracted = self.extract_text_from_file(
-                    full_path, extension
-                )
-
-                relative_path = str(Path(*Path(full_path).parts[-2:]))
-                values = dict(
-                    RowIdentifier=row_identifier,
-                    DocumentUID=document_uid,
-                    IDPatient=id_patient,
-                    crate_file_path=relative_path,
-                    crate_text=text,
-                    crate_text_last_extracted=last_extracted,
-                )
-
-                statement = insert(self.extracted_text_table).values(**values)
-                try:
-                    connection.execute(statement)
-                except IntegrityError:
-                    statement = (
-                        update(self.extracted_text_table)
-                        .values(**values)
-                        .where(
-                            self.extracted_text_table.c.crate_file_path
-                            == relative_path
-                        )
-                    )
+            for doc_info in self.generate_matches():
+                self.process_file(connection, doc_info)
                 connection.commit()
+
+    def process_file(
+        self, connection: Connection, doc_info: SystmOneDocumentInfo
+    ) -> None:
+        log.info(f"Processing {doc_info.full_path}...")
+
+        if self.already_extracted(connection, doc_info):
+            log.info("... already extracted.")
+            return
+
+        row = self.get_documents_table_row(connection, doc_info)
+        if row is not None:
+            patient_id = row._mapping[S1GenericCol.PATIENT_ID]
+            self.extract_text_into_database(connection, doc_info, patient_id)
+
+    def already_extracted(
+        self, connection: Connection, doc_info: SystmOneDocumentInfo
+    ) -> bool:
+        row = self.get_extracted_text_table_row(connection, doc_info)
+        if row is None:
+            return False
+
+        last_extracted = row._mapping[CRATE_COL_TEXT_LAST_EXTRACTED]
+        return last_extracted is not None
+
+    def get_extracted_text_table_row(
+        self, connection: Connection, doc_info: SystmOneDocumentInfo
+    ) -> CursorResult:
+
+        relative_path = doc_info.relative_path
+
+        statement = select(self.extracted_text_table).where(
+            self.extracted_text_table.c.crate_file_path == relative_path
+        )
+        return connection.execute(statement).one_or_none()
+
+    def extract_text_into_database(
+        self,
+        connection: Connection,
+        doc_info: SystmOneDocumentInfo,
+        patient_id: int,
+    ) -> None:
+        text, last_extracted = self.extract_text_from_file(
+            doc_info.full_path, doc_info.extension
+        )
+
+        values = dict(
+            RowIdentifier=doc_info.row_identifier,
+            DocumentUID=doc_info.document_uid,
+            IDPatient=patient_id,
+            crate_file_path=doc_info.relative_path,
+            crate_text=text,
+            crate_text_last_extracted=last_extracted,
+        )
+
+        statement = insert(self.extracted_text_table).values(**values)
+        try:
+            connection.execute(statement)
+        except IntegrityError:
+            statement = (
+                update(self.extracted_text_table)
+                .values(**values)
+                .where(
+                    self.extracted_text_table.c.crate_file_path
+                    == doc_info.relative_path
+                )
+            )
+
+    def get_documents_table_row(
+        self, connection: Connection, doc_info: SystmOneDocumentInfo
+    ) -> CursorResult:
+        row = None
+        row_identifier = doc_info.row_identifier
+
+        statement = select(self.documents_table).where(
+            self.documents_table.c.RowIdentifier == row_identifier
+        )
+        try:
+            row = connection.execute(statement).one()
+        except NoResultFound:
+            log.error(f"... no row found for RowIdentifier: {row_identifier}")
+        except MultipleResultsFound:
+            log.error(
+                "... multiple rows found with RowIdentifier: "
+                f"{row_identifier}"
+            )
+
+        return row
 
     def generate_matches(
         self,
-    ) -> Generator[Tuple[str, int, str, str], None, None]:
+    ) -> Generator[Tuple[SystmOneDocumentInfo], None, None]:
         # Groups:
         # 1: RowIdentifier
         # 2: DocumentUID (sometimes incorrectly set to IDOrganisation)
@@ -309,9 +360,11 @@ class SystmOneTextExtractor(TextExtractor):
         for dirpath, filename in self.generate_filenames():
             file_path = os.path.join(dirpath, filename)
             if m := re.match(regex, filename):
-                row_identifier = int(m.group(1))
-                document_uid = m.group(2)
-                extension = m.group(5).lower()
-                yield file_path, row_identifier, document_uid, extension
+                yield SystmOneDocumentInfo(
+                    full_path=file_path,
+                    row_identifier=int(m.group(1)),
+                    document_uid=m.group(2),
+                    extension=m.group(5).lower(),
+                )
             else:
                 log.info(f"Completely ignoring {file_path}")
