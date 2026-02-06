@@ -38,7 +38,11 @@ from faker.providers import BaseProvider
 from faker_file.storages.filesystem import FileSystemStorage
 from sqlalchemy.exc import IntegrityError, MultipleResultsFound, NoResultFound
 
-from crate_anon.preprocess.constants import CRATE_TABLE_EXTRACTED_TEXT
+from crate_anon.preprocess.constants import (
+    CRATE_COL_PK,
+    CRATE_IDX_PREFIX,
+    CRATE_TABLE_EXTRACTED_TEXT,
+)
 from crate_anon.preprocess.systmone_ddgen import S1GenericCol, SystmOneContext
 from crate_anon.preprocess.text_extractor import SystmOneTextExtractor
 from crate_anon.testing.classes import CrateTestCase
@@ -406,3 +410,73 @@ class SystmOneTextExtractorTests(CrateTestCase):
         ):
             self.extractor.extract_all()
         self.mock_drop.assert_called_once_with(checkfirst=True)
+
+    def test_columns_indexed(self) -> None:
+        self.extractor.drop_table = True
+        self.mock_table_class.return_value = self.mock_extracted_text_table
+
+        mock_pk_column = mock.Mock()
+        mock_pk_column.name = CRATE_COL_PK
+        mock_row_id_column = mock.Mock()
+        mock_row_id_column.name = S1GenericCol.ROW_ID
+        mock_patient_id_column = mock.Mock()
+        mock_patient_id_column.name = S1GenericCol.PATIENT_ID
+
+        self.mock_extracted_text_table.columns = [
+            mock_pk_column,
+            mock_row_id_column,
+            mock_patient_id_column,
+        ]
+
+        mock_add_indexes = mock.Mock()
+        mock_pk_info = mock.Mock()
+        mock_row_id_info = mock.Mock()
+        mock_patient_id_info = mock.Mock()
+        mock_add_indexes = mock.Mock()
+
+        mock_index_creation_info = mock.Mock(
+            side_effect=[
+                mock_pk_info,
+                mock_row_id_info,
+                mock_patient_id_info,
+            ]
+        )
+
+        with mock.patch.multiple(
+            "crate_anon.preprocess.text_extractor",
+            Table=self.mock_table_class,
+            add_indexes=mock_add_indexes,
+            IndexCreationInfo=mock_index_creation_info,
+        ):
+            self.extractor.extract_all()
+            mock_add_indexes.assert_any_call(
+                self.mock_engine,
+                self.mock_extracted_text_table,
+                [mock_pk_info],
+            )
+            mock_add_indexes.assert_any_call(
+                self.mock_engine,
+                self.mock_extracted_text_table,
+                [mock_row_id_info],
+            )
+            mock_add_indexes.assert_any_call(
+                self.mock_engine,
+                self.mock_extracted_text_table,
+                [mock_patient_id_info],
+            )
+
+            mock_index_creation_info.assert_any_call(
+                index_name=f"{CRATE_IDX_PREFIX}_{CRATE_COL_PK}",
+                column=CRATE_COL_PK,
+                unique=False,
+            )
+            mock_index_creation_info.assert_any_call(
+                index_name=f"{CRATE_IDX_PREFIX}_{S1GenericCol.ROW_ID}",
+                column=S1GenericCol.ROW_ID,
+                unique=False,
+            )
+            mock_index_creation_info.assert_any_call(
+                index_name=f"{CRATE_IDX_PREFIX}_{S1GenericCol.PATIENT_ID}",
+                column=S1GenericCol.PATIENT_ID,
+                unique=False,
+            )
