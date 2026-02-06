@@ -343,7 +343,7 @@ def preprocess_systmone(
             plain=extract_text_plain,
             width=extract_text_width,
         )
-        extractor.extract()
+        extractor.extract_all()
 
 
 # =============================================================================
