@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.nlp_manager.cloud_run_info
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------
 
 .. automodule:: crate_anon.nlp_manager.cloud_run_info
     :members:

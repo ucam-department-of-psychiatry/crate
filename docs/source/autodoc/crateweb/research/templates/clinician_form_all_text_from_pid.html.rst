@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/research/templates/clinician_form_all_text_from_pid.html
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------------------------------------------------
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/clinician_form_all_text_from_pid.html
     :language: html+django

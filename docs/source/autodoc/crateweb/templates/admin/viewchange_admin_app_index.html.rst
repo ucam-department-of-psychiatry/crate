@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/templates/admin/viewchange_admin_app_index.html
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/templates/admin/viewchange_admin_app_index.html
     :language: html+django

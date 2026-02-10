@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.preprocess.rio_view_func
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------
 
 .. automodule:: crate_anon.preprocess.rio_view_func
     :members:

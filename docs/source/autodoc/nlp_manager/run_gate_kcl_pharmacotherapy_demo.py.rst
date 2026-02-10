@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.nlp_manager.run_gate_kcl_pharmacotherapy_demo
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------------------------
 
 .. automodule:: crate_anon.nlp_manager.run_gate_kcl_pharmacotherapy_demo
     :members:

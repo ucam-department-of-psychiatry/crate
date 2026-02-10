@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/research/templates/pe_missing.html
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------------------
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/pe_missing.html
     :language: html+django

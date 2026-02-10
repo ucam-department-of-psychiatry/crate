@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/research/templates/pid_abbrev_explanation.html
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------------------------------
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/pid_abbrev_explanation.html
     :language: html+django

@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.nlp_manager.prepare_umls_for_bioyodie
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------------
 
 .. automodule:: crate_anon.nlp_manager.prepare_umls_for_bioyodie
     :members:

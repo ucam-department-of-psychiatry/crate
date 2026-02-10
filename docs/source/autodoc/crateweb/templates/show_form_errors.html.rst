@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/templates/show_form_errors.html
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------------------------
 
 .. literalinclude:: ../../../../../crate_anon/crateweb/templates/show_form_errors.html
     :language: html+django

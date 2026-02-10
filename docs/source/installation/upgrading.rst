@@ -21,7 +21,8 @@
 .. _LockHunter: https://lockhunter.com/
 
 Upgrading CRATE
-===============
+---------------
+
 
 Under Windows:
 

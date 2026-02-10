@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/specimen_archives/tree/nonpatient_root.mako
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------------------------------------
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/specimen_archives/tree/nonpatient_root.mako
     :language: none

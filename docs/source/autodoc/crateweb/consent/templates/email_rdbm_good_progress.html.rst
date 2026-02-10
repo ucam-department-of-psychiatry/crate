@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/consent/templates/email_rdbm_good_progress.html
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------------------------------------------
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/email_rdbm_good_progress.html
     :language: html+django

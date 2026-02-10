@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/consent/templates/contact_request_result.html
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------------------------------------
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/contact_request_result.html
     :language: html+django

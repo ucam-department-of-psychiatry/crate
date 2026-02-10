@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/consent/templates/patient_p.html
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------------------------
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/consent/templates/patient_p.html
     :language: html+django

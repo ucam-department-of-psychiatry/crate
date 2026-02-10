@@ -24,13 +24,15 @@
 
 
 Change log/history
-==================
+------------------
+
 
 
 .. _contributors:
 
 Contributors
-------------
+~~~~~~~~~~~~
+
 
 - Rudolf Cardinal <rudolf@pobox.com>, 2015–.
 - Francesca Spivack, 2018–2020.
@@ -52,13 +54,15 @@ Quick links:
 
 
 Changes
--------
+~~~~~~~
+
 
 
 .. _changelog_2015:
 
 2015
-~~~~
+^^^^
+
 
 **2015-02-18**
 
@@ -204,7 +208,8 @@ Changes
 .. _changelog_2016:
 
 2016
-~~~~
+^^^^
+
 
 **2016-02-09**
 
@@ -425,7 +430,8 @@ Changes
 .. _changelog_2017:
 
 2017
-~~~~
+^^^^
+
 
 **v0.18.12, 2017-02-26**
 
@@ -566,7 +572,8 @@ Changes
 .. _changelog_2018:
 
 2018
-~~~~
+^^^^
+
 
 **v0.18.49, 2018-01-07, 2018-03-21, 2018-03-27, published 2018-04-20**
 
@@ -840,7 +847,8 @@ Changes
 .. _changelog_2019:
 
 2019
-~~~~
+^^^^
+
 
 **v0.18.61, 2019-01-15**
 
@@ -1252,7 +1260,8 @@ Changes
 .. _changelog_2020:
 
 2020
-~~~~
+^^^^
+
 
 **v0.18.96, 2020-01-07**
 
@@ -1341,7 +1350,8 @@ Changes
 .. _changelog_2021:
 
 2021
-~~~~
+^^^^
+
 
 **0.19.2, 2021-01-26**
 
@@ -1350,7 +1360,8 @@ Changes
 .. _changelog_2022:
 
 2022
-~~~~
+^^^^
+
 
 **0.19.3, 2022-03-31**
 
@@ -1557,7 +1568,8 @@ Changes
 .. _changelog_2023:
 
 2023
-~~~~
+^^^^
+
 
 **0.20.0, 2023-03-14**
 
@@ -1638,7 +1650,8 @@ Changes
 .. _changelog_2024:
 
 2024
-~~~~
+^^^^
+
 
 **0.20.4, 2024-05-21**
 
@@ -1665,7 +1678,8 @@ Changes
 .. _changelog_2025:
 
 2025
-~~~~
+^^^^
+
 
 **0.20.6, 2025-01-09**
 
@@ -1756,7 +1770,8 @@ Changes
   ``AlterMethod`` returned ``True`` for the ``skip_row`` value.
 
 To do
------
+~~~~~
+
 
 - Fix promise for ``crate_anonymise_multiprocess``: it is launching *n* patient
   processes and *n* non-patient processes simultaneously. Attempts in progress

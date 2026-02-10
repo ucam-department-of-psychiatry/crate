@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/research/templates/query_result.html
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------------------------
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/query_result.html
     :language: html+django

@@ -76,7 +76,7 @@ INSTALL_REQUIRES = [
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==4.2.27",  # for main CRATE research database web server
+    "django==4.2.28",  # for main CRATE research database web server
     "django-debug-toolbar==3.2.1",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
@@ -110,7 +110,7 @@ INSTALL_REQUIRES = [
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.15.0",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
-    "pypdf==6.6.0",  # create PDF files
+    "pypdf==6.6.2",  # create PDF files
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html

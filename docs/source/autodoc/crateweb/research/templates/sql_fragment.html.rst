@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/research/templates/sql_fragment.html
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------------------------
 
 .. literalinclude:: ../../../../../../crate_anon/crateweb/research/templates/sql_fragment.html
     :language: html+django

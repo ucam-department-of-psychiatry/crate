@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.linkage.matchconfig
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------
 
 .. automodule:: crate_anon.linkage.matchconfig
     :members:

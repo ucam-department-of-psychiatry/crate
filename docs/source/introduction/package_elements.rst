@@ -23,7 +23,8 @@
 .. _SQLAlchemy: https://www.sqlalchemy.org/
 
 Package elements in brief
-=========================
+-------------------------
+
 
 There are multiple stages between a clinical source database and a final
 research database. CRATE separates these stages.
@@ -33,7 +34,8 @@ research database. CRATE separates these stages.
 
 
 Terminology
------------
+~~~~~~~~~~~
+
 
 We will refer to ‘anonymisation’ in this document, but sometimes as a shorthand
 for ‘pseudonymisation’, in which IDs are removed and replaced by a generated
@@ -41,7 +43,8 @@ pseudonym.
 
 
 Database connections
---------------------
+~~~~~~~~~~~~~~~~~~~~
+
 
 Most of the CRATE tools talk to one or more databases. They do this via
 SQLAlchemy_, which uses a unified URL scheme to define a database connection.
@@ -50,7 +53,8 @@ you may need to install drivers. See “Internal database interfaces” below.
 
 
 Preprocessing
--------------
+~~~~~~~~~~~~~
+
 
 Your data may need reshaping or adding to. For example, while you will want to
 remove addresses and postcodes from the raw data, you may want to add less
@@ -73,7 +77,8 @@ CRATE provides the following optional pre-processing steps:
 
 
 Data dictionary generation and editing
---------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 CRATE removes identifiable information as it copies a database based on a
 :ref:`data dictionary <data_dictionary>`, which is essentially a spreadsheet
@@ -102,7 +107,8 @@ anonymisation.
 
 
 Anonymisation
--------------
+~~~~~~~~~~~~~
+
 
 You can use the :ref:`crate_anonymise <crate_anonymise>` (or
 :ref:`crate_anonymise_multiprocess <crate_anonymise_multiprocess>`) commands to
@@ -121,7 +127,8 @@ and edit. Use ``crate_anon_demo_config`` to generate a demonstration file.
 
 
 Natural language processing (NLP)
----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 You can use the :ref:`crate_nlp <crate_nlp>` (or :ref:`crate_nlp_multiprocess
 <crate_nlp_multiprocess>`) commands to pass text from one or more
@@ -146,7 +153,8 @@ This tool uses a configuration file that you create and edit. Use ``crate_nlp
 
 
 Linkage
--------
+~~~~~~~
+
 
 You might have more than one database and want to link them, so information
 about the same person in two databases can be analysed together. CRATE provides
@@ -157,7 +165,8 @@ in an entirely de-identified manner. See :ref:`linkage <linkage>`.
 
 
 Web front end
--------------
+~~~~~~~~~~~~~
+
 
 CRATE offers a web front end that supports researcher access to the data, and
 allows managers to operate a specific consent-to-contact process.
@@ -208,7 +217,8 @@ Other scripts include:
 
 
 Testing and additional tools
-----------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 Other tools include:
 

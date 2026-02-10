@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.tools.to_base64
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------
 
 .. automodule:: crate_anon.tools.to_base64
     :members:

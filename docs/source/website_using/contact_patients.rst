@@ -41,7 +41,8 @@ of their studies and associated information.
 
 
 Contact requests
-################
+^^^^^^^^^^^^^^^^
+
 
 Here, you can view and filter your contact requests and their progress (showing
 the aspects that you're allowed to see) [#researchercrclass]_.
@@ -62,7 +63,8 @@ clinician.
 
 
 Emails
-######
+^^^^^^
+
 
 Here, you can view e-mails sent by the system to which you have access
 [#researcheremailclass]_. (You won't be able to see others, like e-mails sent
@@ -70,21 +72,24 @@ to clinicians about patients you might wish to identify.)
 
 
 Leaflets
-########
+^^^^^^^^
+
 
 Here, you can view leaflets associated with the system as a whole
 [#researcherleafletclass]_.
 
 
 Letters
-#######
+^^^^^^^
+
 
 Here, you can view letters that the system has generated electronically and
 send to you or your team, if you have permission [#researcherletterclass]_.
 
 
 Studies
-#######
+^^^^^^^
+
 
 Here, you can view studies with which you are associated
 [#researcherstudyclass]_. The RDBM can edit these for you.

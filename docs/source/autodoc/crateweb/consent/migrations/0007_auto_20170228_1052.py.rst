@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.crateweb.consent.migrations.0007_auto_20170228_1052
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------------------------------
 
 .. automodule:: crate_anon.crateweb.consent.migrations.0007_auto_20170228_1052
     :members:
