@@ -49,19 +49,6 @@ import logging
 import os
 from typing import Any
 
-# import errno
-# import os
-# import signal
-# import time
-# try:
-#     import grp
-#     import pwd
-#     unix = True
-# except ImportError:
-#     grp = None
-#     pwd = None
-#     unix = False
-
 import cherrypy
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -116,15 +103,6 @@ class Command(BaseCommand):
             default="localhost",
             help="CherryPy's SERVER_NAME environ entry (default: localhost)",
         )
-        # parser.add_argument(
-        #     "--daemonize", action="store_true",
-        #     help="whether to detach from terminal (default: False)")
-        # parser.add_argument(
-        #     "--pidfile", type=str,
-        #     help="write the spawned process ID to this file")
-        # parser.add_argument(
-        #     "--workdir", type=str,
-        #     help="change to this directory when daemonizing")
         parser.add_argument(
             "--threads",
             type=int,
@@ -143,12 +121,6 @@ class Command(BaseCommand):
             help="SSL private key file "
             "(e.g. /etc/ssl/private/ssl-cert-snakeoil.key)",
         )
-        # parser.add_argument(
-        #     "--server_user", type=str, default="www-data",
-        #     help="user to run daemonized process (default: www-data)")
-        # parser.add_argument(
-        #     "--server_group", type=str, default="www-data",
-        #     help="group to run daemonized process (default: www-data)")
         parser.add_argument(
             "--log_screen",
             dest="log_screen",
@@ -187,82 +159,6 @@ class Command(BaseCommand):
             pass
         # noinspection PyTypeChecker
         runcpserver(opts)
-
-
-# def change_uid_gid(uid, gid=None):
-#     """Try to change UID and GID to the provided values.
-#     UID and GID are given as names like 'nobody' not integer.
-#
-#     Src: http://mail.mems-exchange.org/durusmail/quixote-users/4940/1/
-#     """
-#     if not unix:
-#         raise OSError(NEED_UNIX)
-#     if not os.geteuid() == 0:
-#         # Do not try to change the gid/uid if not root.
-#         return
-#     (uid, gid) = get_uid_gid(uid, gid)
-#     os.setgid(gid)
-#     os.setuid(uid)
-
-
-# def get_uid_gid(uid, gid=None):
-#     """Try to change UID and GID to the provided values.
-#     UID and GID are given as names like 'nobody' not integer.
-#
-#     Src: http://mail.mems-exchange.org/durusmail/quixote-users/4940/1/
-#     """
-#     if not unix:
-#         raise OSError(NEED_UNIX)
-#     uid, default_grp = pwd.getpwnam(uid)[2:4]
-#     if gid is None:
-#         gid = default_grp
-#     else:
-#         try:
-#             gid = grp.getgrnam(gid)[2]
-#         except KeyError:
-#             gid = default_grp
-#     return uid, gid
-
-
-# def still_alive(pid):
-#     """
-#     Poll for process with given pid up to 10 times waiting .25 seconds in
-#     between each poll.
-#     Returns False if the process no longer exists otherwise, True.
-#     """
-#     for n in range(10):
-#         time.sleep(0.25)
-#         try:
-#             # poll the process state
-#             os.kill(pid, 0)
-#         except OSError as e:
-#             if e[0] == errno.ESRCH:
-#                 # process has died
-#                 return False
-#             else:
-#                 raise  # TODO
-#     return True
-
-
-# def stop_server(pidfile):
-#     """
-#     Stop process whose pid was written to supplied pidfile.
-#     First try SIGTERM and if it fails, SIGKILL.
-#     If process is still running, an exception is raised.
-#     """
-#     if os.path.exists(pidfile):
-#         pid = int(open(pidfile).read())
-#         try:
-#             os.kill(pid, signal.SIGTERM)
-#         except OSError:  # process does not exist
-#             os.remove(pidfile)
-#             return
-#         if still_alive(pid):
-#             # process didn't exit cleanly, make one last effort to kill it
-#             os.kill(pid, signal.SIGKILL)
-#             if still_alive(pid):
-#                 raise OSError(f"Process {pid} did not stop.")
-#         os.remove(pidfile)
 
 
 class Missing:
@@ -314,10 +210,6 @@ def start_server(
         ssl_private_key: optional filename of an SSL private key
         debug_static: show debug info for static requests?
     """
-
-    # if daemonize and server_user and server_group:
-    #     # ensure the that the daemon runs as specified user
-    #     change_uid_gid(server_user, server_group)
 
     cherrypy.config.update(
         {
@@ -379,27 +271,6 @@ def runcpserver(opts: Namespace) -> None:
     Args:
         opts: the command-line :class:`argparse.Namespace`
     """
-
-    # if opts.stop:
-    #     if not opts.pidfile:
-    #         raise ValueError("Must specify --pidfile to use --stop")
-    #     print('stopping server')
-    #     stop_server(opts.pidfile)
-    #     return True
-
-    # if opts.daemonize:
-    #     if not opts.pidfile:
-    #         opts.pidfile = f'/var/run/cpserver_{opts.port}.pid'
-    #     stop_server(opts.pidfile)
-    #
-    #     if opts.workdir:
-    #         become_daemon(our_home_dir=opts.workdir)
-    #     else:
-    #         become_daemon()
-    #
-    #     fp = open(opts.pidfile, 'w')
-    #     fp.write(f"{os.getpid()}\n")
-    #     fp.close()
 
     # Start the webserver
     log.info(f"starting server with options {opts}")
