@@ -102,7 +102,7 @@ INSTALL_REQUIRES = [
     "openpyxl==3.0.7",  # read Excel (slower?)
     "ordered-set==4.1.0",  # ordered sets; search for ordered_set
     "pendulum==2.1.2",  # dates/times
-    "Pillow==10.3.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
+    "Pillow==12.1.1",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==3.2.0",  # pretty formating of text-based tables
     "psutil==6.1.1",  # process management, cardinal_pythonlib dependency, not currently used  # noqa: E501
