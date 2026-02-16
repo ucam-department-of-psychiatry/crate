@@ -31,7 +31,7 @@ crate_anon/preprocess/preprocess_systmone.py
 
 import argparse
 import logging
-from typing import List
+from typing import List, TYPE_CHECKING
 
 from cardinal_pythonlib.enumlike import keys_descriptions_from_enum
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
@@ -39,10 +39,6 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     make_bigint_autoincrement_column,
 )
 from rich_argparse import RawDescriptionRichHelpFormatter
-from sqlalchemy import (
-    Column,
-    Table,
-)
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.sql.schema import MetaData
@@ -84,6 +80,9 @@ from crate_anon.preprocess.systmone_ddgen import (
     TABLES_REQUIRING_CRATE_PK_REGEX,
 )
 from crate_anon.preprocess.text_extractor import SystmOneTextExtractor
+
+if TYPE_CHECKING:
+    from sqlalchemy.schema import Column, Table
 
 log = logging.getLogger(__name__)
 
