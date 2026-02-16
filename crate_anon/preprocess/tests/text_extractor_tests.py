@@ -25,6 +25,13 @@ crate_anon/preprocess/tests/text_extractor_tests.py
 
 **Test text extraction from documents.**
 
+We test text extraction in cardinal_pythonlib, and in fact some of the tests
+there just check that the correct tool is invoked with the expected arguments.
+
+The tests here don't actually do any text extraction or touch the database. We
+just mock the appropriate SQL Alchemny functions and ensure they are being
+called as expected.
+
 """
 
 import logging
