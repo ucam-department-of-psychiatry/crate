@@ -1769,6 +1769,13 @@ Changes
 - Fix bug where a data dictionary row would not be skipped if its
   ``AlterMethod`` returned ``True`` for the ``skip_row`` value.
 
+- Add --docstore_root option to
+  :func:`crate_anon.preprocess.preprocess_systmone.main`. If present, this will
+  extract text from documents in this location into a new table called
+  ``crate_extracted_text``, which can then be anonymised along with the other
+  tables.
+
+
 To do
 ~~~~~
 
