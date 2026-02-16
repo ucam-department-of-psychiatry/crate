@@ -367,7 +367,9 @@ def launch_bash(engine_info: EngineInfo) -> None:
 
 
 def start_engine(
-    engine_info: EngineInfo, host_port: int, timeout_s=DEFAULT_TIMEOUT_S
+    engine_info: EngineInfo,
+    host_port: int,
+    timeout_s: float = DEFAULT_TIMEOUT_S,
 ) -> None:
     """
     Start the database engine's container, so it provides database services.
