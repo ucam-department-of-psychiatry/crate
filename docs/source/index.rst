@@ -29,11 +29,12 @@ Burchell. See :ref:`contributors <contributors>`.
 
 CRATE is an open-source software system that:
 
-- anonymises or de-identifies arbitrary relational databases.
-- maps patient identifiers to research identifiers (pseudonyms).
-- connects relational databases to external tools for Natural Language Processing (NLP).
-- provides a web front end for research and administrative functions.
-- supports a means by which patients may consent to be contacted about research.
+- anonymises or de-identifies arbitrary relational databases;
+- maps patient identifiers to research identifiers (pseudonyms);
+- connects relational databases to external tools for Natural Language Processing (NLP);
+- provides a web front end for research and administrative functions;
+- supports a means by which patients may consent to be contacted about research;
+- provides advanced ways to link records for the same person across de-identified database.
 
 .. note::
 
