@@ -311,6 +311,7 @@ as ``RDIKeys`` in the settings file):
 .. list-table::
     :widths: 25 10 65
     :header-rows: 1
+    :class: compact-table
 
     * - Key
       - Type

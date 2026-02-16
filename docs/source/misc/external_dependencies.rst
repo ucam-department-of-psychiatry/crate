@@ -65,6 +65,8 @@ Python packages
 - ``xlrd``: https://xlrd.readthedocs.io/
 
 
+.. _versions_of_software_etc_used_by_crate:
+
 Versions of software etc. used by CRATE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -77,7 +79,7 @@ Versions of software etc. used by CRATE
 | Django         |   4.2.x | 2026-04-30 (LTS);                                          |
 |                |         | https://www.djangoproject.com/download/#supported-versions |
 +----------------+---------+------------------------------------------------------------+
-|                |    3.10 | 2026-10-31                                                 |
+| Python         |    3.10 | 2026-10-31                                                 |
 +----------------+---------+------------------------------------------------------------+
 |                |    3.11 | 2027-10-31                                                 |
 |                |         | https://devguide.python.org/versions/                      |

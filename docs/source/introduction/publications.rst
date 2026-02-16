@@ -21,7 +21,6 @@
 Reference publications
 ----------------------
 
-
 The primary reference publication is:
 
 - Cardinal RN (2017).

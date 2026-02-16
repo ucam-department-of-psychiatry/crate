@@ -180,7 +180,6 @@ Encryption phrases/passwords
 hash_method
 ###########
 
-
 *String.* Default ``HMAC_MD5``.
 
 Hashing method, used for
@@ -1754,12 +1753,15 @@ a config section there that is cross-referenced in the
 parameter of the :ref:`[main] <anon_config_main_section>` section of the config
 file.
 
+Parameters
+^^^^^^^^^^
+
 Such config sections, named e.g. ``[my_extra_hasher]``, must have the following
 parameters:
 
 
 hash_method
-^^^^^^^^^^^
+###########
 
 *String.*
 
@@ -1768,8 +1770,7 @@ of the :ref:`[main] <anon_config_main_section>` section.
 
 
 secret_key
-^^^^^^^^^^
-
+##########
 
 *String.*
 
@@ -1832,9 +1833,6 @@ Many options are not shown and most comments have been removed.
 
 ..  literalinclude:: minimal_anonymiser_config.ini
     :language: ini
-
-
-.. todo:: Check minimal anonymiser config example works.
 
 
 .. _specimen_anonymiser_config:

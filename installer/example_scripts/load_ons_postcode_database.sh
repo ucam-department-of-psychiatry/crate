@@ -42,5 +42,5 @@ exit 0
 # -- REMOVE TO HERE
 
 ${PYTHON} "${CRATE_HOST_INSTALLER_BASE_DIR}/installer.py" exec "crate_postcodes \
-    --dir ${CRATE_HOST_ONSPD_DIR}/ \
+    --dir ${CRATE_CONTAINER_ONSPD_DIR}/ \
     --url ${CRATE_ONSPD_URL}"

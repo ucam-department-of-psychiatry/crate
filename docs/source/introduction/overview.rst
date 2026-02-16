@@ -24,7 +24,6 @@
 Overview
 --------
 
-
 A description is provided in Cardinal (2017) “Clinical records anonymisation
 and text extraction (CRATE): an open-source software system”, BMC Medical
 Informatics and Decision Making 17: 50; PubMed ID 28441940;
