@@ -112,7 +112,7 @@ into a table ``crate_extracted_text``, which can then be anonymised along with
 the other tables. CRATE processes each file in the document store that has a
 filename of the pattern
 ``<RowIdentifier>_<DocumentUID>_<subfolder>_<index>.<extension>`` where the
-RowIdentifier matches an entry in the ``S1_Documents`` table.
+``RowIdentifier`` matches an entry in the ``S1_Documents`` table.
 
 Options:
 
