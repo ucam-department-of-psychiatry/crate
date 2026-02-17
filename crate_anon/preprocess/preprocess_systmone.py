@@ -439,18 +439,17 @@ def main() -> None:
     log.info(f"Database: {engine.url!r}")  # ... repr (!r) hides p/w
     log.debug(f"Dialect: {engine.dialect.name}")
 
-    if args.docstore_root:
-        preprocess_systmone(
-            engine,
-            context=SystmOneContext[args.systmone_context],
-            allow_unprefixed_tables=args.systmone_allow_unprefixed_tables,
-            drop_danger_drop=args.drop_danger_drop,
-            postcode_db_name=args.postcodedb,
-            geog_cols=args.geogcols,
-            docstore_root=args.docstore_root,
-            extract_text_plain=args.extract_text_plain,
-            extract_text_width=args.extract_text_width,
-        )
+    preprocess_systmone(
+        engine,
+        context=SystmOneContext[args.systmone_context],
+        allow_unprefixed_tables=args.systmone_allow_unprefixed_tables,
+        drop_danger_drop=args.drop_danger_drop,
+        postcode_db_name=args.postcodedb,
+        geog_cols=args.geogcols,
+        docstore_root=args.docstore_root,
+        extract_text_plain=args.extract_text_plain,
+        extract_text_width=args.extract_text_width,
+    )
 
 
 if __name__ == "__main__":
