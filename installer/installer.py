@@ -174,6 +174,7 @@ class DockerEnvVar(EnvVar):
         f"{PREFIX}_CRATEWEB_SUPERUSER_{EnvVar.PASSWORD_SUFFIX}"
     )
     CRATEWEB_SUPERUSER_USERNAME = f"{PREFIX}_CRATEWEB_SUPERUSER_USERNAME"
+    DOCS_HOST_DIR = f"{PREFIX}_DOCS_HOST_DIR"
     FILES_HOST_DIR = f"{PREFIX}_FILES_HOST_DIR"
     GATE_BIOYODIE_RESOURCES_HOST_DIR = (
         f"{PREFIX}_GATE_BIOYODIE_RESOURCES_HOST_DIR"
@@ -914,6 +915,7 @@ class Installer:
             self.configure_user()
             self.configure_group()
             self.configure_config_files()
+            self.configure_docs_dir()
             self.configure_files_dir()
             self.configure_static_dir()
             self.create_directories()
@@ -988,6 +990,9 @@ class Installer:
 
     def configure_files_dir(self) -> None:
         self.setenv(DockerEnvVar.FILES_HOST_DIR, self.default_files_host_dir())
+
+    def configure_docs_dir(self) -> None:
+        self.setenv(DockerEnvVar.DOCS_HOST_DIR, self.default_docs_host_dir())
 
     def configure_static_dir(self) -> None:
         self.setenv(
@@ -1208,6 +1213,9 @@ class Installer:
     def create_directories() -> None:
         crate_config_dir = os.environ.get(DockerEnvVar.CONFIG_HOST_DIR)
         Path(crate_config_dir).mkdir(parents=True, exist_ok=True)
+
+        crate_docs_dir = os.environ.get(DockerEnvVar.DOCS_HOST_DIR)
+        Path(crate_docs_dir).mkdir(parents=True, exist_ok=True)
 
         crate_files_dir = os.environ.get(DockerEnvVar.FILES_HOST_DIR)
         Path(crate_files_dir).mkdir(parents=True, exist_ok=True)
@@ -1696,6 +1704,9 @@ class Installer:
 
     def default_static_host_dir(self) -> str:
         return os.path.join(self.crate_root_host_dir(), "static")
+
+    def default_docs_host_dir(self) -> str:
+        return os.path.join(self.crate_root_host_dir(), "docs")
 
     def default_files_host_dir(self) -> str:
         return os.path.join(self.crate_root_host_dir(), "files")

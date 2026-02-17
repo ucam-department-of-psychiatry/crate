@@ -44,7 +44,7 @@ jobs:
                   python-version: ${{ matrix.python-version }}
             - name: Change apt mirror
               run: |
-                  set -eux -o pipefail
+                  set -euo pipefail
                   ${GITHUB_WORKSPACE}/github_action_scripts/change_apt_mirror.sh
             - name: Install wkhtmltopdf
               run: |

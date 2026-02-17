@@ -33,7 +33,7 @@ These tools:
 
   - crate_preprocess_pcmis_ -- preprocess a PCMIS_ database
   - crate_preprocess_rio_ -- preprocess a RiO_ database
-  - crate_preprocess_systmone_ -- index a SystmOne_ database
+  - crate_preprocess_systmone_ -- preprocess a SystmOne_ database
 
 - fetch external data used for anonymisation:
 
@@ -106,6 +106,13 @@ CRATE installer.
 
 Preprocess SystmOne_ data, by indexing it. (It shouldn't need further
 reshaping.)
+
+As part of the preprocessing step, CRATE can extract text from a document store
+into a table ``crate_extracted_text``, which can then be anonymised along with
+the other tables. CRATE processes each file in the document store that has a
+filename of the pattern
+``<RowIdentifier>_<DocumentUID>_<subfolder>_<index>.<extension>`` where the
+``RowIdentifier`` matches an entry in the ``S1_Documents`` table.
 
 Options:
 

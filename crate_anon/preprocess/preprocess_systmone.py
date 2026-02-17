@@ -43,6 +43,7 @@ from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.sql.schema import MetaData
 
+from crate_anon.anonymise.constants import AnonymiseConfigDefaults
 from crate_anon.common.sql import (
     add_columns,
     add_indexes,
@@ -78,12 +79,12 @@ from crate_anon.preprocess.systmone_ddgen import (
     SystmOneContext,
     TABLES_REQUIRING_CRATE_PK_REGEX,
 )
+from crate_anon.preprocess.text_extractor import SystmOneTextExtractor
 
 if TYPE_CHECKING:
     from sqlalchemy.schema import Column, Table
 
 log = logging.getLogger(__name__)
-
 
 # =============================================================================
 # Preprocessing
@@ -233,6 +234,9 @@ def preprocess_systmone(
     drop_danger_drop: bool = False,
     postcode_db_name: str = None,
     geog_cols: List[str] = None,
+    docstore_root: str = None,
+    extract_text_plain: bool = AnonymiseConfigDefaults.EXTRACT_TEXT_PLAIN,
+    extract_text_width: int = AnonymiseConfigDefaults.EXTRACT_TEXT_WIDTH,
 ) -> None:
     """
     Add indexes to a SystmOne source database. Without this, anonymisation is
@@ -328,6 +332,18 @@ def preprocess_systmone(
                 geog_cols=geog_cols,
             )
 
+    # Documents
+    if docstore_root:
+        extractor = SystmOneTextExtractor(
+            engine,
+            metadata,
+            context,
+            docstore_root,
+            plain=extract_text_plain,
+            width=extract_text_width,
+        )
+        extractor.extract_all()
+
 
 # =============================================================================
 # Main
@@ -386,6 +402,24 @@ def main() -> None:
         f"identifying. Default: {' '.join(DEFAULT_GEOG_COLS)}",
     )
     parser.add_argument(
+        "--docstore_root",
+        help="Root directory of document store",
+    )
+    parser.add_argument(
+        "--extract_text_plain",
+        action=argparse.BooleanOptionalAction,
+        help="extract text as plainly as possibly (e.g. for NLP)",
+    )
+    parser.set_defaults(
+        extract_text_plain=AnonymiseConfigDefaults.EXTRACT_TEXT_PLAIN
+    )
+    parser.add_argument(
+        "--extract_text_width",
+        type=int,
+        help="Word wrapping width",
+        default=AnonymiseConfigDefaults.EXTRACT_TEXT_WIDTH,
+    )
+    parser.add_argument(
         "--drop_danger_drop",
         action="store_true",
         help="REMOVES new columns and indexes, rather than creating them. "
@@ -412,6 +446,9 @@ def main() -> None:
         drop_danger_drop=args.drop_danger_drop,
         postcode_db_name=args.postcodedb,
         geog_cols=args.geogcols,
+        docstore_root=args.docstore_root,
+        extract_text_plain=args.extract_text_plain,
+        extract_text_width=args.extract_text_width,
     )
 
 

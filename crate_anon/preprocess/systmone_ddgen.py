@@ -584,6 +584,7 @@ class S1Table:
     BED_CLOSURE = "BedClosure"
     CONTACTS = "Contacts"
     DISCHARGE_DELAY = "DischargeDelay"
+    DOCUMENTS = "Documents"
     MENTAL_HEALTH_ACT_APPEAL = "SectionAppeal"
     MENTAL_HEALTH_ACT_AWOL = "MHAWOL"
     NOMIS_NUMBER = "NomisNumber"  # National Offender Management Info. System

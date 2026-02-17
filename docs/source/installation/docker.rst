@@ -171,6 +171,7 @@ Here is an example settings file. See :ref:`environment_variables
         export CRATE_DOCKER_CRATEWEB_SUPERUSER_PASSWORD=adminpassword
         export CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME=admin
         export CRATE_DOCKER_CRATE_DB_DATABASE_NAME="crate_web_db"
+        export CRATE_DOCKER_DOCS_HOST_DIR=/crate/docs
         export CRATE_DOCKER_FILES_HOST_DIR=/crate/files
         export CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR=/crate/bioyodie_resource
         export CRATE_DOCKER_RESEARCH_DATABASE_NAME="research"
@@ -365,6 +366,16 @@ CRATE_DOCKER_CRATEWEB_SUPERUSER_USERNAME
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 User name for the CRATE administrator, via CRATE's web application.
+
+
+.. _CRATE_DOCKER_DOCS_HOST_DIR:
+
+CRATE_DOCKER_DOCS_HOST_DIR
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*Required by Docker. The installer will set this to* ``${CRATE_INSTALLER_CRATE_ROOT_HOST_DIR}/docs``.
+
+Path to a directory on the host for read-only file storage.
 
 
 .. _CRATE_DOCKER_FILES_HOST_DIR:

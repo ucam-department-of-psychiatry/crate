@@ -31,7 +31,7 @@ jobs:
                   python-version: "3.10"
             - name: Change apt mirror
               run: |
-                  set -eux -o pipefail
+                  set -euo pipefail
                   ${GITHUB_WORKSPACE}/github_action_scripts/change_apt_mirror.sh
             - name: Install wkhtmltopdf
               run: |

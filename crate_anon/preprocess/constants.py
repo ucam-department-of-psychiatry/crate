@@ -42,6 +42,12 @@ CRATE_COL_PK = "crate_pk"
 # Making it explicitly CRATE-related makes it distinctive from more generic
 # names like "id" or "pk" or "RowIdentifier".
 
+# Text extraction from documents
+CRATE_TABLE_EXTRACTED_TEXT = "crate_extracted_text"
+CRATE_COL_FILE_PATH = "crate_file_path"
+CRATE_COL_TEXT = "crate_text"
+CRATE_COL_TEXT_LAST_EXTRACTED = "crate_text_last_extracted"
+
 # -----------------------------------------------------------------------------
 # Columns in ONS Postcode Database (from CRATE import)
 # -----------------------------------------------------------------------------
