@@ -51,6 +51,7 @@ Quick links:
 - :ref:`2023 <changelog_2023>`
 - :ref:`2024 <changelog_2024>`
 - :ref:`2025 <changelog_2025>`
+- :ref:`2026 <changelog_2026>`
 
 
 Changes
@@ -1753,7 +1754,12 @@ Changes
   for Python 3.9, which reaches end-of-life in October 2025. The Docker image is
   now based on Python 3.10.
 
-**0.20.8, in progress**
+.. _changelog_2026:
+
+2026
+^^^^
+
+**0.20.8, 2026-02-23**
 
 - Update the installer with example scripts to:
 
@@ -1774,6 +1780,9 @@ Changes
   extract text from documents in this location into a new table called
   ``crate_extracted_text``, which can then be anonymised along with the other
   tables.
+
+
+**0.20.9, in progress**
 
 
 To do
