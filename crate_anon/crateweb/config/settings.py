@@ -174,7 +174,7 @@ TEMPLATES = [
                 "crate_anon.crateweb.core.context_processors.common_context",
             ],
             "loaders": [
-                # https://docs.djangoproject.com/en/1.9/ref/templates/api/
+                # https://docs.djangoproject.com/en/4.2/ref/templates/api/#template-loaders
                 (
                     "django.template.loaders.cached.Loader",
                     [
