@@ -44,7 +44,6 @@ from crate_anon.crateweb.nlp_classification.models import (
     Column,
     Question,
     Sample,
-    SourceRecord,
     TableDefinition,
     Task,
     UserAnswer,
@@ -591,13 +590,8 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
             "crate_anon.crateweb.nlp_classification.views.random",
             randint=mock.Mock(return_value=123456),
         ):
-            with mock.patch.multiple(
-                "crate_anon.crateweb.nlp_classification.models.Sample",
-                get_source_database_connection=self.mock_sample_get_source_db_connection,  # noqa: E501
-            ):
-                self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
+            self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
         self.assert_finished()
-        self.mock_sample_get_source_db_connection.assert_called_once()
 
         source_table_definition = TableDefinition.objects.get(
             db_connection_name=RESEARCH_DB_CONNECTION_NAME,
@@ -695,13 +689,8 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         self.assert_next_step(ws.ENTER_SEARCH_TERM)
 
         # Enter search term
-        with mock.patch.multiple(
-            "crate_anon.crateweb.nlp_classification.models.Sample",
-            get_source_database_connection=self.mock_sample_get_source_db_connection,  # noqa: E501
-        ):
-            self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
+        self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
         self.assert_finished()
-        self.mock_sample_get_source_db_connection.assert_called_once()
 
         source_column = Column.objects.get(
             table_definition=source_table_definition,
@@ -765,15 +754,20 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         self.mock_source_fetchall.return_value = [(1,), (2,), (3,), (4,), (5,)]
         self.mock_nlp_fetchall.return_value = [(1, 10), (2, 11), (4, 12)]
 
+        mock_task = mock.Mock(id=1234)
+        mock_delay = mock.Mock(return_value=mock_task)
+        mock_render = mock.Mock()
+
         with mock.patch.multiple(
-            "crate_anon.crateweb.nlp_classification.models.Sample",
-            get_source_database_connection=self.mock_sample_get_source_db_connection,  # noqa: E501
-            get_nlp_database_connection=self.mock_sample_get_nlp_db_connection,
+            "crate_anon.crateweb.nlp_classification.views.create_source_records_from_sample",  # noqa: E501
+            delay=mock_delay,
         ):
-            self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
+            with mock.patch.multiple(
+                "crate_anon.crateweb.nlp_classification.views",
+                render=mock_render,
+            ):
+                self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
         self.assert_finished()
-        self.mock_sample_get_source_db_connection.assert_called_once()
-        self.mock_sample_get_nlp_db_connection.assert_called_once()
 
         source_column = Column.objects.get(
             table_definition=source_table_definition,
@@ -786,47 +780,55 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
             search_term="crp",
             size=100,
         )
+        mock_delay.assert_called_once_with(sample.pk)
+        mock_render.assert_called_once_with(
+            self.mock_request,
+            "nlp_classification/admin/sample_data_progress.html",
+            context=dict(task_id=mock_task.id),
+        )
 
-        self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=1,
-                nlp_pk_value=10,
-            ).exists()
-        )
-        self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=2,
-                nlp_pk_value=11,
-            ).exists()
-        )
-        self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=3,
-                nlp_pk_value="",
-            ).exists()
-        )
-        self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=4,
-                nlp_pk_value=12,
-            ).exists()
-        )
-        self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=5,
-                nlp_pk_value="",
-            ).exists()
-        )
+        # TODO: Move to task test
+
+        # self.assertTrue(
+        #     SourceRecord.objects.filter(
+        #         source_column=sample.source_column,
+        #         nlp_table_definition=nlp_table_definition,
+        #         source_pk_value=1,
+        #         nlp_pk_value=10,
+        #     ).exists()
+        # )
+        # self.assertTrue(
+        #     SourceRecord.objects.filter(
+        #         source_column=sample.source_column,
+        #         nlp_table_definition=nlp_table_definition,
+        #         source_pk_value=2,
+        #         nlp_pk_value=11,
+        #     ).exists()
+        # )
+        # self.assertTrue(
+        #     SourceRecord.objects.filter(
+        #         source_column=sample.source_column,
+        #         nlp_table_definition=nlp_table_definition,
+        #         source_pk_value=3,
+        #         nlp_pk_value="",
+        #     ).exists()
+        # )
+        # self.assertTrue(
+        #     SourceRecord.objects.filter(
+        #         source_column=sample.source_column,
+        #         nlp_table_definition=nlp_table_definition,
+        #         source_pk_value=4,
+        #         nlp_pk_value=12,
+        #     ).exists()
+        # )
+        # self.assertTrue(
+        #     SourceRecord.objects.filter(
+        #         source_column=sample.source_column,
+        #         nlp_table_definition=nlp_table_definition,
+        #         source_pk_value=5,
+        #         nlp_pk_value="",
+        #     ).exists()
+        # )
 
     def test_column_objects_created_for_existing_nlp_definition(self) -> None:
         self.mock_get_source_column_names_for_table.return_value = [
@@ -885,16 +887,8 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         self.post(ws.ENTER_SAMPLE_SIZE, {"size": 100})
         self.assert_next_step(ws.ENTER_SEARCH_TERM)
 
-        # Enter search term
-        with mock.patch.multiple(
-            "crate_anon.crateweb.nlp_classification.models.Sample",
-            get_source_database_connection=self.mock_sample_get_source_db_connection,  # noqa: E501
-            get_nlp_database_connection=self.mock_sample_get_nlp_db_connection,
-        ):
-            self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
+        self.post(ws.ENTER_SEARCH_TERM, {"search_term": "crp"})
         self.assert_finished()
-        self.mock_sample_get_source_db_connection.assert_called_once()
-        self.mock_sample_get_nlp_db_connection.assert_called_once()
 
         nlp_columns = Column.objects.filter(
             table_definition=nlp_table_definition
