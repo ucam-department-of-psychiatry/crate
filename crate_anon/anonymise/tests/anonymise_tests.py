@@ -33,6 +33,7 @@ import logging
 from typing import Any, Dict, Generator, List, Tuple, TYPE_CHECKING
 from unittest import mock
 
+from cardinal_pythonlib.hash import HmacMD5Hasher
 from cardinal_pythonlib.sqlalchemy.schema import (
     execute_ddl,
     mssql_table_has_ft_index,
@@ -41,9 +42,11 @@ import factory
 import pytest
 from sortedcontainers import SortedSet
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Column,
     create_engine,
+    DateTime,
     inspect,
     Integer,
     String,
@@ -54,8 +57,10 @@ from crate_anon.anonymise.anonymise import (
     create_indexes,
     gen_opt_out_pids_from_database,
     process_patient_tables,
+    process_table,
     validate_optouts,
 )
+from crate_anon.anonymise.altermethod import AlterMethod
 from crate_anon.anonymise.constants import IndexType, ScrubMethod
 from crate_anon.anonymise.models import PatientInfo
 from crate_anon.anonymise.dd import ScrubSourceFieldInfo
@@ -67,8 +72,9 @@ from crate_anon.testing.classes import (
     SlowSecretDatabaseTestCase,
 )
 from crate_anon.testing.factories import (
-    SourceTestBaseFactory,
+    AnonTestBaseFactory,
     Fake,
+    SourceTestBaseFactory,
 )
 
 if TYPE_CHECKING:
@@ -120,6 +126,26 @@ class TestAnonNote(AnonTestBase):
     note2 = Column(Text, comment="Text of note 2")
 
 
+class TestPatient(SourceTestBase):
+    __tablename__ = "test_patient"
+
+    pid = Column(Integer, primary_key=True, comment="Patient ID")
+    forename = Column(String(50), comment="Forename")
+    surname = Column(String(50), comment="Surname")
+
+    @property
+    def name(self) -> str:
+        return f"{self.forename} {self.surname}"
+
+
+class TestPatientFactory(SourceTestBaseFactory):
+    class Meta:
+        model = TestPatient
+
+    forename = factory.LazyFunction(Fake.en_gb.first_name)
+    surname = factory.LazyFunction(Fake.en_gb.last_name)
+
+
 class TestPatientWithStringMPID(SourceTestBase):
     __tablename__ = "test_patient_with_string_mpid"
 
@@ -144,6 +170,9 @@ class TestRecord(SourceTestBase):
     pk = Column(Integer, primary_key=True, comment="PK")
     pid = Column(Integer, comment="Patient ID")
     row_identifier = Column(Integer, comment="Row ID")
+    third_party_pid = Column(Integer, comment="Third party PID")
+    nhsnum = Column(BigInteger, comment="NHS Number")
+    other = Column(String(50), comment="Other column")
 
 
 class TestRecordFactory(SourceTestBaseFactory):
@@ -151,17 +180,85 @@ class TestRecordFactory(SourceTestBaseFactory):
         model = TestRecord
 
     pk = factory.Sequence(lambda n: n + 1)
+    row_identifier = factory.Sequence(lambda n: n + 10000)
+    nhsnum = factory.LazyFunction(Fake.en_gb.nhs_number)
+    third_party_pid = factory.Sequence(lambda n: n + 1000)
 
 
 class TestAnonRecord(AnonTestBase):
     __tablename__ = "test_anon_record"
 
     row_identifier = Column(Integer, primary_key=True, comment="Row ID")
+    nhshash = Column(String(32))
+    third_party_pid_hash = Column(String(32))
+    other = Column(String(50), comment="Other column")
+    _src_hash = Column(String(32))
+    _when_processed_utc = Column(DateTime())
+
+
+class TestAnonRecordFactory(AnonTestBaseFactory):
+    class Meta:
+        model = TestAnonRecord
+
+
+class TestPidAsPkRecord(SourceTestBase):
+    __tablename__ = "test_pid_as_pk_record"
+
+    pid = Column(Integer, primary_key=True, comment="Patient ID")
+    other = Column(String(50), comment="Other column")
+
+
+class TestPidAsPkRecordFactory(SourceTestBaseFactory):
+    class Meta:
+        model = TestPidAsPkRecord
+
+
+class TestAnonPidAsPkRecord(AnonTestBase):
+    __tablename__ = "test_anon_pid_as_pk_record"
+
+    rid = Column(String(32), primary_key=True, comment="Research ID")
+    trid = Column(Integer)
+    mrid = Column(String(32))
+    _src_hash = Column(String(32))
+    _when_processed_utc = Column(DateTime())
+
+
+class TestAnonPidAsPkRecordFactory(AnonTestBaseFactory):
+    class Meta:
+        model = TestAnonPidAsPkRecord
 
 
 # =============================================================================
 # Unit tests
 # =============================================================================
+class AnonymiseTestMixin:
+    def mock_dd_row(
+        self,
+        omit: bool = False,
+        skip_row_by_value: mock.Mock = None,
+        primary_pid: bool = False,
+        master_pid: bool = False,
+        third_party_pid: bool = False,
+        alter_methods: list[AlterMethod] = None,
+        add_src_hash: bool = False,
+        **kwargs,
+    ) -> mock.Mock:
+        if skip_row_by_value is None:
+            skip_row_by_value = mock.Mock(return_value=False)
+
+        if alter_methods is None:
+            alter_methods = []
+
+        return mock.Mock(
+            omit=omit,
+            skip_row_by_value=skip_row_by_value,
+            primary_pid=primary_pid,
+            master_pid=master_pid,
+            third_party_pid=third_party_pid,
+            alter_methods=alter_methods,
+            add_src_hash=add_src_hash,
+            **kwargs,
+        )
 
 
 class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
@@ -242,13 +339,14 @@ class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
             with self.assertLogs(level=logging.INFO) as logging_cm:
                 list(gen_opt_out_pids_from_database())
 
-                logger_name = "crate_anon.anonymise.anonymise"
-                expected_message = (
-                    "... ignoring non-boolean value (1), type 'str' "
-                    "for boolean column 'opt_out'"
-                )
-                self.assertIn(
-                    f"INFO:{logger_name}:{expected_message}", logging_cm.output
+                self.assert_logged(
+                    "crate_anon.anonymise.anonymise",
+                    logging.INFO,
+                    (
+                        "... ignoring non-boolean value (1), type 'str' "
+                        "for boolean column 'opt_out'"
+                    ),
+                    logging_cm,
                 )
 
     def test_string_in_optout_col_values_valid_for_string_column(
@@ -447,7 +545,9 @@ class CreateIndexesTests(DatabaseTestCase):
                 create_indexes()
 
 
-class ProcessPatientTablesMPidTests(SlowSecretDatabaseTestCase):
+class ProcessPatientTablesMPidTests(
+    SlowSecretDatabaseTestCase, AnonymiseTestMixin
+):
     def setUp(self) -> None:
         super().setUp()
 
@@ -483,16 +583,9 @@ class ProcessPatientTablesMPidTests(SlowSecretDatabaseTestCase):
         self.mock_estimate_count_patients = mock.Mock(return_value=1)
         self.mock_opting_out_pid = mock.Mock(return_value=False)
 
-        mock_row = mock.Mock(
-            omit=False,
+        mock_row = self.mock_dd_row(
             src_field="row_identifier",
-            skip_row_by_value=mock.Mock(return_value=False),
-            primary_pid=False,
-            master_pid=False,
-            third_party_pid=False,
-            alter_methods=[],
             dest_field="row_identifier",
-            add_src_hash=False,
         )
         mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
 
@@ -602,13 +695,14 @@ class ProcessPatientTablesMPidTests(SlowSecretDatabaseTestCase):
         self.assertIsNone(
             self.secret_dbsession.query(PatientInfo).one_or_none()
         )
-        logger_name = "crate_anon.anonymise.anonymise"
-        expected_message = (
-            f"Skipping patient with PID={pid} because the record could "
-            "not be saved to the secret_map table"
-        )
-        self.assertIn(
-            f"WARNING:{logger_name}:{expected_message}", logging_cm.output
+        self.assert_logged(
+            "crate_anon.anonymise.anonymise",
+            logging.WARNING,
+            (
+                f"Skipping patient with PID={pid} because the record could "
+                "not be saved to the secret_map table"
+            ),
+            logging_cm,
         )
 
     def test_valid_patients_added_when_invalid_mpid_skipped(self) -> None:
@@ -658,7 +752,7 @@ class ProcessPatientTablesMPidTests(SlowSecretDatabaseTestCase):
         self.assertIn(int(valid_patient2.nhsnum), nhsnums)
 
 
-class ProcessPatientTablesPKTests(DatabaseTestCase):
+class ProcessPatientTablesPKTests(DatabaseTestCase, AnonymiseTestMixin):
     def setUp(self) -> None:
         super().setUp()
 
@@ -699,16 +793,9 @@ class ProcessPatientTablesPKTests(DatabaseTestCase):
         self.mock_estimate_count_patients = mock.Mock(return_value=1)
         self.mock_opting_out_pid = mock.Mock(return_value=False)
 
-        mock_row = mock.Mock(
-            omit=False,
+        mock_row = self.mock_dd_row(
             src_field="row_identifier",
-            skip_row_by_value=mock.Mock(return_value=False),
-            primary_pid=False,
-            master_pid=False,
-            third_party_pid=False,
-            alter_methods=[],
             dest_field="row_identifier",
-            add_src_hash=False,
         )
         mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
 
@@ -734,13 +821,18 @@ class ProcessPatientTablesPKTests(DatabaseTestCase):
         )
 
     def test_duplicate_primary_key_skipped(self) -> None:
+        # row_identifier is the primary key in the destination
+        # database but not in the source
+
         # MySQL supports ON DUPLICATE KEY UPDATE
         if self.anon_engine.dialect.name == "mysql":
             pytest.skip("Skipping different behaviour for MySQL")
 
         patient = TestPatientWithStringMPIDFactory()
-        TestRecordFactory(pid=patient.pid, row_identifier=123456)
-        TestRecordFactory(pid=patient.pid, row_identifier=123456)
+        record = TestRecordFactory(pid=patient.pid)
+        TestRecordFactory(
+            pid=patient.pid, row_identifier=record.row_identifier
+        )
         self.source_dbsession.commit()
 
         pids = [patient.pid]
@@ -763,13 +855,583 @@ class ProcessPatientTablesPKTests(DatabaseTestCase):
                 with self.assertLogs(level=logging.WARNING) as logging_cm:
                     process_patient_tables(specified_pids=pids)
 
-        logger_name = "crate_anon.anonymise.anonymise"
-        expected_message = "Skipping record due to IntegrityError"
-        self.assertTrue(
-            any(
-                f"WARNING:{logger_name}:{expected_message}" in line
-                for line in logging_cm.output
+            self.assert_logged(
+                "crate_anon.anonymise.anonymise",
+                logging.WARNING,
+                "Skipping record due to IntegrityError",
+                logging_cm,
             )
-        )
 
         self.assertEqual(self.anon_dbsession.query(TestAnonRecord).count(), 1)
+
+
+class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.patient = TestPatientFactory()
+        self.source_dbsession.commit()
+
+        # Passphrases match those in get_demo_config()
+        self.pid_hasher = HmacMD5Hasher("SOME_PASSPHRASE_REPLACE_ME")
+        self.mpid_hasher = HmacMD5Hasher("SOME_OTHER_PASSPHRASE_REPLACE_ME")
+        self.change_hasher = HmacMD5Hasher("YETANOTHER")
+
+        mock_srccfg = mock.Mock(debug_limited_tables=[])
+        self.mock_sourcedb = mock.Mock(
+            session=self.source_dbsession,
+            srccfg=mock_srccfg,
+            engine=self.source_engine,
+            metadata=SourceTestBase.metadata,
+        )
+
+        self.mock_destdb = mock.Mock(
+            session=self.anon_dbsession,
+            engine=self.anon_engine,
+            metadata=AnonTestBase.metadata,
+        )
+
+    def test_record_anonymised(self) -> None:
+        TestRecordFactory(pid=self.patient.pid, other="Personal information")
+        self.source_dbsession.commit()
+
+        mock_alter_method = mock.Mock(
+            alter=mock.Mock(return_value=("ANONYMISED", False))
+        )
+
+        mock_rows = [
+            self.mock_dd_row(
+                omit=True,
+                src_field="pk",
+                dest_table="test_anon_record",
+                dest_field="pk",
+            ),
+            self.mock_dd_row(
+                omit=True,
+                src_field="pid",
+                dest_table="test_anon_record",
+                dest_field="pid",
+            ),
+            self.mock_dd_row(
+                src_field="row_identifier",
+                dest_table="test_anon_record",
+                dest_field="row_identifier",
+            ),
+            self.mock_dd_row(
+                src_field="other",
+                dest_table="test_anon_record",
+                dest_field="other",
+                alter_methods=[mock_alter_method],
+            ),
+        ]
+        mock_rows_for_src_table = mock.Mock(return_value=mock_rows)
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            process_table("source", "test_record")
+
+        anon_record = self.anon_dbsession.query(TestAnonRecord).one()
+
+        self.assertEqual(anon_record.other, "ANONYMISED")
+
+    def test_primary_pid_altered_to_patient_rid(self) -> None:
+        TestPidAsPkRecordFactory(pid=self.patient.pid, other="Other")
+        self.source_dbsession.commit()
+
+        mock_row = self.mock_dd_row(
+            src_field="pid",
+            primary_pid=True,
+            dest_table="test_anon_pid_as_pk_record",
+            dest_field="rid",
+            add_src_hash=True,
+        )
+        mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonPidAsPkRecord.__table__
+            ),
+            get_pid_name=mock.Mock(return_value="pid"),
+        )
+        mock_patient = mock.Mock(
+            pid=self.patient.pid,
+            rid="not-a-real-rid",
+            trid=123456,
+            mrid="not-a-real-mrid",
+        )
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_pid_as_pk_record"): 0},
+            add_mrid_wherever_rid_added=True,
+            master_research_id_fieldname="mrid",
+        ):
+            process_table(
+                "source",
+                "test_pid_as_pk_record",
+                patient=mock_patient,
+            )
+
+        anon_record = self.anon_dbsession.query(TestAnonPidAsPkRecord).one()
+
+        self.assertEqual(anon_record.rid, mock_patient.rid)
+        self.assertEqual(anon_record.mrid, mock_patient.mrid)
+
+    def test_master_pid_encrypted(self) -> None:
+        test_record = TestRecordFactory(pid=self.patient.pid)
+        self.source_dbsession.commit()
+
+        mock_row = self.mock_dd_row(
+            src_field="nhsnum",
+            dest_table="test_anon_record",
+            dest_field="nhshash",
+            master_pid=True,
+        )
+        mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            process_table(
+                "source",
+                "test_record",
+            )
+
+        anon_record = self.anon_dbsession.query(TestAnonRecord).one()
+        expected_hash = self.mpid_hasher.hash(test_record.nhsnum)
+
+        self.assertEqual(anon_record.nhshash, expected_hash)
+
+    def test_third_party_pid_encrypted(self) -> None:
+        test_record = TestRecordFactory(pid=self.patient.pid)
+        self.source_dbsession.commit()
+
+        mock_row = self.mock_dd_row(
+            src_field="third_party_pid",
+            dest_table="test_anon_record",
+            dest_field="third_party_pid_hash",
+            third_party_pid=True,
+        )
+        mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            process_table(
+                "source",
+                "test_record",
+            )
+
+        anon_record = self.anon_dbsession.query(TestAnonRecord).one()
+        expected_hash = self.pid_hasher.hash(test_record.third_party_pid)
+
+        self.assertEqual(anon_record.third_party_pid_hash, expected_hash)
+
+    def test_row_skipped_by_alter_method(self) -> None:
+        TestRecordFactory(pid=self.patient.pid, other="Personal information")
+        self.source_dbsession.commit()
+
+        mock_alter_method = mock.Mock(
+            alter=mock.Mock(return_value=(None, True))
+        )
+
+        mock_rows = [
+            self.mock_dd_row(
+                omit=True,
+                src_field="pk",
+                dest_table="test_anon_record",
+                dest_field="pk",
+            ),
+            self.mock_dd_row(
+                omit=True,
+                src_field="pid",
+                dest_table="test_anon_record",
+                dest_field="pid",
+            ),
+            self.mock_dd_row(
+                src_field="row_identifier",
+                dest_table="test_anon_record",
+                dest_field="row_identifier",
+            ),
+            self.mock_dd_row(
+                src_field="other",
+                dest_table="test_anon_record",
+                dest_field="other",
+                alter_methods=[mock_alter_method],
+            ),
+        ]
+        mock_rows_for_src_table = mock.Mock(return_value=mock_rows)
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            process_table("source", "test_record")
+
+        self.assertIsNone(
+            self.anon_dbsession.query(TestAnonRecord).one_or_none()
+        )
+
+    def test_skipped_by_free_text_limit(self) -> None:
+        TestRecordFactory(pid=self.patient.pid)
+        self.source_dbsession.commit()
+
+        mock_rows = [
+            self.mock_dd_row(
+                src_field="other",
+                dest_table="test_anon_record",
+                dest_field="other",
+                src_textlength=100,
+            ),
+        ]
+        mock_rows_for_src_table = mock.Mock(return_value=mock_rows)
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            process_table("source", "test_record", free_text_limit=50)
+
+        self.assertIsNone(
+            self.anon_dbsession.query(TestAnonRecord).one_or_none()
+        )
+
+    def test_skipped_when_scrubbed_excluded(self) -> None:
+        TestRecordFactory(pid=self.patient.pid)
+        self.source_dbsession.commit()
+
+        mock_rows = [
+            self.mock_dd_row(
+                src_field="other",
+                dest_table="test_anon_record",
+                dest_field="other",
+                src_is_textual=True,
+                being_scrubbed=True,
+            ),
+        ]
+        mock_rows_for_src_table = mock.Mock(return_value=mock_rows)
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            process_table(
+                "source", "test_record", exclude_scrubbed_fields=True
+            )
+
+        self.assertIsNone(
+            self.anon_dbsession.query(TestAnonRecord).one_or_none()
+        )
+
+    def test_unchanged_record_matching_hash_with_plain_rid_skipped(
+        self,
+    ) -> None:
+        test_record = TestRecordFactory(pid=self.patient.pid)
+        self.source_dbsession.commit()
+        TestAnonRecordFactory(
+            row_identifier=test_record.row_identifier,
+            _src_hash=self.change_hasher.hash(
+                repr([test_record.row_identifier])
+            ),
+        )
+        self.anon_dbsession.commit()
+
+        mock_row = self.mock_dd_row(
+            src_field="row_identifier",
+            dest_table="test_anon_record",
+            dest_field="row_identifier",
+            add_src_hash=True,
+        )
+        mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            with self.assertLogs(level=logging.DEBUG) as logging_cm:
+                process_table("source", "test_record", incremental=True)
+
+        self.assert_logged(
+            "crate_anon.anonymise.anonymise",
+            logging.DEBUG,
+            "... ... skipping unchanged record (identical by hash): ",
+            logging_cm,
+        )
+
+    def test_unchanged_record_matching_hash_with_hashed_rid_skipped(
+        self,
+    ) -> None:
+        test_record = TestPidAsPkRecordFactory(
+            pid=self.patient.pid, other="Other"
+        )
+        self.source_dbsession.commit()
+        TestAnonPidAsPkRecordFactory(
+            rid=self.pid_hasher.hash(self.patient.pid),
+            _src_hash=self.change_hasher.hash(repr([test_record.pid])),
+        )
+        self.anon_dbsession.commit()
+
+        mock_row = self.mock_dd_row(
+            src_field="pid",
+            primary_pid=True,
+            dest_table="test_anon_pid_as_pk_record",
+            dest_field="rid",
+            add_src_hash=True,
+        )
+        mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonPidAsPkRecord.__table__
+            ),
+            get_pid_name=mock.Mock(return_value="pid"),
+        )
+        mock_patient = mock.Mock(pid=self.patient.pid)
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_pid_as_pk_record"): 0},
+        ):
+            with self.assertLogs(level=logging.DEBUG) as logging_cm:
+                process_table(
+                    "source",
+                    "test_pid_as_pk_record",
+                    patient=mock_patient,
+                    incremental=True,
+                )
+
+        self.assert_logged(
+            "crate_anon.anonymise.anonymise",
+            logging.DEBUG,
+            "... ... skipping unchanged record (identical by hash): ",
+            logging_cm,
+        )
+
+    def test_constant_record_matching_pk_skipped(
+        self,
+    ) -> None:
+        test_record = TestRecordFactory(pid=self.patient.pid)
+        self.source_dbsession.commit()
+        TestAnonRecordFactory(
+            row_identifier=test_record.row_identifier,
+        )
+        self.anon_dbsession.commit()
+
+        mock_row = self.mock_dd_row(
+            src_field="row_identifier",
+            dest_table="test_anon_record",
+            dest_field="row_identifier",
+            constant=True,
+        )
+        mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            with self.assertLogs(level=logging.DEBUG) as logging_cm:
+                process_table("source", "test_record", incremental=True)
+
+        self.assert_logged(
+            "crate_anon.anonymise.anonymise",
+            logging.DEBUG,
+            (
+                "... ... skipping unchanged record (identical by PK and "
+                "marked as constant): "
+            ),
+            logging_cm,
+        )
+
+    def test_does_nothing_if_all_ddrows_omitted(self) -> None:
+        TestRecordFactory(pid=self.patient.pid)
+        self.source_dbsession.commit()
+
+        mock_rows = [
+            self.mock_dd_row(
+                omit=True,
+                src_field="pk",
+                dest_table="test_anon_record",
+                dest_field="pk",
+                add_src_hash=True,
+            ),
+            self.mock_dd_row(
+                omit=True,
+                src_field="pid",
+                dest_table="test_anon_record",
+                dest_field="pid",
+                add_src_hash=True,
+            ),
+            self.mock_dd_row(
+                omit=True,
+                src_field="row_identifier",
+                dest_table="test_anon_record",
+                dest_field="row_identifier",
+                add_src_hash=True,
+            ),
+        ]
+        mock_rows_for_src_table = mock.Mock(return_value=mock_rows)
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            with self.assertLogs(level=logging.DEBUG) as logging_cm:
+                process_table("source", "test_record")
+
+        self.assert_logged(
+            "crate_anon.anonymise.anonymise",
+            logging.DEBUG,
+            "... ... all columns omitted",
+            logging_cm,
+        )
+        self.assertIsNone(
+            self.anon_dbsession.query(TestAnonRecord).one_or_none()
+        )
+
+    def test_row_skipped_by_value(self) -> None:
+        TestRecordFactory(pid=self.patient.pid)
+        self.source_dbsession.commit()
+
+        mock_rows = [
+            self.mock_dd_row(
+                src_field="row_identifier",
+                dest_table="test_anon_record",
+                dest_field="row_identifier",
+                skip_row_by_value=mock.Mock(return_value=True),
+            ),
+        ]
+        mock_rows_for_src_table = mock.Mock(return_value=mock_rows)
+
+        mock_dd = mock.Mock(
+            get_rows_for_src_table=mock_rows_for_src_table,
+            get_dest_sqla_table=mock.Mock(
+                return_value=TestAnonRecord.__table__
+            ),
+        )
+        with mock.patch.multiple(
+            "crate_anon.anonymise.anonymise.config",
+            dd=mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            rows_inserted_per_table={("source", "test_record"): 0},
+        ):
+            with self.assertLogs(level=logging.DEBUG) as logging_cm:
+                process_table("source", "test_record")
+
+        self.assert_logged(
+            "crate_anon.anonymise.anonymise",
+            logging.DEBUG,
+            "... ... skipping row based on inclusion/exclusion values",
+            logging_cm,
+        )
+
+        self.assertIsNone(
+            self.anon_dbsession.query(TestAnonRecord).one_or_none()
+        )

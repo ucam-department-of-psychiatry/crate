@@ -22,10 +22,12 @@
 
 
 Calling Python from SQL Server
-==============================
+------------------------------
+
 
 Prerequisites
--------------
+~~~~~~~~~~~~~
+
 
 - SQL Server, obviously. See
   https://www.microsoft.com/sql-server/sql-server-downloads.
@@ -61,7 +63,8 @@ Prerequisites
 
 
 Basic communication with Python
--------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 Check Python is installed and SQL Server can talk to it; see
 https://docs.microsoft.com/en-us/sql/advanced-analytics/tutorials/quickstart-python-verify?view=sql-server-2017
@@ -115,7 +118,8 @@ https://docs.microsoft.com/en-us/sql/advanced-analytics/tutorials/quickstart-pyt
 
 
 Install some external Python code
----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 It looks like we can't have arbitrary multiple virtual environments. But there
 is one virtual environment. This is implied by
@@ -162,7 +166,8 @@ Now try this:
 
 
 See what packages are installed locally
----------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 See https://docs.microsoft.com/en-us/sql/advanced-analytics/tutorials/quickstart-python-verify?view=sql-server-2017.
 Specifically:
@@ -180,7 +185,8 @@ You should see packages that you installed above.
 
 
 Structured data flow
---------------------
+~~~~~~~~~~~~~~~~~~~~
+
 
 Let's go beyond stdout and have data flow from an SQL Server table to Python,
 and back from Python to a result set (or another table).
@@ -236,7 +242,8 @@ The basic messages are as follows:
 
 
 Example to find two antidepressants "episodes"
-----------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 - We'll use an algorithm from our core Python assistance library, described at
   https://cardinalpythonlib.readthedocs.io/.

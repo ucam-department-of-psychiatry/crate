@@ -185,7 +185,8 @@ These config sections map *inputs* (from your database) to *processors* and a
 
 
 inputfielddefs
-##############
+^^^^^^^^^^^^^^
+
 
 *Multiline string.*
 
@@ -200,7 +201,8 @@ config section that define that field in more detail.
 .. _nlp_config_nlpdef_processors:
 
 processors
-##########
+^^^^^^^^^^
+
 
 *Multiline string.*
 
@@ -224,7 +226,8 @@ CRATE internal processors (e.g. "Glucose"), external tools run locally (e.g.
 
 
 progressdb
-##########
+^^^^^^^^^^
+
 
 *String.*
 
@@ -238,7 +241,8 @@ file. The table name within this database is hard-coded to
 
 
 hashphrase
-##########
+^^^^^^^^^^
+
 
 *String.*
 
@@ -248,7 +252,8 @@ to the source material anyway), and its specific value is unimportant.
 
 
 temporary_tablename
-###################
+^^^^^^^^^^^^^^^^^^^
+
 
 *String.* Default: ``_crate_nlp_temptable``.
 
@@ -256,7 +261,8 @@ Temporary table name to use (in progress and destination databases).
 
 
 max_rows_before_commit
-######################
+^^^^^^^^^^^^^^^^^^^^^^
+
 
 *Integer.* Default: 1000.
 
@@ -266,7 +272,8 @@ too large.
 
 
 max_bytes_before_commit
-#######################
+^^^^^^^^^^^^^^^^^^^^^^^
+
 
 *Integer.* Default: 80 Mb (80 * 1024 * 1024 = 83886080).
 
@@ -280,7 +287,8 @@ transaction just before the limit takes the cumulative total over the limit.
 .. _nlp_config_truncate_text_at:
 
 truncate_text_at
-################
+^^^^^^^^^^^^^^^^
+
 
 *Integer.* Default: 0. Must be zero or positive.
 
@@ -289,7 +297,8 @@ length at which to truncate.
 
 
 record_truncated_values
-#######################
+^^^^^^^^^^^^^^^^^^^^^^^
+
 
 *Boolean.* Default: false.
 
@@ -306,7 +315,8 @@ unless they have changed.
 .. _cloud_config:
 
 cloud_config
-############
+^^^^^^^^^^^^
+
 
 *String.* Required to use cloud NLP.
 
@@ -326,7 +336,8 @@ to a cloud NLP service via the :ref:`NLPRP <nlprp>`.
 
 
 cloud_request_data_dir
-######################
+^^^^^^^^^^^^^^^^^^^^^^
+
 
 *String.* Required to use cloud NLP.
 
@@ -355,7 +366,8 @@ They are referred to by the :ref:`NLP definition <nlp_config_section_nlpdef>`.
 
 
 srcdb
-#####
+^^^^^
+
 
 *String.*
 
@@ -364,7 +376,8 @@ Source database; the name of a :ref:`database definition
 
 
 srctable
-########
+^^^^^^^^
+
 
 *String.*
 
@@ -372,7 +385,8 @@ The name of the table in the source database.
 
 
 srcpkfield
-##########
+^^^^^^^^^^
+
 
 *String.*
 
@@ -380,7 +394,8 @@ The name of the primary key field (column) in the source table.
 
 
 srcfield
-########
+^^^^^^^^
+
 
 *String.*
 
@@ -389,7 +404,8 @@ interest.
 
 
 srcdatetimefield
-################
+^^^^^^^^^^^^^^^^
+
 
 *String.* Optional (but advisable).
 
@@ -402,7 +418,8 @@ to the output; see :ref:`Standard NLP output columns
 .. _nlp_config_input_copyfields:
 
 copyfields
-##########
+^^^^^^^^^^
+
 
 *Multiline string.* Optional.
 
@@ -411,7 +428,8 @@ table.
 
 
 indexed_copyfields
-##################
+^^^^^^^^^^^^^^^^^^
+
 
 *Multiline string.*
 
@@ -420,7 +438,8 @@ be indexed in the destination (NLP output) table.
 
 
 debug_row_limit
-###############
+^^^^^^^^^^^^^^^
+
 
 *Integer.* Default: 0.
 
@@ -448,7 +467,8 @@ The format depends on the specific processor *type* (see :ref:`processors
 
 
 destdb
-######
+^^^^^^
+
 
 *String.*
 
@@ -461,7 +481,9 @@ Destination database; the name of a :ref:`database definition
 .. _nlp_config_processor_desttable:
 
 desttable
-#########
+^^^^^^^^^
+
+
 
 *String.*
 
@@ -479,7 +501,8 @@ This refers to "output" configurations, in which you can define the table(s).
 .. _nlp_config_processor_outputtypemap:
 
 outputtypemap
-#############
+^^^^^^^^^^^^^
+
 
 *Multiline string.*
 
@@ -532,7 +555,8 @@ For cloud processors:
 
 
 assume_preferred_unit
-#####################
+^^^^^^^^^^^^^^^^^^^^^
+
 
 *Boolean.* Default: True.
 
@@ -550,7 +574,8 @@ Some override this and are not configurable, however:
 .. _nlp_config_section_gate_progargs:
 
 progargs
-########
+^^^^^^^^
+
 
 *Multiline string.*
 
@@ -625,7 +650,8 @@ NOTE IN PARTICULAR:
 .. _nlp_config_section_gate_progenvsection:
 
 progenvsection
-##############
+^^^^^^^^^^^^^^
+
 
 *String.*
 
@@ -638,7 +664,8 @@ when launching this program.
 .. _nlp_config_section_gate_inputterminator:
 
 input_terminator
-################
+^^^^^^^^^^^^^^^^
+
 
 *String.*
 
@@ -668,7 +695,8 @@ THE SAME VALUE.
 .. _nlp_config_section_gate_outputterminator:
 
 output_terminator
-#################
+^^^^^^^^^^^^^^^^^
+
 
 *String.*
 
@@ -678,7 +706,8 @@ See :ref:`input_terminator <nlp_config_section_gate_inputterminator>`.
 
 
 max_external_prog_uses
-######################
+^^^^^^^^^^^^^^^^^^^^^^
+
 
 *Integer.*
 
@@ -690,7 +719,8 @@ option entirely to ignore this.
 
 
 processor_name
-##############
+^^^^^^^^^^^^^^
+
 
 *String.*
 
@@ -719,7 +749,8 @@ That will, in sequence:
 
 
 processor_version
-#################
+^^^^^^^^^^^^^^^^^
+
 
 *String.* Default: None.
 
@@ -730,7 +761,8 @@ Version of the remote processor; see :ref:`NLPRP list_processors
 
 
 processor_format
-################
+^^^^^^^^^^^^^^^^
+
 
 *String.*
 
@@ -769,7 +801,7 @@ They are referred to by the :ref:`outputtypemap
 
 
 desttable
-#########
+^^^^^^^^^
 
 *String.*
 
@@ -778,7 +810,8 @@ from the GATE/cloud NLP application.
 
 
 renames
-#######
+^^^^^^^
+
 
 *Multiline string.*
 
@@ -822,7 +855,8 @@ not well suited to being database column names:
 
 
 null_literals
-#############
+^^^^^^^^^^^^^
+
 
 *Multiline string.*
 
@@ -846,7 +880,8 @@ Example:
 .. _nlp_config_destfields:
 
 destfields
-##########
+^^^^^^^^^^
+
 
 *Multiline string.*
 
@@ -881,7 +916,8 @@ table specification (plus additional universal CRATE NLP columns).
 
 
 indexdefs
-#########
+^^^^^^^^^
+
 
 *Multiline string.*
 
@@ -944,7 +980,8 @@ These simply tell CRATE how to connect to different databases.
 
 
 url
-###
+^^^
+
 
 *String.*
 
@@ -961,7 +998,8 @@ Example:
 
 
 echo
-####
+^^^^
+
 
 *Boolean.* Default: False.
 
@@ -982,7 +1020,8 @@ parameter in a NLP definition) [#cloudconfigclass]_.
 .. _nlp_config_cloud_url:
 
 cloud_url
-#########
+^^^^^^^^^
+
 
 *String.* Required to use cloud NLP.
 
@@ -992,7 +1031,8 @@ The URL of the cloud NLP service.
 .. _nlp_config_verify_ssl:
 
 verify_ssl
-##########
+^^^^^^^^^^
+
 
 *Boolean.* Default: true.
 
@@ -1000,7 +1040,8 @@ Should CRATE verify the SSL certificate of the remote NLP server?
 
 
 compress
-########
+^^^^^^^^
+
 
 *Boolean.* Default: true.
 
@@ -1012,7 +1053,8 @@ compressing results.
 
 
 username
-########
+^^^^^^^^
+
 
 *String.* Default: "".
 
@@ -1021,7 +1063,8 @@ Your username for accessing the services at the URL specified in
 
 
 password
-########
+^^^^^^^^
+
 
 *String.* Default: "".
 
@@ -1030,7 +1073,8 @@ Your password for accessing the services at the URL specified in
 
 
 wait_on_conn_err
-################
+^^^^^^^^^^^^^^^^
+
 
 *Integer.* Default: 180.
 
@@ -1040,7 +1084,8 @@ After a connection error occurs, wait this many seconds before retrying.
 .. _nlp_config_max_content_length:
 
 max_content_length
-##################
+^^^^^^^^^^^^^^^^^^
+
 
 *Integer.* Default: 0.
 
@@ -1054,7 +1099,8 @@ will not be sent.
 .. _nlp_config_max_records_per_request:
 
 max_records_per_request
-#######################
+^^^^^^^^^^^^^^^^^^^^^^^
+
 
 *Integer.* Default: 1000.
 
@@ -1066,7 +1112,8 @@ part of a single NLPRP request (subject also to :ref:`max_content_length
 .. _nlp_config_limit_before_commit:
 
 limit_before_commit
-###################
+^^^^^^^^^^^^^^^^^^^
+
 
 *Integer.* Default: 1000.
 
@@ -1075,7 +1122,8 @@ written to the database) before a ``COMMIT`` command is executed.
 
 
 stop_at_failure
-###############
+^^^^^^^^^^^^^^^
+
 
 *Boolean.* Default: true.
 
@@ -1087,7 +1135,8 @@ allowed to fail, regardless of this setting.)
 .. _nlp_config_max_tries:
 
 max_tries
-#########
+^^^^^^^^^
+
 
 *Integer.* Default: 5.
 
@@ -1098,7 +1147,8 @@ before giving it up as a bad job.
 .. _nlp_config_rate_limit_hz:
 
 rate_limit_hz
-#############
+^^^^^^^^^^^^^
+
 
 *Integer.* Default: 2.
 

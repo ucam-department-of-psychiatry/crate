@@ -24,13 +24,15 @@
 
 
 Change log/history
-==================
+------------------
+
 
 
 .. _contributors:
 
 Contributors
-------------
+~~~~~~~~~~~~
+
 
 - Rudolf Cardinal <rudolf@pobox.com>, 2015–.
 - Francesca Spivack, 2018–2020.
@@ -49,16 +51,19 @@ Quick links:
 - :ref:`2023 <changelog_2023>`
 - :ref:`2024 <changelog_2024>`
 - :ref:`2025 <changelog_2025>`
+- :ref:`2026 <changelog_2026>`
 
 
 Changes
--------
+~~~~~~~
+
 
 
 .. _changelog_2015:
 
 2015
-~~~~
+^^^^
+
 
 **2015-02-18**
 
@@ -204,7 +209,8 @@ Changes
 .. _changelog_2016:
 
 2016
-~~~~
+^^^^
+
 
 **2016-02-09**
 
@@ -425,7 +431,8 @@ Changes
 .. _changelog_2017:
 
 2017
-~~~~
+^^^^
+
 
 **v0.18.12, 2017-02-26**
 
@@ -566,7 +573,8 @@ Changes
 .. _changelog_2018:
 
 2018
-~~~~
+^^^^
+
 
 **v0.18.49, 2018-01-07, 2018-03-21, 2018-03-27, published 2018-04-20**
 
@@ -840,7 +848,8 @@ Changes
 .. _changelog_2019:
 
 2019
-~~~~
+^^^^
+
 
 **v0.18.61, 2019-01-15**
 
@@ -1252,7 +1261,8 @@ Changes
 .. _changelog_2020:
 
 2020
-~~~~
+^^^^
+
 
 **v0.18.96, 2020-01-07**
 
@@ -1341,7 +1351,8 @@ Changes
 .. _changelog_2021:
 
 2021
-~~~~
+^^^^
+
 
 **0.19.2, 2021-01-26**
 
@@ -1350,7 +1361,8 @@ Changes
 .. _changelog_2022:
 
 2022
-~~~~
+^^^^
+
 
 **0.19.3, 2022-03-31**
 
@@ -1557,7 +1569,8 @@ Changes
 .. _changelog_2023:
 
 2023
-~~~~
+^^^^
+
 
 **0.20.0, 2023-03-14**
 
@@ -1638,7 +1651,8 @@ Changes
 .. _changelog_2024:
 
 2024
-~~~~
+^^^^
+
 
 **0.20.4, 2024-05-21**
 
@@ -1665,7 +1679,8 @@ Changes
 .. _changelog_2025:
 
 2025
-~~~~
+^^^^
+
 
 **0.20.6, 2025-01-09**
 
@@ -1739,11 +1754,40 @@ Changes
   for Python 3.9, which reaches end-of-life in October 2025. The Docker image is
   now based on Python 3.10.
 
-**0.20.8, in progress**
+.. _changelog_2026:
+
+2026
+^^^^
+
+**0.20.8, 2026-02-23**
+
+- Update the installer with example scripts to:
+
+  - enter the Docker container (useful when troubleshooting problems).
+
+  - create wordlists e.g. for removing all personal names that are not medical
+    eponyms.
+
+- Fix bug where incremental anonymisation would fail for data dictionary rows
+  with K, H and P flags.
+  https://github.com/ucam-department-of-psychiatry/crate/issues/232
+
+- Fix bug where a data dictionary row would not be skipped if its
+  ``AlterMethod`` returned ``True`` for the ``skip_row`` value.
+
+- Add --docstore_root option to
+  :func:`crate_anon.preprocess.preprocess_systmone.main`. If present, this will
+  extract text from documents in this location into a new table called
+  ``crate_extracted_text``, which can then be anonymised along with the other
+  tables.
+
+
+**0.20.9, in progress**
 
 
 To do
------
+~~~~~
+
 
 - Fix promise for ``crate_anonymise_multiprocess``: it is launching *n* patient
   processes and *n* non-patient processes simultaneously. Attempts in progress

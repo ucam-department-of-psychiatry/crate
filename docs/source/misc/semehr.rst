@@ -27,7 +27,8 @@
 
 
 Using SemEHR
-============
+------------
+
 
 .. contents::
    :local:
@@ -53,7 +54,8 @@ Here we summarize quick ways to get SemEHR operational.
 
 
 Background on Docker
---------------------
+~~~~~~~~~~~~~~~~~~~~
+
 
 Docker_ delivers software in "containers", which package up code and its
 dependencies. The container is portable to any Docker-enabled machine. It can
@@ -98,7 +100,8 @@ and stopped with ``docker-compose down``.
 
 
 Installing Docker for Ubuntu
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 - Install the software.
 
@@ -140,13 +143,15 @@ Installing Docker for Ubuntu
 
 
 Installing Docker for Windows
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 Install `Docker Desktop for Windows`_.
 
 
 SemEHR tutorial via Docker on Ubuntu
-------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 This is based on https://semehr.cogstack.systems/tutorials.html.
 
@@ -197,10 +202,12 @@ down (``Ctrl-C``) and restart it in the background:
 
 
 Notes on Docker
----------------
+~~~~~~~~~~~~~~~
+
 
 Docker information and debugging
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 - You can explore what's going on:
 
@@ -256,7 +263,8 @@ Docker information and debugging
 
 
 Docker networking
-~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^
+
 
 - Docker always creates a default network interface (called ``docker0``; run
   ``ifconfig`` to see them), plus a default Docker network whose name is
@@ -376,7 +384,8 @@ See:
 
 
 Docker debugging container
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 Let's create a container that mimics the SemEHR "runner", in that it
 is part of our created network, but not in the Elasticsearch composition.
@@ -411,7 +420,8 @@ Via ``ping``, ``nmap``, and ``curl``, we see that the correct URL is
 
 
 Notes on the SemEHR Docker setup
---------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 - SemEHR sets up a background Docker application via Docker Compose. This
   has three containers:
@@ -448,10 +458,12 @@ Notes on the SemEHR Docker setup
 
 
 Troubleshooting SemEHR
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
+
 
 Persistent wrong Docker paths
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 If you started a container based on a ``.yml`` file with wrong directories, the
 settings can persist. Try ``docker container ls`` followed by ``docker
@@ -518,14 +530,16 @@ Still problems, though. Complete purge, as above.
 
 
 Errors relating to a full disk
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 If you see ``INTERNAL ERROR: cannot create temporary directory!``, your disk
 is probably full. (Lots of rubbish in ``/var/spool/mail/root``, for example?)
 
 
 Elasticsearch complains about vm.max_map_count
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 If the Elasticsearch containers fail to start and give the error message
 ``max virtual memory areas vm.max_map_count [65530] is too low, increase to
@@ -536,7 +550,8 @@ at least [262144]``, then do this:
 
 
 Elasticsearch "high disk watermark..."
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 Not clear whether ``high disk watermark exceeded on one or more nodes``
 messages from Elasticsearch are critical; it seems to carry on regardless.
@@ -552,7 +567,8 @@ https://stackoverflow.com/questions/30289024/high-disk-watermark-exceeded-even-w
 
 
 Elasticsearch complains about log files (but actually machine learning)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 Elasticsearch containers fail to start with an error like ``... Caused by:
 java.io.FileNotFoundException:
@@ -615,7 +631,8 @@ Add this to Docker Compose file:
 
 
 SemEHR not passing files to Elasticsearch
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 I had this from SemEHR:
 

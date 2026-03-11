@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/preprocess
----------------------
+=====================
 
 
 
@@ -45,3 +45,5 @@ crate_anon/preprocess
     tests/__init__.py.rst
     tests/autoimport_db_tests.py.rst
     tests/systmone_ddgen_tests.py.rst
+    tests/text_extractor_tests.py.rst
+    text_extractor.py.rst

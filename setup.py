@@ -68,8 +68,8 @@ INSTALL_REQUIRES = [
     "amqp==5.3.1",  # amqp is used by Celery
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
-    "beautifulsoup4==4.9.1",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==2.1.0",  # RNC libraries
+    "beautifulsoup4==4.13.4",  # [pin exact version from cardinal_pythonlib]
+    "cardinal_pythonlib==2.1.3",  # RNC libraries
     "cairosvg==2.7.0",  # work with SVG files
     "celery==5.2.7",  # back-end scheduling
     "celery-progress==0.5",  # progress bars on slow tasks
@@ -77,7 +77,7 @@ INSTALL_REQUIRES = [
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==4.2.25",  # for main CRATE research database web server
+    "django==4.2.28",  # for main CRATE research database web server
     "django-debug-toolbar==3.2.1",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
@@ -89,6 +89,7 @@ INSTALL_REQUIRES = [
     "django-tables2==2.7.5",  # Support for HTML tables within Django templates
     "drf-spectacular==0.27.2",  # Open API Schema and documentation
     "drf-spectacular-sidecar==2024.7.1",  # Static files for drf-spectacular
+    "extract_msg==0.54.1",  # Extract text from Outlook .msg files
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==2.0.1",  # debug Celery; web server; only runs explicitly
     "fuzzy==1.2.2",  # phonetic matching
@@ -105,7 +106,7 @@ INSTALL_REQUIRES = [
     "openpyxl==3.0.7",  # read Excel (slower?)
     "ordered-set==4.1.0",  # ordered sets; search for ordered_set
     "pendulum==2.1.2",  # dates/times
-    "Pillow==10.3.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
+    "Pillow==12.1.1",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==3.2.0",  # pretty formating of text-based tables
     "psutil==6.1.1",  # process management, cardinal_pythonlib dependency, not currently used  # noqa: E501
@@ -113,7 +114,7 @@ INSTALL_REQUIRES = [
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.15.0",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
-    "pypdf==6.0.0",  # create PDF files
+    "pypdf==6.7.1",  # create PDF files
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html
@@ -122,13 +123,13 @@ INSTALL_REQUIRES = [
     "semantic_version==2.8.5",  # semantic versioning; better than semver
     "sortedcontainers==2.2.2",  # for SortedSet
     "SQLAlchemy==2.0.36",  # database access
-    "sqlparse==0.5.0",  # [pin exact version from cardinal_pythonlib]
+    "sqlparse==0.5.5",  # [pin exact version from cardinal_pythonlib]
     "unidecode==1.1.1",  # for removing accents
     # -------------------------------------------------------------------------
     # Packages for cloud NLP:
     # -------------------------------------------------------------------------
     "bcrypt==3.2.2",  # bcrypt encryption
-    "cryptography==44.0.1",  # cryptography library
+    "cryptography==46.0.5",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.8",  # Pyramid web framework
@@ -137,7 +138,7 @@ INSTALL_REQUIRES = [
     "requests==2.32.4",  # HTTP requests
     "tornado==6.5",  # web framework
     "transaction==3.0.0",  # generic transaction management
-    "urllib3==2.5.0",  # used by requests
+    "urllib3==2.6.3",  # used by requests
     "waitress==3.0.1",  # pure-Python WSGI server
     "zope.sqlalchemy==1.3",  # Zope/SQLAlchemy transaction integration
     # -------------------------------------------------------------------------

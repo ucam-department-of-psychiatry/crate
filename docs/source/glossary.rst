@@ -22,7 +22,8 @@
 .. _abbreviations:
 
 Abbreviations
-=============
+-------------
+
 
 =============== ===============================================================
 Abbreviation    Meaning
@@ -59,7 +60,8 @@ UK              United Kingdom
 .. _glossary:
 
 Glossary
-========
+--------
+
 
 .. _mpid:
 

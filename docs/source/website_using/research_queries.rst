@@ -37,9 +37,6 @@ Research queries
 
 Users can use raw SQL, or some automatic methods of building queries.
 
-.. todo:: add screenshots
-
-
 .. _research_query_builder:
 
 Query builder

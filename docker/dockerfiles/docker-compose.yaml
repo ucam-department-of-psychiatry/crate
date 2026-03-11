@@ -33,6 +33,7 @@
 # Those without defaults:
 #
 #   CRATE_DOCKER_CONFIG_HOST_DIR
+#   CRATE_DOCKER_DOCS_HOST_DIR
 #   CRATE_DOCKER_FILES_HOST_DIR
 #   CRATE_DOCKER_GATE_BIOYODIE_RESOURCES_HOST_DIR
 #   CRATE_DOCKER_INSTALL_GROUP_ID
@@ -66,6 +67,13 @@ volumes:
             # We use environment variable substitution.
             # https://docs.docker.com/compose/compose-file/#variable-substitution
             device: "${CRATE_DOCKER_CONFIG_HOST_DIR}"
+
+    crate_docs_volume:
+        driver: local
+        driver_opts:
+            o: bind
+            type: none
+            device: "${CRATE_DOCKER_DOCS_HOST_DIR}"
 
     crate_files_volume:
         # General file storage on the host machine
@@ -179,6 +187,7 @@ services:
         volumes:
             - bioyodie_resource_volume:/crate/bioyodie/bio-yodie-resources
             - crate_config_volume:/crate/cfg
+            - crate_docs_volume:/crate/docs:ro
             - crate_files_volume:/crate/files
             - crate_static_volume:/crate/static
             - crate_tmp_volume:/crate/tmp
@@ -246,6 +255,7 @@ services:
         volumes:
             - bioyodie_resource_volume:/crate/bioyodie/bio-yodie-resources
             - crate_config_volume:/crate/cfg
+            - crate_docs_volume:/crate/docs:ro
             - crate_files_volume:/crate/files
             - crate_static_volume:/crate/static
             - crate_tmp_volume:/crate/tmp

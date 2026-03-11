@@ -367,7 +367,9 @@ def launch_bash(engine_info: EngineInfo) -> None:
 
 
 def start_engine(
-    engine_info: EngineInfo, host_port: int, timeout_s=DEFAULT_TIMEOUT_S
+    engine_info: EngineInfo,
+    host_port: int,
+    timeout_s: float = DEFAULT_TIMEOUT_S,
 ) -> None:
     """
     Start the database engine's container, so it provides database services.
@@ -384,7 +386,7 @@ def start_engine(
     )
 
     ip_address = get_crate_container_engine_ip_address(engine_info)
-    wait_for_databases_to_be_created(engine_info, 60)
+    wait_for_databases_to_be_created(engine_info, timeout_s)
     log.info(
         f"Database engine started on {ip_address}:{engine_info.docker_port}"
     )

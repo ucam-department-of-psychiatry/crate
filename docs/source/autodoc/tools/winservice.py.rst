@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.tools.winservice
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 .. automodule:: crate_anon.tools.winservice
     :members:

@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.tools.launch_docs
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------
 
 .. automodule:: crate_anon.tools.launch_docs
     :members:

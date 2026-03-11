@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.crateweb.userprofile.migrations.0004_userprofile_patients_per_page
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------------------------------------------------
 
 .. automodule:: crate_anon.crateweb.userprofile.migrations.0004_userprofile_patients_per_page
     :members:

@@ -20,23 +20,20 @@
 
 
 Installing CRATE without Docker
-===============================
+-------------------------------
 
 .. contents::
    :local:
 
 
 URLs for CRATE source code
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - https://github.com/ucam-department-of-psychiatry/crate (for source)
 - https://pypi.io/project/crate-anon/ (for ``pip install crate-anon``)
 
 
-Manual installation
--------------------
-
-Installing CRATE itself is very easy, but you probably want a lot of supporting
+Installing CRATE itself is straightforward, but you probably want a lot of supporting
 tools. Here's a logical sequence.
 
 
@@ -222,7 +219,7 @@ free [#vscommunity]_.
 
 
 Database and database drivers
------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You'll want drivers for at least one database. See :ref:`Recommended database
 drivers <recommended_database_drivers>`.
@@ -231,11 +228,11 @@ In the CPFT NHS environment, we use SQL Server and these:
 
     .. code-block:: none
 
-        pip install pyodbc django-pyodbc-azure
+        pip install pyodbc mssql-django
 
 
 Build the CRATE Java NLP interfaces
------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
@@ -280,7 +277,7 @@ own settings.
 
 
 Set up the web site infrastructure
-----------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Create the database yourself using your normal database management tool. Make
 sure that the config file pointed to by the `CRATE_WEB_LOCAL_SETTINGS`
@@ -297,7 +294,7 @@ static files, populate relevant parts of the database, and create a superuser:
 
 
 Test the web server and message queue
--------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In two separate command windows, with the virtual environment activated in
 each, run the following two programs:
@@ -333,7 +330,7 @@ arrives, check:
 
 
 Configure the CRATE web service to run automatically
-----------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 CRATE's web service has two parts: the web site itself runs Django, and the
 offline message handling part (e.g. to send emails) runs Celery.
@@ -391,7 +388,7 @@ rather than as a service [#taskscheduler]_, e.g. with tasks like
 
 
 Retest the web server and message queue
----------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Going to a “behind-the-scenes” (service) mode of operation has the potential to
 go wrong, so retest that the web server and the e-mail transmission task work.

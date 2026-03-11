@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.common.inputfunc
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 .. automodule:: crate_anon.common.inputfunc
     :members:

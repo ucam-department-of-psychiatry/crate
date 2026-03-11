@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon.anonymise.scrub
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------
 
 .. automodule:: crate_anon.anonymise.scrub
     :members:
