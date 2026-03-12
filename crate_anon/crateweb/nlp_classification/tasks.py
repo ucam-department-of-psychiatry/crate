@@ -80,7 +80,6 @@ def create_source_records_from_sample(self, sample_pk: int) -> str:
     start = 0
 
     while True:
-        print(f"{start}/{total_rows}")
         progress_recorder.set_progress(
             start, total_rows, description="Creating source rows"
         )
@@ -89,7 +88,6 @@ def create_source_records_from_sample(self, sample_pk: int) -> str:
         source_pks = []
 
         for source_row in islice(source_rows, start, stop):
-            print(source_row)
             source_pks.append(source_row[0])
 
         if not source_pks:

@@ -172,6 +172,7 @@ crate_anon/crateweb
     nlp_classification/tests/factories.py.rst
     nlp_classification/tests/forms_tests.py.rst
     nlp_classification/tests/models_tests.py.rst
+    nlp_classification/tests/tasks_tests.py.rst
     nlp_classification/tests/views_tests.py.rst
     nlp_classification/urls.py.rst
     nlp_classification/views.py.rst
