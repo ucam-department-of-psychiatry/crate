@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/templates/nlp_classification/admin/wizard_form.html
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------------------------------------------------
 
 .. literalinclude:: ../../../../../../../crate_anon/crateweb/templates/nlp_classification/admin/wizard_form.html
     :language: html+django

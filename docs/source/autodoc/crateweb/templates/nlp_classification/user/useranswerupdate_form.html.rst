@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/templates/nlp_classification/user/useranswerupdate_form.html
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------------------------------------------------
 
 .. literalinclude:: ../../../../../../../crate_anon/crateweb/templates/nlp_classification/user/useranswerupdate_form.html
     :language: html+django

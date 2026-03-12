@@ -21,7 +21,7 @@
     along with CRATE. If not, see <https://www.gnu.org/licenses/>.
 
 crate_anon/crateweb/templates/nlp_classification/admin/sample_data_progress.html
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--------------------------------------------------------------------------------
 
 .. literalinclude:: ../../../../../../../crate_anon/crateweb/templates/nlp_classification/admin/sample_data_progress.html
     :language: html+django
