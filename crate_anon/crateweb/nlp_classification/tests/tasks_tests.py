@@ -46,9 +46,14 @@ from crate_anon.crateweb.nlp_classification.models import (
 from crate_anon.crateweb.nlp_classification.tasks import (
     create_source_records_from_sample,
 )
+from crate_anon.nlp_manager.constants import (
+    FN_SRCPKVAL,
+)
 
 
-@override_settings(CRATE_NLP_BATCH_SIZE=1000)
+# Normally batch would be a big number. This ensures we have the iterator
+# slicing working correctly
+@override_settings(CRATE_NLP_BATCH_SIZE=2)
 class CreateSourceRecordsFromSampleTests(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -99,8 +104,15 @@ class CreateSourceRecordsFromSampleTests(TestCase):
             "units",
         ]
         self.mock_source_db_connection.count.return_value = 5
-        self.mock_source_fetchall.return_value = [(1,), (2,), (3,), (4,), (5,)]
-        self.mock_nlp_fetchall.return_value = [(1, 10), (2, 11), (4, 12)]
+        self.mock_source_fetchall.return_value = (
+            r for r in [(1,), (2,), (3,), (4,), (5,)]
+        )
+        # Three calls
+        self.mock_nlp_fetchall.side_effect = [
+            (r for r in [(1, 10), (2, 11)]),
+            (r for r in [(4, 12)]),
+            (r for r in []),
+        ]
 
         source_table_definition = TableDefinitionFactory(
             db_connection_name=RESEARCH_DB_CONNECTION_NAME,
@@ -114,6 +126,7 @@ class CreateSourceRecordsFromSampleTests(TestCase):
         sample = SampleFactory(
             source_column=source_column,
             nlp_table_definition=nlp_table_definition,
+            search_term="CRP",
         )
 
         with mock.patch.multiple(
@@ -122,6 +135,34 @@ class CreateSourceRecordsFromSampleTests(TestCase):
             get_nlp_database_connection=self.mock_sample_get_nlp_db_connection,
         ):
             create_source_records_from_sample(sample.pk)
+
+        self.mock_source_fetchall.assert_called_once_with(
+            [source_table_definition.pk_column_name],
+            source_table_definition.table_name,
+            f"{source_column.name} LIKE %s",
+            [f"%{sample.search_term}%"],
+        )
+
+        self.mock_nlp_fetchall.assert_any_call(
+            [FN_SRCPKVAL, nlp_table_definition.pk_column_name],
+            nlp_table_definition.table_name,
+            where=f"{FN_SRCPKVAL} IN (%s, %s)",
+            params=[1, 2],
+        )
+
+        self.mock_nlp_fetchall.assert_any_call(
+            [FN_SRCPKVAL, nlp_table_definition.pk_column_name],
+            nlp_table_definition.table_name,
+            where=f"{FN_SRCPKVAL} IN (%s, %s)",
+            params=[3, 4],
+        )
+
+        self.mock_nlp_fetchall.assert_any_call(
+            [FN_SRCPKVAL, nlp_table_definition.pk_column_name],
+            nlp_table_definition.table_name,
+            where=f"{FN_SRCPKVAL} IN (%s)",
+            params=[5],
+        )
 
         self.assertTrue(
             SourceRecord.objects.filter(

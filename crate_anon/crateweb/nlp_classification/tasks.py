@@ -77,17 +77,15 @@ def create_source_records_from_sample(self, sample_pk: int) -> str:
 
     progress_recorder = ProgressRecorder(self)
 
-    start = 0
+    done = 0
 
     while True:
         progress_recorder.set_progress(
-            start, total_rows, description="Creating source rows"
+            done, total_rows, description="Creating source rows"
         )
-        stop = start + batch_size
-
         source_pks = []
 
-        for source_row in islice(source_rows, start, stop):
+        for source_row in islice(source_rows, 0, batch_size):
             source_pks.append(source_row[0])
 
         if not source_pks:
@@ -116,4 +114,6 @@ def create_source_records_from_sample(self, sample_pk: int) -> str:
 
             sample.source_records.add(source_record)
 
-        start += len(source_pks)
+        done += len(source_pks)
+
+    return "Source records created"
