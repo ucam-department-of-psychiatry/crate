@@ -1,6 +1,5 @@
 {# crate_anon/crateweb/templates/nlp_classification/admin/sample_data_progress.html #}
 {% extends "nlp_classification/base.html" %}
-{% load static %}
 
 {% block extrahead %}
 {% include "include_jquery.html" %}
@@ -23,7 +22,6 @@
 
 {% block progress_bar_js %}
 {% if task_id %}
-<script type="text/javascript" src="{% static 'celery_progress/celery_progress.js' %}"></script>
 <script type="text/javascript">
 	$(function () {
 		var progressUrl = "{% url 'celery_progress:task_status' task_id %}";
