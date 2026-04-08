@@ -32,7 +32,7 @@ CRATE NLP classification Celery tasks.
 from itertools import islice
 import random
 
-from celery import shared_task
+from celery import shared_task, Task
 from celery_progress.backend import ProgressRecorder
 
 from django.conf import settings
@@ -44,7 +44,7 @@ from crate_anon.nlp_manager.constants import (
 
 
 @shared_task(bind=True)
-def create_source_records_from_sample(self, sample_pk: int) -> str:
+def create_source_records_from_sample(task: Task, sample_pk: int) -> str:
     sample = Sample.objects.get(pk=sample_pk)
 
     batch_size = settings.CRATE_NLP_BATCH_SIZE
@@ -75,13 +75,13 @@ def create_source_records_from_sample(self, sample_pk: int) -> str:
     # and if we use a regular Integer, we can only store 31 bits
     max_rand_bits = 32
 
-    progress_recorder = ProgressRecorder(self)
+    progress_recorder = ProgressRecorder(task)
 
     done = 0
 
     while True:
         progress_recorder.set_progress(
-            done, total_rows, description="Creating source rows"
+            done, total_rows, description="Creating source records"
         )
         source_pks = []
 
@@ -89,7 +89,7 @@ def create_source_records_from_sample(self, sample_pk: int) -> str:
             source_pks.append(source_row[0])
 
         if not source_pks:
-            break
+            return "Source records created"
 
         source_pk_format = ", ".join(["%s"] * len(source_pks))
 
@@ -115,5 +115,3 @@ def create_source_records_from_sample(self, sample_pk: int) -> str:
             sample.source_records.add(source_record)
 
         done += len(source_pks)
-
-    return "Source records created"
