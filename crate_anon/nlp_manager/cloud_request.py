@@ -493,7 +493,8 @@ class CloudRequest:
             assert isinstance(json_response, dict)
             return json_response
         except json.decoder.JSONDecodeError:
-            log.error("Reply was not JSON")
+            log.error("Reply was not JSON:")
+            log.error(response.text)
             raise
         except AssertionError:
             log.error("Reply was JSON but not a JSON object (dict)")
