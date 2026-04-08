@@ -59,6 +59,14 @@ class ChoiceProvider(BaseProvider):
 
         return choices[0]
 
+    def random_sample(self, choices: List, k: int, **kwargs) -> list[Any]:
+        """
+        Given a list of choices return a random sample of size k
+        """
+        choices = self.generator.random.sample(choices, k, **kwargs)
+
+        return choices
+
 
 class DateFormatProvider(ChoiceProvider):
     """
@@ -200,6 +208,202 @@ class AlcoholProvider(ChoiceProvider):
         return alcohol
 
 
+class MedicationProvider(ChoiceProvider):
+    # Sources:
+    # https://bnf.nice.org.uk/drugs
+    # https://bnf.nice.org.uk/about/abbreviations-and-symbols/
+    # https://www.nhs.uk/medicines
+    # https://pmc.ncbi.nlm.nih.gov/articles/PMC6177714/
+    all_medications = [
+        ("aspirin", [75, 150, 300, 450, 900], "mg"),
+        ("amoxicillin", [125, 250, 500], "mg"),
+        ("atorvastatin", [10, 20, 30, 40, 50, 60, 70, 80], "mg"),
+        ("bisoprolol fumarate", [5, 10, 15, 20], "mg"),
+        ("clozapine", [12.5, 25, 37.5, 50, 75, 100, 200], "mg"),
+        ("haloperidol", range(1, 10 + 1), "mg"),
+        ("lipitor", [10, 20, 30, 40, 60, 80], "mg"),
+        ("omeprazole", [20, 40], "mg"),
+        ("venlafaxine", [37.5, 75, 150], "mg"),
+    ]
+
+    frequencies = [
+        "bd",
+        "bid",
+        "od",
+        "prn",
+        "qds",
+        "qqh",
+        "td",
+        "tds",
+        "tid",
+    ]
+
+    timings = [
+        "",
+        "mane",
+        "nocte",
+        "stat",
+    ]
+
+    foods = [
+        "",
+        "ac",
+        "pc",
+    ]
+
+    routes = ["", "po"]
+
+    def medications(self, forename: str, max_number: int = None) -> str:
+        num_medications = len(self.all_medications)
+
+        if max_number is None:
+            max_number = num_medications
+        else:
+            max_number = min(num_medications, max_number)
+
+        prefixes = [
+            "",
+            f"{forename} took",
+            "For",
+            "Start",
+            "Is due to start",
+        ]
+
+        sample_size = self.generator.pyint(min_value=0, max_value=max_number)
+
+        sentences = []
+        for medication in self.random_sample(
+            self.all_medications, sample_size
+        ):
+            words = []
+
+            self._maybe_append(words, prefixes)
+
+            name, doses, units = medication
+            dose = self.random_choice(doses)
+
+            words += [name, f"{dose}{units}"]
+
+            self._maybe_append_and_maybe_punctuate(words, self.frequencies)
+            self._maybe_append(words, self.timings)
+            self._maybe_append_and_maybe_punctuate(words, self.foods)
+
+            sentences.append(" ".join(words))
+
+        return ". ".join(sentences)
+
+    def _maybe_append_and_maybe_punctuate(
+        self, words: list[Any], choices: list[Any]
+    ) -> str:
+        if choice := self.random_choice(choices):
+            words.append(self._maybe_punctuate(choice))
+
+    def _maybe_append(self, words: list[Any], choices: list[Any]) -> None:
+        if choice := self.random_choice(choices):
+            words.append(choice)
+
+    def _maybe_punctuate(self, word: str) -> str:
+        if self.generator.pyint(min_value=0, max_value=1):
+            return ".".join(word) + "."
+
+        return word
+
+
+class ResultProvider(ChoiceProvider):
+    separators = [".", ",", ";"]
+
+    def _blood_pressure(self) -> tuple[str, str, str]:
+        systolic = self.random_choice(range(61, 180))
+        diastolic = self.random_choice(range(60, systolic))
+
+        return ("BP", f"{systolic}/{diastolic}", "mmHg")
+
+    def results(self, possessive_pronoun: str, max_number: int = None) -> str:
+        all_results = [
+            ("ACE", range(0, 100), ""),
+            ("ACE-III", range(0, 100), ""),
+            ("ACE-R", range(0, 100), ""),
+            ("BMI", [x / 10.0 for x in range(100, 300)], ""),
+            ("Basophils", [x / 10.0 for x in range(0, 2)], " x 10^9/L"),
+            ("CRP", range(1, 150), "mg/L"),
+            ("ESR", range(1, 20), "mm/h"),
+            ("Eosinophils", [x / 10.0 for x in range(0, 5)], " x 10^9/L"),
+            ("Height", [x / 100.0 for x in range(25, 200)], "m"),
+            ("Lymphocytes", [x / 10.0 for x in range(10, 40)], " x 10^9/L"),
+            ("MMSE", range(0, 30), "/30"),
+            ("Monocytes", [x / 10.0 for x in range(2, 10)], " x 10^9/L"),
+            ("Neutrophils", [x / 10.0 for x in range(15, 80)], " x 10^9/L"),
+            ("Sodium", range(135, 145), "mEq/L"),
+            ("TSH", [x / 10.0 for x in range(4, 45)], "mlU/L"),
+            ("Urea", [x / 10.0 for x in range(25, 78)], "mmol/l"),
+            ("WBC", [x / 10.0 for x in range(4, 11)], " x 10^9/L"),
+            ("Weight", range(3, 140), "kg"),
+            self._blood_pressure,
+        ]
+
+        num_results = len(all_results)
+
+        if max_number is None:
+            max_number = num_results
+        else:
+            max_number = min(num_results, max_number)
+
+        sample_size = self.generator.pyint(min_value=0, max_value=max_number)
+
+        sentences = []
+        for result in self.random_sample(all_results, sample_size):
+            words = []
+
+            if callable(result):
+                name, amount, units = result()
+            else:
+                name, amounts, units = result
+                amount = self.random_choice(amounts)
+
+            words.append(
+                self.random_choice(
+                    [name, f"{possessive_pronoun} {name} is "],
+                    weights=[90, 10],
+                )
+            )
+
+            if operator := self.random_choice(
+                [">", "<", ""], weights=[10, 10, 80]
+            ):
+                words.append(operator)
+
+            words.append(
+                self.random_choice(
+                    [f"{amount}{units}", str(amount), "normal"],
+                    weights=[90, 5, 5],
+                )
+            )
+
+            sentences.append(" ".join(words))
+
+        separator = self.random_choice(self.separators)
+        return f"{separator} ".join(sentences)
+
+
+class RedHerringProvider(ChoiceProvider):
+    def red_herring(self) -> str:
+        return self.random_choice(
+            [
+                "",
+                (
+                    "If CRP is over 30 mg/L the ferritin result may be high "
+                    "and uninterpretable"
+                ),
+                (
+                    "Please can we request the following bloods FBC UEs LFTs ",
+                    "CRP EGFR",
+                ),
+                "Bone profile; CRP; FERRITIN; FOLATE (SERUM)",
+            ],
+            weights=[85, 5, 5, 5],
+        )
+
+
 class PatientNoteProvider(BaseProvider):
     @staticmethod
     def _possessive_pronoun(sex: str) -> str:
@@ -260,54 +464,43 @@ class PatientNoteProvider(BaseProvider):
 
         possessive_pronoun = self._possessive_pronoun(sex)
 
-        other_notes = [
-            "Start aspirin 75mg od. Remains on Lipitor 40mg nocte",
-            "For haloperidol 2mg po prn max qds",
-            "Start amoxicillin 500 mg b.i.d. for 7 days",
-            f"{possessive_pronoun.capitalize()} CRP is 10",
-            (
-                f"{possessive_pronoun.capitalize()} "
-                "previous CRP was <13 mg/dl"
-            ),
-            "Sodium 140",
-            "TSH 3.5; urea normal",
-            "Height 1.82m, weight 75kg, BMI 22.6. BP 135/82",
-            "MMSE 28/30. ACE-R 72, ACE-II 73, ACE 73",
-            "ESR 16 (H) mm/h",
-            (
-                "WBC 9.2; neutrophils 4.3; lymphocytes 2.6; "
-                "eosinophils 0.4; monocytes 1.2; basophils 0.6"
-            ),
-            (
-                f"{forename} took venlafaxine 375 M/R od, "
-                "and is due to start clozapine 75mg bd"
-            ),
-        ]
-
-        other_note = self.generator.word(other_notes)
+        medications = self.generator.medications(forename)
+        results = self.generator.results(possessive_pronoun)
 
         formatted_dob = dob.strftime(self.generator.date_format())
         note_date_formatted = note_datetime.strftime(
             self.generator.date_format()
         )
-        another_date_formatted = self.generator.formatted_date_of_birth()
         alcohol = self.generator.alcohol()
+        job_title = self.generator.medical_job_title()
+        address = self.generator.healthcare_facility_address()
+        red_herring = self.generator.red_herring()
 
-        note_text = (
-            f"I saw {forename} {surname} on "
-            f"{note_date_formatted} "
-            f"(DOB: {formatted_dob}, NHS {nhs_number}, "
-            f"Patient id: {patient_id}), "
+        intro = (
+            f"{job_title}"
+            f"{address}"
+            f"Re: {forename} {surname}\n"
+            f"DOB: {formatted_dob}, NHS: {nhs_number}\n"
+            f"I saw {forename} {surname} on {note_date_formatted} "
             f"accompanied by {possessive_pronoun} "
-            f"{relation_relationship} {relation_name}. "
-            f"{alcohol}. "
-            f"Another date: {another_date_formatted}. "
-            f"{other_note}."
+            f"{relation_relationship} {relation_name}.\n"
         )
 
-        num_pad_words = words_per_note - len(note_text.split())
-        pad_words = " ".join(pad_paragraph.split()[:num_pad_words])
-        return f"{note_text} {pad_words}"
+        detail = f"{alcohol}\n{medications}\n{results}\n{red_herring}"
+
+        num_words = len(intro.split()) + len(detail.split())
+
+        num_pad_words = words_per_note - num_words
+
+        pad_words = ""
+        if num_pad_words > 0:
+            pad_words = " ".join(pad_paragraph.split()[:num_pad_words])
+
+        note = f"{intro} {pad_words} {detail}"
+
+        assert len(note.split()) >= words_per_note
+
+        return note
 
 
 class PatientFileProvider(BaseProvider):
@@ -410,6 +603,40 @@ class NhsNumberProvider(BaseProvider):
         return generate_random_nhs_number()
 
 
+class MedicalJobTitleProvider(ChoiceProvider):
+    def medical_job_title(self) -> str:
+        return self.random_choice(
+            [
+                "Cardiologist",
+                "Consultant Chemical Pathologist",
+                "Consultant Dermatologist",
+                "Consultant Neurologist",
+                "Consultant Orthopaedic Surgeon",
+                "Consultant Physician",
+                "Consultant Psychiatrist",
+                "Consultant Surgeon",
+                "Consultant Urologist",
+                "Lead Nurse for Safeguarding",
+                "Respiratory Consultant",
+                "Surgical Admissions Doctor",
+            ]
+        )
+
+
+class HealthcareFacilityAddressProvider(BaseProvider):
+    def healthcare_facility_address(self) -> str:
+        city = self.generator.city()
+        street_name = self.generator.street_name()
+        postcode = self.generator.postcode()
+
+        return f"""
+{city} Hospital
+{street_name}
+{city}
+{postcode}
+"""
+
+
 def register_all_providers(fake: Faker) -> None:
     # Our own
     fake.add_provider(AgeProvider)
@@ -420,10 +647,15 @@ def register_all_providers(fake: Faker) -> None:
     fake.add_provider(ForenameProvider)
     fake.add_provider(FormattedDateOfBirthProvider)
     fake.add_provider(FormattedIncrementingDateProvider)
+    fake.add_provider(HealthcareFacilityAddressProvider)
     fake.add_provider(IncrementingDateProvider)
+    fake.add_provider(ResultProvider)
+    fake.add_provider(MedicationProvider)
+    fake.add_provider(MedicalJobTitleProvider)
     fake.add_provider(NhsNumberProvider)
     fake.add_provider(PatientFileProvider)
     fake.add_provider(PatientNoteProvider)
+    fake.add_provider(RedHerringProvider)
     fake.add_provider(RelationshipProvider)
     fake.add_provider(SexProvider)
 
