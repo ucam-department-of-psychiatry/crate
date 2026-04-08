@@ -229,8 +229,7 @@ CELERY_TASK_SERIALIZER = "json"
 # Results are OPTIONAL. The CRATE web service doesn't use them.
 # But may be helpful for Celery testing.
 # See http://docs.celeryproject.org/en/latest/configuration.html#std:setting-CELERY_RESULT_BACKEND  # noqa: E501
-CELERY_RESULT_BACKEND = "rpc://"  # uses AMQP
-CELERY_RESULT_PERSISTENT = False
+CELERY_RESULT_BACKEND = "redis://localhost:6379"
 
 
 # =============================================================================
