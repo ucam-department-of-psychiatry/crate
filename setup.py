@@ -109,7 +109,7 @@ INSTALL_REQUIRES = [
     "psutil==6.1.1",  # process management, cardinal_pythonlib dependency, not currently used  # noqa: E501
     "pyexcel-ods==0.6.0",  # for reading/writing ODS files
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
-    "pygments==2.15.0",  # syntax highlighting
+    "pygments==2.20.0",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
     "pypdf==6.9.2",  # create PDF files
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
