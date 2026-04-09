@@ -883,7 +883,7 @@ class DataDictionary:
 
         log.debug("Checking DD: opt-out fields...")
         for t in self.get_optout_defining_fields():
-            (src_db, src_table, optout_colname, pid_colname, mpid_colname) = t
+            src_db, src_table, optout_colname, pid_colname, mpid_colname = t
             if not pid_colname and not mpid_colname:
                 raise ValueError(
                     f"Field {src_db}.{src_table}.{optout_colname} has "

@@ -40,7 +40,6 @@ from django.db import connections
 from crate_anon.crateweb.config.constants import ClinicalDatabaseType
 from crate_anon.preprocess.systmone_ddgen import cpft_s1_tablename, S1Table
 
-
 # =============================================================================
 # Look up teams
 # =============================================================================
@@ -53,12 +52,10 @@ def get_cpft_systmone_teams() -> List[str]:
     """
     cursor = connections[ClinicalDatabaseType.CPFT_SYSTMONE].cursor()
     teams = cpft_s1_tablename(S1Table.TEAM)
-    cursor.execute(
-        f"""
+    cursor.execute(f"""
         SELECT DISTINCT TeamName
         FROM {teams}
         WHERE TeamDeleted IS NULL
         ORDER BY TeamName
-    """
-    )
+    """)
     return fetchallfirstvalues(cursor)

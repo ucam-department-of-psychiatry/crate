@@ -548,21 +548,17 @@ class CloudRequestDataTests(TestCase):
         """
         texts = ["Current CRP 7. Teetotal. Non-smoker."]
         engine = create_engine(self.dburl, future=True)
-        sql_create = text(
-            f"""
+        sql_create = text(f"""
                 CREATE TABLE {self.txttable} (
                     {self.pkcol} INTEGER,
                     {self.txtcol} TEXT
                 )
-            """
-        )
-        sql_insert = text(
-            f"""
+            """)
+        sql_insert = text(f"""
                 INSERT INTO {self.txttable}
                     ({self.pkcol}, {self.txtcol})
                     VALUES(:a, :b)
-            """
-        )
+            """)
         with engine.begin() as con:
             con.execute(sql_create)
             for i, txt in enumerate(texts, start=1):

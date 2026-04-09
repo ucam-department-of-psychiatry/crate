@@ -170,7 +170,6 @@ DATA DICTIONARY AUTOGENERATIO
 
 """
 
-
 import argparse
 import logging
 from typing import List

@@ -36,7 +36,6 @@ from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.version import CRATE_VERSION_PRETTY
 
-
 # =============================================================================
 # Main
 # =============================================================================

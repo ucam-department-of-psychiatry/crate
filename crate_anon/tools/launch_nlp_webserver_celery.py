@@ -39,7 +39,6 @@ from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
 from crate_anon.nlp_webserver.constants import NLP_WEBSERVER_CELERY_APP_NAME
 
-
 WINDOWS = platform.system() == "Windows"
 
 

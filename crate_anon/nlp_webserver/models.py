@@ -46,7 +46,6 @@ from sqlalchemy.sql.schema import ForeignKey
 # noinspection PyPackageRequirements
 from zope.sqlalchemy import register
 
-
 # =============================================================================
 # SQLAlchemy setup
 # =============================================================================

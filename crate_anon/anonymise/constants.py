@@ -36,7 +36,6 @@ from cardinal_pythonlib.enumlike import StrEnum
 from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 from crate_anon.nlp_manager.constants import DatabaseConfigKeys
 
-
 # =============================================================================
 # Logging
 # =============================================================================

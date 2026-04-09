@@ -536,8 +536,7 @@ else:
             if RUNNING_UNDER_DOCKER
             else "/etc/crate"
         )
-        raise ValueError(
-            f"""
+        raise ValueError(f"""
     You must set the {CRATEWEB_CONFIG_ENV_VAR} environment variable first.
     Aim it at your settings file, like this:
 
@@ -548,8 +547,7 @@ else:
     (For Windows:)
 
     set {CRATEWEB_CONFIG_ENV_VAR}=C:/some/path/my_secret_crate_settings.py
-        """
-        )
+        """)
 
     filename = os.environ[CRATEWEB_CONFIG_ENV_VAR]
     if RUNNING_UNDER_DOCKER:

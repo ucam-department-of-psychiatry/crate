@@ -30,7 +30,6 @@ Errors used by NLPRP servers.
 from cardinal_pythonlib.httpconst import HttpStatus
 from cardinal_pythonlib.reprfunc import auto_repr
 
-
 # =============================================================================
 # NlprpError
 # =============================================================================

@@ -2171,7 +2171,7 @@ def highlight_delete(request: HttpRequest, highlight_id: str) -> HttpResponse:
 
 
 def get_highlight_descriptions(
-    highlight_dict: Dict[int, List[Highlight]]
+    highlight_dict: Dict[int, List[Highlight]],
 ) -> List[str]:
     """
     Returns a list of length up to ``N_CSS_HIGHLIGHT_CLASSES`` of HTML

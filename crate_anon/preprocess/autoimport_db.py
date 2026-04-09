@@ -177,7 +177,7 @@ class SheetFiletypes:
 
 
 def does_datetime_have_zero_time(
-    d: Union[datetime.datetime, pendulum.DateTime]
+    d: Union[datetime.datetime, pendulum.DateTime],
 ) -> bool:
     """
     Does a given datetime-like object have all its time fields set to zero?
@@ -697,7 +697,7 @@ def dict_from_rows(
 
 
 def translate_empty_str_to_none(
-    reader: Iterable[Dict[str, Any]]
+    reader: Iterable[Dict[str, Any]],
 ) -> Generator[SPREADSHEET_DICT_ROW_TYPE, None, None]:
     """
     Yield dictionaries (mapping column name to value), but
@@ -784,7 +784,7 @@ def gen_sheets_from_xlsx(
 
 
 def gen_files_from_zipfile(
-    zipfilename: Union[Path, str]
+    zipfilename: Union[Path, str],
 ) -> Generator[Tuple[Path, IO], None, None]:
     """
     Iterates ZIP file(s), yielding filenames and corresponding file-like

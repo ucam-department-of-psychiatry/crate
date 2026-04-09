@@ -36,7 +36,6 @@ from typing import List
 from cardinal_pythonlib.dbfunc import fetchallfirstvalues
 from django.db import connections
 
-
 # =============================================================================
 # Look up teams
 # =============================================================================
@@ -52,11 +51,9 @@ def get_rio_teams_rcep_crate(source_db: str) -> List[str]:
             :class:`crate_anon.crateweb.config.constants.ClinicalDatabaseType`
     """
     cursor = connections[source_db].cursor()
-    cursor.execute(
-        """
+    cursor.execute("""
         SELECT DISTINCT Team_Description
         FROM Referral_Team_History
         ORDER BY Team_Description
-    """
-    )
+    """)
     return fetchallfirstvalues(cursor)

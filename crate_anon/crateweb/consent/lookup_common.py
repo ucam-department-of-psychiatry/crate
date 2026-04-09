@@ -40,7 +40,6 @@ from crate_anon.crateweb.consent.models import (
 )
 from crate_anon.crateweb.consent.utils import latest_date
 
-
 # =============================================================================
 # Constants
 # =============================================================================

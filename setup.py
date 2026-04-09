@@ -70,13 +70,13 @@ INSTALL_REQUIRES = [
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.13.4",  # [pin exact version from cardinal_pythonlib]
     "cardinal_pythonlib==2.1.3",  # RNC libraries
-    "cairosvg==2.7.0",  # work with SVG files
+    "cairosvg==2.9.0",  # work with SVG files
     "celery==5.2.7",  # back-end scheduling
     "chardet==5.2.0",  # character encoding detection for cardinal_pythonlib
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==4.2.28",  # for main CRATE research database web server
+    "django==4.2.30",  # for main CRATE research database web server
     "django-debug-toolbar==3.2.1",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
@@ -109,9 +109,9 @@ INSTALL_REQUIRES = [
     "psutil==6.1.1",  # process management, cardinal_pythonlib dependency, not currently used  # noqa: E501
     "pyexcel-ods==0.6.0",  # for reading/writing ODS files
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
-    "pygments==2.15.0",  # syntax highlighting
+    "pygments==2.20.0",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
-    "pypdf==6.7.1",  # create PDF files
+    "pypdf==6.9.2",  # create PDF files
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html
@@ -126,14 +126,14 @@ INSTALL_REQUIRES = [
     # Packages for cloud NLP:
     # -------------------------------------------------------------------------
     "bcrypt==3.2.2",  # bcrypt encryption
-    "cryptography==46.0.5",  # cryptography library
+    "cryptography==46.0.7",  # cryptography library
     # "mysqlclient",  # database access
     "paste==3.4.2",  # middleware; https://github.com/cdent/paste/
     "pyramid==1.10.8",  # Pyramid web framework
     "pyramid_tm==2.4",  # Pyramid transaction management
     "redis==4.5.4",  # interface to Redis in-memory key-value database
-    "requests==2.32.4",  # HTTP requests
-    "tornado==6.5",  # web framework
+    "requests==2.33.0",  # HTTP requests
+    "tornado==6.5.5",  # web framework
     "transaction==3.0.0",  # generic transaction management
     "urllib3==2.6.3",  # used by requests
     "waitress==3.0.1",  # pure-Python WSGI server
@@ -141,7 +141,7 @@ INSTALL_REQUIRES = [
     # -------------------------------------------------------------------------
     # For development only:
     # -------------------------------------------------------------------------
-    "black==24.3.0",  # auto code formatter, keep in sync with .pre-commit-config.yaml  # noqa: E501
+    "black==26.3.1",  # auto code formatter, keep in sync with .pre-commit-config.yaml  # noqa: E501
     "factory_boy==3.3.0",  # easier test data creation
     "faker==13.3.1",  # test data creation
     "faker-file[common]==0.17.13",  # test file creation

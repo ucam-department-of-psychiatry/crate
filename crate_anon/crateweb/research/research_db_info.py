@@ -558,8 +558,7 @@ class SingleResearchDatabase:
                 "No schema_names specified (for SQL Server " "database)"
             )
         schema_placeholder = ",".join(["?"] * len(schema_names))
-        sql = translate_sql_qmark_to_percent(
-            f"""
+        sql = translate_sql_qmark_to_percent(f"""
 SELECT
     ? AS table_catalog,
     d.table_schema,
@@ -616,8 +615,7 @@ ORDER BY
     table_schema,
     table_name,
     column_name
-            """
-        )
+            """)
         args = [db_name] + schema_names
         return sql, args
 
@@ -691,8 +689,7 @@ ORDER BY
         # columns for non-indexed fields.
         # However, you can have more than one index on a column, in which
         # case the column appears in two rows.
-        sql = translate_sql_qmark_to_percent(
-            """
+        sql = translate_sql_qmark_to_percent("""
 SELECT
     '' AS table_catalog,
     d.table_schema,
@@ -741,8 +738,7 @@ ORDER BY
     table_schema,
     table_name,
     column_name
-            """
-        )
+            """)
         args = [db_and_schema_name]
         return sql, args
 
@@ -786,8 +782,7 @@ ORDER BY
                 "No schema_names specified (for PostgreSQL " "database)"
             )
         schema_placeholder = ",".join(["?"] * len(schema_names))
-        sql = translate_sql_qmark_to_percent(
-            f"""
+        sql = translate_sql_qmark_to_percent(f"""
 SELECT
     '' AS table_catalog,
     d.table_schema,
@@ -846,8 +841,7 @@ ORDER BY
     table_schema,
     table_name,
     column_name
-            """
-        )
+            """)
         args = schema_names
         return sql, args
 

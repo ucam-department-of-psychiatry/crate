@@ -35,7 +35,6 @@ from unittest import TestCase
 
 from crate_anon.common.regex_helpers import first_n_characters_required
 
-
 # =============================================================================
 # Unit tests
 # =============================================================================

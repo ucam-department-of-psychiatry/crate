@@ -31,7 +31,6 @@ from typing import Iterable, List, Union
 
 import regex  # sudo apt-get install python-regex
 
-
 # =============================================================================
 # Constants
 # =============================================================================

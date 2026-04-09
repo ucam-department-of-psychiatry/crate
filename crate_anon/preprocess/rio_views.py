@@ -61,7 +61,6 @@ from crate_anon.preprocess.rio_view_func import (
     where_prognotes_current,
 )
 
-
 # =============================================================================
 # RiO view creators: collection
 # =============================================================================
