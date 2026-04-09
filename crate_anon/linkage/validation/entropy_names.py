@@ -281,7 +281,6 @@ since this code had served it purpose.
 
 """  # noqa: E501
 
-
 # =============================================================================
 # Imports
 # =============================================================================
@@ -350,7 +349,7 @@ def p_log2_p_over_q(p: float, q: float) -> float:
 
 
 def relative_entropy_kl_divergence(
-    pairs: Iterable[Tuple[float, float]]
+    pairs: Iterable[Tuple[float, float]],
 ) -> float:
     """
     Returns the relative entropy, or Kullback-Leibler divergence, D_KL(P || Q),

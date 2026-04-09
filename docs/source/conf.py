@@ -94,7 +94,6 @@ from sphinx.ext.autodoc import Options
 from crate_anon.common.constants import EnvVar
 from crate_anon.version import CRATE_VERSION
 
-
 # -- Project information -----------------------------------------------------
 
 project = "CRATE"

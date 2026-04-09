@@ -36,7 +36,6 @@ import os
 from crate_anon.anonymise.config import Config
 from crate_anon.common.constants import EnvVar
 
-
 # =============================================================================
 # Singleton config
 # =============================================================================

@@ -54,7 +54,6 @@ import distro
 
 from crate_anon.version import require_minimum_python_version
 
-
 require_minimum_python_version()
 if not platform.system() == "Linux":
     raise AssertionError("Need Linux")

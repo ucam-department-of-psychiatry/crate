@@ -30,7 +30,6 @@ Natural Language Processing Request Protocol (NLPRP) constants.
 from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 from semantic_version import Version
 
-
 # =============================================================================
 # NLPRP strings
 # =============================================================================

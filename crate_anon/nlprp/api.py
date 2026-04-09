@@ -65,7 +65,6 @@ from crate_anon.nlprp.errors import (
 )
 from crate_anon.nlprp.version import NLPRP_VERSION_STRING
 
-
 # =============================================================================
 # Constants
 # =============================================================================

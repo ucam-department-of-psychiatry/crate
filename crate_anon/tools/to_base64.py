@@ -37,7 +37,6 @@ import sys
 
 from rich_argparse import ArgumentDefaultsRichHelpFormatter
 
-
 log = logging.getLogger(__name__)
 
 RE_WHITESPACE = re.compile(r"[ \n\t]+")

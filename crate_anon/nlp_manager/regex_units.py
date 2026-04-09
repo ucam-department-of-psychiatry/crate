@@ -37,7 +37,6 @@ from crate_anon.nlp_manager.regex_numbers import (
     TRILLION,
 )
 
-
 # =============================================================================
 # Physical units
 # =============================================================================
@@ -364,9 +363,7 @@ SQ_M = r"""
         | (?: {m} \s+ sq(?:uared?)? )   # m sq, metres square(d), etc.
         | {m_sq}                        # m ^ 2, etc.
     )
-""".format(
-    m=M, m_sq=power(M, 2)
-)
+""".format(m=M, m_sq=power(M, 2))
 
 # BMI
 KG_PER_SQ_M = r"(?: {kg_per_sqm} | {kg_sqm_pow_minus2} )".format(

@@ -39,7 +39,6 @@ from rich_argparse import ArgumentDefaultsRichHelpFormatter
 from crate_anon.common.exceptions import call_main_with_exception_reporting
 from crate_anon.crateweb.config.constants import CRATEWEB_CELERY_APP_NAME
 
-
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 DJANGO_ROOT = os.path.abspath(os.path.join(THIS_DIR, os.pardir, "crateweb"))
 WINDOWS = platform.system() == "Windows"

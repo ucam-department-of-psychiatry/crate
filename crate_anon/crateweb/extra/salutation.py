@@ -29,7 +29,6 @@ crate_anon/crateweb/extra/salutation.py
 
 from typing import Optional, Tuple
 
-
 # =============================================================================
 # Salutation and other forms of name/title generation
 # =============================================================================

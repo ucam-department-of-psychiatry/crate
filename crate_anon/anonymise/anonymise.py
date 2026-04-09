@@ -518,16 +518,14 @@ def get_pid_subset_from_field(
     txt_elements = ", ".join(values_to_find)
     txt_elements = "(" + txt_elements + ")"
 
-    sql = text(
-        f"""
+    sql = text(f"""
         SELECT {source_table}.{source_field}
         FROM {source_table}
         JOIN {tablename}
             ON {source_table}.{source_field} = {tablename}.{fieldname}
         WHERE {tablename}.{fieldname} IN {txt_elements}
         AND {source_table}.{source_field} IS NOT NULL
-    """
-    )
+    """)
     result = session.execute(sql)
 
     # todo:: fix this raw SQL to SQLAlchemy; should be possible.
@@ -740,16 +738,14 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[Any]:
     # with the primary pid
     source_field = row.src_field
     source_table = row.src_table
-    sql = text(
-        f"""
+    sql = text(f"""
         SELECT {source_table}.{source_field}
         FROM {source_table}
         JOIN {tablename}
             ON {source_table}.{source_field} = {tablename}.{fieldname}"
         WHERE ({tablename}.{fieldname} BETWEEN {low} AND {high})
         AND {source_table}.{source_field} IS NOT NULL"
-    """
-    )
+    """)
     result = session.execute(sql)
 
     # todo:: fix raw SQL as above

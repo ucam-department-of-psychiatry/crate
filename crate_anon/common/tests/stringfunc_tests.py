@@ -31,7 +31,6 @@ from unittest import TestCase
 
 from crate_anon.common.stringfunc import relevant_for_nlp
 
-
 # =============================================================================
 # Unit tests
 # =============================================================================

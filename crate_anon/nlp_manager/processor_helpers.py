@@ -37,7 +37,6 @@ from typing import Optional
 
 from crate_anon.nlp_manager.base_nlp_parser import TableMaker
 
-
 # =============================================================================
 # Helper functions
 # =============================================================================

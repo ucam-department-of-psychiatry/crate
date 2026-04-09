@@ -47,7 +47,6 @@ from crate_anon.linkage.helpers import (
 )
 from crate_anon.linkage.constants import INFINITY, MINUS_INFINITY
 
-
 # =============================================================================
 # Simple person-related probability calculations
 # =============================================================================

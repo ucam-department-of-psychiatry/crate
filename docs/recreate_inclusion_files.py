@@ -360,8 +360,7 @@ def main():
             check=True,
         )
     except (FileNotFoundError, subprocess.CalledProcessError):
-        log.error(
-            """Error advice:
+        log.error("""Error advice:
 GENERAL SOLUTION: Install recent version of nvm:
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash
     source ~/.bashrc
@@ -404,8 +403,7 @@ SOLUTION:
     sudo npm install -g n
     sudo n stable
     sudo npm install npm@latest -g
-"""  # noqa: E501
-        )
+""")  # noqa: E501
         raise
 
     # -------------------------------------------------------------------------

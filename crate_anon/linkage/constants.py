@@ -43,7 +43,6 @@ from cardinal_pythonlib.probability import probability_from_log_odds
 
 from crate_anon.common.constants import EnvVar
 
-
 # =============================================================================
 # Helper functions
 # =============================================================================

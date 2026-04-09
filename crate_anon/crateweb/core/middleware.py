@@ -35,7 +35,6 @@ from django.utils.deprecation import MiddlewareMixin
 from crate_anon.crateweb.config.constants import AdminSiteNames
 from crate_anon.crateweb.core.utils import is_developer
 
-
 # =============================================================================
 # RestrictAdminMiddleware
 # =============================================================================

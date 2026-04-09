@@ -36,7 +36,6 @@ from cardinal_pythonlib.extract_text import wordwrap
 import prettytable
 import regex
 
-
 # =============================================================================
 # Simple string manipulation
 # =============================================================================
