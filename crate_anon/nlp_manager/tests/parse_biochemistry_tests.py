@@ -36,7 +36,6 @@ from crate_anon.nlp_manager.tests.regex_test_helperfunc import (
     run_tests_nlp_and_validator_classes,
 )
 
-
 # =============================================================================
 # Unit tests
 # =============================================================================

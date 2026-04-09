@@ -30,7 +30,6 @@ crate_anon/common/formatting.py
 from typing import List, Tuple
 from operator import itemgetter
 
-
 # =============================================================================
 # Ancillary functions
 # =============================================================================

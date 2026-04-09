@@ -46,7 +46,6 @@ from crate_anon.nlp_manager.constants import (
     MEDEX_RESULTS_READY_SIGNAL,
 )
 
-
 log = logging.getLogger(__name__)
 
 EXIT_FAILURE = 1

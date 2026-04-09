@@ -1927,7 +1927,7 @@ class TriglyceridesValidator(ValidatorBase):
 
 
 def hba1c_mmol_per_mol_from_percent(
-    percent: Union[float, str]
+    percent: Union[float, str],
 ) -> Optional[float]:
     """
     Convert an HbA1c value from old percentage units -- DCCT (Diabetes Control

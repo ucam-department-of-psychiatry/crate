@@ -37,7 +37,6 @@ from crate_anon.crateweb.consent.models import (
     PatientLookupBase,
 )
 
-
 # =============================================================================
 # Dummy clinical database (part of CRATE)
 # =============================================================================

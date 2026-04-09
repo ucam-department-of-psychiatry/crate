@@ -133,7 +133,7 @@ def assert_text_regex(
 
 
 def run_tests_nlp_and_validator_classes(
-    all_nlp_and_validators: List[Tuple[BaseNlpParser, ValidatorBase]]
+    all_nlp_and_validators: List[Tuple[BaseNlpParser, ValidatorBase]],
 ) -> None:
     """
     Tests multiple pairs of NLP classes and their associated validators.

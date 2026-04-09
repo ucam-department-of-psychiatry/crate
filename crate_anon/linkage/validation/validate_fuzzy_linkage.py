@@ -1004,8 +1004,7 @@ def validate_2_fetch_cdl(
         -- exceeds 10,000/year from 1999-2012 inclusive.
 
     """
-    sql = text(
-        """
+    sql = text("""
         SELECT
             -- TOP 0  -- use for debugging; check syntax, no results
             -- or use COUNT(*) instead of what follows
@@ -1104,8 +1103,7 @@ def validate_2_fetch_cdl(
 
         -- Final count: 152888 (on 2022-05-26).
         -- Compare: SELECT COUNT(*) FROM rawCRSCDL.dbo.[CRS_Output_2020 09 21] = 162874
-    """  # noqa: E501
-    )
+    """)  # noqa: E501
     engine = create_engine(url, echo=echo, future=True)
     result = exec_get_result(engine, sql)
     q = QueryColnames
@@ -1214,8 +1212,7 @@ def validate_2_fetch_pcmis(
         -- exceeds 10,000/year from 2015-2019 inclusive;
 
     """
-    sql = text(
-        """
+    sql = text("""
         SELECT
             -- TOP 0  -- for debugging
 
@@ -1358,8 +1355,7 @@ def validate_2_fetch_pcmis(
 
         -- Final count: 93347 (on 2022-05-26).
         -- Compare: SELECT COUNT(*) FROM rawPCMIS.dbo.PatientDetails = 94344.
-    """  # noqa: E501
-    )
+    """)  # noqa: E501
     engine = create_engine(url, echo=echo, future=True)
     result = exec_get_result(engine, sql)
     q = QueryColnames
@@ -1439,8 +1435,7 @@ def _get_rio_postcodes(
         list: of postcodes in :class:`PostcodeInfo` format
 
     """
-    sql = text(
-        """
+    sql = text("""
         SELECT DISTINCT
             -- TOP 0  -- for debugging
 
@@ -1472,8 +1467,7 @@ def _get_rio_postcodes(
             start_date,
             end_date,
             postcode
-    """
-    )
+    """)
     rows = exec_get_result(engine, sql, patient_id=rio_patient_id)
     q = QueryColnames
     postcodes = [
@@ -1593,8 +1587,7 @@ def _get_rio_names(
         -- So no, not always the same.
 
     """
-    sql = text(
-        """
+    sql = text("""
         SELECT
             -- OK to use UPPER() with NULL values. Result is, of course, NULL.
             -- But we will case-standardize everything later anywa.
@@ -1611,8 +1604,7 @@ def _get_rio_names(
             AND EndDate IS NULL  -- still current
             AND Deleted = 0  -- redundant
             AND AliasType = '1'  -- usual name
-    """
-    )
+    """)
     result = exec_get_result(engine, sql, client_id=rio_client_id)
     rows = result.fetchall()  # type: List[Row]
     n_rows = len(rows)  # or result.rowcount()
@@ -1671,8 +1663,7 @@ def validate_2_fetch_rio(
     ``Client``.
 
     """
-    sql = text(
-        """
+    sql = text("""
         SELECT
             -- TOP 0  -- for debugging
 
@@ -1789,8 +1780,7 @@ def validate_2_fetch_rio(
         -- 2022-06-16) after removal of NNNStatus clause.
         -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.ClientIndex = 216739
         -- Compare: SELECT COUNT(*) FROM RiO62CAMLive.dbo.Client = 216739
-    """  # noqa: E501
-    )
+    """)  # noqa: E501
     engine = create_engine(url, echo=echo, future=True)
     result = exec_get_result(engine, sql)
     q = QueryColnames
@@ -1856,8 +1846,7 @@ def _get_systmone_postcodes(
         list: of postcodes in :class:`PostcodeInfo` format
 
     """
-    sql = text(
-        """
+    sql = text("""
         SELECT DISTINCT
             -- TOP 0  -- for debugging
 
@@ -1887,8 +1876,7 @@ def _get_systmone_postcodes(
             start_date,
             end_date,
             postcode
-    """
-    )
+    """)
     rows = exec_get_result(engine, sql, patient_id=systmone_patient_id)
     q = QueryColnames
     postcodes = [
@@ -1971,8 +1959,7 @@ def validate_2_fetch_systmone(
         -- returns 0
 
     """
-    sql = text(
-        """
+    sql = text("""
         SELECT
             -- TOP 0  -- for debugging
 
@@ -2086,8 +2073,7 @@ def validate_2_fetch_systmone(
 
         -- Final count: 613175 (2022-06-01).
         -- Compare: SELECT COUNT(*) FROM SystmOne.dbo.S1_Patient = 619062.
-    """  # noqa: E501
-    )
+    """)  # noqa: E501
     engine = create_engine(url, echo=echo, future=True)
     result = exec_get_result(engine, sql)
     q = QueryColnames

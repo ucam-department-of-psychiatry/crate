@@ -30,7 +30,6 @@ crate_anon/nlp_manager/constants.py
 from cardinal_pythonlib.hash import HmacMD5Hasher
 from sqlalchemy.types import String
 
-
 # =============================================================================
 # Constants
 # =============================================================================

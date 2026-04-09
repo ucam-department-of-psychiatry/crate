@@ -69,7 +69,7 @@ def compile_regex(regex_str: str) -> Pattern:
 
 
 def compile_regex_dict(
-    regexstr_to_value_dict: Dict[str, Any]
+    regexstr_to_value_dict: Dict[str, Any],
 ) -> Dict[Pattern, Any]:
     """
     Converts a dictionary ``{regex_str: value}`` to a dictionary
