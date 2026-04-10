@@ -378,6 +378,16 @@ body {
     min-height: 20em;
 }
 
+.progress-bar-container {
+    padding-top:
+}
+
+#progress-bar {
+    height:30px;
+    width: 100%;
+    border-radius: 5px;
+}
+
 #main p.wizard-step {
     margin: 1em 0;
 }

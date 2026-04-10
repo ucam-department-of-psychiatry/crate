@@ -6,26 +6,49 @@
 {% endblock %}
 
 {% block nlp_classification_content %}
-<div class="container" style="padding-top: 20px;">
-	<div class="card" style="height: 120px;">
-        <div class="text-center" style="font-size: 14px">
-	        <div id="progress-bar-message">
-	        </div>
-        </div>
-        <div class='progress-wrapper' style="padding-top: 10px;">
-            <div id='progress-bar' class='progress-bar progress-bar-striped' role='progressbar' style="height:30px; width: 0%; border-radius: 5px">&nbsp;</div>
-        </div>
-        <div id="celery-result">
-        </div>
+<div class="progress-bar-container">
+    <div class="progress-wrapper">
+        <label for="progress-bar" id="progress-bar-message"></label>
+        <progress id="progress-bar" value="0" max="100"></progress>
 	</div>
 </div>
+<a href="{% url 'nlp_classification_admin_home' %}">Administration</a>
 
 {% block progress_bar_js %}
 {% if task_id %}
 <script type="text/javascript">
+    function onProgress(progressBarElement, progressBarMessageElement, progress) {
+        progressBarElement.max = progress.total;
+        progressBarElement.value = progress.current;
+
+        var description = "";
+        if (progress.description) {
+            description = progress.description + ": ";
+        }
+        if (progress.current == 0) {
+            if (progress.pending === true) {
+                progressBarMessageElement.textContent = "Waiting for background task to start...";
+            } else {
+                progressBarMessageElement.textContent = "Creating source records...";
+            }
+        } else {
+            progressBarMessageElement.textContent = description + progress.current + " of " + progress.total + " processed.";
+        }
+
+    }
+
+    function onSuccess(progressBarElement, progressBarMessageElement, result) {
+        if (progressBarMessageElement) {
+            progressBarMessageElement.textContent = result;
+        }
+    }
+
 	$(function () {
 		var progressUrl = "{% url 'celery_progress:task_status' task_id %}";
-		CeleryProgressBar.initProgressBar(progressUrl, {})
+		CeleryProgressBar.initProgressBar(progressUrl, {
+            onProgress: onProgress,
+            onSuccess: onSuccess,
+        })
 	});
 </script>
 {% endif %}
