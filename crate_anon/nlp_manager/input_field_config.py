@@ -403,7 +403,8 @@ class InputFieldConfig:
         t = Table(self._srctable, meta, autoload_with=self._source_engine)
         copy_columns = []  # type: List[Column]
         processed_copy_column_names = []  # type: List[str]
-        for c in t.columns:
+        ordered_columns = sorted(t.columns, key=lambda c: c.name)
+        for c in ordered_columns:
             # if c.name.lower() in self._copyfields:
             if c.name in self._copyfields:
                 copied = c.copy()
