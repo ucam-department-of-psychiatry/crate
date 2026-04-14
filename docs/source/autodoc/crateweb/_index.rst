@@ -141,6 +141,7 @@ crate_anon/crateweb
     core/auth_views.py.rst
     core/constants.py.rst
     core/context_processors.py.rst
+    core/decorators.py.rst
     core/management/__init__.py.rst
     core/management/commands/__init__.py.rst
     core/management/commands/ensuresuperuser.py.rst

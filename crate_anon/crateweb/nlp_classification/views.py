@@ -36,6 +36,7 @@ from django.http.response import HttpResponse, HttpResponseRedirect
 from django.forms import Form
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView, UpdateView
 import django_tables2 as tables
 from formtools.wizard.views import SessionWizardView
@@ -44,6 +45,7 @@ from crate_anon.crateweb.core.constants import (
     NLP_DB_CONNECTION_NAME,
     RESEARCH_DB_CONNECTION_NAME,
 )
+from crate_anon.crateweb.core.decorators import ensure_nlp_connection_exists
 from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
 from crate_anon.crateweb.nlp_classification.forms import (
     UserAnswerForm,
@@ -87,10 +89,12 @@ from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
 User = get_user_model()
 
 
+@method_decorator(ensure_nlp_connection_exists, name="dispatch")
 class AdminHomeView(TemplateView):
     template_name = "nlp_classification/admin/home.html"
 
 
+@method_decorator(ensure_nlp_connection_exists, name="dispatch")
 class UserHomeView(TemplateView):
     template_name = "nlp_classification/user/home.html"
 
@@ -109,6 +113,7 @@ class UserHomeView(TemplateView):
         )
 
 
+@method_decorator(ensure_nlp_connection_exists, name="dispatch")
 class UserAnswerView(UserPassesTestMixin, UpdateView):
     model = UserAnswer
     template_name = "nlp_classification/user/useranswerupdate_form.html"
@@ -174,6 +179,7 @@ def should_create_question(wizard: SessionWizardView) -> bool:
     return not wizard.has_selected_question
 
 
+@method_decorator(ensure_nlp_connection_exists, name="dispatch")
 class NlpClassificationWizardView(SessionWizardView):
     template_name = "nlp_classification/admin/wizard_form.html"
 

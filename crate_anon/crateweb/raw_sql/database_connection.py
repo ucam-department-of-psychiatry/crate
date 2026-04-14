@@ -59,6 +59,9 @@ class DatabaseConnection:
         self.connection_name = connection_name
         self._schema_infodictlist = None
 
+    def exists(self) -> bool:
+        return self.connection_name in connections
+
     def fetchone_as_dict(
         self,
         column_names: Iterable[str],
