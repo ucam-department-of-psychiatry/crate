@@ -177,7 +177,12 @@ class NlpClassificationWizardViewTests(TestCase):
 
                 self.mock_request.POST[self.current_step_param] = step
 
-            self.view.dispatch(self.mock_request)
+            with mock.patch.multiple(
+                self.view,
+                get_source_database_connection=self.mock_view_get_source_db_connection,  # noqa: E501
+                get_nlp_database_connection=self.mock_view_get_nlp_db_connection,  # noqa: E501
+            ):
+                self.view.dispatch(self.mock_request)
 
     @property
     def current_step_param(self) -> str:
@@ -520,14 +525,6 @@ class SampleDataWizardViewTests(NlpClassificationWizardViewTests):
         self.mock_render = mock.Mock()
 
     view_class = SampleDataWizardView
-
-    def post(self, step: str, post_dict: dict[str, Any]) -> None:
-        with mock.patch.multiple(
-            self.view,
-            get_source_database_connection=self.mock_view_get_source_db_connection,  # noqa: E501
-            get_nlp_database_connection=self.mock_view_get_nlp_db_connection,
-        ):
-            super().post(step, post_dict)
 
     @property
     def first_step(self) -> str:

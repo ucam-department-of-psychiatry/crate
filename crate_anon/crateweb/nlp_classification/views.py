@@ -32,11 +32,11 @@ from typing import Any, Optional
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.http.request import HttpRequest
 from django.http.response import HttpResponse, HttpResponseRedirect
 from django.forms import Form
 from django.shortcuts import render
 from django.urls import reverse
-from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView, UpdateView
 import django_tables2 as tables
 from formtools.wizard.views import SessionWizardView
@@ -45,7 +45,6 @@ from crate_anon.crateweb.core.constants import (
     NLP_DB_CONNECTION_NAME,
     RESEARCH_DB_CONNECTION_NAME,
 )
-from crate_anon.crateweb.core.decorators import ensure_nlp_connection_exists
 from crate_anon.crateweb.nlp_classification.constants import WizardSteps as ws
 from crate_anon.crateweb.nlp_classification.forms import (
     UserAnswerForm,
@@ -89,13 +88,35 @@ from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
 User = get_user_model()
 
 
-@method_decorator(ensure_nlp_connection_exists, name="dispatch")
-class AdminHomeView(TemplateView):
+class DatabaseConnectionMixin:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        if not self.get_nlp_database_connection().exists():
+            error = (
+                f"No database connection named '{NLP_DB_CONNECTION_NAME}' "
+                "exists. Check DATABASES in your local_settings.py file."
+            )
+
+            context = dict(error=error)
+            return render(
+                request,
+                "generic_error.html",
+                context=context,
+            )
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_source_database_connection(self) -> DatabaseConnection:
+        return DatabaseConnection(RESEARCH_DB_CONNECTION_NAME)
+
+    def get_nlp_database_connection(self) -> DatabaseConnection:
+        return DatabaseConnection(NLP_DB_CONNECTION_NAME)
+
+
+class AdminHomeView(DatabaseConnectionMixin, TemplateView):
     template_name = "nlp_classification/admin/home.html"
 
 
-@method_decorator(ensure_nlp_connection_exists, name="dispatch")
-class UserHomeView(TemplateView):
+class UserHomeView(DatabaseConnectionMixin, TemplateView):
     template_name = "nlp_classification/user/home.html"
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
@@ -113,8 +134,7 @@ class UserHomeView(TemplateView):
         )
 
 
-@method_decorator(ensure_nlp_connection_exists, name="dispatch")
-class UserAnswerView(UserPassesTestMixin, UpdateView):
+class UserAnswerView(DatabaseConnectionMixin, UserPassesTestMixin, UpdateView):
     model = UserAnswer
     template_name = "nlp_classification/user/useranswerupdate_form.html"
     form_class = UserAnswerForm
@@ -179,8 +199,7 @@ def should_create_question(wizard: SessionWizardView) -> bool:
     return not wizard.has_selected_question
 
 
-@method_decorator(ensure_nlp_connection_exists, name="dispatch")
-class NlpClassificationWizardView(SessionWizardView):
+class NlpClassificationWizardView(DatabaseConnectionMixin, SessionWizardView):
     template_name = "nlp_classification/admin/wizard_form.html"
 
     def get_context_data(self, form: Form, **kwargs: Any) -> dict[str, Any]:
@@ -486,12 +505,6 @@ class SampleDataWizardView(NlpClassificationWizardView):
             kwargs["table_name"] = self.nlp_table_name
 
         return kwargs
-
-    def get_source_database_connection(self) -> DatabaseConnection:
-        return DatabaseConnection(RESEARCH_DB_CONNECTION_NAME)
-
-    def get_nlp_database_connection(self) -> DatabaseConnection:
-        return DatabaseConnection(NLP_DB_CONNECTION_NAME)
 
     @property
     def has_selected_source_table_definition(self) -> bool:
