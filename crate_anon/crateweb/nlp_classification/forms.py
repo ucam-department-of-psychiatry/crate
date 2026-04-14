@@ -72,7 +72,7 @@ class UserAnswerForm(ModelForm):
             queryset=Option.objects.filter(
                 question=self.instance.assignment.question
             ),
-            widget=RadioSelect,
+            widget=RadioSelect(attrs={"tabindex": 1}),
         )
 
 
