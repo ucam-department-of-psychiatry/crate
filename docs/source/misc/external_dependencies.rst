@@ -84,6 +84,9 @@ Versions of software etc. used by CRATE
 |                |    3.11 | 2027-10-31                                                 |
 |                |         | https://devguide.python.org/versions/                      |
 +----------------+---------+------------------------------------------------------------+
+| RabbitMQ       |   4.2.5 | No end date published                                      |
+|                |         | https://endoflife.date/rabbitmq                            |
++----------------+---------+------------------------------------------------------------+
 | SQLAlchemy     |     2.0 | No scheduled date. 2.1 is still in development.            |
 |                |         | https://www.sqlalchemy.org/download.html                   |
 +----------------+---------+------------------------------------------------------------+
