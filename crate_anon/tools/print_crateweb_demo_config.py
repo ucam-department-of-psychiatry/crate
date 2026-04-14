@@ -124,7 +124,7 @@ else:
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 BROKER_URL = "@@broker_url@@"
-CELERY_RESULT_BACKEND = "@@celery_result_backed@@"
+CELERY_RESULT_BACKEND = "@@celery_result_backend@@"
 
 # =============================================================================
 # Database configuration
