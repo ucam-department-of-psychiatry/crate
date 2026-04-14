@@ -29,6 +29,7 @@
 .. _MySQL: https://www.mysql.com/
 .. _mysqlclient: https://pypi.org/project/mysqlclient/
 .. _RabbitMQ: https://www.rabbitmq.com/
+.. _Redis: https://redis.io/
 .. _Start containers automatically: https://docs.docker.com/engine/containers/start-containers-automatically/
 
 
@@ -68,6 +69,8 @@ The installer uses Docker Compose to set up several containers, specifically:
 | ``crate_crate_workers`` | Processes background tasks for the CRATE web application via Celery_     |
 +-------------------------+--------------------------------------------------------------------------+
 | ``crate_rabbit_mq``     | Message queue, via RabbitMQ_.                                            |
++-------------------------+--------------------------------------------------------------------------+
+| ``crate_redis``         | Backend storage of task results, via Redis_.                             |
 +-------------------------+--------------------------------------------------------------------------+
 | ``crate_flower``        | Background task monitor, using Flower_.                                  |
 +-------------------------+--------------------------------------------------------------------------+
@@ -297,7 +300,7 @@ You should **not** expose this port to the "outside", beyond your host.
 CRATE_DOCKER_CRATE_WAIT_FOR
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-*Default: rabbitmq:5672*
+*Default: rabbitmq:5672 redis:6379*
 
 A space separated list of host:port entries of Docker containers that the CRATE
 server should wait for before starting up. If needed, the installer will append

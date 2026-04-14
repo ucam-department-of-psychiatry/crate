@@ -147,6 +147,27 @@ services:
         networks:
             - crateanon_network
 
+    # -------------------------------------------------------------------------
+    # Redis container, for Celery results.
+    # -------------------------------------------------------------------------
+    redis:
+
+        image: redis:8.6.2
+        container_name: crate_redis
+
+        # Restart policy
+        restart: "${CRATE_DOCKER_RESTART_POLICY}"
+
+        # Expose ports to linked services without publishing them to the host.
+        # Specify the container (internal) port.
+        expose:
+            # The default Redis port is 6379.
+            - "6379"
+
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        networks:
+            - crateanon_network
 
     # -------------------------------------------------------------------------
     # CRATE image, with build commands (to create from the Dockerfile),

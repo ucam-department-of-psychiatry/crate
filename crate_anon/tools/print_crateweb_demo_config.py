@@ -124,6 +124,7 @@ else:
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 BROKER_URL = "@@broker_url@@"
+CELERY_RESULT_BACKEND = "@@celery_result_backed@@"
 
 # =============================================================================
 # Database configuration
@@ -552,6 +553,7 @@ def main() -> None:
         "archive_template_cache_dir": "/tmp/somewhere/my_archive_template_cache",  # noqa: E501
         "archive_template_dir": "/home/somewhere/my_archive_templates",
         "broker_url": "",
+        "celery_result_backend": "redis://localhost:6379",
         "crate_https": "True",
         "crate_install_dir": "somewhere",
         "dest_db_engine": "django.db.backends.mysql",

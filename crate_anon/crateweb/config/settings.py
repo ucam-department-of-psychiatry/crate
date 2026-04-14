@@ -226,9 +226,15 @@ BROKER_URL = "amqp://"  # for Celery with RabbitMQ as broker
 CELERY_ACCEPT_CONTENT = ["json"]  # avoids potential pickle security problem
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TASK_SERIALIZER = "json"
-# Results are OPTIONAL. The CRATE web service doesn't use them.
-# But may be helpful for Celery testing.
-# See http://docs.celeryproject.org/en/latest/configuration.html#std:setting-CELERY_RESULT_BACKEND  # noqa: E501
+
+# Problems with Celery + RabbitMQ rpc backend
+#
+# https://github.com/celery/celery/issues/4084
+# https://github.com/celery/celery/issues/4830
+#
+# Use Redis for now. Results used to update progress bar during NLP
+# classification
+
 CELERY_RESULT_BACKEND = "redis://localhost:6379"
 
 
