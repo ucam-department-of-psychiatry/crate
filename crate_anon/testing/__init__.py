@@ -25,9 +25,30 @@ crate_anon/testing/__init__.py
 
 """
 
+from typing import Any
+
 from sqlalchemy import MetaData
 from sqlalchemy.orm import declarative_base
 
 # Access metadata through *Base.metadata
 AnonTestBase = declarative_base(metadata=MetaData())
 SourceTestBase = declarative_base(metadata=MetaData())
+
+
+def mock_connection_exit(self, type_: Any, value: Any, traceback: Any) -> None:
+    """
+    Ensure exceptions are raised when mocking context managers.
+
+    .. code-block:: python
+
+        from unittest import mock
+
+        from crate_anon.testing import mock_connection_exit
+
+        mock_thing = mock.Mock()
+        mock_cm = mock.Mock()
+        mock_cm.__enter__ = mock.Mock(return_value=mock_thing)
+        mock_cm.__exit___ = mock_connection_exit
+        mock_fn = mock.Mock(return_value=mock_cm)
+    """
+    return type_ is None

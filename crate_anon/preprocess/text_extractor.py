@@ -235,6 +235,18 @@ class SystmOneTextExtractor(TextExtractor):
                 nullable=False,
             ),
             Column(
+                S1GenericCol.EVENT_OCCURRED_WHEN,
+                DateTime,
+                comment="DateEvent from S1_Documents",
+                nullable=False,
+            ),
+            Column(
+                S1GenericCol.EVENT_RECORDED_WHEN,
+                DateTime,
+                comment="DateEventRecorded from S1_Documents",
+                nullable=False,
+            ),
+            Column(
                 CRATE_COL_FILE_PATH,
                 String(255),
                 comment="Path relative to docstore",
@@ -270,7 +282,17 @@ class SystmOneTextExtractor(TextExtractor):
         row = self.get_documents_table_row(connection, doc_info)
         if row is not None:
             patient_id = row._mapping[S1GenericCol.PATIENT_ID]
-            self.extract_text_into_database(connection, doc_info, patient_id)
+            date_event = row._mapping[S1GenericCol.EVENT_OCCURRED_WHEN]
+            date_event_recorded = row._mapping[
+                S1GenericCol.EVENT_RECORDED_WHEN
+            ]
+            self.extract_text_into_database(
+                connection,
+                doc_info,
+                patient_id,
+                date_event,
+                date_event_recorded,
+            )
 
     def already_extracted(
         self, connection: Connection, doc_info: SystmOneDocumentInfo
@@ -298,6 +320,8 @@ class SystmOneTextExtractor(TextExtractor):
         connection: Connection,
         doc_info: SystmOneDocumentInfo,
         patient_id: int,
+        date_event: DateTime,
+        date_event_recorded: DateTime,
     ) -> None:
         text, last_extracted = self.extract_text_from_file(
             doc_info.full_path, doc_info.extension
@@ -307,6 +331,8 @@ class SystmOneTextExtractor(TextExtractor):
             RowIdentifier=doc_info.row_identifier,
             DocumentUID=doc_info.document_uid,
             IDPatient=patient_id,
+            DateEvent=date_event,
+            DateEventRecorded=date_event_recorded,
             crate_file_path=doc_info.relative_path,
             crate_text=text,
             crate_text_last_extracted=last_extracted,

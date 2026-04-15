@@ -150,7 +150,7 @@ INSTALL_REQUIRES = [
     "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
     "paramiko==3.4.1",  # Python implementation of the SSHv2 protocol, required by faker-file  # noqa: E501
     "pre-commit==2.20.0",  # development only, various sanity checks on code
-    "pytest==8.3.4",  # automatic testing
+    "pytest==9.0.3",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
     "pytest-env==1.1.5",  # automatic testing
     "python-on-whales==0.68.0",  # python wrappers for testing with Docker
