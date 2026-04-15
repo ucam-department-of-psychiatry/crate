@@ -74,8 +74,3 @@ class AssignmentTable(tables.Table):
         )
 
         return Template.render(context_dict)
-
-
-class FieldTable(tables.Table):
-    name = tables.Column()
-    value = tables.Column()

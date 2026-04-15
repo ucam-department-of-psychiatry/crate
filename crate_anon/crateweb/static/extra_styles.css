@@ -363,6 +363,8 @@ body {
     display: block;
 }
 
+/* NLP classification */
+
 .nlp-classification-wizard {
     margin-bottom: 1em;
 }
@@ -398,4 +400,28 @@ body {
 
 #main > .table-container > .pagination > li {
     display: inline;
+}
+
+.no-nlp {
+    font-size: medium;
+}
+
+.nlp-fields {
+    display: flex;
+    flex-flow: row wrap;
+}
+
+.nlp-fields > dt {
+    flex-basis: 20%;
+    padding: 2px 4px;
+    text-align: right;
+    border-right: 1px solid #555;
+    font-weight: bold;
+}
+
+.nlp-fields >  dd {
+    flex-basis: 70%;
+    flex-grow: 1;
+    margin: 0;
+    padding: 2px 4px;
 }

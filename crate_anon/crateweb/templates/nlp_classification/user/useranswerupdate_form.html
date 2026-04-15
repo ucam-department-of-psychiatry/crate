@@ -13,10 +13,15 @@
 {{ object.source_record.before }}<span style="background-color: yellow;">{{ object.source_record.match }}</span>{{ object.source_record.after }}
 </p>
 
-{% if nlp_table %}
-{% render_table nlp_table %}
+{% if nlp_fields %}
+<dl class="nlp-fields">
+  {% for key, value in nlp_fields.items %}
+  <dt>{{ key }}</dt>
+  <dd>{{ value }}</dd>
+  {% endfor %}
+</dl>
 {% else %}
-<p class="no_nlp" style="font-size:medium">
+<p class="no-nlp">
   There is no NLP record.
 </p>
 {% endif %}

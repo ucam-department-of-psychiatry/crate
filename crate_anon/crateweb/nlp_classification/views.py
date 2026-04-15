@@ -76,10 +76,7 @@ from crate_anon.crateweb.nlp_classification.models import (
     Task,
     UserAnswer,
 )
-from crate_anon.crateweb.nlp_classification.tables import (
-    FieldTable,
-    AssignmentTable,
-)
+from crate_anon.crateweb.nlp_classification.tables import AssignmentTable
 from crate_anon.crateweb.nlp_classification.tasks import (
     create_source_records_from_sample,
 )
@@ -162,29 +159,18 @@ class UserAnswerView(DatabaseConnectionMixin, UserPassesTestMixin, UpdateView):
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
 
-        table = self._get_table()
-
-        if table:
-            tables.RequestConfig(self.request).configure(table)
+        nlp_fields = self._get_nlp_fields()
 
         context.update(
-            nlp_table=table,
+            nlp_fields=nlp_fields,
             total_answers=self.object.assignment.useranswer_set.all().count(),
             count=self.object.assignment.num_answered + 1,
         )
 
         return context
 
-    def _get_table(self) -> Optional[tables.Table]:
-        table_data = []
-
-        for name, value in self.object.source_record.extra_nlp_fields.items():
-            table_data.append({"name": name, "value": value})
-
-        if table_data:
-            return FieldTable(table_data)
-
-        return None
+    def _get_nlp_fields(self) -> dict[str, Any]:
+        return self.object.source_record.extra_nlp_fields
 
 
 def should_create_task(wizard: SessionWizardView) -> bool:
