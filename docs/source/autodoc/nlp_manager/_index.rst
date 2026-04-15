@@ -74,6 +74,7 @@ crate_anon/nlp_manager
     tests/all_processors_tests.py.rst
     tests/cloud_request_process_tests.py.rst
     tests/cloud_request_sender_tests.py.rst
+    tests/input_field_config_tests.py.rst
     tests/nlp_parser_tests.py.rst
     tests/parse_biochemistry_tests.py.rst
     tests/parse_clinical_tests.py.rst

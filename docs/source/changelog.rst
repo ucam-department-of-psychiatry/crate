@@ -1787,6 +1787,11 @@ Changes
 - Add ``DateEvent`` and ``DateEventRecorded`` fields to ``crate_extracted_text``
   table when extracting text from SystmOne documents.
 
+- Fix bug where validation of the NLP config would fail if the fields in
+  ``copyfields`` and ``indexed_copyfields`` appeared in different orders in
+  different tables.
+  https://github.com/ucam-department-of-psychiatry/crate/issues/243
+
 
 To do
 ~~~~~
