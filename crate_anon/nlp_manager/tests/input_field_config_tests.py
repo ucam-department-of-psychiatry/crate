@@ -94,3 +94,28 @@ class InputFieldConfigTests(TestCase):
         names = [c.name for c in columns]
 
         self.assertEqual(names, ["one", "three", "two"])
+
+    def test_get_copy_indexes_ordered_by_name(self) -> None:
+        mock_copyfields = ["one", "two", "three"]
+        mock_indexed_copyfields = ["one", "two", "three"]
+
+        mock_opt_multiline = mock.Mock(
+            side_effect=[
+                mock_copyfields,
+                mock_indexed_copyfields,
+            ]
+        )
+        self.mock_config_section.opt_multiline = mock_opt_multiline
+
+        input_field_config = InputFieldConfig(self.mock_nlpdef, "test")
+
+        with mock.patch.multiple(
+            "crate_anon.nlp_manager.input_field_config",
+            table_or_view_exists=mock.Mock(return_value=True),
+            Table=mock.Mock(return_value=self.mock_table),
+        ):
+            indexes = input_field_config.get_copy_indexes()
+
+        names = [i.name for i in indexes]
+
+        self.assertEqual(names, ["idx_one", "idx_three", "idx_two"])

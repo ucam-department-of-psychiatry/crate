@@ -442,7 +442,8 @@ class InputFieldConfig:
         t = Table(self._srctable, meta, autoload_with=self._source_engine)
         copy_indexes = []  # type: List[Index]
         processed_copy_index_col_names = []  # type: List[str]
-        for c in t.columns:
+        ordered_columns = sorted(t.columns, key=lambda c: c.name)
+        for c in ordered_columns:
             # if c.name.lower() in self._indexed_copyfields:
             if c.name in self._indexed_copyfields:
                 copied = c.copy()
