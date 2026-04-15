@@ -177,6 +177,7 @@ def make_autodoc(make: bool, destroy_first: bool) -> None:
             make_subindex("nlp_manager"),
             make_subindex("nlp_webserver"),
             make_subindex("preprocess"),
+            make_subindex("testing"),
             make_subindex("tools"),
         ]
     )
