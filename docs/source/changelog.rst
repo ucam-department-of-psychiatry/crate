@@ -1784,6 +1784,9 @@ Changes
 
 **0.20.9, in progress**
 
+- Add ``DateEvent`` and ``DateEventRecorded`` fields to ``crate_extracted_text``
+  table when extracting text from SystmOne documents.
+
 
 To do
 ~~~~~
