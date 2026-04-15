@@ -392,7 +392,7 @@ class InputFieldConfig:
         """
         Returns the columns that the user has requested to be copied from the
         source table to the NLP destination table. The columns are ordered by
-        name so that lists of columns can be compared.
+        name so that lists of columns from several tables can be compared .
 
         Returns:
             a list of SQLAlchemy :class:`Column` objects, ordered by name.
@@ -431,10 +431,12 @@ class InputFieldConfig:
     def get_copy_indexes(self) -> List[Index]:
         """
         Returns indexes that should be made in the destination table for
-        columns that the user has requested to be copied from the source.
+        columns that the user has requested to be copied from the source.  The
+        indexes are ordered by name so that lists of indexes from several
+        tables can be compared.
 
         Returns:
-            a list of SQLAlchemy :class:`Index` objects
+            a list of SQLAlchemy :class:`Index` objects, ordered by name.
 
         """
         self._require_table_or_view_exists()
