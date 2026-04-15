@@ -34,7 +34,6 @@ crate_anon/linkage/matchresult.py
 from crate_anon.linkage.constants import MINUS_INFINITY
 from crate_anon.linkage.person import Person
 
-
 # =============================================================================
 # Result of a match attempt
 # =============================================================================

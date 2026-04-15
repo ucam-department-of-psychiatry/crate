@@ -37,7 +37,6 @@ import subprocess
 import sys
 from typing import List
 
-
 assert sys.version_info >= (3, 10), "Need Python 3.10+"
 
 LINUX = platform.system() == "Linux"
@@ -54,9 +53,7 @@ created. For example, for a testing environment
 or for a production environment:
     sudo --user=www-data XDG_CACHE_HOME=/usr/share/crate/.cache \\
         {script} /usr/share/crate/virtualenv
-""".format(
-    script=os.path.basename(__file__)
-)
+""".format(script=os.path.basename(__file__))
 
 PYTHON = sys.executable  # Windows needs this before Python executables
 PYTHONBASE = os.path.basename(PYTHON)

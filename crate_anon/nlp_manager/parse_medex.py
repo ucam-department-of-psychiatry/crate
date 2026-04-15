@@ -837,7 +837,7 @@ class Medex(BaseNlpParser):
                     strength_startpos,
                     strength_endpos,
                 ) = self.get_text_start_end(fields[-10])
-                (form, form_startpos, form_endpos) = self.get_text_start_end(
+                form, form_startpos, form_endpos = self.get_text_start_end(
                     fields[-11]
                 )
                 (
@@ -845,7 +845,7 @@ class Medex(BaseNlpParser):
                     brand_startpos,
                     brand_endpos,
                 ) = self.get_text_start_end(fields[-12])
-                (drug, drug_startpos, drug_endpos) = self.get_text_start_end(
+                drug, drug_startpos, drug_endpos = self.get_text_start_end(
                     fields[-13]
                 )
                 _start_bit = "|".join(fields[0:-13])

@@ -38,7 +38,6 @@ from unittest import TestCase
 
 from crate_anon.common.spreadsheet import write_spreadsheet
 
-
 # =============================================================================
 # Unit tests
 # =============================================================================

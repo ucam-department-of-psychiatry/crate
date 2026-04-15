@@ -2,7 +2,6 @@
 
 from django.db import migrations, models
 
-
 """
 crate_anon/crateweb/consent/migrations/0010_auto_20180629_1238.py
 

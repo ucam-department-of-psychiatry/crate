@@ -37,7 +37,6 @@ from crate_anon.crateweb.consent.lookup_common import SignatoryTitles
 from crate_anon.crateweb.consent.models import PatientLookup
 from crate_anon.crateweb.consent.utils import make_cpft_email_address
 
-
 # =============================================================================
 # CPFT Care Records System (CRS)
 # =============================================================================

@@ -42,7 +42,6 @@ from rich_argparse import ArgumentDefaultsRichHelpFormatter
 from crate_anon.common.constants import EnvVar
 from crate_anon.nlp_manager.constants import GATE_PIPELINE_CLASSNAME
 
-
 log = logging.getLogger(__name__)
 
 EXIT_FAILURE = 1

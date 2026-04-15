@@ -39,7 +39,6 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.template.loader import render_to_string
 
-
 # =============================================================================
 # Read files
 # =============================================================================
@@ -331,7 +330,7 @@ def latest_date(*args) -> Optional[datetime.date]:
 
 
 def to_date(
-    d: Optional[Union[datetime.date, datetime.datetime]]
+    d: Optional[Union[datetime.date, datetime.datetime]],
 ) -> Optional[datetime.date]:
     """
     Converts any of various date-like things to ``datetime.date`` objects.

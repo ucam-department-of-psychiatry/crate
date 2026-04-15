@@ -45,13 +45,11 @@ class Migration(migrations.Migration):
             name="processed",
             field=models.BooleanField(default=False),
         ),
-        migrations.RunSQL(
-            """
+        migrations.RunSQL("""
             UPDATE consent_clinicianresponse
             SET processed = 1
             WHERE created_at < '2018-06-01'
-        """
-        ),
+        """),
         migrations.AddField(
             model_name="clinicianresponse",
             name="processed_at",
@@ -63,13 +61,11 @@ class Migration(migrations.Migration):
             name="processed",
             field=models.BooleanField(default=False),
         ),
-        migrations.RunSQL(
-            """
+        migrations.RunSQL("""
             UPDATE consent_patientresponse
             SET processed = 1
             WHERE created_at < '2018-06-01'
-        """
-        ),
+        """),
         migrations.AddField(
             model_name="contactrequest",
             name="processed_at",

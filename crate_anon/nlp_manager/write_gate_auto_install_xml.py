@@ -62,8 +62,7 @@ def main() -> None:
     args = parser.parse_args()
 
     with open(args.filename, "w") as f:
-        f.write(
-            f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+        f.write(f"""<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 
 <!--
     {args.filename}
@@ -104,8 +103,7 @@ def main() -> None:
     </com.izforge.izpack.panels.shortcut.ShortcutPanel>
     <com.izforge.izpack.panels.finish.FinishPanel id="FinishPanel_6"/>
 </AutomatedInstallation>
-"""  # noqa: E501
-        )
+""")  # noqa: E501
 
 
 if __name__ == "__main__":

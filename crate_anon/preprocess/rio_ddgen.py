@@ -39,7 +39,6 @@ from crate_anon.preprocess.rio_constants import (
     VIEW_ADDRESS_WITH_GEOGRAPHY,
 )
 
-
 # =============================================================================
 # Default settings for CRATE anonymiser "ddgen_*" fields, for RiO
 # =============================================================================

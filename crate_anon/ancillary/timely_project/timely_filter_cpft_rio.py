@@ -40,7 +40,6 @@ from crate_anon.ancillary.timely_project.dd_criteria import (
 )
 from crate_anon.ancillary.timely_project.timely_filter import TimelyDDFilter
 
-
 # =============================================================================
 # TimelyCPFTRiOFilter
 # =============================================================================

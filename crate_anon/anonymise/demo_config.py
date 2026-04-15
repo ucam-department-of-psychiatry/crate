@@ -42,7 +42,6 @@ from crate_anon.anonymise.constants import DEMO_CONFIG
 from crate_anon.common.constants import EXIT_FAILURE
 from crate_anon.version import CRATE_VERSION_PRETTY
 
-
 # =============================================================================
 # Get a demo config, with placeholders replaced
 # =============================================================================

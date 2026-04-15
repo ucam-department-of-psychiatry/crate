@@ -142,7 +142,7 @@ def demo_nlp_config() -> str:
     def _make_module_procdef_block(
         nlp_and_validators: List[
             Tuple[Type["BaseNlpParser"], Type["BaseNlpParser"]]
-        ]
+        ],
     ) -> str:
         _procdeflist = []  # type: List[str]
         for nlpclass, validatorclass in nlp_and_validators:
@@ -154,7 +154,7 @@ def demo_nlp_config() -> str:
     def _make_proclist(
         nlp_and_validators: List[
             Tuple[Type["BaseNlpParser"], Type["BaseNlpParser"]]
-        ]
+        ],
     ) -> str:
         _proclist = []  # type: List[str]
         for nlpclass, validatorclass in nlp_and_validators:
