@@ -391,10 +391,11 @@ class InputFieldConfig:
     def get_copy_columns(self) -> List[Column]:
         """
         Returns the columns that the user has requested to be copied from the
-        source table to the NLP destination table.
+        source table to the NLP destination table. The columns are ordered by
+        name so that lists of columns can be compared.
 
         Returns:
-            a list of SQLAlchemy :class:`Column` objects
+            a list of SQLAlchemy :class:`Column` objects, ordered by name.
 
         """
         # We read the column type from the source database.
@@ -403,7 +404,8 @@ class InputFieldConfig:
         t = Table(self._srctable, meta, autoload_with=self._source_engine)
         copy_columns = []  # type: List[Column]
         processed_copy_column_names = []  # type: List[str]
-        for c in t.columns:
+        ordered_columns = sorted(t.columns, key=lambda c: c.name)
+        for c in ordered_columns:
             # if c.name.lower() in self._copyfields:
             if c.name in self._copyfields:
                 copied = c.copy()
