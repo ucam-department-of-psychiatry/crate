@@ -25,10 +25,10 @@ crate_anon/testing/providers.py
 
 **Faker test data providers.**
 
-There may be some interest in a Faker Medical community provider if we felt it
-was worth the effort.
+There exists a faker-healthcare-provider, which we may be able to merge this
+into.
 
-https://github.com/joke2k/faker/issues/1142
+https://github.com/rodrigobnogueira/faker-healthcare-provider/issues/1
 
 """
 
