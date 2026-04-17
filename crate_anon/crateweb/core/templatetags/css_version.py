@@ -1,5 +1,5 @@
 """
-crate_anon/crateweb/core/templatetags/__init__.py
+crate_anon/crateweb/core/templatetags/css_version.py
 
 ===============================================================================
 
