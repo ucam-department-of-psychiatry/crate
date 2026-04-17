@@ -97,7 +97,7 @@ INSTALL_REQUIRES = [
     "gutenbergpy==0.3.4",  # Project Gutenberg API
     "jsonlines==3.0.0",  # JSON Lines format
     "kombu==5.3.7",  # AMQP library for Celery; requires VC++ under Windows
-    "mako==1.2.2",  # templates with Python in
+    "mako==1.3.11",  # templates with Python in
     "MarkupSafe==2.0.1",  # for HTML escaping
     # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa: E501
