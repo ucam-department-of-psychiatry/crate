@@ -425,3 +425,7 @@ body {
     margin: 0;
     padding: 2px 4px;
 }
+
+.source-text {
+    font-weight: medium;
+}

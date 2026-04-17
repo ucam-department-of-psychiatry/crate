@@ -183,6 +183,8 @@ class SourceRecord(models.Model):
 
         return self._nlp_dict
 
+    # before and after are not reliable if the NLP record is older than
+    # the anonymised record.
     @property
     def before(self) -> str:
         if self.nlp_dict:

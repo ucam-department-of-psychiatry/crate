@@ -148,6 +148,7 @@ crate_anon/crateweb
     core/middleware.py.rst
     core/templatetags/__init__.py.rst
     core/templatetags/css_version.py.rst
+    core/templatetags/highlight.py.rst
     core/tests/__init__.py.rst
     core/tests/templatetags_tests.py.rst
     core/utils.py.rst

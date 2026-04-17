@@ -30,8 +30,10 @@ crate_anon/crateweb/core/tests/templatetags_tests.py
 from unittest import mock, TestCase
 
 from django.test import override_settings
+from django.utils.safestring import SafeString
 
 from crate_anon.crateweb.core.templatetags.css_version import css_version
+from crate_anon.crateweb.core.templatetags.highlight import highlight
 
 
 class CssVersionTests(TestCase):
@@ -50,3 +52,35 @@ class CssVersionTests(TestCase):
             uuid4=mock.Mock(return_value="not-a-real-uuid"),
         ):
             self.assertEqual(css_version(), "not-a-real-uuid")
+
+
+class HighlightTests(TestCase):
+    def test_text_is_highlighted_when_match(self) -> None:
+        highlighted = highlight("One two three four three five three", "three")
+
+        three = "<mark>three</mark>"
+
+        self.assertEqual(
+            highlighted,
+            f"One two {three} four {three} five {three}",
+        )
+
+    def test_text_is_not_highlighted_when_no_match(self) -> None:
+        text = "One two three four three five three"
+
+        highlighted = highlight(text, "six")
+
+        self.assertEqual(highlighted, text)
+
+    def test_output_is_safe(self) -> None:
+        highlighted = highlight("", "")
+
+        self.assertIsInstance(highlighted, SafeString)
+
+    def test_search_text_is_escaped(self) -> None:
+        highlighted = highlight("<something>", "<something>")
+
+        self.assertEqual(
+            highlighted,
+            "<mark>&lt;something&gt;</mark>",
+        )
