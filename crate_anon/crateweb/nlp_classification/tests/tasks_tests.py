@@ -109,7 +109,7 @@ class CreateSourceRecordsFromSampleTests(TestCase):
         )
         # Three calls
         self.mock_nlp_fetchall.side_effect = [
-            (r for r in [(1, 10), (2, 11)]),
+            (r for r in [(1, 10), (1, 13), (2, 11)]),
             (r for r in [(4, 12)]),
             (r for r in []),
         ]
@@ -170,6 +170,14 @@ class CreateSourceRecordsFromSampleTests(TestCase):
                 nlp_table_definition=nlp_table_definition,
                 source_pk_value=1,
                 nlp_pk_value=10,
+            ).exists()
+        )
+        self.assertTrue(
+            SourceRecord.objects.filter(
+                source_column=sample.source_column,
+                nlp_table_definition=nlp_table_definition,
+                source_pk_value=1,
+                nlp_pk_value=13,
             ).exists()
         )
         self.assertTrue(

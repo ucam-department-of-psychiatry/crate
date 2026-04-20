@@ -100,18 +100,24 @@ def create_source_records_from_sample(task: Task, sample_pk: int) -> str:
             params=source_pks,
         )
 
-        nlp_dict = {src_pk: nlp_pk for (src_pk, nlp_pk) in nlp_rows}
+        source_record_dict = {}
 
-        for source_pk in source_pks:
-            random_order = rng.getrandbits(max_rand_bits)
-            source_record, created = SourceRecord.objects.get_or_create(
-                random_order=random_order,
-                source_column=sample.source_column,
-                nlp_table_definition=sample.nlp_table_definition,
-                source_pk_value=source_pk,
-                nlp_pk_value=nlp_dict.get(source_pk, ""),
-            )
+        for src_pk, nlp_pk in nlp_rows:
+            source_record_dict.setdefault(src_pk, []).append(nlp_pk)
 
-            sample.source_records.add(source_record)
+        for src_pk in source_pks:
+            source_record_dict.setdefault(src_pk, [""])
+
+        for src_pk, nlp_pks in source_record_dict.items():
+            for nlp_pk in nlp_pks:
+                random_order = rng.getrandbits(max_rand_bits)
+                source_record, created = SourceRecord.objects.get_or_create(
+                    random_order=random_order,
+                    source_column=sample.source_column,
+                    nlp_table_definition=sample.nlp_table_definition,
+                    source_pk_value=src_pk,
+                    nlp_pk_value=nlp_pk,
+                )
+                sample.source_records.add(source_record)
 
         done += len(source_pks)
