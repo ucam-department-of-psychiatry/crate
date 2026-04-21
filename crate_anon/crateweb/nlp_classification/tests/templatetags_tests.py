@@ -27,98 +27,64 @@ crate_anon/crateweb/nlp_classification/tests/templatetags_tests.py
 
 """
 
-import re
-from unittest import mock
+from unittest import mock, TestCase
 
-from django.test import TestCase
 from django.utils.safestring import SafeString
 
+from crate_anon.crateweb.nlp_classification.models import SourceRecord
 from crate_anon.crateweb.nlp_classification.templatetags.highlight import (
     highlight,
-)
-from crate_anon.crateweb.nlp_classification.tests.factories import (
-    SourceRecordFactory,
-)
-
-from crate_anon.nlp_manager.regex_parser import (
-    FN_CONTENT,
-    FN_END,
-    FN_START,
 )
 
 
 class HighlightTests(TestCase):
     def test_text_is_highlighted_when_match(self) -> None:
-        source_record = SourceRecordFactory()
-        fake_source_text = "before match after"
-        content = "match"
-        match = re.search(content, fake_source_text)
+        source_record = mock.Mock(
+            spec=SourceRecord,
+            match="match",
+            before="before",
+            after="after",
+        )
+        highlighted = highlight(source_record)
 
-        fake_nlp_dict = {
-            FN_CONTENT: content,
-            FN_START: match.start(),
-            FN_END: match.end(),
-        }
-
-        with mock.patch.multiple(
-            source_record,
-            _source_text=fake_source_text,
-            _nlp_dict=fake_nlp_dict,
-        ):
-            highlighted = highlight(source_record)
-
-        highlighted_content = f"<mark>{content}</mark>"
+        highlighted_content = "<mark>match</mark>"
 
         self.assertEqual(
             highlighted,
-            f"before {highlighted_content} after",
+            f"before{highlighted_content}after",
         )
 
     def test_text_is_not_highlighted_when_no_match(self) -> None:
-        source_record = SourceRecordFactory()
-        fake_source_text = "Nothing to see here"
+        source_record = mock.Mock(
+            spec=SourceRecord,
+            match="",
+            before="Nothing to see here",
+            after="",
+        )
+        highlighted = highlight(source_record)
 
-        with mock.patch.multiple(
-            source_record,
-            _source_text=fake_source_text,
-            _nlp_dict={},
-        ):
-            highlighted = highlight(source_record)
-
-        self.assertEqual(highlighted, fake_source_text)
+        self.assertEqual(highlighted, "Nothing to see here")
 
     def test_output_is_safe(self) -> None:
-        source_record = SourceRecordFactory()
-
-        with mock.patch.multiple(
-            source_record,
-            _source_text="",
-            _nlp_dict={},
-        ):
-            highlighted = highlight(source_record)
+        source_record = mock.Mock(
+            spec=SourceRecord,
+            match="",
+            before="",
+            after="",
+        )
+        highlighted = highlight(source_record)
 
         self.assertIsInstance(highlighted, SafeString)
 
     def test_search_text_is_escaped(self) -> None:
-        source_record = SourceRecordFactory()
-        fake_source_text = "<before> <something> <after>"
-        content = "<something>"
-        match = re.search(content, fake_source_text)
-
-        fake_nlp_dict = {
-            FN_CONTENT: content,
-            FN_START: match.start(),
-            FN_END: match.end(),
-        }
-
-        with mock.patch.multiple(
-            source_record,
-            _source_text=fake_source_text,
-            _nlp_dict=fake_nlp_dict,
-        ):
-            highlighted = highlight(source_record)
+        source_record = mock.Mock(
+            match="<something>",
+            before="<before>",
+            after="<after>",
+        )
+        highlighted = highlight(source_record)
 
         self.assertEqual(
             highlighted,
-            "&lt;before&gt; <mark>&lt;something&gt;</mark> &lt;after&gt;",
+            "&lt;before&gt;<mark>&lt;something&gt;</mark>&lt;after&gt;",
         )
