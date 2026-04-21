@@ -240,6 +240,25 @@ class SourceRecordTests(TestCase):
                 {"value_text": "13", "units": "mg/dl"},
             )
 
+    def test_other_nlp_matches_returns_matches_in_same_text(self) -> None:
+        source_record = SourceRecordFactory()
+        source_record_2 = SourceRecordFactory(
+            source_column=source_record.source_column,
+            nlp_table_definition=source_record.nlp_table_definition,
+            source_pk_value=source_record.source_pk_value,
+        )
+        source_record_3 = SourceRecordFactory(
+            source_column=source_record.source_column,
+            nlp_table_definition=source_record.nlp_table_definition,
+            source_pk_value=source_record.source_pk_value,
+        )
+
+        other_matches = source_record.other_nlp_matches()
+
+        self.assertIn(source_record_2, other_matches)
+        self.assertIn(source_record_3, other_matches)
+        self.assertNotIn(source_record, other_matches)
+
 
 class AssignmentTests(TestCase):
     def test_first_unanswered(self) -> None:

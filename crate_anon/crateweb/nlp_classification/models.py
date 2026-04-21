@@ -251,6 +251,16 @@ class SourceRecord(models.Model):
             f"{self.source_pk_value}"
         )
 
+    def other_nlp_matches(self) -> models.QuerySet:
+        conditions = (
+            models.Q(source_column=self.source_column)
+            & models.Q(nlp_table_definition=self.nlp_table_definition)
+            & models.Q(source_pk_value=self.source_pk_value)
+            & ~models.Q(nlp_pk_value=self.nlp_pk_value)
+        )
+
+        return SourceRecord.objects.filter(conditions)
+
 
 class Sample(models.Model):
     """

@@ -74,6 +74,8 @@ class SourceRecordFactory(factory.django.DjangoModelFactory):
     nlp_table_definition = factory.SubFactory(TableDefinitionFactory)
     random_order = factory.Faker("pyint", min_value=0)
 
+    nlp_pk_value = factory.Sequence(lambda n: str(n + 1))
+
 
 class SampleFactory(factory.django.DjangoModelFactory):
     class Meta:
