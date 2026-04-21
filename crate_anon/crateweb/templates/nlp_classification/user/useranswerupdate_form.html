@@ -10,7 +10,7 @@
 </p>
 
 <p class="source-text">
-{{ object.source_record.source_text|highlight:object.source_record.match }}
+{{ object.source_record|highlight }}
 </p>
 
 {% if nlp_fields %}

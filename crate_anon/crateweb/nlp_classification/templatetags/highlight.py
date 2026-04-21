@@ -1,5 +1,5 @@
 """
-crate_anon/crateweb/core/tests/templatetags_tests.py
+crate_anon/crateweb/core/templatetags/highlight.py
 
 ===============================================================================
 
@@ -23,30 +23,25 @@ crate_anon/crateweb/core/tests/templatetags_tests.py
 
 ===============================================================================
 
-**Template tags tests.**
+**Highlight template tag.**
 
 """
 
-from unittest import mock, TestCase
+from django import template
+from django.utils.html import escape
+from django.utils.safestring import mark_safe
 
-from django.test import override_settings
+from crate_anon.crateweb.nlp_classification.models import SourceRecord
 
-from crate_anon.crateweb.core.templatetags.css_version import css_version
+register = template.Library()
 
 
-class CssVersionTests(TestCase):
-    @override_settings(DEBUG=False)
-    def test_css_version_is_crate_version_when_in_production(self) -> None:
-        with mock.patch.multiple(
-            "crate_anon.crateweb.core.templatetags.css_version",
-            CRATE_VERSION="0.20.6",
-        ):
-            self.assertEqual(css_version(), "0_20_6")
+@register.filter
+def highlight(source_record: SourceRecord) -> str:
 
-    @override_settings(DEBUG=True)
-    def test_css_version_is_uuid_when_in_debug(self) -> None:
-        with mock.patch.multiple(
-            "crate_anon.crateweb.core.templatetags.css_version.uuid",
-            uuid4=mock.Mock(return_value="not-a-real-uuid"),
-        ):
-            self.assertEqual(css_version(), "not-a-real-uuid")
+    if match := source_record.match:
+        match = f"<mark>{escape(source_record.match)}</mark>"
+
+    return mark_safe(
+        f"{escape(source_record.before)}{match}{escape(source_record.after)}"
+    )
