@@ -29,6 +29,7 @@ Tests for CRATE NLP classification celery tasks.
 
 from unittest import mock
 
+from celery_progress.backend import ProgressRecorder
 from django.test import override_settings, TestCase
 
 from crate_anon.crateweb.core.constants import (
@@ -85,6 +86,22 @@ class CreateSourceRecordsFromSampleTests(TestCase):
         self.mock_sample_get_nlp_db_connection = mock.Mock(
             return_value=self.mock_nlp_db_connection
         )
+        self.source_table_definition = TableDefinitionFactory(
+            db_connection_name=RESEARCH_DB_CONNECTION_NAME,
+        )
+        self.source_column = ColumnFactory(
+            table_definition=self.source_table_definition,
+        )
+        self.nlp_table_definition = TableDefinitionFactory(
+            db_connection_name=NLP_DB_CONNECTION_NAME,
+            table_name="crp",
+            pk_column_name="_pk",
+        )
+        self.sample = SampleFactory(
+            source_column=self.source_column,
+            nlp_table_definition=self.nlp_table_definition,
+            search_term="CRP",
+        )
 
     def test_source_records_created(self) -> None:
         self.mock_get_source_table_names.return_value = [
@@ -114,19 +131,98 @@ class CreateSourceRecordsFromSampleTests(TestCase):
             (r for r in []),
         ]
 
-        source_table_definition = TableDefinitionFactory(
-            db_connection_name=RESEARCH_DB_CONNECTION_NAME,
+        with mock.patch.multiple(
+            "crate_anon.crateweb.nlp_classification.models.Sample",
+            get_source_database_connection=self.mock_sample_get_source_db_connection,  # noqa: E501
+            get_nlp_database_connection=self.mock_sample_get_nlp_db_connection,
+        ):
+            create_source_records_from_sample(self.sample.pk)
+
+        self.mock_source_fetchall.assert_called_once_with(
+            [self.source_table_definition.pk_column_name],
+            self.source_table_definition.table_name,
+            f"{self.source_column.name} LIKE %s",
+            [f"%{self.sample.search_term}%"],
         )
-        source_column = ColumnFactory(table_definition=source_table_definition)
-        nlp_table_definition = TableDefinitionFactory(
-            db_connection_name=NLP_DB_CONNECTION_NAME,
-            table_name="crp",
-            pk_column_name="_pk",
+
+        self.mock_nlp_fetchall.assert_any_call(
+            [FN_SRCPKVAL, self.nlp_table_definition.pk_column_name],
+            self.nlp_table_definition.table_name,
+            where=f"{FN_SRCPKVAL} IN (%s, %s)",
+            params=[1, 2],
         )
-        sample = SampleFactory(
-            source_column=source_column,
-            nlp_table_definition=nlp_table_definition,
-            search_term="CRP",
+
+        self.mock_nlp_fetchall.assert_any_call(
+            [FN_SRCPKVAL, self.nlp_table_definition.pk_column_name],
+            self.nlp_table_definition.table_name,
+            where=f"{FN_SRCPKVAL} IN (%s, %s)",
+            params=[3, 4],
+        )
+
+        self.mock_nlp_fetchall.assert_any_call(
+            [FN_SRCPKVAL, self.nlp_table_definition.pk_column_name],
+            self.nlp_table_definition.table_name,
+            where=f"{FN_SRCPKVAL} IN (%s)",
+            params=[5],
+        )
+
+        self.assertTrue(
+            SourceRecord.objects.filter(
+                source_column=self.sample.source_column,
+                nlp_table_definition=self.nlp_table_definition,
+                source_pk_value=1,
+                nlp_pk_value=10,
+            ).exists()
+        )
+        self.assertTrue(
+            SourceRecord.objects.filter(
+                source_column=self.sample.source_column,
+                nlp_table_definition=self.nlp_table_definition,
+                source_pk_value=1,
+                nlp_pk_value=13,
+            ).exists()
+        )
+        self.assertTrue(
+            SourceRecord.objects.filter(
+                source_column=self.sample.source_column,
+                nlp_table_definition=self.nlp_table_definition,
+                source_pk_value=2,
+                nlp_pk_value=11,
+            ).exists()
+        )
+        self.assertTrue(
+            SourceRecord.objects.filter(
+                source_column=self.sample.source_column,
+                nlp_table_definition=self.nlp_table_definition,
+                source_pk_value=3,
+                nlp_pk_value="",
+            ).exists()
+        )
+        self.assertTrue(
+            SourceRecord.objects.filter(
+                source_column=self.sample.source_column,
+                nlp_table_definition=self.nlp_table_definition,
+                source_pk_value=4,
+                nlp_pk_value=12,
+            ).exists()
+        )
+        self.assertTrue(
+            SourceRecord.objects.filter(
+                source_column=self.sample.source_column,
+                nlp_table_definition=self.nlp_table_definition,
+                source_pk_value=5,
+                nlp_pk_value="",
+            ).exists()
+        )
+
+    def test_progress_updated(self) -> None:
+        mock_set_progress = mock.Mock()
+
+        mock_progress_recorder_obj = mock.Mock(
+            spec=ProgressRecorder, set_progress=mock_set_progress
+        )
+        mock_progress_recorder = mock.Mock(
+            return_value=mock_progress_recorder_obj
         )
 
         with mock.patch.multiple(
@@ -134,81 +230,19 @@ class CreateSourceRecordsFromSampleTests(TestCase):
             get_source_database_connection=self.mock_sample_get_source_db_connection,  # noqa: E501
             get_nlp_database_connection=self.mock_sample_get_nlp_db_connection,
         ):
-            create_source_records_from_sample(sample.pk)
+            with mock.patch.multiple(
+                "crate_anon.crateweb.nlp_classification.tasks",
+                ProgressRecorder=mock_progress_recorder,
+            ):
+                create_source_records_from_sample(self.sample.pk)
 
-        self.mock_source_fetchall.assert_called_once_with(
-            [source_table_definition.pk_column_name],
-            source_table_definition.table_name,
-            f"{source_column.name} LIKE %s",
-            [f"%{sample.search_term}%"],
-        )
-
-        self.mock_nlp_fetchall.assert_any_call(
-            [FN_SRCPKVAL, nlp_table_definition.pk_column_name],
-            nlp_table_definition.table_name,
-            where=f"{FN_SRCPKVAL} IN (%s, %s)",
-            params=[1, 2],
-        )
-
-        self.mock_nlp_fetchall.assert_any_call(
-            [FN_SRCPKVAL, nlp_table_definition.pk_column_name],
-            nlp_table_definition.table_name,
-            where=f"{FN_SRCPKVAL} IN (%s, %s)",
-            params=[3, 4],
-        )
-
-        self.mock_nlp_fetchall.assert_any_call(
-            [FN_SRCPKVAL, nlp_table_definition.pk_column_name],
-            nlp_table_definition.table_name,
-            where=f"{FN_SRCPKVAL} IN (%s)",
-            params=[5],
-        )
-
-        self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=1,
-                nlp_pk_value=10,
-            ).exists()
-        )
-        self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=1,
-                nlp_pk_value=13,
-            ).exists()
-        )
-        self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=2,
-                nlp_pk_value=11,
-            ).exists()
-        )
-        self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=3,
-                nlp_pk_value="",
-            ).exists()
-        )
-        self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=4,
-                nlp_pk_value=12,
-            ).exists()
-        )
-        self.assertTrue(
-            SourceRecord.objects.filter(
-                source_column=sample.source_column,
-                nlp_table_definition=nlp_table_definition,
-                source_pk_value=5,
-                nlp_pk_value="",
-            ).exists()
+        mock_set_progress.assert_has_calls(
+            [
+                mock.call(
+                    0, 0, description="Counting rows from the source database"
+                ),
+                mock.call(
+                    0, 0, description="Creating records for classification"
+                ),
+            ]
         )

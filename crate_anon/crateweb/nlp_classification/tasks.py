@@ -45,6 +45,11 @@ from crate_anon.nlp_manager.constants import (
 
 @shared_task(bind=True)
 def create_source_records_from_sample(task: Task, sample_pk: int) -> str:
+    progress_recorder = ProgressRecorder(task)
+    progress_recorder.set_progress(
+        0, 0, description="Counting rows from the source database"
+    )
+
     sample = Sample.objects.get(pk=sample_pk)
 
     batch_size = settings.CRATE_NLP_BATCH_SIZE
@@ -74,8 +79,6 @@ def create_source_records_from_sample(task: Task, sample_pk: int) -> str:
     # SQL Server does not have unsigned int types so we can't have 64 bits
     # and if we use a regular Integer, we can only store 31 bits
     max_rand_bits = 32
-
-    progress_recorder = ProgressRecorder(task)
 
     done = 0
 
