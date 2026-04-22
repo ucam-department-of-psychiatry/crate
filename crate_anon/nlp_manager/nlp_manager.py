@@ -672,6 +672,8 @@ def process_cloud_nlp(
     crinfo: CloudRunInfo,
     incremental: bool = False,
     report_every: int = DEFAULT_REPORT_EVERY_NLP,
+    tasknum: int = 0,
+    ntasks: int = 1,
 ) -> None:
     """
     Process text by sending it off to the cloud processors in queued mode.
@@ -685,7 +687,7 @@ def process_cloud_nlp(
     # all data
     with open(filename, "a") as request_data:
         for ifconfig in nlpdef.inputfieldconfigs:
-            generated_text = ifconfig.gen_text()
+            generated_text = ifconfig.gen_text(tasknum=tasknum, ntasks=ntasks)
             global_recnum = 0  # Global record number within this ifconfig
             sender = CloudRequestSender(
                 text_generator=generated_text,
@@ -833,6 +835,8 @@ def process_cloud_now(
     crinfo: CloudRunInfo,
     incremental: bool = False,
     report_every: int = DEFAULT_REPORT_EVERY_NLP,
+    tasknum: int = 0,
+    ntasks: int = 1,
 ) -> None:
     """
     Process text by sending it off to the cloud processors in non-queued mode.
@@ -841,7 +845,7 @@ def process_cloud_now(
     session = nlpdef.progressdb_session
     for ifconfig in nlpdef.inputfieldconfigs:
         global_recnum = 0  # Global record number within this ifconfig
-        generated_text = ifconfig.gen_text()
+        generated_text = ifconfig.gen_text(tasknum=tasknum, ntasks=ntasks)
         sender = CloudRequestSender(
             text_generator=generated_text,
             crinfo=crinfo,
@@ -1424,12 +1428,16 @@ def inner_main() -> None:
                     crinfo,
                     incremental=args.incremental,
                     report_every=args.report_every_nlp,
+                    tasknum=args.process,
+                    ntasks=args.nprocesses,
                 )
             else:
                 process_cloud_nlp(
                     crinfo,
                     incremental=args.incremental,
                     report_every=args.report_every_nlp,
+                    tasknum=args.process,
+                    ntasks=args.nprocesses,
                 )
         elif args.retrieve:
             retrieve_nlp_data(crinfo, incremental=args.incremental)
