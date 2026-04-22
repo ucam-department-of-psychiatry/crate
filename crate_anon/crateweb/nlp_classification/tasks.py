@@ -84,7 +84,7 @@ def create_source_records_from_sample(task: Task, sample_pk: int) -> str:
 
     while True:
         progress_recorder.set_progress(
-            done, total_rows, description="Creating source records"
+            done, total_rows, description="Creating records for classification"
         )
         source_pks = []
 
