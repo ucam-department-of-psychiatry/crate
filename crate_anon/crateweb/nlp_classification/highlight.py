@@ -27,6 +27,8 @@ crate_anon/crateweb/nlp_classification/highlight.py
 
 """
 
+from typing import Any
+
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
@@ -44,15 +46,19 @@ def highlight(source_record: SourceRecord) -> str:
 
     for match in nlp_matches:
         if match.nlp_pk_value == source_record.nlp_pk_value:
+            label = "matches this record"
             css_class = "nlp-match"
         else:
+            label = "matches another record"
             css_class = "other-nlp-match"
+
+        attributes = {"class": css_class, "aria-label": label, "title": label}
 
         sections.append(escape(source_record.source_text[index : match.start]))
         sections.append(
             mark_element(
-                css_class,
                 escape(source_record.source_text[match.start : match.end]),
+                attributes,
             )
         )
 
@@ -65,5 +71,7 @@ def highlight(source_record: SourceRecord) -> str:
     return mark_safe(output)
 
 
-def mark_element(css_class: str, text: str) -> str:
-    return f'<mark class="{css_class}">{text}</mark>'
+def mark_element(text: str, attributes: dict[str, Any]) -> str:
+    attributes = " ".join([f'{k}="{v}"' for k, v in attributes.items()])
+
+    return f"<mark {attributes}>{text}</mark>"

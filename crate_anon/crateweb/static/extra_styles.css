@@ -429,3 +429,11 @@ body {
 .source-text {
     font-weight: medium;
 }
+
+.nlp-match {
+    background-colour: yellow;
+}
+
+.other-nlp-match {
+    background-color: #eee;
+}

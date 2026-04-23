@@ -38,6 +38,17 @@ from crate_anon.crateweb.nlp_classification.highlight import highlight
 
 
 class HighlightTests(TestCase):
+    this_mark_attributes = (
+        'class="nlp-match" '
+        'aria-label="matches this record" '
+        'title="matches this record"'
+    )
+    other_mark_attributes = (
+        'class="other-nlp-match" '
+        'aria-label="matches another record" '
+        'title="matches another record"'
+    )
+
     def test_text_is_highlighted_when_match(self) -> None:
         source_text = "before match after"
         match_text = "match"
@@ -54,7 +65,9 @@ class HighlightTests(TestCase):
         source_record.all_nlp_matches = mock.Mock(return_value=[source_record])
         highlighted = highlight(source_record)
 
-        highlighted_content = self.mark_element("nlp-match", match_text)
+        highlighted_content = self.mark_element(
+            match_text, self.this_mark_attributes
+        )
 
         self.assertEqual(
             highlighted,
@@ -98,7 +111,7 @@ class HighlightTests(TestCase):
         source_record.all_nlp_matches = mock.Mock(return_value=[source_record])
         highlighted = highlight(source_record)
 
-        mark_element = self.mark_element("nlp-match", match_text)
+        mark_element = self.mark_element(match_text, self.this_mark_attributes)
 
         self.assertEqual(
             highlighted,
@@ -106,6 +119,8 @@ class HighlightTests(TestCase):
         )
 
     def test_other_nlp_matches_shown(self) -> None:
+        # TODO: Fix brittle HTML comparison
+
         this_match = "CRP = 40"
         other_match_1 = "CRP < 10"
         other_match_2 = "CRP 30 mg/L"
@@ -155,23 +170,29 @@ class HighlightTests(TestCase):
 
         highlighted = highlight(source_record)
 
-        this_mark_element = self.mark_element("nlp-match", this_match)
+        this_mark_element = self.mark_element(
+            this_match,
+            self.this_mark_attributes,
+        )
         other_mark_element_1 = self.mark_element(
-            "other-nlp-match", other_match_1
+            other_match_1,
+            self.other_mark_attributes,
         )
         other_mark_element_2 = self.mark_element(
-            "other-nlp-match", other_match_2
+            other_match_2,
+            self.other_mark_attributes,
         )
 
-        self.assertEqual(
-            highlighted,
+        expected = (
             "Filler text at the start &amp; stuff. "
             f"{other_mark_element_1}. "
             f"{this_mark_element}. "
             f"{other_mark_element_2}. "
-            "Filler text at the end &amp; stuff",
+            "Filler text at the end &amp; stuff"
         )
 
-    def mark_element(self, css_class: str, text: str) -> str:
+        self.assertEqual(highlighted, expected)
+
+    def mark_element(self, text: str, attributes: str) -> str:
         escaped = escape(text)
-        return f'<mark class="{css_class}">{escaped}</mark>'
+        return f"<mark {attributes}>{escaped}</mark>"
