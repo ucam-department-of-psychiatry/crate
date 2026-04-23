@@ -1086,21 +1086,9 @@ class UserAssignmentWizardViewTests(NlpClassificationWizardViewTests):
             source_column=source_column,
             nlp_table_definition=nlp_table_definition,
         )
-        source_record_1 = SourceRecordFactory(
-            source_column=source_column,
-            nlp_table_definition=nlp_table_definition,
-        )
-        source_record_2 = SourceRecordFactory(
-            source_column=source_column,
-            nlp_table_definition=nlp_table_definition,
-        )
-        source_record_3 = SourceRecordFactory(
-            source_column=source_column,
-            nlp_table_definition=nlp_table_definition,
-        )
-        sample.source_records.add(
-            source_record_1, source_record_2, source_record_3
-        )
+        source_record_1 = SourceRecordFactory(sample=sample)
+        source_record_2 = SourceRecordFactory(sample=sample)
+        source_record_3 = SourceRecordFactory(sample=sample)
 
         user = UserFactory()
 

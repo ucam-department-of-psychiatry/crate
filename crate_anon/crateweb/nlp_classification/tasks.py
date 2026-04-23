@@ -116,12 +116,10 @@ def create_source_records_from_sample(task: Task, sample_pk: int) -> str:
             for nlp_pk in nlp_pks:
                 random_order = rng.getrandbits(max_rand_bits)
                 source_record, created = SourceRecord.objects.get_or_create(
+                    sample=sample,
                     random_order=random_order,
-                    source_column=sample.source_column,
-                    nlp_table_definition=sample.nlp_table_definition,
                     source_pk_value=src_pk,
                     nlp_pk_value=nlp_pk,
                 )
-                sample.source_records.add(source_record)
 
         done += len(source_pks)

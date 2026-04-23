@@ -66,17 +66,6 @@ class ColumnFactory(factory.django.DjangoModelFactory):
     table_definition = factory.SubFactory(TableDefinitionFactory)
 
 
-class SourceRecordFactory(factory.django.DjangoModelFactory):
-    class Meta:
-        model = SourceRecord
-
-    source_column = factory.SubFactory(ColumnFactory)
-    nlp_table_definition = factory.SubFactory(TableDefinitionFactory)
-    random_order = factory.Faker("pyint", min_value=0)
-
-    nlp_pk_value = factory.Sequence(lambda n: str(n + 1))
-
-
 class SampleFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = Sample
@@ -85,6 +74,16 @@ class SampleFactory(factory.django.DjangoModelFactory):
     nlp_table_definition = factory.SubFactory(TableDefinitionFactory)
     seed = factory.Faker("pyint", min_value=0, max_value=2147483647)
     size = factory.Faker("pyint", min_value=100, max_value=1000)
+
+
+class SourceRecordFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = SourceRecord
+
+    sample = factory.SubFactory(SampleFactory)
+    random_order = factory.Faker("pyint", min_value=0)
+
+    nlp_pk_value = factory.Sequence(lambda n: str(n + 1))
 
 
 class UserFactory(factory.django.DjangoModelFactory):

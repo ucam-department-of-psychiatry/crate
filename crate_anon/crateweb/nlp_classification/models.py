@@ -125,18 +125,44 @@ class Column(models.Model):
         return f"{self.table_definition}.{self.name}"
 
 
+class Sample(models.Model):
+    """
+    Used to create SourceRecords from a source tables linking to corresponding
+    NLP records.
+
+    Size might be maximum. What happens if there are fewer matching records in
+    the sample?
+    """
+
+    source_column = models.ForeignKey(Column, on_delete=models.CASCADE)
+    nlp_table_definition = models.ForeignKey(
+        TableDefinition, on_delete=models.CASCADE
+    )
+    search_term = models.CharField(max_length=100)
+    size = models.IntegerField()
+    seed = models.PositiveIntegerField()  # default MySQL range 0-2147483647
+
+    def get_source_database_connection(self) -> DatabaseConnection:
+        source_table_definition = self.source_column.table_definition
+
+        return DatabaseConnection(source_table_definition.db_connection_name)
+
+    def get_nlp_database_connection(self) -> DatabaseConnection:
+        return DatabaseConnection(self.nlp_table_definition.db_connection_name)
+
+    def __str__(self) -> Any:
+        return (
+            f"{self.size} records from '{self.source_column}' "
+            f"with seed {self.seed} and search term '{self.search_term}'"
+        )
+
+
 class SourceRecord(models.Model):
     """
     This is an individual entry for a source table with optional NLP record.
     """
 
-    source_column = models.ForeignKey(Column, on_delete=models.CASCADE)
-    nlp_table_definition = models.ForeignKey(
-        TableDefinition,
-        null=True,
-        on_delete=models.SET_NULL,
-        related_name="source_records",
-    )
+    sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
     source_pk_value = models.CharField(max_length=100)
     nlp_pk_value = models.CharField(max_length=100)
     random_order = models.PositiveBigIntegerField()
@@ -154,7 +180,7 @@ class SourceRecord(models.Model):
             self._extra_nlp_column_names = [
                 c.name
                 for c in Column.objects.filter(
-                    table_definition=self.nlp_table_definition
+                    table_definition=self.sample.nlp_table_definition
                 )
             ]
 
@@ -174,10 +200,11 @@ class SourceRecord(models.Model):
             ] + self.extra_nlp_column_names
 
             connection = self.get_nlp_database_connection()
+            nlp_table_definition = self.sample.nlp_table_definition
             self._nlp_dict = connection.fetchone_as_dict(
                 column_names,
-                self.nlp_table_definition.table_name,
-                where=f"{self.nlp_table_definition.pk_column_name} = %s",
+                nlp_table_definition.table_name,
+                where=f"{nlp_table_definition.pk_column_name} = %s",
                 params=[self.nlp_pk_value],
             )
 
@@ -210,10 +237,12 @@ class SourceRecord(models.Model):
     @property
     def source_text(self) -> str:
         if self._source_text is None:
-            source_column_name = self.source_column.name
-            source_table = self.source_column.table_definition.table_name
+            source_column = self.sample.source_column
+
+            source_column_name = source_column.name
+            source_table = source_column.table_definition.table_name
             source_pk_column_name = (
-                self.source_column.table_definition.pk_column_name
+                source_column.table_definition.pk_column_name
             )
 
             connection = self.get_source_database_connection()
@@ -230,63 +259,31 @@ class SourceRecord(models.Model):
 
     def get_source_database_connection(self) -> DatabaseConnection:
         return DatabaseConnection(
-            self.source_column.table_definition.db_connection_name
+            self.sample.source_column.table_definition.db_connection_name
         )
 
     def get_nlp_database_connection(self) -> DatabaseConnection:
-        return DatabaseConnection(self.nlp_table_definition.db_connection_name)
+        return DatabaseConnection(
+            self.sample.nlp_table_definition.db_connection_name
+        )
 
     def __str__(self) -> Any:
-        pk_column_name = self.source_column.table_definition.pk_column_name
+        table_definition = self.sample.source_column.table_definition
+        pk_column_name = table_definition.pk_column_name
 
         return (
-            f"Item {self.source_column.table_definition}.{pk_column_name}="
+            f"Item {table_definition}.{pk_column_name}="
             f"{self.source_pk_value}"
         )
 
     def all_nlp_matches(self) -> models.QuerySet:
         conditions = (
-            models.Q(source_column=self.source_column)
-            & models.Q(nlp_table_definition=self.nlp_table_definition)
+            models.Q(sample=self.sample)
             & models.Q(source_pk_value=self.source_pk_value)
             & ~models.Q(nlp_pk_value="")
         )
 
         return SourceRecord.objects.filter(conditions)
-
-
-class Sample(models.Model):
-    """
-    Used to create SourceRecords from a source tables linking to corresponding
-    NLP records.
-
-    Size might be maximum. What happens if there are fewer matching records in
-    the sample?
-    """
-
-    source_column = models.ForeignKey(Column, on_delete=models.CASCADE)
-    nlp_table_definition = models.ForeignKey(
-        TableDefinition, on_delete=models.CASCADE
-    )
-    search_term = models.CharField(max_length=100)
-    size = models.IntegerField()
-    seed = models.PositiveIntegerField()  # default MySQL range 0-2147483647
-
-    source_records = models.ManyToManyField(SourceRecord)
-
-    def get_source_database_connection(self) -> DatabaseConnection:
-        source_table_definition = self.source_column.table_definition
-
-        return DatabaseConnection(source_table_definition.db_connection_name)
-
-    def get_nlp_database_connection(self) -> DatabaseConnection:
-        return DatabaseConnection(self.nlp_table_definition.db_connection_name)
-
-    def __str__(self) -> Any:
-        return (
-            f"{self.size} records from '{self.source_column}' "
-            f"with seed {self.seed} and search term '{self.search_term}'"
-        )
 
 
 class Assignment(models.Model):
@@ -308,7 +305,7 @@ class Assignment(models.Model):
         self, batch_size: int
     ) -> Generator[list["UserAnswer"], None, None]:
 
-        source_records = self.sample.source_records.order_by(
+        source_records = self.sample.sourcerecord_set.order_by(
             "random_order", "pk"
         )[: self.sample.size]
 

@@ -87,8 +87,10 @@ class SourceRecordTests(TestCase):
             pk_column_name="id",
         )
         ColumnFactory(table_definition=nlp_table_definition, name="extra")
+
+        sample = SampleFactory(nlp_table_definition=nlp_table_definition)
         source_record = SourceRecordFactory(
-            nlp_table_definition=nlp_table_definition, nlp_pk_value="12345"
+            sample=sample, nlp_pk_value="12345"
         )
 
         # Not realistic
@@ -133,10 +135,14 @@ class SourceRecordTests(TestCase):
             pk_column_name="source_pk_field",
         )
 
-        source_record = SourceRecordFactory(
+        sample = SampleFactory(
             source_column=ColumnFactory(
                 table_definition=source_table_definition, name="source_field"
             ),
+        )
+
+        source_record = SourceRecordFactory(
+            sample=sample,
             source_pk_value=test_pk_value,
         )
         fake_source_source_record = {"source_field": "source text"}
@@ -171,9 +177,9 @@ class SourceRecordTests(TestCase):
             db_connection_name="test",
         )
         source_column = ColumnFactory(table_definition=source_table_definition)
-
+        sample = SampleFactory(source_column=source_column)
         source_record = SourceRecordFactory(
-            source_column=source_column,
+            sample=sample,
             source_pk_value=test_pk_value,
         )
 
@@ -243,13 +249,19 @@ class SourceRecordTests(TestCase):
     def test_all_nlp_matches_returns_matches_in_same_text(self) -> None:
         source_record = SourceRecordFactory()
         source_record_2 = SourceRecordFactory(
-            source_column=source_record.source_column,
-            nlp_table_definition=source_record.nlp_table_definition,
+            sample=source_record.sample,
             source_pk_value=source_record.source_pk_value,
         )
         source_record_3 = SourceRecordFactory(
-            source_column=source_record.source_column,
-            nlp_table_definition=source_record.nlp_table_definition,
+            sample=source_record.sample,
+            source_pk_value=source_record.source_pk_value,
+        )
+
+        other_sample_source_record = SourceRecordFactory(
+            sample=SampleFactory(
+                source_column=source_record.sample.source_column,
+                nlp_table_definition=source_record.sample.nlp_table_definition,
+            ),
             source_pk_value=source_record.source_pk_value,
         )
 
@@ -258,6 +270,7 @@ class SourceRecordTests(TestCase):
         self.assertIn(source_record_2, all_matches)
         self.assertIn(source_record_3, all_matches)
         self.assertIn(source_record, all_matches)
+        self.assertNotIn(other_sample_source_record, all_matches)
 
     def test_all_nlp_matches_empty_for_no_matches(self) -> None:
         source_record = SourceRecordFactory(nlp_pk_value="")
@@ -270,9 +283,13 @@ class SourceRecordTests(TestCase):
             table_name="nlp_table",
             pk_column_name="id",
         )
-        source_record = SourceRecordFactory(
-            nlp_table_definition=nlp_table_definition, nlp_pk_value="12345"
+        sample = SampleFactory(
+            nlp_table_definition=nlp_table_definition,
         )
+        source_record = SourceRecordFactory(
+            sample=sample, nlp_pk_value="12345"
+        )
+
         self.assertTrue(source_record.has_nlp_record)
 
     def test_has_nlp_record_false_if_nlp_pk_does_not_exist(self) -> None:
@@ -281,9 +298,11 @@ class SourceRecordTests(TestCase):
             table_name="nlp_table",
             pk_column_name="id",
         )
-        source_record = SourceRecordFactory(
-            nlp_table_definition=nlp_table_definition, nlp_pk_value=""
+        sample = SampleFactory(
+            nlp_table_definition=nlp_table_definition,
         )
+        source_record = SourceRecordFactory(sample=sample, nlp_pk_value="")
+
         self.assertFalse(source_record.has_nlp_record)
 
 

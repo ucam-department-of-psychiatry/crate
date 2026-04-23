@@ -168,48 +168,42 @@ class CreateSourceRecordsFromSampleTests(TestCase):
 
         self.assertTrue(
             SourceRecord.objects.filter(
-                source_column=self.sample.source_column,
-                nlp_table_definition=self.nlp_table_definition,
+                sample=self.sample,
                 source_pk_value=1,
                 nlp_pk_value=10,
             ).exists()
         )
         self.assertTrue(
             SourceRecord.objects.filter(
-                source_column=self.sample.source_column,
-                nlp_table_definition=self.nlp_table_definition,
+                sample=self.sample,
                 source_pk_value=1,
                 nlp_pk_value=13,
             ).exists()
         )
         self.assertTrue(
             SourceRecord.objects.filter(
-                source_column=self.sample.source_column,
-                nlp_table_definition=self.nlp_table_definition,
+                sample=self.sample,
                 source_pk_value=2,
                 nlp_pk_value=11,
             ).exists()
         )
         self.assertTrue(
             SourceRecord.objects.filter(
-                source_column=self.sample.source_column,
-                nlp_table_definition=self.nlp_table_definition,
+                sample=self.sample,
                 source_pk_value=3,
                 nlp_pk_value="",
             ).exists()
         )
         self.assertTrue(
             SourceRecord.objects.filter(
-                source_column=self.sample.source_column,
-                nlp_table_definition=self.nlp_table_definition,
+                sample=self.sample,
                 source_pk_value=4,
                 nlp_pk_value=12,
             ).exists()
         )
         self.assertTrue(
             SourceRecord.objects.filter(
-                source_column=self.sample.source_column,
-                nlp_table_definition=self.nlp_table_definition,
+                sample=self.sample,
                 source_pk_value=5,
                 nlp_pk_value="",
             ).exists()
