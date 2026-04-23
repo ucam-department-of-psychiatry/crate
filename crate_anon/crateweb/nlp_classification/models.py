@@ -183,28 +183,21 @@ class SourceRecord(models.Model):
 
         return self._nlp_dict
 
-    # before and after are not reliable if the NLP record is older than
-    # the anonymised record.
     @property
-    def before(self) -> str:
-        if self.nlp_dict:
-            return self.source_text[: self.nlp_dict[FN_START]]
-
-        return self.source_text
+    def start(self) -> Optional[int]:
+        return self.nlp_dict.get(FN_START)
 
     @property
-    def after(self) -> str:
-        if self.nlp_dict:
-            return self.source_text[self.nlp_dict[FN_END] :]
-
-        return ""
+    def end(self) -> Optional[int]:
+        return self.nlp_dict.get(FN_END)
 
     @property
-    def match(self) -> str:
-        if self.nlp_dict:
-            return self.nlp_dict[FN_CONTENT]
+    def content(self) -> str:
+        return self.nlp_dict.get(FN_CONTENT, "")
 
-        return ""
+    @property
+    def has_nlp_record(self) -> bool:
+        return bool(self.nlp_pk_value)
 
     @property
     def extra_nlp_fields(self) -> dict[str, Any]:
@@ -251,12 +244,12 @@ class SourceRecord(models.Model):
             f"{self.source_pk_value}"
         )
 
-    def other_nlp_matches(self) -> models.QuerySet:
+    def all_nlp_matches(self) -> models.QuerySet:
         conditions = (
             models.Q(source_column=self.source_column)
             & models.Q(nlp_table_definition=self.nlp_table_definition)
             & models.Q(source_pk_value=self.source_pk_value)
-            & ~models.Q(nlp_pk_value=self.nlp_pk_value)
+            & ~models.Q(nlp_pk_value="")
         )
 
         return SourceRecord.objects.filter(conditions)

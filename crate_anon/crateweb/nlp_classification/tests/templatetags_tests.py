@@ -27,8 +27,10 @@ crate_anon/crateweb/nlp_classification/tests/templatetags_tests.py
 
 """
 
+import re
 from unittest import mock, TestCase
 
+from django.utils.html import escape
 from django.utils.safestring import SafeString
 
 from crate_anon.crateweb.nlp_classification.models import SourceRecord
@@ -39,52 +41,139 @@ from crate_anon.crateweb.nlp_classification.templatetags.highlight import (
 
 class HighlightTests(TestCase):
     def test_text_is_highlighted_when_match(self) -> None:
+        source_text = "before match after"
+        match_text = "match"
+
+        match = re.search(match_text, source_text)
+
         source_record = mock.Mock(
             spec=SourceRecord,
-            match="match",
-            before="before",
-            after="after",
+            start=match.start(),
+            end=match.end(),
+            content=match_text,
+            source_text=source_text,
         )
+        source_record.all_nlp_matches = mock.Mock(return_value=[source_record])
         highlighted = highlight(source_record)
 
-        highlighted_content = "<mark>match</mark>"
+        highlighted_content = self.mark_element("nlp-match", match_text)
 
         self.assertEqual(
             highlighted,
-            f"before{highlighted_content}after",
+            f"before {highlighted_content} after",
         )
 
     def test_text_is_not_highlighted_when_no_match(self) -> None:
+        source_text = "Nothing to see here & there"
         source_record = mock.Mock(
             spec=SourceRecord,
-            match="",
-            before="Nothing to see here",
-            after="",
+            source_text=source_text,
+            all_nlp_matches=mock.Mock(return_value=[]),
         )
         highlighted = highlight(source_record)
 
-        self.assertEqual(highlighted, "Nothing to see here")
+        self.assertEqual(highlighted, "Nothing to see here &amp; there")
 
     def test_output_is_safe(self) -> None:
         source_record = mock.Mock(
             spec=SourceRecord,
-            match="",
-            before="",
-            after="",
+            source_text="",
+            all_nlp_matches=mock.Mock(return_value=[]),
         )
         highlighted = highlight(source_record)
 
         self.assertIsInstance(highlighted, SafeString)
 
     def test_search_text_is_escaped(self) -> None:
+        source_text = "<before><something><after>"
+        match_text = "<something>"
+
+        match = re.search(match_text, source_text)
+
         source_record = mock.Mock(
-            match="<something>",
-            before="<before>",
-            after="<after>",
+            spec=SourceRecord,
+            start=match.start(),
+            end=match.end(),
+            content=match_text,
+            source_text=source_text,
         )
+        source_record.all_nlp_matches = mock.Mock(return_value=[source_record])
         highlighted = highlight(source_record)
+
+        mark_element = self.mark_element("nlp-match", match_text)
 
         self.assertEqual(
             highlighted,
-            "&lt;before&gt;<mark>&lt;something&gt;</mark>&lt;after&gt;",
+            f"&lt;before&gt;{mark_element}&lt;after&gt;",
         )
+
+    def test_other_nlp_matches_shown(self) -> None:
+        this_match = "CRP = 40"
+        other_match_1 = "CRP < 10"
+        other_match_2 = "CRP 30 mg/L"
+
+        # Deliberate ampersands to test escaping
+        crp_list = [
+            "Filler text at the start & stuff",
+            other_match_1,
+            this_match,
+            other_match_2,
+            "Filler text at the end & stuff",
+        ]
+
+        source_text = ". ".join(crp_list)
+
+        match = re.search(other_match_1, source_text)
+        other_source_record_1 = mock.Mock(
+            spec=SourceRecord,
+            content=other_match_1,
+            start=match.start(),
+            end=match.end(),
+        )
+
+        match = re.search(other_match_2, source_text)
+        other_source_record_2 = mock.Mock(
+            spec=SourceRecord,
+            content=other_match_2,
+            start=match.start(),
+            end=match.end(),
+        )
+
+        match = re.search(this_match, source_text)
+        source_record = mock.Mock(
+            spec=SourceRecord,
+            content=this_match,
+            start=match.start(),
+            end=match.end(),
+            source_text=source_text,
+        )
+        source_record.all_nlp_matches = mock.Mock(
+            return_value=[
+                source_record,
+                other_source_record_1,
+                other_source_record_2,
+            ]
+        )
+
+        highlighted = highlight(source_record)
+
+        this_mark_element = self.mark_element("nlp-match", this_match)
+        other_mark_element_1 = self.mark_element(
+            "other-nlp-match", other_match_1
+        )
+        other_mark_element_2 = self.mark_element(
+            "other-nlp-match", other_match_2
+        )
+
+        self.assertEqual(
+            highlighted,
+            "Filler text at the start &amp; stuff. "
+            f"{other_mark_element_1}. "
+            f"{this_mark_element}. "
+            f"{other_mark_element_2}. "
+            "Filler text at the end &amp; stuff",
+        )
+
+    def mark_element(self, css_class: str, text: str) -> str:
+        escaped = escape(text)
+        return f'<mark class="{css_class}">{escaped}</mark>'

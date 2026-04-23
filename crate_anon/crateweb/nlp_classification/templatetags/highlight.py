@@ -38,10 +38,36 @@ register = template.Library()
 
 @register.filter
 def highlight(source_record: SourceRecord) -> str:
-
-    if match := source_record.match:
-        match = f"<mark>{escape(source_record.match)}</mark>"
-
-    return mark_safe(
-        f"{escape(source_record.before)}{match}{escape(source_record.after)}"
+    nlp_matches = sorted(
+        source_record.all_nlp_matches(), key=lambda s: s.start
     )
+
+    sections = []
+
+    index = 0
+
+    for match in nlp_matches:
+        if match.nlp_pk_value == source_record.nlp_pk_value:
+            css_class = "nlp-match"
+        else:
+            css_class = "other-nlp-match"
+
+        sections.append(escape(source_record.source_text[index : match.start]))
+        sections.append(
+            mark_element(
+                css_class,
+                escape(source_record.source_text[match.start : match.end]),
+            )
+        )
+
+        index = match.end
+
+    sections.append(escape(source_record.source_text[index:]))
+
+    output = "".join(sections)
+
+    return mark_safe(output)
+
+
+def mark_element(css_class: str, text: str) -> str:
+    return f'<mark class="{css_class}">{text}</mark>'

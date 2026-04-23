@@ -181,7 +181,7 @@ class SourceRecordTests(TestCase):
             str(source_record), f"Item test.source_table.id={test_pk_value}"
         )
 
-    def test_source_text_before_match(self) -> None:
+    def test_source_text_start_of_match(self) -> None:
         source_record = SourceRecordFactory()
         fake_source_text = "before match after"
         match = re.search("match", fake_source_text)
@@ -193,9 +193,9 @@ class SourceRecordTests(TestCase):
             _source_text=fake_source_text,
             _nlp_dict=fake_nlp_dict,
         ):
-            self.assertEqual(source_record.before, "before ")
+            self.assertEqual(source_record.start, match.start())
 
-    def test_source_text_after_match(self) -> None:
+    def test_source_text_end_of_match(self) -> None:
         source_record = SourceRecordFactory()
         fake_source_text = "before match after"
         match = re.search("match", fake_source_text)
@@ -207,9 +207,9 @@ class SourceRecordTests(TestCase):
             _source_text=fake_source_text,
             _nlp_dict=fake_nlp_dict,
         ):
-            self.assertEqual(source_record.after, " after")
+            self.assertEqual(source_record.end, match.end())
 
-    def test_match_text_from_source_record_content(self) -> None:
+    def test_content_is_source_record_content(self) -> None:
         source_record = SourceRecordFactory()
 
         fake_nlp_dict = {FN_CONTENT: "match"}
@@ -218,7 +218,7 @@ class SourceRecordTests(TestCase):
             source_record,
             _nlp_dict=fake_nlp_dict,
         ):
-            self.assertEqual(source_record.match, "match")
+            self.assertEqual(source_record.content, "match")
 
     def test_extra_fields_copied_from_nlp_dict(self) -> None:
         source_record = SourceRecordFactory()
@@ -240,7 +240,7 @@ class SourceRecordTests(TestCase):
                 {"value_text": "13", "units": "mg/dl"},
             )
 
-    def test_other_nlp_matches_returns_matches_in_same_text(self) -> None:
+    def test_all_nlp_matches_returns_matches_in_same_text(self) -> None:
         source_record = SourceRecordFactory()
         source_record_2 = SourceRecordFactory(
             source_column=source_record.source_column,
@@ -253,11 +253,38 @@ class SourceRecordTests(TestCase):
             source_pk_value=source_record.source_pk_value,
         )
 
-        other_matches = source_record.other_nlp_matches()
+        all_matches = source_record.all_nlp_matches()
 
-        self.assertIn(source_record_2, other_matches)
-        self.assertIn(source_record_3, other_matches)
-        self.assertNotIn(source_record, other_matches)
+        self.assertIn(source_record_2, all_matches)
+        self.assertIn(source_record_3, all_matches)
+        self.assertIn(source_record, all_matches)
+
+    def test_all_nlp_matches_empty_for_no_matches(self) -> None:
+        source_record = SourceRecordFactory(nlp_pk_value="")
+
+        self.assertEqual(list(source_record.all_nlp_matches()), [])
+
+    def test_has_nlp_record_true_if_nlp_pk_exists(self) -> None:
+        nlp_table_definition = TableDefinitionFactory(
+            db_connection_name=NLP_DB_CONNECTION_NAME,
+            table_name="nlp_table",
+            pk_column_name="id",
+        )
+        source_record = SourceRecordFactory(
+            nlp_table_definition=nlp_table_definition, nlp_pk_value="12345"
+        )
+        self.assertTrue(source_record.has_nlp_record)
+
+    def test_has_nlp_record_false_if_nlp_pk_does_not_exist(self) -> None:
+        nlp_table_definition = TableDefinitionFactory(
+            db_connection_name=NLP_DB_CONNECTION_NAME,
+            table_name="nlp_table",
+            pk_column_name="id",
+        )
+        source_record = SourceRecordFactory(
+            nlp_table_definition=nlp_table_definition, nlp_pk_value=""
+        )
+        self.assertFalse(source_record.has_nlp_record)
 
 
 class AssignmentTests(TestCase):

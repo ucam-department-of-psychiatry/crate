@@ -108,6 +108,7 @@ def create_source_records_from_sample(task: Task, sample_pk: int) -> str:
         for src_pk, nlp_pk in nlp_rows:
             source_record_dict.setdefault(src_pk, []).append(nlp_pk)
 
+        # Default for no NLP record
         for src_pk in source_pks:
             source_record_dict.setdefault(src_pk, [""])
 
