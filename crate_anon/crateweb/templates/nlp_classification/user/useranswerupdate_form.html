@@ -1,7 +1,5 @@
 {# crate_anon/crateweb/templates/nlp_classification/user/useranswerupdate_form.html #}
 {% extends "nlp_classification/base.html" %}
-{% load highlight %}
-
 {% block nlp_classification_content %}
 <h2>{{ object.assignment.question }}</h2>
 
@@ -10,7 +8,7 @@
 </p>
 
 <p class="source-text">
-{{ object.source_record|highlight }}
+{{ highlighted_text }}
 </p>
 
 {% if nlp_fields %}

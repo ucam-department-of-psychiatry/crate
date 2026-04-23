@@ -1,5 +1,5 @@
 """
-crate_anon/crateweb/core/templatetags/highlight.py
+crate_anon/crateweb/nlp_classification/highlight.py
 
 ===============================================================================
 
@@ -23,20 +23,16 @@ crate_anon/crateweb/core/templatetags/highlight.py
 
 ===============================================================================
 
-**Highlight template tag.**
+**Highlight NLP matches in text.**
 
 """
 
-from django import template
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
 from crate_anon.crateweb.nlp_classification.models import SourceRecord
 
-register = template.Library()
 
-
-@register.filter
 def highlight(source_record: SourceRecord) -> str:
     nlp_matches = sorted(
         source_record.all_nlp_matches(), key=lambda s: s.start

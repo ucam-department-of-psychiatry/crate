@@ -1,5 +1,5 @@
 """
-crate_anon/crateweb/nlp_classification/tests/templatetags_tests.py
+crate_anon/crateweb/nlp_classification/tests/highlight_tests.py
 
 ===============================================================================
 
@@ -23,7 +23,7 @@ crate_anon/crateweb/nlp_classification/tests/templatetags_tests.py
 
 ===============================================================================
 
-**Template tags tests.**
+**Test highlighting of NLP matches.**
 
 """
 
@@ -34,9 +34,7 @@ from django.utils.html import escape
 from django.utils.safestring import SafeString
 
 from crate_anon.crateweb.nlp_classification.models import SourceRecord
-from crate_anon.crateweb.nlp_classification.templatetags.highlight import (
-    highlight,
-)
+from crate_anon.crateweb.nlp_classification.highlight import highlight
 
 
 class HighlightTests(TestCase):

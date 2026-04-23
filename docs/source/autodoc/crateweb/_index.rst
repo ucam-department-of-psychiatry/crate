@@ -162,20 +162,19 @@ crate_anon/crateweb
     nlp_classification/apps.py.rst
     nlp_classification/constants.py.rst
     nlp_classification/forms.py.rst
+    nlp_classification/highlight.py.rst
     nlp_classification/management/commands/make_test_data.py.rst
     nlp_classification/migrations/0001_initial.py.rst
     nlp_classification/migrations/__init__.py.rst
     nlp_classification/models.py.rst
     nlp_classification/tables.py.rst
     nlp_classification/tasks.py.rst
-    nlp_classification/templatetags/__init__.py.rst
-    nlp_classification/templatetags/highlight.py.rst
     nlp_classification/tests/__init__.py.rst
     nlp_classification/tests/factories.py.rst
     nlp_classification/tests/forms_tests.py.rst
+    nlp_classification/tests/highlight_tests.py.rst
     nlp_classification/tests/models_tests.py.rst
     nlp_classification/tests/tasks_tests.py.rst
-    nlp_classification/tests/templatetags_tests.py.rst
     nlp_classification/tests/views_tests.py.rst
     nlp_classification/urls.py.rst
     nlp_classification/views.py.rst

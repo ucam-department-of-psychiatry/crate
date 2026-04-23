@@ -66,6 +66,7 @@ from crate_anon.crateweb.nlp_classification.forms import (
     WizardSelectTaskForm,
     WizardSelectUserForm,
 )
+from crate_anon.crateweb.nlp_classification.highlight import highlight
 from crate_anon.crateweb.nlp_classification.models import (
     Assignment,
     Column,
@@ -165,6 +166,7 @@ class UserAnswerView(DatabaseConnectionMixin, UserPassesTestMixin, UpdateView):
             nlp_fields=nlp_fields,
             total_answers=self.object.assignment.useranswer_set.all().count(),
             count=self.object.assignment.num_answered + 1,
+            highlighted_text=highlight(self.object.source_record),
         )
 
         return context
