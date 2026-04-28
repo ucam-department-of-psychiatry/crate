@@ -191,6 +191,19 @@ class Crp(SimpleNumericalResultParser):
                 ("Plasma C-reactive protein level (XE2dy) 45 mg/L", [45]),
                 ("Serum C reactive protein level (XaINL) 45 mg/L", [45]),
                 ("CRP (mg/L) 62", [62]),
+                (
+                    "If CRP is over 30 mg/L the ferritin result may be high "
+                    "and uninterpretable",
+                    [],
+                ),  # conditional
+                ("If the CRP is over 30 mg/L", []),  # conditional
+                ("The CRP is over 30 mg/L", [30]),
+                ("When the CRP is over 30 mg/L", []),  # conditional
+                ("The CRP is above 30 mg/L", [30]),
+                ("The CRP is over 30 mg/L", [30]),
+                ("The CRP is less than 30 mg/L", [30]),
+                ("The CRP is under 30 mg/L", [30]),
+                ("The CRP is below 30 mg/L", [30]),
             ],
             verbose=verbose,
         )
