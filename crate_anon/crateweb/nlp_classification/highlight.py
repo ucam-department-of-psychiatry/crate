@@ -44,27 +44,23 @@ def highlight(source_record: SourceRecord) -> str:
 
     index = 0
 
+    source_text = source_record.source_text
+
     for match in nlp_matches:
-        if match.nlp_pk_value == source_record.nlp_pk_value:
-            label = "matches this record"
-            css_class = "nlp-match"
-        else:
-            label = "matches another record"
-            css_class = "other-nlp-match"
+        sections.append(escape(source_text[index : match.start]))
 
-        attributes = {"class": css_class, "aria-label": label, "title": label}
+        attributes = mark_attributes(match, source_record)
 
-        sections.append(escape(source_record.source_text[index : match.start]))
         sections.append(
             mark_element(
-                escape(source_record.source_text[match.start : match.end]),
+                escape(source_text[match.start : match.end]),
                 attributes,
             )
         )
 
         index = match.end
 
-    sections.append(escape(source_record.source_text[index:]))
+    sections.append(escape(source_text[index:]))
 
     output = "".join(sections)
 
@@ -75,3 +71,16 @@ def mark_element(text: str, attributes: dict[str, Any]) -> str:
     attributes = " ".join([f'{k}="{v}"' for k, v in attributes.items()])
 
     return f"<mark {attributes}>{text}</mark>"
+
+
+def mark_attributes(
+    match: SourceRecord, this_record: SourceRecord
+) -> dict[str, Any]:
+    if match.nlp_pk_value == this_record.nlp_pk_value:
+        label = "matches this record"
+        css_class = "nlp-match"
+    else:
+        label = "matches another record"
+        css_class = "other-nlp-match"
+
+    return {"class": css_class, "aria-label": label, "title": label}
