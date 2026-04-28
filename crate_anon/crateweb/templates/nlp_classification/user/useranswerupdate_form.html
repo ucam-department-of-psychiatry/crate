@@ -7,6 +7,13 @@
 {{ count }}/{{ total_answers }}
 </p>
 
+{% if not object.source_record.matches_valid %}
+<p class="warning">
+It looks like the source text has changed since the NLP records were
+generated. You will probably have to re-run NLP.
+</p>
+{% endif %}
+
 <p class="source-text">
 {{ highlighted_text }}
 </p>

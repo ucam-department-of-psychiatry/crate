@@ -173,6 +173,7 @@ class SourceRecord(models.Model):
         self._nlp_dict: dict[str, Any] = None
         self._source_text: str = None
         self._extra_nlp_column_names = None
+        self._all_nlp_matches: list[SourceRecord] = None
 
     @property
     def extra_nlp_column_names(self) -> list[str]:
@@ -276,14 +277,26 @@ class SourceRecord(models.Model):
             f"{self.source_pk_value}"
         )
 
-    def all_nlp_matches(self) -> models.QuerySet:
-        conditions = (
-            models.Q(sample=self.sample)
-            & models.Q(source_pk_value=self.source_pk_value)
-            & ~models.Q(nlp_pk_value="")
-        )
+    def matches_valid(self) -> bool:
+        for match in self.all_nlp_matches():
+            if self.source_text[match.start : match.end] != match.content:
+                return False
 
-        return SourceRecord.objects.filter(conditions)
+        return True
+
+    def all_nlp_matches(self) -> list["SourceRecord"]:
+        if self._all_nlp_matches is None:
+            conditions = (
+                models.Q(sample=self.sample)
+                & models.Q(source_pk_value=self.source_pk_value)
+                & ~models.Q(nlp_pk_value="")
+            )
+
+            self._all_nlp_matches = list(
+                SourceRecord.objects.filter(conditions)
+            )
+
+        return self._all_nlp_matches
 
 
 class Assignment(models.Model):

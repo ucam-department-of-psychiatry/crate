@@ -275,7 +275,7 @@ class SourceRecordTests(TestCase):
     def test_all_nlp_matches_empty_for_no_matches(self) -> None:
         source_record = SourceRecordFactory(nlp_pk_value="")
 
-        self.assertEqual(list(source_record.all_nlp_matches()), [])
+        self.assertEqual(source_record.all_nlp_matches(), [])
 
     def test_has_nlp_record_true_if_nlp_pk_exists(self) -> None:
         nlp_table_definition = TableDefinitionFactory(
@@ -304,6 +304,61 @@ class SourceRecordTests(TestCase):
         source_record = SourceRecordFactory(sample=sample, nlp_pk_value="")
 
         self.assertFalse(source_record.has_nlp_record)
+
+    def test_matches_valid_true_when_valid(self) -> None:
+        source_record = SourceRecordFactory()
+
+        match_text = "Match"
+        fake_source_text = f"Blah {match_text} blah blah."
+
+        match = re.search(match_text, fake_source_text)
+        fake_nlp_dict = {
+            FN_CONTENT: match_text,
+            FN_START: match.start(),
+            FN_END: match.end(),
+        }
+
+        fake_source_dict = {
+            source_record.sample.source_column.name: fake_source_text
+        }
+
+        mock_fetch = mock.Mock(
+            side_effect=[
+                fake_source_dict,
+                fake_nlp_dict,
+            ]
+        )
+
+        with mock.patch.multiple(
+            "crate_anon.crateweb.nlp_classification.models.DatabaseConnection",  # noqa: E501
+            fetchone_as_dict=mock_fetch,
+        ):
+            self.assertTrue(source_record.matches_valid())
+
+    def test_matches_valid_false_when_invalid(self) -> None:
+        source_record = SourceRecordFactory()
+
+        match_text = "Match"
+        fake_source_text = f"Blah {match_text} blah blah."
+
+        fake_nlp_dict = {FN_CONTENT: match_text, FN_START: 0, FN_END: 5}
+
+        fake_source_dict = {
+            source_record.sample.source_column.name: fake_source_text
+        }
+
+        mock_fetch = mock.Mock(
+            side_effect=[
+                fake_source_dict,
+                fake_nlp_dict,
+            ]
+        )
+
+        with mock.patch.multiple(
+            "crate_anon.crateweb.nlp_classification.models.DatabaseConnection",  # noqa: E501
+            fetchone_as_dict=mock_fetch,
+        ):
+            self.assertFalse(source_record.matches_valid())
 
 
 class AssignmentTests(TestCase):
