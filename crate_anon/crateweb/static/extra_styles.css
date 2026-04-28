@@ -402,6 +402,11 @@ body {
     display: inline;
 }
 
+mark {
+    padding: 2px;
+    border: thin solid black;
+}
+
 .no-nlp {
     font-size: medium;
 }
@@ -428,6 +433,7 @@ body {
 
 .source-text {
     font-weight: medium;
+    line-height: 1.5em;
 }
 
 .nlp-match {
