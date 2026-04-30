@@ -395,7 +395,7 @@ class RedHerringProvider(ChoiceProvider):
                     "and uninterpretable"
                 ),
                 (
-                    "Please can we request the following bloods FBC UEs LFTs ",
+                    "Please can we request the following bloods FBC UEs LFTs "
                     "CRP EGFR",
                 ),
                 "Bone profile; CRP; FERRITIN; FOLATE (SERUM)",
