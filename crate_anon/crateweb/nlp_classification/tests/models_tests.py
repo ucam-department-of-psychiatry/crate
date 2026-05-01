@@ -15,9 +15,11 @@ from crate_anon.crateweb.nlp_classification.models import (
 from crate_anon.crateweb.nlp_classification.tests.factories import (
     AssignmentFactory,
     ColumnFactory,
+    QuestionFactory,
     SampleFactory,
     SourceRecordFactory,
     TableDefinitionFactory,
+    TaskFactory,
     UserAnswerFactory,
 )
 from crate_anon.nlp_manager.constants import (
@@ -370,3 +372,12 @@ class AssignmentTests(TestCase):
         UserAnswerFactory(assignment=assignment)
 
         self.assertEqual(assignment.first_unanswered(), answer)
+
+    def test_str_has_user_question_and_task(self) -> None:
+        task = TaskFactory(name="Task")
+        question = QuestionFactory(title="Question?")
+        assignment = AssignmentFactory(task=task, question=question)
+        self.assertEqual(
+            str(assignment),
+            f"{assignment.user}'s answers to 'Question?' (Task)",
+        )

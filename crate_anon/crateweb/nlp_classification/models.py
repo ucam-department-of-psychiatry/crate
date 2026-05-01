@@ -357,6 +357,9 @@ class Assignment(models.Model):
     def answered(self) -> models.QuerySet:
         return self.useranswer_set.exclude(decision=None)
 
+    def __str__(self) -> str:
+        return f"{self.user}'s answers to '{self.question}' ({self.task})"
+
 
 class UserAnswer(models.Model):
     """
