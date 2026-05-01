@@ -81,6 +81,7 @@ class ExportAnswersTable(tables.Table):
         model = UserAnswer
 
         sequence = (
+            "id",
             "task",
             "question",
             "assignment",
@@ -93,11 +94,12 @@ class ExportAnswersTable(tables.Table):
             "nlp_pk_value",
             "decision",
         )
-        exclude = ("id", "source_record")
+        exclude = ("source_record",)
 
     # Columns in alphabetical order, sequence defined above
     assignment = tables.Column()
     decision = tables.Column()
+    id = tables.Column()
     nlp_pk_column_name = tables.Column(
         accessor="source_record__sample__nlp_table_definition__pk_column_name",
         verbose_name="NLP PK column name",
