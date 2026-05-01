@@ -77,7 +77,10 @@ from crate_anon.crateweb.nlp_classification.models import (
     Task,
     UserAnswer,
 )
-from crate_anon.crateweb.nlp_classification.tables import AssignmentTable
+from crate_anon.crateweb.nlp_classification.tables import (
+    AssignmentTable,
+    ExportAnswersTable,
+)
 from crate_anon.crateweb.nlp_classification.tasks import (
     create_source_records_from_sample,
 )
@@ -730,3 +733,16 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
         assignment.create_user_answers()
 
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))
+
+
+class ExportAnswersView(TemplateView):
+    template_name = "nlp_classification/admin/export_answers.html"
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+
+        table = ExportAnswersTable(UserAnswer.objects.all())
+        tables.RequestConfig(self.request).configure(table)
+        context.update(table=table)
+
+        return context

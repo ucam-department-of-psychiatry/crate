@@ -314,6 +314,7 @@ crate_anon/crateweb
     templates/include_jquery.html.rst
     templates/logged_out.html.rst
     templates/login.html.rst
+    templates/nlp_classification/admin/export_answers.html.rst
     templates/nlp_classification/admin/home.html.rst
     templates/nlp_classification/admin/sample_data_progress.html.rst
     templates/nlp_classification/admin/update_form.html.rst

@@ -74,3 +74,54 @@ class AssignmentTable(tables.Table):
         )
 
         return Template.render(context_dict)
+
+
+class ExportAnswersTable(tables.Table):
+    class Meta:
+        model = UserAnswer
+
+        sequence = (
+            "task",
+            "question",
+            "user",
+            "source_table_name",
+            "source_column_name",
+            "source_pk_column_name",
+            "source_pk_value",
+            "nlp_table_name",
+            "nlp_pk_column_name",
+            "nlp_pk_value",
+            "decision",
+        )
+        exclude = ("id", "source_record", "assignment")
+
+    # Columns in alphabetical order, sequence defined above
+    decision = tables.Column()
+    nlp_pk_column_name = tables.Column(
+        accessor="source_record__sample__nlp_table_definition__pk_column_name",
+        verbose_name="NLP PK column name",
+    )
+    nlp_pk_value = tables.Column(accessor="source_record__nlp_pk_value")
+    nlp_table_name = tables.Column(
+        accessor="source_record__sample__nlp_table_definition__table_name",
+        verbose_name="NLP table name",
+    )
+    question = tables.Column(accessor="assignment__question")
+    source_table_name = tables.Column(
+        accessor="source_record__sample__source_column__table_definition__table_name",  # noqa: E501
+        verbose_name="Source table name",
+    )
+    source_column_name = tables.Column(
+        accessor="source_record__sample__source_column__name",
+        verbose_name="Source column name",
+    )
+    source_pk_column_name = tables.Column(
+        accessor="source_record__sample__source_column__table_definition__pk_column_name",  # noqa: E501
+        verbose_name="Source PK column name",
+    )
+    source_pk_value = tables.Column(
+        accessor="source_record__source_pk_value",
+        verbose_name="Source PK value",
+    )
+    task = tables.Column(accessor="assignment__task")
+    user = tables.Column(accessor="assignment__user")

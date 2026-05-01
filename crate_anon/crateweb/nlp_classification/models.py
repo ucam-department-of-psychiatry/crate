@@ -164,7 +164,9 @@ class SourceRecord(models.Model):
 
     sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
     source_pk_value = models.CharField(max_length=100)
-    nlp_pk_value = models.CharField(max_length=100)
+    nlp_pk_value = models.CharField(
+        max_length=100, verbose_name="NLP PK value"
+    )
     random_order = models.PositiveBigIntegerField()
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
