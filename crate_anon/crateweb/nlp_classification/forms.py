@@ -241,4 +241,6 @@ class WizardSelectSampleForm(Form):
 
 
 class WizardSelectUserForm(Form):
-    user = ModelChoiceField(queryset=User.objects.all(), required=True)
+    user = ModelChoiceField(
+        queryset=User.objects.all().order_by("username"), required=True
+    )
