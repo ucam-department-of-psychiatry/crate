@@ -4,5 +4,12 @@
 
 {% block nlp_classification_content %}
             <h2>Export Answers</h2>
-            {% render_table table %}
+
+{% if filter %}
+    <form action="" method="get" class="export-answers-filter">
+        {{filter.form.as_div }}
+        <input type="submit" value="Filter" />
+    </form>
+{% endif %}
+    {% render_table table %}
 {% endblock %}

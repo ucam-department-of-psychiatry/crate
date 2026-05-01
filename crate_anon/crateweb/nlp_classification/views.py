@@ -38,7 +38,10 @@ from django.forms import Form
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.generic import TemplateView, UpdateView
-import django_tables2 as tables
+from django_filters import FilterSet
+from django_filters.views import FilterView
+from django_tables2.tables import RequestConfig, Table
+from django_tables2.views import SingleTableMixin
 from formtools.wizard.views import SessionWizardView
 
 from crate_anon.crateweb.core.constants import (
@@ -124,12 +127,12 @@ class UserHomeView(DatabaseConnectionMixin, TemplateView):
         context = super().get_context_data(**kwargs)
 
         table = self._get_table()
-        tables.RequestConfig(self.request).configure(table)
+        RequestConfig(self.request).configure(table)
         context.update(table=table)
 
         return context
 
-    def _get_table(self) -> tables.Table:
+    def _get_table(self) -> Table:
         return AssignmentTable(
             Assignment.objects.filter(user=self.request.user)
         )
@@ -147,7 +150,9 @@ class UserAnswerView(DatabaseConnectionMixin, UserPassesTestMixin, UpdateView):
     def get_success_url(self, **kwargs) -> str:
         next_record = (
             UserAnswer.objects.filter(
-                decision=None, assignment__user=self.request.user
+                decision=None,
+                assignment__user=self.request.user,
+                assignment=self.object.assignment,
             )
             .exclude(pk=self.object.pk)
             .first()
@@ -735,14 +740,19 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
         return HttpResponseRedirect(reverse("nlp_classification_admin_home"))
 
 
-class ExportAnswersView(TemplateView):
+class ExportAnswersFilter(FilterSet):
+    class Meta:
+        model = UserAnswer
+        fields = (
+            "assignment__task",
+            "assignment__question",
+            "assignment",
+        )
+
+
+class ExportAnswersView(SingleTableMixin, FilterView):
+    table_class = ExportAnswersTable
+    model = UserAnswer
     template_name = "nlp_classification/admin/export_answers.html"
 
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-
-        table = ExportAnswersTable(UserAnswer.objects.all())
-        tables.RequestConfig(self.request).configure(table)
-        context.update(table=table)
-
-        return context
+    filterset_class = ExportAnswersFilter
