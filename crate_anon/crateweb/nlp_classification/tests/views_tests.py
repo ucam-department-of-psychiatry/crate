@@ -83,6 +83,8 @@ class UserAnswerViewTests(TestCase):
             assignment=self.assignment, decision=None
         )
         UserAnswerFactory(assignment=self.assignment)  # answered
+        other_assignment = AssignmentFactory(user=self.assignment.user)
+        UserAnswerFactory(decision=None, assignment=other_assignment)
         unanswered = UserAnswerFactory(
             assignment=self.assignment, decision=None
         )
