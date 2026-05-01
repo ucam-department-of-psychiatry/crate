@@ -116,7 +116,12 @@ class DatabaseConnectionMixin:
         return DatabaseConnection(NLP_DB_CONNECTION_NAME)
 
 
-class AdminHomeView(DatabaseConnectionMixin, TemplateView):
+class MustBeAdminMixin(UserPassesTestMixin):
+    def test_func(self) -> bool:
+        return self.request.user.is_superuser
+
+
+class AdminHomeView(MustBeAdminMixin, DatabaseConnectionMixin, TemplateView):
     template_name = "nlp_classification/admin/home.html"
 
 
@@ -195,7 +200,9 @@ def should_create_question(wizard: SessionWizardView) -> bool:
     return not wizard.has_selected_question
 
 
-class NlpClassificationWizardView(DatabaseConnectionMixin, SessionWizardView):
+class NlpClassificationWizardView(
+    MustBeAdminMixin, DatabaseConnectionMixin, SessionWizardView
+):
     template_name = "nlp_classification/admin/wizard_form.html"
 
     def get_context_data(self, form: Form, **kwargs: Any) -> dict[str, Any]:
@@ -750,7 +757,7 @@ class ExportAnswersFilter(FilterSet):
         )
 
 
-class ExportAnswersView(SingleTableMixin, FilterView):
+class ExportAnswersView(MustBeAdminMixin, SingleTableMixin, FilterView):
     table_class = ExportAnswersTable
     model = UserAnswer
     template_name = "nlp_classification/admin/export_answers.html"
