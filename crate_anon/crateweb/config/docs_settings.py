@@ -1,5 +1,5 @@
 """
-crate_anon/crateweb/config/test_settings.py
+crate_anon/crateweb/config/docs_settings.py
 
 ===============================================================================
 
