@@ -52,6 +52,7 @@ import os
 
 import debug_toolbar
 from django.conf import settings
+from django.urls import path
 from django.urls import include, re_path
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
@@ -102,8 +103,8 @@ urlpatterns = [
     # -------------------------------------------------------------------------
     # Home, About
     # -------------------------------------------------------------------------
-    re_path(r"^$", core_views.home, name=UrlNames.HOME),
-    re_path(r"^about/$", core_views.about, name=UrlNames.ABOUT),
+    path("", core_views.home, name=UrlNames.HOME),
+    path("about/", core_views.about, name=UrlNames.ABOUT),
     # -------------------------------------------------------------------------
     # Admin sites
     # -------------------------------------------------------------------------
@@ -115,166 +116,161 @@ urlpatterns = [
     # -------------------------------------------------------------------------
     # Anonymisation API
     # -------------------------------------------------------------------------
-    re_path(r"^anon_api/", include("crate_anon.crateweb.anonymise_api.urls")),
+    path("anon_api/", include("crate_anon.crateweb.anonymise_api.urls")),
     # -------------------------------------------------------------------------
     # Main query views
     # -------------------------------------------------------------------------
-    re_path(
-        r"^build_query/$",
+    path(
+        "build_query/",
         research_views.query_build,
         name=UrlNames.BUILD_QUERY,
     ),
-    re_path(
-        r"^query/$", research_views.query_edit_select, name=UrlNames.QUERY
-    ),
-    re_path(
-        r"^activate_query/(?P<query_id>[0-9]+)/$",
+    path("query/", research_views.query_edit_select, name=UrlNames.QUERY),
+    path(
+        "activate_query/<int:query_id>/",
         research_views.query_activate,
         name=UrlNames.ACTIVATE_QUERY,
     ),
-    re_path(
-        r"^delete_query/(?P<query_id>[0-9]+)/$",
+    path(
+        "delete_query/<int:query_id>/",
         research_views.query_delete,
         name=UrlNames.DELETE_QUERY,
     ),
-    re_path(
-        r"^highlight/$",
+    path(
+        "highlight/",
         research_views.highlight_edit_select,
         name=UrlNames.HIGHLIGHT,
     ),
-    re_path(
-        r"^activate_highlight/(?P<highlight_id>[0-9]+)/$",
+    path(
+        "activate_highlight/<int:highlight_id>/",
         research_views.highlight_activate,
         name=UrlNames.ACTIVATE_HIGHLIGHT,
     ),
-    re_path(
-        r"^deactivate_highlight/(?P<highlight_id>[0-9]+)/$",
+    path(
+        "deactivate_highlight/<int:highlight_id>/",
         research_views.highlight_deactivate,
         name=UrlNames.DEACTIVATE_HIGHLIGHT,
     ),
-    re_path(
-        r"^delete_highlight/(?P<highlight_id>[0-9]+)/$",
+    path(
+        "delete_highlight/<int:highlight_id>/",
         research_views.highlight_delete,
         name=UrlNames.DELETE_HIGHLIGHT,
     ),
-    re_path(
-        r"^count/(?P<query_id>[0-9]+)/$",
+    path(
+        "count/<int:query_id>/",
         research_views.query_count,
         name=UrlNames.COUNT,
     ),
-    re_path(
-        r"^results/(?P<query_id>[0-9]+)/$",
+    path(
+        "results/<int:query_id>/",
         research_views.query_results,
         name=UrlNames.RESULTS,
     ),
-    re_path(
-        r"^results_recordwise/(?P<query_id>[0-9]+)/$",
+    path(
+        "results_recordwise/<int:query_id>/",
         research_views.query_results_recordwise,
         name=UrlNames.RESULTS_RECORDWISE,
     ),
-    re_path(
-        r"^tsv/(?P<query_id>[0-9]+)/$",
+    path(
+        "tsv/<int:query_id>/",
         research_views.query_tsv,
         name=UrlNames.TSV,
     ),
-    re_path(
-        r"^query_excel/(?P<query_id>[0-9]+)/$",
+    path(
+        "query_excel/<int:query_id>/",
         research_views.query_excel,
         name=UrlNames.QUERY_EXCEL,
     ),
-    re_path(
-        r"^sitewide_queries/$",
+    path(
+        "sitewide_queries/",
         research_views.query_add_sitewide,
         name=UrlNames.SITEWIDE_QUERIES,
     ),
-    re_path(
-        r"^delete_sitewide_query/(?P<query_id>[0-9]+)/$",
+    path(
+        "delete_sitewide_query/<int:query_id>/",
         research_views.sitewide_query_delete,
         name=UrlNames.DELETE_SITEWIDE_QUERY,
     ),
-    re_path(
-        r"^standard_queries/$",
+    path(
+        "standard_queries/",
         research_views.show_sitewide_queries,
         name=UrlNames.STANDARD_QUERIES,
     ),
-    re_path(
-        r"^process_standard_query/(?P<query_id>[0-9]+)/$",
+    path(
+        "process_standard_query/<int:query_id>/",
         research_views.sitewide_query_process,
         name=UrlNames.PROCESS_STANDARD_QUERY,
     ),
-    re_path(
-        r"^edit_display/(?P<query_id>[0-9]+)/$",
+    path(
+        "edit_display/<int:query_id>/",
         research_views.edit_display,
         name=UrlNames.EDIT_DISPLAY,
     ),
-    re_path(
-        r"^save_display/(?P<query_id>[0-9]+)/$",
+    path(
+        "save_display/<int:query_id>/",
         research_views.save_display,
         name=UrlNames.SAVE_DISPLAY,
     ),
-    re_path(
-        r"^show_query/(?P<query_id>[0-9]+)/$",
+    path(
+        "show_query/<int:query_id>/",
         research_views.show_query,
         name=UrlNames.SHOW_QUERY,
     ),
-    re_path(
-        r"^source_information/(?P<srcdb>.+)/(?P<srctable>.+)/(?P<srcfield>.+)/"
-        r"(?P<srcpkfield>.+)/(?P<srcpkval>.+)/(?P<srcpkstr>.+)/$",
+    path(
+        "source_information/<path:srcdb>/<path:srctable>/<path:srcfield>/<path:srcpkfield>/<path:srcpkval>/<path:srcpkstr>/",  # noqa: E501
         research_views.source_info,
         name=UrlNames.SRCINFO,
     ),
     # -------------------------------------------------------------------------
     # Patient Explorer views
     # -------------------------------------------------------------------------
-    re_path(r"^pe_build/$", research_views.pe_build, name=UrlNames.PE_BUILD),
-    re_path(
-        r"^pe_choose/$", research_views.pe_choose, name=UrlNames.PE_CHOOSE
-    ),
-    re_path(
-        r"^pe_activate/(?P<pe_id>[0-9]+)/$",
+    path("pe_build/", research_views.pe_build, name=UrlNames.PE_BUILD),
+    path("pe_choose/", research_views.pe_choose, name=UrlNames.PE_CHOOSE),
+    path(
+        "pe_activate/<int:pe_id>/",
         research_views.pe_activate,
         name=UrlNames.PE_ACTIVATE,
     ),
-    re_path(
-        r"^pe_edit/(?P<pe_id>[0-9]+)/$",
+    path(
+        "pe_edit/<int:pe_id>/",
         research_views.pe_edit,
         name=UrlNames.PE_EDIT,
     ),
-    re_path(
-        r"^pe_delete/(?P<pe_id>[0-9]+)/$",
+    path(
+        "pe_delete/<int:pe_id>/",
         research_views.pe_delete,
         name=UrlNames.PE_DELETE,
     ),
-    re_path(
-        r"^pe_results/(?P<pe_id>[0-9]+)/$",
+    path(
+        "pe_results/<int:pe_id>/",
         research_views.pe_results,
         name=UrlNames.PE_RESULTS,
     ),
     # re_path(r'^pe_tsv_zip/(?P<pe_id>[0-9]+)/$',
     #     research_views.patient_explorer_tsv_zip, name='pe_tsv_zip'),
-    re_path(
-        r"^pe_excel/(?P<pe_id>[0-9]+)/$",
+    path(
+        "pe_excel/<int:pe_id>/",
         research_views.pe_excel,
         name=UrlNames.PE_EXCEL,
     ),
-    re_path(
-        r"^pe_df_results/(?P<pe_id>[0-9]+)/$",
+    path(
+        "pe_df_results/<int:pe_id>/",
         research_views.pe_data_finder_results,
         name=UrlNames.PE_DF_RESULTS,
     ),
-    re_path(
-        r"^pe_df_excel/(?P<pe_id>[0-9]+)/$",
+    path(
+        "pe_df_excel/<int:pe_id>/",
         research_views.pe_data_finder_excel,
         name=UrlNames.PE_DF_EXCEL,
     ),
-    re_path(
-        r"^pe_monster_results/(?P<pe_id>[0-9]+)/$",
+    path(
+        "pe_monster_results/<int:pe_id>/",
         research_views.pe_monster_results,
         name=UrlNames.PE_MONSTER_RESULTS,
     ),
     # We don't offer the monster view in Excel; it'd be huge.
-    re_path(
-        r"^pe_table_browser/(?P<pe_id>[0-9]+)/$",
+    path(
+        "pe_table_browser/<int:pe_id>/",
         research_views.pe_table_browser,
         name=UrlNames.PE_TABLE_BROWSER,
     ),
@@ -283,49 +279,49 @@ urlpatterns = [
         research_views.pe_one_table,
         name=UrlNames.PE_ONE_TABLE,
     ),
-    re_path(
-        r"^pe_one_table/(?P<pe_id>[0-9]+)/(?P<schema>.+)/(?P<table>.+)/$",
+    path(
+        "pe_one_table/<int:pe_id>/<path:schema>/<path:table>/",
         research_views.pe_one_table,
         name=UrlNames.PE_ONE_TABLE,
     ),
     # -------------------------------------------------------------------------
     # Research database structure
     # -------------------------------------------------------------------------
-    re_path(
-        r"^structure_table_long/$",
+    path(
+        "structure_table_long/",
         research_views.structure_table_long,
         name=UrlNames.STRUCTURE_TABLE_LONG,
     ),
-    re_path(
-        r"^structure_table_paginated/$",
+    path(
+        "structure_table_paginated/",
         research_views.structure_table_paginated,
         name=UrlNames.STRUCTURE_TABLE_PAGINATED,
     ),
-    re_path(
-        r"^structure_tree/$",
+    path(
+        "structure_tree/",
         research_views.structure_tree,
         name=UrlNames.STRUCTURE_TREE,
     ),
-    re_path(
-        r"^structure_tsv/$",
+    path(
+        "structure_tsv/",
         research_views.structure_tsv,
         name=UrlNames.STRUCTURE_TSV,
     ),
-    re_path(
-        r"^structure_excel/$",
+    path(
+        "structure_excel/",
         research_views.structure_excel,
         name=UrlNames.STRUCTURE_EXCEL,
     ),
-    re_path(
-        r"^structure_help/$",
+    path(
+        "structure_help/",
         research_views.local_structure_help,
         name=UrlNames.STRUCTURE_HELP,
     ),
     # -------------------------------------------------------------------------
     # SQL helpers
     # -------------------------------------------------------------------------
-    re_path(
-        r"^sqlhelper_text_anywhere/$",
+    path(
+        "sqlhelper_text_anywhere/",
         research_views.sqlhelper_text_anywhere,
         name=UrlNames.SQLHELPER_TEXT_ANYWHERE,
     ),
@@ -334,8 +330,8 @@ urlpatterns = [
         research_views.sqlhelper_text_anywhere_with_db,
         name=UrlNames.SQLHELPER_TEXT_ANYWHERE_WITH_DB,
     ),
-    re_path(
-        r"^sqlhelper_drug_type/$",
+    path(
+        "sqlhelper_drug_type/",
         research_views.sqlhelper_drug_type,
         name=UrlNames.SQLHELPER_DRUG_TYPE,
     ),
@@ -347,16 +343,16 @@ urlpatterns = [
     # -------------------------------------------------------------------------
     # Researcher consent functions
     # -------------------------------------------------------------------------
-    re_path(
-        r"^submit_contact_request/$",
+    path(
+        "submit_contact_request/",
         consent_views.submit_contact_request,
         name=UrlNames.SUBMIT_CONTACT_REQUEST,
     ),
     # -------------------------------------------------------------------------
     # Clinician views
     # -------------------------------------------------------------------------
-    re_path(
-        r"^all_text_from_pid/$",
+    path(
+        "all_text_from_pid/",
         research_views.all_text_from_pid,
         name=UrlNames.ALL_TEXT_FROM_PID,
     ),
@@ -365,48 +361,44 @@ urlpatterns = [
         research_views.all_text_from_pid_with_db,
         name=UrlNames.ALL_TEXT_FROM_PID_WITH_DB,
     ),
-    re_path(
-        r"^clinician_contact_request/$",
+    path(
+        "clinician_contact_request/",
         consent_views.clinician_initiated_contact_request,
         name=UrlNames.CLINICIAN_CONTACT_REQUEST,
     ),
     # -------------------------------------------------------------------------
     # Archive views
     # -------------------------------------------------------------------------
-    re_path(
-        r"^launch_archive/$",
+    path(
+        "launch_archive/",
         research_views.launch_archive,
         name=UrlNames.LAUNCH_ARCHIVE,
     ),
-    re_path(
-        r"^archive/$",
+    path(
+        "archive/",
         research_views.archive_template,
         name=UrlNames.ARCHIVE_TEMPLATE,
     ),
-    re_path(
-        r"^archive_attachment/$",
+    path(
+        "archive_attachment/",
         research_views.archive_attachment,
         name=UrlNames.ARCHIVE_ATTACHMENT,
     ),
-    re_path(
-        r"^archive_static/$",
+    path(
+        "archive_static/",
         research_views.archive_static,
         name=UrlNames.ARCHIVE_STATIC,
     ),
     # -------------------------------------------------------------------------
     # Look up PID/RID
     # -------------------------------------------------------------------------
-    re_path(
-        r"^pidlookup/$", research_views.pidlookup, name=UrlNames.PIDLOOKUP
-    ),
+    path("pidlookup/", research_views.pidlookup, name=UrlNames.PIDLOOKUP),
     re_path(
         r"^pidlookup_with_db/(?P<dbname>[a-zA-Z0-9_]+)/$",
         research_views.pidlookup_with_db,
         name=UrlNames.PIDLOOKUP_WITH_DB,
     ),
-    re_path(
-        r"^ridlookup/$", research_views.ridlookup, name=UrlNames.RIDLOOKUP
-    ),
+    path("ridlookup/", research_views.ridlookup, name=UrlNames.RIDLOOKUP),
     re_path(
         r"^ridlookup_with_db/(?P<dbname>[a-zA-Z0-9_]+)/$",
         research_views.ridlookup_with_db,
@@ -415,8 +407,8 @@ urlpatterns = [
     # -------------------------------------------------------------------------
     # User profile
     # -------------------------------------------------------------------------
-    re_path(
-        r"^edit_profile/$",
+    path(
+        "edit_profile/",
         userprofile_views.edit_profile,
         name=UrlNames.EDIT_PROFILE,
     ),
@@ -430,18 +422,18 @@ urlpatterns = [
         consent_views.download_privatestorage,
         name=UrlNames.DOWNLOAD_PRIVATESTORAGE,
     ),
-    re_path(
-        r"^charity_report/$",
+    path(
+        "charity_report/",
         consent_views.charity_report,
         name=UrlNames.CHARITY_REPORT,
     ),
-    re_path(
-        r"^exclusion_report/$",
+    path(
+        "exclusion_report/",
         consent_views.exclusion_report,
         name=UrlNames.EXCLUSION_REPORT,
     ),
-    re_path(
-        r"^test_email_rdbm/$",
+    path(
+        "test_email_rdbm/",
         consent_views.test_email_rdbm,
         name=UrlNames.TEST_EMAIL_RDBM,
     ),
@@ -453,13 +445,13 @@ urlpatterns = [
         consent_views.study_details,
         name=UrlNames.STUDY_DETAILS,
     ),
-    re_path(
-        r"^study_form/(?P<study_id>[0-9]+)/$",
+    path(
+        "study_form/<int:study_id>/",
         consent_views.study_form,
         name=UrlNames.STUDY_FORM,
     ),
-    re_path(
-        r"^study_pack/(?P<study_id>[0-9]+)/$",
+    path(
+        "study_pack/<int:study_id>/",
         consent_views.study_pack,
         name=UrlNames.STUDY_PACK,
     ),
@@ -486,36 +478,36 @@ urlpatterns = [
     # -------------------------------------------------------------------------
     # Restricted views; superuser + researchers
     # -------------------------------------------------------------------------
-    re_path(
-        r"^view_email_html/(?P<email_id>[0-9]+)/$",
+    path(
+        "view_email_html/<int:email_id>/",
         consent_views.view_email_html,
         name=UrlNames.VIEW_EMAIL_HTML,
     ),
-    re_path(
-        r"^view_email_attachment/(?P<attachment_id>[0-9]+)/$",
+    path(
+        "view_email_attachment/<int:attachment_id>/",
         consent_views.view_email_attachment,
         name=UrlNames.VIEW_EMAIL_ATTACHMENT,
     ),
-    re_path(
-        r"^letter/(?P<letter_id>[0-9]+)/$",
+    path(
+        "letter/<int:letter_id>/",
         consent_views.view_letter,
         name=UrlNames.LETTER,
     ),
     # -------------------------------------------------------------------------
     # Developer functions and test views
     # -------------------------------------------------------------------------
-    re_path(
-        r"^generate_random_nhs/$",
+    path(
+        "generate_random_nhs/",
         consent_views.generate_random_nhs,
         name=UrlNames.GENERATE_RANDOM_NHS,
     ),
-    re_path(
-        r"^test_patient_lookup/$",
+    path(
+        "test_patient_lookup/",
         consent_views.test_patient_lookup,
         name=UrlNames.TEST_PATIENT_LOOKUP,
     ),
-    re_path(
-        r"^test_consent_lookup/$",
+    path(
+        "test_consent_lookup/",
         consent_views.test_consent_lookup,
         name=UrlNames.TEST_CONSENT_LOOKUP,
     ),
@@ -598,7 +590,7 @@ if settings.DEBUG:
     # - https://github.com/jazzband/django-debug-toolbar/issues/529
     # - https://stackoverflow.com/questions/32111203/what-is-the-benefit-of-using-django-conf-urls-patterns-versus-a-list-of-url-in-d  # noqa: E501
     urlpatterns += [
-        re_path(r"^__debug__/", include(debug_toolbar.urls)),
+        path("__debug__/", include(debug_toolbar.urls)),
     ]
 
     # Silk

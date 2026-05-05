@@ -142,29 +142,33 @@ class QueryMgrAdmin(ReadOnlyModelAdmin):
     # Search text content of these:
     search_fields = ("query__sql", "query__user__username")
 
+    @admin.display(
+        description="SQL",
+        ordering="query__sql",
+    )
     def get_sql(self, obj: QueryAudit) -> str:
         return obj.query.sql
 
-    get_sql.short_description = "SQL"
-    get_sql.admin_order_field = "query__sql"
-
+    @admin.display(
+        description="User",
+        ordering="query__user",
+    )
     def get_user(self, obj: QueryAudit) -> str:
         return obj.query.user
 
-    get_user.short_description = "User"
-    get_user.admin_order_field = "query__user"
-
+    @admin.display(
+        description="Count only?",
+        ordering="count_only",
+    )
     def get_count_only(self, obj: QueryAudit) -> str:
         return yesno(obj.count_only)
 
-    get_count_only.short_description = "Count only?"
-    get_count_only.admin_order_field = "count_only"
-
+    @admin.display(
+        description="Failed?",
+        ordering="failed",
+    )
     def get_failed(self, obj: QueryAudit) -> str:
         return yesno(obj.failed)
-
-    get_failed.short_description = "Failed?"
-    get_failed.admin_order_field = "failed"
 
 
 class PatientExplorerAuditMgrAdmin(ReadOnlyModelAdmin):
@@ -197,29 +201,33 @@ class PatientExplorerAuditMgrAdmin(ReadOnlyModelAdmin):
     # Search text content of these:
     search_fields = ("patient_explorer__user__username",)
 
+    @admin.display(
+        description="Multiquery",
+        ordering="patient_explorer__patient_multiquery",
+    )
     def get_details(self, obj: PatientExplorerAudit) -> str:
         return str(obj.patient_explorer.patient_multiquery)
 
-    get_details.short_description = "Multiquery"
-    get_details.admin_order_field = "patient_explorer__patient_multiquery"
-
+    @admin.display(
+        description="User",
+        ordering="patient_explorer__user",
+    )
     def get_user(self, obj: PatientExplorerAudit) -> str:
         return obj.patient_explorer.user
 
-    get_user.short_description = "User"
-    get_user.admin_order_field = "patient_explorer__user"
-
+    @admin.display(
+        description="Count only?",
+        ordering="count_only",
+    )
     def get_count_only(self, obj: PatientExplorerAudit) -> str:
         return yesno(obj.count_only)
 
-    get_count_only.short_description = "Count only?"
-    get_count_only.admin_order_field = "count_only"
-
+    @admin.display(
+        description="Failed?",
+        ordering="failed",
+    )
     def get_failed(self, obj: PatientExplorerAudit) -> str:
         return yesno(obj.failed)
-
-    get_failed.short_description = "Failed?"
-    get_failed.admin_order_field = "failed"
 
 
 class ArchiveTemplateAuditMgrAdmin(ReadOnlyModelAdmin):
@@ -240,11 +248,12 @@ class ArchiveTemplateAuditMgrAdmin(ReadOnlyModelAdmin):
     list_display = readonly_fields
     search_fields = ("user__username", "patient_id", "query_string")
 
+    @admin.display(
+        description="User",
+        ordering="query__user",
+    )
     def get_user(self, obj: ArchiveTemplateAudit) -> str:
         return obj.user
-
-    get_user.short_description = "User"
-    get_user.admin_order_field = "query__user"
 
 
 class ArchiveAttachmentAuditMgrAdmin(ReadOnlyModelAdmin):
@@ -266,11 +275,12 @@ class ArchiveAttachmentAuditMgrAdmin(ReadOnlyModelAdmin):
     list_display = readonly_fields
     search_fields = ("user__username", "patient_id", "filename")
 
+    @admin.display(
+        description="User",
+        ordering="query__user",
+    )
     def get_user(self, obj: ArchiveAttachmentAudit) -> str:
         return obj.user
-
-    get_user.short_description = "User"
-    get_user.admin_order_field = "query__user"
 
 
 # =============================================================================
@@ -384,6 +394,7 @@ class LeafletResAdmin(AllStaffReadOnlyModelAdmin):
     fields = ("name", "get_pdf")
     readonly_fields = fields
 
+    @admin.display(description="Leaflet PDF")
     def get_pdf(self, obj: Leaflet) -> str:
         if not obj.pdf:
             return "(Missing)"
@@ -392,8 +403,6 @@ class LeafletResAdmin(AllStaffReadOnlyModelAdmin):
                 reverse(UrlNames.LEAFLET, args=[obj.name])
             )
         )
-
-    get_pdf.short_description = "Leaflet PDF"
 
 
 # -----------------------------------------------------------------------------
@@ -464,6 +473,7 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
     # - http://blog.roseman.org.uk/2010/01/11/django-patterns-part-2-efficient-reverse-lookups/  # noqa: E501
     # Anyway, premature optimization is the root of all evil, and all that.
 
+    @admin.display(description="Message HTML")
     def get_view_msg_html(self, obj: Email) -> str:
         url = reverse(UrlNames.VIEW_EMAIL_HTML, args=[obj.id])
         return mark_safe(
@@ -472,8 +482,7 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
             )
         )
 
-    get_view_msg_html.short_description = "Message HTML"
-
+    @admin.display(description="Attachments")
     def get_view_attachments(self, obj: Email) -> str:
         attachments = obj.emailattachment_set.all()
         if not attachments:
@@ -504,8 +513,7 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
                 )
         return mark_safe(html)
 
-    get_view_attachments.short_description = "Attachments"
-
+    @admin.action(description="Resend selected e-mails")
     def resend(self, request: HttpRequest, queryset: QuerySet) -> None:
         email_ids = []  # type: List[int]
         for email in queryset:  # type: Email
@@ -519,35 +527,30 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
                 f"IDs {str(email_ids)}.",
             )
 
-    resend.short_description = "Resend selected e-mails"
-
+    @admin.display(description="Transmissions")
     def get_transmissions(self, obj: Email) -> str:
         return mark_safe(
             "<br>".join(str(x) for x in obj.emailtransmission_set.all())
         )
 
-    get_transmissions.short_description = "Transmissions"
-
+    @admin.display(
+        description="Sent",
+        boolean=True,
+    )
     def get_sent(self, obj: Email) -> bool:
         return obj.has_been_sent()
 
-    get_sent.short_description = "Sent"
-    get_sent.boolean = True
-
+    @admin.display(description="Letter")
     def get_letter(self, obj: Email) -> str:
         return mark_safe(admin_view_fk_link(self, obj, "letter"))
 
-    get_letter.short_description = "Letter"
-
+    @admin.display(description="Study")
     def get_study(self, obj: Email) -> str:
         return mark_safe(admin_view_fk_link(self, obj, "study"))
 
-    get_study.short_description = "Study"
-
+    @admin.display(description="Contact request")
     def get_contact_request(self, obj: Email) -> str:
         return mark_safe(admin_view_fk_link(self, obj, "contact_request"))
-
-    get_contact_request.short_description = "Contact request"
 
 
 class EmailMgrAdmin(EmailDevAdmin):
@@ -594,26 +597,23 @@ class EmailMgrAdmin(EmailDevAdmin):
     def rdbm_may_view(obj: Email) -> bool:
         return obj.to_patient or obj.to_researcher
 
+    @admin.display(description="Message text")
     def get_restricted_msg_text(self, obj: Email) -> str:
         if not self.rdbm_may_view(obj):
             return "(Not authorized)"
         return obj.msg_text
 
-    get_restricted_msg_text.short_description = "Message text"
-
+    @admin.display(description="Message HTML")
     def get_restricted_msg_html(self, obj: Email) -> str:
         if not self.rdbm_may_view(obj):
             return "(Not authorized)"
         return mark_safe(self.get_view_msg_html(obj))
 
-    get_restricted_msg_html.short_description = "Message HTML"
-
+    @admin.display(description="Attachments")
     def get_restricted_attachments(self, obj: Email) -> str:
         if not self.rdbm_may_view(obj):
             return "(Not authorized)"
         return mark_safe(self.get_view_attachments(obj))
-
-    get_restricted_attachments.short_description = "Attachments"
 
 
 class EmailResAdmin(EmailDevAdmin):
@@ -813,6 +813,7 @@ class PatientLookupDevAdmin(ReadOnlyModelAdmin):
     )
     search_fields = ("nhs_number", "pt_first_name", "pt_last_name")
 
+    @admin.display(description="Test views")
     def get_test_views(self, obj: PatientLookup) -> str:
         return mark_safe(
             """
@@ -831,8 +832,6 @@ class PatientLookupDevAdmin(ReadOnlyModelAdmin):
                 ),
             )
         )
-
-    get_test_views.short_description = "Test views"
 
 
 # -----------------------------------------------------------------------------
@@ -1012,6 +1011,7 @@ class ConsentModeDevAdmin(ReadOnlyModelAdmin):
         "prefers_email",
     )
 
+    @admin.display(description="Test views")
     def get_test_views(self, obj: ConsentMode) -> str:
         return mark_safe(
             """
@@ -1030,8 +1030,6 @@ class ConsentModeDevAdmin(ReadOnlyModelAdmin):
                 ),
             )
         )
-
-    get_test_views.short_description = "Test views"
 
 
 # -----------------------------------------------------------------------------
@@ -1166,42 +1164,38 @@ class ContactRequestMgrAdmin(ReadOnlyModelAdmin):
     )
     date_hierarchy = "created_at"
 
+    @admin.display(description="Consent mode")
     def get_consent_mode(self, obj: ContactRequest) -> ConsentMode:
         consent_mode = obj.consent_mode
         return consent_mode.consent_mode
 
-    get_consent_mode.short_description = "Consent mode"
-
+    @admin.display(description="Study")
     def get_study(self, obj: ContactRequest) -> str:
         return mark_safe(admin_view_fk_link(self, obj, "study"))
 
-    get_study.short_description = "Study"
-
+    @admin.display(description="Clinician e-mail address")
     def get_clinician_email_address(self, obj: ContactRequest) -> str:
         if obj.decided_send_to_clinician:
             return obj.patient_lookup.clinician_email
         else:
             return ""
 
-    get_clinician_email_address.short_description = "Clinician e-mail address"
-
+    @admin.display(
+        description="Clinician responded",
+        boolean=True,
+    )
     def get_clinician_responded(self, obj: ContactRequest) -> bool:
         if not hasattr(obj, "clinician_response"):
             return False
         return obj.clinician_response.responded
 
-    get_clinician_responded.short_description = "Clinician responded"
-    get_clinician_responded.boolean = True
-
+    @admin.display(description="Letter(s)")
     def get_letters(self, obj: ContactRequest) -> str:
         return mark_safe(admin_view_reverse_fk_links(self, obj, "letter_set"))
 
-    get_letters.short_description = "Letter(s)"
-
+    @admin.display(description="E-mail(s)")
     def get_emails(self, obj: ContactRequest) -> str:
         return mark_safe(admin_view_reverse_fk_links(self, obj, "email_set"))
-
-    get_emails.short_description = "E-mail(s)"
 
 
 class ContactRequestResAdmin(ContactRequestMgrAdmin):
@@ -1262,31 +1256,27 @@ class ContactRequestDevAdmin(ContactRequestMgrAdmin):
         "get_clinician_email_address",
     )
 
+    @admin.display(description="E-mail to clinician")
     def get_link_clinician_email(self, obj: ContactRequest) -> str:
         return mark_safe(admin_view_reverse_fk_links(self, obj, "email_set"))
 
-    get_link_clinician_email.short_description = "E-mail to clinician"
-
+    @admin.display(description="Clinician response")
     def get_link_clinician_response(self, obj: ContactRequest) -> str:
         return mark_safe(admin_view_fk_link(self, obj, "clinician_response"))
 
-    get_link_clinician_response.short_description = "Clinician response"
-
+    @admin.display(description="Patient lookup")
     def get_patient_lookup(self, obj: ContactRequest) -> str:
         return mark_safe(admin_view_fk_link(self, obj, "patient_lookup"))
 
-    get_patient_lookup.short_description = "Patient lookup"
-
+    @admin.display(description="Consent mode")
     def get_consent_mode(self, obj: ContactRequest) -> str:
         return mark_safe(admin_view_fk_link(self, obj, "consent_mode"))
 
-    get_consent_mode.short_description = "Consent mode"
-
+    @admin.display(description="Letter(s)")
     def get_letters(self, obj: ContactRequest) -> str:
         return mark_safe(admin_view_reverse_fk_links(self, obj, "letter_set"))
 
-    get_letters.short_description = "Letter(s)"
-
+    @admin.display(description="Test views")
     def get_test_views(self, obj: ContactRequest) -> str:
         html = """
             <a href="{}">Draft e-mail to clinician</a><br>
@@ -1327,8 +1317,6 @@ class ContactRequestDevAdmin(ContactRequestMgrAdmin):
         )
         return mark_safe(html)
 
-    get_test_views.short_description = "Test views"
-
 
 # -----------------------------------------------------------------------------
 # Clinician response
@@ -1360,10 +1348,9 @@ class ClinicianResponseDevAdmin(ReadOnlyModelAdmin):
     readonly_fields = fields
     date_hierarchy = "created_at"
 
+    @admin.display(description="Contact request")
     def get_contact_request(self, obj: ClinicianResponse) -> str:
         return mark_safe(admin_view_fk_link(self, obj, "contact_request"))
-
-    get_contact_request.short_description = "Contact request"
 
 
 # -----------------------------------------------------------------------------
@@ -1430,10 +1417,9 @@ class PatientResponseMgrAdmin(EditOnceOnlyModelAdmin):
             return False  # already saved
         return True
 
+    @admin.display(description="Contact request")
     def get_contact_request(self, obj: PatientResponse) -> str:
         return mark_safe(admin_view_fk_link(self, obj, "contact_request"))
-
-    get_contact_request.short_description = "Contact request"
 
     def get_queryset(self, request: HttpRequest) -> QuerySet:
         # Restrict to unresponded ones
@@ -1450,10 +1436,9 @@ class PatientResponseDevAdmin(ReadOnlyModelAdmin):
     readonly_fields = fields
     date_hierarchy = "created_at"
 
+    @admin.display(description="Contact request")
     def get_contact_request(self, obj: PatientResponse) -> str:
         return mark_safe(admin_view_fk_link(self, obj, "contact_request"))
-
-    get_contact_request.short_description = "Contact request"
 
 
 # -----------------------------------------------------------------------------
@@ -1544,6 +1529,7 @@ class LetterDevAdmin(ReadOnlyModelAdmin):
     # ... see also https://stackoverflow.com/questions/991926/custom-filter-in-django-admin-on-django-1-3-or-below  # noqa: E501
     actions = ["mark_sent"]
 
+    @admin.action(description="Mark selected letters as printed/sent")
     def mark_sent(self, request: HttpRequest, queryset: QuerySet) -> None:
         ids = []  # type: List[int]
         for letter in queryset:
@@ -1554,22 +1540,17 @@ class LetterDevAdmin(ReadOnlyModelAdmin):
             f"{len(ids)} letter(s) were marked as sent: IDs {str(ids)}.",
         )
 
-    mark_sent.short_description = "Mark selected letters as printed/sent"
-
+    @admin.display(description="Study")
     def get_study(self, obj: Letter) -> str:
         return mark_safe(admin_view_fk_link(self, obj, "study"))
 
-    get_study.short_description = "Study"
-
+    @admin.display(description="Contact request")
     def get_contact_request(self, obj: Letter) -> str:
         return mark_safe(admin_view_fk_link(self, obj, "contact_request"))
 
-    get_contact_request.short_description = "Contact request"
-
+    @admin.display(description="E-mail(s)")
     def get_emails(self, obj: Letter) -> str:
         return mark_safe(admin_view_reverse_fk_links(self, obj, "email_set"))
-
-    get_emails.short_description = "E-mail(s)"
 
 
 class LetterMgrAdmin(LetterDevAdmin):
@@ -1622,6 +1603,7 @@ class LetterResAdmin(LetterDevAdmin):
     ) -> bool:
         return request.user.is_staff
 
+    @admin.display(description="Letter PDF")
     def get_pdf(self, obj: Letter) -> str:
         if not obj.pdf:
             return "(Missing)"
@@ -1630,8 +1612,6 @@ class LetterResAdmin(LetterDevAdmin):
                 reverse(UrlNames.LETTER, args=[obj.id])
             )
         )
-
-    get_pdf.short_description = "Letter PDF"
 
 
 # =============================================================================
@@ -1676,22 +1656,26 @@ class UserProfileInline(admin.StackedInline):
         "enough_info_for_researcher",
     )
 
+    @admin.display(description="Studies as lead researcher")
     def get_studies_as_lead(self, obj: settings.AUTH_USER_MODEL) -> str:
         studies = obj.user.studies_as_lead.all()
         return mark_safe(
             render_to_string("shortlist_studies.html", {"studies": studies})
         )
 
-    get_studies_as_lead.short_description = "Studies as lead researcher"
-
+    @admin.display(description="Studies as researcher")
     def get_studies_as_researcher(self, obj: settings.AUTH_USER_MODEL) -> str:
         studies = obj.user.studies_as_researcher.all()
         return mark_safe(
             render_to_string("shortlist_studies.html", {"studies": studies})
         )
 
-    get_studies_as_researcher.short_description = "Studies as researcher"
-
+    @admin.display(
+        description=(
+            "Enough info for researcher status (title, firstname, lastname)?"
+        ),
+        boolean=True,
+    )
     def enough_info_for_researcher(
         self, obj: settings.AUTH_USER_MODEL
     ) -> bool:
@@ -1700,11 +1684,6 @@ class UserProfileInline(admin.StackedInline):
             and bool(obj.user.first_name)
             and bool(obj.user.last_name)
         )
-
-    enough_info_for_researcher.short_description = (
-        "Enough info for researcher status (title, firstname, lastname)?"
-    )
-    enough_info_for_researcher.boolean = True
 
 
 class ExtendedUserMgrAdmin(UserAdmin):
@@ -1723,6 +1702,10 @@ class ExtendedUserMgrAdmin(UserAdmin):
         "enough_info_for_researcher",
     )
 
+    @admin.display(
+        description="Enough researcher info?",
+        boolean=True,
+    )
     def enough_info_for_researcher(
         self, obj: settings.AUTH_USER_MODEL
     ) -> bool:
@@ -1731,9 +1714,6 @@ class ExtendedUserMgrAdmin(UserAdmin):
             and bool(obj.first_name)
             and bool(obj.last_name)
         )
-
-    enough_info_for_researcher.short_description = "Enough researcher info?"
-    enough_info_for_researcher.boolean = True
 
 
 # =============================================================================

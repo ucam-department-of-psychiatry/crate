@@ -9,6 +9,11 @@ repos:
     -   id: check-shebang-scripts-are-executable
     -   id: check-xml
     -   id: check-yaml
+-   repo: https://github.com/adamchainz/django-upgrade
+    rev: 1.30.0
+    hooks:
+    -   id: django-upgrade
+        args: [--target-version, "5.2"]
 -   repo: https://github.com/psf/black
     # Use same version as in setup.py
     rev: 26.3.1
