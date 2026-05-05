@@ -40,6 +40,7 @@ from django.urls import reverse
 from django.views.generic import TemplateView, UpdateView
 from django_filters import FilterSet
 from django_filters.views import FilterView
+from django_tables2.export.views import ExportMixin
 from django_tables2.tables import RequestConfig, Table
 from django_tables2.views import SingleTableMixin
 from formtools.wizard.views import SessionWizardView
@@ -757,7 +758,9 @@ class ExportAnswersFilter(FilterSet):
         )
 
 
-class ExportAnswersView(MustBeAdminMixin, SingleTableMixin, FilterView):
+class ExportAnswersView(
+    MustBeAdminMixin, ExportMixin, SingleTableMixin, FilterView
+):
     table_class = ExportAnswersTable
     model = UserAnswer
     template_name = "nlp_classification/admin/export_answers.html"

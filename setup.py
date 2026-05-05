@@ -125,6 +125,7 @@ INSTALL_REQUIRES = [
     "sortedcontainers==2.2.2",  # for SortedSet
     "SQLAlchemy==2.0.36",  # database access
     "sqlparse==0.5.5",  # [pin exact version from cardinal_pythonlib]
+    "tablib==3.8.0",  # Table export
     "unidecode==1.1.1",  # for removing accents
     # -------------------------------------------------------------------------
     # Packages for cloud NLP:
