@@ -27,7 +27,7 @@ crate_anon/crateweb/nlp_classification/urls.py
 
 """
 
-from django.urls import path, re_path
+from django.urls import path
 
 from crate_anon.crateweb.nlp_classification.views import (
     AdminHomeView,
@@ -40,8 +40,8 @@ from crate_anon.crateweb.nlp_classification.views import (
 )
 
 urlpatterns = [
-    re_path(
-        r"^admin/$",
+    path(
+        "admin/",
         AdminHomeView.as_view(),
         name="nlp_classification_admin_home",
     ),
@@ -65,9 +65,7 @@ urlpatterns = [
         ExportAnswersView.as_view(),
         name="nlp_classification_admin_export_answers",
     ),
-    re_path(
-        r"^user/$", UserHomeView.as_view(), name="nlp_classification_user_home"
-    ),
+    path("user/", UserHomeView.as_view(), name="nlp_classification_user_home"),
     path(
         "user/answer/<int:pk>",
         UserAnswerView.as_view(),

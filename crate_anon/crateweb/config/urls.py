@@ -122,8 +122,8 @@ urlpatterns = [
     # -------------------------------------------------------------------------
     # NLP classification
     # -------------------------------------------------------------------------
-    re_path(
-        r"^nlp_classification/",
+    path(
+        "nlp_classification/",
         include("crate_anon.crateweb.nlp_classification.urls"),
     ),
     # -------------------------------------------------------------------------
@@ -587,7 +587,7 @@ urlpatterns = [
         consent_views.draft_researcher_cover_letter,
         name=UrlNames.DRAFT_RESEARCHER_COVER_LETTER,
     ),
-    re_path(r"^celery_progress/", include("celery_progress.urls")),
+    path("celery_progress/", include("celery_progress.urls")),
     # -------------------------------------------------------------------------
     # Other test views
     # -------------------------------------------------------------------------
