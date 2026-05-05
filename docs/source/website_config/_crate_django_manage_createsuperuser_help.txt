@@ -1,5 +1,6 @@
 USAGE: crate_django_manage createsuperuser [-h] [--username USERNAME]
-                                           [--noinput] [--database DATABASE]
+                                           [--noinput]
+                                           [--database {default,research,secret_1,nlp}]
                                            [--email EMAIL] [--version]
                                            [-v {0,1,2,3}]
                                            [--settings SETTINGS]
@@ -18,7 +19,8 @@ OPTIONS:
                         with an option for any other required field.
                         Superusers created with --noinput will not be able to
                         log in until they're given a valid password.
-  --database DATABASE   Specifies the database to use. Default is "default".
+  --database {default,research,secret_1,nlp}
+                        Specifies the database to use. Default is "default".
   --email EMAIL         Specifies the email for the superuser.
   --version             Show program's version number and exit.
   -v, --verbosity {0,1,2,3}
@@ -31,7 +33,7 @@ OPTIONS:
   --pythonpath PYTHONPATH
                         A directory to add to the Python path, e.g.
                         "/home/djangoprojects/myproject".
-  --traceback           Raise on CommandError exceptions.
+  --traceback           Display a full stack trace on CommandError exceptions.
   --no-color            Don't colorize the command output.
   --force-color         Force colorization of the command output.
   --skip-checks         Skip system checks.
