@@ -1,6 +1,5 @@
 USAGE: crate_django_manage createsuperuser [-h] [--username USERNAME]
-                                           [--noinput]
-                                           [--database {default,research,secret_1,nlp}]
+                                           [--noinput] [--database {default}]
                                            [--email EMAIL] [--version]
                                            [-v {0,1,2,3}]
                                            [--settings SETTINGS]
@@ -19,8 +18,7 @@ OPTIONS:
                         with an option for any other required field.
                         Superusers created with --noinput will not be able to
                         log in until they're given a valid password.
-  --database {default,research,secret_1,nlp}
-                        Specifies the database to use. Default is "default".
+  --database {default}  Specifies the database to use. Default is "default".
   --email EMAIL         Specifies the email for the superuser.
   --version             Show program's version number and exit.
   -v, --verbosity {0,1,2,3}

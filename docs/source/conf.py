@@ -343,8 +343,10 @@ autodoc_mock_imports = [
 
 # sys.path.insert(0, os.path.join(os.path.abspath('.'), '../../myproj'))
 
-# ... see crate_anon/crateweb/config/settings.py
-os.environ["DJANGO_SETTINGS_MODULE"] = "crate_anon.crateweb.config.settings"
+# ... see crate_anon/crateweb/config/doc_settings.py
+os.environ["DJANGO_SETTINGS_MODULE"] = (
+    "crate_anon.crateweb.config.docs_settings"
+)
 django.setup()
 
 
