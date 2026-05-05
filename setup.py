@@ -77,8 +77,8 @@ INSTALL_REQUIRES = [
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==4.2.30",  # for main CRATE research database web server
-    "django-debug-toolbar==3.2.1",  # Django debug toolbar
+    "django==5.2.13",  # for main CRATE research database web server
+    "django-debug-toolbar==6.3.0",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
     "django-filter==25.1",  # table filtering
@@ -161,6 +161,7 @@ INSTALL_REQUIRES = [
     "python-on-whales==0.68.0",  # python wrappers for testing with Docker
     "sphinx==7.1.2",  # documentation
     "sphinx_rtd_theme==3.0.2",  # documentation
+    "sphinxcontrib-openapi==0.7.0",  # API documentation
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
     # ---------------------------------------------------------------------

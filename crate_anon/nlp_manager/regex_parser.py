@@ -65,6 +65,30 @@ log = logging.getLogger(__name__)
 # =============================================================================
 # Generic entities
 # =============================================================================
+# https://docs.python.org/3/library/re.html
+# https://github.com/mrabarnett/mrab-regex
+#
+# Reminders:
+#   (abc)               capture group
+#   (?P<groupname>abc)  named capture group
+#   (?:abc)             non-capturing group
+#   (?!abc)             negative lookahead
+#   (?<!abc)            negative lookbehind
+
+# -----------------------------------------------------------------------------
+# Exclude a preceding "if" clause, e.g. "if [the] CRP is over <value>..."
+# -----------------------------------------------------------------------------
+
+# This uses a negative lookbehind, as it is normally placed immediately before
+# the regex for the quantity of interest (e.g. CRP).
+EXCLUDE_PRECEDING_CONDITIONAL_CLAUSE = r"""
+    (?<!  # EXCLUDE_PRECEDING_CONDITIONAL_CLAUSE
+        \b(?:if|when)\b     # conditionality
+        \s*                 # optional whitespace
+        (\bthe\b)?          # optional "the"
+        \s+                 # whitespace between clause and what follows
+    )
+"""
 
 # -----------------------------------------------------------------------------
 # Blood results
@@ -145,11 +169,11 @@ TENSE_LOOKUP = compile_regex_dict(
 # -----------------------------------------------------------------------------
 # ... don't use unnamed groups here; EQ is also used as a return value
 
-LT = r"(?: < | less \s+ than | under )"
+LT = r"(?: < | less \s+ than | under | below )"
 LE = "<="
 EQ = r"(?: = | equals | equal \s+ to )"
 GE = ">="
-GT = r"(?: > | (?:more|greater) \s+ than | over )"
+GT = r"(?: > | (?:more|greater) \s+ than | over | above )"
 # OF = "\b of \b"  # as in: "a BMI of 30"... but too likely to be mistaken for a target?  # noqa: E501
 
 RELATION = rf"(?: {LE} | {LT} | {EQ} | {GE} | {GT} )"
@@ -544,7 +568,7 @@ def make_simple_numeric_regex(
 
     Args:
         quantity:
-            Regex for the quantity (e.g. for "sodium" or "Na").
+            Regex for the quantity name (e.g. for "sodium" or "Na").
         units:
             Regex for units.
         value:
@@ -625,6 +649,8 @@ def make_simple_numeric_regex(
         # - Either: quantity [tense] [relation] value [units]
         #   or:     quantity (units value)
         #   or:     quantity (units) [tense] [relation] value
+        # Not preceded by a conditional clause:
+        {EXCLUDE_PRECEDING_CONDITIONAL_CLAUSE}
         # Quantity:
         {group_quantity}
         # Ignorable:

@@ -22,7 +22,7 @@ OPTIONS:
   --pythonpath PYTHONPATH
                         A directory to add to the Python path, e.g.
                         "/home/djangoprojects/myproject".
-  --traceback           Raise on CommandError exceptions.
+  --traceback           Display a full stack trace on CommandError exceptions.
   --no-color            Don't colorize the command output.
   --force-color         Force colorization of the command output.
   --skip-checks         Skip system checks.

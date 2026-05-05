@@ -1,5 +1,5 @@
 """
-crate_anon/crateweb/config/test_settings.py
+crate_anon/crateweb/config/docs_settings.py
 
 ===============================================================================
 
@@ -23,35 +23,15 @@ crate_anon/crateweb/config/test_settings.py
 
 ===============================================================================
 
-**Django test settings for crateweb project.**
+**Django settings for crateweb project, used only when generating docs.**
 
 """
 
 import os
-from pathlib import Path
 
 from crate_anon.common.constants import mebibytes
-from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
 
-# Will be the default from Django 5.0. This will suppress warnings until then.
-USE_TZ = True
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "crate_db.sqlite3",
-    },
-    "research": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "research.sqlite3",
-    },
-    "secret": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "secret.sqlite3",
-    },
-}
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 ROOT_URLCONF = "crate_anon.crateweb.config.urls"
 
@@ -69,7 +49,7 @@ TEMPLATES = [
                 "crate_anon.crateweb.core.context_processors.common_context",
             ],
             "loaders": [
-                # https://docs.djangoproject.com/en/4.2/ref/templates/api/#template-loaders
+                # https://docs.djangoproject.com/en/1.9/ref/templates/api/
                 (
                     "django.template.loaders.cached.Loader",
                     [
@@ -82,65 +62,70 @@ TEMPLATES = [
     },
 ]
 
-
 INSTALLED_APPS = (
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "django.contrib.humanize",  # for nice comma formatting of numbers
-    "debug_toolbar",  # for debugging
-    "django_extensions",  # for graph_models, show_urls etc.
-    "django_tables2",  # for HTML tables
-    "sslserver",  # for SSL testing
+    "django.contrib.staticfiles",
+    "django.contrib.humanize",
+    "debug_toolbar",
+    "django_extensions",
+    "sslserver",
     "rest_framework",
     "drf_spectacular",
     "drf_spectacular_sidecar",
-    # 'kombu.transport.django',  # for Celery with Django database as broker
-    # 'template_profiler_panel',
-    # 'silk',
     "crate_anon.crateweb.config.apps.UserProfileAppConfig",  # for user-specific settings  # noqa: E501
     "crate_anon.crateweb.config.apps.ResearchAppConfig",  # the research database query app  # noqa: E501
     "crate_anon.crateweb.config.apps.ConsentAppConfig",  # the consent-to-contact app  # noqa: E501
     "crate_anon.crateweb.config.apps.CoreAppConfig",  # for e.g. the runcpserver command  # noqa: E501
     "crate_anon.crateweb.config.apps.ApiConfig",  # for the anonymisation API
-    "crate_anon.crateweb.config.apps.NlpClassificationConfig",  # for NLP classification  # noqa: E501
+)
+
+MIDDLEWARE = (
+    # 'silk.middleware.SilkyMiddleware',
+    # Last, when using the profiling panel? But actually breaks it...
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
+    # ... should be added automatically, but there's a problem (2016-04-14)
+    # ... reinstated here 2017-01-30 (django-debug-toolbar==1.6)
+    # ... "as early as possible... but after any other middle that encodes the
+    #     response's content, such as GZipMiddleware"
+    # ... http://django-debug-toolbar.readthedocs.io/en/1.0/installation.html#explicit-setup  # noqa: E501
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # 'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    # Additional:
+    "cardinal_pythonlib.django.middleware.UserBasedExceptionMiddleware",  # provide debugging details to superusers  # noqa: E501
+    "cardinal_pythonlib.django.middleware.LoginRequiredMiddleware",  # prohibit all pages except login pages if not logged in  # noqa: E501
+    # 'cardinal_pythonlib.django.middleware.DisableClientSideCachingMiddleware',  # no client-side caching  # noqa: E501
+    "crate_anon.crateweb.core.middleware.RestrictAdminMiddleware",  # non-developers can't access the devadmin site  # noqa: E501
+    # 'cardinal_pythonlib.django.request_cache.RequestCacheMiddleware',  # per-request cache, UNTESTED  # noqa: E501
 )
 
 STATIC_URL = "/crate_static/"
+DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
-RESEARCH_DB_DIALECT = "mysql"
+REST_FRAMEWORK = {"DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema"}
 
-RESEARCH_DB_INFO = [
-    {
-        RDIKeys.NAME: "research",
-        RDIKeys.DESCRIPTION: "Demo research database",
-        RDIKeys.DATABASE: "",
-        RDIKeys.SCHEMA: "research",
-        RDIKeys.PID_PSEUDO_FIELD: "pid",
-        RDIKeys.MPID_PSEUDO_FIELD: "mpid",
-        RDIKeys.TRID_FIELD: "trid",
-        RDIKeys.RID_FIELD: "brcid",
-        RDIKeys.RID_FAMILY: 1,
-        RDIKeys.MRID_TABLE: "patients",
-        RDIKeys.MRID_FIELD: "nhshash",
-        RDIKeys.PID_DESCRIPTION: "Patient ID",
-        RDIKeys.MPID_DESCRIPTION: "Master patient ID",
-        RDIKeys.RID_DESCRIPTION: "Research ID",
-        RDIKeys.MRID_DESCRIPTION: "Master research ID",
-        RDIKeys.TRID_DESCRIPTION: "Transient research ID",
-        RDIKeys.SECRET_LOOKUP_DB: "secret",
-        RDIKeys.DATE_FIELDS_BY_TABLE: {},
-        RDIKeys.DEFAULT_DATE_FIELDS: [],
-        RDIKeys.UPDATE_DATE_FIELD: "_when_fetched_utc",
-    },
-]
+SPECTACULAR_SETTINGS = {
+    "SWAGGER_UI_DIST": "SIDECAR",  # shorthand to use the sidecar instead
+    "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
+    "REDOC_DIST": "SIDECAR",
+    "TITLE": "CRATE API",
+    "DESCRIPTION": (
+        "Clinical Records Anonymisation and Text Extraction (CRATE)"
+    ),
+    "VERSION": "0.0.1",  # TODO: Allow breaking changes until 1.0.0?
+}
 
-RESEARCH_DB_FOR_CONTACT_LOOKUP = "research"
 
 PRIVATE_FILE_STORAGE_ROOT = "/tmp/files"
 MAX_UPLOAD_SIZE_BYTES = mebibytes(10)
-SECRET_KEY = "ti_aghvCFNnC6L3M8Sq48n1j0SIXaITJO0uFi2DTXBc"
 RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 FORCE_SCRIPT_NAME = "/crate"

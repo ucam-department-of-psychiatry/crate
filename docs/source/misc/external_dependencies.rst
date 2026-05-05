@@ -76,7 +76,7 @@ Versions of software etc. used by CRATE
 | Debian         |      11 | 2026-08-31;                                                |
 | (Docker image) |         | https://wiki.debian.org/LTS                                |
 +----------------+---------+------------------------------------------------------------+
-| Django         |   4.2.x | 2026-04-30 (LTS);                                          |
+| Django         |   5.2.x | 2028-04-30 (LTS);                                          |
 |                |         | https://www.djangoproject.com/download/#supported-versions |
 +----------------+---------+------------------------------------------------------------+
 | Python         |    3.10 | 2026-10-31                                                 |

@@ -38,6 +38,7 @@ crate_anon/crateweb
     config/__init__.py.rst
     config/apps.py.rst
     config/constants.py.rst
+    config/docs_settings.py.rst
     config/settings.py.rst
     config/test_settings.py.rst
     config/urls.py.rst

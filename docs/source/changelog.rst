@@ -1795,6 +1795,12 @@ Changes
 
 **0.20.10, in progress**
 
+- Fix Python NLP bug that didn't exclude a preceding "if" (e.g. "If CRP is over
+  30 mg/L the ferritin result may be high and uninterpretable"). Applies to
+  all NLP parsers using ``make_simple_numeric_regex``. Also added "below" as
+  additional synonym for "<", and "above" as synonym for ">".
+
+
 To do
 ~~~~~
 
