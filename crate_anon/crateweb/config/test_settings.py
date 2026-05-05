@@ -75,6 +75,8 @@ INSTALLED_APPS = (
     "crate_anon.crateweb.config.apps.ApiConfig",  # for the anonymisation API
 )
 
+STATIC_URL = "/crate_static/"
+
 RESEARCH_DB_DIALECT = "mysql"
 
 RESEARCH_DB_INFO = [

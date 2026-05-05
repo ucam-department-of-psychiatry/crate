@@ -98,6 +98,10 @@ def run_cmd(
 
     modified_env = os.environ.copy()
     modified_env[EnvVar.GENERATING_CRATE_DOCS] = "True"
+    modified_env[EnvVar.RUN_WITHOUT_CONFIG] = "True"
+    modified_env["DJANGO_SETTINGS_MODULE"] = (
+        "crate_anon.crateweb.config.docs_settings"
+    )
     output = subprocess.check_output(cmdargs, env=modified_env).decode(
         encoding
     )
