@@ -156,6 +156,7 @@ INSTALL_REQUIRES = [
     "python-on-whales==0.68.0",  # python wrappers for testing with Docker
     "sphinx==7.1.2",  # documentation
     "sphinx_rtd_theme==3.0.2",  # documentation
+    "sphinxcontrib-openapi==0.7.0",  # API documentation
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
     # ---------------------------------------------------------------------
