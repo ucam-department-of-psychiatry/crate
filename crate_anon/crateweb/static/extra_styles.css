@@ -443,3 +443,30 @@ mark {
 .other-nlp-match {
     background-color: #eee;
 }
+
+.export-container {
+    display: flex;
+}
+
+.export-filter-form {
+    display: flex;
+    min-width: 0;
+}
+
+.export-filter {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+#main .export-filter > div {
+    min-width: 0;
+    margin: 0 1em 0 0;
+}
+
+.export-filter > div > select {
+    max-width: 20em;
+}
+
+#main .export-options {
+    margin: auto 0 0 auto;
+}

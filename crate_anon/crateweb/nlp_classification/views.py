@@ -38,7 +38,7 @@ from django.forms import Form
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.generic import TemplateView, UpdateView
-from django_filters import FilterSet
+from django_filters import FilterSet, ModelChoiceFilter
 from django_filters.views import FilterView
 from django_tables2.export.views import ExportMixin
 from django_tables2.tables import RequestConfig, Table
@@ -749,6 +749,16 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
 
 
 class ExportAnswersFilter(FilterSet):
+    assignment__task = ModelChoiceFilter(
+        queryset=Task.objects.all(), label="Task"
+    )
+    assignment__question = ModelChoiceFilter(
+        queryset=Question.objects.all(), label="Question"
+    )
+    assignment = ModelChoiceFilter(
+        queryset=Assignment.objects.all(), label="Assignment"
+    )
+
     class Meta:
         model = UserAnswer
         fields = (

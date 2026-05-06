@@ -5,11 +5,21 @@
 {% block nlp_classification_content %}
             <h2>Export Answers</h2>
 
-{% if filter %}
-    <form action="" method="get" class="export-answers-filter">
+<div class="export-container">
+    <form action="" method="get" class="export-filter-form">
+      <fieldset class="export-filter">
+        <legend>Filter by:</legend>
         {{filter.form.as_div }}
         <input type="submit" value="Filter" />
+      </fieldset>
     </form>
-{% endif %}
+
+    <div class="export-options">
+        <span>Export current table as:</span>
+        <a href="{% querystring _export="csv" %}">CSV</a>
+        <a href="{% querystring _export="ods" %}">ODS</a>
+        <a href="{% querystring _export="xlsx" %}">XLSX</a>
+    </div>
+</div>
     {% render_table table %}
 {% endblock %}
