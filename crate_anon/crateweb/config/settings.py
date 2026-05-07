@@ -232,7 +232,7 @@ CELERY_TASK_SERIALIZER = "json"
 # https://github.com/celery/celery/issues/4084
 # https://github.com/celery/celery/issues/4830
 #
-# Use Redis for now. Results used to update progress bar during NLP
+# Use Redis for now. Results are used to update the progress bar during NLP
 # classification
 
 CELERY_RESULT_BACKEND = "redis://localhost:6379"
