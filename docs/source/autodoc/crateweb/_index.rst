@@ -164,7 +164,6 @@ crate_anon/crateweb
     nlp_classification/constants.py.rst
     nlp_classification/forms.py.rst
     nlp_classification/highlight.py.rst
-    nlp_classification/management/commands/make_test_data.py.rst
     nlp_classification/migrations/0001_initial.py.rst
     nlp_classification/migrations/__init__.py.rst
     nlp_classification/models.py.rst
