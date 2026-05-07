@@ -39,17 +39,14 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [os.path.join(BASE_DIR, "templates")],
-        # 'APP_DIRS': True,  # can't use OPTIONS/loaders with this
         "OPTIONS": {
             "context_processors": [
-                # 'django.template.context_processors.debug',
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "crate_anon.crateweb.core.context_processors.common_context",
             ],
             "loaders": [
-                # https://docs.djangoproject.com/en/1.9/ref/templates/api/
                 (
                     "django.template.loaders.cached.Loader",
                     [
@@ -76,36 +73,26 @@ INSTALLED_APPS = (
     "rest_framework",
     "drf_spectacular",
     "drf_spectacular_sidecar",
-    "crate_anon.crateweb.config.apps.UserProfileAppConfig",  # for user-specific settings  # noqa: E501
-    "crate_anon.crateweb.config.apps.ResearchAppConfig",  # the research database query app  # noqa: E501
-    "crate_anon.crateweb.config.apps.ConsentAppConfig",  # the consent-to-contact app  # noqa: E501
-    "crate_anon.crateweb.config.apps.CoreAppConfig",  # for e.g. the runcpserver command  # noqa: E501
-    "crate_anon.crateweb.config.apps.ApiConfig",  # for the anonymisation API
+    "crate_anon.crateweb.config.apps.UserProfileAppConfig",
+    "crate_anon.crateweb.config.apps.ResearchAppConfig",
+    "crate_anon.crateweb.config.apps.ConsentAppConfig",
+    "crate_anon.crateweb.config.apps.CoreAppConfig",
+    "crate_anon.crateweb.config.apps.ApiConfig",
+    "crate_anon.crateweb.config.apps.NlpClassificationConfig",
 )
 
 MIDDLEWARE = (
-    # 'silk.middleware.SilkyMiddleware',
-    # Last, when using the profiling panel? But actually breaks it...
     "debug_toolbar.middleware.DebugToolbarMiddleware",
-    # ... should be added automatically, but there's a problem (2016-04-14)
-    # ... reinstated here 2017-01-30 (django-debug-toolbar==1.6)
-    # ... "as early as possible... but after any other middle that encodes the
-    #     response's content, such as GZipMiddleware"
-    # ... http://django-debug-toolbar.readthedocs.io/en/1.0/installation.html#explicit-setup  # noqa: E501
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    # 'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.security.SecurityMiddleware",
-    # Additional:
-    "cardinal_pythonlib.django.middleware.UserBasedExceptionMiddleware",  # provide debugging details to superusers  # noqa: E501
-    "cardinal_pythonlib.django.middleware.LoginRequiredMiddleware",  # prohibit all pages except login pages if not logged in  # noqa: E501
-    # 'cardinal_pythonlib.django.middleware.DisableClientSideCachingMiddleware',  # no client-side caching  # noqa: E501
-    "crate_anon.crateweb.core.middleware.RestrictAdminMiddleware",  # non-developers can't access the devadmin site  # noqa: E501
-    # 'cardinal_pythonlib.django.request_cache.RequestCacheMiddleware',  # per-request cache, UNTESTED  # noqa: E501
+    "cardinal_pythonlib.django.middleware.UserBasedExceptionMiddleware",
+    "cardinal_pythonlib.django.middleware.LoginRequiredMiddleware",
+    "crate_anon.crateweb.core.middleware.RestrictAdminMiddleware",
 )
 
 STATIC_URL = "/crate_static/"
@@ -114,14 +101,14 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 REST_FRAMEWORK = {"DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema"}
 
 SPECTACULAR_SETTINGS = {
-    "SWAGGER_UI_DIST": "SIDECAR",  # shorthand to use the sidecar instead
+    "SWAGGER_UI_DIST": "SIDECAR",
     "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
     "REDOC_DIST": "SIDECAR",
     "TITLE": "CRATE API",
     "DESCRIPTION": (
         "Clinical Records Anonymisation and Text Extraction (CRATE)"
     ),
-    "VERSION": "0.0.1",  # TODO: Allow breaking changes until 1.0.0?
+    "VERSION": "0.0.1",
 }
 
 
