@@ -362,7 +362,7 @@ class ResultProvider(ChoiceProvider):
 
             words.append(
                 self.random_choice(
-                    [name, f"{possessive_pronoun} {name} is "],
+                    [name, f"{possessive_pronoun} {name} is"],
                     weights=[90, 10],
                 )
             )
