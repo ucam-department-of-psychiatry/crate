@@ -385,8 +385,9 @@ class ResultProvider(ChoiceProvider):
         return f"{separator} ".join(sentences)
 
 
-class RedHerringProvider(ChoiceProvider):
-    def red_herring(self) -> str:
+class NotACrpResultProvider(ChoiceProvider):
+    # Really only used for testing/demoing CRP NLP
+    def not_a_crp_result(self) -> str:
         return self.random_choice(
             [
                 "",
@@ -474,7 +475,7 @@ class PatientNoteProvider(BaseProvider):
         alcohol = self.generator.alcohol()
         job_title = self.generator.medical_job_title()
         address = self.generator.healthcare_facility_address()
-        red_herring = self.generator.red_herring()
+        not_crp = self.generator.not_a_crp_result()
 
         intro = (
             f"{job_title}"
@@ -486,7 +487,7 @@ class PatientNoteProvider(BaseProvider):
             f"{relation_relationship} {relation_name}.\n"
         )
 
-        detail = f"{alcohol}\n{medications}\n{results}\n{red_herring}"
+        detail = f"{alcohol}\n{medications}\n{results}\n{not_crp}"
 
         num_words = len(intro.split()) + len(detail.split())
 
@@ -655,7 +656,7 @@ def register_all_providers(fake: Faker) -> None:
     fake.add_provider(NhsNumberProvider)
     fake.add_provider(PatientFileProvider)
     fake.add_provider(PatientNoteProvider)
-    fake.add_provider(RedHerringProvider)
+    fake.add_provider(NotACrpResultProvider)
     fake.add_provider(RelationshipProvider)
     fake.add_provider(SexProvider)
 
