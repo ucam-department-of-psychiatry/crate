@@ -93,8 +93,6 @@ class DatabaseConnection:
     ):  # TODO: Return type
         sql = self.get_sql(column_names, table_name, where)
 
-        print(sql, params)
-
         with self.connection.cursor() as cursor:
             cursor.execute(sql, params)
             for row in cursor.fetchall():
@@ -107,8 +105,6 @@ class DatabaseConnection:
         params: Optional[Sequence[Any]] = None,
     ) -> int:
         sql = self.get_sql(["COUNT(*)"], table_name, where)
-
-        print(sql)
 
         with self.connection.cursor() as cursor:
             cursor.execute(sql, params)
