@@ -477,7 +477,11 @@ class PatientNoteProvider(BaseProvider):
         address = self.generator.healthcare_facility_address()
         not_crp = self.generator.not_a_crp_result()
 
+        clinician_forename = self.generator.first_name()
+        clinician_surname = self.generator.last_name()
+
         intro = (
+            f"{clinician_forename} {clinician_surname}\n"
             f"{job_title}"
             f"{address}"
             f"Re: {forename} {surname}\n"
