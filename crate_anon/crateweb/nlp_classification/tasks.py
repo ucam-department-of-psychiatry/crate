@@ -103,7 +103,7 @@ def create_source_records_from_sample(task: Task, sample_pk: int) -> str:
             params=source_pks,
         )
 
-        source_record_dict = {}
+        source_record_dict: dict[str, list[str]] = {}
 
         for src_pk, nlp_pk in nlp_rows:
             source_record_dict.setdefault(src_pk, []).append(nlp_pk)

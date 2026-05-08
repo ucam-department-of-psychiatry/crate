@@ -30,7 +30,7 @@ crate_anon/crateweb/nlp_classification/highlight.py
 from typing import Any
 
 from django.utils.html import escape
-from django.utils.safestring import mark_safe
+from django.utils.safestring import mark_safe, SafeString
 
 from crate_anon.crateweb.nlp_classification.models import SourceRecord
 
@@ -40,7 +40,7 @@ def highlight(source_record: SourceRecord) -> str:
         source_record.all_nlp_matches(), key=lambda s: s.start
     )
 
-    sections = []
+    sections: list[str | SafeString] = []
 
     index = 0
 
@@ -67,7 +67,7 @@ def highlight(source_record: SourceRecord) -> str:
     return mark_safe(output)
 
 
-def mark_element(text: str, attributes: dict[str, Any]) -> str:
+def mark_element(text: SafeString, attributes: dict[str, Any]) -> str:
     attributes = " ".join([f'{k}="{v}"' for k, v in attributes.items()])
 
     return f"<mark {attributes}>{text}</mark>"

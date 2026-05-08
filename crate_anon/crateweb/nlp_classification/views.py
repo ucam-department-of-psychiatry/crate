@@ -28,14 +28,15 @@ CRATE NLP classification views.
 """
 
 import random
-from typing import Any, Optional
+from typing import Any, Optional, TypeAlias
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.db import models
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse, HttpResponseRedirect
-from django.forms import Form
+from django.forms import Form, ModelForm
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.generic import TemplateView, UpdateView
@@ -90,11 +91,17 @@ from crate_anon.crateweb.nlp_classification.tasks import (
 )
 from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
 
+_User: TypeAlias = AbstractBaseUser
+_UserModel: TypeAlias = type[_User]
+
+
 User = get_user_model()
 
 
 class DatabaseConnectionMixin:
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def dispatch(
+        self, request: HttpRequest, *args: Any, **kwargs: Any
+    ) -> HttpResponse:
         if not self.get_nlp_database_connection().exists():
             error = (
                 f"No database connection named '{NLP_DB_CONNECTION_NAME}' "
@@ -143,7 +150,7 @@ class UserAnswerView(DatabaseConnectionMixin, UserPassesTestMixin, UpdateView):
         answer = self.get_object()
         return answer.assignment.user == self.request.user
 
-    def get_success_url(self, **kwargs) -> str:
+    def get_success_url(self, **kwargs: Any) -> str:
         next_record = (
             UserAnswer.objects.filter(
                 decision=None,
@@ -206,7 +213,7 @@ class NlpClassificationWizardView(
 
         return context
 
-    def get_instructions(self, step: str) -> Optional[str]:
+    def get_instructions(self, step: str) -> str:
         raise NotImplementedError(
             "get_instructions() needs to be defined in "
             f"{self.__class__.__name__}"
@@ -238,7 +245,7 @@ class TaskAndQuestionWizardView(NlpClassificationWizardView):
         (ws.CREATE_OPTIONS, WizardCreateOptionsForm),
     ]
 
-    def get_instructions(self, step: str) -> Optional[str]:
+    def get_instructions(self, step: str) -> str:
         if step == ws.SELECT_TASK:
             return "Select an existing task or create a new task"
 
@@ -254,8 +261,8 @@ class TaskAndQuestionWizardView(NlpClassificationWizardView):
         if step == ws.SELECT_OPTIONS:
             return self._get_select_options_instructions()
 
-        if step == ws.CREATE_OPTIONS:
-            return self._get_create_options_instructions()
+        # ws.CREATE_OPTIONS:
+        return self._get_create_options_instructions()
 
     def _get_select_options_instructions(self) -> str:
         return (
@@ -276,7 +283,7 @@ class TaskAndQuestionWizardView(NlpClassificationWizardView):
 
         return initial
 
-    def get_form_kwargs(self, step=None) -> Any:
+    def get_form_kwargs(self, step: str = None) -> Any:
         kwargs = super().get_form_kwargs(step)
         if step == ws.SELECT_QUESTION:
             kwargs["task"] = self.selected_task
@@ -335,11 +342,13 @@ class TaskAndQuestionWizardView(NlpClassificationWizardView):
         task = self.selected_task
         if task is None:
             create_task_form = form_dict[ws.CREATE_TASK]
+            assert isinstance(create_task_form, ModelForm)
             task = create_task_form.save()
 
         question = self.selected_question
         if question is None:
             create_question_form = form_dict[ws.CREATE_QUESTION]
+            assert isinstance(create_question_form, ModelForm)
             question = create_question_form.instance
 
             question.task = task
@@ -400,7 +409,7 @@ class SampleDataWizardView(NlpClassificationWizardView):
         (ws.ENTER_SEARCH_TERM, WizardEnterSearchTermForm),
     ]
 
-    def get_instructions(self, step: str) -> Optional[str]:
+    def get_instructions(self, step: str) -> str:
         if step == ws.SELECT_SOURCE_TABLE_DEFINITION:
             return (
                 "Select an existing source table definition or "
@@ -434,8 +443,8 @@ class SampleDataWizardView(NlpClassificationWizardView):
         if step == ws.ENTER_SAMPLE_SIZE:
             return "Enter the size of the sample to be classified"
 
-        if step == ws.ENTER_SEARCH_TERM:
-            return "Enter the search term to match records to be sampled"
+        # ws.ENTER_SEARCH_TERM:
+        return "Enter the search term to match records to be sampled"
 
     def _get_select_source_pk_column_instructions(self) -> str:
         source_table_name = self.source_table_name
@@ -480,7 +489,7 @@ class SampleDataWizardView(NlpClassificationWizardView):
 
         return initial
 
-    def get_form_kwargs(self, step=None) -> Any:
+    def get_form_kwargs(self, step: str = None) -> Any:
         kwargs = super().get_form_kwargs(step)
         if step in [
             ws.SELECT_SOURCE_TABLE,
@@ -689,7 +698,7 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
         (ws.SELECT_USER, WizardSelectUserForm),
     ]
 
-    def get_instructions(self, step: str) -> Optional[str]:
+    def get_instructions(self, step: str) -> str:
         if step == ws.SELECT_TASK:
             return "Select task"
 
@@ -699,8 +708,8 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
         if step == ws.SELECT_SAMPLE:
             return "Select the sample of records"
 
-        if step == ws.SELECT_USER:
-            return "Select the user"
+        # step == ws.SELECT_USER:
+        return "Select the user"
 
     @property
     def selected_task(self) -> Optional[Task]:
@@ -721,7 +730,7 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
         return cleaned_data.get("sample")
 
     @property
-    def selected_user(self) -> Optional[User]:
+    def selected_user(self) -> Optional[_UserModel]:
         cleaned_data = self.get_cleaned_data_for_step(ws.SELECT_USER) or {}
 
         return cleaned_data.get("user")

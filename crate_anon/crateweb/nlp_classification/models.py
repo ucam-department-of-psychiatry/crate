@@ -173,7 +173,7 @@ class SourceRecord(models.Model):
 
         self._nlp_dict: dict[str, Any] = None
         self._source_text: str = None
-        self._extra_nlp_column_names = None
+        self._extra_nlp_column_names: Optional[list[str]] = None
         self._all_nlp_matches: list[SourceRecord] = None
 
     @property

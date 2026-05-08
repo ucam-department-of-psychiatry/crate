@@ -61,6 +61,7 @@ from crate_anon.crateweb.nlp_classification.tests.factories import (
     UserFactory,
 )
 from crate_anon.crateweb.nlp_classification.views import (
+    NlpClassificationWizardView,
     SampleDataWizardView,
     TaskAndQuestionWizardView,
     UserAnswerView,
@@ -118,6 +119,8 @@ class TestStorage(BaseStorage):
 
 
 class NlpClassificationWizardViewTests(TestCase):
+    view_class = NlpClassificationWizardView
+
     def setUp(self) -> None:
         super().setUp()
 

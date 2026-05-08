@@ -37,17 +37,17 @@ from crate_anon.crateweb.nlp_classification.models import (
 from django.template import loader
 from django.urls import reverse
 
-import django_tables2 as tables
+from django_tables2 import Column, Table, TemplateColumn
 
 
-class AssignmentTable(tables.Table):
+class AssignmentTable(Table):
     class Meta:
         model = Assignment
         exclude = ("id", "user")
 
-    task = tables.Column()
-    sample = tables.Column()
-    status = tables.TemplateColumn(
+    task = Column()
+    sample = Column()
+    status = TemplateColumn(
         template_name="nlp_classification/user/status_column.html",
         orderable=False,
         accessor="first_unanswered",
@@ -76,7 +76,7 @@ class AssignmentTable(tables.Table):
         return Template.render(context_dict)
 
 
-class ExportAnswersTable(tables.Table):
+class ExportAnswersTable(Table):
     class Meta:
         model = UserAnswer
 
@@ -97,33 +97,33 @@ class ExportAnswersTable(tables.Table):
         exclude = ("source_record",)
 
     # Columns in alphabetical order, sequence defined above
-    assignment = tables.Column()
-    decision = tables.Column()
-    id = tables.Column()
-    nlp_pk_column_name = tables.Column(
+    assignment = Column()
+    decision = Column()
+    id = Column()
+    nlp_pk_column_name = Column(
         accessor="source_record__sample__nlp_table_definition__pk_column_name",
         verbose_name="NLP PK column name",
     )
-    nlp_pk_value = tables.Column(accessor="source_record__nlp_pk_value")
-    nlp_table_name = tables.Column(
+    nlp_pk_value = Column(accessor="source_record__nlp_pk_value")
+    nlp_table_name = Column(
         accessor="source_record__sample__nlp_table_definition__table_name",
         verbose_name="NLP table name",
     )
-    question = tables.Column(accessor="assignment__question")
-    source_table_name = tables.Column(
+    question = Column(accessor="assignment__question")
+    source_table_name = Column(
         accessor="source_record__sample__source_column__table_definition__table_name",  # noqa: E501
         verbose_name="Source table name",
     )
-    source_column_name = tables.Column(
+    source_column_name = Column(
         accessor="source_record__sample__source_column__name",
         verbose_name="Source column name",
     )
-    source_pk_column_name = tables.Column(
+    source_pk_column_name = Column(
         accessor="source_record__sample__source_column__table_definition__pk_column_name",  # noqa: E501
         verbose_name="Source PK column name",
     )
-    source_pk_value = tables.Column(
+    source_pk_value = Column(
         accessor="source_record__source_pk_value",
         verbose_name="Source PK value",
     )
-    task = tables.Column(accessor="assignment__task")
+    task = Column(accessor="assignment__task")

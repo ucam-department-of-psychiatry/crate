@@ -29,6 +29,7 @@ Tests for CRATE NLP classification forms.
 
 from unittest import mock
 
+from django.forms import ChoiceField, ModelChoiceField
 from django.test import TestCase
 
 from crate_anon.crateweb.core.constants import (
@@ -61,6 +62,8 @@ class WizardSelectQuestionFormTests(TestCase):
 
         form = WizardSelectQuestionForm()
 
+        assert isinstance(form.fields["question"], ModelChoiceField)
+
         self.assertQuerySetEqual(
             form.fields["question"].queryset,
             [q1_1, q1_2, q2_1, q2_2],
@@ -79,6 +82,7 @@ class WizardSelectQuestionFormTests(TestCase):
 
         form = WizardSelectQuestionForm(task=task1)
 
+        assert isinstance(form.fields["question"], ModelChoiceField)
         self.assertQuerySetEqual(
             form.fields["question"].queryset, [q1_1, q1_2], ordered=False
         )
@@ -95,6 +99,7 @@ class WizardSelectSourceTableDefinitionFormTests(TestCase):
         TableDefinitionFactory(db_connection_name=NLP_DB_CONNECTION_NAME)
 
         form = WizardSelectSourceTableDefinitionForm()
+        assert isinstance(form.fields["table_definition"], ModelChoiceField)
 
         self.assertQuerySetEqual(
             form.fields["table_definition"].queryset,
@@ -112,6 +117,7 @@ class WizardSelectTableFormTests(TestCase):
         )
 
         form = WizardSelectTableForm(database_connection=mock_db_connection)
+        assert isinstance(form.fields["table_name"], ChoiceField)
 
         self.assertEqual(
             form.fields["table_name"].choices,
@@ -135,6 +141,7 @@ class WizardSelectFormTests(TestCase):
             database_connection=mock_db_connection, table_name="test_table"
         )
 
+        assert isinstance(form.fields["column_name"], ChoiceField)
         self.assertEqual(
             form.fields["column_name"].choices,
             [

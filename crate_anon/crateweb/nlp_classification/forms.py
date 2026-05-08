@@ -98,10 +98,12 @@ class WizardSelectQuestionForm(Form):
         empty_label="-- Create new question --",
     )
 
-    def __init__(self, *args: Any, task=None, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, task: Task = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         if task is not None:
+            assert isinstance(self.fields["question"], ModelChoiceField)
+
             self.fields["question"].queryset = Question.objects.filter(
                 task=task
             )
@@ -153,6 +155,7 @@ class WizardSelectTableForm(Form):
 
         table_names = database_connection.get_table_names()
 
+        assert isinstance(self.fields["table_name"], ChoiceField)
         self.fields["table_name"].choices = [
             (name, name) for name in table_names
         ]
@@ -174,6 +177,7 @@ class WizardSelectColumnForm(Form):
             table_name,
         )
 
+        assert isinstance(self.fields["column_name"], ChoiceField)
         self.fields["column_name"].choices = [
             (name, name) for name in column_names
         ]
@@ -191,6 +195,7 @@ class WizardSelectMultipleColumnsForm(Form):
     ) -> None:
         super().__init__(*args, **kwargs)
 
+        assert isinstance(self.fields["column_names"], MultipleChoiceField)
         column_names = database_connection.get_column_names_for_table(
             table_name,
         )
@@ -227,10 +232,11 @@ class WizardSelectRequiredTaskForm(Form):
 class WizardSelectRequiredQuestionForm(Form):
     question = ModelChoiceField(queryset=Question.objects.all())
 
-    def __init__(self, *args: Any, task=None, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, task: Task = None, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         if task is not None:
+            assert isinstance(self.fields["question"], ModelChoiceField)
             self.fields["question"].queryset = Question.objects.filter(
                 task=task
             )

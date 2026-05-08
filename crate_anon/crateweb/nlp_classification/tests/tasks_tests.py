@@ -128,7 +128,7 @@ class CreateSourceRecordsFromSampleTests(TestCase):
         self.mock_nlp_fetchall.side_effect = [
             (r for r in [(1, 10), (1, 13), (2, 11)]),
             (r for r in [(4, 12)]),
-            (r for r in []),
+            (),
         ]
 
         with mock.patch.multiple(
