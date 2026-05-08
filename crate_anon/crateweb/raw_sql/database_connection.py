@@ -646,7 +646,6 @@ ORDER BY
 
         return results
 
-    # TODO: Duplicate code in research_db_info.py
     def _get_db_and_schema_name(self) -> Tuple[str, str]:
         db_name = ""
         schema_name = ""

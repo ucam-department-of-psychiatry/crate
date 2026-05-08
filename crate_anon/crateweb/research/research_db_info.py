@@ -740,7 +740,6 @@ class ResearchDatabaseInfo:
         """
         return [x.schema_id for x in self.dbinfolist]
 
-    # TODO: Duplicate code in database_connection.py
     def get_default_database_name(self) -> str:
         """
         Returns the default "database name" for our dialect.
