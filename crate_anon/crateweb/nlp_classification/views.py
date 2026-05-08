@@ -194,6 +194,10 @@ def should_create_question(wizard: SessionWizardView) -> bool:
 class NlpClassificationWizardView(
     MustBeAdminMixin, DatabaseConnectionMixin, SessionWizardView
 ):
+    """
+    Base class for all form wizard views.
+    """
+
     template_name = "nlp_classification/admin/wizard_form.html"
 
     def get_context_data(self, form: Form, **kwargs: Any) -> dict[str, Any]:
@@ -326,6 +330,8 @@ class TaskAndQuestionWizardView(NlpClassificationWizardView):
     def done(
         self, form_list: list[Form], form_dict: dict[str, Form], **kwargs: Any
     ) -> HttpResponse:
+        # Called on final step. Create anything here.
+
         task = self.selected_task
         if task is None:
             create_task_form = form_dict[ws.CREATE_TASK]
@@ -636,6 +642,7 @@ class SampleDataWizardView(NlpClassificationWizardView):
     def done(
         self, form_list: list[Form], form_dict: dict[str, Form], **kwargs: Any
     ) -> HttpResponse:
+        # Called on final step. Create anything here.
         source_table_definition = self.get_or_create_source_table_definition()
         nlp_table_definition = self.get_or_create_nlp_table_definition()
 
@@ -661,6 +668,8 @@ class SampleDataWizardView(NlpClassificationWizardView):
             seed=random.randint(0, 2147483647),
         )
 
+        # Creating source records takes a long time so run it as a background
+        # task and update the progress bar.
         task = create_source_records_from_sample.delay(sample.pk)
 
         context = dict(task_id=task.id)
@@ -720,7 +729,7 @@ class UserAssignmentWizardView(NlpClassificationWizardView):
     def done(
         self, form_list: list[Form], form_dict: dict[str, Form], **kwargs: Any
     ) -> HttpResponse:
-
+        # Called on final step. Create anything here.
         task = self.selected_task
         question = self.selected_question
         sample = self.selected_sample
