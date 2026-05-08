@@ -23,7 +23,7 @@ crate_anon/crateweb/nlp_classification/tables.py
 
 ===============================================================================
 
-CRATE NLP classification tables.
+CRATE NLP classification HTML tables.
 
 """
 

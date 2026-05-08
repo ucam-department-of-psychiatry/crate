@@ -130,8 +130,7 @@ class Sample(models.Model):
     Used to create SourceRecords from a source tables linking to corresponding
     NLP records.
 
-    Size might be maximum. What happens if there are fewer matching records in
-    the sample?
+    size is a maximum. There may be fewer matching records than size.
     """
 
     source_column = models.ForeignKey(Column, on_delete=models.CASCADE)
@@ -280,6 +279,8 @@ class SourceRecord(models.Model):
         )
 
     def matches_valid(self) -> bool:
+        # Validate NLP results against actual content. If they don't match, it
+        # probably means that the NLP is out of date.
         for match in self.all_nlp_matches():
             if self.source_text[match.start : match.end] != match.content:
                 return False
@@ -310,7 +311,7 @@ class Assignment(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
 
     def create_user_answers(self) -> None:
-        # https://docs.djangoproject.com/en/4.2/ref/models/querysets/#bulk-create
+        # https://docs.djangoproject.com/en/5.2/ref/models/querysets/#bulk-create
         batch_size = settings.CRATE_NLP_BATCH_SIZE
 
         for batch in self._gen_user_answers(batch_size):
@@ -365,9 +366,6 @@ class UserAnswer(models.Model):
     """
     A user's answer to a Question. Linked with SourceRecord, which has an
     optional NLP record.
-
-    - Note that in this analogy a question can have many answers.
-
     """
 
     source_record = models.ForeignKey(SourceRecord, on_delete=models.CASCADE)
