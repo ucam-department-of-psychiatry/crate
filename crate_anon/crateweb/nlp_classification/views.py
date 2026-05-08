@@ -32,6 +32,7 @@ from typing import Any, Optional
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.db import models
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse, HttpResponseRedirect
 from django.forms import Form
@@ -41,8 +42,7 @@ from django.views.generic import TemplateView, UpdateView
 from django_filters import FilterSet, ModelChoiceFilter
 from django_filters.views import FilterView
 from django_tables2.export.views import ExportMixin
-from django_tables2.tables import RequestConfig, Table
-from django_tables2.views import SingleTableMixin
+from django_tables2.views import SingleTableMixin, SingleTableView
 from formtools.wizard.views import SessionWizardView
 
 from crate_anon.crateweb.core.constants import (
@@ -126,22 +126,12 @@ class AdminHomeView(MustBeAdminMixin, DatabaseConnectionMixin, TemplateView):
     template_name = "nlp_classification/admin/home.html"
 
 
-class UserHomeView(DatabaseConnectionMixin, TemplateView):
+class UserHomeView(DatabaseConnectionMixin, SingleTableView):
+    table_class = AssignmentTable
     template_name = "nlp_classification/user/home.html"
 
-    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        context = super().get_context_data(**kwargs)
-
-        table = self._get_table()
-        RequestConfig(self.request).configure(table)
-        context.update(table=table)
-
-        return context
-
-    def _get_table(self) -> Table:
-        return AssignmentTable(
-            Assignment.objects.filter(user=self.request.user)
-        )
+    def get_queryset(self) -> models.QuerySet:
+        return Assignment.objects.filter(user=self.request.user)
 
 
 class UserAnswerView(DatabaseConnectionMixin, UserPassesTestMixin, UpdateView):
