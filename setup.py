@@ -152,7 +152,7 @@ INSTALL_REQUIRES = [
     "faker-file[common]==0.17.13",  # test file creation
     "flake8==5.0.4",  # code checks, keep in sync with .pre-commit-config.yaml
     "docutils==0.19",
-    "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
+    "mistune==3.2.1",
     "paramiko==3.4.1",  # Python implementation of the SSHv2 protocol, required by faker-file  # noqa: E501
     "pre-commit==2.20.0",  # development only, various sanity checks on code
     "pytest==9.0.3",  # automatic testing
@@ -161,7 +161,8 @@ INSTALL_REQUIRES = [
     "python-on-whales==0.68.0",  # python wrappers for testing with Docker
     "sphinx==7.1.2",  # documentation
     "sphinx_rtd_theme==3.0.2",  # documentation
-    "sphinxcontrib-openapi==0.7.0",  # API documentation
+    "sphinx-mdinclude==0.6.2",  # documentation
+    "sphinxcontrib-openapi==0.9.0",  # API documentation
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
     # ---------------------------------------------------------------------
