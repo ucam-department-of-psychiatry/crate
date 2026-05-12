@@ -7,7 +7,7 @@ SELECT
     'CDL' AS db_name,
     COUNT(*) AS total_n,
     SUM(IIF(DOB IS NULL, 1, 0)) AS n_with_no_dob
-FROM rawCRSCDL.dbo.[CRS_Output_2020 09 21]  -- 162874
+FROM rawCRSCDL.dbo.[CRS_Output_2020 09 21]  -- 162874 on 2022-07-21.
 
 UNION
 
@@ -24,7 +24,7 @@ SELECT
     'RiO' AS db_name,
     COUNT(*) AS total_n,
     SUM(IIF(DateOfBirth IS NULL, 1, 0)) AS n_with_no_dob
-FROM RiO62CAMLive.dbo.Client  -- 216739
+FROM RiO62CAMLive.dbo.Client  -- 216739 on 2022-07-21.
 
 UNION
 
@@ -32,17 +32,18 @@ SELECT
     'SystmOne' AS db_name,
     COUNT(*) AS total_n,
     SUM(IIF(DOB IS NULL, 1, 0)) AS n_with_no_dob
-FROM SystmOne.dbo.S1_Patient  -- 619062
+FROM SystmOne.dbo.S1_Patient  -- 619062 on 2022-07-21.
 
 
 -- ============================================================================
 -- Total number of distinct NHS numbers, in any of the four databases
 -- ============================================================================
--- Ignore test numbers for now (they are few or non-existent).
+-- Exclude test NHS numbers, which start 999.
 
 SELECT COUNT(DISTINCT nhs_number) AS n_distinct_patients_with_nhs_number
 FROM (
     -- CDL
+    -- Remove any spaces in string-based NHS numbers.
     SELECT TRY_CAST(REPLACE(c.NHS_ID, ' ', '') AS BIGINT) AS nhs_number
     FROM zVaultCRS_CDL.dbo.NHSID_BRC_Lookup AS c
     WHERE LEFT(c.NHS_ID, 3) != '999'
