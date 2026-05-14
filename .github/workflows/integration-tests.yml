@@ -35,11 +35,11 @@ jobs:
                   ${GITHUB_WORKSPACE}/github_action_scripts/change_apt_mirror.sh
             - name: Install wkhtmltopdf
               run: |
-                set -euxo pipefail
+                set -euo pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/install_wkhtmltopdf.sh
             - name: Run integration tests
               run: |
-                set -euxo pipefail
+                set -euo pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh
                 ${GITHUB_WORKSPACE}/github_action_scripts/docker_db_setup.sh ${{ matrix.engine }}
                 ${GITHUB_WORKSPACE}/github_action_scripts/integration_tests.sh ${{ matrix.engine }}

@@ -27,12 +27,13 @@ crate_anon/crateweb/config/test_settings.py
 
 """
 
+import os
 from pathlib import Path
 
 from crate_anon.common.constants import mebibytes
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 DATABASES = {
     "default": {
@@ -51,16 +52,44 @@ DATABASES = {
 
 ROOT_URLCONF = "crate_anon.crateweb.config.urls"
 
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [os.path.join(BASE_DIR, "templates")],
+        # 'APP_DIRS': True,  # can't use OPTIONS/loaders with this
+        "OPTIONS": {
+            "context_processors": [
+                # 'django.template.context_processors.debug',
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+                "crate_anon.crateweb.core.context_processors.common_context",
+            ],
+            "loaders": [
+                # https://docs.djangoproject.com/en/4.2/ref/templates/api/#template-loaders
+                (
+                    "django.template.loaders.cached.Loader",
+                    [
+                        "django.template.loaders.filesystem.Loader",
+                        "django.template.loaders.app_directories.Loader",
+                    ],
+                ),
+            ],
+        },
+    },
+]
+
+
 INSTALLED_APPS = (
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
-    "django.contrib.staticfiles",
     "django.contrib.humanize",  # for nice comma formatting of numbers
     "debug_toolbar",  # for debugging
     "django_extensions",  # for graph_models, show_urls etc.
+    "django_tables2",  # for HTML tables
     "sslserver",  # for SSL testing
     "rest_framework",
     "drf_spectacular",
@@ -73,6 +102,7 @@ INSTALLED_APPS = (
     "crate_anon.crateweb.config.apps.ConsentAppConfig",  # the consent-to-contact app  # noqa: E501
     "crate_anon.crateweb.config.apps.CoreAppConfig",  # for e.g. the runcpserver command  # noqa: E501
     "crate_anon.crateweb.config.apps.ApiConfig",  # for the anonymisation API
+    "crate_anon.crateweb.config.apps.NlpClassificationConfig",  # for NLP classification  # noqa: E501
 )
 
 STATIC_URL = "/crate_static/"

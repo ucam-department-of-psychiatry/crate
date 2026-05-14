@@ -103,7 +103,7 @@ class DemoPatientFactory(DemoFactory):
     class Meta:
         model = Patient
 
-    patient_id = factory.Sequence(lambda n: n + 1)
+    patient_id = factory.Sequence(lambda n: n + 1234567)
 
     sex = factory.LazyFunction(Fake.en_gb.sex)
 

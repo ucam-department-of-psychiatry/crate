@@ -1,0 +1,373 @@
+"""
+crate_anon/crateweb/nlp_classification/models.py
+
+===============================================================================
+
+    Copyright (C) 2015, University of Cambridge, Department of Psychiatry.
+    Created by Rudolf Cardinal (rnc1001@cam.ac.uk).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
+
+===============================================================================
+
+CRATE NLP classification models.
+
+"""
+
+from itertools import islice
+from typing import Any, Generator, Optional
+
+from django.conf import settings
+from django.db import models
+
+from crate_anon.crateweb.raw_sql.database_connection import DatabaseConnection
+from crate_anon.nlp_manager.constants import (
+    FN_SRCFIELD,
+    FN_SRCPKFIELD,
+    FN_SRCPKVAL,
+    FN_SRCTABLE,
+)
+
+from crate_anon.nlp_manager.regex_parser import (
+    FN_CONTENT,
+    FN_END,
+    FN_START,
+)
+
+
+class Task(models.Model):
+    """
+    Task is the overall concept, e.g. "assessing CRP accuracy for Bob's study".
+    Everything else hangs off this. There may be more than one Assignment per
+    task.
+    """
+
+    name = models.CharField(max_length=100)
+
+    def __str__(self) -> Any:
+        return self.name
+
+
+class Option(models.Model):
+    """
+    Associated with one or more questions.
+
+    Examples: "Yes", "No"
+
+    """
+
+    description = models.CharField(max_length=100)
+
+    def __str__(self) -> Any:
+        return self.description
+
+
+class Question(models.Model):
+    """
+    Question is presented to the user validating the NLP records.
+
+    Example: "Does this text show a C-reactive protein (CRP) value?"
+    (has NLP identified CRP at all even if it didn't extract the right value)
+
+    or, more specifically: "Does this text show a C-reactive protein (CRP)
+    value AND that value matches the NLP output?".
+
+    A yes/no answer makes it easier to assess precision and recall. We will
+    support more than two choices, however.
+    """
+
+    title = models.CharField(max_length=100)
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    options = models.ManyToManyField(Option)
+
+    def __str__(self) -> Any:
+        return self.title
+
+
+class TableDefinition(models.Model):
+    """
+    Points to a table in a database.
+    """
+
+    db_connection_name = models.CharField(max_length=100)
+    table_name = models.CharField(max_length=100)
+    pk_column_name = models.CharField(max_length=100)
+
+    def __str__(self) -> Any:
+        return f"{self.db_connection_name}.{self.table_name}"
+
+
+class Column(models.Model):
+    """
+    Points to a particular column in a table of a database.
+    Needed because we don't know which columns are in the table.
+    """
+
+    table_definition = models.ForeignKey(
+        TableDefinition, on_delete=models.CASCADE
+    )
+    name = models.CharField(max_length=100)
+
+    def __str__(self) -> Any:
+        return f"{self.table_definition}.{self.name}"
+
+
+class Sample(models.Model):
+    """
+    Used to create SourceRecords from a source tables linking to corresponding
+    NLP records.
+
+    size is a maximum. There may be fewer matching records than size.
+    """
+
+    source_column = models.ForeignKey(Column, on_delete=models.CASCADE)
+    nlp_table_definition = models.ForeignKey(
+        TableDefinition, on_delete=models.CASCADE
+    )
+    search_term = models.CharField(max_length=100)
+    size = models.IntegerField()
+    seed = models.PositiveIntegerField()  # default MySQL range 0-2147483647
+
+    def get_source_database_connection(self) -> DatabaseConnection:
+        source_table_definition = self.source_column.table_definition
+
+        return DatabaseConnection(source_table_definition.db_connection_name)
+
+    def get_nlp_database_connection(self) -> DatabaseConnection:
+        return DatabaseConnection(self.nlp_table_definition.db_connection_name)
+
+    def __str__(self) -> Any:
+        return (
+            f"{self.size} records from '{self.source_column}' "
+            f"with seed {self.seed} and search term '{self.search_term}'"
+        )
+
+
+class SourceRecord(models.Model):
+    """
+    This is an individual entry for a source table with optional NLP record.
+    """
+
+    sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
+    source_pk_value = models.CharField(max_length=100)
+    nlp_pk_value = models.CharField(
+        max_length=100, verbose_name="NLP PK value"
+    )
+    random_order = models.PositiveBigIntegerField()
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+
+        self._nlp_dict: dict[str, Any] = None
+        self._source_text: str = None
+        self._extra_nlp_column_names: Optional[list[str]] = None
+        self._all_nlp_matches: list[SourceRecord] = None
+
+    @property
+    def extra_nlp_column_names(self) -> list[str]:
+        if self._extra_nlp_column_names is None:
+            self._extra_nlp_column_names = [
+                c.name
+                for c in Column.objects.filter(
+                    table_definition=self.sample.nlp_table_definition
+                )
+            ]
+
+        return self._extra_nlp_column_names
+
+    @property
+    def nlp_dict(self) -> dict[str, Any]:
+        if self._nlp_dict is None:
+            column_names = [
+                FN_SRCFIELD,
+                FN_SRCTABLE,
+                FN_SRCPKFIELD,
+                FN_SRCPKVAL,
+                FN_CONTENT,
+                FN_START,
+                FN_END,
+            ] + self.extra_nlp_column_names
+
+            connection = self.get_nlp_database_connection()
+            nlp_table_definition = self.sample.nlp_table_definition
+            self._nlp_dict = connection.fetchone_as_dict(
+                column_names,
+                nlp_table_definition.table_name,
+                where=f"{nlp_table_definition.pk_column_name} = %s",
+                params=[self.nlp_pk_value],
+            )
+
+        return self._nlp_dict
+
+    @property
+    def start(self) -> Optional[int]:
+        return self.nlp_dict.get(FN_START)
+
+    @property
+    def end(self) -> Optional[int]:
+        return self.nlp_dict.get(FN_END)
+
+    @property
+    def content(self) -> str:
+        return self.nlp_dict.get(FN_CONTENT, "")
+
+    @property
+    def has_nlp_record(self) -> bool:
+        return bool(self.nlp_pk_value)
+
+    @property
+    def extra_nlp_fields(self) -> dict[str, Any]:
+        return dict(
+            (k, self.nlp_dict[k])
+            for k in self.extra_nlp_column_names
+            if k in self.nlp_dict
+        )
+
+    @property
+    def source_text(self) -> str:
+        if self._source_text is None:
+            source_column = self.sample.source_column
+
+            source_column_name = source_column.name
+            source_table = source_column.table_definition.table_name
+            source_pk_column_name = (
+                source_column.table_definition.pk_column_name
+            )
+
+            connection = self.get_source_database_connection()
+
+            row = connection.fetchone_as_dict(
+                [source_column_name],
+                source_table,
+                where=f"{source_pk_column_name} = %s",
+                params=[self.source_pk_value],
+            )
+            self._source_text = row[source_column_name]
+
+        return self._source_text
+
+    def get_source_database_connection(self) -> DatabaseConnection:
+        return DatabaseConnection(
+            self.sample.source_column.table_definition.db_connection_name
+        )
+
+    def get_nlp_database_connection(self) -> DatabaseConnection:
+        return DatabaseConnection(
+            self.sample.nlp_table_definition.db_connection_name
+        )
+
+    def __str__(self) -> Any:
+        table_definition = self.sample.source_column.table_definition
+        pk_column_name = table_definition.pk_column_name
+
+        return (
+            f"Item {table_definition}.{pk_column_name}="
+            f"{self.source_pk_value}"
+        )
+
+    def matches_valid(self) -> bool:
+        # Validate NLP results against actual content. If they don't match, it
+        # probably means that the NLP is out of date.
+        for match in self.all_nlp_matches():
+            if self.source_text[match.start : match.end] != match.content:
+                return False
+
+        return True
+
+    def all_nlp_matches(self) -> list["SourceRecord"]:
+        if self._all_nlp_matches is None:
+            conditions = (
+                models.Q(sample=self.sample)
+                & models.Q(source_pk_value=self.source_pk_value)
+                & ~models.Q(nlp_pk_value="")
+            )
+
+            self._all_nlp_matches = list(
+                SourceRecord.objects.filter(conditions)
+            )
+
+        return self._all_nlp_matches
+
+
+class Assignment(models.Model):
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    sample = models.ForeignKey(Sample, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+    )
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+
+    def create_user_answers(self) -> None:
+        # https://docs.djangoproject.com/en/5.2/ref/models/querysets/#bulk-create
+        batch_size = settings.CRATE_NLP_BATCH_SIZE
+
+        for batch in self._gen_user_answers(batch_size):
+            UserAnswer.objects.bulk_create(batch, batch_size)
+
+    def _gen_user_answers(
+        self, batch_size: int
+    ) -> Generator[list["UserAnswer"], None, None]:
+
+        source_records = self.sample.sourcerecord_set.order_by(
+            "random_order", "pk"
+        )[: self.sample.size]
+
+        start = 0
+
+        while True:
+            stop = start + batch_size
+            batch = [
+                UserAnswer(assignment=self, source_record=sr)
+                for sr in islice(source_records, start, stop)
+            ]
+            if not batch:
+                break
+            yield batch
+
+            start += batch_size
+
+    def first_unanswered(self) -> Optional["UserAnswer"]:
+        return self.unanswered.first()
+
+    @property
+    def num_unanswered(self) -> int:
+        return self.unanswered.count()
+
+    @property
+    def unanswered(self) -> models.QuerySet:
+        return self.useranswer_set.filter(decision=None)
+
+    @property
+    def num_answered(self) -> int:
+        return self.answered.count()
+
+    @property
+    def answered(self) -> models.QuerySet:
+        return self.useranswer_set.exclude(decision=None)
+
+    def __str__(self) -> str:
+        return f"{self.user}'s answers to '{self.question}' ({self.task})"
+
+
+class UserAnswer(models.Model):
+    """
+    A user's answer to a Question. Linked with SourceRecord, which has an
+    optional NLP record.
+    """
+
+    source_record = models.ForeignKey(SourceRecord, on_delete=models.CASCADE)
+    decision = models.ForeignKey(Option, null=True, on_delete=models.SET_NULL)
+    assignment = models.ForeignKey(Assignment, on_delete=models.CASCADE)

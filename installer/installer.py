@@ -141,6 +141,7 @@ class DockerComposeServices:
     CRATE_WORKERS = "crate_workers"
     FLOWER = "flower"
     RABBITMQ = "rabbitmq"
+    REDIS = "redis"
     RESEARCH_DB = "research_db"
     SECRET_DB = "secret_db"
     SOURCE_DB = "source_db"
@@ -261,6 +262,7 @@ class Ports:
     MYSQL = "3306"
     CRATEWEB = "8000"
     RABBITMQ = "5672"
+    REDIS = "6379"
     CRATE_DB_HOST = "43306"
     DEMO_RESEARCH_DB_HOST = "43307"
     DEMO_SECRET_DB_HOST = "43308"
@@ -1193,6 +1195,7 @@ class Installer:
     def configure_wait_for(self) -> None:
         wait_for = [
             f"{DockerComposeServices.RABBITMQ}:{Ports.RABBITMQ}",
+            f"{DockerComposeServices.REDIS}:{Ports.REDIS}",
         ]
 
         if self.should_create_crate_db_container():
@@ -1311,6 +1314,7 @@ class Installer:
             "archive_template_cache_dir": DockerPath.ARCHIVE_TEMPLATE_CACHE_DIR,  # noqa: E501
             "archive_template_dir": DockerPath.ARCHIVE_TEMPLATE_DIR,
             "broker_url": f"amqp://rabbitmq:{Ports.RABBITMQ}",
+            "celery_result_backend": f"redis://redis:{Ports.REDIS}",
             "crate_db_engine": self.engines[
                 self.getenv(InstallerEnvVar.CRATE_DB_ENGINE)
             ].django,

@@ -267,6 +267,7 @@ class UrlNames:
 class AdminSiteNames:
     DEVADMIN = "devadmin"
     MGRADMIN = "mgradmin"
+    NLPADMIN = "nlpadmin"
     RESADMIN = "resadmin"
 
 

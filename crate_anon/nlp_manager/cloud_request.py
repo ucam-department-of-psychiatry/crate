@@ -493,7 +493,8 @@ class CloudRequest:
             assert isinstance(json_response, dict)
             return json_response
         except json.decoder.JSONDecodeError:
-            log.error("Reply was not JSON")
+            log.error("Reply was not JSON:")
+            log.error(response.text)
             raise
         except AssertionError:
             log.error("Reply was JSON but not a JSON object (dict)")
@@ -644,11 +645,11 @@ class CloudRequestProcess(CloudRequest):
         self._request_process = make_nlprp_dict()
         self._request_process[NlprpKeys.COMMAND] = NlprpCommands.PROCESS
         self._request_process[NlprpKeys.ARGS] = {
-            NlprpKeys.PROCESSORS: [],  # type: List[str]
+            NlprpKeys.PROCESSORS: [],
             NlprpKeys.QUEUE: True,
             NlprpKeys.CLIENT_JOB_ID: self._client_job_id,
             NlprpKeys.INCLUDE_TEXT: False,
-            NlprpKeys.CONTENT: [],  # type: List[str]
+            NlprpKeys.CONTENT: [],
         }
         # Set up fetch_from_queue request
         self._fetch_request = make_nlprp_dict()

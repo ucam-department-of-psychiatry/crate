@@ -1,0 +1,74 @@
+"""
+crate_anon/crateweb/nlp_classification/urls.py
+
+===============================================================================
+
+    Copyright (C) 2015, University of Cambridge, Department of Psychiatry.
+    Created by Rudolf Cardinal (rnc1001@cam.ac.uk).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <https://www.gnu.org/licenses/>.
+
+===============================================================================
+
+**Django URL configuration for CRATE NLP Classification.**
+
+"""
+
+from django.urls import path
+
+from crate_anon.crateweb.nlp_classification.views import (
+    AdminHomeView,
+    ExportAnswersView,
+    SampleDataWizardView,
+    TaskAndQuestionWizardView,
+    UserAnswerView,
+    UserAssignmentWizardView,
+    UserHomeView,
+)
+
+urlpatterns = [
+    path(
+        "admin/",
+        AdminHomeView.as_view(),
+        name="nlp_classification_admin_home",
+    ),
+    path(
+        "admin/task_and_question_wizard",
+        TaskAndQuestionWizardView.as_view(),
+        name="nlp_classification_admin_task_question_wizard",
+    ),
+    path(
+        "admin/sample_data_wizard",
+        SampleDataWizardView.as_view(),
+        name="nlp_classification_admin_sample_data_wizard",
+    ),
+    path(
+        "admin/user_assignment_wizard",
+        UserAssignmentWizardView.as_view(),
+        name="nlp_classification_admin_user_assignment_wizard",
+    ),
+    path(
+        "admin/export_answers",
+        ExportAnswersView.as_view(),
+        name="nlp_classification_admin_export_answers",
+    ),
+    path("user/", UserHomeView.as_view(), name="nlp_classification_user_home"),
+    path(
+        "user/answer/<int:pk>",
+        UserAnswerView.as_view(),
+        name="nlp_classification_user_answer",
+    ),
+]

@@ -72,18 +72,22 @@ INSTALL_REQUIRES = [
     "cardinal_pythonlib==2.1.3",  # RNC libraries
     "cairosvg==2.9.0",  # work with SVG files
     "celery==5.2.7",  # back-end scheduling
+    "celery-progress==0.5",  # progress bars on slow tasks
     "chardet==5.2.0",  # character encoding detection for cardinal_pythonlib
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
-    "django==5.2.13",  # for main CRATE research database web server
+    "django==5.2.14",  # for main CRATE research database web server
     "django-debug-toolbar==6.3.0",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
+    "django-filter==25.1",  # table filtering
+    "django-formtools==2.5.1",  # form wizards etc
     "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa: E501
     # "django-silk==4.0.1",  # Django profiler
     "djangorestframework==3.15.2",  # Anonymisation API support
     "django-sslserver==0.22",  # SSL development server for Django
+    "django-tables2==2.7.5",  # Support for HTML tables within Django templates
     "drf-spectacular==0.27.2",  # Open API Schema and documentation
     "drf-spectacular-sidecar==2024.7.1",  # Static files for drf-spectacular
     "extract_msg==0.54.1",  # Extract text from Outlook .msg files
@@ -94,7 +98,7 @@ INSTALL_REQUIRES = [
     "gutenbergpy==0.3.4",  # Project Gutenberg API
     "jsonlines==3.0.0",  # JSON Lines format
     "kombu==5.3.7",  # AMQP library for Celery; requires VC++ under Windows
-    "mako==1.2.2",  # templates with Python in
+    "mako==1.3.12",  # templates with Python in
     "MarkupSafe==2.0.1",  # for HTML escaping
     # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa: E501
@@ -103,7 +107,7 @@ INSTALL_REQUIRES = [
     "openpyxl==3.0.7",  # read Excel (slower?)
     "ordered-set==4.1.0",  # ordered sets; search for ordered_set
     "pendulum==2.1.2",  # dates/times
-    "Pillow==12.1.1",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
+    "Pillow==12.2.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==3.2.0",  # pretty formating of text-based tables
     "psutil==6.1.1",  # process management, cardinal_pythonlib dependency, not currently used  # noqa: E501
@@ -111,7 +115,7 @@ INSTALL_REQUIRES = [
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.20.0",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
-    "pypdf==6.10.1",  # create PDF files
+    "pypdf==6.10.2",  # create PDF files
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html
@@ -121,6 +125,7 @@ INSTALL_REQUIRES = [
     "sortedcontainers==2.2.2",  # for SortedSet
     "SQLAlchemy==2.0.36",  # database access
     "sqlparse==0.5.5",  # [pin exact version from cardinal_pythonlib]
+    "tablib==3.8.0",  # Table export
     "unidecode==1.1.1",  # for removing accents
     # -------------------------------------------------------------------------
     # Packages for cloud NLP:
@@ -147,7 +152,7 @@ INSTALL_REQUIRES = [
     "faker-file[common]==0.17.13",  # test file creation
     "flake8==5.0.4",  # code checks, keep in sync with .pre-commit-config.yaml
     "docutils==0.19",
-    "mistune<2.0.0",  # API documentation, 2.0.0 not compatible
+    "mistune==3.2.1",
     "paramiko==3.4.1",  # Python implementation of the SSHv2 protocol, required by faker-file  # noqa: E501
     "pre-commit==2.20.0",  # development only, various sanity checks on code
     "pytest==9.0.3",  # automatic testing
@@ -156,7 +161,8 @@ INSTALL_REQUIRES = [
     "python-on-whales==0.68.0",  # python wrappers for testing with Docker
     "sphinx==7.1.2",  # documentation
     "sphinx_rtd_theme==3.0.2",  # documentation
-    "sphinxcontrib-openapi==0.7.0",  # API documentation
+    "sphinx-mdinclude==0.6.2",  # documentation
+    "sphinxcontrib-openapi==0.9.0",  # API documentation
     # ---------------------------------------------------------------------
     # For database connections (see manual): install manually
     # ---------------------------------------------------------------------

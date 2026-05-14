@@ -36,4 +36,5 @@ Using the CRATE web interface
     archive.rst
     contact_patients.rst
     rdbm_admin.rst
+    nlp_classification.rst
     developer_admin.rst

@@ -221,7 +221,7 @@ body {
 }
 
 #main p, h3, h4 {
-    margin: 1em !important;
+    margin: 1em;
 }
 
 #db-info {
@@ -361,4 +361,112 @@ body {
 
 .dropdown:hover .dropdown-content {
     display: block;
+}
+
+/* NLP classification */
+
+.nlp-classification-wizard {
+    margin-bottom: 1em;
+}
+
+.nlp-classification-wizard #id_create_task-name,
+.nlp-classification-wizard #id_create_question-title,
+.nlp-classification-wizard #id_enter_search_term-search_term {
+    width: 50em;
+}
+
+.nlp-classification-wizard select[multiple=""] {
+    min-width: 10em;
+    min-height: 20em;
+}
+
+.progress-bar-container {
+    padding-top:
+}
+
+#progress-bar {
+    height:30px;
+    width: 100%;
+    border-radius: 5px;
+}
+
+#main p.wizard-step {
+    margin: 1em 0;
+}
+
+#main .nlp-classification-wizard p {
+    margin: 1em;
+}
+
+#main > .table-container > .pagination > li {
+    display: inline;
+}
+
+mark {
+    padding: 2px;
+    border: thin solid black;
+}
+
+.no-nlp {
+    font-size: medium;
+}
+
+.nlp-fields {
+    display: flex;
+    flex-flow: row wrap;
+}
+
+.nlp-fields > dt {
+    flex-basis: 20%;
+    padding: 2px 4px;
+    text-align: right;
+    border-right: 1px solid #555;
+    font-weight: bold;
+}
+
+.nlp-fields >  dd {
+    flex-basis: 70%;
+    flex-grow: 1;
+    margin: 0;
+    padding: 2px 4px;
+}
+
+.source-text {
+    font-weight: medium;
+    line-height: 1.5em;
+}
+
+.nlp-match {
+    background-colour: yellow;
+}
+
+.other-nlp-match {
+    background-color: #eee;
+}
+
+.export-container {
+    display: flex;
+}
+
+.export-filter-form {
+    display: flex;
+    min-width: 0;
+}
+
+.export-filter {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+#main .export-filter > div {
+    min-width: 0;
+    margin: 0 1em 0 0;
+}
+
+.export-filter > div > select {
+    max-width: 20em;
+}
+
+#main .export-options {
+    margin: auto 0 0 auto;
 }
