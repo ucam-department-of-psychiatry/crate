@@ -31,22 +31,30 @@ crate_anon/preprocess/preprocess_systmone.py
 
 import argparse
 import logging
-from typing import List, TYPE_CHECKING
+from typing import List
 
 from cardinal_pythonlib.enumlike import keys_descriptions_from_enum
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 from cardinal_pythonlib.sqlalchemy.schema import (
     make_bigint_autoincrement_column,
 )
 from rich_argparse import RawDescriptionRichHelpFormatter
-from sqlalchemy.engine import create_engine
-from sqlalchemy.engine.base import Engine
-from sqlalchemy.sql.schema import MetaData
+from sqlalchemy import (
+    Column,
+    create_engine,
+    Engine,
+    inspect,
+    MetaData,
+    text,
+    Table,
+)
 
 from crate_anon.anonymise.constants import AnonymiseConfigDefaults
 from crate_anon.common.sql import (
     add_columns,
     add_indexes,
+    connection_execute,
     create_view,
     drop_columns,
     drop_indexes,
@@ -80,9 +88,6 @@ from crate_anon.preprocess.systmone_ddgen import (
     TABLES_REQUIRING_CRATE_PK_REGEX,
 )
 from crate_anon.preprocess.text_extractor import SystmOneTextExtractor
-
-if TYPE_CHECKING:
-    from sqlalchemy.schema import Column, Table
 
 log = logging.getLogger(__name__)
 
@@ -227,6 +232,82 @@ def add_testpatient_view(
     create_view(engine, view_name, select_sql)
 
 
+def remove_identity_properties(engine: Engine, table: Table) -> None:
+    identity_column = None
+    for column in table.columns:
+        if column.name != CRATE_COL_PK and column.identity is not None:
+            identity_column = column
+            break
+
+    if identity_column is None:
+        log.debug(f"No identity column detected on '{table.name}'.")
+        return
+
+    col_name = identity_column.name
+    col_type = str(identity_column.type.compile(dialect=engine.dialect))
+    tmp_col_name = f"{col_name}_new_tmp"
+
+    log.debug(f"Stripping IDENTITY property from {table.name}.{col_name}...")
+
+    inspector = inspect(engine)
+
+    pk_constraint = inspector.get_pk_constraint(table.name)
+    pk_name = pk_constraint.get("name")
+    pk_cols = pk_constraint.get("constrained_columns", [])
+    is_identity_pk = col_name in pk_cols
+
+    with engine.begin() as connection:
+        if is_identity_pk and pk_name:
+            log.debug(f"Dropping primary key constraint: {pk_name}")
+            connection_execute(
+                connection,
+                text(f"ALTER TABLE {table.name} DROP CONSTRAINT [{pk_name}]"),
+            )
+
+        log.debug(f"Creating temporary column: {tmp_col_name}")
+        connection_execute(
+            connection,
+            text(
+                f"ALTER TABLE {table.name} "
+                f"ADD [{tmp_col_name}] {col_type} NULL"
+            ),
+        )
+
+        log.debug("Copying data to new column...")
+        connection_execute(
+            connection,
+            text(f"UPDATE {table.name} SET [{tmp_col_name}] = [{col_name}]"),
+        )
+
+        log.debug(f"Dropping original identity column: {col_name}")
+        connection_execute(
+            connection,
+            text(f"ALTER TABLE {table.name} DROP COLUMN [{col_name}]"),
+        )
+
+        log.debug(f"Renaming {tmp_col_name} to {col_name}...")
+        connection_execute(
+            connection,
+            text(
+                f"EXEC sp_rename '{table.name}.{tmp_col_name}', "
+                f"'{col_name}', 'COLUMN'"
+            ),
+        )
+
+        if not identity_column.nullable:
+            connection_execute(
+                connection,
+                text(
+                    f"ALTER TABLE {table.name} "
+                    f"ALTER COLUMN [{col_name}] {col_type} NOT NULL"
+                ),
+            )
+
+    log.debug(
+        f"Successfully converted {table.name}.{col_name} to a standard column."
+    )
+
+
 def preprocess_systmone(
     engine: Engine,
     context: SystmOneContext,
@@ -269,6 +350,8 @@ def preprocess_systmone(
 
         # Create step #1
         if not drop_danger_drop and table_needs_pk:
+            if engine.dialect.name == SqlaDialectName.MSSQL:
+                remove_identity_properties(engine, table)
             crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK)
             # SQL Server requires Table-bound columns in order to generate DDL:
             table.append_column(crate_pk_col, replace_existing=True)
@@ -276,7 +359,9 @@ def preprocess_systmone(
 
         # Create step #2 or drop step #1
         # noinspection PyTypeChecker
-        for column in table.columns:  # type: Column
+
+        column: Column
+        for column in table.columns:
             colname = column.name
             idxname = f"{CRATE_IDX_PREFIX}_{colname}"
             if (

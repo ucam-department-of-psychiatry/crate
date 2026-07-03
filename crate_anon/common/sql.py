@@ -70,7 +70,7 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 )
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 from pyparsing import ParseResults
-from sqlalchemy import inspect
+from sqlalchemy import Connection, inspect
 from sqlalchemy.dialects.mssql.base import MS_2012_VERSION
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Dialect
@@ -1034,6 +1034,25 @@ def execute(engine: Engine, sql: str) -> None:
     else:
         with engine.begin() as connection:
             connection.execute(sql)
+
+
+def connection_execute(connection: Connection, sql: str) -> None:
+    """
+    Executes plain SQL in an existing transaction.
+
+    Whether we act or just print is conditional on previous calls to
+    :func:`set_print_not_execute`.
+
+    Args:
+        connection: SQLAlchemy database Connection
+        sql: raw SQL to execute (or print)
+    """
+    log.debug(sql)
+    if _global_print_not_execute_sql:
+        print(format_sql_for_print(sql) + "\n;")
+        # extra \n in case the SQL ends in a comment
+    else:
+        connection.execute(sql)
 
 
 def add_columns(engine: Engine, table: Table, columns: List[Column]) -> None:
