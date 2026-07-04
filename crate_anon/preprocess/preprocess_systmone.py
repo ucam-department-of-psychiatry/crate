@@ -247,7 +247,7 @@ def remove_identity_properties(engine: Engine, table: Table) -> None:
     col_type = str(identity_column.type.compile(dialect=engine.dialect))
     tmp_col_name = f"{col_name}_new_tmp"
 
-    log.debug(f"Stripping IDENTITY property from {table.name}.{col_name}...")
+    log.debug(f"Removing IDENTITY property from {table.name}.{col_name}...")
 
     inspector = inspect(engine)
 
@@ -258,13 +258,13 @@ def remove_identity_properties(engine: Engine, table: Table) -> None:
 
     with engine.begin() as connection:
         if is_identity_pk and pk_name:
-            log.debug(f"Dropping primary key constraint: {pk_name}")
+            log.debug(f"Dropping primary key constraint: {pk_name}...")
             connection_execute(
                 connection,
                 text(f"ALTER TABLE {table.name} DROP CONSTRAINT [{pk_name}]"),
             )
 
-        log.debug(f"Creating temporary column: {tmp_col_name}")
+        log.debug(f"Creating temporary column: {tmp_col_name}...")
         connection_execute(
             connection,
             text(
@@ -279,7 +279,7 @@ def remove_identity_properties(engine: Engine, table: Table) -> None:
             text(f"UPDATE {table.name} SET [{tmp_col_name}] = [{col_name}]"),
         )
 
-        log.debug(f"Dropping original identity column: {col_name}")
+        log.debug(f"Dropping original IDENTITY column: {col_name}...")
         connection_execute(
             connection,
             text(f"ALTER TABLE {table.name} DROP COLUMN [{col_name}]"),
@@ -303,9 +303,7 @@ def remove_identity_properties(engine: Engine, table: Table) -> None:
                 ),
             )
 
-    log.debug(
-        f"Successfully converted {table.name}.{col_name} to a standard column."
-    )
+    log.debug(f"Successfully removed IDENTITY from {table.name}.{col_name}.")
 
 
 def preprocess_systmone(
