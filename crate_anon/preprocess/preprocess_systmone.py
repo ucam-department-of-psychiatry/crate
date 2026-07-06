@@ -60,7 +60,9 @@ from crate_anon.common.sql import (
     drop_indexes,
     drop_view,
     ensure_columns_present,
+    execute,
     IndexCreationInfo,
+    replace_odd_chars,
     set_print_not_execute,
 )
 from crate_anon.preprocess.constants import (
@@ -247,7 +249,7 @@ def remove_identity_properties(engine: Engine, table: Table) -> None:
     col_type = str(identity_column.type.compile(dialect=engine.dialect))
     tmp_col_name = f"{col_name}_new_tmp"
 
-    log.debug(f"Removing IDENTITY property from {table.name}.{col_name}...")
+    log.info(f"Removing IDENTITY property from {table.name}.{col_name}...")
 
     inspector = inspect(engine)
 
@@ -303,7 +305,25 @@ def remove_identity_properties(engine: Engine, table: Table) -> None:
                 ),
             )
 
-    log.debug(f"Successfully removed IDENTITY from {table.name}.{col_name}.")
+    log.info(f"Successfully removed IDENTITY from {table.name}.{col_name}.")
+
+
+def replace_odd_chars_in_table(engine: Engine, table: Table) -> None:
+    for column in table.columns:
+        sanitised_column_name = replace_odd_chars(column.name)
+
+        escaped_column_name = column.name.replace("'", "''").replace(
+            ":", "\\:"
+        )
+
+        if column.name != sanitised_column_name:
+            execute(
+                engine,
+                text(
+                    f"EXEC sp_rename '{table.name}.[{escaped_column_name}]', "
+                    f"'{sanitised_column_name}', 'COLUMN'"
+                ),
+            )
 
 
 def preprocess_systmone(
@@ -332,6 +352,10 @@ def preprocess_systmone(
     for table in sorted(
         metadata.tables.values(), key=lambda t: t.name.lower()
     ):  # type: Table
+
+        if engine.dialect.name == SqlaDialectName.MSSQL:
+            replace_odd_chars_in_table(engine, table)
+
         ct = core_tablename(
             table.name,
             from_context=context,

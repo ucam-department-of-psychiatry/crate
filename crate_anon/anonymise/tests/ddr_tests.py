@@ -35,18 +35,19 @@ from crate_anon.anonymise.ddr import DataDictionaryRow
 
 
 class DataDictionaryRowTests(TestCase):
-    def test_odd_chars_replaced_in_dest_table(self) -> None:
-        mock_config = mock.Mock()
-        ddr = DataDictionaryRow(mock_config)
-        # unicode n-dash ------------------------v
-        test_table = f"A b(c)d/e|f\tg{chr(0x80)}h–i"
-        test_field = test_table
+    def setUp(self) -> None:
+        super().setUp()
 
-        src_datatype_sqltext = ""  # Arbitrary
-        src_sqla_coltype = String()
-        mock_db_config = mock.Mock(
+        mock_config = mock.Mock()
+        self.ddr = DataDictionaryRow(mock_config)
+
+        self.test_table = "test_table"
+        self.test_field = "test_field"
+
+        self.src_datatype_sqltext = ""  # Arbitrary
+        self.src_sqla_coltype = String()
+        self.mock_db_config = mock.Mock(
             bin2text_dict={},
-            ddgen_convert_odd_chars_to_underscore=True,
             ddgen_extra_hash_fields={},
             ddgen_filename_to_text_fields=[],
             ddgen_force_lower_case=False,
@@ -66,17 +67,53 @@ class DataDictionaryRowTests(TestCase):
             ddgen_scrubsrc_thirdparty_xref_pid_fields=[],
             ddgen_truncate_date_fields=[],
         )
-        ddr.set_from_src_db_info(
-            "test_db",
-            test_table,
-            test_field,
-            src_datatype_sqltext,
-            src_sqla_coltype,
-            mock_db_config,
+
+    def test_odd_chars_replaced_in_dest_table(self) -> None:
+        # Actual replacement tested in common/sql/sql_tests.py. Here we just
+        # make sure that the function is called with the right input.
+        mock_replace_odd_chars = mock.Mock()
+
+        self.mock_db_config.ddgen_convert_odd_chars_to_underscore = True
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.ddr",
+            replace_odd_chars=mock_replace_odd_chars,
+        ):
+            self.ddr.set_from_src_db_info(
+                "test_db",
+                self.test_table,
+                self.test_field,
+                self.src_datatype_sqltext,
+                self.src_sqla_coltype,
+                self.mock_db_config,
+            )
+
+        mock_replace_odd_chars.assert_has_calls(
+            [
+                mock.call(self.test_table),
+                mock.call(self.test_field),
+            ],
+            any_order=True,
         )
 
-        expected_table = "A_b_c_d_e_f_g_h_i"
-        expected_field = expected_table
+    def test_odd_chars_not_replaced_in_dest_table(self) -> None:
+        # Actual replacement tested in common/sql/sql_tests.py. Here we just
+        # make sure that the function is not called.
+        self.mock_db_config.ddgen_convert_odd_chars_to_underscore = False
 
-        self.assertEqual(ddr.dest_table, expected_table)
-        self.assertEqual(ddr.dest_field, expected_field)
+        mock_replace_odd_chars = mock.Mock()
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.ddr",
+            replace_odd_chars=mock_replace_odd_chars,
+        ):
+            self.ddr.set_from_src_db_info(
+                "test_db",
+                self.test_table,
+                self.test_field,
+                self.src_datatype_sqltext,
+                self.src_sqla_coltype,
+                self.mock_db_config,
+            )
+
+        mock_replace_odd_chars.assert_not_called()

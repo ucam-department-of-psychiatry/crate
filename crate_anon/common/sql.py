@@ -2514,3 +2514,19 @@ def decorate_index_name(
     if engine.dialect.name == "sqlite":
         return f"{idxname}_{tablename}"
     return idxname
+
+
+def replace_odd_chars(text: str) -> str:
+    """
+    Sanitise a table or field name to only contain printable ASCII
+    characters plus ()/|
+
+    SQLServer and MySQL allow pretty much anything in a table or field name
+    but these could cause problems elsewhere.
+    """
+
+    # Replace Unicode with underscore
+    text = re.sub(r"[^\x21-\x7F]+", "_", text)
+
+    # Replace invalid ASCII
+    return text.translate({ord(c): "_" for c in "()/|'"})
