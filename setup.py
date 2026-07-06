@@ -148,7 +148,7 @@ INSTALL_REQUIRES = [
     "flake8==5.0.4",  # code checks, keep in sync with .pre-commit-config.yaml
     "docutils==0.19",
     "mistune==3.2.1",
-    "paramiko==4.0.0",  # Python implementation of the SSHv2 protocol, required by faker-file  # noqa: E501
+    "paramiko==5.0.0",  # Python implementation of the SSHv2 protocol, required by faker-file  # noqa: E501
     "pre-commit==2.20.0",  # development only, various sanity checks on code
     "pytest==9.0.3",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
