@@ -582,6 +582,7 @@ class S1Table:
 
     ACTIVITY_EVENT = "ActivityEvent"
     BED_CLOSURE = "BedClosure"
+    CLINICAL_OUTCOME_GOAL_BASED = "ClinicalOutcome_GoalBased"
     CONTACTS = "Contacts"
     DISCHARGE_DELAY = "DischargeDelay"
     DOCUMENTS = "Documents"
@@ -590,6 +591,7 @@ class S1Table:
     NOMIS_NUMBER = "NomisNumber"  # National Offender Management Info. System
     OUT_OF_HOURS_ACTION = "OohAction"
     OUT_OF_HOURS_THIRD_PARTY_CALL = "OohThirdPartyCall"
+    RELIGION = "Religion"
     SAFEGUARDING_ALLEGATION_DETAILS = "SafeguardingAllegationDetails"
     SAFEGUARDING_INCIDENT_DETAILS = "SafeguardingIncidentDetails"
     TASK = "Task"
@@ -1557,12 +1559,14 @@ _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1 = tuple(
     (terminate(t), S1GenericCol.ROW_ID)
     for t in (
         S1Table.ACTIVITY_EVENT,
+        S1Table.BED_CLOSURE,
         S1Table.CARE_PLAN_REVIEW,
+        S1Table.CLINICAL_OUTCOME_GOAL_BASED,
         S1Table.DISCHARGE_DELAY,
         S1Table.FREETEXT,  # see also TABLES_REQUIRING_CRATE_PK_REGEX above
-        S1Table.BED_CLOSURE,
         S1Table.MENTAL_HEALTH_ACT_APPEAL,
         S1Table.MENTAL_HEALTH_ACT_AWOL,
+        S1Table.RELIGION,
         S1Table.TASK,
     )
 ) + tuple(

@@ -234,6 +234,27 @@ def add_testpatient_view(
     create_view(engine, view_name, select_sql)
 
 
+def replace_composite_primary_keys(engine: Engine, table: Table) -> None:
+
+    # Currently only one of these within CPFT:
+    # PK_S1_Religion on S1_Religion (RowIdentifier + IDPatient)
+    inspector = inspect(engine)
+
+    pk_constraint = inspector.get_pk_constraint(table.name)
+    pk_name = pk_constraint.get("name")
+    pk_cols = pk_constraint.get("constrained_columns", [])
+
+    if len(pk_cols) <= 1:
+        return
+
+    execute(
+        engine,
+        text(f"ALTER TABLE {table.name} DROP CONSTRAINT [{pk_name}]"),
+    )
+
+    add_crate_pk_column(engine, table)
+
+
 def remove_identity_properties(engine: Engine, table: Table) -> None:
     identity_column = None
     for column in table.columns:
@@ -326,6 +347,13 @@ def replace_odd_chars_in_table(engine: Engine, table: Table) -> None:
             )
 
 
+def add_crate_pk_column(engine: Engine, table: Table) -> None:
+    crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK)
+    # SQL Server requires Table-bound columns in order to generate DDL:
+    table.append_column(crate_pk_col, replace_existing=True)
+    add_columns(engine, table, [crate_pk_col])
+
+
 def preprocess_systmone(
     engine: Engine,
     context: SystmOneContext,
@@ -370,15 +398,13 @@ def preprocess_systmone(
         # If creating, (1) create pseudo-PK if necessary, (2) create indexes.
         # If dropping, (1) drop indexes, (2) drop pseudo-PK if necessary.
 
+        replace_composite_primary_keys(engine, table)
+
         # Create step #1
         if not drop_danger_drop and table_needs_pk:
             if engine.dialect.name == SqlaDialectName.MSSQL:
                 remove_identity_properties(engine, table)
-            crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK)
-            # SQL Server requires Table-bound columns in order to generate DDL:
-            table.append_column(crate_pk_col, replace_existing=True)
-            add_columns(engine, table, [crate_pk_col])
-
+            add_crate_pk_column(engine, table)
         # Create step #2 or drop step #1
         # noinspection PyTypeChecker
 
