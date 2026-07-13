@@ -591,6 +591,7 @@ class S1Table:
     NOMIS_NUMBER = "NomisNumber"  # National Offender Management Info. System
     OUT_OF_HOURS_ACTION = "OohAction"
     OUT_OF_HOURS_THIRD_PARTY_CALL = "OohThirdPartyCall"
+    PATIENT_ADDRESS = "PatientAddress"
     RELIGION = "Religion"
     SAFEGUARDING_ALLEGATION_DETAILS = "SafeguardingAllegationDetails"
     SAFEGUARDING_INCIDENT_DETAILS = "SafeguardingIncidentDetails"

@@ -42,10 +42,12 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 from rich_argparse import RawDescriptionRichHelpFormatter
 from sqlalchemy import (
     Column,
+    Computed,
     create_engine,
     Engine,
     inspect,
     MetaData,
+    String,
     text,
     Table,
 )
@@ -66,6 +68,7 @@ from crate_anon.common.sql import (
     set_print_not_execute,
 )
 from crate_anon.preprocess.constants import (
+    CRATE_COL_FIRST_LINE,
     CRATE_COL_PK,
     CRATE_IDX_PREFIX,
     DEFAULT_GEOG_COLS,
@@ -354,6 +357,29 @@ def add_crate_pk_column(engine: Engine, table: Table) -> None:
     add_columns(engine, table, [crate_pk_col])
 
 
+def create_concatenated_address_column(
+    engine: Engine,
+    metadata: MetaData,
+    context: SystmOneContext,
+) -> None:
+    # Better to anonymise "10 Downing Street" rather than all instances of "10"
+    # and "Downing Street"
+    first_line_col = Column(
+        CRATE_COL_FIRST_LINE,
+        String(401),  # 200 + space + 200,
+        Computed("NumberOfBuilding + ' ' + NameOfRoad"),
+        comment="NumberOfBuilding + NameOfRoad",
+        nullable=True,
+    )
+
+    table = metadata.tables[
+        contextual_tablename(S1Table.PATIENT_ADDRESS, context)
+    ]
+
+    table.append_column(first_line_col, replace_existing=True)
+    add_columns(engine, table, [first_line_col])
+
+
 def preprocess_systmone(
     engine: Engine,
     context: SystmOneContext,
@@ -393,18 +419,19 @@ def preprocess_systmone(
             log.debug(f"Skipping table: {table.name}")
             continue
 
+        replace_composite_primary_keys(engine, table)
+
         table_needs_pk = is_in_re(ct, TABLES_REQUIRING_CRATE_PK_REGEX)
 
         # If creating, (1) create pseudo-PK if necessary, (2) create indexes.
         # If dropping, (1) drop indexes, (2) drop pseudo-PK if necessary.
-
-        replace_composite_primary_keys(engine, table)
 
         # Create step #1
         if not drop_danger_drop and table_needs_pk:
             if engine.dialect.name == SqlaDialectName.MSSQL:
                 remove_identity_properties(engine, table)
             add_crate_pk_column(engine, table)
+
         # Create step #2 or drop step #1
         # noinspection PyTypeChecker
 
@@ -464,6 +491,8 @@ def preprocess_systmone(
                 view_name=CrateView.GEOGRAPHY_VIEW,
                 geog_cols=geog_cols,
             )
+
+    create_concatenated_address_column(engine, metadata, context)
 
     # Documents
     if docstore_root:

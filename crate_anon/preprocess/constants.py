@@ -48,6 +48,9 @@ CRATE_COL_FILE_PATH = "crate_file_path"
 CRATE_COL_TEXT = "crate_text"
 CRATE_COL_TEXT_LAST_EXTRACTED = "crate_text_last_extracted"
 
+# SystmOne combined address column
+CRATE_COL_FIRST_LINE = "crate_first_line"
+
 # -----------------------------------------------------------------------------
 # Columns in ONS Postcode Database (from CRATE import)
 # -----------------------------------------------------------------------------
