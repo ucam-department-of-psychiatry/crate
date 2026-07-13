@@ -439,7 +439,14 @@ from crate_anon.anonymise.constants import (
 )
 from crate_anon.common.logfunc import warn_once
 from crate_anon.anonymise.dd import DataDictionary, DataDictionaryRow
-from crate_anon.preprocess.constants import CRATE_COL_FIRST_LINE, CRATE_COL_PK
+from crate_anon.preprocess.constants import (
+    CRATE_COL_FILE_PATH,
+    CRATE_COL_FIRST_LINE,
+    CRATE_COL_PK,
+    CRATE_COL_TEXT,
+    CRATE_COL_TEXT_LAST_EXTRACTED,
+    CRATE_TABLE_EXTRACTED_TEXT,
+)
 
 log = logging.getLogger(__name__)
 
@@ -681,6 +688,7 @@ class CrateView:
 _INCLUDE_TABLES_REGEX_S1 = (
     # Include even if --systmone_allow_unprefixed_tables is not used.
     CrateView.CRATE_VIEW_PREFIX,
+    CRATE_TABLE_EXTRACTED_TEXT,
 )
 _INCLUDE_TABLES_REGEX_CPFT = ("vw",)  # some other views
 INCLUDE_TABLES_REGEX = {
@@ -1229,6 +1237,8 @@ OMIT_TABLENAME_COLNAME_PAIRS_S1 = (
     # ... out-of-hours calls; details can sometimes contain phone numbers
     (S1Table.OUT_OF_HOURS_THIRD_PARTY_CALL, "Contact"),  # free text
     (S1Table.SAFEGUARDING_INCIDENT_DETAILS, "PoliceReference"),
+    (CRATE_TABLE_EXTRACTED_TEXT, CRATE_COL_FILE_PATH),
+    (CRATE_TABLE_EXTRACTED_TEXT, CRATE_COL_TEXT_LAST_EXTRACTED),
 )
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1365,6 +1375,7 @@ _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
         "Outcome$",
     ),  # only 100 chars -- but OMIT whole table, as above
     ("SpecialNotes$", "Note$"),  # 8000 char free text
+    (terminate(CRATE_TABLE_EXTRACTED_TEXT), terminate(CRATE_COL_TEXT)),
 )
 _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # CPFT:
@@ -1569,6 +1580,7 @@ _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1 = tuple(
         S1Table.MENTAL_HEALTH_ACT_AWOL,
         S1Table.RELIGION,
         S1Table.TASK,
+        CRATE_TABLE_EXTRACTED_TEXT,
     )
 ) + tuple(
     # Also, if we insert a CRATE PK, then the "RowIdentifier" can't be the PK.
