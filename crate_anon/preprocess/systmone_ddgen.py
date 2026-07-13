@@ -2362,16 +2362,6 @@ def get_scrub_alter_details(
 
         return ssi
 
-    # -------------------------------------------------------------------------
-    # Proceed for all other tables.
-    # -------------------------------------------------------------------------
-    handled = process_generic_table_column(
-        tablename=tablename, colname=colname, ddr=ddr, ssi=ssi, context=context
-    )
-    if handled:
-        # Recognized and handled as a generic column.
-        return ssi
-
     if eq(tablename, S1Table.ADDRESS_HISTORY):
         # ---------------------------------------------------------------------
         # Address table.
@@ -2393,7 +2383,17 @@ def get_scrub_alter_details(
             # CPFTAddressCol.POSTCODE_NOSPACE
             pass
 
-    elif eq(tablename, S1Table.CONTACT_DETAILS):
+    # -------------------------------------------------------------------------
+    # Proceed for all other tables.
+    # -------------------------------------------------------------------------
+    handled = process_generic_table_column(
+        tablename=tablename, colname=colname, ddr=ddr, ssi=ssi, context=context
+    )
+    if handled:
+        # Recognized and handled as a generic column.
+        return ssi
+
+    if eq(tablename, S1Table.CONTACT_DETAILS):
         # ---------------------------------------------------------------------
         # Contact details table.
         # ---------------------------------------------------------------------
@@ -2687,6 +2687,7 @@ def annotate_systmone_dd_row(
         from_context=context,
         allow_unprefixed=allow_unprefixed_tables,
     )
+
     if not tablename:
         # It didn't have the right prefix and allow_unprefixed_tables is False.
         ddr.decision = Decision.OMIT
