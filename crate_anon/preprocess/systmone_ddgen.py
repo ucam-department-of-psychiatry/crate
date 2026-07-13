@@ -439,7 +439,7 @@ from crate_anon.anonymise.constants import (
 )
 from crate_anon.common.logfunc import warn_once
 from crate_anon.anonymise.dd import DataDictionary, DataDictionaryRow
-from crate_anon.preprocess.constants import CRATE_COL_PK
+from crate_anon.preprocess.constants import CRATE_COL_FIRST_LINE, CRATE_COL_PK
 
 log = logging.getLogger(__name__)
 
@@ -1261,6 +1261,7 @@ COLS_ADDRESS_PHRASES = (
     S1AddressCol.LOCALITY,
     S1AddressCol.TOWN,
     S1AddressCol.COUNTY,
+    CRATE_COL_FIRST_LINE,  # Generated column e.g. 10 Downing Street
 )
 COLS_ADDRESS_PHRASE_UNLESS_NUMBER = (
     S1AddressCol.BUILDING_NAME,
@@ -2362,25 +2363,33 @@ def get_scrub_alter_details(
         return ssi
 
     if eq(tablename, S1Table.ADDRESS_HISTORY):
+        handled = False
+
         # ---------------------------------------------------------------------
         # Address table.
         # ---------------------------------------------------------------------
         if is_in(colname, COLS_ADDRESS_PHRASES):
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.PHRASE
+            handled = True
 
         elif is_in(colname, COLS_ADDRESS_PHRASE_UNLESS_NUMBER):
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.PHRASE_UNLESS_NUMERIC
+            handled = True
 
         elif eq(colname, S1AddressCol.POSTCODE):
             ssi.scrub_src = ScrubSrc.PATIENT
             ssi.scrub_method = ScrubMethod.CODE
+            handled = True
 
         else:
             # omit anything else in the address table, e.g.
             # CPFTAddressCol.POSTCODE_NOSPACE
             pass
+
+        if handled:
+            return ssi
 
     # -------------------------------------------------------------------------
     # Proceed for all other tables.
