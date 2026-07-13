@@ -372,8 +372,9 @@ def create_concatenated_address_column(
         nullable=True,
     )
 
+    # Table is called "PatientAddress" in CPFT
     table = metadata.tables[
-        contextual_tablename(S1Table.PATIENT_ADDRESS, context)
+        contextual_tablename(S1Table.ADDRESS_HISTORY, context)
     ]
 
     table.append_column(first_line_col, replace_existing=True)

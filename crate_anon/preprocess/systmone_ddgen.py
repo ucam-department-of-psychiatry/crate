@@ -591,7 +591,6 @@ class S1Table:
     NOMIS_NUMBER = "NomisNumber"  # National Offender Management Info. System
     OUT_OF_HOURS_ACTION = "OohAction"
     OUT_OF_HOURS_THIRD_PARTY_CALL = "OohThirdPartyCall"
-    PATIENT_ADDRESS = "PatientAddress"
     RELIGION = "Religion"
     SAFEGUARDING_ALLEGATION_DETAILS = "SafeguardingAllegationDetails"
     SAFEGUARDING_INCIDENT_DETAILS = "SafeguardingIncidentDetails"
@@ -2687,7 +2686,6 @@ def annotate_systmone_dd_row(
         from_context=context,
         allow_unprefixed=allow_unprefixed_tables,
     )
-
     if not tablename:
         # It didn't have the right prefix and allow_unprefixed_tables is False.
         ddr.decision = Decision.OMIT
