@@ -734,9 +734,15 @@ _OMIT_AND_IGNORE_TABLES_REGEX_CPFT = (
     #   infection.
     # - No detail suggesting identification (and they don't indicate e.g.
     #   membership of a specific Trust, or a specific job role).
+    "ClinicalOutcome_PairedHoNOS",
+    # Has NHS number but no patient ID so will fail anonymisation
     "Inpatients",
     # S1_Inpatients, S1_Inpatients_20201020: current inpatients -- but these
     # tables have NHSNumber as FLOAT. Exclude them.
+    "LADSAdults_Output",
+    # Has NHS number but no patient ID so will fail anonymisation
+    "LADSCYP_Output",
+    # Has NHS number but no patient ID so will fail anonymisation
     "Mortality",  # includes S1_Mortality, S1_MortalityAdditionalInfo
     # These contain (a) age (rather than DOB) information, and (b) information
     # from multiple systems -- some risk of including RiO patients with
@@ -745,6 +751,8 @@ _OMIT_AND_IGNORE_TABLES_REGEX_CPFT = (
     "ReferralsOpen$",
     # This CPFT table is a non-patient table (but with potentially identifiable
     # information about referral reason? -- maybe not) -- skip it.
+    "SummaryCareRecordInformationGovernance",
+    # Has NHS number but no patient ID so will fail anonymisation
     "WaitList_",  # S1_Waitlist_*
     # Waiting list tables use a confusing blend of SystmOne "IDPatient" and
     # RiO "ClientID" columns, and it's not clear they add much.
