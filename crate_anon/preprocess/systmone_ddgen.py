@@ -761,6 +761,9 @@ _OMIT_AND_IGNORE_TABLES_REGEX_CPFT = (
     "vw_SmokingDataReport",
     # vw_SmokingDataReport and vw_SmokingDataReport2 have errors:
     # Invalid object name 'SystmOne.dbo.SRCode'
+    "vw_Under18AdmissionsToAdult",
+    # View fails with:
+    # Invalid object name 'CPFT_HL7.dbo.HL7_BedMove'
     # I considered excluding "vw.*" (views) and "zzz.*" (scratch tables) here,
     # but the user has the option to exclude all such tables via
     # --systmone_allow_unprefixed_tables if they desire. Views may be useful;
