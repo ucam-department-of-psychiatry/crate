@@ -9,6 +9,8 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
-    allowed_updates:
-      - match:
-          update_type: "security"
+    open-pull-requests-limit: 0
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
