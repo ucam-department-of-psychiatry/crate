@@ -82,6 +82,7 @@ else:
 # See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
 
 BROKER_URL = ""
+CELERY_RESULT_BACKEND = "redis://localhost:6379"
 
 # =============================================================================
 # Database configuration

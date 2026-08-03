@@ -1,0 +1,29 @@
+{# crate_anon/crateweb/templates/nlp_classification/admin/wizard_form.html #}
+{% extends "nlp_classification/base.html" %}
+
+{% block extrahead %}
+{{ wizard.form.media }}
+{% endblock %}
+
+{% block nlp_classification_content %}
+<p class="wizard-step">Step {{ wizard.steps.step1 }} of {{ wizard.steps.count }}</p>
+<form action="" method="post">{% csrf_token %}
+  <fieldset class="nlp-classification-wizard">
+    <legend>{{ instructions }}</legend>
+{{ wizard.management_form }}
+{% if wizard.form.forms %}
+    {{ wizard.form.management_form }}
+    {% for form in wizard.form.forms %}
+        {{ form.as_p }}
+    {% endfor %}
+{% else %}
+    {{ wizard.form.as_p }}
+{% endif %}
+  </fieldset>
+{% if wizard.steps.prev %}
+<button name="wizard_goto_step" type="submit" value="{{ wizard.steps.first }}" formnovalidate>Start again</button>
+<button name="wizard_goto_step" type="submit" value="{{ wizard.steps.prev }}" formnovalidate>Previous</button>
+{% endif %}
+<input type="submit" value="Next"/>
+</form>
+{% endblock %}

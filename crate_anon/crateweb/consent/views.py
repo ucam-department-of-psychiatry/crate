@@ -181,9 +181,7 @@ def get_contact_request(
         cr = make_dummy_objects(request, contact_request_id).contact_request
         cr.mockup()
         return cr
-    return get_object_or_404(
-        ContactRequest, id=contact_request_id
-    )  # type: ContactRequest
+    return get_object_or_404(ContactRequest, id=contact_request_id)
 
 
 def get_patient_lookup(
@@ -204,9 +202,7 @@ def get_patient_lookup(
     """
     if patient_lookup_id in TEST_ID_STRINGS:
         return make_dummy_objects(request, patient_lookup_id).patient_lookup
-    return get_object_or_404(
-        PatientLookup, id=patient_lookup_id
-    )  # type: PatientLookup
+    return get_object_or_404(PatientLookup, id=patient_lookup_id)
 
 
 def get_consent_mode(
@@ -227,9 +223,7 @@ def get_consent_mode(
     """
     if consent_mode_id in TEST_ID_STRINGS:
         return make_dummy_objects(request, consent_mode_id).consent_mode
-    return get_object_or_404(
-        ConsentMode, id=consent_mode_id
-    )  # type: ConsentMode
+    return get_object_or_404(ConsentMode, id=consent_mode_id)
 
 
 # =============================================================================

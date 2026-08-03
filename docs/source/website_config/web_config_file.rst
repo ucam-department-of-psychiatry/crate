@@ -165,6 +165,14 @@ Optionally, this can be overridden. By default, it is ``amqp://``.
 - Similarly, override ``BROKER_URL`` to improve RabbitMQ security.
 
 
+CELERY_RESULT_BACKEND
+^^^^^^^^^^^^^^^^^^^^^
+
+``type: str``
+
+The backend used to store Celery task results.
+
+
 CELERYBEAT_SCHEDULE
 ^^^^^^^^^^^^^^^^^^^
 

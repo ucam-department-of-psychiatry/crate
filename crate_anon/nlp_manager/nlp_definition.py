@@ -1263,9 +1263,7 @@ class NlpDefinition:
             :class:`crate_anon.nlp_manager.base_nlp_parser.BaseNlpParser`
 
         """
-        return [
-            x for x in self._processors if not x.is_cloud_processor()
-        ]  # type: List["BaseNlpParser"]
+        return [x for x in self._processors if not x.is_cloud_processor()]
 
     @property
     def uses_cloud_processors(self) -> bool:

@@ -28,6 +28,7 @@ crate_anon/crateweb/core/constants.py
 """
 
 DJANGO_DEFAULT_CONNECTION = "default"  # key to django.db.connections
+NLP_DB_CONNECTION_NAME = "nlp"
 RESEARCH_DB_CONNECTION_NAME = "research"
 
 LEN_ADDRESS = 100

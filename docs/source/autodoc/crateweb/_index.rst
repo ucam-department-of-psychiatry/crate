@@ -147,6 +147,10 @@ crate_anon/crateweb
     core/management/commands/ensuresuperuser.py.rst
     core/management/commands/runcpserver.py.rst
     core/middleware.py.rst
+    core/templatetags/__init__.py.rst
+    core/templatetags/css_version.py.rst
+    core/tests/__init__.py.rst
+    core/tests/templatetags_tests.py.rst
     core/utils.py.rst
     core/views.py.rst
     extra/__init__.py.rst
@@ -154,6 +158,30 @@ crate_anon/crateweb
     extra/pdf.py.rst
     extra/salutation.py.rst
     manage.py.rst
+    nlp_classification/__init__.py.rst
+    nlp_classification/admin.py.rst
+    nlp_classification/apps.py.rst
+    nlp_classification/constants.py.rst
+    nlp_classification/forms.py.rst
+    nlp_classification/highlight.py.rst
+    nlp_classification/migrations/0001_initial.py.rst
+    nlp_classification/migrations/__init__.py.rst
+    nlp_classification/models.py.rst
+    nlp_classification/tables.py.rst
+    nlp_classification/tasks.py.rst
+    nlp_classification/tests/__init__.py.rst
+    nlp_classification/tests/factories.py.rst
+    nlp_classification/tests/forms_tests.py.rst
+    nlp_classification/tests/highlight_tests.py.rst
+    nlp_classification/tests/models_tests.py.rst
+    nlp_classification/tests/tasks_tests.py.rst
+    nlp_classification/tests/views_tests.py.rst
+    nlp_classification/urls.py.rst
+    nlp_classification/views.py.rst
+    raw_sql/__init__.py.rst
+    raw_sql/database_connection.py.rst
+    raw_sql/tests/__init__.py.rst
+    raw_sql/tests/database_connection_tests.py.rst
     research/__init__.py.rst
     research/archive_backend.py.rst
     research/archive_func.py.rst
@@ -286,6 +314,16 @@ crate_anon/crateweb
     templates/include_jquery.html.rst
     templates/logged_out.html.rst
     templates/login.html.rst
+    templates/nlp_classification/admin/export_answers.html.rst
+    templates/nlp_classification/admin/home.html.rst
+    templates/nlp_classification/admin/sample_data_progress.html.rst
+    templates/nlp_classification/admin/update_form.html.rst
+    templates/nlp_classification/admin/wizard_form.html.rst
+    templates/nlp_classification/base.html.rst
+    templates/nlp_classification/user/assignment.html.rst
+    templates/nlp_classification/user/home.html.rst
+    templates/nlp_classification/user/status_column.html.rst
+    templates/nlp_classification/user/useranswerupdate_form.html.rst
     templates/page_nav.html.rst
     templates/password_change.html.rst
     templates/pdf.css.rst

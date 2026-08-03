@@ -1,0 +1,25 @@
+{# crate_anon/crateweb/templates/nlp_classification/user/home.html #}
+{% extends "nlp_classification/base.html" %}
+{% load render_table from django_tables2 %}
+
+{% block nlp_classification_content %}
+            <h2>Export Answers</h2>
+
+<div class="export-container">
+    <form action="" method="get" class="export-filter-form">
+      <fieldset class="export-filter">
+        <legend>Filter by:</legend>
+        {{filter.form.as_div }}
+        <input type="submit" value="Filter" />
+      </fieldset>
+    </form>
+
+    <div class="export-options">
+        <span>Export current table as:</span>
+        <a href="{% querystring _export="csv" %}">CSV</a>
+        <a href="{% querystring _export="ods" %}">ODS</a>
+        <a href="{% querystring _export="xlsx" %}">XLSX</a>
+    </div>
+</div>
+    {% render_table table %}
+{% endblock %}

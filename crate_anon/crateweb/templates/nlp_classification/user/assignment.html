@@ -1,0 +1,7 @@
+{# crate_anon/crateweb/templates/nlp_classification/user/assignment.html #}
+{% extends "nlp_classification/base.html" %}
+{% load render_table from django_tables2 %}
+
+{% block nlp_classification_content %}
+            {% render_table table %}
+{% endblock %}

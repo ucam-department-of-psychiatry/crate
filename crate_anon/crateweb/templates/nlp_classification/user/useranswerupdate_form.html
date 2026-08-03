@@ -1,0 +1,39 @@
+{# crate_anon/crateweb/templates/nlp_classification/user/useranswerupdate_form.html #}
+{% extends "nlp_classification/base.html" %}
+{% block nlp_classification_content %}
+<h2>{{ object.assignment.question }}</h2>
+
+<p>
+{{ count }}/{{ total_answers }}
+</p>
+
+{% if not object.source_record.matches_valid %}
+<p class="warning">
+It looks like the source text has changed since the NLP records were
+generated. You will probably have to re-run NLP.
+</p>
+{% endif %}
+
+<p class="source-text">
+{{ highlighted_text | linebreaksbr }}
+</p>
+
+{% if nlp_fields %}
+<dl class="nlp-fields">
+  {% for key, value in nlp_fields.items %}
+  <dt>{{ key }}</dt>
+  <dd>{{ value }}</dd>
+  {% endfor %}
+</dl>
+{% else %}
+<p class="no-nlp">
+  There is no NLP record.
+</p>
+{% endif %}
+
+<form action="" method="post">
+  {% csrf_token %}
+  {{ form.as_div }}
+  <input type="submit" value="Submit and next">
+</form>
+{% endblock %}

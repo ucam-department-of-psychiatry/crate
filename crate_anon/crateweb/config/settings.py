@@ -44,6 +44,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import importlib.machinery
 import logging
 import os
+import sys
 
 from cardinal_pythonlib.docker import running_under_docker
 
@@ -108,6 +109,7 @@ INSTALLED_APPS = (
     "django.contrib.humanize",  # for nice comma formatting of numbers
     "debug_toolbar",  # for debugging
     "django_extensions",  # for graph_models, show_urls etc.
+    "django_tables2",  # for HTML tables
     "sslserver",  # for SSL testing
     "rest_framework",
     "drf_spectacular",
@@ -115,11 +117,14 @@ INSTALLED_APPS = (
     # 'kombu.transport.django',  # for Celery with Django database as broker
     # 'template_profiler_panel',
     # 'silk',
+    "celery",
+    "celery_progress",
     "crate_anon.crateweb.config.apps.UserProfileAppConfig",  # for user-specific settings  # noqa: E501
     "crate_anon.crateweb.config.apps.ResearchAppConfig",  # the research database query app  # noqa: E501
     "crate_anon.crateweb.config.apps.ConsentAppConfig",  # the consent-to-contact app  # noqa: E501
     "crate_anon.crateweb.config.apps.CoreAppConfig",  # for e.g. the runcpserver command  # noqa: E501
     "crate_anon.crateweb.config.apps.ApiConfig",  # for the anonymisation API
+    "crate_anon.crateweb.config.apps.NlpClassificationConfig",  # for NLP classification  # noqa: E501
 )
 
 MIDDLEWARE = (
@@ -169,7 +174,7 @@ TEMPLATES = [
                 "crate_anon.crateweb.core.context_processors.common_context",
             ],
             "loaders": [
-                # https://docs.djangoproject.com/en/1.9/ref/templates/api/
+                # https://docs.djangoproject.com/en/4.2/ref/templates/api/#template-loaders
                 (
                     "django.template.loaders.cached.Loader",
                     [
@@ -221,11 +226,16 @@ BROKER_URL = "amqp://"  # for Celery with RabbitMQ as broker
 CELERY_ACCEPT_CONTENT = ["json"]  # avoids potential pickle security problem
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TASK_SERIALIZER = "json"
-# Results are OPTIONAL. The CRATE web service doesn't use them.
-# But may be helpful for Celery testing.
-# See http://docs.celeryproject.org/en/latest/configuration.html#std:setting-CELERY_RESULT_BACKEND  # noqa: E501
-CELERY_RESULT_BACKEND = "rpc://"  # uses AMQP
-CELERY_RESULT_PERSISTENT = False
+
+# Problems with Celery + RabbitMQ rpc backend
+#
+# https://github.com/celery/celery/issues/4084
+# https://github.com/celery/celery/issues/4830
+#
+# Use Redis for now. Results are used to update the progress bar during NLP
+# classification
+
+CELERY_RESULT_BACKEND = "redis://localhost:6379"
 
 
 # =============================================================================
@@ -511,6 +521,11 @@ SPECTACULAR_SETTINGS = {
 }
 
 # =============================================================================
+# NLP Classification settings
+# =============================================================================
+CRATE_NLP_BATCH_SIZE = 1000  # No. of records to hold in memory when creating
+
+# =============================================================================
 # Import from a site-specific file
 # =============================================================================
 # First attempt: import file with a fixed name from the PYTHONPATH.
@@ -559,7 +574,7 @@ else:
         )
 
     if EnvVar.GENERATING_CRATE_DOCS not in os.environ:
-        print(f"Loading local settings from: {filename}")
+        print(f"Loading local settings from: {filename}", file=sys.stderr)
     # ... NB logger not yet set to a reasonable priority; use warning level
     # ... no, logger not even configured, and this is loaded via Django;
     #     use print()!

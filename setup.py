@@ -72,6 +72,7 @@ INSTALL_REQUIRES = [
     "cardinal_pythonlib==2.1.3",  # RNC libraries
     "cairosvg==2.9.0",  # work with SVG files
     "celery==5.2.7",  # back-end scheduling
+    "celery-progress==0.5",  # progress bars on slow tasks
     "chardet==5.2.0",  # character encoding detection for cardinal_pythonlib
     "cherrypy==18.6.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
@@ -80,10 +81,13 @@ INSTALL_REQUIRES = [
     "django-debug-toolbar==6.3.0",  # Django debug toolbar
     # "django-debug-toolbar-template-profiler==2.0.1",  # v1.0.1 removed 2017-01-30: division by zero when rendering time is zero  # noqa: E501
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
+    "django-filter==25.1",  # table filtering
+    "django-formtools==2.5.1",  # form wizards etc
     "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa: E501
     # "django-silk==4.0.1",  # Django profiler
     "djangorestframework==3.15.2",  # Anonymisation API support
     "django-sslserver==0.22",  # SSL development server for Django
+    "django-tables2==2.7.5",  # Support for HTML tables within Django templates
     "drf-spectacular==0.27.2",  # Open API Schema and documentation
     "drf-spectacular-sidecar==2024.7.1",  # Static files for drf-spectacular
     "extract_msg==0.54.1",  # Extract text from Outlook .msg files
@@ -121,6 +125,7 @@ INSTALL_REQUIRES = [
     "sortedcontainers==2.2.2",  # for SortedSet
     "SQLAlchemy==2.0.36",  # database access
     "sqlparse==0.5.5",  # [pin exact version from cardinal_pythonlib]
+    "tablib==3.8.0",  # Table export
     "unidecode==1.1.1",  # for removing accents
     # -------------------------------------------------------------------------
     # Packages for cloud NLP:
