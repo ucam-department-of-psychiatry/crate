@@ -24,4 +24,6 @@ echo checking packages for vulnerabilities
 #       believe that this vulnerability isn't valid because
 #       users shouldn't use untrusted templates without
 #       sandboxing.
-${SAFETY} check --full-report --ignore=67599 --ignore=70612
+# SFTY-20260617-22444. pdfkit is no longer maintained. We will switch
+#       from wkhtmltopdf to weasyprint
+${SAFETY} check --full-report --ignore=67599 --ignore=70612 --ignore=SFTY-20260617-22444

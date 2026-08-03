@@ -42,6 +42,7 @@ from crate_anon.common.sql import (
     get_first_from_table,
     matches_fielddef,
     matches_tabledef,
+    replace_odd_chars,
 )
 
 log = logging.getLogger(__name__)
@@ -115,3 +116,10 @@ class SqlTests(TestCase):
                 is_sql_column_type_textual(sqltype),
                 f"Should be detected as non-textual: {sqltype}",
             )
+
+    def test_odd_chars_replaced(self) -> None:
+        # unicode n-dash ------------------v
+        test = f"A b(c)d/e|f\tg{chr(0x80)}h–i'j"
+        expected = "A_b_c_d_e_f_g_h_i_j"
+
+        self.assertEqual(replace_odd_chars(test), expected)

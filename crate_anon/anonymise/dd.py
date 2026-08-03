@@ -867,6 +867,26 @@ class DataDictionary:
                             f"currently set for {r.src_signature}"
                         )
 
+        log.debug("Checking DD: missing patient identifiers...")
+
+        tables_missing_pids = []
+
+        for d in self.get_source_databases():
+            for t in self.get_src_tables(d):
+                rows = self.get_rows_for_src_table(d, t)
+                primary_pid = any([r.primary_pid for r in rows])
+                master_pid = any([r.master_pid for r in rows])
+
+                if master_pid and not primary_pid:
+                    tables_missing_pids.append(t)
+
+        if tables_missing_pids:
+            missing_string = " ".join(tables_missing_pids)
+            raise ValueError(
+                "These tables have a master PID but no primary PID: "
+                f"{missing_string}. They probably should be omitted."
+            )
+
         log.debug("Checking DD: table consistency...")
         for d, t in self.get_scrub_from_db_table_pairs():
             pid_field = self.get_pid_name(d, t)
