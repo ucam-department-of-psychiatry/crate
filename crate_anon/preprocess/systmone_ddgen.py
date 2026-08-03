@@ -439,7 +439,14 @@ from crate_anon.anonymise.constants import (
 )
 from crate_anon.common.logfunc import warn_once
 from crate_anon.anonymise.dd import DataDictionary, DataDictionaryRow
-from crate_anon.preprocess.constants import CRATE_COL_PK
+from crate_anon.preprocess.constants import (
+    CRATE_COL_FILE_PATH,
+    CRATE_COL_FIRST_LINE,
+    CRATE_COL_PK,
+    CRATE_COL_TEXT,
+    CRATE_COL_TEXT_LAST_EXTRACTED,
+    CRATE_TABLE_EXTRACTED_TEXT,
+)
 
 log = logging.getLogger(__name__)
 
@@ -582,6 +589,7 @@ class S1Table:
 
     ACTIVITY_EVENT = "ActivityEvent"
     BED_CLOSURE = "BedClosure"
+    CLINICAL_OUTCOME_GOAL_BASED = "ClinicalOutcome_GoalBased"
     CONTACTS = "Contacts"
     DISCHARGE_DELAY = "DischargeDelay"
     DOCUMENTS = "Documents"
@@ -590,6 +598,7 @@ class S1Table:
     NOMIS_NUMBER = "NomisNumber"  # National Offender Management Info. System
     OUT_OF_HOURS_ACTION = "OohAction"
     OUT_OF_HOURS_THIRD_PARTY_CALL = "OohThirdPartyCall"
+    RELIGION = "Religion"
     SAFEGUARDING_ALLEGATION_DETAILS = "SafeguardingAllegationDetails"
     SAFEGUARDING_INCIDENT_DETAILS = "SafeguardingIncidentDetails"
     TASK = "Task"
@@ -679,6 +688,7 @@ class CrateView:
 _INCLUDE_TABLES_REGEX_S1 = (
     # Include even if --systmone_allow_unprefixed_tables is not used.
     CrateView.CRATE_VIEW_PREFIX,
+    CRATE_TABLE_EXTRACTED_TEXT,
 )
 _INCLUDE_TABLES_REGEX_CPFT = ("vw",)  # some other views
 INCLUDE_TABLES_REGEX = {
@@ -724,9 +734,15 @@ _OMIT_AND_IGNORE_TABLES_REGEX_CPFT = (
     #   infection.
     # - No detail suggesting identification (and they don't indicate e.g.
     #   membership of a specific Trust, or a specific job role).
+    "ClinicalOutcome_PairedHoNOS",
+    # Has NHS number but no patient ID so will fail anonymisation
     "Inpatients",
     # S1_Inpatients, S1_Inpatients_20201020: current inpatients -- but these
     # tables have NHSNumber as FLOAT. Exclude them.
+    "LADSAdults_Output",
+    # Has NHS number but no patient ID so will fail anonymisation
+    "LADSCYP_Output",
+    # Has NHS number but no patient ID so will fail anonymisation
     "Mortality",  # includes S1_Mortality, S1_MortalityAdditionalInfo
     # These contain (a) age (rather than DOB) information, and (b) information
     # from multiple systems -- some risk of including RiO patients with
@@ -735,11 +751,19 @@ _OMIT_AND_IGNORE_TABLES_REGEX_CPFT = (
     "ReferralsOpen$",
     # This CPFT table is a non-patient table (but with potentially identifiable
     # information about referral reason? -- maybe not) -- skip it.
+    "SummaryCareRecordInformationGovernance",
+    # Has NHS number but no patient ID so will fail anonymisation
     "WaitList_",  # S1_Waitlist_*
     # Waiting list tables use a confusing blend of SystmOne "IDPatient" and
     # RiO "ClientID" columns, and it's not clear they add much.
     "UserSmartCard",
     # Not relevant clinically.
+    "vw_SmokingDataReport",
+    # vw_SmokingDataReport and vw_SmokingDataReport2 have errors:
+    # Invalid object name 'SystmOne.dbo.SRCode'
+    "vw_Under18AdmissionsToAdult",
+    # View fails with:
+    # Invalid object name 'CPFT_HL7.dbo.HL7_BedMove'
     # I considered excluding "vw.*" (views) and "zzz.*" (scratch tables) here,
     # but the user has the option to exclude all such tables via
     # --systmone_allow_unprefixed_tables if they desire. Views may be useful;
@@ -1227,6 +1251,8 @@ OMIT_TABLENAME_COLNAME_PAIRS_S1 = (
     # ... out-of-hours calls; details can sometimes contain phone numbers
     (S1Table.OUT_OF_HOURS_THIRD_PARTY_CALL, "Contact"),  # free text
     (S1Table.SAFEGUARDING_INCIDENT_DETAILS, "PoliceReference"),
+    (CRATE_TABLE_EXTRACTED_TEXT, CRATE_COL_FILE_PATH),
+    (CRATE_TABLE_EXTRACTED_TEXT, CRATE_COL_TEXT_LAST_EXTRACTED),
 )
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1259,6 +1285,7 @@ COLS_ADDRESS_PHRASES = (
     S1AddressCol.LOCALITY,
     S1AddressCol.TOWN,
     S1AddressCol.COUNTY,
+    CRATE_COL_FIRST_LINE,  # Generated column e.g. 10 Downing Street
 )
 COLS_ADDRESS_PHRASE_UNLESS_NUMBER = (
     S1AddressCol.BUILDING_NAME,
@@ -1362,6 +1389,7 @@ _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_S1 = (
         "Outcome$",
     ),  # only 100 chars -- but OMIT whole table, as above
     ("SpecialNotes$", "Note$"),  # 8000 char free text
+    (terminate(CRATE_TABLE_EXTRACTED_TEXT), terminate(CRATE_COL_TEXT)),
 )
 _FREETEXT_TABLENAME_COLNAME_REGEX_PAIRS_CPFT = (
     # CPFT:
@@ -1557,13 +1585,16 @@ _NOT_PK_TABLENAME_COLNAME_REGEX_PAIRS_S1 = tuple(
     (terminate(t), S1GenericCol.ROW_ID)
     for t in (
         S1Table.ACTIVITY_EVENT,
+        S1Table.BED_CLOSURE,
         S1Table.CARE_PLAN_REVIEW,
+        S1Table.CLINICAL_OUTCOME_GOAL_BASED,
         S1Table.DISCHARGE_DELAY,
         S1Table.FREETEXT,  # see also TABLES_REQUIRING_CRATE_PK_REGEX above
-        S1Table.BED_CLOSURE,
         S1Table.MENTAL_HEALTH_ACT_APPEAL,
         S1Table.MENTAL_HEALTH_ACT_AWOL,
+        S1Table.RELIGION,
         S1Table.TASK,
+        CRATE_TABLE_EXTRACTED_TEXT,
     )
 ) + tuple(
     # Also, if we insert a CRATE PK, then the "RowIdentifier" can't be the PK.
@@ -2357,6 +2388,35 @@ def get_scrub_alter_details(
 
         return ssi
 
+    if eq(tablename, S1Table.ADDRESS_HISTORY):
+        handled = False
+
+        # ---------------------------------------------------------------------
+        # Address table.
+        # ---------------------------------------------------------------------
+        if is_in(colname, COLS_ADDRESS_PHRASES):
+            ssi.scrub_src = ScrubSrc.PATIENT
+            ssi.scrub_method = ScrubMethod.PHRASE
+            handled = True
+
+        elif is_in(colname, COLS_ADDRESS_PHRASE_UNLESS_NUMBER):
+            ssi.scrub_src = ScrubSrc.PATIENT
+            ssi.scrub_method = ScrubMethod.PHRASE_UNLESS_NUMERIC
+            handled = True
+
+        elif eq(colname, S1AddressCol.POSTCODE):
+            ssi.scrub_src = ScrubSrc.PATIENT
+            ssi.scrub_method = ScrubMethod.CODE
+            handled = True
+
+        else:
+            # omit anything else in the address table, e.g.
+            # CPFTAddressCol.POSTCODE_NOSPACE
+            pass
+
+        if handled:
+            return ssi
+
     # -------------------------------------------------------------------------
     # Proceed for all other tables.
     # -------------------------------------------------------------------------
@@ -2367,28 +2427,7 @@ def get_scrub_alter_details(
         # Recognized and handled as a generic column.
         return ssi
 
-    if eq(tablename, S1Table.ADDRESS_HISTORY):
-        # ---------------------------------------------------------------------
-        # Address table.
-        # ---------------------------------------------------------------------
-        if is_in(colname, COLS_ADDRESS_PHRASES):
-            ssi.scrub_src = ScrubSrc.PATIENT
-            ssi.scrub_method = ScrubMethod.PHRASE
-
-        elif is_in(colname, COLS_ADDRESS_PHRASE_UNLESS_NUMBER):
-            ssi.scrub_src = ScrubSrc.PATIENT
-            ssi.scrub_method = ScrubMethod.PHRASE_UNLESS_NUMERIC
-
-        elif eq(colname, S1AddressCol.POSTCODE):
-            ssi.scrub_src = ScrubSrc.PATIENT
-            ssi.scrub_method = ScrubMethod.CODE
-
-        else:
-            # omit anything else in the address table, e.g.
-            # CPFTAddressCol.POSTCODE_NOSPACE
-            pass
-
-    elif eq(tablename, S1Table.CONTACT_DETAILS):
+    if eq(tablename, S1Table.CONTACT_DETAILS):
         # ---------------------------------------------------------------------
         # Contact details table.
         # ---------------------------------------------------------------------
