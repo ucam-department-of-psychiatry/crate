@@ -103,12 +103,13 @@ def mk_demo_database(
     words_per_note: int,
     with_files: bool = False,
     echo: bool = False,
+    nhs_number_probability: float = 1.0,
 ) -> None:
     # 0. Announce intentions
 
     log.info(
         f"{n_patients=}, {notes_per_patient=}, {words_per_note=}, "
-        f"{with_files=}"
+        f"{with_files=}, {nhs_number_probability=},"
     )
 
     # 1. Open database
@@ -145,7 +146,10 @@ def mk_demo_database(
         if p % REPORT_EVERY == 0:
             log.info(f"patient {p}")
 
-        patient = DemoPatientFactory(notes=notes_per_patient)
+        patient = DemoPatientFactory(
+            notes=notes_per_patient,
+            nhs_number_probability=nhs_number_probability,
+        )
         session.flush()
         for note in session.query(Note).filter(
             Note.patient_id == patient.patient_id
@@ -206,6 +210,13 @@ def main() -> None:
             "the max_allowed_packet parameter in my.cnf (e.g. to 32M)."
         ),
     )
+    parser.add_argument("--echo", action="store_true", help="Echo SQL")
+    parser.add_argument(
+        "--nhs_number_probability",
+        type=float,
+        default=1.0,
+        help="Probability that a patient will have an NHS number (0.0 - 1.0)",
+    )
     parser.add_argument(
         "--size",
         type=int,
@@ -222,7 +233,6 @@ def main() -> None:
         default=False,
         help="Create a random docx, odt or pdf file for each patient",
     )
-    parser.add_argument("--echo", action="store_true", help="Echo SQL")
 
     args = parser.parse_args()
 
@@ -257,6 +267,7 @@ def main() -> None:
         words_per_note=words_per_note,
         with_files=args.with_files,
         echo=args.echo,
+        nhs_number_probability=args.nhs_number_probability,
     )
 
 

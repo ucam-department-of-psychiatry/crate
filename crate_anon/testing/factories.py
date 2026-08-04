@@ -103,6 +103,9 @@ class DemoPatientFactory(DemoFactory):
     class Meta:
         model = Patient
 
+    class Params:
+        nhs_number_probability = 1.0
+
     patient_id = factory.Sequence(lambda n: n + 1)
 
     sex = factory.LazyFunction(Fake.en_gb.sex)
@@ -113,10 +116,18 @@ class DemoPatientFactory(DemoFactory):
 
     surname = factory.LazyFunction(Fake.en_gb.last_name)
     dob = factory.LazyFunction(Fake.en_gb.consistent_date_of_birth)
-    nhsnum = factory.LazyFunction(Fake.en_gb.nhs_number)
-
     phone = factory.LazyFunction(Fake.en_gb.phone_number)
     postcode = factory.LazyFunction(Fake.en_gb.postcode)
+
+    @factory.lazy_attribute
+    def nhsnum(obj: "Resolver") -> float | None:
+        if (
+            Fake.en_gb.pyfloat(min_value=0, max_value=1)
+            <= obj.nhs_number_probability
+        ):
+            return Fake.en_gb.nhs_number()
+
+        return None
 
     @factory.lazy_attribute
     def related_patient(obj: "Resolver") -> int:
