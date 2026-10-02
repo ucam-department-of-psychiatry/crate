@@ -1310,6 +1310,14 @@ class NlpDefinition:
     # Cloud NLP
     # -------------------------------------------------------------------------
 
+    def get_cloud_config_section(self) -> Optional[ConfigSection]:
+        if not self._cloud_config_name:
+            return None
+
+        return self.get_config_section(
+            full_sectionname(NlpConfigPrefixes.CLOUD, self._cloud_config_name)
+        )
+
     def get_cloud_config(self) -> Optional[CloudConfig]:
         """
         Returns the :class:`crate_anon.nlp_manager.cloud_config.CloudConfig`

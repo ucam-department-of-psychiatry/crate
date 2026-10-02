@@ -109,6 +109,7 @@ from crate_anon.nlp_manager.all_processors import (
     possible_processor_names_including_cloud,
     possible_processor_table,
 )
+from crate_anon.nlp_manager.auth.oidc import OIDCAuth
 from crate_anon.nlp_manager.base_nlp_parser import (
     BaseNlpParser,
     TextProcessingFailed,
@@ -1289,6 +1290,12 @@ def inner_main() -> None:
         action="store_true",
         help="Shows all pending cloud requests.",
     )
+    cloud_options.add_argument(
+        "--oidc-login",
+        action="store_true",
+        help="Log in and obtain (and cache) an initial access token, "
+        "if your cloud provider uses OpenID Connect authentication.",
+    )
 
     args = parser.parse_args()
 
@@ -1383,6 +1390,19 @@ def inner_main() -> None:
         return
     if args.showqueue:
         show_cloud_queue(nlpdef)
+        return
+
+    # -------------------------------------------------------------------------
+    # Cloud authentication options
+    # -------------------------------------------------------------------------
+
+    if args.oidc_login:
+        cloud_cfg = nlpdef.get_cloud_config_section()
+        if not cloud_cfg:
+            print("No cloud configuration found")
+            return
+        oidc = OIDCAuth(cloud_cfg)
+        oidc.do_login()
         return
 
     # -------------------------------------------------------------------------
