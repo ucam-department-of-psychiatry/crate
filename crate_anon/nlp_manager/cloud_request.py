@@ -929,7 +929,7 @@ class CloudRequestProcess(CloudRequest):
             return False
         status = json_response[NlprpKeys.STATUS]
         pending_use_202 = (
-            Version(json_response[NlprpKeys.VERSION])
+            Version(json_response[NlprpKeys.PROTOCOL][NlprpKeys.VERSION])
             >= NlprpVersions.FETCH_Q_PENDING_RETURNS_202
         )
         if status == HttpStatus.OK:

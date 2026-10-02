@@ -171,7 +171,7 @@ class OIDCAuth:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         try:
             self.cache_dir.chmod(0o700)
-        except:
+        except:  # noqa: E722
             # oh well, we tried
             pass
 
@@ -216,8 +216,8 @@ class OIDCAuth:
 
     def do_login(self):
         """
-        Perform the appropriate login flow, depending on the ``oidc_grant_type``
-        setting in the config file.
+        Perform the appropriate login flow, depending on the
+        ``oidc_grant_type`` setting in the config file.
         """
 
         if self.login_method == "web":
@@ -299,7 +299,7 @@ class OIDCAuth:
         process.
         """
 
-        if not "device_authorization_endpoint" in self.provider_config:
+        if "device_authorization_endpoint" not in self.provider_config:
             raise Exception(
                 "Issuer does not support device authorization flow"
             )
@@ -331,7 +331,9 @@ class OIDCAuth:
             devicecode = code_response.json()
             log.debug("Device code response: %s", devicecode)
             print(
-                f"To authenticate, please visit {devicecode['verification_uri']} and enter the code {devicecode['user_code']}"
+                "To authenticate, please visit "
+                + devicecode["verification_uri"]
+                + f" and enter the code {devicecode['user_code']}"
             )
             deadline = time.monotonic() + devicecode["expires_in"]
             interval = devicecode["interval"]
