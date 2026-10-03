@@ -807,6 +807,41 @@ OS_PATHSEP = {os.pathsep}
 {CloudNlpConfigKeys.MAX_TRIES} = {DEFAULT_CLOUD_MAX_TRIES}
 {CloudNlpConfigKeys.RATE_LIMIT_HZ} = {DEFAULT_CLOUD_RATE_LIMIT_HZ}
 
+[{NlpConfigPrefixes.CLOUD}:{my_cloud}_with_openid]
+
+{CloudNlpConfigKeys.CLOUD_URL} = https://your_url
+## The following two items are required for OIDC authentication
+{CloudNlpConfigKeys.OIDC_ISSUER} = https://auth.example.net/realm/nlp
+{CloudNlpConfigKeys.OIDC_CLIENT_ID} = example-client-id
+## If not using a "public client"
+# {CloudNlpConfigKeys.OIDC_CLIENT_SECRET} = "client-secret-0123456789"
+## Authorization scopes: by default CRATE will request the normal
+## OIDC scopes "openid profile email" plus "offline_access" to get
+## a long-lived refresh token.  To add additional scopes to the
+## default list:
+# {CloudNlpConfigKeys.OIDC_EXTRA_SCOPES} = nlprp-api
+## Or to replace the entire default list:
+# {CloudNlpConfigKeys.OIDC_SCOPE} = "openid email offline_access"
+## Your access and refresh tokens are cached on disk; to override
+## the default cache folder:
+# {CloudNlpConfigKeys.OIDC_TOKEN_CACHE} = /tmp/crate-tokens
+## Normally CRATE will pick a random spare port number for the
+## login redirect URI http://localhost:{{port}} - if your provider
+## requires a specific fixed port number e.g. http://localhost:8888
+## then set it here
+# {CloudNlpConfigKeys.OIDC_CALLBACK_PORT} = 8888
+## Or if you want to enter your login details on a different device
+## (e.g. you are working on a remote desktop and need to sign in
+## on your local machine) or use a non-default web browser
+# {CloudNlpConfigKeys.OIDC_LOGIN_METHOD} = device
+{CloudNlpConfigKeys.WAIT_ON_CONN_ERR} = {DEFAULT_CLOUD_WAIT_ON_CONN_ERR_S}
+{CloudNlpConfigKeys.MAX_CONTENT_LENGTH} = {DEFAULT_CLOUD_MAX_CONTENT_LENGTH}
+{CloudNlpConfigKeys.MAX_RECORDS_PER_REQUEST} = {DEFAULT_CLOUD_MAX_RECORDS_PER_REQUEST}
+{CloudNlpConfigKeys.LIMIT_BEFORE_COMMIT} = {DEFAULT_CLOUD_LIMIT_BEFORE_COMMIT}
+{CloudNlpConfigKeys.STOP_AT_FAILURE} = true
+{CloudNlpConfigKeys.MAX_TRIES} = {DEFAULT_CLOUD_MAX_TRIES}
+{CloudNlpConfigKeys.RATE_LIMIT_HZ} = {DEFAULT_CLOUD_RATE_LIMIT_HZ}
+
 [{NlpConfigPrefixes.PROCESSOR}:procdef_cloud_crp]
 
 {ProcessorConfigKeys.DESTDB} = {destdb}

@@ -1052,25 +1052,6 @@ it will accept ``gzip`` compression back; the server should respond to this by
 compressing results.
 
 
-username
-^^^^^^^^
-
-
-*String.* Default: "".
-
-Your username for accessing the services at the URL specified in
-:ref:`cloud_url <nlp_config_cloud_url>`.
-
-
-password
-^^^^^^^^
-
-
-*String.* Default: "".
-
-Your password for accessing the services at the URL specified in
-:ref:`cloud_url <nlp_config_cloud_url>`.
-
 
 wait_on_conn_err
 ^^^^^^^^^^^^^^^^
@@ -1155,6 +1136,171 @@ rate_limit_hz
 The maximum rate, in Hz (times per second), that the CRATE NLP processor will
 send requests. Use this to avoid overloading the cloud NLP server. Specify 0
 for no limit.
+
+
+Authentication
+^^^^^^^^^^^^^^
+
+
+It is likely that your cloud NLP server will require you to authenticate in
+order to send requests.  CRATE supports two primary authentication mechanisms:
+
+- *HTTP "Basic" authentication*: this sends a username and password with every
+  request.
+
+- *OAuth2 "Bearer" tokens from an OpenID Connect (OIDC) Identity Provider*:
+  you sign in using a separate authentication provider and receive an
+  *access token* from the provider, which you then pass to the NLPRP server
+  to prove your identity. Access tokens are typically short lived, but the
+  authentication service also provides a long-term "refresh" token, which
+  CRATE can use to transparently renew the access token when it expires.
+
+Basic Authentication
+********************
+
+For basic authentication, you should provide the username and password directly
+in the configuration file.
+
+username
+++++++++
+
+
+*String.* Default: "".
+
+Your username for accessing the services at the URL specified in
+:ref:`cloud_url <nlp_config_cloud_url>`.
+
+
+password
+++++++++
+
+
+*String.* Default: "".
+
+Your password for accessing the services at the URL specified in
+:ref:`cloud_url <nlp_config_cloud_url>`.
+
+
+OpenID Connect
+**************
+
+To authenticate using OpenID Connect access tokens, you must configure at
+least :ref:`oidc_issuer <nlp_config_oidc_issuer>` and
+:ref:`oidc_client_id <nlp_config_oidc_client_id>`.  The remaining ``oidc_*``
+settings depend on your particular authentication provider - the NLP server
+owner will be able to guide you on the appropriate settings for their IdP.
+
+Using OIDC authentication is a two-step process.  When you have completed
+the necessary configuration settings, you run ``crate_nlp`` once with the
+``--oidc-login`` option to perform the login flow and save your initial
+access and refresh tokens in the token cache.  Subsequent ``crate_nlp``
+invocations will use the cached token, refreshing the access token
+automatically when it expires - you only need to do the ``--oidc-login``
+again if your *refresh* token is allowed to expire.
+
+
+.. _nlp_config_oidc_issuer:
+
+oidc_issuer
++++++++++++
+
+
+*String.*
+
+OIDC Issuer URL.  CRATE will query the issuer's
+``/.well-known/openid-configuration`` discovery document to find the
+other necessary endpoints and provider capabilities.
+
+
+.. _nlp_config_oidc_client_id:
+
+oidc_client_id
+++++++++++++++
+
+
+*String.*
+
+Client ID for OIDC authentication.
+
+
+oidc_client_secret
+++++++++++++++++++
+
+
+*String.* (optional)
+
+If the specified :ref:`oidc_client_id <nlp_config_oidc_client_id>` is a
+"confidential client" then this should be the corresponding client secret.
+CRATE currently only supports the ``client_secret_post`` authentication
+mechanism for confidential clients.  Should be omitted for a public client.
+
+
+oidc_extra_scopes
++++++++++++++++++
+
+
+*String.* (optional)
+
+Additional authorization "scopes" to add to the default list of
+"openid profile email offline_access".  For example your provider may
+require an additional "nlprp" scope to access the NLP API endpoint -
+consult the documentation for your target server.
+
+
+oidc_scope
+++++++++++
+
+
+*String.* (optional)
+
+Full list of scopes to request, *replacing* the default
+"openid profile email offline_access".  Set this if your provider requires
+you to omit any of the standard scopes.
+
+
+oidc_login_method
++++++++++++++++++
+
+
+*Enum: "web" or "device".* Default "web"
+
+Authentication mechanism that will be used to obtain the initial token.
+The default ``web`` method opens your web browser on the login page, and
+uses a local web server to capture the authorization code and exchange it
+for an initial token.  The alternative ``device`` method prints a short
+URL and code, you can visit the URL using any browser *on any device* to
+sign in.  The device flow is useful if you are running CRATE on a remote
+server and need to use your local web browser to sign in, or if you want
+to sign in using a different browser from the default one on your system.
+
+
+oidc_callback_port
+++++++++++++++++++
+
+
+*Integer.* (optional)
+
+The ``web`` login method will normally pick a random available port number
+for the ``http://localhost:*`` redirect URL.  If your provider requires
+that you use a specific port number (e.g. it permits only
+``http://localhost:8888`` as the redirect URI) then you can specify that
+port number here.  Ignored for the ``device`` login method.
+
+
+oidc_token_cache
+++++++++++++++++
+
+
+*String.* Default varies by platform - ``%APPDATA%\Crate\tokens`` on Windows,
+``~/Library/Application Support/Crate/tokens`` on Mac,
+``~/.cache/crate_tokens`` on other platforms.
+
+Your access and refresh tokens are cached in files on disk.  This setting
+allows you to override the default cache directory for your platform.  Note
+that access tokens and particularly ``offline_access`` refresh tokens are
+sensitive credentials that may grant access to more than just the NLPRP
+API endpoints.  CRATE sets permissions on the cache directory so it is only
+readable by the user who owns it.
 
 
 Parallel processing
