@@ -31,6 +31,9 @@ import logging
 import os
 from typing import TYPE_CHECKING, Dict, Tuple
 
+import requests
+
+from crate_anon.nlp_manager.auth.oidc import OIDCAuth
 from crate_anon.nlp_manager.constants import (
     CloudNlpConfigKeys,
     NlpDefValues,
@@ -89,8 +92,16 @@ class CloudConfig:
         self.url = cfg.opt_str(CloudNlpConfigKeys.CLOUD_URL, required=True)
         self.verify_ssl = cfg.opt_bool(CloudNlpConfigKeys.VERIFY_SSL, True)
         self.compress = cfg.opt_bool(CloudNlpConfigKeys.COMPRESS, True)
-        self.username = cfg.opt_str(CloudNlpConfigKeys.USERNAME, default="")
-        self.password = cfg.opt_str(CloudNlpConfigKeys.PASSWORD, default="")
+        if cfg.opt_str(CloudNlpConfigKeys.OIDC_ISSUER):
+            oidc = OIDCAuth(cfg)
+            self.requests_session = oidc.create_session()
+        else:
+            self.requests_session = requests.Session()
+            username = cfg.opt_str(CloudNlpConfigKeys.USERNAME, default="")
+            password = cfg.opt_str(CloudNlpConfigKeys.PASSWORD, default="")
+            if username and password:
+                self.requests_session.auth = (username, password)
+
         self.max_content_length = cfg.opt_int(
             CloudNlpConfigKeys.MAX_CONTENT_LENGTH,
             DEFAULT_CLOUD_MAX_CONTENT_LENGTH,

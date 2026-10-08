@@ -50,7 +50,7 @@ from cardinal_pythonlib.dicts import (
 )
 from cardinal_pythonlib.httpconst import HttpStatus
 from cardinal_pythonlib.timing import MultiTimerContext, timer
-from requests import post, Response
+from requests import Response
 from requests.exceptions import HTTPError, RequestException
 from semantic_version import Version
 from urllib3.exceptions import NewConnectionError
@@ -352,7 +352,6 @@ class CloudRequest:
         self._nlpdef_sectionname = full_sectionname(
             NlpConfigPrefixes.NLPDEF, self._nlpdef.name
         )
-        self._auth = (self._cloudcfg.username, self._cloudcfg.password)
         self._post = self._internal_post
 
         self.cookies = None  # type: Optional[CookieJar]
@@ -429,10 +428,9 @@ class CloudRequest:
                         f"Sending to {self._cloudcfg.url} :\n"
                         f"{formatted_request}"
                     )
-                response = post(
+                response = self._cloudcfg.requests_session.post(
                     url=self._cloudcfg.url,
                     data=data,
-                    auth=self._auth,
                     headers=headers,
                     cookies=self.cookies,
                     verify=self._cloudcfg.verify_ssl,
@@ -931,7 +929,7 @@ class CloudRequestProcess(CloudRequest):
             return False
         status = json_response[NlprpKeys.STATUS]
         pending_use_202 = (
-            Version(json_response[NlprpKeys.VERSION])
+            Version(json_response[NlprpKeys.PROTOCOL][NlprpKeys.VERSION])
             >= NlprpVersions.FETCH_Q_PENDING_RETURNS_202
         )
         if status == HttpStatus.OK:

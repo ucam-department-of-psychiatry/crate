@@ -7,7 +7,7 @@ USAGE: crate_nlp [-h] [--config CONFIG] [--nlpdef NLPDEF] [-i | -f]
                  [--listprocessors] [--describeprocessors] [--test_nlp]
                  [--print_local_processors] [--print_cloud_processors]
                  [--count] [--cloud] [--immediate] [--retrieve]
-                 [--cancelrequest] [--cancelall] [--showqueue]
+                 [--cancelrequest] [--cancelall] [--showqueue] [--oidc-login]
 
 NLP manager. Version 0.20.9 (2026-04-16). Created by Rudolf Cardinal.
 
@@ -87,3 +87,6 @@ CLOUD OPTIONS:
                         option cancels all pending requests - not just those
                         for the nlp definition specified (default: False)
   --showqueue           Shows all pending cloud requests. (default: False)
+  --oidc-login          Log in and obtain (and cache) an initial access token,
+                        if your cloud provider uses OpenID Connect
+                        authentication. (default: False)
