@@ -195,6 +195,7 @@ class CloudNlpConfigKeys:
     OIDC_CLIENT_ID = "oidc_client_id"
     OIDC_CLIENT_SECRET = "oidc_client_secret"
     OIDC_LOGIN_METHOD = "oidc_login_method"
+    OIDC_OPEN_BROWSER = "oidc_open_browser"
     OIDC_SCOPE = "oidc_scope"
     OIDC_EXTRA_SCOPES = "oidc_extra_scopes"
     OIDC_CALLBACK_PORT = "oidc_callback_port"

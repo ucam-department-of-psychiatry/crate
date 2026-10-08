@@ -830,6 +830,9 @@ OS_PATHSEP = {os.pathsep}
 ## requires a specific fixed port number e.g. http://localhost:8888
 ## then set it here
 # {CloudNlpConfigKeys.OIDC_CALLBACK_PORT} = 8888
+## If you don't want the --oidc-login process to open your default
+## web browser:
+# {CloudNlpConfigKeys.OIDC_OPEN_BROWSER} = no
 ## Or if you want to enter your login details on a different device
 ## (e.g. you are working on a remote desktop and need to sign in
 ## on your local machine) or use a non-default web browser

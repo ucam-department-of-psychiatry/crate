@@ -1272,6 +1272,10 @@ URL and code, you can visit the URL using any browser *on any device* to
 sign in.  The device flow is useful if you are running CRATE on a remote
 server and need to use your local web browser to sign in, or if you want
 to sign in using a different browser from the default one on your system.
+If you want to use the ``web`` mechanism, but *not* open a web browser
+automatically, set ``oidc_open_browser = no`` - you will need to manually
+copy the authorization URL printed by ``crate_nlp`` and paste it into
+your chosen browser.
 
 
 oidc_callback_port

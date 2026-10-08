@@ -109,15 +109,20 @@ class OIDCAuth:
         self.login_method = cfg.opt_str(
             CloudNlpConfigKeys.OIDC_LOGIN_METHOD, default="web"
         )
+        self.open_browser = cfg.opt_bool(
+            CloudNlpConfigKeys.OIDC_OPEN_BROWSER, default=True
+        )
         self.callback_port = cfg.opt_int_positive(
-            CloudNlpConfigKeys.OIDC_CALLBACK_PORT, 0
+            CloudNlpConfigKeys.OIDC_CALLBACK_PORT, default=0
         )
         self.cache_dir = Path(
             cfg.opt_str(
                 CloudNlpConfigKeys.OIDC_TOKEN_CACHE, default_token_cache()
             )
         )
-        self.verify_ssl = cfg.opt_bool(CloudNlpConfigKeys.VERIFY_SSL, True)
+        self.verify_ssl = cfg.opt_bool(
+            CloudNlpConfigKeys.VERIFY_SSL, default=True
+        )
 
         # Private attributes
         self._provider_config = None
@@ -266,12 +271,16 @@ class OIDCAuth:
                 authorization_url, state = session.authorization_url(
                     self.provider_config["authorization_endpoint"]
                 )
-                print(
-                    "If your browser does not open automatically, please "
-                    "go to the following URL to sign in:"
-                )
+                if self.open_browser:
+                    print(
+                        "If your browser does not open automatically, please "
+                        "go to the following URL to sign in:"
+                    )
+                else:
+                    print("Please go to the following URL to sign in:")
                 print(authorization_url)
-                webbrowser.open(authorization_url, new=2)
+                if self.open_browser:
+                    webbrowser.open(authorization_url, new=2)
                 # wait for the callback
                 callback_server.handle_request()
                 if not callback_result:
