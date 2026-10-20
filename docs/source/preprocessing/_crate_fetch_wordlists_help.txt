@@ -2,7 +2,7 @@ USAGE: crate_fetch_wordlists [-h] [--verbose]
                              [--min_word_length MIN_WORD_LENGTH]
                              [--show_rejects]
                              [--debug_names [DEBUG_NAMES ...]]
-                             [--english_words]
+                             [--user_agent USER_AGENT] [--english_words]
                              [--english_words_output ENGLISH_WORDS_OUTPUT]
                              [--english_words_url ENGLISH_WORDS_URL]
                              [--valid_word_regex VALID_WORD_REGEX]
@@ -46,6 +46,9 @@ OPTIONS:
   --debug_names [DEBUG_NAMES ...]
                         Show extra detail about these names (e.g. to work out
                         your preferred frequency thresholds) (default: None)
+  --user_agent USER_AGENT
+                        Set User-Agent header when downloading to this
+                        (default: None)
 
 ENGLISH WORDS:
   --english_words       Fetch English words (e.g. to remove from the
@@ -136,12 +139,14 @@ US SURNAMES:
                         (columns are: name, frequency) (default: None)
   --us_surnames_1990_census_url US_SURNAMES_1990_CENSUS_URL
                         URL for textfile of US 1990 Census surnames (default:
-                        http://www2.census.gov/topics/genealogy/1990surnames/d
-                        ist.all.last)
+                        https://web.archive.org/web/20260726000906id_/http://w
+                        ww2.census.gov/topics/genealogy/1990surnames/dist.all.
+                        last)
   --us_surnames_2010_census_url US_SURNAMES_2010_CENSUS_URL
                         URL for zip of US 2010 Census surnames (default:
-                        https://www2.census.gov/topics/genealogy/2010surnames/
-                        names.zip)
+                        https://web.archive.org/web/20260801064254id_/https://
+                        www2.census.gov/topics/genealogy/2010surnames/names.zi
+                        p)
   --us_surnames_min_cumfreq_pct US_SURNAMES_MIN_CUMFREQ_PCT
                         Fetch only names where the cumulative frequency
                         percentage, up to and including this name, was at

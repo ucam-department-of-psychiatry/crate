@@ -1,4 +1,5 @@
 USAGE: crate_make_demo_database [-h] [--echo]
+                                [--first_patient_id FIRST_PATIENT_ID]
                                 [--nhs_number_probability NHS_NUMBER_PROBABILITY]
                                 [--size {0,1,2,3}] [--verbose] [--with_files]
                                 url
@@ -13,6 +14,9 @@ POSITIONAL ARGUMENTS:
 OPTIONS:
   -h, --help            show this help message and exit
   --echo                Echo SQL (default: False)
+  --first_patient_id FIRST_PATIENT_ID
+                        ID of the first created patient, incremented by one
+                        thereafter (default: 1)
   --nhs_number_probability NHS_NUMBER_PROBABILITY
                         Probability that a patient will have an NHS number
                         (0.0 - 1.0) (default: 1.0)
