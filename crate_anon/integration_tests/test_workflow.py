@@ -124,8 +124,10 @@ CONTAINER_DBSHELL = "crate_test_container_dbshell"
 CONTAINER_BASH = "crate_test_container_bash"
 
 # The following defaults should match the Dockerfile(s):
-DB_SRC: str = "sourcedb"
-DB_ANON: str = "anondb"
+DB_SRC_1: str = "sourcedb1"
+DB_SRC_2: str = "sourcedb2"
+DB_ANON_1: str = "anondb1"
+DB_ANON_2: str = "anondb2"
 DB_SECRET: str = "secretdb"
 DB_NLP: str = "nlpdb"
 DB_CRATE: str = "cratedb"
@@ -135,19 +137,27 @@ DB_PRIVUSER_PASSWORD: str = "8z3?I84@mvBX"
 DB_RESEARCHER_USER: str = "researcher"
 DB_RESEARCHER_PASSWORD: str = "G6f@V3?oc3Yb"
 # Postgres has an additional layer... database/schema/table.
-PG_DB_IDENT = "identdb"
-PG_DB_DEIDENT = "deidentdb"
+PG_DB_IDENT_1 = "identdb1"
+PG_DB_DEIDENT_1 = "deidentdb1"
+PG_DB_IDENT_2 = "identdb2"
+PG_DB_DEIDENT_2 = "deidentdb2"
+PG_DB_NLP = "pgnlpdb"
 
 DOCKER_BUILD_ARGS = {
     # Corresponding to ARG variables in the Dockerfile(s).
     # Database names
-    "DB_SRC": DB_SRC,
-    "DB_ANON": DB_ANON,
+    "DB_SRC_1": DB_SRC_1,
+    "DB_SRC_2": DB_SRC_2,
+    "DB_ANON_1": DB_ANON_1,
+    "DB_ANON_2": DB_ANON_2,
     "DB_SECRET": DB_SECRET,
     "DB_NLP": DB_NLP,
     "DB_CRATE": DB_CRATE,
-    "PG_DB_IDENT": PG_DB_IDENT,
-    "PG_DB_DEIDENT": PG_DB_DEIDENT,
+    "PG_DB_IDENT_1": PG_DB_IDENT_1,
+    "PG_DB_IDENT_2": PG_DB_IDENT_2,
+    "PG_DB_DEIDENT_1": PG_DB_DEIDENT_1,
+    "PG_DB_DEIDENT_2": PG_DB_DEIDENT_2,
+    "PG_DB_NLP": PG_DB_NLP,
     # Usernames/passwords
     "DB_ROOT_PASSWORD": DB_ROOT_PASSWORD,
     "DB_PRIVUSER_USER": DB_PRIVUSER_USER,
@@ -207,13 +217,13 @@ class EngineInfo:
             return DB_PRIVUSER_USER, DB_PRIVUSER_PASSWORD
         return DB_RESEARCHER_USER, DB_RESEARCHER_PASSWORD
 
-    def sqlalchemy_url_src(
+    def sqlalchemy_url_src_1(
         self,
         port: int,
         ip: str = LOCAL_IP_ADDRESS,
     ) -> str:
         user, password = self._user_pw(privileged=True)
-        dbname = PG_DB_IDENT if self.both_db_schema else DB_SRC
+        dbname = PG_DB_IDENT_1 if self.both_db_schema else DB_SRC_1
         return self.sqlalchemy_url(
             dbname=dbname,
             user=user,
@@ -222,14 +232,45 @@ class EngineInfo:
             port=port,
         )
 
-    def sqlalchemy_url_anon(
+    def sqlalchemy_url_src_2(
+        self,
+        port: int,
+        ip: str = LOCAL_IP_ADDRESS,
+    ) -> str:
+        user, password = self._user_pw(privileged=True)
+        dbname = PG_DB_IDENT_2 if self.both_db_schema else DB_SRC_2
+        return self.sqlalchemy_url(
+            dbname=dbname,
+            user=user,
+            password=password,
+            ip_addr=ip,
+            port=port,
+        )
+
+    def sqlalchemy_url_anon_1(
         self,
         port: int,
         ip: str = LOCAL_IP_ADDRESS,
         privileged: bool = False,
     ) -> str:
         user, password = self._user_pw(privileged)
-        dbname = PG_DB_DEIDENT if self.both_db_schema else DB_ANON
+        dbname = PG_DB_DEIDENT_1 if self.both_db_schema else DB_ANON_1
+        return self.sqlalchemy_url(
+            dbname=dbname,
+            user=user,
+            password=password,
+            ip_addr=ip,
+            port=port,
+        )
+
+    def sqlalchemy_url_anon_2(
+        self,
+        port: int,
+        ip: str = LOCAL_IP_ADDRESS,
+        privileged: bool = False,
+    ) -> str:
+        user, password = self._user_pw(privileged)
+        dbname = PG_DB_DEIDENT_2 if self.both_db_schema else DB_ANON_2
         return self.sqlalchemy_url(
             dbname=dbname,
             user=user,
@@ -245,7 +286,7 @@ class EngineInfo:
         privileged: bool = False,
     ) -> str:
         user, password = self._user_pw(privileged)
-        dbname = PG_DB_DEIDENT if self.both_db_schema else DB_NLP
+        dbname = PG_DB_NLP if self.both_db_schema else DB_NLP
         return self.sqlalchemy_url(
             dbname=dbname,
             user=user,
@@ -469,26 +510,55 @@ def test_crate_workflow(
     engine_info: EngineInfo, port: int, tempdir: str, echo: bool = False
 ) -> None:
     log.info(f"Temporary directory: {tempdir}")
-    url_src = engine_info.sqlalchemy_url_src(port=port)
-    url_anon_priv = engine_info.sqlalchemy_url_anon(port=port, privileged=True)
-    url_anon_res = engine_info.sqlalchemy_url_anon(port=port, privileged=False)
+    url_src_1 = engine_info.sqlalchemy_url_src_1(port=port)
+    url_src_2 = engine_info.sqlalchemy_url_src_2(port=port)
+    url_anon_1_priv = engine_info.sqlalchemy_url_anon_1(
+        port=port, privileged=True
+    )
+    url_anon_1_res = engine_info.sqlalchemy_url_anon_1(
+        port=port, privileged=False
+    )
+    url_anon_2_priv = engine_info.sqlalchemy_url_anon_2(
+        port=port, privileged=True
+    )
+    url_anon_2_res = engine_info.sqlalchemy_url_anon_2(
+        port=port, privileged=False
+    )
     url_nlp_priv = engine_info.sqlalchemy_url_nlp(port=port, privileged=True)
     url_nlp_res = engine_info.sqlalchemy_url_nlp(port=port, privileged=False)
     _ = DatabaseHolder(
-        DB_SRC,
-        url_src,
+        DB_SRC_1,
+        url_src_1,
         with_session=True,
         reflect=True,
     )
     _ = DatabaseHolder(
-        DB_ANON,
-        url_anon_priv,
+        DB_SRC_2,
+        url_src_2,
         with_session=True,
         reflect=True,
     )
     _ = DatabaseHolder(
-        DB_ANON,
-        url_anon_res,
+        DB_ANON_1,
+        url_anon_1_priv,
+        with_session=True,
+        reflect=True,
+    )
+    _ = DatabaseHolder(
+        DB_ANON_1,
+        url_anon_1_res,
+        with_session=True,
+        reflect=True,
+    )
+    _ = DatabaseHolder(
+        DB_ANON_2,
+        url_anon_2_priv,
+        with_session=True,
+        reflect=True,
+    )
+    _ = DatabaseHolder(
+        DB_ANON_2,
+        url_anon_2_res,
         with_session=True,
         reflect=True,
     )
@@ -510,16 +580,32 @@ def test_crate_workflow(
     # Create databases
     # -------------------------------------------------------------------------
 
-    log.info("Building source database.")
+    log.info("Building source databases.")
     mk_demo_database(
-        url=url_src, n_patients=100, notes_per_patient=20, words_per_note=100
+        url=url_src_1,
+        n_patients=100,
+        notes_per_patient=5,
+        words_per_note=100,
+        first_patient_id=1,
     )
+    mk_demo_database(
+        url=url_src_2,
+        n_patients=100,
+        notes_per_patient=5,
+        words_per_note=100,
+        first_patient_id=1001,
+        nhs_number_probability=0.25,
+    )
+
+    log.info("Running anonymisation tests")
+
+    # TODO
+    # anonymise()
 
     # -------------------------------------------------------------------------
     # Not yet done
     # -------------------------------------------------------------------------
 
-    log.warning("Not yet implemented: anonymisation tests")
     log.warning("Not yet implemented: NLP tests")
 
     # -------------------------------------------------------------------------
@@ -530,8 +616,8 @@ def test_crate_workflow(
     anonconfig = None  # basic report only; todo: could improve
     test_researcher_report(
         tempdir=tempdir,
-        db_url=url_src,
-        db_name=DB_SRC,
+        db_url=url_src_1,
+        db_name=DB_SRC_1,
         anonconfig=anonconfig,
         echo=echo,
     )

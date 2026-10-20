@@ -61,6 +61,7 @@ from crate_anon.anonymise.anonymise import (
     validate_optouts,
 )
 from crate_anon.anonymise.altermethod import AlterMethod
+from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.constants import IndexType, ScrubMethod
 from crate_anon.anonymise.models import PatientInfo
 from crate_anon.anonymise.dd import ScrubSourceFieldInfo
@@ -231,6 +232,14 @@ class TestAnonPidAsPkRecordFactory(AnonTestBaseFactory):
 # =============================================================================
 # Unit tests
 # =============================================================================
+class TestConfig(Config):
+    # Mock autospeccing doesn't know about attributes set in the constructor
+    # timefield = None
+    # pidtype_is_integer = True
+    # debug_pid_list = []
+    pass
+
+
 class AnonymiseTestMixin:
     def mock_dd_row(
         self,
@@ -291,18 +300,19 @@ class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
         opt_out_4 = TestBoolOptOutFactory(opt_out=False)
         self.source_dbsession.flush()
 
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
+        mock_config = mock.Mock(
+            spec=TestConfig,
             dd=mock_dd,
             sources=mock_sources,
             optout_col_values=[True, 1, "1"],
-        ):
-            pids = list(gen_opt_out_pids_from_database())
+        )
 
-            self.assertIn(opt_out_1.pid, pids)
-            self.assertIn(opt_out_2.pid, pids)
-            self.assertIn(opt_out_3.pid, pids)
-            self.assertNotIn(opt_out_4.pid, pids)
+        pids = list(gen_opt_out_pids_from_database(mock_config))
+
+        self.assertIn(opt_out_1.pid, pids)
+        self.assertIn(opt_out_2.pid, pids)
+        self.assertIn(opt_out_3.pid, pids)
+        self.assertNotIn(opt_out_4.pid, pids)
 
     def test_invalid_boolean_optout_col_value_logged(
         self,
@@ -330,24 +340,25 @@ class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
         TestBoolOptOutFactory(opt_out=True)
         self.source_dbsession.flush()
 
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
+        mock_config = mock.Mock(
+            spec=TestConfig,
             dd=mock_dd,
             sources=mock_sources,
             optout_col_values=["1"],
-        ):
-            with self.assertLogs(level=logging.INFO) as logging_cm:
-                list(gen_opt_out_pids_from_database())
+        )
 
-                self.assert_logged(
-                    "crate_anon.anonymise.anonymise",
-                    logging.INFO,
-                    (
-                        "... ignoring non-boolean value (1), type 'str' "
-                        "for boolean column 'opt_out'"
-                    ),
-                    logging_cm,
-                )
+        with self.assertLogs(level=logging.INFO) as logging_cm:
+            list(gen_opt_out_pids_from_database(mock_config))
+
+            self.assert_logged(
+                "crate_anon.anonymise.anonymise",
+                logging.INFO,
+                (
+                    "... ignoring non-boolean value (1), type 'str' "
+                    "for boolean column 'opt_out'"
+                ),
+                logging_cm,
+            )
 
     def test_string_in_optout_col_values_valid_for_string_column(
         self,
@@ -378,18 +389,18 @@ class GenOptOutPidsFromDatabaseTests(DatabaseTestCase):
         opt_out_4 = TestStringOptOutFactory(opt_out="0")
         self.source_dbsession.flush()
 
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
+        mock_config = mock.Mock(
+            spec=TestConfig,
             dd=mock_dd,
             sources=mock_sources,
             optout_col_values=["yes", "1"],
-        ):
-            pids = list(gen_opt_out_pids_from_database())
+        )
+        pids = list(gen_opt_out_pids_from_database(mock_config))
 
-            self.assertIn(opt_out_1.pid, pids)
-            self.assertIn(opt_out_2.pid, pids)
-            self.assertNotIn(opt_out_3.pid, pids)
-            self.assertNotIn(opt_out_4.pid, pids)
+        self.assertIn(opt_out_1.pid, pids)
+        self.assertIn(opt_out_2.pid, pids)
+        self.assertNotIn(opt_out_3.pid, pids)
+        self.assertNotIn(opt_out_4.pid, pids)
 
 
 class ValidateOptoutsTests(DatabaseTestCase):
@@ -420,19 +431,19 @@ class ValidateOptoutsTests(DatabaseTestCase):
         TestBoolOptOutFactory(opt_out=False)
         self.source_dbsession.flush()
 
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
+        mock_config = mock.Mock(
+            spec=TestConfig,
             dd=mock_dd,
             sources=mock_sources,
             optout_col_values=[3.14159, "1"],
-        ):
-            with self.assertRaises(ValueError) as cm:
-                validate_optouts()
+        )
+        with self.assertRaises(ValueError) as cm:
+            validate_optouts(mock_config)
 
-            self.assertEqual(
-                str(cm.exception),
-                "No valid opt-out values for column 'opt_out'",
-            )
+        self.assertEqual(
+            str(cm.exception),
+            "No valid opt-out values for column 'opt_out'",
+        )
 
 
 class CreateIndexesTests(DatabaseTestCase):
@@ -537,12 +548,12 @@ class CreateIndexesTests(DatabaseTestCase):
             "crate_anon.anonymise.anonymise",
             gen_index_row_sets_by_table=index_row_sets,
         ):
-            with mock.patch.multiple(
-                "crate_anon.anonymise.anonymise.config",
+            mock_config = mock.Mock(
+                spec=TestConfig,
                 dd=mock_dd,
                 _destination_database_url=self.anon_engine.url,
-            ) as mock_config:
-                create_indexes()
+            )
+            create_indexes(mock_config)
 
 
 class ProcessPatientTablesMPidTests(
@@ -618,14 +629,16 @@ class ProcessPatientTablesMPidTests(
             estimate_count_patients=self.mock_estimate_count_patients,
             opting_out_pid=self.mock_opting_out_pid,
         ):
-            with mock.patch.multiple(
-                "crate_anon.anonymise.anonymise.config",
+            mock_config = mock.Mock(
+                spec=TestConfig,
                 dd=self.mock_dd,
                 _destination_database_url=self.anon_engine.url,
                 admindb=self.mock_admindb,
                 sources={"source1": self.mock_sourcedb},
-            ):
-                process_patient_tables(specified_pids=pids)
+                pidtype_is_integer=True,
+            )
+
+            process_patient_tables(mock_config, specified_pids=pids)
 
         patient_info = self.secret_dbsession.query(PatientInfo).one()
         self.assertEqual(patient_info.pid, patient.pid)
@@ -648,14 +661,16 @@ class ProcessPatientTablesMPidTests(
             estimate_count_patients=self.mock_estimate_count_patients,
             opting_out_pid=self.mock_opting_out_pid,
         ):
-            with mock.patch.multiple(
-                "crate_anon.anonymise.anonymise.config",
+            mock_config = mock.Mock(
+                spec=TestConfig,
                 dd=self.mock_dd,
                 _destination_database_url=self.anon_engine.url,
                 admindb=self.mock_admindb,
                 sources={"source1": self.mock_sourcedb},
-            ):
-                process_patient_tables(specified_pids=pids)
+                pidtype_is_integer=True,
+                debug_pid_list=[],
+            )
+            process_patient_tables(mock_config, specified_pids=pids)
 
         patient_info = self.secret_dbsession.query(PatientInfo).one()
         self.assertEqual(patient_info.pid, patient.pid)
@@ -682,15 +697,15 @@ class ProcessPatientTablesMPidTests(
             estimate_count_patients=self.mock_estimate_count_patients,
             opting_out_pid=self.mock_opting_out_pid,
         ):
-            with mock.patch.multiple(
-                "crate_anon.anonymise.anonymise.config",
+            mock_config = mock.Mock(
+                spec=TestConfig,
                 dd=self.mock_dd,
                 _destination_database_url=self.anon_engine.url,
                 admindb=self.mock_admindb,
                 sources={"source1": self.mock_sourcedb},
-            ):
-                with self.assertLogs(level=logging.WARNING) as logging_cm:
-                    process_patient_tables(specified_pids=pids)
+            )
+            with self.assertLogs(level=logging.WARNING) as logging_cm:
+                process_patient_tables(mock_config, specified_pids=pids)
 
         self.assertIsNone(
             self.secret_dbsession.query(PatientInfo).one_or_none()
@@ -731,14 +746,14 @@ class ProcessPatientTablesMPidTests(
             estimate_count_patients=self.mock_estimate_count_patients,
             opting_out_pid=self.mock_opting_out_pid,
         ):
-            with mock.patch.multiple(
-                "crate_anon.anonymise.anonymise.config",
+            mock_config = mock.Mock(
+                spec=TestConfig,
                 dd=self.mock_dd,
                 _destination_database_url=self.anon_engine.url,
                 admindb=self.mock_admindb,
                 sources={"source1": self.mock_sourcedb},
-            ):
-                process_patient_tables(specified_pids=pids)
+            )
+            process_patient_tables(mock_config, specified_pids=pids)
 
         pids = [p.pid for p in self.secret_dbsession.query(PatientInfo)]
         self.assertIn(valid_patient1.pid, pids)
@@ -842,8 +857,8 @@ class ProcessPatientTablesPKTests(DatabaseTestCase, AnonymiseTestMixin):
             estimate_count_patients=self.mock_estimate_count_patients,
             opting_out_pid=self.mock_opting_out_pid,
         ):
-            with mock.patch.multiple(
-                "crate_anon.anonymise.anonymise.config",
+            mock_config = mock.Mock(
+                spec=TestConfig,
                 dd=self.mock_dd,
                 _destination_database_url=self.anon_engine.url,
                 admindb=self.mock_admindb,
@@ -851,9 +866,12 @@ class ProcessPatientTablesPKTests(DatabaseTestCase, AnonymiseTestMixin):
                 sources={"source1": self.mock_sourcedb},
                 rows_inserted_per_table={("source1", "test_record"): 0},
                 timefield=None,
-            ):
-                with self.assertLogs(level=logging.WARNING) as logging_cm:
-                    process_patient_tables(specified_pids=pids)
+                pidtype_is_integer=True,
+                debug_pid_list=[],
+            )
+
+            with self.assertLogs(level=logging.WARNING) as logging_cm:
+                process_patient_tables(mock_config, specified_pids=pids)
 
             self.assert_logged(
                 "crate_anon.anonymise.anonymise",
@@ -891,6 +909,16 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             metadata=AnonTestBase.metadata,
         )
 
+        self.mock_dd = mock.Mock()
+        self.mock_config = mock.Mock(
+            spec=TestConfig,
+            dd=self.mock_dd,
+            sources={"source": self.mock_sourcedb},
+            _destination_database_url=self.anon_engine.url,
+            destdb=self.mock_destdb,
+            timefield=None,
+        )
+
     def test_record_anonymised(self) -> None:
         TestRecordFactory(pid=self.patient.pid, other="Personal information")
         self.source_dbsession.commit()
@@ -926,22 +954,15 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
         ]
         mock_rows_for_src_table = mock.Mock(return_value=mock_rows)
 
-        mock_dd = mock.Mock(
-            get_rows_for_src_table=mock_rows_for_src_table,
-            get_dest_sqla_table=mock.Mock(
-                return_value=TestAnonRecord.__table__
-            ),
+        self.mock_dd.get_rows_for_src_table = mock_rows_for_src_table
+        self.mock_dd.get_dest_sqla_table = mock.Mock(
+            return_value=TestAnonRecord.__table__
         )
+        self.mock_config.rows_inserted_per_table = {
+            ("source", "test_record"): 0
+        }
 
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
-            dd=mock_dd,
-            sources={"source": self.mock_sourcedb},
-            _destination_database_url=self.anon_engine.url,
-            destdb=self.mock_destdb,
-            rows_inserted_per_table={("source", "test_record"): 0},
-        ):
-            process_table("source", "test_record")
+        process_table(self.mock_config, "source", "test_record")
 
         anon_record = self.anon_dbsession.query(TestAnonRecord).one()
 
@@ -960,34 +981,30 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
         )
         mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
 
-        mock_dd = mock.Mock(
-            get_rows_for_src_table=mock_rows_for_src_table,
-            get_dest_sqla_table=mock.Mock(
-                return_value=TestAnonPidAsPkRecord.__table__
-            ),
-            get_pid_name=mock.Mock(return_value="pid"),
+        self.mock_dd.get_rows_for_src_table = mock_rows_for_src_table
+        self.mock_dd.get_dest_sqla_table = mock.Mock(
+            return_value=TestAnonPidAsPkRecord.__table__
         )
+        self.mock_dd.get_pid_name = mock.Mock(return_value="pid")
+
         mock_patient = mock.Mock(
             pid=self.patient.pid,
             rid="not-a-real-rid",
             trid=123456,
             mrid="not-a-real-mrid",
         )
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
-            dd=mock_dd,
-            sources={"source": self.mock_sourcedb},
-            _destination_database_url=self.anon_engine.url,
-            destdb=self.mock_destdb,
-            rows_inserted_per_table={("source", "test_pid_as_pk_record"): 0},
-            add_mrid_wherever_rid_added=True,
-            master_research_id_fieldname="mrid",
-        ):
-            process_table(
-                "source",
-                "test_pid_as_pk_record",
-                patient=mock_patient,
-            )
+        self.mock_config.rows_inserted_per_table = {
+            ("source", "test_pid_as_pk_record"): 0
+        }
+        self.mock_config.add_mrid_wherever_rid_added = True
+        self.mock_config.master_research_id_fieldname = "mrid"
+
+        process_table(
+            self.mock_config,
+            "source",
+            "test_pid_as_pk_record",
+            patient=mock_patient,
+        )
 
         anon_record = self.anon_dbsession.query(TestAnonPidAsPkRecord).one()
 
@@ -1006,24 +1023,14 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
         )
         mock_rows_for_src_table = mock.Mock(return_value=[mock_row])
 
-        mock_dd = mock.Mock(
-            get_rows_for_src_table=mock_rows_for_src_table,
-            get_dest_sqla_table=mock.Mock(
-                return_value=TestAnonRecord.__table__
-            ),
+        self.mock_dd.get_rows_for_src_table = mock_rows_for_src_table
+        self.mock_dd.get_dest_sqla_table = mock.Mock(
+            return_value=TestAnonRecord.__table__
         )
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
-            dd=mock_dd,
-            sources={"source": self.mock_sourcedb},
-            _destination_database_url=self.anon_engine.url,
-            destdb=self.mock_destdb,
-            rows_inserted_per_table={("source", "test_record"): 0},
-        ):
-            process_table(
-                "source",
-                "test_record",
-            )
+        self.mock_config.rows_inserted_per_table = {
+            ("source", "test_record"): 0
+        }
+        process_table(self.mock_config, "source", "test_record")
 
         anon_record = self.anon_dbsession.query(TestAnonRecord).one()
         expected_hash = self.mpid_hasher.hash(test_record.nhsnum)
@@ -1048,18 +1055,17 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
                 return_value=TestAnonRecord.__table__
             ),
         )
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
+
+        mock_config = mock.Mock(
+            spec=TestConfig,
             dd=mock_dd,
             sources={"source": self.mock_sourcedb},
             _destination_database_url=self.anon_engine.url,
             destdb=self.mock_destdb,
             rows_inserted_per_table={("source", "test_record"): 0},
-        ):
-            process_table(
-                "source",
-                "test_record",
-            )
+            timefield=None,
+        )
+        process_table(mock_config, "source", "test_record")
 
         anon_record = self.anon_dbsession.query(TestAnonRecord).one()
         expected_hash = self.pid_hasher.hash(test_record.third_party_pid)
@@ -1108,15 +1114,16 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             ),
         )
 
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
+        mock_config = mock.Mock(
+            spec=TestConfig,
             dd=mock_dd,
             sources={"source": self.mock_sourcedb},
             _destination_database_url=self.anon_engine.url,
             destdb=self.mock_destdb,
             rows_inserted_per_table={("source", "test_record"): 0},
-        ):
-            process_table("source", "test_record")
+            timefield=None,
+        )
+        process_table(mock_config, "source", "test_record")
 
         self.assertIsNone(
             self.anon_dbsession.query(TestAnonRecord).one_or_none()
@@ -1143,15 +1150,15 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             ),
         )
 
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
+        mock_config = mock.Mock(
+            spec=TestConfig,
             dd=mock_dd,
             sources={"source": self.mock_sourcedb},
             _destination_database_url=self.anon_engine.url,
             destdb=self.mock_destdb,
             rows_inserted_per_table={("source", "test_record"): 0},
-        ):
-            process_table("source", "test_record", free_text_limit=50)
+        )
+        process_table(mock_config, "source", "test_record", free_text_limit=50)
 
         self.assertIsNone(
             self.anon_dbsession.query(TestAnonRecord).one_or_none()
@@ -1179,17 +1186,17 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             ),
         )
 
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
+        mock_config = mock.Mock(
+            spec=TestConfig,
             dd=mock_dd,
             sources={"source": self.mock_sourcedb},
             _destination_database_url=self.anon_engine.url,
             destdb=self.mock_destdb,
             rows_inserted_per_table={("source", "test_record"): 0},
-        ):
-            process_table(
-                "source", "test_record", exclude_scrubbed_fields=True
-            )
+        )
+        process_table(
+            mock_config, "source", "test_record", exclude_scrubbed_fields=True
+        )
 
         self.assertIsNone(
             self.anon_dbsession.query(TestAnonRecord).one_or_none()
@@ -1222,16 +1229,20 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
                 return_value=TestAnonRecord.__table__
             ),
         )
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
+        mock_config = mock.Mock(
+            spec=TestConfig,
             dd=mock_dd,
             sources={"source": self.mock_sourcedb},
             _destination_database_url=self.anon_engine.url,
             destdb=self.mock_destdb,
             rows_inserted_per_table={("source", "test_record"): 0},
-        ):
-            with self.assertLogs(level=logging.DEBUG) as logging_cm:
-                process_table("source", "test_record", incremental=True)
+            timefield=None,
+        )
+
+        with self.assertLogs(level=logging.DEBUG) as logging_cm:
+            process_table(
+                mock_config, "source", "test_record", incremental=True
+            )
 
         self.assert_logged(
             "crate_anon.anonymise.anonymise",
@@ -1270,21 +1281,23 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
             get_pid_name=mock.Mock(return_value="pid"),
         )
         mock_patient = mock.Mock(pid=self.patient.pid)
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
+        mock_config = mock.Mock(
+            spec=TestConfig,
             dd=mock_dd,
             sources={"source": self.mock_sourcedb},
             _destination_database_url=self.anon_engine.url,
             destdb=self.mock_destdb,
             rows_inserted_per_table={("source", "test_pid_as_pk_record"): 0},
-        ):
-            with self.assertLogs(level=logging.DEBUG) as logging_cm:
-                process_table(
-                    "source",
-                    "test_pid_as_pk_record",
-                    patient=mock_patient,
-                    incremental=True,
-                )
+            timefield=None,
+        )
+        with self.assertLogs(level=logging.DEBUG) as logging_cm:
+            process_table(
+                mock_config,
+                "source",
+                "test_pid_as_pk_record",
+                patient=mock_patient,
+                incremental=True,
+            )
 
         self.assert_logged(
             "crate_anon.anonymise.anonymise",
@@ -1317,16 +1330,20 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
                 return_value=TestAnonRecord.__table__
             ),
         )
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
+        mock_config = mock.Mock(
+            spec=TestConfig,
             dd=mock_dd,
             sources={"source": self.mock_sourcedb},
             _destination_database_url=self.anon_engine.url,
             destdb=self.mock_destdb,
             rows_inserted_per_table={("source", "test_record"): 0},
-        ):
-            with self.assertLogs(level=logging.DEBUG) as logging_cm:
-                process_table("source", "test_record", incremental=True)
+            timefield=None,
+            add_mrid_wherever_rid_added=True,
+        )
+        with self.assertLogs(level=logging.DEBUG) as logging_cm:
+            process_table(
+                mock_config, "source", "test_record", incremental=True
+            )
 
         self.assert_logged(
             "crate_anon.anonymise.anonymise",
@@ -1373,16 +1390,16 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
                 return_value=TestAnonRecord.__table__
             ),
         )
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
+        mock_config = mock.Mock(
+            spec=TestConfig,
             dd=mock_dd,
             sources={"source": self.mock_sourcedb},
             _destination_database_url=self.anon_engine.url,
             destdb=self.mock_destdb,
             rows_inserted_per_table={("source", "test_record"): 0},
-        ):
-            with self.assertLogs(level=logging.DEBUG) as logging_cm:
-                process_table("source", "test_record")
+        )
+        with self.assertLogs(level=logging.DEBUG) as logging_cm:
+            process_table(mock_config, "source", "test_record")
 
         self.assert_logged(
             "crate_anon.anonymise.anonymise",
@@ -1408,22 +1425,12 @@ class ProcessTableTests(DatabaseTestCase, AnonymiseTestMixin):
         ]
         mock_rows_for_src_table = mock.Mock(return_value=mock_rows)
 
-        mock_dd = mock.Mock(
-            get_rows_for_src_table=mock_rows_for_src_table,
-            get_dest_sqla_table=mock.Mock(
-                return_value=TestAnonRecord.__table__
-            ),
+        self.mock_dd.get_rows_for_src_table = mock_rows_for_src_table
+        self.mock_dd.get_dest_sqla_table = mock.Mock(
+            return_value=TestAnonRecord.__table__
         )
-        with mock.patch.multiple(
-            "crate_anon.anonymise.anonymise.config",
-            dd=mock_dd,
-            sources={"source": self.mock_sourcedb},
-            _destination_database_url=self.anon_engine.url,
-            destdb=self.mock_destdb,
-            rows_inserted_per_table={("source", "test_record"): 0},
-        ):
-            with self.assertLogs(level=logging.DEBUG) as logging_cm:
-                process_table("source", "test_record")
+        with self.assertLogs(level=logging.DEBUG) as logging_cm:
+            process_table(self.mock_config, "source", "test_record")
 
         self.assert_logged(
             "crate_anon.anonymise.anonymise",
