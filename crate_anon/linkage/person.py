@@ -336,7 +336,7 @@ class Person:
         kwargs = {}  # type: Dict[str, Any]
         for attr in cls.ALL_PERSON_KEYS:
             value = rowdict[attr]
-            if attr in cls.SEMICOLON_DELIMIT:
+            if value and attr in cls.SEMICOLON_DELIMIT:
                 value = cls._get_semicolon_delimited_value(cfg, attr, value)
             kwargs[attr] = value
         return Person(cfg=cfg, **kwargs)
