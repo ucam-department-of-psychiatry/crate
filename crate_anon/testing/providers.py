@@ -32,12 +32,14 @@ https://github.com/joke2k/faker/issues/1142
 
 """
 
+from collections import OrderedDict
 import datetime
 from typing import Any, List
 
 from cardinal_pythonlib.datetimefunc import pendulum_to_datetime
 from cardinal_pythonlib.nhs import generate_random_nhs_number
 from faker import Faker
+from faker.providers.address.en_GB import Provider as GBAddressProvider
 from faker.providers import BaseProvider
 from faker_file.base import StringValue
 from faker_file.providers.docx_file import DocxFileProvider
@@ -410,10 +412,31 @@ class NhsNumberProvider(BaseProvider):
         return generate_random_nhs_number()
 
 
+class CbPePostcodeProvider(GBAddressProvider):
+    postcode_formats = (
+        "PM NEE",
+        "PNN NEE",
+    )
+
+    _postcode_sets = OrderedDict(
+        (
+            (" ", " "),
+            ("M", [str(i) for i in range(1, 10)]),
+            ("N", [str(i) for i in range(0, 10)]),
+            ("E", "ABDEFGHJLNPQRSTUWXYZ"),
+            ("P", ["CB", "PE"]),
+        )
+    )
+
+    def cb_pe_postcode(self) -> str:
+        return self.generator.postcode()
+
+
 def register_all_providers(fake: Faker) -> None:
     # Our own
     fake.add_provider(AgeProvider)
     fake.add_provider(AlcoholProvider)
+    fake.add_provider(CbPePostcodeProvider)
     fake.add_provider(ChoiceProvider)
     fake.add_provider(ConsistentDateOfBirthProvider)
     fake.add_provider(DateFormatProvider)

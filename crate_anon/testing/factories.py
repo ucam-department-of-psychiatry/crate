@@ -117,7 +117,7 @@ class DemoPatientFactory(DemoFactory):
     surname = factory.LazyFunction(Fake.en_gb.last_name)
     dob = factory.LazyFunction(Fake.en_gb.consistent_date_of_birth)
     phone = factory.LazyFunction(Fake.en_gb.phone_number)
-    postcode = factory.LazyFunction(Fake.en_gb.postcode)
+    postcode = factory.LazyFunction(Fake.en_gb.cb_pe_postcode)
 
     @factory.lazy_attribute
     def nhsnum(obj: "Resolver") -> float | None:
