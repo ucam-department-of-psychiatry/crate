@@ -144,6 +144,14 @@ DEFAULT_VALID_WORD_REGEX = r"^[a-z](?:[A-Za-z'-]*[a-z])*$"
 # - Must end with letter (removes some prefixes).
 
 
+def get_http_headers(user_agent: str | None) -> dict[str, str] | None:
+    headers = None
+    if user_agent:
+        headers = {"User-Agent": user_agent}
+
+    return headers
+
+
 # =============================================================================
 # Output
 # =============================================================================
@@ -233,6 +241,7 @@ def fetch_english_words(
     valid_word_regex_text: str = DEFAULT_VALID_WORD_REGEX,
     min_word_length: int = 1,
     show_rejects: bool = False,
+    user_agent: str = None,
 ) -> None:
     """
     Fetch English words and write them to a file.
@@ -251,8 +260,11 @@ def fetch_english_words(
     """
     if not filename:
         log.warning("No output filename specified for English words. Skipping")
+    headers = get_http_headers(user_agent)
     pipeline = gen_valid_words_from_words(
-        words=gen_lines_from_binary_files(gen_binary_files_from_urls([url])),
+        words=gen_lines_from_binary_files(
+            gen_binary_files_from_urls([url], headers=headers)
+        ),
         valid_word_regex_text=valid_word_regex_text,
         min_word_length=min_word_length,
         show_rejects=show_rejects,
@@ -715,6 +727,7 @@ def fetch_us_forenames(
     max_cumfreq_pct: float = 100,
     min_name_length: int = 1,
     show_rejects: bool = False,
+    user_agent: str = None,
     debug_names: List[str] = None,
 ) -> None:
     """
@@ -750,6 +763,7 @@ def fetch_us_forenames(
         )
         return
 
+    headers = get_http_headers(user_agent)
     # -------------------------------------------------------------------------
     # Ignoring sex
     # -------------------------------------------------------------------------
@@ -760,7 +774,11 @@ def fetch_us_forenames(
                 gen_us_forename_info(
                     gen_lines_from_binary_files(
                         gen_files_from_zipfiles(
-                            gen_binary_files_from_urls([url], on_disk=True),
+                            gen_binary_files_from_urls(
+                                [url],
+                                on_disk=True,
+                                headers=headers,
+                            ),
                             # The zip file contains a README and then a
                             # bunch of files named yob<year>.txt (e.g.
                             # yob1997.txt).
@@ -811,7 +829,9 @@ def fetch_us_forenames(
                         gen_lines_from_binary_files(
                             gen_files_from_zipfiles(
                                 gen_binary_files_from_urls(
-                                    [url], on_disk=True
+                                    [url],
+                                    on_disk=True,
+                                    headers=headers,
                                 ),
                                 filespec="*.txt",
                             )
@@ -1029,6 +1049,7 @@ def fetch_us_surnames(
     max_cumfreq_pct: float = 100,
     min_word_length: int = 1,
     show_rejects: bool = False,
+    user_agent: str = None,
     debug_names: List[str] = None,
 ) -> None:
     """
@@ -1065,11 +1086,12 @@ def fetch_us_surnames(
         )
         return
 
+    headers = get_http_headers(user_agent)
     nameinfo_p1 = gen_name_info_via_min_length(
         gen_sufficiently_frequent_names(
             gen_us_surname_1990_info(
                 gen_lines_from_binary_files(
-                    gen_binary_files_from_urls([url_1990])
+                    gen_binary_files_from_urls([url_1990], headers=headers)
                 )
             ),
             min_cumfreq_pct=min_cumfreq_pct,
@@ -1298,6 +1320,9 @@ def main() -> None:
         nargs="*",
         help="Show extra detail about these names (e.g. to work out your "
         "preferred frequency thresholds)",
+    )
+    parser.add_argument(
+        "--user_agent", help="Set User-Agent header when downloading to this"
     )
 
     english_group = parser.add_argument_group("English words")
@@ -1580,6 +1605,7 @@ def main() -> None:
             max_cumfreq_pct=args.us_forenames_max_cumfreq_pct,
             min_name_length=args.min_word_length,
             show_rejects=args.show_rejects,
+            user_agent=args.user_agent,
             debug_names=args.debug_names,
         )
 
