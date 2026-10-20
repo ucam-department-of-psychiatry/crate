@@ -23,8 +23,8 @@
 # FROM: Base image
 # -----------------------------------------------------------------------------
 
-FROM python:3.10-slim-bullseye AS crate-build-1-user
-# This is a version of Debian 11 (see "cat /etc/debian_version").
+FROM python:3.11-slim-bookworm AS crate-build-1-user
+# This is a version of Debian 12 (see "cat /etc/debian_version").
 
 
 # -----------------------------------------------------------------------------

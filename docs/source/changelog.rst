@@ -1800,6 +1800,7 @@ Changes
   all NLP parsers using ``make_simple_numeric_regex``. Also added "below" as
   additional synonym for "<", and "above" as synonym for ">".
 
+- Update the Docker image to use Debian 12. Debian 11 has now reached end-of-life.
 
 To do
 ~~~~~
