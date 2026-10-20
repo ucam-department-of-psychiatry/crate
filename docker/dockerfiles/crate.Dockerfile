@@ -178,19 +178,18 @@ RUN echo "======================================================================
         libpq-dev \
         libxml2-dev \
         libxslt1-dev \
-        openjdk-11-jdk \
-        openjdk-11-jre \
         poppler-utils \
         tdsodbc \
         unrtf \
         wbritish
 
-FROM crate-build-4-os-packages AS crate-build-5-odbc-packages
+FROM crate-build-4-os-packages AS crate-build-5-third-party-packages
 
 RUN echo "- Adding repositories..." \
+    && mkdir -p /etc/apt/keyrings \
     && echo "  * Microsoft ODBC driver for SQL Server" \
-    && curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
-    && curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list \
+    && curl https://packages.microsoft.com/keys/microsoft.asc | tee /etc/apt/keyrings/microsoft-prod.asc \
+    && echo "deb [signed-by=/etc/apt/keyrings/microsoft-prod.asc] https://packages.microsoft.com/debian/12/prod $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/microsoft.list \
     && echo "- Updating package information again..." \
     && apt-get update \
     \
@@ -199,11 +198,17 @@ RUN echo "- Adding repositories..." \
         msodbcsql17 \
         mssql-tools \
         libgssapi-krb5-2 \
-        unixodbc-dev=2.3.7 unixodbc=2.3.7 odbcinst1debian2=2.3.7 odbcinst=2.3.7 \
+        unixodbc-dev unixodbc odbcinst1debian2  odbcinst  \
     && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bash_profile \
-    && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
+    && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc \
+    && echo "  * Adoptium for Java 11" \
+    && curl https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc \
+    && echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list \
+    && echo "- Updating package information again..." \
+    && apt-get update \
+    && apt-get install -y temurin-11-jre temurin-11-jdk
 
-FROM crate-build-5-odbc-packages AS crate-build-6-wkhtmltopdf
+FROM crate-build-5-third-party-packages AS crate-build-6-wkhtmltopdf
 
 RUN echo "- wkhtmltopdf: Fetching wkhtmltopdf with patched Qt (~14 Mb)..." \
     && wget \
