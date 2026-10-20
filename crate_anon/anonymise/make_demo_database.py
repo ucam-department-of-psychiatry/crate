@@ -101,15 +101,16 @@ def mk_demo_database(
     n_patients: int,
     notes_per_patient: int,
     words_per_note: int,
-    with_files: bool = False,
     echo: bool = False,
+    first_patient_id: int = 1,
     nhs_number_probability: float = 1.0,
+    with_files: bool = False,
 ) -> None:
     # 0. Announce intentions
 
     log.info(
         f"{n_patients=}, {notes_per_patient=}, {words_per_note=}, "
-        f"{with_files=}, {nhs_number_probability=},"
+        f"{with_files=}, {nhs_number_probability=}, {first_patient_id=}"
     )
 
     # 1. Open database
@@ -137,6 +138,9 @@ def mk_demo_database(
     log.info("Inserting data.")
 
     total_words = 0
+
+    # Default sequence is n + 1 because n is zero by default
+    DemoPatientFactory.reset_sequence(first_patient_id - 1)
 
     for p in range(1, n_patients + 1):
         # Seed both the global python RNG and Faker's RNG
@@ -212,6 +216,12 @@ def main() -> None:
     )
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
     parser.add_argument(
+        "--first_patient_id",
+        type=int,
+        default=1,
+        help="ID of the first created patient, incremented by one thereafter",
+    )
+    parser.add_argument(
         "--nhs_number_probability",
         type=float,
         default=1.0,
@@ -267,6 +277,7 @@ def main() -> None:
         words_per_note=words_per_note,
         with_files=args.with_files,
         echo=args.echo,
+        first_patient_id=args.first_patient_id,
         nhs_number_probability=args.nhs_number_probability,
     )
 
