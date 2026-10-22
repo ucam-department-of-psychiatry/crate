@@ -208,17 +208,7 @@ RUN echo "- Adding repositories..." \
     && apt-get update \
     && apt-get install -y temurin-11-jre temurin-11-jdk
 
-FROM crate-build-5-third-party-packages AS crate-build-6-wkhtmltopdf
-
-RUN echo "- wkhtmltopdf: Fetching wkhtmltopdf with patched Qt (~14 Mb)..." \
-    && wget \
-        --progress=dot:giga \
-        -O "$TMPDIR/wkhtmltopdf.deb" \
-        https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.stretch_amd64.deb \
-    && echo "- wkhtmltopdf: Installing wkhtmltopdf..." \
-    && gdebi --non-interactive "$TMPDIR/wkhtmltopdf.deb"
-
-FROM crate-build-6-wkhtmltopdf AS crate-build-7-python-packages
+FROM crate-build-5-third-party-packages AS crate-build-6-python-packages
 
 RUN echo "===============================================================================" \
     && echo "CRATE" \
@@ -243,7 +233,7 @@ RUN echo "======================================================================
     && echo "- Installing remote debugger..." \
     && "$CRATE_VENV_BIN/python3" -m pip install remote-pdb
 
-FROM crate-build-7-python-packages AS crate-build-8-nlp-tools
+FROM crate-build-6-python-packages AS crate-build-7-nlp-tools
 
 RUN echo "===============================================================================" \
     && echo "Third-party NLP tools" \
@@ -278,7 +268,7 @@ RUN echo "======================================================================
     && "$CRATE_VENV_BIN/crate_nlp_build_gate_java_interface" \
         --gatedir "$GATE_HOME"
 
-FROM crate-build-8-nlp-tools AS crate-build-9-extra-nlp
+FROM crate-build-7-nlp-tools AS crate-build-8-extra-nlp
 
 RUN echo "===============================================================================" \
     && echo "Extra NLP steps" \
@@ -293,7 +283,7 @@ RUN echo "======================================================================
         --suppress_gate_stdout \
         --launch_then_stop
 
-FROM crate-build-9-extra-nlp AS crate-build-10-static-files
+FROM crate-build-8-extra-nlp AS crate-build-9-static-files
 
 RUN echo "===============================================================================" \
     && echo "Creating static files directory" \
@@ -301,7 +291,7 @@ RUN echo "======================================================================
     && mkdir -p /crate/static \
     && chown -R crate:crate /crate/static
 
-FROM crate-build-10-static-files AS crate-build-11-temp-files
+FROM crate-build-9-static-files AS crate-build-10-temp-files
 
 RUN echo "===============================================================================" \
     && echo "Creating temp files directory" \
@@ -309,7 +299,7 @@ RUN echo "======================================================================
     && mkdir -p /crate/tmp \
     && chown -R crate:crate /crate/tmp
 
-FROM crate-build-11-temp-files AS crate-build-12-cleanup
+FROM crate-build-10-temp-files AS crate-build-11-cleanup
 
 RUN echo "===============================================================================" \
     && echo "Cleanup" \
