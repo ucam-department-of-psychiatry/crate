@@ -206,7 +206,8 @@ RUN echo "- Adding repositories..." \
     && echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list \
     && echo "- Updating package information again..." \
     && apt-get update \
-    && apt-get install -y temurin-11-jre temurin-11-jdk
+    && apt-get install -y temurin-11-jre temurin-11-jdk \
+    && update-java-alternatives --set /usr/lib/jvm/temurin-11-jdk-amd64
 
 FROM crate-build-5-third-party-packages AS crate-build-6-python-packages
 
