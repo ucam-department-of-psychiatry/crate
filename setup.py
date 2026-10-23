@@ -73,7 +73,7 @@ INSTALL_REQUIRES = [
     "cairosvg==2.9.0",  # work with SVG files
     "celery==5.2.7",  # back-end scheduling
     "chardet==5.2.0",  # character encoding detection for cardinal_pythonlib
-    "cherrypy==18.6.0",  # Cross-platform web server
+    "cherrypy==18.10.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
     "distro==1.5.0",  # replaces platform.linux_distribution
     "django==5.2.15",  # for main CRATE research database web server
