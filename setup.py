@@ -69,12 +69,14 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.13.4",  # [pin exact version from cardinal_pythonlib]
+    "brotli==1.2.0",  # Weasyprint dependency
     "cardinal_pythonlib==2.1.3",  # RNC libraries
     "cairosvg==2.9.0",  # work with SVG files
     "celery==5.2.7",  # back-end scheduling
     "chardet==5.2.0",  # character encoding detection for cardinal_pythonlib
     "cherrypy==18.10.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
+    "cssselect2==0.9.0",  # Weasyprint dependency
     "distro==1.5.0",  # replaces platform.linux_distribution
     "django==5.2.15",  # for main CRATE research database web server
     "django-debug-toolbar==6.3.0",  # Django debug toolbar
@@ -89,6 +91,7 @@ INSTALL_REQUIRES = [
     "extract_msg==0.54.1",  # Extract text from Outlook .msg files
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==2.0.1",  # debug Celery; web server; only runs explicitly
+    "fonttools==4.63.0",  # Weasyprint dependency
     "fuzzy==1.2.2",  # phonetic matching
     "gunicorn==23.0.0",  # UNIX only, though will install under Windows
     "gutenbergpy==0.3.4",  # Project Gutenberg API
@@ -107,11 +110,13 @@ INSTALL_REQUIRES = [
     "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==3.2.0",  # pretty formating of text-based tables
     "psutil==6.1.1",  # process management, cardinal_pythonlib dependency, not currently used  # noqa: E501
+    "pydyf==0.12.1",  # Weasyprint dependency
     "pyexcel-ods==0.6.0",  # for reading/writing ODS files
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.20.0",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
     "pypdf==6.14.2",  # create PDF files
+    "Pyphen==0.17.2",  # Weasyprint dependency
     "python-dateutil==2.8.1",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html
@@ -121,7 +126,12 @@ INSTALL_REQUIRES = [
     "sortedcontainers==2.2.2",  # for SortedSet
     "SQLAlchemy==2.0.36",  # database access
     "sqlparse==0.5.5",  # [pin exact version from cardinal_pythonlib]
+    "tinycss2==1.5.1",  # Weasyprint dependency
+    "tinyhtml5==2.1.0",  # Weasyprint dependency
     "unidecode==1.1.1",  # for removing accents
+    "weasyprint==70.0",  # HTML to PDF
+    "webencodings==0.5.1",  # Weasyprint dependency
+    "zopfli==0.4.3",  # Weasyprint dependency
     # -------------------------------------------------------------------------
     # Packages for cloud NLP:
     # -------------------------------------------------------------------------
