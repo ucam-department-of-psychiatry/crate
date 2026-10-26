@@ -1802,6 +1802,8 @@ Changes
 
 - Update the Docker image to use Debian 12. Debian 11 has now reached end-of-life.
 
+- Minimum Python version is now 3.11. Python 3.10 has now reached end-of-life.
+
 To do
 ~~~~~
 

@@ -50,9 +50,9 @@ BUILD_DIR = os.path.join(THIS_DIR, "build")
 EXIT_FAILURE = 1
 
 if __name__ == "__main__":
-    python_ok = sys.version_info.major >= 3 and sys.version_info.minor >= 10
+    python_ok = sys.version_info.major >= 3 and sys.version_info.minor >= 11
     if not python_ok:
-        log.error("You must run this script with Python 3.10 or later")
+        log.error("You must run this script with Python 3.11 or later")
         sys.exit(EXIT_FAILURE)
 
     # -------------------------------------------------------------------------
