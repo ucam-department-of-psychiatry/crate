@@ -3,12 +3,12 @@
 set -eux -o pipefail
 
 cd "${GITHUB_WORKSPACE}"
-python -m venv "${HOME}/venv"
+python3 -m venv "${HOME}/venv"
 PYTHON=${HOME}/venv/bin/python
 ${PYTHON} -VV
 ${PYTHON} -m site
 ${PYTHON} -m ensurepip --upgrade
-${PYTHON} -m pip install -U pip setuptools==80.3.1
+${PYTHON} -m pip install -U pip setuptools
 echo dumping pre-installed packages
 ${PYTHON} -m pip freeze
 echo installing pip packages
