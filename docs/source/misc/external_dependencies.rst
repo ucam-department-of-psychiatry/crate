@@ -85,3 +85,6 @@ Versions of software etc. used by CRATE
 | SQLAlchemy     |     2.0 | No scheduled date. 2.1 is still in development.            |
 |                |         | https://www.sqlalchemy.org/download.html                   |
 +----------------+---------+------------------------------------------------------------+
+| Ubuntu         | 22.04   | 2027-05-31                                                 |
+| (readthedocs)  |         | https://ubuntu.com/about/release-cycle                     |
++----------------+---------+------------------------------------------------------------+
