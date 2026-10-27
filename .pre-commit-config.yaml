@@ -23,7 +23,7 @@ repos:
           - --line-length=79
 -   repo: https://github.com/PyCQA/flake8
     # Use same version as in setup.py
-    rev: 5.0.4
+    rev: 6.1.0
     hooks:
     -   id: flake8
 -   repo: https://github.com/asottile/yesqa
