@@ -26,4 +26,8 @@ echo checking packages for vulnerabilities
 #       sandboxing.
 # SFTY-20260617-22444. pdfkit is no longer maintained. We will switch
 #       from wkhtmltopdf to weasyprint
-${SAFETY} check --full-report --ignore=67599 --ignore=70612 --ignore=SFTY-20260617-22444
+# SFTY-20260721-58460 setuptools. CVE-2026-59890. Fixed in 83.0.0. Relevant to macOS APFS
+#                     and HFS+ filesystems. We can't upgrade until Pyramid removes its
+#                     dependency on pkg_resources (https://github.com/Pylons/pyramid/issues/3731).
+#                     Nearly complete as of 2026-08-28.
+${SAFETY} check --full-report --ignore=67599 --ignore=70612 --ignore=SFTY-20260617-22444 --ignore=SFTY-20260721-58460
