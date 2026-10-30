@@ -98,7 +98,7 @@ INSTALL_REQUIRES = [
     "MarkupSafe==2.0.1",  # for HTML escaping
     # mmh3 requires VC++
     "mmh3==2.5.1",  # MurmurHash, for fast non-cryptographic hashing; optionally used by cardinal_pythonlib; requires VC++ under Windows?  # noqa: E501
-    "numba==0.60.0",  # just-in-time compilation of functions
+    "numba==0.68.0",  # just-in-time compilation of functions
     "numpy==1.26.4",  # numerical work
     "openpyxl==3.0.7",  # read Excel (slower?)
     "ordered-set==4.1.0",  # ordered sets; search for ordered_set
@@ -215,9 +215,14 @@ setup(
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
         "Programming Language :: Python :: 3 :: Only",
-        "Topic :: System :: Hardware",
-        "Topic :: System :: Networking",
+        "Topic :: Database :: Front-Ends",
+        "Topic :: Scientific/Engineering :: Bio-Informatics",
+        "Topic :: Scientific/Engineering :: Information Analysis",
+        "Topic :: Scientific/Engineering :: Medical Science Apps.",
     ],
     keywords="anonymisation",
     packages=find_packages(),
