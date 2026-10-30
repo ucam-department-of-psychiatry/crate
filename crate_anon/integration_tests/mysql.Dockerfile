@@ -49,8 +49,8 @@ ARG ENTRYPOINT_SCRIPT=/_crate_entrypoint.sh
 # - "%" in the context of users meaning "from any host"; "localhost" isn't
 #   enough for the host machine to connect through.
 ARG SQL="\n\
-CREATE USER '${DB_PRIVUSER_USER}'@'%' IDENTIFIED WITH mysql_native_password BY '${DB_PRIVUSER_PASSWORD}';\n\
-CREATE USER '${DB_RESEARCHER_USER}'@'%' IDENTIFIED WITH mysql_native_password BY  '${DB_RESEARCHER_PASSWORD}';\n\
+CREATE USER '${DB_PRIVUSER_USER}'@'%' IDENTIFIED WITH caching_sha2_password BY '${DB_PRIVUSER_PASSWORD}';\n\
+CREATE USER '${DB_RESEARCHER_USER}'@'%' IDENTIFIED WITH caching_sha2_password BY  '${DB_RESEARCHER_PASSWORD}';\n\
 \n\
 CREATE DATABASE ${DB_SRC};\n\
 GRANT ALL ON ${DB_SRC}.* TO '${DB_PRIVUSER_USER}'@'%';\n\
