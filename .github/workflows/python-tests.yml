@@ -18,25 +18,25 @@ jobs:
         strategy:
             matrix:
                 # Run tests with sqlite for all python versions
-                python-version: ["3.10", "3.11"]
+                python-version: ["3.11"]
                 engine: ["sqlite"]
                 include:
                   # Just one python version for the other DB engines
                   - engine: mysql
                     scheme: mysql+mysqldb
                     port: 3306
-                    python-version: "3.10"
+                    python-version: "3.11"
                   - engine: sqlserver
                     scheme: mssql+pymssql
                     port: 1433
-                    python-version: "3.10"
+                    python-version: "3.11"
                   - engine: sqlserver
                     scheme: mssql+pyodbc
-                    python-version: "3.10"
+                    python-version: "3.11"
                   # - engine: postgres
                   #   scheme: postgresql
                   #   port: 5432
-                  # python-version: "3.10"
+                  # python-version: "3.11"
         steps:
             - uses: actions/checkout@v7
             - uses: actions/setup-python@v7

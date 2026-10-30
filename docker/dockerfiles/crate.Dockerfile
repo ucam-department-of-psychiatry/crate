@@ -23,8 +23,8 @@
 # FROM: Base image
 # -----------------------------------------------------------------------------
 
-FROM python:3.10-slim-bullseye AS crate-build-1-user
-# This is a version of Debian 11 (see "cat /etc/debian_version").
+FROM python:3.11-slim-bookworm AS crate-build-1-user
+# This is a version of Debian 12 (see "cat /etc/debian_version").
 
 
 # -----------------------------------------------------------------------------
@@ -132,7 +132,7 @@ ARG CRATE_ROOT=/crate
 ARG CRATE_SRC=$CRATE_ROOT/src
 ARG CRATE_VENV=$CRATE_ROOT/venv
 ARG CRATE_VENV_BIN=$CRATE_VENV/bin
-ARG CRATE_PACKAGE_ROOT=$CRATE_VENV/lib/python3.10/site-packages/crate_anon
+ARG CRATE_PACKAGE_ROOT=$CRATE_VENV/lib/python3.11/site-packages/crate_anon
 ARG CRATE_GATE_PLUGIN_FILE=$CRATE_PACKAGE_ROOT/nlp_manager/specimen_gate_plugin_file.ini
 ARG BIOYODIE_DIR=$CRATE_ROOT/bioyodie
 ARG GATE_HOME=$CRATE_ROOT/gate
@@ -178,19 +178,18 @@ RUN echo "======================================================================
         libpq-dev \
         libxml2-dev \
         libxslt1-dev \
-        openjdk-11-jdk \
-        openjdk-11-jre \
         poppler-utils \
         tdsodbc \
         unrtf \
         wbritish
 
-FROM crate-build-4-os-packages AS crate-build-5-odbc-packages
+FROM crate-build-4-os-packages AS crate-build-5-third-party-packages
 
 RUN echo "- Adding repositories..." \
+    && mkdir -p /etc/apt/keyrings \
     && echo "  * Microsoft ODBC driver for SQL Server" \
-    && curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
-    && curl https://packages.microsoft.com/config/debian/11/prod.list > /etc/apt/sources.list.d/mssql-release.list \
+    && curl https://packages.microsoft.com/keys/microsoft.asc | tee /etc/apt/keyrings/microsoft-prod.asc \
+    && echo "deb [signed-by=/etc/apt/keyrings/microsoft-prod.asc] https://packages.microsoft.com/debian/12/prod $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/microsoft.list \
     && echo "- Updating package information again..." \
     && apt-get update \
     \
@@ -199,21 +198,18 @@ RUN echo "- Adding repositories..." \
         msodbcsql17 \
         mssql-tools \
         libgssapi-krb5-2 \
-        unixodbc-dev=2.3.7 unixodbc=2.3.7 odbcinst1debian2=2.3.7 odbcinst=2.3.7 \
+        unixodbc-dev unixodbc odbcinst1debian2  odbcinst  \
     && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bash_profile \
-    && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
+    && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc \
+    && echo "  * Adoptium for Java 11" \
+    && curl https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc \
+    && echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list \
+    && echo "- Updating package information again..." \
+    && apt-get update \
+    && apt-get install -y temurin-11-jre temurin-11-jdk \
+    && update-java-alternatives --set /usr/lib/jvm/temurin-11-jdk-amd64
 
-FROM crate-build-5-odbc-packages AS crate-build-6-wkhtmltopdf
-
-RUN echo "- wkhtmltopdf: Fetching wkhtmltopdf with patched Qt (~14 Mb)..." \
-    && wget \
-        --progress=dot:giga \
-        -O "$TMPDIR/wkhtmltopdf.deb" \
-        https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.stretch_amd64.deb \
-    && echo "- wkhtmltopdf: Installing wkhtmltopdf..." \
-    && gdebi --non-interactive "$TMPDIR/wkhtmltopdf.deb"
-
-FROM crate-build-6-wkhtmltopdf AS crate-build-7-python-packages
+FROM crate-build-5-third-party-packages AS crate-build-6-python-packages
 
 RUN echo "===============================================================================" \
     && echo "CRATE" \
@@ -238,7 +234,7 @@ RUN echo "======================================================================
     && echo "- Installing remote debugger..." \
     && "$CRATE_VENV_BIN/python3" -m pip install remote-pdb
 
-FROM crate-build-7-python-packages AS crate-build-8-nlp-tools
+FROM crate-build-6-python-packages AS crate-build-7-nlp-tools
 
 RUN echo "===============================================================================" \
     && echo "Third-party NLP tools" \
@@ -273,7 +269,7 @@ RUN echo "======================================================================
     && "$CRATE_VENV_BIN/crate_nlp_build_gate_java_interface" \
         --gatedir "$GATE_HOME"
 
-FROM crate-build-8-nlp-tools AS crate-build-9-extra-nlp
+FROM crate-build-7-nlp-tools AS crate-build-8-extra-nlp
 
 RUN echo "===============================================================================" \
     && echo "Extra NLP steps" \
@@ -288,7 +284,7 @@ RUN echo "======================================================================
         --suppress_gate_stdout \
         --launch_then_stop
 
-FROM crate-build-9-extra-nlp AS crate-build-10-static-files
+FROM crate-build-8-extra-nlp AS crate-build-9-static-files
 
 RUN echo "===============================================================================" \
     && echo "Creating static files directory" \
@@ -296,7 +292,7 @@ RUN echo "======================================================================
     && mkdir -p /crate/static \
     && chown -R crate:crate /crate/static
 
-FROM crate-build-10-static-files AS crate-build-11-temp-files
+FROM crate-build-9-static-files AS crate-build-10-temp-files
 
 RUN echo "===============================================================================" \
     && echo "Creating temp files directory" \
@@ -304,7 +300,7 @@ RUN echo "======================================================================
     && mkdir -p /crate/tmp \
     && chown -R crate:crate /crate/tmp
 
-FROM crate-build-11-temp-files AS crate-build-12-cleanup
+FROM crate-build-10-temp-files AS crate-build-11-cleanup
 
 RUN echo "===============================================================================" \
     && echo "Cleanup" \
