@@ -29,7 +29,6 @@ crate_anon/crateweb/consent/views.py
 
 import logging
 import mimetypes
-from typing import List
 
 from cardinal_pythonlib.django.serve import (
     serve_buffer,
@@ -436,7 +435,7 @@ def test_consent_lookup(request: HttpRequest) -> HttpResponse:
         request.POST if request.method == "POST" else None
     )
     if form.is_valid():
-        decisions = []  # type: List[str]
+        decisions: list[str] = []
         nhs_number = form.cleaned_data["nhs_number"]
         consent_mode = lookup_consent(
             nhs_number=nhs_number, decisions=decisions
@@ -528,7 +527,7 @@ def submit_contact_request(request: HttpRequest) -> HttpResponse:
 
     study = form.cleaned_data["study"]
     request_direct_approach = form.cleaned_data["request_direct_approach"]
-    contact_requests = []  # type: List[ContactRequest]
+    contact_requests: list[ContactRequest] = []
 
     # NHS numbers
     if request.user.is_superuser:
@@ -616,8 +615,8 @@ def clinician_initiated_contact_request(request: HttpRequest) -> HttpResponse:
         form.cleaned_data["lastname"],
     )
     signatory_title = form.cleaned_data["signatory_title"]
-    contact_requests = []  # type: List[ContactRequest]
-    msgs = []  # type: List[str]
+    contact_requests: list[ContactRequest] = []
+    msgs: list[str] = []
 
     # NHS numbers
     for nhs_number in form.cleaned_data["nhs_numbers"]:

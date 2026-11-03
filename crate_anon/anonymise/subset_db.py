@@ -32,7 +32,7 @@ crate_anon/anonymise/subset_db.py
 import argparse
 from dataclasses import dataclass
 import logging
-from typing import Any, Generator, List, Set, Union
+from typing import Any, Generator, List, Union
 
 from cardinal_pythonlib.argparse_func import str2bool
 from cardinal_pythonlib.file_io import gen_lines_without_comments
@@ -214,7 +214,7 @@ class SubsetConfig:
         #   file sources, which come to us as strings anyway.
         # - But conversion required for database sources, which is
         #   performed by the DatabaseFilterSource generator.
-        self.filter_values = set(filter_values)  # type: Set[Union[str, None]]
+        self.filter_values: set[str | None] = set(filter_values)
         for filename in filter_value_filenames:
             self.filter_values.update(gen_lines_without_comments(filename))
         for dbfiltersource in dbfilters:
@@ -224,12 +224,12 @@ class SubsetConfig:
             self.filter_values.add(None)
 
         # Fetch "include" tables:
-        self.include_tables = set(include_tables)  # type: Set[str]
+        self.include_tables: set[str] = set(include_tables)
         for filename in include_table_filenames:
             self.include_tables.update(gen_lines_without_comments(filename))
 
         # Fetch "exclude" tables:
-        self.exclude_tables = set(exclude_tables)  # type: Set[str]
+        self.exclude_tables: set[str] = set(exclude_tables)
         for filename in exclude_table_filenames:
             self.exclude_tables.update(gen_lines_without_comments(filename))
 

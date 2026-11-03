@@ -127,10 +127,10 @@ class UserProfile(models.Model):
     sql_scratchpad = models.TextField(
         verbose_name="SQL scratchpad for query builder"
     )
-    patient_multiquery_scratchpad = JsonClassField(
+    patient_multiquery_scratchpad: "PatientMultiQuery" = JsonClassField(
         verbose_name="PatientMultiQuery scratchpad (in JSON) for builder",
         null=True,
-    )  # type: PatientMultiQuery
+    )
 
     # -------------------------------------------------------------------------
     # Developer

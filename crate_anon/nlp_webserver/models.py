@@ -28,7 +28,7 @@ SQLAlchemy models for CRATE's implementation of an NLPRP server.
 """
 
 import datetime
-from typing import List, Optional
+from typing import Optional
 import uuid
 
 from cardinal_pythonlib.datetimefunc import coerce_to_pendulum
@@ -154,14 +154,14 @@ class Document(Base):
         comment="Date/time when the request was submitted (in UTC)",
     )  # type: Optional[datetime.datetime]
 
-    docprocrequests = relationship(
+    docprocrequests: list["DocProcRequest"] = relationship(
         "DocProcRequest",
         cascade="all, delete-orphan",
         passive_deletes=True,
         back_populates="document",
         lazy="select",
         # https://docs.sqlalchemy.org/en/13/orm/collections.html#using-passive-deletes  # noqa: E501
-    )  # type: List[DocProcRequest]
+    )
 
     @property
     def datetime_submitted_pendulum(self) -> Optional[Pendulum]:

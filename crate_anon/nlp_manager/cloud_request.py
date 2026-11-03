@@ -553,9 +553,7 @@ class CloudRequestListProcessors(CloudRequest):
 
         processors = []  # type: List[ServerProcessor]
         try:
-            proclist = json_response[
-                NlprpKeys.PROCESSORS
-            ]  # type: JsonArrayType
+            proclist: JsonArrayType = json_response[NlprpKeys.PROCESSORS]
         except KeyError:
             raise KeyError(
                 f"Server did not provide key {NlprpKeys.PROCESSORS!r} in its "

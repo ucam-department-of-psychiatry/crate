@@ -35,7 +35,7 @@ import logging
 import os
 import subprocess
 import sys
-from typing import Dict, List, Tuple, Union
+from typing import List, Tuple
 
 from cardinal_pythonlib.fileops import purge
 from cardinal_pythonlib.logs import configure_logger_for_colour
@@ -488,7 +488,7 @@ def main() -> None:
     # MB 2020-07-10
     # These lines no longer match in MedEx 1.3.8. It looks like at least the
     # first bug is fixed.
-    bugfixes = [
+    bugfixes: list[dict[str, str | list[dict[str, str]]]] = [
         {
             "filename": os.path.join(
                 args.medexdir,
@@ -560,7 +560,7 @@ The bug may relate to what's in SA[i]... but as a simple fix:
                 },
             ],
         },
-    ]  # type: List[Dict[str, Union[str, List[Dict[str, str]]]]]
+    ]
 
     _ = """
 

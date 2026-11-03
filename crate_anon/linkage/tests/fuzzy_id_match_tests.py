@@ -33,7 +33,7 @@ Unit tests.
 
 import logging
 import unittest
-from typing import List, Optional, Tuple, Type
+from typing import List, Tuple, Type
 
 from cardinal_pythonlib.probability import probability_from_log_odds
 from pendulum import Date
@@ -872,7 +872,7 @@ class FuzzyLinkageTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 _ = DateOfBirth(cfg, b)
 
-        full_match_log_lr = None  # type: Optional[float]
+        full_match_log_lr: float | None = None
         for g in GOOD_DATE_STRINGS:
             d = DateOfBirth(cfg, g)
             self.assertEqual(d.dob_str, g)
@@ -886,7 +886,7 @@ class FuzzyLinkageTests(unittest.TestCase):
             ("2000-01-01", "2000-07-01"),  # month mismatch only
             ("2000-01-01", "2000-01-07"),  # day mismatch only
         )
-        partial_match_log_lr = None  # type: Optional[float]
+        partial_match_log_lr: float | None = None
         for d1_str, d2_str in partial_matches:
             d1 = DateOfBirth(cfg, d1_str)
             d2 = DateOfBirth(cfg, d2_str)
@@ -1148,7 +1148,7 @@ class FuzzyLinkageTests(unittest.TestCase):
         ]  # type: List[Identifier]
         for i in identifiable:
             self.assertTrue(i.is_plaintext)
-            i_class = type(i)  # type: Type[Identifier]
+            i_class: Type[Identifier] = type(i)
 
             hd = i.as_dict(encrypt=True, include_frequencies=True)
             h = i_class.from_dict(cfg, hd, hashed=True)

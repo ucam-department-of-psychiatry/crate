@@ -423,7 +423,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 import logging
 import re
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from cardinal_pythonlib.dicts import reversedict
 from cardinal_pythonlib.enumlike import CaseInsensitiveEnumMeta
@@ -2617,7 +2617,7 @@ class TableCommentWorking:
         self.allow_unprefixed_tables = allow_unprefixed_tables
 
         # "Core" tablenames for which the DD has a table comment already:
-        self.coretable_comments_already_exist = set()  # type: Set[str]
+        self.coretable_comments_already_exist: set[str] = set()
         for ddr in dd.rows:
             if not ddr.is_table_comment:
                 continue

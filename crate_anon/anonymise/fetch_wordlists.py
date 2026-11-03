@@ -96,12 +96,10 @@ from operator import attrgetter
 import sys
 from typing import (
     BinaryIO,
-    Dict,
     Generator,
     Iterable,
     List,
     Optional,
-    Set,
     Tuple,
     Union,
 )
@@ -400,7 +398,7 @@ def filter_words_by_freq(
             Maximum cumulative frequency. Set to <1 to exclude rare words.
     """
     assert 0.0 <= min_cum_freq <= max_cum_freq <= 1.0
-    words = set()  # type: Set[str]
+    words: set[str] = set()
     log.info(f"Reading {input_filename}...")
     with open(input_filename) as i:
         reader = csv.DictReader(
@@ -612,7 +610,7 @@ def gen_us_forename_info(
     """
     # We need to calculate cumulative frequencies manually.
     # So this needs to accumulate all the instances before yielding any.
-    seen = dict()  # type: Dict[str, UsForenameInfo]
+    seen: dict[str, UsForenameInfo] = dict()
     total = 0  # number of people seen
     for line in lines:
         # Each textfile has lines like "Mary,F,7065".
@@ -659,8 +657,8 @@ def gen_us_forename_info_by_sex(
     """
     # We need to calculate cumulative frequencies manually.
     # So this needs to accumulate all the instances before yielding any.
-    male_seen = dict()  # type: Dict[str, UsForenameInfo]
-    female_seen = dict()  # type: Dict[str, UsForenameInfo]
+    male_seen: dict[str, UsForenameInfo] = dict()
+    female_seen: dict[str, UsForenameInfo] = dict()
     male_total = 0  # number of males seen
     female_total = 0  # number of females seen
     for line in lines:
@@ -777,7 +775,7 @@ def fetch_us_forenames(
         )
         # 2. Build
         names = SortedSet()
-        freq = {}  # type: Dict[str, float]
+        freq: dict[str, float] = {}
         for nameinfo in pipeline:
             name = nameinfo.name
             if name not in names:
@@ -826,7 +824,7 @@ def fetch_us_forenames(
         )
         # 2. Build
         name_sex_pairs = SortedSet()
-        sexfreq = {}  # type: Dict[Tuple[str, str], float]
+        sexfreq: dict[tuple[str, str], float] = {}
         for nameinfo in pipeline_by_sex:  # type: UsForenameInfo
             name = nameinfo.name
             sex = nameinfo.sex
@@ -1102,7 +1100,7 @@ def fetch_us_surnames(
     )
     pipeline = itertools.chain(nameinfo_p1, nameinfo_p2)
     names = SortedSet()
-    freq = {}  # type: Dict[str, float]
+    freq: dict[str, float] = {}
     for nameinfo in pipeline:
         name = nameinfo.name
         if name not in names:
