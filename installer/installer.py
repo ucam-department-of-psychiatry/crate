@@ -127,7 +127,7 @@ class DockerPath:
 
     VENV_DIR = os.path.join(ROOT_DIR, "venv")
     CRATE_INSTALL_DIR = os.path.join(
-        VENV_DIR, "lib", "python3.10", "site-packages"
+        VENV_DIR, "lib", "python3.11", "site-packages"
     )
 
 
@@ -1158,7 +1158,8 @@ class Installer:
         )
         self.info(
             "3. A user must exist with remote access to the database "
-            "(for MySQL use mysql_native_password authentication)."
+            "password authentication (e.g. "
+            "mysql_native_password [deprecated], caching_sha2_password)."
         )
 
     def configure_django(self) -> None:

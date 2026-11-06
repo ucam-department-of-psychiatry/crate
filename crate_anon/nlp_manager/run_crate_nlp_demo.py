@@ -32,7 +32,7 @@ crate_anon/nlp_manager/run_crate_nlp_demo.py
 import argparse
 import logging
 from pprint import pformat
-from typing import Any, Dict, List
+from typing import Any, List
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from rich_argparse import ArgumentDefaultsRichHelpFormatter
@@ -83,7 +83,7 @@ def process_text(text: str, processors: List[BaseNlpParser]) -> None:
     the output.
     """
     log.debug(f"Processing text:\n{text}")
-    results = {}  # type: Dict[str, List[Dict[str, Any]]]
+    results: dict[str, list[dict[str, Any]]] = {}
     for processor in processors:
         log.debug(f"- Processor: {processor.nlprp_name()}.")
         for tablename, nlp_values in processor.parse(text):

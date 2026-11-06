@@ -47,7 +47,6 @@ from typing import (
     Dict,
     List,
     Optional,
-    Set,
     Tuple,
     TYPE_CHECKING,
     Union,
@@ -965,7 +964,7 @@ class DataDictionary:
             )
 
         log.debug("Checking DD: table comments")
-        table_comments_seen = set()  # type: Set[str]
+        table_comments_seen: set[str] = set()
         for ddr in self.rows:
             if not ddr.is_table_comment:
                 continue

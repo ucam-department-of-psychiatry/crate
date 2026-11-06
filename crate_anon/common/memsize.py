@@ -32,7 +32,7 @@ From https://stackoverflow.com/questions/449560/how-do-i-determine-the-size-of-a
 from gc import get_referents
 from sys import getsizeof
 from types import ModuleType, FunctionType
-from typing import Any, List, Set
+from typing import Any
 
 # Custom objects know their class.
 # Function objects seem to know way too much, including modules.
@@ -58,11 +58,11 @@ def getsize(obj: Any, assume_none_denied: bool = False) -> int:
             raise TypeError(
                 f"getsize() does not take argument of type: " f"{type(obj)}"
             )
-    seen_ids = set()  # type: Set[int]
+    seen_ids: set[int] = set()
     size = 0
-    objects = [obj]  # type: List[Any]
+    objects: list[Any] = [obj]
     while objects:
-        need_referents = []  # type: List[Any]
+        need_referents: list[Any] = []
         for obj in objects:
             if assume_none_denied or not isinstance(obj, DENYLIST):
                 obj_id = id(obj)

@@ -480,8 +480,8 @@ def main() -> None:
         log.error("release_new_version.py must be run inside virtualenv")
         sys.exit(EXIT_FAILURE)
 
-    if sys.version_info < (3, 10):
-        log.error("You must run this script with Python 3.10 or later")
+    if sys.version_info < (3, 11):
+        log.error("You must run this script with Python 3.11 or later")
         sys.exit(EXIT_FAILURE)
 
     parser = argparse.ArgumentParser(

@@ -28,7 +28,7 @@ crate_anon/preprocess/ddhint.py
 """
 
 import logging
-from typing import Dict, Iterable, List, Set, Union
+from typing import Dict, Iterable, List, Union
 
 from cardinal_pythonlib.dicts import get_case_insensitive_dict_key
 from sqlalchemy import MetaData
@@ -54,7 +54,7 @@ class DDHint:
     """
 
     def __init__(self) -> None:
-        self._suppressed_tables = set()  # type: Set[str]
+        self._suppressed_tables: set[str] = set()
         self._index_requests = {}  # type: Dict[str, List[IndexCreationInfo]]
         # ... key = table name
         # ... value = list of IndexCreationInfo objects for that table

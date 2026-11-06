@@ -31,7 +31,7 @@ from contextlib import contextmanager
 import datetime
 import logging
 import json
-from typing import Dict, Generator, List, Optional, Tuple, Any
+from typing import Generator, List, Tuple, Any
 import redis
 
 from cardinal_pythonlib.httpconst import HttpStatus
@@ -286,12 +286,12 @@ class NlpWebViews:
         """
         self.request = request
         # Assign this later so we can return error to client if problem
-        self.body = None  # type: Optional[JsonObjectType]
+        self.body: JsonObjectType | None = None
         # Get username and password
         self.credentials = get_auth_credentials(self.request)
         # Assign these later after authentication
-        self.username = None  # type: Optional[str]
-        self.password = None  # type: Optional[str]
+        self.username: str | None = None
+        self.password: str | None = None
         # Start database sessions
         dbsession()
         start_task_session()
@@ -506,7 +506,7 @@ class NlpWebViews:
         Args:
             process_request: a :class:`NlprpProcessRequest`
         """
-        results = []  # type: JsonArrayType
+        results: JsonArrayType = []
         for text, metadata in process_request.gen_text_metadataobj():
             processor_data = []  # type: JsonArrayType
             for processor in process_request.processors:
@@ -651,7 +651,7 @@ class NlpWebViews:
         # Make it easy to look up processors
         # ---------------------------------------------------------------------
 
-        processor_cache = {}  # type: Dict[str, ServerProcessor]
+        processor_cache: dict[str, ServerProcessor] = {}
 
         def get_processor_cached(_processor_id: str) -> ServerProcessor:
             """
@@ -673,7 +673,7 @@ class NlpWebViews:
         # ---------------------------------------------------------------------
 
         doc_results = []  # type: JsonArrayType
-        client_job_id = None  # type: Optional[str]
+        client_job_id: str | None = None
         docs = set(dpr.document for dpr in dprs)
         for doc in docs:
             if client_job_id is None:
@@ -681,7 +681,7 @@ class NlpWebViews:
             processor_data = []  # type: JsonArrayType
             # ... data for *all* the processors for this doc
             for dpr in doc.docprocrequests:
-                procresult = json.loads(dpr.results)  # type: Dict[str, Any]
+                procresult: dict[str, Any] = json.loads(dpr.results)
                 if procresult[NlprpKeys.NAME] is None:
                     processor = get_processor_cached(dpr.processor_id)
                     procresult[NlprpKeys.NAME] = processor.name
@@ -730,9 +730,9 @@ class NlpWebViews:
             client_job_id = ""
 
         # Queue IDs that are of interest
-        queue_id_wheres = [
+        queue_id_wheres: list[ClauseElement] = [
             Document.username == self.username
-        ]  # type: List[ClauseElement]
+        ]
         if client_job_id:
             queue_id_wheres.append(Document.client_job_id == client_job_id)
         # noinspection PyUnresolvedReferences

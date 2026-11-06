@@ -40,13 +40,13 @@ tools. Here's a logical sequence.
 Python
 ~~~~~~
 
-Install Python 3.10 or higher. If it's not already installed:
+Install Python 3.11 or higher. If it's not already installed:
 
 **Linux**
 
 .. code-block:: bash
 
-    sudo apt-get install python3.10-dev
+    sudo apt-get install python3.11-dev
 
 **Windows**
 
@@ -64,7 +64,7 @@ Choose your own directory names.
 
 .. code-block:: bash
 
-    python3.10 -m venv ~/venvs/crate
+    python3.11 -m venv ~/venvs/crate
     source ~/venvs/crate/bin/activate
     python -m pip install --upgrade pip
     pip install crate-anon
@@ -214,7 +214,7 @@ Built in.
 **Windows**
 
 Install Visual C++ 14.x [#vs2015]_ (or later?), the official compiler for
-Python 3.10-3.11 under Windows [#pythonvstudio]_. Visual Studio Community is
+Python 3.11 under Windows [#pythonvstudio]_. Visual Studio Community is
 free [#vscommunity]_.
 
 
