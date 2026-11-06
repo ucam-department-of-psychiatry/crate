@@ -29,8 +29,9 @@ Researcher report tests.
 
 import os.path
 import random
+import re
 from tempfile import TemporaryDirectory
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from unittest import mock
 
 import factory
@@ -162,13 +163,6 @@ class ResearcherReportTests(DatabaseTestCase):
 
     @pytest.mark.usefixtures("django_test_settings")
     def test_report_has_pages_for_each_table(self) -> None:
-        def index_of_list_substring(items: List[str], substr: str) -> int:
-            for i, item in enumerate(items):
-                if substr in item:
-                    return i
-
-            return -1
-
         anon_config = mock.Mock()
 
         reportfilename = os.path.join(self.tempdir.name, "tmpreport.pdf")
@@ -198,21 +192,17 @@ class ResearcherReportTests(DatabaseTestCase):
             patient_found = False
             note_found = False
             for page in reader.pages:
-                lines = page.extract_text().replace("\t", " ").splitlines()
-                # Sometimes spaces come back as tabs; fix that.
+                text = page.extract_text()
 
-                rows_index = index_of_list_substring(
-                    lines,
-                    "Number of rows in this table:",
-                )
+                regex = r"(.*)\nNumber of rows in this table:\s*(\d+)"
                 # The label text here is from
                 # crate_anon/anonymise/templates/researcher_report/table.html.
 
-                if rows_index < 0:
+                if (m := re.match(regex, text)) is None:
                     continue
 
-                num_rows = int(lines[rows_index + 1])
-                table_name = lines[0]
+                table_name = m.group(1)
+                num_rows = int(m.group(2))
 
                 if table_name == "anon_patient":
                     patient_found = True
