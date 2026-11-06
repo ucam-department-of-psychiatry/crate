@@ -108,7 +108,6 @@ INSTALL_REQUIRES = [
     "pandas==2.3.3",  # freeze dependency; 2.1.0 not installing cleanly under Ubuntu 24.04  # noqa: E501
     "pendulum==3.3.0",  # dates/times
     "Pillow==13.0.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
-    "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==3.2.0",  # pretty formating of text-based tables
     "psutil==6.1.1",  # process management, cardinal_pythonlib dependency, not currently used  # noqa: E501
     "pydyf==0.12.1",  # Weasyprint dependency
