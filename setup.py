@@ -116,7 +116,7 @@ INSTALL_REQUIRES = [
     "python-dateutil==2.8.2",  # [pin exact version from cardinal_pythonlib]
     # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html
-    "regex==2025.9.1",  # better regexes (cf. re)
+    "regex==2026.9.29",  # better regexes (cf. re)
     "rich-argparse==0.5.0",  # colourful help
     "semantic_version==2.8.5",  # semantic versioning; better than semver
     "sortedcontainers==2.2.2",  # for SortedSet
