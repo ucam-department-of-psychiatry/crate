@@ -109,7 +109,7 @@ INSTALL_REQUIRES = [
     "pendulum==3.3.0",  # dates/times
     "Pillow==13.0.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
     "prettytable==3.2.0",  # pretty formating of text-based tables
-    "psutil==6.1.1",  # process management, cardinal_pythonlib dependency, not currently used  # noqa: E501
+    "psutil==7.2.2",  # process management, cardinal_pythonlib dependency, not currently used  # noqa: E501
     "pydyf==0.12.1",  # Weasyprint dependency
     "pyexcel-ods==0.6.0",  # for reading/writing ODS files
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
