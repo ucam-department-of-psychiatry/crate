@@ -53,7 +53,7 @@ DEMO_CONFIG = r"""
 import logging
 import os
 import shutil
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 # Include the following if you want to use it in CELERYBEAT_SCHEDULE
 # from celery.schedules import crontab
@@ -110,7 +110,7 @@ def always_show_toolbar(request: "HttpRequest") -> bool:
 
 
 if DEBUG:
-    ALLOWED_HOSTS = []  # type: List[str]
+    ALLOWED_HOSTS: list[str] = []
     DEBUG_TOOLBAR_CONFIG = {
         "SHOW_TOOLBAR_CALLBACK": always_show_toolbar,
     }
@@ -412,7 +412,7 @@ EMAIL_SENDER = "My NHS Trust Research Database - DO NOT REPLY <noreply@somewhere
 SAFETY_CATCH_ON = True
 DEVELOPER_EMAIL = "testuser@somewhere.nhs.uk"
 
-VALID_RESEARCHER_EMAIL_DOMAINS = []  # type: List[str]
+VALID_RESEARCHER_EMAIL_DOMAINS: list[str] = []
 # ... if empty, no checks are performed (any address is accepted)
 
 
