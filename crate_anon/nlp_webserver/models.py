@@ -102,6 +102,11 @@ class Document(Base):
     may be processed by multiple processors.)
     """
 
+    # TODO: Remove this and use the Annotated Declarative Table declarative
+    # system:
+    # https://docs.sqlalchemy.org/en/20/orm/declarative_tables.html#orm-declarative-mapped-column
+    __allow_unmapped__ = True
+
     __tablename__ = "documents"
 
     document_id = Column(
