@@ -32,7 +32,6 @@ crate_anon/common/logfunc.py
 # =============================================================================
 
 import logging
-from typing import Set
 
 log = logging.getLogger(__name__)
 
@@ -41,7 +40,7 @@ log = logging.getLogger(__name__)
 # Output
 # =============================================================================
 
-_warned = set()  # type: Set[str]
+_warned: set[str] = set()
 
 
 def warn_once(

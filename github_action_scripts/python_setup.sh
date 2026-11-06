@@ -16,4 +16,5 @@ ${PYTHON} -m pip freeze
 echo installing pip packages
 ${PYTHON} -m pip install -e .
 echo installing database backends
+sudo apt-get install unixodbc unixodbc-dev
 ${PYTHON} -m pip install mssql-django mysqlclient psycopg2 pyodbc pymssql

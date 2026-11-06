@@ -18,7 +18,7 @@ jobs:
         strategy:
             matrix:
                 # Run tests with sqlite for all python versions
-                python-version: ["3.11"]
+                python-version: ["3.11", "3.12", "3.13", "3.14"]
                 engine: ["sqlite"]
                 include:
                   # Just one python version for the other DB engines

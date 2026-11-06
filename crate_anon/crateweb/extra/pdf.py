@@ -28,7 +28,7 @@ crate_anon/crateweb/extra/pdf.py
 """
 
 import logging
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, TYPE_CHECKING
 
 from cardinal_pythonlib.dicts import merge_two_dicts
 from cardinal_pythonlib.django.serve import serve_buffer
@@ -93,7 +93,7 @@ def get_pdf_footer_html(ethics_doccode: str = None) -> str:
     title = ""
     version = ""
     date = ""
-    ethics = settings.ETHICS_INFO  # type: Optional[EthicsInfo]
+    ethics: EthicsInfo | None = settings.ETHICS_INFO
     if ethics_doccode and ethics:
         docinfo = ethics.get_docinfo(ethics_doccode)
         title = docinfo.title

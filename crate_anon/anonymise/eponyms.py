@@ -44,7 +44,7 @@ Remember the following:
 
 """
 
-from typing import Dict, List, Optional
+from typing import List
 
 from unidecode import unidecode
 
@@ -59,7 +59,7 @@ class EponymInfo:
     pass
 
 
-EPONYM_DICT = {}  # type: Dict[str, Optional[EponymInfo]]
+EPONYM_DICT: dict[str, EponymInfo | None] = {}
 
 
 def get_plain_eponyms(add_unaccented_versions: bool = True) -> List[str]:

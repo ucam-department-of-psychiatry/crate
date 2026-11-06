@@ -1606,7 +1606,7 @@ def _get_rio_names(
             AND AliasType = '1'  -- usual name
     """)
     result = exec_get_result(engine, sql, client_id=rio_client_id)
-    rows = result.fetchall()  # type: List[Row]
+    rows: list[Row] = result.fetchall()
     n_rows = len(rows)  # or result.rowcount()
     assert n_rows <= 1, "Didn't expect >1 row per patient in ClientName"
     if n_rows == 0:

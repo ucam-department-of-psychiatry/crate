@@ -32,7 +32,6 @@ crate_anon/anonymise/show_counts.py
 import argparse
 import logging
 import os
-from typing import List, Tuple
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from cardinal_pythonlib.sqlalchemy.core_query import count_star
@@ -56,7 +55,7 @@ def show_source_counts(config: Config) -> None:
     Show (print to stdout) the number of records in all source tables.
     """
     print("SOURCE TABLE RECORD COUNTS:")
-    counts = []  # type: List[Tuple[str, int]]
+    counts: list[tuple[str, int]] = []
     for d in config.dd.get_source_databases():
         session = config.sources[d].session
         for t in config.dd.get_src_tables(d):
@@ -70,7 +69,7 @@ def show_dest_counts(config: Config) -> None:
     Show (print to stout) the number of records in all destination tables.
     """
     print("DESTINATION TABLE RECORD COUNTS:")
-    counts = []  # type: List[Tuple[str, int]]
+    counts: list[tuple[str, int]] = []
     session = config.destdb.session
     for t in config.dd.get_dest_tables_included():
         n = count_star(session, t)

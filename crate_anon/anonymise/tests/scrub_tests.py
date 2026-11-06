@@ -35,7 +35,6 @@ import re
 import logging
 import os
 from tempfile import TemporaryDirectory
-from typing import List
 from unittest import TestCase
 
 from cardinal_pythonlib.hash import HmacMD5Hasher
@@ -138,7 +137,7 @@ class WordListTests(TestCase):
             + "\n"
         )
         # https://stackoverflow.com/questions/952914/how-to-make-a-flat-list-out-of-a-list-of-lists  # noqa: E501
-        denylist_words = []  # type: List[str]
+        denylist_words: list[str] = []
         for line in denylist_phrases:
             denylist_words += [x for x in line.split() if x]
 

@@ -77,7 +77,6 @@ from typing import (
     Generator,
     Iterable,
     List,
-    Tuple,
 )
 
 from cardinal_pythonlib.dicts import rename_key
@@ -2437,7 +2436,7 @@ def main() -> None:
     ]
 
     if args.list_lookup_tables:
-        tables_files = []  # type: List[Tuple[str, str]]
+        tables_files: list[tuple[str, str]] = []
         for sa_class in classlist:
             tables_files.append(
                 (sa_class.__tablename__, sa_class.__filename__)

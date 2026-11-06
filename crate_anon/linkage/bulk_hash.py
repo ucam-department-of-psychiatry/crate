@@ -112,8 +112,10 @@ def bulk_hash(
     log.info(f"keep_id: {keep_id}")
     log.debug(f"Using key: {key!r}")  # NB security warning in help
     hash_fn = make_hasher(hash_method=hash_method, key=key).hash
-    with smart_open(input_filename, "rt") as i:  # type: TextIO
-        with smart_open(output_filename, "wt") as o:  # type: TextIO
+    i: TextIO
+    with smart_open(input_filename, "rt") as i:
+        o: TextIO
+        with smart_open(output_filename, "wt") as o:
             for line in gen_noncomment_lines(i):
                 hashed = hash_fn(line) if line else ""
                 outline = f"{hashed},{line}" if keep_id else hashed

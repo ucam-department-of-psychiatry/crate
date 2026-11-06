@@ -41,8 +41,6 @@ from typing import (
     List,
     Optional,
     Pattern,
-    Set,
-    Tuple,
     TYPE_CHECKING,
     Union,
 )
@@ -242,12 +240,12 @@ class WordList(ScrubberBase):
         self.at_word_boundaries_only = at_word_boundaries_only
         self.max_errors = max_errors
         self.regex_method = regex_method
-        self._regex = None  # type: Optional[Pattern[str]]
-        self._processor = None  # type: Optional[KeywordProcessorFixed]
+        self._regex: Pattern[str] | None = None
+        self._processor: KeywordProcessorFixed | None = None
         self._cached_hash = None  # type: Optional[str]
         self._built = False
 
-        self.words = set()  # type: Set[str]
+        self.words: set[str] = set()
         # Sets are faster than lists for "is x in s" operations:
         # https://stackoverflow.com/questions/2831212/python-sets-vs-lists
         # noinspection PyTypeChecker
@@ -264,7 +262,7 @@ class WordList(ScrubberBase):
         this scrubber).
         """
         self._built = False
-        self._regex = None  # type: Optional[Pattern[str]]
+        self._regex: Pattern[str] | None = None
         self._processor = None  # type: Optional[KeywordProcessorFixed]
         self._cached_hash = None  # type: Optional[str]
 
@@ -599,7 +597,7 @@ class NonspecificScrubber(ScrubberBase):
         self.extra_regexes = extra_regexes
 
         self._cached_hash = None  # type: Optional[str]
-        self._regex = None  # type: Optional[Pattern[str]]
+        self._regex: Pattern[str] | None = None
         self._regex_built = False
         self.build_regex()
 
@@ -836,16 +834,14 @@ class PersonalizedScrubber(ScrubberBase):
         self.debug = debug
 
         # Regex information
-        self.re_patient = None  # type: Optional[Pattern[str]]
-        self.re_tp = None  # type: Optional[Pattern[str]]
+        self.re_patient: Pattern[str] | None = None
+        self.re_tp: Pattern[str] | None = None
         self.regexes_built = False
         self.re_patient_elements = []  # type: List[str]
         self.re_tp_elements = []  # type: List[str]
         # ... both changed from set to list to reflect referee's point re
         #     potential importance of scrubber order
-        self.elements_tuplelist = (
-            []
-        )  # type: List[Tuple[bool, ScrubMethod, str]]
+        self.elements_tuplelist: list[tuple[bool, ScrubMethod, str]] = []
         # ... list of tuples: (patient?, type, value)
         # ... used for get_raw_info(); since we've made the order important,
         #     we should detect changes in order here as well
