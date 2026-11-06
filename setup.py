@@ -154,7 +154,7 @@ INSTALL_REQUIRES = [
     "black==26.3.1",  # auto code formatter, keep in sync with .pre-commit-config.yaml  # noqa: E501
     "factory_boy==3.3.0",  # easier test data creation
     "faker==13.3.1",  # test data creation
-    "faker-file[common]==0.17.13",  # test file creation
+    "faker-file==0.17.13",  # test file creation
     "flake8==6.1.0",  # code checks, keep in sync with .pre-commit-config.yaml
     "docutils==0.19",
     "mistune==3.3.3",
