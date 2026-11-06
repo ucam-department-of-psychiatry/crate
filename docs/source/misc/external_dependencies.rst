@@ -47,7 +47,6 @@ Python packages
 - ``kombu``: http://docs.celeryproject.org/projects/kombu/
 - ``openpyxl``: https://openpyxl.readthedocs.io/
 - ``pendulum``: https://pendulum.eustace.io/
-- ``pdfkit``: https://pypi.org/project/pdfkit/
 - ``prettytable``: https://pypi.org/project/PrettyTable/
 - ``psutil``: https://psutil.readthedocs.io/
 - ``Pygments``: http://pygments.org/
