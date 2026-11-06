@@ -8,7 +8,6 @@ on:
             - '**.py'
             - .github/workflows/python-tests.yml
             - github_action_scripts/change_apt_mirror.sh
-            - github_action_scripts/install_wkhtmltopdf.sh
             - github_action_scripts/python_setup.sh
             - github_action_scripts/python_tests.sh
             - github_action_scripts/redis_setup.sh
@@ -46,10 +45,6 @@ jobs:
               run: |
                   set -euo pipefail
                   ${GITHUB_WORKSPACE}/github_action_scripts/change_apt_mirror.sh
-            - name: Install wkhtmltopdf
-              run: |
-                set -euxo pipefail
-                ${GITHUB_WORKSPACE}/github_action_scripts/install_wkhtmltopdf.sh
             - name: Redis setup
               run: |
                 set -euxo pipefail

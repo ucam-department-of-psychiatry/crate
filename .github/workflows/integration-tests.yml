@@ -10,7 +10,6 @@ on:
             - .github/workflows/integration-tests.yml
             - github_action_scripts/change_apt_mirror.sh
             - github_action_scripts/docker_db_setup.sh
-            - github_action_scripts/install_wkhtmltopdf.sh
             - github_action_scripts/integration_tests.sh
             - github_action_scripts/python_setup.sh
 jobs:
@@ -33,10 +32,6 @@ jobs:
               run: |
                   set -euo pipefail
                   ${GITHUB_WORKSPACE}/github_action_scripts/change_apt_mirror.sh
-            - name: Install wkhtmltopdf
-              run: |
-                set -euxo pipefail
-                ${GITHUB_WORKSPACE}/github_action_scripts/install_wkhtmltopdf.sh
             - name: Run integration tests
               run: |
                 set -euxo pipefail
