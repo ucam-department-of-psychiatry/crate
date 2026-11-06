@@ -120,6 +120,7 @@ def get_pdf_from_html_with_django_settings(
     footer_html: str = None,
     wkhtmltopdf_filename: str = None,
     wkhtmltopdf_options: Dict[str, Any] = None,
+    weasyprint_options: dict[str, Any] = None,
     debug_content: bool = False,
     debug_options: bool = False,
     fix_pdfkit_encoding_bug: bool = None,
@@ -151,6 +152,7 @@ def get_pdf_from_html_with_django_settings(
         footer_html=footer_html,
         wkhtmltopdf_filename=wkhtmltopdf_filename,
         wkhtmltopdf_options=wkhtmltopdf_options,
+        wasyprint_options=weasyprint_options,
         debug_content=debug_content,
         debug_options=debug_options,
         fix_pdfkit_encoding_bug=fix_pdfkit_encoding_bug,
@@ -163,6 +165,7 @@ def make_pdf_on_disk_from_html_with_django_settings(
     footer_html: str = None,
     wkhtmltopdf_filename: str = None,
     wkhtmltopdf_options: Dict[str, Any] = None,
+    weasyprint_options: dict[str, Any] = None,
     output_path: str = None,
     debug_content: bool = False,
     debug_options: bool = False,
@@ -187,6 +190,12 @@ def make_pdf_on_disk_from_html_with_django_settings(
         wkhtmltopdf_options = merge_two_dicts(
             settings.WKHTMLTOPDF_OPTIONS, wkhtmltopdf_options
         )
+    if weasyprint_options is None:
+        weasyprint_options = settings.WEASYPRINT_OPTIONS.copy()
+    else:
+        weasyprint_options = merge_two_dicts(
+            settings.WEASYPRINT_OPTIONS, weasyprint_options
+        )
 
     return make_pdf_on_disk_from_html(
         html=html,
@@ -195,6 +204,7 @@ def make_pdf_on_disk_from_html_with_django_settings(
         footer_html=footer_html,
         wkhtmltopdf_filename=wkhtmltopdf_filename,
         wkhtmltopdf_options=wkhtmltopdf_options,
+        weasyprint_options=weasyprint_options,
         debug_content=debug_content,
         debug_options=debug_options,
         fix_pdfkit_encoding_bug=fix_pdfkit_encoding_bug,

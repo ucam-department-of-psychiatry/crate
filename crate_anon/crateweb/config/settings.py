@@ -465,6 +465,8 @@ LOGGING = {
 # --enable-local-file-access:
 #     for wkhtmltopdf 0.12.6
 
+WEASYPRINT_OPTIONS = {}
+
 WKHTMLTOPDF_OPTIONS = {
     "disable-smart-shrinking": "",  # --disable-smart-shrinking
     "dpi": "300",
