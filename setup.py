@@ -118,8 +118,7 @@ INSTALL_REQUIRES = [
     "pypdf==6.20.0",  # create PDF files
     "Pyphen==0.17.2",  # Weasyprint dependency
     "python-dateutil==2.8.2",  # [pin exact version from cardinal_pythonlib]
-    # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
-    # ... https://python-docx.readthedocs.org/en/latest/user/install.html
+    "python-docx==1.2.0",  # faker_file optional dependency
     "regex==2026.9.29",  # better regexes (cf. re)
     "rich-argparse==0.5.0",  # colourful help
     "semantic_version==2.8.5",  # semantic versioning; better than semver
@@ -154,16 +153,18 @@ INSTALL_REQUIRES = [
     "black==26.3.1",  # auto code formatter, keep in sync with .pre-commit-config.yaml  # noqa: E501
     "factory_boy==3.3.0",  # easier test data creation
     "faker==13.3.1",  # test data creation
-    "faker-file==0.17.13",  # test file creation
+    "faker-file==0.17.13",  # test file creation. Install optional dependencies separately  # noqa: E501
     "flake8==6.1.0",  # code checks, keep in sync with .pre-commit-config.yaml
     "docutils==0.19",
     "mistune==3.3.3",
+    "odfpy==1.4.1",  # faker_file optional dependency
     "paramiko==5.0.0",  # Python implementation of the SSHv2 protocol, required by faker-file  # noqa: E501
     "pre-commit==2.20.0",  # development only, various sanity checks on code
     "pytest==9.0.3",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
     "pytest-env==1.1.5",  # automatic testing
     "python-on-whales==0.68.0",  # python wrappers for testing with Docker
+    "reportlab==5.1.0",  # faker_file optional dependency
     "sphinx==7.1.2",  # documentation
     "sphinx_rtd_theme==3.0.2",  # documentation
     "sphinx-mdinclude==0.6.2",  # documentation
