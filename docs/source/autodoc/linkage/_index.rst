@@ -43,6 +43,7 @@ crate_anon/linkage
     person_io.py.rst
     tests/__init__.py.rst
     tests/fuzzy_id_match_tests.py.rst
+    tests/identifiers_tests.py.rst
     tests/person_tests.py.rst
     validation/entropy_names.py.rst
     validation/other_examples_for_paper.py.rst

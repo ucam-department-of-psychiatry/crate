@@ -553,9 +553,7 @@ class CloudRequestListProcessors(CloudRequest):
 
         processors = []  # type: List[ServerProcessor]
         try:
-            proclist = json_response[
-                NlprpKeys.PROCESSORS
-            ]  # type: JsonArrayType
+            proclist: JsonArrayType = json_response[NlprpKeys.PROCESSORS]
         except KeyError:
             raise KeyError(
                 f"Server did not provide key {NlprpKeys.PROCESSORS!r} in its "
@@ -644,11 +642,11 @@ class CloudRequestProcess(CloudRequest):
         self._request_process = make_nlprp_dict()
         self._request_process[NlprpKeys.COMMAND] = NlprpCommands.PROCESS
         self._request_process[NlprpKeys.ARGS] = {
-            NlprpKeys.PROCESSORS: [],  # type: List[str]
+            NlprpKeys.PROCESSORS: [],
             NlprpKeys.QUEUE: True,
             NlprpKeys.CLIENT_JOB_ID: self._client_job_id,
             NlprpKeys.INCLUDE_TEXT: False,
-            NlprpKeys.CONTENT: [],  # type: List[str]
+            NlprpKeys.CONTENT: [],
         }
         # Set up fetch_from_queue request
         self._fetch_request = make_nlprp_dict()

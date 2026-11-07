@@ -31,7 +31,7 @@ from collections import OrderedDict
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 from cardinal_pythonlib.dbfunc import dictfetchall
 from cardinal_pythonlib.django.django_constants import ConnectionVendors
@@ -1633,7 +1633,7 @@ class ResearchDatabaseInfo:
         Returns:
             a list of :class:`crate_anon.common.sql.TableId` objects
         """
-        tables = set()  # type: Set[TableId]
+        tables: set[TableId] = set()
         for column in self.get_colinfolist():
             tables.add(column.table_id)
         return sorted(list(tables))
@@ -1675,7 +1675,7 @@ class ResearchDatabaseInfo:
         Returns:
             a list of :class:`crate_anon.common.sql.TableId` objects
         """
-        eligible_tables = set()  # type: Set[TableId]
+        eligible_tables: set[TableId] = set()
         for table in self.get_tables():
             dbinfo = self.get_dbinfo_by_schema(table.schema_id)
             if not dbinfo.has_mrid:

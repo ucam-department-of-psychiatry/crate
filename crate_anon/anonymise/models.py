@@ -39,7 +39,7 @@ To create a SQLAlchemy ORM programmatically:
 
 import logging
 import random
-from typing import Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Union
 
 from cardinal_pythonlib.sqlalchemy.orm_query import exists_orm
 from sqlalchemy import (
@@ -202,8 +202,8 @@ class PatientInfo(SecretBase):
             self.patient_scrubber_text = scrubber.get_patient_regex_string()
             self.tp_scrubber_text = scrubber.get_tp_regex_string()
         else:
-            self.patient_scrubber_text = None  # type: Optional[str]
-            self.tp_scrubber_text = None  # type: Optional[str]
+            self.patient_scrubber_text: str | None = None
+            self.tp_scrubber_text: str | None = None
 
 
 class TridRecord(SecretBase):

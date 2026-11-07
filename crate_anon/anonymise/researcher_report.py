@@ -36,7 +36,7 @@ import decimal
 import enum
 import logging
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from cardinal_pythonlib.datetimefunc import (
     format_datetime,
@@ -209,7 +209,7 @@ class ResearcherReportConfig:
         """
         if not self.show_url or not self.db_url:
             return ""
-        url_obj = make_url(self.db_url)  # type: URL
+        url_obj: URL = make_url(self.db_url)
         return repr(url_obj)
         # For SQLAlchemy URL objects, the default str() implementation calls
         # self.__to_string__(hide_password=False), but the default repr() hides
@@ -370,7 +370,7 @@ def get_values_summary(
         return EN_DASH
 
     # Otherwise, we can always do the number of distinct values:
-    items = []  # type: List[str]
+    items: list[str] = []
     session = reportcfg.db_session
     n_distinct_notnull = session.execute(
         select(func.count(distinct(column)))
@@ -478,9 +478,9 @@ def mk_table_html(table_name: str, reportcfg: ResearcherReportConfig) -> str:
     )
     # Rows versus records: https://dba.stackexchange.com/questions/31805/
 
-    t = reportcfg.db.metadata.tables[table_name]  # type: Table
+    t: Table = reportcfg.db.metadata.tables[table_name]
     table_comment = t.comment or ""  # may be blank
-    columns = []  # type: List[ReflectedColumnInfo]
+    columns: list[ReflectedColumnInfo] = []
     for c in sorted(t.c, key=lambda x: x.name):  # type: Column
         log.debug(repr(c))
         colname = c.name

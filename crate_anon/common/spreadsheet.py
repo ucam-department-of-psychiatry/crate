@@ -35,7 +35,7 @@ import csv
 from enum import Enum
 import logging
 import os
-from typing import Any, Dict, Iterable, List, Sequence, TextIO
+from typing import Any, Dict, Iterable, Sequence, TextIO
 
 from cardinal_pythonlib.file_io import smart_open
 import openpyxl
@@ -194,7 +194,7 @@ def remove_none_values_from_spreadsheet(
     """
     result = {}
     for sheetname, sheetdata in data.items():
-        converted_sheetdata = []  # type: List[List[Any]]
+        converted_sheetdata: list[list[Any]] = []
         for row in sheetdata:
             converted_row = [make_safe_for_spreadsheet(x) for x in row]
             converted_sheetdata.append(converted_row)
@@ -215,7 +215,9 @@ def write_csv(filename: str, rows: SINGLE_SPREADSHEET_TYPE) -> None:
             Name of file to write.
     """
     log.info(f"Saving as CSV: {filename}")
-    with smart_open(filename, "wt") as f:  # type: TextIO
+
+    f: TextIO
+    with smart_open(filename, "wt") as f:
         writer = csv.writer(f)
         writer.writerows(rows)
 
@@ -233,7 +235,9 @@ def write_tsv(filename: str, rows: SINGLE_SPREADSHEET_TYPE) -> None:
             Name of file to write.
     """
     log.info(f"Saving as TSV: {filename}")
-    with smart_open(filename, "wt") as f:  # type: TextIO
+
+    f: TextIO
+    with smart_open(filename, "wt") as f:
         writer = csv.writer(f, delimiter="\t")
         writer.writerows(rows)
 
