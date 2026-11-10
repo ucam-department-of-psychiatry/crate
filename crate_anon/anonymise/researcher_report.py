@@ -44,7 +44,7 @@ from cardinal_pythonlib.datetimefunc import (
     strfdelta,
 )
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
-from cardinal_pythonlib.pdf import make_pdf_on_disk_from_html
+from cardinal_pythonlib.pdf import make_pdf_on_disk_from_html, Processors
 import django
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -111,6 +111,7 @@ class Default:
     MAX_VALUE_LENGTH = 50
     ORIENTATION = "landscape"
     PAGE_SIZE = "A4"
+    PDF_PROCESSOR = Processors.WEASYPRINT
     MARGIN_LEFT_RIGHT = "15mm"
     MARGIN_TOP_BOTTOM = "18mm"  # see HEADER_FOOTER_SPACING_MM
 
@@ -147,6 +148,7 @@ class ResearcherReportConfig:
     margin_left_right: str = Default.MARGIN_LEFT_RIGHT
     margin_top_bottom: str = Default.MARGIN_TOP_BOTTOM
     page_size: str = Default.PAGE_SIZE
+    pdf_processor: str = Default.PDF_PROCESSOR
     orientation: str = Default.ORIENTATION
     show_counts: bool = True  # count records in each table?
     show_url: bool = True  # include a sanitised URL for the database
@@ -630,6 +632,7 @@ def mk_researcher_report_pdf(
         debug_options=reportcfg.debug_pdf,
         debug_content=reportcfg.debug_pdf,
         debug_wkhtmltopdf_args=reportcfg.debug_pdf,
+        processor=reportcfg.pdf_processor,
     )
 
 
@@ -658,6 +661,17 @@ setting e.g. "ulimit -n 2048" is one solution.
     )
 
     parser.add_argument("output", help="PDF output filename")
+
+    parser.add_argument(
+        "--pdf_processor",
+        help="PDF processor. Non-defaults may require installation",
+        choices=[
+            Processors.PDFKIT,
+            Processors.WEASYPRINT,
+            Processors.XHTML2PDF,
+        ],
+        default=Processors.WEASYPRINT,
+    )
 
     grp_db = parser.add_argument_group("DATABASE")
     grp_db.add_argument(
@@ -843,6 +857,7 @@ setting e.g. "ulimit -n 2048" is one solution.
         orientation=args.orientation,
         output_filename=args.output,
         page_size=args.page_size,
+        pdf_processor=args.pdf_processor,
         show_counts=args.show_counts,
         show_url=args.show_url,
         show_values=args.show_values,

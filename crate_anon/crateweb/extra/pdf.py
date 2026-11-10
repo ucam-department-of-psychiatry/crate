@@ -36,6 +36,7 @@ from cardinal_pythonlib.pdf import (
     get_pdf_from_html,
     make_pdf_on_disk_from_html,
     PdfPlan,
+    Processors,
 )
 from django.conf import settings
 from django.http import HttpResponse
@@ -124,6 +125,7 @@ def get_pdf_from_html_with_django_settings(
     debug_content: bool = False,
     debug_options: bool = False,
     fix_pdfkit_encoding_bug: bool = None,
+    processor: str = Processors.WEASYPRINT,
 ) -> bytes:
     """
     Applies our ``settings.WKHTMLTOPDF_OPTIONS`` and then makes a PDF from the
@@ -156,6 +158,7 @@ def get_pdf_from_html_with_django_settings(
         debug_content=debug_content,
         debug_options=debug_options,
         fix_pdfkit_encoding_bug=fix_pdfkit_encoding_bug,
+        processor=processor,
     )
 
 
@@ -170,6 +173,7 @@ def make_pdf_on_disk_from_html_with_django_settings(
     debug_content: bool = False,
     debug_options: bool = False,
     fix_pdfkit_encoding_bug: bool = None,
+    processor: str = Processors.WEASYPRINT,
 ) -> bool:
     """
     Applies our ``settings.WKHTMLTOPDF_OPTIONS`` and then makes a PDF from the
@@ -208,6 +212,7 @@ def make_pdf_on_disk_from_html_with_django_settings(
         debug_content=debug_content,
         debug_options=debug_options,
         fix_pdfkit_encoding_bug=fix_pdfkit_encoding_bug,
+        processor=processor,
     )
 
 
