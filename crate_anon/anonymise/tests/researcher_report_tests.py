@@ -45,6 +45,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.orm import relationship
+from weasyprint import CSS
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.anonymise.researcher_report import (
@@ -227,29 +228,30 @@ class ResearcherReportTests(TestCase):
         super().setUp()
 
         # MagicMocks are subscriptable
-        self.mock_db_name = mock.MagicMock(spec=str)
-        self.mock_db_url = mock.MagicMock(spec=str)
+        self.mock_weasyprint_css = mock.MagicMock(spec=CSS)
         self.mock_db_holder = mock.MagicMock(spec=DatabaseHolder)
         self.mock_make_pdf_on_disk_from_html = mock.Mock()
-        self.mock_output = mock.MagicMock(spec=str)
         self.mock_render_to_string = mock.Mock()
 
         # needs to be str even though argparse will check it is an int
+        self.test_db_name = "test_db_name"
+        self.test_db_url = "test_db_url"
         self.test_header_footer_spacing_mm = "123"
         self.test_margin_left_right = "20mm"
         self.test_margin_top_bottom = "25mm"
         self.test_orientation = "portrait"
+        self.test_output = "output_file"
         self.test_page_size = "A5"
 
         self.maxDiff = None
 
     def test_wkhtmltopdf_options_when_making_pdf(self) -> None:
         arg_list = [
-            self.mock_output,
+            self.test_output,
             "--db_name",
-            self.mock_db_name,
+            self.test_db_name,
             "--db_url",
-            self.mock_db_url,
+            self.test_db_url,
             "--header_footer_spacing_mm",
             self.test_header_footer_spacing_mm,
             "--margin_left_right",
@@ -280,6 +282,7 @@ class ResearcherReportTests(TestCase):
             DatabaseHolder=self.mock_db_holder,
             render_to_string=self.mock_render_to_string,
             make_pdf_on_disk_from_html=self.mock_make_pdf_on_disk_from_html,
+            CSS=self.mock_weasyprint_css,
         ):
             parse_args(arg_list)
 
@@ -297,3 +300,65 @@ class ResearcherReportTests(TestCase):
         }
 
         self.assertEqual(kwargs["wkhtmltopdf_options"], expected_options)
+
+    def test_weasyprint_options_when_making_pdf(self) -> None:
+        arg_list = [
+            self.test_output,
+            "--db_name",
+            self.test_db_name,
+            "--db_url",
+            self.test_db_url,
+            "--header_footer_spacing_mm",
+            self.test_header_footer_spacing_mm,
+            "--margin_left_right",
+            self.test_margin_left_right,
+            "--margin_top_bottom",
+            self.test_margin_top_bottom,
+            "--noconfig",
+            "--orientation",
+            self.test_orientation,
+            "--page_size",
+            self.test_page_size,
+        ]
+
+        mock_css = mock.MagicMock(spec=str)
+        mock_header_html = mock.MagicMock(spec=str)
+        mock_footer_html = mock.MagicMock(spec=str)
+        mock_html = mock.MagicMock(spec=str)
+
+        self.mock_render_to_string.side_effect = [
+            mock_css,
+            mock_header_html,
+            mock_footer_html,
+            mock_html,
+        ]
+
+        mock_returned_css = mock.Mock()
+        self.mock_weasyprint_css.return_value = mock_returned_css
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.researcher_report",
+            DatabaseHolder=self.mock_db_holder,
+            render_to_string=self.mock_render_to_string,
+            make_pdf_on_disk_from_html=self.mock_make_pdf_on_disk_from_html,
+            CSS=self.mock_weasyprint_css,
+        ):
+            parse_args(arg_list)
+
+        kwargs = self.mock_make_pdf_on_disk_from_html.call_args.kwargs
+
+        expected_options = {
+            "stylesheets": [mock_returned_css],
+        }
+
+        self.assertEqual(kwargs["weasyprint_options"], expected_options)
+
+        css_string = self.mock_weasyprint_css.call_args.kwargs["string"]
+
+        self.assertIn(
+            f"size: {self.test_page_size} {self.test_orientation};", css_string
+        )
+        self.assertIn(
+            f"margin: {self.test_margin_top_bottom} {self.test_margin_left_right};",  # noqa: E501
+            css_string,
+        )
