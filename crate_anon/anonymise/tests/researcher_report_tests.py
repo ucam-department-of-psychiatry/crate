@@ -301,6 +301,54 @@ class ResearcherReportTests(TestCase):
 
         self.assertEqual(kwargs["wkhtmltopdf_options"], expected_options)
 
+    def test_wkhtmltopdf_header_and_footer_when_making_pdf(self) -> None:
+        arg_list = [
+            self.test_output,
+            "--db_name",
+            self.test_db_name,
+            "--db_url",
+            self.test_db_url,
+            "--noconfig",
+        ]
+
+        mock_css = mock.MagicMock(spec=str)
+        mock_header_html = mock.MagicMock(spec=str)
+        mock_footer_html = mock.MagicMock(spec=str)
+        mock_html = mock.MagicMock(spec=str)
+        test_now = "Mon 09 November 2026, 11:00 +0000"
+
+        self.mock_render_to_string.side_effect = [
+            mock_css,
+            mock_header_html,
+            mock_footer_html,
+            mock_html,
+        ]
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.researcher_report",
+            DatabaseHolder=self.mock_db_holder,
+            render_to_string=self.mock_render_to_string,
+            make_pdf_on_disk_from_html=self.mock_make_pdf_on_disk_from_html,
+            CSS=self.mock_weasyprint_css,
+            format_datetime=mock.Mock(return_value=test_now),
+        ):
+            parse_args(arg_list)
+
+        render_args_list = self.mock_render_to_string.call_args_list
+
+        header_args = render_args_list[1].args
+        footer_args = render_args_list[2].args
+
+        expected_title = (
+            f"{self.test_db_name}: CRATE researcher report, {test_now}"
+        )
+        expected_coredict = dict(
+            title=expected_title, css=mock_css, now=test_now
+        )
+
+        self.assertEqual(header_args[1], expected_coredict)
+        self.assertEqual(footer_args[1], expected_coredict)
+
     def test_weasyprint_options_when_making_pdf(self) -> None:
         arg_list = [
             self.test_output,
