@@ -247,10 +247,18 @@ class ResearcherReportConfig:
 
         # There are other Margin at-rules if needed:
         # https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@page#margin_at-rules
+        bottom_right_content = '"Page " counter(page) " of " counter(pages)'
+        top_right_content = f'"{self.title}"'
         weasyprint_css = f"""
         @page {{
             size: {self.page_size} {self.orientation};
             margin: {self.margin_top_bottom} {self.margin_left_right};
+            @top-right {{
+                content: {top_right_content};
+            }}
+            @bottom-right {{
+                content: {bottom_right_content};
+            }}
         }}
         """
 

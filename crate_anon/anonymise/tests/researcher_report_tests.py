@@ -354,6 +354,7 @@ class ResearcherReportTests(TestCase):
 
         mock_returned_css = mock.Mock()
         self.mock_weasyprint_css.return_value = mock_returned_css
+        test_now = "Mon 09 November 2026, 11:00 +0000"
 
         with mock.patch.multiple(
             "crate_anon.anonymise.researcher_report",
@@ -361,6 +362,7 @@ class ResearcherReportTests(TestCase):
             render_to_string=self.mock_render_to_string,
             make_pdf_on_disk_from_html=self.mock_make_pdf_on_disk_from_html,
             CSS=self.mock_weasyprint_css,
+            format_datetime=mock.Mock(return_value=test_now),
         ):
             parse_args(arg_list)
 
@@ -380,4 +382,12 @@ class ResearcherReportTests(TestCase):
         self.assertIn(
             f"margin: {self.test_margin_top_bottom} {self.test_margin_left_right};",  # noqa: E501
             css_string,
+        )
+        expected_title = (
+            f"{self.test_db_name}: CRATE researcher report, {test_now}"
+        )
+        self.assertIn(f'content: "{expected_title}";', css_string)
+
+        self.assertIn(
+            'content: "Page " counter(page) " of " counter(pages);', css_string
         )
