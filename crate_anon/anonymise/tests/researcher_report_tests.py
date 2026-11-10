@@ -177,19 +177,14 @@ class MkResearcherReportPdfTests(DatabaseTestCase):
                 table_names=["anon_patient", "anon_note"],
                 metadata=AnonTestBase.metadata,
             )
-
-            with mock.patch.multiple(
-                "crate_anon.anonymise.researcher_report.ResearcherReportConfig",  # noqa: E501
-                __post_init__=mock.Mock(),
-            ):
-                report_config = ResearcherReportConfig(
-                    output_filename=reportfilename,
-                    anonconfig=anon_config,
-                    use_dd=False,
-                )
-                report_config.db_session = self.anon_dbsession
-                report_config.db = mock_db
-                mk_researcher_report_pdf(report_config)
+            report_config = ResearcherReportConfig(
+                output_filename=reportfilename,
+                anonconfig=anon_config,
+                use_dd=False,
+            )
+            report_config.db_session = self.anon_dbsession
+            report_config.db = mock_db
+            mk_researcher_report_pdf(report_config)
 
         with open(reportfilename, "rb") as f:
             reader = PdfReader(f)

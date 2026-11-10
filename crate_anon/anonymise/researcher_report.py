@@ -205,6 +205,11 @@ class ResearcherReportConfig:
 
         self.db_session = self.db.session
 
+        self.now = format_datetime(
+            get_now_localtz_pendulum(), DateFormat.PRETTY
+        )
+        self.title = f"{self.db_name}: CRATE researcher report, {self.now}"
+
     def safe_db_url_if_selected(self) -> str:
         """
         Sanitised version of the database URL, or a blank string if not
@@ -581,13 +586,11 @@ def mk_researcher_report_html(
     # 2. Core variables
     # -------------------------------------------------------------------------
     db_name = reportcfg.get_db_name()
-    now = format_datetime(get_now_localtz_pendulum(), DateFormat.PRETTY)
-    title = f"{db_name}: CRATE researcher report, {now}"
     css = render_to_string(
         template(Templates.STYLE),
         dict(base_font_size=reportcfg.base_font_size),
     )
-    coredict = dict(title=title, css=css, now=now)
+    coredict = dict(title=reportcfg.title, css=css, now=reportcfg.now)
 
     # -------------------------------------------------------------------------
     # 3. Read header/footer (e.g. for PDF page numbers). Only used by PDFKit.
