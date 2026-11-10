@@ -32,7 +32,7 @@ import random
 import re
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
-from unittest import mock
+from unittest import mock, TestCase
 
 import factory
 from pypdf import PdfReader
@@ -46,8 +46,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 
+from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.anonymise.researcher_report import (
     mk_researcher_report_pdf,
+    parse_args,
     ResearcherReportConfig,
     TEMPLATE_DIR,
 )
@@ -137,7 +139,7 @@ def django_test_settings(settings: "LazySettings") -> None:
     ]
 
 
-class ResearcherReportTests(DatabaseTestCase):
+class MkResearcherReportPdfTests(DatabaseTestCase):
     def setUp(self) -> None:
         super().setUp()
 
@@ -216,3 +218,80 @@ class ResearcherReportTests(DatabaseTestCase):
 
             self.assertTrue(patient_found)
             self.assertTrue(note_found)
+
+
+class ResearcherReportTests(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+
+        # MagicMocks are subscriptable
+        self.mock_db_name = mock.MagicMock(spec=str)
+        self.mock_db_url = mock.MagicMock(spec=str)
+        self.mock_db_holder = mock.MagicMock(spec=DatabaseHolder)
+        self.mock_make_pdf_on_disk_from_html = mock.Mock()
+        self.mock_output = mock.MagicMock(spec=str)
+        self.mock_render_to_string = mock.Mock()
+
+        # needs to be str even though argparse will check it is an int
+        self.test_header_footer_spacing_mm = "123"
+        self.test_margin_left_right = "20mm"
+        self.test_margin_top_bottom = "25mm"
+        self.test_orientation = "portrait"
+        self.test_page_size = "A5"
+
+        self.maxDiff = None
+
+    def test_wkhtmltopdf_options_when_making_pdf(self) -> None:
+        arg_list = [
+            self.mock_output,
+            "--db_name",
+            self.mock_db_name,
+            "--db_url",
+            self.mock_db_url,
+            "--header_footer_spacing_mm",
+            self.test_header_footer_spacing_mm,
+            "--margin_left_right",
+            self.test_margin_left_right,
+            "--margin_top_bottom",
+            self.test_margin_top_bottom,
+            "--noconfig",
+            "--orientation",
+            self.test_orientation,
+            "--page_size",
+            self.test_page_size,
+        ]
+
+        mock_css = mock.MagicMock(spec=str)
+        mock_header_html = mock.MagicMock(spec=str)
+        mock_footer_html = mock.MagicMock(spec=str)
+        mock_html = mock.MagicMock(spec=str)
+
+        self.mock_render_to_string.side_effect = [
+            mock_css,
+            mock_header_html,
+            mock_footer_html,
+            mock_html,
+        ]
+
+        with mock.patch.multiple(
+            "crate_anon.anonymise.researcher_report",
+            DatabaseHolder=self.mock_db_holder,
+            render_to_string=self.mock_render_to_string,
+            make_pdf_on_disk_from_html=self.mock_make_pdf_on_disk_from_html,
+        ):
+            parse_args(arg_list)
+
+        kwargs = self.mock_make_pdf_on_disk_from_html.call_args.kwargs
+
+        expected_options = {
+            "page-size": self.test_page_size,
+            "margin-left": self.test_margin_left_right,
+            "margin-right": self.test_margin_left_right,
+            "margin-top": self.test_margin_top_bottom,
+            "margin-bottom": self.test_margin_top_bottom,
+            "header-spacing": self.test_header_footer_spacing_mm,
+            "footer-spacing": self.test_header_footer_spacing_mm,
+            "orientation": self.test_orientation,
+        }
+
+        self.assertEqual(kwargs["wkhtmltopdf_options"], expected_options)
