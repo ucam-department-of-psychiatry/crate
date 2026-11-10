@@ -52,6 +52,7 @@ import pendulum
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql.expression import distinct, func, select, table
 from sqlalchemy.schema import Column, Table
+from weasyprint import CSS
 
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.constants import ANON_CONFIG_ENV_VAR
@@ -233,6 +234,24 @@ class ResearcherReportConfig:
             # ... https://stackoverflow.com/q/42005819
             "orientation": self.orientation,
         }
+
+    def weasyprint_options(self) -> dict[str, str | None]:
+        """
+        Returns WeasyPrint options for the current setup.
+        """
+
+        # There are other Margin at-rules if needed:
+        # https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@page#margin_at-rules
+        weasyprint_css = f"""
+        @page {{
+            size: {self.page_size} {self.orientation};
+            margin: {self.margin_top_bottom} {self.margin_left_right};
+        }}
+        """
+
+        stylesheet = CSS(string=weasyprint_css)
+
+        return {"stylesheets": [stylesheet]}
 
     def get_db_name(self) -> str:
         """
@@ -629,6 +648,7 @@ def mk_researcher_report_pdf(
         header_html=header_html,
         footer_html=footer_html,
         wkhtmltopdf_options=reportcfg.wkhtmltopdf_options(),
+        weasyprint_options=reportcfg.weasyprint_options(),
         debug_options=reportcfg.debug_pdf,
         debug_content=reportcfg.debug_pdf,
         debug_wkhtmltopdf_args=reportcfg.debug_pdf,
