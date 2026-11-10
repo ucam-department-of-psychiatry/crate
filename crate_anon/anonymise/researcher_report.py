@@ -141,7 +141,7 @@ class ResearcherReportConfig:
 
     base_font_size: str = Default.BASE_FONT_SIZE
     db_name: str = None  # overrides that in config
-    db_url: str = None  # overrides that in config
+    db_url: str | URL = None  # overrides that in config
     debug_pdf: bool = False
     max_distinct_values: int = Default.MAX_DISTINCT_VALUES
     max_value_length: int = Default.MAX_VALUE_LENGTH
@@ -176,7 +176,7 @@ class ResearcherReportConfig:
             self.use_dd = False
 
         # Set up database
-        if self.db_url:
+        if isinstance(self.db_url, str):
             # Use a custom database
             if not self.db_name:
                 raise ValueError(
@@ -235,7 +235,7 @@ class ResearcherReportConfig:
             "orientation": self.orientation,
         }
 
-    def weasyprint_options(self) -> dict[str, str | None]:
+    def weasyprint_options(self) -> dict[str, Any]:
         """
         Returns WeasyPrint options for the current setup.
         """
@@ -659,7 +659,7 @@ def mk_researcher_report_pdf(
 # =============================================================================
 # Main
 # =============================================================================
-def parse_args(arg_list: list[str]) -> None:
+def parse_args(arg_list: list[str] | None = None) -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=f"""
@@ -847,12 +847,12 @@ setting e.g. "ulimit -n 2048" is one solution.
     # -------------------------------------------------------------------------
     # Onwards
     # -------------------------------------------------------------------------
+    config: Config = None
 
     if args.config:
         os.environ[ANON_CONFIG_ENV_VAR] = args.config
     if args.noconfig:
         log.info("Not using a CRATE anonymisation config file")
-        config = None
     else:
         from crate_anon.anonymise.config_singleton import (
             config,
@@ -883,7 +883,7 @@ setting e.g. "ulimit -n 2048" is one solution.
     mk_researcher_report_pdf(reportcfg)
 
 
-def main(arg_list: list[str]) -> None:
+def main(arg_list: list[str] | None = None) -> None:
     """
     Command-line entry point.
     """

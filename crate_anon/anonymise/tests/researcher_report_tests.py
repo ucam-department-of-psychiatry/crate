@@ -31,7 +31,7 @@ import os.path
 import random
 import re
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 from unittest import mock, TestCase
 
 import factory
@@ -102,7 +102,9 @@ class AnonPatientFactory(AnonTestBaseFactory):
     age = factory.LazyFunction(Fake.en_gb.age)
 
     @factory.post_generation
-    def notes(obj: "Resolver", create: bool, extracted: int, **kwargs) -> None:
+    def notes(
+        obj: "Resolver", create: bool, extracted: int, **kwargs: Any
+    ) -> None:
         if not create:
             return
 
