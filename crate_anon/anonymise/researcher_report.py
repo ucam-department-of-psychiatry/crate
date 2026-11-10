@@ -590,7 +590,7 @@ def mk_researcher_report_html(
     coredict = dict(title=title, css=css, now=now)
 
     # -------------------------------------------------------------------------
-    # 3. Read header/footer (e.g. for PDF page numbers).
+    # 3. Read header/footer (e.g. for PDF page numbers). Only used by PDFKit.
     # -------------------------------------------------------------------------
     header_html = render_to_string(template(Templates.PDF_HEADER), coredict)
     footer_html = render_to_string(template(Templates.PDF_FOOTER), coredict)
