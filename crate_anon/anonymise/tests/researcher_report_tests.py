@@ -265,18 +265,6 @@ class ResearcherReportTests(TestCase):
             self.test_page_size,
         ]
 
-        mock_css = mock.MagicMock(spec=str)
-        mock_header_html = mock.MagicMock(spec=str)
-        mock_footer_html = mock.MagicMock(spec=str)
-        mock_html = mock.MagicMock(spec=str)
-
-        self.mock_render_to_string.side_effect = [
-            mock_css,
-            mock_header_html,
-            mock_footer_html,
-            mock_html,
-        ]
-
         with mock.patch.multiple(
             "crate_anon.anonymise.researcher_report",
             DatabaseHolder=self.mock_db_holder,
@@ -367,18 +355,6 @@ class ResearcherReportTests(TestCase):
             self.test_orientation,
             "--page_size",
             self.test_page_size,
-        ]
-
-        mock_css = mock.MagicMock(spec=str)
-        mock_header_html = mock.MagicMock(spec=str)
-        mock_footer_html = mock.MagicMock(spec=str)
-        mock_html = mock.MagicMock(spec=str)
-
-        self.mock_render_to_string.side_effect = [
-            mock_css,
-            mock_header_html,
-            mock_footer_html,
-            mock_html,
         ]
 
         mock_returned_css = mock.Mock()
