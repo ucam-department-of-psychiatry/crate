@@ -659,12 +659,7 @@ def mk_researcher_report_pdf(
 # =============================================================================
 # Main
 # =============================================================================
-
-
-def main() -> None:
-    """
-    Command-line entry point.
-    """
+def parse_args(arg_list: list[str]) -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=f"""
@@ -840,7 +835,7 @@ setting e.g. "ulimit -n 2048" is one solution.
         "--debug_pdf", action="store_true", help="Debug PDF creation"
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(arg_list)
 
     # -------------------------------------------------------------------------
     # Verbosity, logging
@@ -886,6 +881,13 @@ setting e.g. "ulimit -n 2048" is one solution.
     )
 
     mk_researcher_report_pdf(reportcfg)
+
+
+def main(arg_list: list[str]) -> None:
+    """
+    Command-line entry point.
+    """
+    parse_args(arg_list)
 
 
 if __name__ == "__main__":
