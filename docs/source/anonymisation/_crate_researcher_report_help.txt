@@ -1,4 +1,6 @@
-USAGE: crate_researcher_report [-h] [--config CONFIG] [--noconfig]
+USAGE: crate_researcher_report [-h]
+                               [--pdf_processor {pdfkit,weasyprint,xhtml2pdf}]
+                               [--config CONFIG] [--noconfig]
                                [--db_url DB_URL] [--db_name DB_NAME]
                                [--show_url] [--no_show_url] [--show_counts]
                                [--no_show_counts] [--use_dd] [--no_use_dd]
@@ -28,6 +30,9 @@ POSITIONAL ARGUMENTS:
 
 OPTIONS:
   -h, --help            show this help message and exit
+  --pdf_processor {pdfkit,weasyprint,xhtml2pdf}
+                        PDF processor. Non-defaults may require installation
+                        (default: weasyprint)
 
 DATABASE:
   --config CONFIG       CRATE anonymisation config file, overriding
