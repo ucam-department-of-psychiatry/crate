@@ -871,26 +871,16 @@ setting e.g. "ulimit -n 2048" is one solution.
             config,
         )
 
+    args_dict = {
+        k: v
+        for (k, v) in vars(args).items()
+        if k not in ["config", "noconfig", "verbose"]
+    }
+
     reportcfg = ResearcherReportConfig(
         anonconfig=config,
-        base_font_size=args.base_font_size,
-        db_name=args.db_name,
-        db_url=args.db_url,
-        debug_pdf=args.debug_pdf,
-        header_footer_spacing_mm=args.header_footer_spacing_mm,
-        margin_left_right=args.margin_left_right,
-        margin_top_bottom=args.margin_top_bottom,
-        max_distinct_values=args.max_distinct_values,
-        max_value_length=args.max_value_length,
-        orientation=args.orientation,
-        output_filename=args.output,
-        page_size=args.page_size,
-        pdf_processor=args.pdf_processor,
-        show_counts=args.show_counts,
-        show_url=args.show_url,
-        show_values=args.show_values,
-        skip_values_if_too_many=args.skip_values_if_too_many,
-        use_dd=args.use_dd,
+        output_filename=args_dict.pop("output"),
+        **args_dict,
     )
 
     mk_researcher_report_pdf(reportcfg)
