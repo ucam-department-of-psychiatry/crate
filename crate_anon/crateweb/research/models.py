@@ -1707,7 +1707,8 @@ class PatientMultiQuery:
         """
         if not self._patient_conditions:
             return None
-        return self._research_database_info.get_linked_mrid_column(
+        research_database_info = get_research_db_info()
+        return research_database_info.get_linked_mrid_column(
             self._patient_conditions[0].table_id
         )
 
@@ -1869,7 +1870,8 @@ class PatientMultiQuery:
         Returns:
             tuple: ``sql, args``
         """
-        mrid_column = self._research_database_info.get_mrid_column_from_table(
+        research_database_info = get_research_db_info()
+        mrid_column = research_database_info.get_mrid_column_from_table(
             table_id
         )
         if mrids:
