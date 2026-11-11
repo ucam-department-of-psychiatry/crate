@@ -255,9 +255,11 @@ class ResearcherReportConfig:
             margin: {self.margin_top_bottom} {self.margin_left_right};
             @top-right {{
                 content: {top_right_content};
+                margin-bottom: {self.header_footer_spacing_mm}mm;
             }}
             @bottom-right {{
                 content: {bottom_right_content};
+                margin-top: {self.header_footer_spacing_mm}mm;
             }}
         }}
         """

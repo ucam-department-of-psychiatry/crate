@@ -391,3 +391,11 @@ class ResearcherReportTests(TestCase):
         self.assertIn(
             'content: "Page " counter(page) " of " counter(pages);', css_string
         )
+
+        self.assertIn(
+            f"margin-bottom: {self.test_header_footer_spacing_mm}mm;",
+            css_string,
+        )
+        self.assertIn(
+            f"margin-top: {self.test_header_footer_spacing_mm}mm;", css_string
+        )
