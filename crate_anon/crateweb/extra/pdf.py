@@ -153,7 +153,7 @@ def get_pdf_from_html_with_django_settings(
         footer_html=footer_html,
         wkhtmltopdf_filename=wkhtmltopdf_filename,
         wkhtmltopdf_options=wkhtmltopdf_options,
-        wasyprint_options=weasyprint_options,
+        weasyprint_options=weasyprint_options,
         debug_content=debug_content,
         debug_options=debug_options,
         processor=processor,
