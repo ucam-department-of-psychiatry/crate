@@ -13,6 +13,7 @@ Available subcommands:
     lookup_consent
     lookup_patient
     make_ethics_pack
+    make_test_consent_data
     populate
     resubmit_unprocessed_tasks
     test_email
