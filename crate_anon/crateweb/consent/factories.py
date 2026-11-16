@@ -33,6 +33,8 @@ import factory
 from faker_file.providers.pdf_file.generators.reportlab_generator import (
     ReportlabPdfGenerator,
 )
+
+# Not the same as django.core.files.storage.FileSystemStorage
 from faker_file.storages.filesystem import FileSystemStorage
 from django.conf import settings
 
@@ -56,7 +58,9 @@ from crate_anon.crateweb.consent.models import (
 from crate_anon.crateweb.userprofile.factories import UserFactory
 from crate_anon.testing.factories import Fake
 
-FS_STORAGE = FileSystemStorage(root_path=settings.MEDIA_ROOT, rel_path="tmp")
+FS_STORAGE = FileSystemStorage(
+    root_path=settings.PRIVATE_FILE_STORAGE_ROOT, rel_path="tmp"
+)
 
 if TYPE_CHECKING:
     from factory.builder import Resolver
