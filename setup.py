@@ -84,7 +84,7 @@ INSTALL_REQUIRES = [
     "django-extensions==3.1.1",  # for graph_models, show_urls etc.
     "django-picklefield==3.0.1",  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa: E501
     # "django-silk==4.0.1",  # Django profiler
-    "djangorestframework==3.17.2",  # Anonymisation API support
+    "djangorestframework==3.18.2",  # Anonymisation API support
     "django-sslserver==0.22",  # SSL development server for Django
     "drf-spectacular==0.27.2",  # Open API Schema and documentation
     "drf-spectacular-sidecar==2024.7.1",  # Static files for drf-spectacular
@@ -115,7 +115,7 @@ INSTALL_REQUIRES = [
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.20.0",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
-    "pypdf==6.20.0",  # create PDF files
+    "pypdf==6.21.4",  # create PDF files
     "Pyphen==0.17.2",  # Weasyprint dependency
     "python-dateutil==2.8.2",  # [pin exact version from cardinal_pythonlib]
     "python-docx==1.2.0",  # faker_file optional dependency
@@ -142,7 +142,7 @@ INSTALL_REQUIRES = [
     "pyramid_tm==2.4",  # Pyramid transaction management
     "redis==4.5.4",  # interface to Redis in-memory key-value database
     "requests==2.33.0",  # HTTP requests
-    "tornado==6.5.9",  # web framework
+    "tornado==6.6",  # web framework
     "transaction==3.0.0",  # generic transaction management
     "urllib3==2.8.0",  # used by requests
     "waitress==3.0.1",  # pure-Python WSGI server
@@ -150,7 +150,7 @@ INSTALL_REQUIRES = [
     # -------------------------------------------------------------------------
     # For development only:
     # -------------------------------------------------------------------------
-    "black==26.3.1",  # auto code formatter, keep in sync with .pre-commit-config.yaml  # noqa: E501
+    "black==26.10.1",  # auto code formatter, keep in sync with .pre-commit-config.yaml  # noqa: E501
     "factory_boy==3.3.0",  # easier test data creation
     "faker==13.3.1",  # test data creation
     "faker-file==0.17.13",  # test file creation. Install optional dependencies separately  # noqa: E501

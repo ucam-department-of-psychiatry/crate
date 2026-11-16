@@ -1805,6 +1805,10 @@ Changes
 - Minimum Python version is now 3.11. Python 3.10 has now reached end-of-life.
   Python 3.12-3.14 are now supported.
 
+- Fix internal server error ``'PatientMultiQuery' object has no attribute
+  '_research_database_info'`` when browsing the Patient Explorer.
+
+
 To do
 ~~~~~
 
