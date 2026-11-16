@@ -73,6 +73,7 @@ class StudyFactory(factory.django.DjangoModelFactory):
     institutional_id = factory.Sequence(lambda n: n + 1)
     title = factory.Sequence(lambda n: f"study-{n + 1}")
     lead_researcher = factory.SubFactory(UserFactory)
+    summary = Fake.en_us.paragraph(nb_sentences=3)
 
     patient_contact = True
     include_under_16s = True
