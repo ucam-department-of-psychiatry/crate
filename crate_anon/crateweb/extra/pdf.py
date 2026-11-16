@@ -38,6 +38,8 @@ from cardinal_pythonlib.pdf import (
     PdfPlan,
     Processors,
 )
+from weasyprint import CSS
+
 from django.conf import settings
 from django.http import HttpResponse
 from django.template.loader import render_to_string
@@ -70,6 +72,8 @@ class CratePdfPlan(PdfPlan):
             kwargs["wkhtmltopdf_filename"] = settings.WKHTMLTOPDF_FILENAME
         if "wkhtmltopdf_options" not in kwargs:  # added 2018-06-28
             kwargs["wkhtmltopdf_options"] = settings.WKHTMLTOPDF_OPTIONS
+        if "weasyprint_options" not in kwargs:
+            kwargs["weasyprint_options"] = settings.WEASYPRINT_OPTIONS
         super().__init__(*args, **kwargs)
 
 
@@ -78,19 +82,7 @@ class CratePdfPlan(PdfPlan):
 # =============================================================================
 
 
-def get_pdf_header_html() -> str:
-    """
-    Returns header HTML for PDF creation via wkhtmltopdf.
-    Replaces settings.PDF_LETTER_HEADER_HTML.
-    """
-    return render_to_string("pdf_header.html")
-
-
-def get_pdf_footer_html(ethics_doccode: str = None) -> str:
-    """
-    Returns footer HTML for PDF creation via wkhtmltopdf.
-    Replaces settings.PDF_LETTER_FOOTER_HTML.
-    """
+def get_pdf_footer_context(ethics_doccode: str = None) -> dict[str, Any]:
     title = ""
     version = ""
     date = ""
@@ -103,16 +95,70 @@ def get_pdf_footer_html(ethics_doccode: str = None) -> str:
     else:
         # All info or none.
         ethics = None
+
+    return {
+        "address": settings.PDF_LETTER_FOOTER_ADDRESS_HTML,
+        "date": date,
+        "ethics": ethics,
+        "title": title,
+        "version": version,
+    }
+
+
+def get_pdf_header_html() -> str:
+    """
+    Returns header HTML for PDF creation via wkhtmltopdf.
+    Replaces settings.PDF_LETTER_HEADER_HTML.
+    """
+    return render_to_string("pdf_header.html")
+
+
+def get_pdf_footer_html(footer_context: dict[str, Any]) -> str:
+    """
+    Returns footer HTML for PDF creation via wkhtmltopdf.
+    Replaces settings.PDF_LETTER_FOOTER_HTML.
+    """
     return render_to_string(
         "pdf_footer.html",
-        context={
-            "address": settings.PDF_LETTER_FOOTER_ADDRESS_HTML,
-            "date": date,
-            "ethics": ethics,
-            "title": title,
-            "version": version,
-        },
+        context=footer_context,
     )
+
+
+def get_weasyprint_options(footer_context: dict[str, Any]) -> dict[str, Any]:
+
+    # There are other Margin at-rules if needed:
+    # https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@page#margin_at-rules
+
+    address = footer_context["address"]
+    date = footer_context["date"]
+    title = footer_context["title"]
+    version = footer_context["version"]
+    ethics_ref = ""
+    if ethics := footer_context["ethics"]:
+        ethics_ref = (
+            f"[NHS Research Ethics details: IRAS# {ethics.IRAS_NUMBER} "
+            f"REC# {ethics.REC_REFERENCE} {title} version {version}, {date}.]"
+        )
+
+    bottom_right_content = f"""
+"Page " counter(page) " of " counter(pages)
+"\\00000a {address}"
+"\\00000a {ethics_ref}"
+"""
+
+    weasyprint_css = f"""
+    @page {{
+        @bottom-right {{
+            content: {bottom_right_content};
+            font-size: x-small;
+            white-space: pre-line;
+        }}
+    }}
+    """
+
+    stylesheet = CSS(string=weasyprint_css)
+
+    return {"stylesheets": [stylesheet]}
 
 
 def get_pdf_from_html_with_django_settings(
@@ -146,6 +192,12 @@ def get_pdf_from_html_with_django_settings(
             settings.WKHTMLTOPDF_OPTIONS, wkhtmltopdf_options
         )
     # log.debug(f"{wkhtmltopdf_options!r}")
+    if weasyprint_options is None:
+        weasyprint_options = settings.WEASYPRINT_OPTIONS.copy()
+    else:
+        weasyprint_options = merge_two_dicts(
+            settings.WEASYPRINT_OPTIONS, weasyprint_options
+        )
 
     return get_pdf_from_html(
         html=html,
@@ -251,10 +303,15 @@ def serve_html_or_pdf(
         ethics_doccode: ethics document code
     """
     if viewtype == "pdf":
+        footer_context = get_pdf_footer_context(ethics_doccode=ethics_doccode)
+
         return serve_pdf_from_html(
             html,
             header_html=get_pdf_header_html(),
-            footer_html=get_pdf_footer_html(ethics_doccode=ethics_doccode),
+            footer_html=get_pdf_footer_html(footer_context=footer_context),
+            weasyprint_options=get_weasyprint_options(
+                footer_context=footer_context
+            ),
         )
     elif viewtype == "html":
         return HttpResponse(html)
