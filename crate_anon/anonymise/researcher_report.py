@@ -857,6 +857,12 @@ setting e.g. "ulimit -n 2048" is one solution.
     loglevel = logging.DEBUG if args.verbose else logging.INFO
     main_only_quicksetup_rootlogger(level=loglevel)
 
+    weasyprint_loglevel = logging.DEBUG if args.verbose else logging.ERROR
+    logging.getLogger("weasyprint").setLevel(weasyprint_loglevel)
+
+    fonttools_loglevel = logging.DEBUG if args.verbose else logging.WARNING
+    logging.getLogger("fontTools").setLevel(fonttools_loglevel)
+
     # -------------------------------------------------------------------------
     # Onwards
     # -------------------------------------------------------------------------
