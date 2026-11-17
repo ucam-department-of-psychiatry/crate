@@ -28,4 +28,13 @@ echo checking packages for vulnerabilities
 #                     and HFS+ filesystems. We can't upgrade until Pyramid removes its
 #                     dependency on pkg_resources (https://github.com/Pylons/pyramid/issues/3731).
 #                     Nearly complete as of 2026-08-28.
-${SAFETY} check --full-report --ignore=67599 --ignore=70612 --ignore=SFTY-20260721-58460
+# SFTY-20261017-72390 filelock. Safety is pulling in an old version but we don't
+# SFTY-20261017-54654           use it outside of development.
+# SFTY-20261017-57659
+${SAFETY} check --full-report \
+    --ignore=67599 \
+    --ignore=70612 \
+    --ignore=SFTY-20260721-58460 \
+    --ignore=SFTY-20261017-72390 \
+    --ignore=SFTY-20261017-54654 \
+    --ignore=SFTY-20261017-57659
