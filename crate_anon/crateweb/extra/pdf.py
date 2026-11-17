@@ -72,8 +72,6 @@ class CratePdfPlan(PdfPlan):
             kwargs["wkhtmltopdf_filename"] = settings.WKHTMLTOPDF_FILENAME
         if "wkhtmltopdf_options" not in kwargs:  # added 2018-06-28
             kwargs["wkhtmltopdf_options"] = settings.WKHTMLTOPDF_OPTIONS
-        if "weasyprint_options" not in kwargs:
-            kwargs["weasyprint_options"] = settings.WEASYPRINT_OPTIONS
         super().__init__(*args, **kwargs)
 
 
@@ -192,12 +190,6 @@ def get_pdf_from_html_with_django_settings(
             settings.WKHTMLTOPDF_OPTIONS, wkhtmltopdf_options
         )
     # log.debug(f"{wkhtmltopdf_options!r}")
-    if weasyprint_options is None:
-        weasyprint_options = settings.WEASYPRINT_OPTIONS.copy()
-    else:
-        weasyprint_options = merge_two_dicts(
-            settings.WEASYPRINT_OPTIONS, weasyprint_options
-        )
 
     return get_pdf_from_html(
         html=html,
@@ -243,13 +235,6 @@ def make_pdf_on_disk_from_html_with_django_settings(
         wkhtmltopdf_options = merge_two_dicts(
             settings.WKHTMLTOPDF_OPTIONS, wkhtmltopdf_options
         )
-    if weasyprint_options is None:
-        weasyprint_options = settings.WEASYPRINT_OPTIONS.copy()
-    else:
-        weasyprint_options = merge_two_dicts(
-            settings.WEASYPRINT_OPTIONS, weasyprint_options
-        )
-
     return make_pdf_on_disk_from_html(
         html=html,
         output_path=output_path,
