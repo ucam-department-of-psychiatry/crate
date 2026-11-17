@@ -153,6 +153,7 @@ def get_weasyprint_options(ethics_doccode: str = None) -> dict[str, Any]:
 
         @bottom-left {{
             font-size: x-small;
+            white-space: pre;
             content: "Page " counter(page) " of " counter(pages)
         }}
     }}
