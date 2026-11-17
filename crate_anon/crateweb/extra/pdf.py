@@ -61,7 +61,9 @@ class CratePdfPlan(PdfPlan):
     header/footer.
     """
 
-    def __init__(self, *args, ethics_doccode: str = None, **kwargs) -> None:
+    def __init__(
+        self, *args, ethics_doccode: str = None, **kwargs: Any
+    ) -> None:
         if "header_html" not in kwargs:
             kwargs["header_html"] = get_pdf_header_html()
         if "footer_html" not in kwargs:
@@ -268,7 +270,7 @@ def make_pdf_on_disk_from_html_with_django_settings(
 
 
 def serve_pdf_from_html(
-    html: str, offered_filename: str = "test.pdf", **kwargs
+    html: str, offered_filename: str = "test.pdf", **kwargs: Any
 ) -> HttpResponse:
     """
     Converts HTML into a PDF and serves it.
