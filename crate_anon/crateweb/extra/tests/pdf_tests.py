@@ -34,15 +34,16 @@ from weasyprint import CSS
 from django.conf import LazySettings
 
 from crate_anon.crateweb.consent.constants import EthicsDocInfo, EthicsInfo
-from crate_anon.crateweb.extra.pdf import serve_html_or_pdf
+from crate_anon.crateweb.extra.pdf import CratePdfPlan, serve_html_or_pdf
 
 
-class ServeHtmlOrPdfTests(TestCase):
+class PdfTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
 
         # MagicMocks are subscriptable
-        self.mock_weasyprint_css = mock.MagicMock(spec=CSS)
+        self.mock_returned_css = mock.Mock(spec=CSS)
+        self.mock_css = mock.Mock(return_value=self.mock_returned_css)
         self.mock_docinfo = mock.Mock(
             spec=EthicsDocInfo,
             title="Test title",
@@ -65,15 +66,17 @@ class ServeHtmlOrPdfTests(TestCase):
         )
         self.mock_get_pdf_from_html = mock.Mock()
 
-    def test_weasyprint_options_when_making_pdf(self) -> None:
-        mock_returned_css = mock.Mock()
-        self.mock_weasyprint_css.return_value = mock_returned_css
 
+class ServeHtmlOrPdfTests(PdfTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+
+    def test_weasyprint_options_when_making_pdf(self) -> None:
         html = ""
 
         with mock.patch.multiple(
             "crate_anon.crateweb.extra.pdf",
-            CSS=self.mock_weasyprint_css,
+            CSS=self.mock_css,
             settings=self.mock_settings,
             render_to_string=mock.Mock(),
             get_pdf_from_html=self.mock_get_pdf_from_html,
@@ -87,15 +90,39 @@ class ServeHtmlOrPdfTests(TestCase):
         kwargs = self.mock_get_pdf_from_html.call_args.kwargs
 
         expected_options = {
-            "stylesheets": [mock_returned_css],
+            "stylesheets": [self.mock_returned_css],
         }
 
         self.assertEqual(kwargs["weasyprint_options"], expected_options)
 
-        css_string = self.mock_weasyprint_css.call_args.kwargs["string"]
+        css_string = self.mock_css.call_args.kwargs["string"]
 
         self.assertIn("Test address", css_string)
         self.assertIn("IRAS# 12345", css_string)
         self.assertIn(
             "REC# this/that Test title version v3.14, 2026-11-17", css_string
         )
+
+
+class CratePdfPlanTests(PdfTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+
+    def test_weasyprint_options_applied_to_plan(self) -> None:
+        with mock.patch.multiple(
+            "crate_anon.crateweb.extra.pdf",
+            CSS=self.mock_css,
+            settings=self.mock_settings,
+            render_to_string=mock.Mock(),
+        ):
+            plan = CratePdfPlan(
+                is_html=True, html="", ethics_doccode="Test doccode"
+            )
+
+        self.mock_get_docinfo.assert_called_with("Test doccode")
+        options = plan.weasyprint_options
+        expected_options = {
+            "stylesheets": [self.mock_returned_css],
+        }
+
+        self.assertEqual(options, expected_options)

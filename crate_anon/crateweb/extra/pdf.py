@@ -72,6 +72,11 @@ class CratePdfPlan(PdfPlan):
             kwargs["wkhtmltopdf_filename"] = settings.WKHTMLTOPDF_FILENAME
         if "wkhtmltopdf_options" not in kwargs:  # added 2018-06-28
             kwargs["wkhtmltopdf_options"] = settings.WKHTMLTOPDF_OPTIONS
+
+        kwargs["weasyprint_options"] = get_weasyprint_options(
+            ethics_doccode=ethics_doccode
+        )
+
         super().__init__(*args, **kwargs)
 
 
