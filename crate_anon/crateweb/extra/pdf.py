@@ -138,18 +138,15 @@ def get_weasyprint_options(footer_context: dict[str, Any]) -> dict[str, Any]:
             f"REC# {ethics.REC_REFERENCE} {title} version {version}, {date}.]"
         )
 
-    bottom_right_content = f"""
-"Page " counter(page) " of " counter(pages)
-"\\00000a {address}"
-"\\00000a {ethics_ref}"
-"""
-
     weasyprint_css = f"""
     @page {{
         @bottom-right {{
-            content: {bottom_right_content};
-            font-size: x-small;
+            color: #005EB8;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: xx-small;
             white-space: pre-line;
+            content: "Page " counter(page) " of " counter(pages) "\\00000a
+               {address}\\00000a {ethics_ref}";
         }}
     }}
     """
