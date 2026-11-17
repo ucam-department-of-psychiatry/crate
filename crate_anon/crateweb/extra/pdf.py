@@ -147,6 +147,8 @@ def get_weasyprint_options(footer_context: dict[str, Any]) -> dict[str, Any]:
             font-size: x-small;
             content: "Page " counter(page) " of " counter(pages)
         }}
+    }}
+    @page:first {{
         @bottom-right {{
             font-size: xx-small;
             white-space: pre-line;
