@@ -140,13 +140,17 @@ def get_weasyprint_options(footer_context: dict[str, Any]) -> dict[str, Any]:
 
     weasyprint_css = f"""
     @page {{
+        color: #005EB8;
+        font-family: Arial, Helvetica, sans-serif;
+
+        @bottom-left {{
+            font-size: x-small;
+            content: "Page " counter(page) " of " counter(pages)
+        }}
         @bottom-right {{
-            color: #005EB8;
-            font-family: Arial, Helvetica, sans-serif;
             font-size: xx-small;
             white-space: pre-line;
-            content: "Page " counter(page) " of " counter(pages) "\\00000a
-               {address}\\00000a {ethics_ref}";
+            content: "{address} \\00000a {ethics_ref}";
         }}
     }}
     """
