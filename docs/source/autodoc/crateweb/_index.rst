@@ -155,6 +155,7 @@ crate_anon/crateweb
     extra/admin.py.rst
     extra/pdf.py.rst
     extra/salutation.py.rst
+    extra/tests/pdf_tests.py.rst
     manage.py.rst
     research/__init__.py.rst
     research/archive_backend.py.rst
