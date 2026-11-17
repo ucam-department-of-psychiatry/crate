@@ -111,18 +111,21 @@ def get_pdf_header_html() -> str:
     return render_to_string("pdf_header.html")
 
 
-def get_pdf_footer_html(footer_context: dict[str, Any]) -> str:
+def get_pdf_footer_html(ethics_doccode: str = None) -> str:
     """
     Returns footer HTML for PDF creation via wkhtmltopdf.
     Replaces settings.PDF_LETTER_FOOTER_HTML.
     """
+    footer_context = get_pdf_footer_context(ethics_doccode)
+
     return render_to_string(
         "pdf_footer.html",
         context=footer_context,
     )
 
 
-def get_weasyprint_options(footer_context: dict[str, Any]) -> dict[str, Any]:
+def get_weasyprint_options(ethics_doccode: str = None) -> dict[str, Any]:
+    footer_context = get_pdf_footer_context(ethics_doccode)
 
     # There are other Margin at-rules if needed:
     # https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@page#margin_at-rules
@@ -238,6 +241,7 @@ def make_pdf_on_disk_from_html_with_django_settings(
         wkhtmltopdf_options = merge_two_dicts(
             settings.WKHTMLTOPDF_OPTIONS, wkhtmltopdf_options
         )
+
     return make_pdf_on_disk_from_html(
         html=html,
         output_path=output_path,
@@ -291,14 +295,12 @@ def serve_html_or_pdf(
         ethics_doccode: ethics document code
     """
     if viewtype == "pdf":
-        footer_context = get_pdf_footer_context(ethics_doccode=ethics_doccode)
-
         return serve_pdf_from_html(
             html,
             header_html=get_pdf_header_html(),
-            footer_html=get_pdf_footer_html(footer_context=footer_context),
+            footer_html=get_pdf_footer_html(ethics_doccode=ethics_doccode),
             weasyprint_options=get_weasyprint_options(
-                footer_context=footer_context
+                ethics_doccode=ethics_doccode
             ),
         )
     elif viewtype == "html":

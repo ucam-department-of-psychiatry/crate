@@ -83,7 +83,7 @@ class ServeHtmlOrPdfTests(TestCase):
                 html, viewtype="pdf", ethics_doccode="Test doccode"
             )
 
-        self.mock_get_docinfo.assert_called_once_with("Test doccode")
+        self.mock_get_docinfo.assert_called_with("Test doccode")
         kwargs = self.mock_get_pdf_from_html.call_args.kwargs
 
         expected_options = {
