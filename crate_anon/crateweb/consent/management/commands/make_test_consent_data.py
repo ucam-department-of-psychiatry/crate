@@ -30,7 +30,7 @@ crate_anon.crateweb.consent.models.make_dummy_objects
 
 With make_dummy_objects() the objects are held in memory rather than being
 stored in the database as they are here. So useful when testing on a production
- server.
+server.
 
 """
 
