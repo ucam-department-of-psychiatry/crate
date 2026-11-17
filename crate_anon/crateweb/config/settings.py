@@ -451,6 +451,16 @@ LOGGING = {
             "level": os.getenv("DJANGO_LOG_LEVEL", "DEBUG"),
             "propagate": True,
         },
+        "weasyprint": {
+            "handlers": ["console"],
+            "level": os.getenv("DJANGO_LOG_LEVEL", "ERROR"),
+            "propagate": True,
+        },
+        "fontTools": {
+            "handlers": ["console"],
+            "level": os.getenv("DJANGO_LOG_LEVEL", "WARNING"),
+            "propagate": True,
+        },
     },
 }
 
