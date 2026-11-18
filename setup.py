@@ -69,12 +69,14 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.13.4",  # [pin exact version from cardinal_pythonlib]
-    "cardinal_pythonlib==2.1.3",  # RNC libraries
+    "brotli==1.2.0",  # Weasyprint dependency
+    "cardinal_pythonlib==2.2.1",  # RNC libraries
     "cairosvg==2.9.1",  # work with SVG files
     "celery==5.2.7",  # back-end scheduling
     "chardet==5.2.0",  # character encoding detection for cardinal_pythonlib
     "cherrypy==18.10.0",  # Cross-platform web server
     "colorlog==4.1.0",  # colour in logs
+    "cssselect2==0.9.0",  # Weasyprint dependency
     "distro==1.5.0",  # replaces platform.linux_distribution
     "django==5.2.18",  # for main CRATE research database web server
     "django-debug-toolbar==6.3.0",  # Django debug toolbar
@@ -89,6 +91,7 @@ INSTALL_REQUIRES = [
     "extract_msg==0.54.1",  # Extract text from Outlook .msg files
     "flashtext==2.7",  # fast word replacement with the FlashText algorithm
     "flower==2.0.1",  # debug Celery; web server; only runs explicitly
+    "fonttools==4.63.0",  # Weasyprint dependency
     "fuzzy==1.2.2",  # phonetic matching
     "gunicorn==23.0.0",  # UNIX only, though will install under Windows
     "gutenbergpy==0.3.4",  # Project Gutenberg API
@@ -105,24 +108,29 @@ INSTALL_REQUIRES = [
     "pandas==2.3.3",  # freeze dependency; 2.1.0 not installing cleanly under Ubuntu 24.04  # noqa: E501
     "pendulum==3.3.0",  # dates/times
     "Pillow==13.0.0",  # image processing; import as PIL (Python Imaging Library)  # noqa: E501
-    "pdfkit==0.6.1",  # interface to wkhtmltopdf
     "prettytable==3.2.0",  # pretty formating of text-based tables
-    "psutil==6.1.1",  # process management, cardinal_pythonlib dependency, not currently used  # noqa: E501
+    "psutil==7.2.2",  # process management, cardinal_pythonlib dependency, not currently used  # noqa: E501
+    "pydyf==0.12.1",  # Weasyprint dependency
     "pyexcel-ods==0.6.0",  # for reading/writing ODS files
     "pyexcel-xlsx==0.6.0",  # for writing XLSX files (using openpyxl)
     "pygments==2.20.0",  # syntax highlighting
     "pyparsing==2.4.7",  # generic grammar parser
     "pypdf==6.21.4",  # create PDF files
+    "Pyphen==0.17.2",  # Weasyprint dependency
     "python-dateutil==2.8.2",  # [pin exact version from cardinal_pythonlib]
-    # "python-docx==0.8.10",  # needs lxml, which has Visual C++ dependencies under Windows  # noqa: E501
-    # ... https://python-docx.readthedocs.org/en/latest/user/install.html
+    "python-docx==1.2.0",  # faker_file optional dependency
     "regex==2026.9.29",  # better regexes (cf. re)
     "rich-argparse==0.5.0",  # colourful help
     "semantic_version==2.8.5",  # semantic versioning; better than semver
     "sortedcontainers==2.2.2",  # for SortedSet
     "SQLAlchemy==2.0.36",  # database access
     "sqlparse==0.6.0",  # [pin exact version from cardinal_pythonlib]
+    "tinycss2==1.5.1",  # Weasyprint dependency
+    "tinyhtml5==2.1.0",  # Weasyprint dependency
     "unidecode==1.1.1",  # for removing accents
+    "weasyprint==70.0",  # HTML to PDF
+    "webencodings==0.5.1",  # Weasyprint dependency
+    "zopfli==0.4.3",  # Weasyprint dependency
     # -------------------------------------------------------------------------
     # Packages for cloud NLP:
     # -------------------------------------------------------------------------
@@ -134,7 +142,7 @@ INSTALL_REQUIRES = [
     "pyramid_tm==2.4",  # Pyramid transaction management
     "redis==4.5.4",  # interface to Redis in-memory key-value database
     "requests==2.33.0",  # HTTP requests
-    "tornado==6.6",  # web framework
+    "tornado==6.6.1",  # web framework
     "transaction==3.0.0",  # generic transaction management
     "urllib3==2.8.0",  # used by requests
     "waitress==3.0.1",  # pure-Python WSGI server
@@ -145,16 +153,18 @@ INSTALL_REQUIRES = [
     "black==26.10.1",  # auto code formatter, keep in sync with .pre-commit-config.yaml  # noqa: E501
     "factory_boy==3.3.0",  # easier test data creation
     "faker==13.3.1",  # test data creation
-    "faker-file[common]==0.17.13",  # test file creation
+    "faker-file==0.17.13",  # test file creation. Install optional dependencies separately  # noqa: E501
     "flake8==6.1.0",  # code checks, keep in sync with .pre-commit-config.yaml
     "docutils==0.19",
     "mistune==3.3.3",
+    "odfpy==1.4.1",  # faker_file optional dependency
     "paramiko==5.0.0",  # Python implementation of the SSHv2 protocol, required by faker-file  # noqa: E501
     "pre-commit==2.20.0",  # development only, various sanity checks on code
     "pytest==9.0.3",  # automatic testing
     "pytest-django==4.5.2",  # automatic testing
     "pytest-env==1.1.5",  # automatic testing
     "python-on-whales==0.68.0",  # python wrappers for testing with Docker
+    "reportlab==5.1.0",  # faker_file optional dependency
     "sphinx==7.1.2",  # documentation
     "sphinx_rtd_theme==3.0.2",  # documentation
     "sphinx-mdinclude==0.6.2",  # documentation

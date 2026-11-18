@@ -44,7 +44,7 @@ from cardinal_pythonlib.datetimefunc import (
     strfdelta,
 )
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
-from cardinal_pythonlib.pdf import make_pdf_on_disk_from_html
+from cardinal_pythonlib.pdf import make_pdf_on_disk_from_html, Processors
 import django
 from django.conf import settings
 from django.template.loader import render_to_string
@@ -52,6 +52,7 @@ import pendulum
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql.expression import distinct, func, select, table
 from sqlalchemy.schema import Column, Table
+from weasyprint import CSS
 
 from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.constants import ANON_CONFIG_ENV_VAR
@@ -111,6 +112,7 @@ class Default:
     MAX_VALUE_LENGTH = 50
     ORIENTATION = "landscape"
     PAGE_SIZE = "A4"
+    PDF_PROCESSOR = Processors.WEASYPRINT
     MARGIN_LEFT_RIGHT = "15mm"
     MARGIN_TOP_BOTTOM = "18mm"  # see HEADER_FOOTER_SPACING_MM
 
@@ -139,7 +141,7 @@ class ResearcherReportConfig:
 
     base_font_size: str = Default.BASE_FONT_SIZE
     db_name: str = None  # overrides that in config
-    db_url: str = None  # overrides that in config
+    db_url: str | URL = None  # overrides that in config
     debug_pdf: bool = False
     max_distinct_values: int = Default.MAX_DISTINCT_VALUES
     max_value_length: int = Default.MAX_VALUE_LENGTH
@@ -147,6 +149,7 @@ class ResearcherReportConfig:
     margin_left_right: str = Default.MARGIN_LEFT_RIGHT
     margin_top_bottom: str = Default.MARGIN_TOP_BOTTOM
     page_size: str = Default.PAGE_SIZE
+    pdf_processor: str = Default.PDF_PROCESSOR
     orientation: str = Default.ORIENTATION
     show_counts: bool = True  # count records in each table?
     show_url: bool = True  # include a sanitised URL for the database
@@ -173,7 +176,7 @@ class ResearcherReportConfig:
             self.use_dd = False
 
         # Set up database
-        if self.db_url:
+        if isinstance(self.db_url, str):
             # Use a custom database
             if not self.db_name:
                 raise ValueError(
@@ -201,6 +204,11 @@ class ResearcherReportConfig:
             self.db_url = self.db.engine.url
 
         self.db_session = self.db.session
+
+        self.now = format_datetime(
+            get_now_localtz_pendulum(), DateFormat.PRETTY
+        )
+        self.title = f"{self.db_name}: CRATE researcher report, {self.now}"
 
     def safe_db_url_if_selected(self) -> str:
         """
@@ -231,6 +239,34 @@ class ResearcherReportConfig:
             # ... https://stackoverflow.com/q/42005819
             "orientation": self.orientation,
         }
+
+    def weasyprint_options(self) -> dict[str, Any]:
+        """
+        Returns WeasyPrint options for the current setup.
+        """
+
+        # There are other Margin at-rules if needed:
+        # https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@page#margin_at-rules
+        bottom_right_content = '"Page " counter(page) " of " counter(pages)'
+        top_right_content = f'"{self.title}"'
+        weasyprint_css = f"""
+        @page {{
+            size: {self.page_size} {self.orientation};
+            margin: {self.margin_top_bottom} {self.margin_left_right};
+            @top-right {{
+                content: {top_right_content};
+                margin-bottom: {self.header_footer_spacing_mm}mm;
+            }}
+            @bottom-right {{
+                content: {bottom_right_content};
+                margin-top: {self.header_footer_spacing_mm}mm;
+            }}
+        }}
+        """
+
+        stylesheet = CSS(string=weasyprint_css)
+
+        return {"stylesheets": [stylesheet]}
 
     def get_db_name(self) -> str:
         """
@@ -560,16 +596,14 @@ def mk_researcher_report_html(
     # 2. Core variables
     # -------------------------------------------------------------------------
     db_name = reportcfg.get_db_name()
-    now = format_datetime(get_now_localtz_pendulum(), DateFormat.PRETTY)
-    title = f"{db_name}: CRATE researcher report, {now}"
     css = render_to_string(
         template(Templates.STYLE),
         dict(base_font_size=reportcfg.base_font_size),
     )
-    coredict = dict(title=title, css=css, now=now)
+    coredict = dict(title=reportcfg.title, css=css, now=reportcfg.now)
 
     # -------------------------------------------------------------------------
-    # 3. Read header/footer (e.g. for PDF page numbers).
+    # 3. Read header/footer (e.g. for PDF page numbers). Only used by PDFKit.
     # -------------------------------------------------------------------------
     header_html = render_to_string(template(Templates.PDF_HEADER), coredict)
     footer_html = render_to_string(template(Templates.PDF_FOOTER), coredict)
@@ -627,21 +661,18 @@ def mk_researcher_report_pdf(
         header_html=header_html,
         footer_html=footer_html,
         wkhtmltopdf_options=reportcfg.wkhtmltopdf_options(),
+        weasyprint_options=reportcfg.weasyprint_options(),
         debug_options=reportcfg.debug_pdf,
         debug_content=reportcfg.debug_pdf,
         debug_wkhtmltopdf_args=reportcfg.debug_pdf,
+        processor=reportcfg.pdf_processor,
     )
 
 
 # =============================================================================
 # Main
 # =============================================================================
-
-
-def main() -> None:
-    """
-    Command-line entry point.
-    """
+def parse_args(arg_list: list[str] | None = None) -> None:
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(
         description=f"""
@@ -658,6 +689,17 @@ setting e.g. "ulimit -n 2048" is one solution.
     )
 
     parser.add_argument("output", help="PDF output filename")
+
+    parser.add_argument(
+        "--pdf_processor",
+        help="PDF processor. Non-defaults may require installation",
+        choices=[
+            Processors.PDFKIT,
+            Processors.WEASYPRINT,
+            Processors.XHTML2PDF,
+        ],
+        default=Processors.WEASYPRINT,
+    )
 
     grp_db = parser.add_argument_group("DATABASE")
     grp_db.add_argument(
@@ -806,7 +848,7 @@ setting e.g. "ulimit -n 2048" is one solution.
         "--debug_pdf", action="store_true", help="Debug PDF creation"
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(arg_list)
 
     # -------------------------------------------------------------------------
     # Verbosity, logging
@@ -815,42 +857,46 @@ setting e.g. "ulimit -n 2048" is one solution.
     loglevel = logging.DEBUG if args.verbose else logging.INFO
     main_only_quicksetup_rootlogger(level=loglevel)
 
+    weasyprint_loglevel = logging.DEBUG if args.verbose else logging.ERROR
+    logging.getLogger("weasyprint").setLevel(weasyprint_loglevel)
+
+    fonttools_loglevel = logging.DEBUG if args.verbose else logging.WARNING
+    logging.getLogger("fontTools").setLevel(fonttools_loglevel)
+
     # -------------------------------------------------------------------------
     # Onwards
     # -------------------------------------------------------------------------
+    config: Config = None
 
     if args.config:
         os.environ[ANON_CONFIG_ENV_VAR] = args.config
     if args.noconfig:
         log.info("Not using a CRATE anonymisation config file")
-        config = None
     else:
         from crate_anon.anonymise.config_singleton import (
             config,
         )
 
+    args_dict = {
+        k: v
+        for (k, v) in vars(args).items()
+        if k not in ["config", "noconfig", "verbose"]
+    }
+
     reportcfg = ResearcherReportConfig(
         anonconfig=config,
-        base_font_size=args.base_font_size,
-        db_name=args.db_name,
-        db_url=args.db_url,
-        debug_pdf=args.debug_pdf,
-        header_footer_spacing_mm=args.header_footer_spacing_mm,
-        margin_left_right=args.margin_left_right,
-        margin_top_bottom=args.margin_top_bottom,
-        max_distinct_values=args.max_distinct_values,
-        max_value_length=args.max_value_length,
-        orientation=args.orientation,
-        output_filename=args.output,
-        page_size=args.page_size,
-        show_counts=args.show_counts,
-        show_url=args.show_url,
-        show_values=args.show_values,
-        skip_values_if_too_many=args.skip_values_if_too_many,
-        use_dd=args.use_dd,
+        output_filename=args_dict.pop("output"),
+        **args_dict,
     )
 
     mk_researcher_report_pdf(reportcfg)
+
+
+def main(arg_list: list[str] | None = None) -> None:
+    """
+    Command-line entry point.
+    """
+    parse_args(arg_list)
 
 
 if __name__ == "__main__":

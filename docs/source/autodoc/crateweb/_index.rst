@@ -46,6 +46,7 @@ crate_anon/crateweb
     consent/__init__.py.rst
     consent/celery.py.rst
     consent/constants.py.rst
+    consent/factories.py.rst
     consent/forms.py.rst
     consent/lookup.py.rst
     consent/lookup_common.py.rst
@@ -60,6 +61,7 @@ crate_anon/crateweb
     consent/management/commands/lookup_consent.py.rst
     consent/management/commands/lookup_patient.py.rst
     consent/management/commands/make_ethics_pack.py.rst
+    consent/management/commands/make_test_consent_data.py.rst
     consent/management/commands/populate.py.rst
     consent/management/commands/resubmit_unprocessed_tasks.py.rst
     consent/management/commands/test_email.py.rst
@@ -153,6 +155,7 @@ crate_anon/crateweb
     extra/admin.py.rst
     extra/pdf.py.rst
     extra/salutation.py.rst
+    extra/tests/pdf_tests.py.rst
     manage.py.rst
     research/__init__.py.rst
     research/archive_backend.py.rst
@@ -295,6 +298,7 @@ crate_anon/crateweb
     templates/show_form_errors.html.rst
     templates/show_hide_buttons.html.rst
     userprofile/__init__.py.rst
+    userprofile/factories.py.rst
     userprofile/forms.py.rst
     userprofile/migrations/0001_initial.py.rst
     userprofile/migrations/0002_userprofile_sql_scratchpad.py.rst

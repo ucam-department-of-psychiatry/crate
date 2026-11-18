@@ -52,7 +52,6 @@ DEMO_CONFIG = r"""
 
 import logging
 import os
-import shutil
 from typing import TYPE_CHECKING
 
 # Include the following if you want to use it in CELERYBEAT_SCHEDULE
@@ -440,31 +439,6 @@ ADMINS = [
     ("Mr Administrator", "mr_admin@somewhere.domain"),
 ]
 
-
-# =============================================================================
-# PDF creation
-# =============================================================================
-# See https://crateanon.readthedocs.io/en/latest/website_config/web_config_file.html  # noqa: E501
-# Note that using headers/footers requires a version of wkhtmltopdf built using
-# "patched Qt". See above.
-# Fetch one from http://wkhtmltopdf.org/, e.g. v0.12.4 for your OS.
-
-WKHTMLTOPDF_FILENAME = shutil.which("wkhtmltopdf")
-
-WKHTMLTOPDF_OPTIONS = {  # dict for pdfkit
-    "disable-smart-shrinking": "",  # --disable-smart-shrinking
-    "dpi": "300",
-    "enable-local-file-access": "",  # --enable-local-file-access
-    "encoding": "UTF-8",
-    "footer-spacing": "3",  # mm, from content down to top of footer
-    "header-spacing": "3",  # mm, from content up to bottom of header
-    "margin-bottom": "24mm",  # from paper edge up to bottom of content?
-    "margin-left": "20mm",
-    "margin-right": "20mm",
-    "margin-top": "21mm",  # from paper edge down to top of content?
-    "orientation": "portrait",
-    "page-size": "A4",
-}
 
 PDF_LOGO_ABS_URL = "@@pdf_logo_abs_url@@"
 # ... path on local machine, read by wkhtmltopdf

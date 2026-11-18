@@ -25,10 +25,10 @@ crate_anon/testing/providers.py
 
 **Faker test data providers.**
 
-There may be some interest in a Faker Medical community provider if we felt it
-was worth the effort.
+There exists a faker-healthcare-provider, which we may be able to merge this
+into.
 
-https://github.com/joke2k/faker/issues/1142
+https://github.com/rodrigobnogueira/faker-healthcare-provider/issues/1
 
 """
 
@@ -104,6 +104,21 @@ class ForenameProvider(BaseProvider):
             return self.generator.first_name_female()
 
         return self.generator.first_name()[:1]
+
+
+class TitleProvider(BaseProvider):
+    """
+    Return a title given the sex of the person
+    """
+
+    def title(self, sex: str) -> str:
+        if sex == "M":
+            return self.generator.prefix_male()
+
+        if sex == "F":
+            return self.generator.prefix_female()
+
+        return self.generator.prefix()
 
 
 class FormattedDateOfBirthProvider(BaseProvider):
@@ -410,6 +425,40 @@ class NhsNumberProvider(BaseProvider):
         return generate_random_nhs_number()
 
 
+class MedicalJobTitleProvider(ChoiceProvider):
+    def medical_job_title(self) -> str:
+        return self.random_choice(
+            [
+                "Cardiologist",
+                "Consultant Chemical Pathologist",
+                "Consultant Dermatologist",
+                "Consultant Neurologist",
+                "Consultant Orthopaedic Surgeon",
+                "Consultant Physician",
+                "Consultant Psychiatrist",
+                "Consultant Surgeon",
+                "Consultant Urologist",
+                "Lead Nurse for Safeguarding",
+                "Respiratory Consultant",
+                "Surgical Admissions Doctor",
+            ]
+        )
+
+
+class HealthcareFacilityAddressProvider(BaseProvider):
+    def healthcare_facility_address(self) -> str:
+        city = self.generator.city()
+        street_name = self.generator.street_name()
+        postcode = self.generator.postcode()
+
+        return f"""
+{city} Hospital
+{street_name}
+{city}
+{postcode}
+"""
+
+
 def register_all_providers(fake: Faker) -> None:
     # Our own
     fake.add_provider(AgeProvider)
@@ -420,12 +469,15 @@ def register_all_providers(fake: Faker) -> None:
     fake.add_provider(ForenameProvider)
     fake.add_provider(FormattedDateOfBirthProvider)
     fake.add_provider(FormattedIncrementingDateProvider)
+    fake.add_provider(HealthcareFacilityAddressProvider)
     fake.add_provider(IncrementingDateProvider)
+    fake.add_provider(MedicalJobTitleProvider)
     fake.add_provider(NhsNumberProvider)
     fake.add_provider(PatientFileProvider)
     fake.add_provider(PatientNoteProvider)
     fake.add_provider(RelationshipProvider)
     fake.add_provider(SexProvider)
+    fake.add_provider(TitleProvider)
 
     # Third party:
     # faker-file
