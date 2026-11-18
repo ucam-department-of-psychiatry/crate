@@ -1793,7 +1793,7 @@ Changes
   https://github.com/ucam-department-of-psychiatry/crate/issues/243
 
 
-**0.20.10, in progress**
+**0.20.10, 2026-11-18**
 
 - Fix Python NLP bug that didn't exclude a preceding "if" (e.g. "If CRP is over
   30 mg/L the ferritin result may be high and uninterpretable"). Applies to
@@ -1808,6 +1808,9 @@ Changes
 - Fix internal server error ``'PatientMultiQuery' object has no attribute
   '_research_database_info'`` when browsing the Patient Explorer.
 
+- Replace wkhtmltopdf and PDFKit, neither of which are maintained with Weasyprint.
+
+**0.20.11, in progress**
 
 To do
 ~~~~~
