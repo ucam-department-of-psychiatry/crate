@@ -199,7 +199,7 @@ if RUNNING_WINDOWS:
 # =============================================================================
 
 setup(
-    name="crate-anon",  # "crate" is taken
+    name="crate_anon",  # "crate" is taken
     version=CRATE_VERSION,
     description="CRATE: clinical records anonymisation and text extraction",
     long_description=LONG_DESCRIPTION,
