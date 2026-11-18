@@ -461,6 +461,11 @@ LOGGING = {
             "level": os.getenv("DJANGO_LOG_LEVEL", "WARNING"),
             "propagate": True,
         },
+        "PIL": {
+            "handlers": ["console"],
+            "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+            "propagate": True,
+        },
     },
 }
 
