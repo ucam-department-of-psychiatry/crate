@@ -69,7 +69,7 @@ INSTALL_REQUIRES = [
     "appdirs==1.4.4",  # where to store some temporary data
     "arrow==0.15.7",  # [pin exact version from cardinal_pythonlib]
     "beautifulsoup4==4.13.4",  # [pin exact version from cardinal_pythonlib]
-    "brotli==1.2.0",  # Weasyprint dependency
+    "brotli==1.2.1",  # Weasyprint dependency
     "cardinal_pythonlib==2.2.1",  # RNC libraries
     "cairosvg==2.9.1",  # work with SVG files
     "celery==5.2.7",  # back-end scheduling
