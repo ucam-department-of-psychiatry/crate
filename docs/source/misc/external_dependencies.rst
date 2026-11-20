@@ -47,7 +47,6 @@ Python packages
 - ``kombu``: http://docs.celeryproject.org/projects/kombu/
 - ``openpyxl``: https://openpyxl.readthedocs.io/
 - ``pendulum``: https://pendulum.eustace.io/
-- ``pdfkit``: https://pypi.org/project/pdfkit/
 - ``prettytable``: https://pypi.org/project/PrettyTable/
 - ``psutil``: https://psutil.readthedocs.io/
 - ``Pygments``: http://pygments.org/
@@ -73,17 +72,24 @@ Versions of software etc. used by CRATE
 +----------------+---------+------------------------------------------------------------+
 | Name           | Version | Supported until                                            |
 +================+=========+============================================================+
-| Debian         |      11 | 2026-08-31;                                                |
+| Debian         |      12 | 2028-06-30;                                                |
 | (Docker image) |         | https://wiki.debian.org/LTS                                |
 +----------------+---------+------------------------------------------------------------+
 | Django         |   5.2.x | 2028-04-30 (LTS);                                          |
 |                |         | https://www.djangoproject.com/download/#supported-versions |
 +----------------+---------+------------------------------------------------------------+
-| Python         |    3.10 | 2026-10-31                                                 |
+| Python         |    3.11 | 2027-10-31                                                 |
 +----------------+---------+------------------------------------------------------------+
-|                |    3.11 | 2027-10-31                                                 |
+|                |    3.12 | 2028-10-31                                                 |
++----------------+---------+------------------------------------------------------------+
+|                |    3.13 | 2029-10-31                                                 |
++----------------+---------+------------------------------------------------------------+
+|                |    3.14 | 2030-10-31                                                 |
 |                |         | https://devguide.python.org/versions/                      |
 +----------------+---------+------------------------------------------------------------+
 | SQLAlchemy     |     2.0 | No scheduled date. 2.1 is still in development.            |
 |                |         | https://www.sqlalchemy.org/download.html                   |
++----------------+---------+------------------------------------------------------------+
+| Ubuntu         |   22.04 | 2027-05-31                                                 |
+| (readthedocs)  |         | https://ubuntu.com/about/release-cycle                     |
 +----------------+---------+------------------------------------------------------------+

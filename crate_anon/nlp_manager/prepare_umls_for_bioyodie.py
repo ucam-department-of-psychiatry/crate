@@ -122,7 +122,7 @@ import os
 from os.path import join
 import shutil
 import tempfile
-from typing import Dict, List, NoReturn
+from typing import Dict, NoReturn
 
 from cardinal_pythonlib.fileops import mkdir_p, pushd
 from cardinal_pythonlib.file_io import write_text
@@ -479,7 +479,7 @@ def read_config_and_replace_values(
         old_lines = [s.rstrip() for s in f.readlines()]
 
     # Replace
-    new_lines = []  # type: List[str]
+    new_lines: list[str] = []
     for s in old_lines:
         m = KVP_REGEX.match(s)
         if m:

@@ -34,12 +34,9 @@ crate_anon/linkage/people.py
 from collections import defaultdict
 import logging
 from typing import (
-    Dict,
     Generator,
     Iterable,
-    List,
     Optional,
-    Set,
 )
 
 from ordered_set import OrderedSet
@@ -85,29 +82,19 @@ class People:
         if some people have duplicate ``local_id`` values.
         """
         self.cfg = cfg
-        self.people = []  # type: List[Person]
+        self.people: list[Person] = []
         # ... list is preferable to set, as we may slice it for parallel
         # processing, and it maintains order.
 
         # These may be plaintext or hashed DOB strings depending on our people:
-        self.dob_md_to_people = defaultdict(
-            list
-        )  # type: Dict[str, List[Person]]
-        self.dob_yd_to_people = defaultdict(
-            list
-        )  # type: Dict[str, List[Person]]
-        self.dob_ym_to_people = defaultdict(
-            list
-        )  # type: Dict[str, List[Person]]
-        self.dob_ymd_to_people = defaultdict(
-            list
-        )  # type: Dict[str, List[Person]]
+        self.dob_md_to_people: dict[str, list[Person]] = defaultdict(list)
+        self.dob_yd_to_people: dict[str, list[Person]] = defaultdict(list)
+        self.dob_ym_to_people: dict[str, list[Person]] = defaultdict(list)
+        self.dob_ymd_to_people: dict[str, list[Person]] = defaultdict(list)
 
-        self.perfect_id_map = defaultdict(
-            dict
-        )  # type: Dict[str, Dict[str, Person]]
+        self.perfect_id_map: dict[str, dict[str, Person]] = defaultdict(dict)
 
-        self._known_local_ids = set()  # type: Set[str]
+        self._known_local_ids: set[str] = set()
         self._people_are_plaintext = None  # type: Optional[bool]
 
         if person:

@@ -28,7 +28,7 @@ crate_anon/crateweb/extra/pdf.py
 """
 
 import logging
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, TYPE_CHECKING
 
 from cardinal_pythonlib.dicts import merge_two_dicts
 from cardinal_pythonlib.django.serve import serve_buffer
@@ -36,7 +36,10 @@ from cardinal_pythonlib.pdf import (
     get_pdf_from_html,
     make_pdf_on_disk_from_html,
     PdfPlan,
+    Processors,
 )
+from weasyprint import CSS
+
 from django.conf import settings
 from django.http import HttpResponse
 from django.template.loader import render_to_string
@@ -58,7 +61,9 @@ class CratePdfPlan(PdfPlan):
     header/footer.
     """
 
-    def __init__(self, *args, ethics_doccode: str = None, **kwargs) -> None:
+    def __init__(
+        self, *args, ethics_doccode: str = None, **kwargs: Any
+    ) -> None:
         if "header_html" not in kwargs:
             kwargs["header_html"] = get_pdf_header_html()
         if "footer_html" not in kwargs:
@@ -69,12 +74,40 @@ class CratePdfPlan(PdfPlan):
             kwargs["wkhtmltopdf_filename"] = settings.WKHTMLTOPDF_FILENAME
         if "wkhtmltopdf_options" not in kwargs:  # added 2018-06-28
             kwargs["wkhtmltopdf_options"] = settings.WKHTMLTOPDF_OPTIONS
+
+        kwargs["weasyprint_options"] = get_weasyprint_options(
+            ethics_doccode=ethics_doccode
+        )
+
         super().__init__(*args, **kwargs)
 
 
 # =============================================================================
 # Create PDFs from HTML
 # =============================================================================
+
+
+def get_pdf_footer_context(ethics_doccode: str = None) -> dict[str, Any]:
+    title = ""
+    version = ""
+    date = ""
+    ethics: EthicsInfo | None = settings.ETHICS_INFO
+    if ethics_doccode and ethics:
+        docinfo = ethics.get_docinfo(ethics_doccode)
+        title = docinfo.title
+        version = docinfo.version
+        date = docinfo.date
+    else:
+        # All info or none.
+        ethics = None
+
+    return {
+        "address": settings.PDF_LETTER_FOOTER_ADDRESS_HTML,
+        "date": date,
+        "ethics": ethics,
+        "title": title,
+        "version": version,
+    }
 
 
 def get_pdf_header_html() -> str:
@@ -90,28 +123,54 @@ def get_pdf_footer_html(ethics_doccode: str = None) -> str:
     Returns footer HTML for PDF creation via wkhtmltopdf.
     Replaces settings.PDF_LETTER_FOOTER_HTML.
     """
-    title = ""
-    version = ""
-    date = ""
-    ethics = settings.ETHICS_INFO  # type: Optional[EthicsInfo]
-    if ethics_doccode and ethics:
-        docinfo = ethics.get_docinfo(ethics_doccode)
-        title = docinfo.title
-        version = docinfo.version
-        date = docinfo.date
-    else:
-        # All info or none.
-        ethics = None
+    footer_context = get_pdf_footer_context(ethics_doccode)
+
     return render_to_string(
         "pdf_footer.html",
-        context={
-            "address": settings.PDF_LETTER_FOOTER_ADDRESS_HTML,
-            "date": date,
-            "ethics": ethics,
-            "title": title,
-            "version": version,
-        },
+        context=footer_context,
     )
+
+
+def get_weasyprint_options(ethics_doccode: str = None) -> dict[str, Any]:
+    footer_context = get_pdf_footer_context(ethics_doccode)
+
+    # There are other Margin at-rules if needed:
+    # https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@page#margin_at-rules
+
+    address = footer_context["address"]
+    date = footer_context["date"]
+    title = footer_context["title"]
+    version = footer_context["version"]
+    ethics_ref = ""
+    if ethics := footer_context["ethics"]:
+        ethics_ref = (
+            f"[NHS Research Ethics details: IRAS# {ethics.IRAS_NUMBER} "
+            f"REC# {ethics.REC_REFERENCE} {title} version {version}, {date}.]"
+        )
+
+    weasyprint_css = f"""
+    @page {{
+        color: #005EB8;
+        font-family: Arial, Helvetica, sans-serif;
+
+        @bottom-left {{
+            font-size: x-small;
+            white-space: pre;
+            content: "Page " counter(page) " of " counter(pages)
+        }}
+    }}
+    @page:first {{
+        @bottom-right {{
+            font-size: xx-small;
+            white-space: pre-line;
+            content: "{address} \\00000a {ethics_ref}";
+        }}
+    }}
+    """
+
+    stylesheet = CSS(string=weasyprint_css)
+
+    return {"stylesheets": [stylesheet]}
 
 
 def get_pdf_from_html_with_django_settings(
@@ -120,9 +179,10 @@ def get_pdf_from_html_with_django_settings(
     footer_html: str = None,
     wkhtmltopdf_filename: str = None,
     wkhtmltopdf_options: Dict[str, Any] = None,
+    weasyprint_options: dict[str, Any] = None,
     debug_content: bool = False,
     debug_options: bool = False,
-    fix_pdfkit_encoding_bug: bool = None,
+    processor: str = Processors.WEASYPRINT,
 ) -> bytes:
     """
     Applies our ``settings.WKHTMLTOPDF_OPTIONS`` and then makes a PDF from the
@@ -151,9 +211,10 @@ def get_pdf_from_html_with_django_settings(
         footer_html=footer_html,
         wkhtmltopdf_filename=wkhtmltopdf_filename,
         wkhtmltopdf_options=wkhtmltopdf_options,
+        weasyprint_options=weasyprint_options,
         debug_content=debug_content,
         debug_options=debug_options,
-        fix_pdfkit_encoding_bug=fix_pdfkit_encoding_bug,
+        processor=processor,
     )
 
 
@@ -163,10 +224,11 @@ def make_pdf_on_disk_from_html_with_django_settings(
     footer_html: str = None,
     wkhtmltopdf_filename: str = None,
     wkhtmltopdf_options: Dict[str, Any] = None,
+    weasyprint_options: dict[str, Any] = None,
     output_path: str = None,
     debug_content: bool = False,
     debug_options: bool = False,
-    fix_pdfkit_encoding_bug: bool = None,
+    processor: str = Processors.WEASYPRINT,
 ) -> bool:
     """
     Applies our ``settings.WKHTMLTOPDF_OPTIONS`` and then makes a PDF from the
@@ -195,9 +257,10 @@ def make_pdf_on_disk_from_html_with_django_settings(
         footer_html=footer_html,
         wkhtmltopdf_filename=wkhtmltopdf_filename,
         wkhtmltopdf_options=wkhtmltopdf_options,
+        weasyprint_options=weasyprint_options,
         debug_content=debug_content,
         debug_options=debug_options,
-        fix_pdfkit_encoding_bug=fix_pdfkit_encoding_bug,
+        processor=processor,
     )
 
 
@@ -207,7 +270,7 @@ def make_pdf_on_disk_from_html_with_django_settings(
 
 
 def serve_pdf_from_html(
-    html: str, offered_filename: str = "test.pdf", **kwargs
+    html: str, offered_filename: str = "test.pdf", **kwargs: Any
 ) -> HttpResponse:
     """
     Converts HTML into a PDF and serves it.
@@ -244,6 +307,9 @@ def serve_html_or_pdf(
             html,
             header_html=get_pdf_header_html(),
             footer_html=get_pdf_footer_html(ethics_doccode=ethics_doccode),
+            weasyprint_options=get_weasyprint_options(
+                ethics_doccode=ethics_doccode
+            ),
         )
     elif viewtype == "html":
         return HttpResponse(html)

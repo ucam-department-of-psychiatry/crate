@@ -42,7 +42,6 @@ from typing import (
     Generator,
     List,
     Optional,
-    Set,
     Tuple,
     Type,
     Union,
@@ -202,7 +201,7 @@ class Identifier(ABC):
         """
         Helper function to implement equality checks.
         """
-        if type(self) != type(other):
+        if type(self) is not type(other):
             return False
         return all(getattr(self, a) == getattr(other, a) for a in attrs)
 
@@ -472,7 +471,7 @@ class Identifier(ABC):
         d = self.as_dict(
             encrypt=encrypt, include_frequencies=include_frequencies
         )
-        cls = type(self)  # type: Type[Identifier]
+        cls: Type[Identifier] = type(self)
         return cls.from_dict(self.cfg, d, hashed=True)
 
 
@@ -1670,9 +1669,9 @@ class Surname(Identifier):
         # difference between identifiable and hashed versions. We want a set
         # version for rapid overlap checking, and an ordered list to pick by
         # frequency sometimes.
-        self.exact_set = set()  # type: Set[str]
-        self.partial_set_metaphone = set()  # type: Set[str]
-        self.partial_set_f2c = set()  # type: Set[str]
+        self.exact_set: set[str] = set()
+        self.partial_set_metaphone: set[str] = set()
+        self.partial_set_f2c: set[str] = set()
         self.fragments = []  # type: List[SurnameFragment]
         # ... set properly by _reset_identifiable() and from_dict()
         self.gender = ""  # changed in next step
@@ -1952,7 +1951,7 @@ class PerfectID(IdentifierTwoState):
         self.comparison_full_match = CertainComparison()
 
         self.identifiers = {}  # type: Dict[str, str]
-        self.key_set = set()  # type: Set[str]
+        self.key_set: set[str] = set()
         if identifiers:
             self._set_identifiers(identifiers)
 
@@ -2452,8 +2451,8 @@ def gen_best_comparisons(
     # Iterate through comparisons in descending order of log likelihood ratio,
     # i.e. best to worst. See ComparisonInfo.sort_asc_best_to_worst().
     ci_list.sort(key=ComparisonInfo.sort_asc_best_to_worst)
-    candidate_indexes_used = set()  # type: Set[int]
-    proband_indexes_used = set()  # type: Set[int]
+    candidate_indexes_used: set[int] = set()
+    proband_indexes_used: set[int] = set()
     n_candidates_available = n_candidates = len(candidate_identifiers)
     n_positive = 0
     n_implicit_comparisons = 1

@@ -396,7 +396,7 @@ def query_build(request: HttpRequest) -> HttpResponse:
     #   <input type='hidden' name='csrfmiddlewaretoken' value='RGN5UZnTVkLFAVNtXRpJwn5CclBRAdLr' />  # noqa: E501
 
     # noinspection PyUnresolvedReferences
-    profile = request.user.profile  # type: UserProfile
+    profile: UserProfile = request.user.profile
     parse_error = ""
     research_database_info = get_research_db_info()
     default_database = research_database_info.get_default_database_name()
@@ -1236,9 +1236,7 @@ def get_source_results(
     sql = f"SELECT {srcfield} FROM {full_tablename} WHERE {srcpkfield}={srcpk}"
     try:
         # noinspection PyTypeChecker
-        cursor = get_executed_researchdb_cursor(
-            sql
-        )  # type: Pep249DatabaseCursorType
+        cursor: Pep249DatabaseCursorType = get_executed_researchdb_cursor(sql)
     except ProgrammingError:
         return NlpSourceResult(
             error=f"Table or fieldname incorrect in: {srctable}.{srcfield}"
@@ -2676,7 +2674,7 @@ def drugmatch(drug_type: str, colname: str) -> str:
         colname: name of the column
     """
     criteria = {drug_type: True}
-    drugs = all_drugs_where(**criteria)  # type: List[Drug]
+    drugs: list[Drug] = all_drugs_where(**criteria)
     drugs_sql_parts = [drug.sql_column_like_drug(colname) for drug in drugs]
     drugs_sql = " OR ".join(drugs_sql_parts)
     return drugs_sql

@@ -82,7 +82,7 @@ class Cloud(TableMaker):
         self.remote_processor_info = None  # type: Optional[ServerProcessor]
         self.schema_type = None
         self.sql_dialect = None
-        self.schema = None  # type: Optional[Dict[str, Any]]
+        self.schema: dict[str, Any] | None = None
         self.available_remotely = False  # update later if available
         # Output section
         self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]

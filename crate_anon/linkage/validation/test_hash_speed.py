@@ -121,7 +121,8 @@ def test_hash_speed(
     log.debug(f"Using key: {key!r}")  # NB security warning in help
 
     hasher = make_hasher(hash_method=hash_method, key=key)
-    with smart_open(output_filename, "wt") as o:  # type: TextIO
+    o: TextIO
+    with smart_open(output_filename, "wt") as o:
         start_time = time.time()
         for data in gen_dummy_data(ntests, string_length):
             hashed = hasher.hash(data)

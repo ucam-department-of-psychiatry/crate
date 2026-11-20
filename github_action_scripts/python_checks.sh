@@ -10,7 +10,7 @@ PYTHON="${VENV_BIN}/python"
 SAFETY="${VENV_BIN}/safety"
 
 # Duplicate Docker setup (see crate.Dockerfile)
-${PYTHON} -m pip install mssql-django==1.7.1 mysqlclient==1.4.6 psycopg2==2.9.10 pyodbc==4.0.39
+${PYTHON} -m pip install mssql-django==1.7.1 mysqlclient==1.4.6 psycopg2==2.9.10 pyodbc==5.4.0
 
 echo checking packages for conflicts
 ${PYTHON} -m pip check
@@ -24,6 +24,17 @@ echo checking packages for vulnerabilities
 #       believe that this vulnerability isn't valid because
 #       users shouldn't use untrusted templates without
 #       sandboxing.
-# SFTY-20260617-22444. pdfkit is no longer maintained. We will switch
-#       from wkhtmltopdf to weasyprint
-${SAFETY} check --full-report --ignore=67599 --ignore=70612 --ignore=SFTY-20260617-22444
+# SFTY-20260721-58460 setuptools. CVE-2026-59890. Fixed in 83.0.0. Relevant to macOS APFS
+#                     and HFS+ filesystems. We can't upgrade until Pyramid removes its
+#                     dependency on pkg_resources (https://github.com/Pylons/pyramid/issues/3731).
+#                     Nearly complete as of 2026-08-28.
+# SFTY-20261017-72390 filelock. Safety is pulling in an old version but we don't
+# SFTY-20261017-54654           use it outside of development.
+# SFTY-20261017-57659
+${SAFETY} check --full-report \
+    --ignore=67599 \
+    --ignore=70612 \
+    --ignore=SFTY-20260721-58460 \
+    --ignore=SFTY-20261017-72390 \
+    --ignore=SFTY-20261017-54654 \
+    --ignore=SFTY-20261017-57659

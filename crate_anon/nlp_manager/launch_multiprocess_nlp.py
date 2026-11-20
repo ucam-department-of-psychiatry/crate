@@ -50,7 +50,6 @@ import os
 import multiprocessing
 import sys
 import time
-from typing import List
 
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.subproc import (
@@ -156,7 +155,7 @@ def main() -> None:
     # Now run lots of things simultaneously:
     # -------------------------------------------------------------------------
     # (a) patient tables
-    args_list = []  # type: List[List[str]]
+    args_list: list[list[str]] = []
     for procnum in range(nprocesses_main):
         procargs = [
             sys.executable,

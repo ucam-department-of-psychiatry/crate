@@ -197,10 +197,10 @@ class InstallerBoot:
 
 
 def main() -> None:
-    if not (sys.version_info.major >= 3 and sys.version_info.minor >= 10):
+    if not (sys.version_info.major >= 3 and sys.version_info.minor >= 11):
         print(f"Script called with Python: {sys.version}")
         print(
-            "You need at least Python 3.10 to run the installer.",
+            "You need at least Python 3.11 to run the installer.",
             file=sys.stderr,
         )
         sys.exit(EXIT_FAILURE)

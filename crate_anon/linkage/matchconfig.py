@@ -32,7 +32,7 @@ crate_anon/linkage/matchconfig.py
 # =============================================================================
 
 import logging
-from typing import Any, Dict, NoReturn, Optional, Set, Tuple, Union
+from typing import Any, Dict, NoReturn, Optional, Tuple, Union
 
 from cardinal_pythonlib.hash import make_hasher
 from cardinal_pythonlib.maths_py import round_sf, normal_round_int
@@ -410,7 +410,7 @@ class MatchConfig:
                 )
             accent_dict[accented] = plain
         self.accent_transliterations = str.maketrans(accent_dict)
-        self.nonspecific_name_components = set()  # type: Set[str]
+        self.nonspecific_name_components: set[str] = set()
         for nonspec in nonspecific_name_components_csv.split(","):
             self.nonspecific_name_components.add(nonspec.strip().upper())
 

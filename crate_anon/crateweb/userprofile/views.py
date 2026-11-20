@@ -59,7 +59,7 @@ def edit_profile(request: HttpRequest) -> HttpResponse:
 
     """
     # noinspection PyUnresolvedReferences
-    profile = request.user.profile  # type: UserProfile
+    profile: UserProfile = request.user.profile
     form = UserProfileForm(
         request.POST if request.method == "POST" else None, instance=profile
     )

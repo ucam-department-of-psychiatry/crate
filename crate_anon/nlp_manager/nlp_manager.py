@@ -74,9 +74,6 @@ from typing import (
     Any,
     Dict,
     List,
-    Optional,
-    Set,
-    Tuple,
     TYPE_CHECKING,
 )
 
@@ -728,7 +725,7 @@ def retrieve_nlp_data(crinfo: CloudRunInfo, incremental: bool = False) -> None:
     with open(filename, "r") as request_data:
         reqdata = request_data.readlines()
     i = 1  # number of requests
-    cookies = None  # type: Optional[CookieJar]
+    cookies: CookieJar | None = None
     # with open(filename, 'w') as request_data:
     remaining_data = []  # type: List[str]
     ifconfig_cache = {}  # type: Dict[str, InputFieldConfig]
@@ -858,7 +855,7 @@ def process_cloud_now(
                 records_left,
                 global_recnum,
             ) = sender.send_requests(global_recnum)
-            progrecs = set()  # type: Set[NlpRecord]
+            progrecs: set[NlpRecord] = set()
             for cloud_request in cloud_requests:
                 if cloud_request.request_failed:
                     continue
@@ -1002,7 +999,7 @@ def show_source_counts(nlpdef: NlpDefinition) -> None:
             :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
     """
     print("SOURCE TABLE RECORD COUNTS:")
-    counts = []  # type: List[Tuple[str, int]]
+    counts: list[tuple[str, int]] = []
     for ifconfig in nlpdef.inputfieldconfigs:
         session = ifconfig.source_session
         dbname = ifconfig.srcdb
@@ -1021,7 +1018,7 @@ def show_dest_counts(nlpdef: NlpDefinition) -> None:
             :class:`crate_anon.nlp_manager.nlp_definition.NlpDefinition`
     """
     print("DESTINATION TABLE RECORD COUNTS:")
-    counts = []  # type: List[Tuple[str, int]]
+    counts: list[tuple[str, int]] = []
     for processor in nlpdef.processors:
         session = processor.dest_session
         dbname = processor.dest_dbname
@@ -1389,7 +1386,7 @@ def inner_main() -> None:
     # Main NLP options
     # -------------------------------------------------------------------------
 
-    crinfo = None  # type: Optional[CloudRunInfo]  # for type checker!
+    crinfo: CloudRunInfo | None = None
     if args.cloud or args.retrieve:
         # Set appropriate things for cloud - need to do this before
         # drop_remake, but after cancel_request or show_cloud_queue to avoid

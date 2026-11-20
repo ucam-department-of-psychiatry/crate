@@ -37,7 +37,6 @@ from typing import (
     Any,
     Dict,
     List,
-    Optional,
     Tuple,
     Generator,
     TYPE_CHECKING,
@@ -131,16 +130,16 @@ class CloudRequestSender:
 
         self._global_recnum = -1
         self._requests = []  # type: List[CloudRequestProcess]
-        self._cookies = None  # type: Optional[CookieJar]
+        self._cookies: CookieJar | None = None
         self._request_count = 0  # number of requests sent
-        self._text = None  # type: Optional[str]
-        self._other_values = None  # type: Optional[Dict[str, Any]]
+        self._text: str | None = None
+        self._other_values: Dict[str, Any] | None = None
         self._request_is_empty = True
         self._need_new_record = True
         self._need_new_request = True
         self._num_recs_processed = 0
         self._state = self.State.BUILDING_REQUEST
-        self._request = None  # type: Optional[CloudRequestProcess]
+        self._request: CloudRequestProcess | None = None
 
     def send_requests(
         self, global_recnum: int

@@ -37,7 +37,6 @@ command-line input; uses a delayed import when starting anonymisation.
 import argparse
 import logging
 import os
-from typing import List
 
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from rich_argparse import ArgumentDefaultsRichHelpFormatter
@@ -259,7 +258,7 @@ def inner_main() -> None:
     # Verbosity, logging
     # -------------------------------------------------------------------------
 
-    mynames = []  # type: List[str]
+    mynames: list[str] = []
     if args.processcluster:
         mynames.append(args.processcluster)
     if args.nprocesses > 1:

@@ -68,7 +68,7 @@ import csv
 import json
 import logging
 import os
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from cardinal_pythonlib.fileops import mkdir_p
 from cardinal_pythonlib.logs import configure_logger_for_colour
@@ -427,7 +427,7 @@ def test_anon(
     mkdir_p(rawdir)
     mkdir_p(anondir)
     scrubdict = {}  # type: Dict[int, Dict[str, Any]]
-    pidset = set()  # type: Set[int]
+    pidset: set[int] = set()
     with open(resultsfile, "w") as csvfile:
         csvwriter = csv.writer(csvfile, delimiter="\t")
         first = True

@@ -1,4 +1,6 @@
-USAGE: crate_researcher_report [-h] [--config CONFIG] [--noconfig]
+USAGE: crate_researcher_report [-h]
+                               [--pdf_processor {pdfkit,weasyprint,xhtml2pdf}]
+                               [--config CONFIG] [--noconfig]
                                [--db_url DB_URL] [--db_name DB_NAME]
                                [--show_url] [--no_show_url] [--show_counts]
                                [--no_show_counts] [--use_dd] [--no_use_dd]
@@ -16,7 +18,7 @@ USAGE: crate_researcher_report [-h] [--config CONFIG] [--noconfig]
                                output
 
 Produce a researcher-oriented PDF report about a destination database.
-(CRATE version 0.20.9, 2026-04-16. Created by Rudolf Cardinal.)
+(CRATE version 0.20.10, 2026-11-18. Created by Rudolf Cardinal.)
 
 Note: if wkhtmtopdf reports 'Too many open files', see
 - https://stackoverflow.com/q/25355697;
@@ -28,6 +30,9 @@ POSITIONAL ARGUMENTS:
 
 OPTIONS:
   -h, --help            show this help message and exit
+  --pdf_processor {pdfkit,weasyprint,xhtml2pdf}
+                        PDF processor. Non-defaults may require installation
+                        (default: weasyprint)
 
 DATABASE:
   --config CONFIG       CRATE anonymisation config file, overriding

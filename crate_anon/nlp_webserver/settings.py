@@ -28,7 +28,7 @@ Settings for CRATE's implementation of an NLPRP server.
 """
 
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pyramid.paster import get_appsettings
 from pyramid.config import Configurator
@@ -55,11 +55,11 @@ _DOCGEN_DUMMY_SETTINGS[NlpServerConfigKeys.ENCRYPTION_KEY] = (
 if EnvVar.GENERATING_CRATE_DOCS in os.environ:
     # Prevent errors whilst building docs, using dummy settings.
     SETTINGS = _DOCGEN_DUMMY_SETTINGS
-    CONFIG = None  # type: Optional[Configurator]
+    CONFIG: Configurator | None = None
 else:
     # Real settings.
     assert (
         SETTINGS_PATH
     ), f"Missing environment variable {NLP_WEBSERVER_CONFIG_ENVVAR}"
-    SETTINGS = get_appsettings(SETTINGS_PATH)  # type: Dict[str, Any]
+    SETTINGS: dict[str, Any] = get_appsettings(SETTINGS_PATH)
     CONFIG = Configurator(settings=SETTINGS)

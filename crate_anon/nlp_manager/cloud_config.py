@@ -29,7 +29,7 @@ Config object used for cloud NLP requests.
 
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, Tuple
+from typing import TYPE_CHECKING
 
 from crate_anon.nlp_manager.constants import (
     CloudNlpConfigKeys,
@@ -119,7 +119,7 @@ class CloudConfig:
         self.test_length_function_speed = cfg.opt_bool(
             CloudNlpConfigKeys.TEST_LENGTH_FUNCTION_SPEED, True
         )
-        self.remote_processors = {}  # type: Dict[Tuple[str, str], 'Cloud']
+        self.remote_processors: dict[tuple[str, str], "Cloud"] = {}
         for processor in self._nlpdef.processors:
             if not isinstance(processor, Cloud):
                 # ... only add 'Cloud' processors

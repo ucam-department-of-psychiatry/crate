@@ -38,7 +38,7 @@ from collections import Counter, defaultdict
 import csv
 import json
 import logging
-from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from cardinal_pythonlib.reprfunc import auto_repr
 import jsonlines
@@ -692,7 +692,7 @@ class PostcodeFrequencyInfo:
 
         oa_unit_counter = Counter()
         unit_to_oa = {}  # type: Dict[str, str]
-        sector_to_oas = {}  # type: Dict[str, Set[str]]
+        sector_to_oas: dict[str, set[str]] = {}
 
         # Load data
         with open_even_if_zipped(csv_filename) as f:

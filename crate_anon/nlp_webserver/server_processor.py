@@ -90,7 +90,7 @@ class ServerProcessor(NlprpServerProcessor):
         if proctype == PROCTYPE_GATE:
             self.base_url = GATE_BASE_URL
 
-        self.parser = None  # type: Optional[BaseNlpParser]
+        self.parser: BaseNlpParser | None = None
         if not proctype:
             self.proctype = name
         else:

@@ -32,7 +32,7 @@ crate_anon/nlp_manager/all_processors.py
 # =============================================================================
 
 from inspect import isabstract
-from typing import Any, List, Optional, Set, Type
+from typing import Any, List, Optional, Type
 
 from cardinal_pythonlib.json_utils.typing_helpers import (
     JsonArrayType,
@@ -130,8 +130,8 @@ def all_local_parser_classes() -> List[Type[BaseNlpParser]]:
     )  # type: List[Type[BaseNlpParser]]
     classes = [cls for cls in classes if not cls.is_test_nlp_parser]
 
-    lower_case_short_names = set()  # type: Set[str]
-    lower_case_full_names = set()  # type: Set[str]
+    lower_case_short_names: set[str] = set()
+    lower_case_full_names: set[str] = set()
     for cls in classes:
         lc_sname = cls.classname().lower()
         if lc_sname in lower_case_short_names:

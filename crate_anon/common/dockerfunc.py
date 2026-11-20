@@ -29,7 +29,6 @@ crate_anon/common/dockerfunc.py
 
 import logging
 import urllib.parse
-from typing import List
 
 from cardinal_pythonlib.fileops import relative_filename_within_dir
 
@@ -92,7 +91,7 @@ def warn_if_not_within_docker_dir(
         "Environment variable" if is_env_var else "Config parameter"
     )
     is_phrase = "contains" if param_contains_not_is else "is"
-    permitted_dirs = []  # type: List[str]
+    permitted_dirs: list[str] = []
     if permit_cfg:
         permitted_dirs.append(DockerConstants.CONFIG_DIR)
     if permit_files:

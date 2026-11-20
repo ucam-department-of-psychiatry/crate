@@ -36,7 +36,7 @@ Unit testing.
 from datetime import date
 import dateutil.parser  # for unit tests
 import logging
-from typing import List, Tuple
+from typing import List
 from unittest import TestCase
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
@@ -608,7 +608,7 @@ class MoreAnonRegexTests(TestCase):
         )
 
     def test_date(self) -> None:
-        tests = [
+        tests: list[tuple[date, list[str]]] = [
             (
                 date(2021, 12, 31),
                 [
@@ -667,14 +667,14 @@ class MoreAnonRegexTests(TestCase):
                     "x] |D.O.B. |24/02/1973   | |Detail",
                 ],
             ),
-        ]  # type: List[Tuple[date, List[str]]]
+        ]
         for testdate, text_versions in tests:
             regexes = get_date_regex_elements(testdate)
             for text in text_versions:
                 self._should_match(regexes, text)
 
     def test_code_whitespace(self) -> None:
-        tests = [
+        tests: list[tuple[str, list[str]]] = [
             (
                 "PE123AB",
                 [
@@ -691,7 +691,7 @@ class MoreAnonRegexTests(TestCase):
                     "PE 12 3 AB",
                 ],
             ),
-        ]  # type: List[Tuple[str, List[str]]]
+        ]
         for testcode, text_versions in tests:
             regexes = get_code_regex_elements(reduce_to_alphanumeric(testcode))
             for text in text_versions:

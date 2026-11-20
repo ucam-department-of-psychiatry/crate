@@ -79,7 +79,7 @@ import logging
 import os
 import sys
 import traceback
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING, Union, Set
+from typing import Any, List, Optional, TYPE_CHECKING, Union
 
 from cardinal_pythonlib.hash import GenericHasher, make_hasher
 from cardinal_pythonlib.logs import remove_all_logger_handlers
@@ -447,7 +447,7 @@ def get_word_alternatives(filenames: List[str]) -> List[List[str]]:
 
     """  # noqa: E501
     alternatives = []  # type: List[List[str]]
-    all_words_seen = set()  # type: Set[str]
+    all_words_seen: set[str] = set()
     for filename in filenames:
         with open(filename, "r") as alt_file:
             for line in alt_file:
@@ -602,7 +602,7 @@ class Config:
             AK.EXTRA_HASH_CONFIG_SECTIONS
         )
 
-        self.extra_hashers = {}  # type: Dict[str, GenericHasher]
+        self.extra_hashers: dict[str, GenericHasher] = {}
         for hasher_name in _extra_hash_config_section_names:
             self.extra_hashers[hasher_name] = get_extra_hasher(
                 parser, hasher_name
@@ -913,8 +913,8 @@ class Config:
             if not self.admindb:
                 raise ValueError("Admin database misconfigured")
 
-        self.sources = {}  # type: Dict[str, DatabaseHolder]
-        self.src_dialects = {}  # type: Dict[str, Dialect]
+        self.sources: dict[str, DatabaseHolder] = {}
+        self.src_dialects: dict[str, Dialect] = {}
         for sourcedb_name in source_database_cfg_sections:
             if RUNNING_WITHOUT_CONFIG:
                 continue
@@ -965,8 +965,8 @@ class Config:
 
         self.rows_in_transaction = 0
         self.bytes_in_transaction = 0
-        self.rows_inserted_per_table = {}  # type: Dict[Tuple[str, str], int]
-        self.warned_re_limits = {}  # type: Dict[Tuple[str, str], bool]
+        self.rows_inserted_per_table: dict[tuple[str.str], int] = {}
+        self.warned_re_limits: dict[tuple[str, str], bool] = {}
 
         self.report_every_n_rows = DEFAULT_REPORT_EVERY
         self.chunksize = DEFAULT_CHUNKSIZE
@@ -1037,7 +1037,7 @@ class Config:
         Initialize the "number of rows inserted" counts to zero for all source
         tables.
         """
-        self.rows_inserted_per_table = {}  # type: Dict[Tuple[str, str], int]
+        self.rows_inserted_per_table: dict[tuple[str, str], int] = {}
         for db_table_tuple in self.dd.get_src_db_tablepairs():
             self.rows_inserted_per_table[db_table_tuple] = 0
             self.warned_re_limits[db_table_tuple] = False
@@ -1071,7 +1071,7 @@ class Config:
             AK.MASTER_RESEARCH_ID_FIELDNAME,
             AK.SOURCE_HASH_FIELDNAME,
         ]
-        fieldset = set()  # type: Set[str]
+        fieldset: set[str] = set()
         for attrname in specialfieldlist:
             validate_fieldattr(attrname)
             fieldset.add(getattr(self, attrname))

@@ -31,7 +31,6 @@ from collections import defaultdict
 import datetime
 import json
 import logging
-from typing import TYPE_CHECKING
 
 from cardinal_pythonlib.httpconst import HttpStatus
 from cardinal_pythonlib.json_utils.typing_helpers import (
@@ -60,9 +59,6 @@ from crate_anon.nlp_webserver.constants import (
 from crate_anon.nlp_webserver.security import decrypt_password
 from crate_anon.nlp_webserver.settings import SETTINGS
 from crate_anon.nlprp.api import NlprpKeys
-
-if TYPE_CHECKING:
-    from typing import Optional
 
 log = logging.getLogger(__name__)
 
@@ -275,9 +271,9 @@ def process_nlp_text(
     """
 
     # noinspection PyUnresolvedReferences
-    dpr = TaskSession.query(DocProcRequest).get(
+    dpr: DocProcRequest | None = TaskSession.query(DocProcRequest).get(
         docprocrequest_id
-    )  # type: Optional[DocProcRequest]
+    )
     if not dpr:
         log.error(f"DocProcRequest {docprocrequest_id} does not exist")
     if dpr.done:

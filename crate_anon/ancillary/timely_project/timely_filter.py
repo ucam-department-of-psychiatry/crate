@@ -34,8 +34,6 @@ Class from which we inherit to implement specific data dictionary filters.
 # Imports
 # =============================================================================
 
-from typing import List
-
 from crate_anon.ancillary.timely_project.dd_criteria import (
     FieldCriterion,
     TableCriterion,
@@ -61,10 +59,10 @@ class TimelyDDFilter:
 
     def __init__(self) -> None:
         # Tables to exclude at all times:
-        self.exclude_tables = []  # type: List[TableCriterion]
+        self.exclude_tables: list[TableCriterion] = []
 
         # Tables to include, by stage:
-        self.staged_include_tables = []  # type: List[TableCriterion]
+        self.staged_include_tables: list[TableCriterion] = []
 
         # Fields to exclude, by stage:
-        self.staged_exclude_fields = []  # type: List[FieldCriterion]
+        self.staged_exclude_fields: list[FieldCriterion] = []

@@ -43,7 +43,7 @@ explicitly setting the "omit" flag to True for all such tables.
 import argparse
 import copy
 import logging
-from typing import Dict, List, Optional, Type
+from typing import List, Optional, Type
 
 from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 from rich_argparse import ArgumentDefaultsRichHelpFormatter
@@ -74,11 +74,11 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
-FILTER_INFO_CHOICES = {
+FILTER_INFO_CHOICES: dict[str, Type[TimelyDDFilter]] = {
     # name, class
     "CPFT_RiO": TimelyCPFTRiOFilter,
     "CPFT_GenericSystmOne": TimelyCPFTGenericSystmOneFilter,
-}  # type: Dict[str, Type[TimelyDDFilter]]
+}
 
 
 # =============================================================================

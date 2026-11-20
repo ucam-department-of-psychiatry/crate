@@ -35,7 +35,7 @@ set).**
 # - You can't filter on Python properties via the Django QuerySet ORM.
 
 import logging
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, Tuple
 
 from cardinal_pythonlib.django.admin import (
     admin_view_fk_link,
@@ -515,7 +515,7 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
 
     @admin.action(description="Resend selected e-mails")
     def resend(self, request: HttpRequest, queryset: QuerySet) -> None:
-        email_ids = []  # type: List[int]
+        email_ids: list[int] = []
         for email in queryset:  # type: Email
             email_ids.append(email.id)
             # transaction.on_commit not required (no changes made to emails)
@@ -1531,7 +1531,7 @@ class LetterDevAdmin(ReadOnlyModelAdmin):
 
     @admin.action(description="Mark selected letters as printed/sent")
     def mark_sent(self, request: HttpRequest, queryset: QuerySet) -> None:
-        ids = []  # type: List[int]
+        ids: list[int] = []
         for letter in queryset:
             letter.mark_sent()
             ids.append(letter.id)

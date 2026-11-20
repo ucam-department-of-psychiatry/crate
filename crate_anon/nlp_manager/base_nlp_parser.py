@@ -167,7 +167,7 @@ class TableMaker(ABC):
         self._destdb = None  # type: Optional[DatabaseHolder]
         if nlpdef is None:
             self._sectionname = ""
-            self._cfgsection = None  # type: Optional[ConfigSection]
+            self._cfgsection: ConfigSection | None = None
             self._destdb_name = ""
             self._destdb = None  # type: Optional[DatabaseHolder]
         else:
@@ -870,7 +870,7 @@ class BaseNlpParser(TableMaker):
             f"Unknown SQL dialect {sql_dialect!r}; must be one of "
             f"{ALL_SQL_DIALECTS}"
         )
-        dialect = registry.load(sql_dialect)()  # type: Dialect
+        dialect: Dialect = registry.load(sql_dialect)()
         # log.debug(f"dialect: {dialect}")
         # dialect = MSDialect()
         column_type = column.type.compile(dialect)

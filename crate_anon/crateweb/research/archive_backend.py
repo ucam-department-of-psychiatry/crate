@@ -31,7 +31,7 @@ import logging
 
 # from os import DirEntry, scandir
 from os.path import abspath, getmtime, isfile, join
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from cardinal_pythonlib.fileops import mkdir_p
 from django.conf import settings
@@ -133,7 +133,7 @@ def archive_misconfigured_response() -> HttpResponse:
     Returns an error :class:`HttpResponse` describing how the archive is
     misconfigured.
     """
-    missing = []  # type: List[str]
+    missing: list[str] = []
     if not _archive_attachment_dir:
         missing.append(SettingsKeys.ARCHIVE_ATTACHMENT_DIR)
     if not _archive_root_template:

@@ -57,7 +57,6 @@ from typing import (
     Iterable,
     IO,
     List,
-    Optional,
     TextIO,
     Tuple,
     Union,
@@ -316,15 +315,13 @@ class TabularFileInfo:
                 Be verbose if the process fails? WARNING: will report values.
         """
         # If requested, a list of SQLAlchemy columns to create:
-        self.columns = None  # type: Optional[List[Column]]
+        self.columns: List[Column] | None = None
         # If requested, a generator for data (with each dictionary mapping
         # column name to value):
-        self.data_generator = (
-            None
-        )  # type: Optional[Iterable[SPREADSHEET_DICT_ROW_TYPE]]
+        self.data_generator: Iterable[SPREADSHEET_DICT_ROW_TYPE] | None = None
 
         # Internal cached SQLAlchemy table:
-        self._table = None  # type: Optional[Table]
+        self._table: Table | None = None
         self.table_exists_in_database = False
         if with_columns_from_reflection:
             try:

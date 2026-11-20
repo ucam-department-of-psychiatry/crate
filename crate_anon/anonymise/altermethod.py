@@ -32,7 +32,7 @@ import html
 import logging
 import os
 import traceback
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 
 from cardinal_pythonlib.datetimefunc import (
     coerce_to_date,
@@ -155,7 +155,7 @@ class AlterMethod:
         self.extract_ext_field = extract_ext_field
         self.hash = hash_
         self.hash_config_section = hash_config_section
-        self.hasher = None  # type: Optional[GenericHasher]
+        self.hasher: GenericHasher | None = None
         # self.html_escape = html_escape
         self.html_unescape = html_unescape
         self.html_untag = html_untag
@@ -489,7 +489,7 @@ class AlterMethod:
             # Let's introduce ALTERMETHOD.FILENAME_FORMAT_TO_TEXT, in v0.18.18.
             #
             # Create a dictionary of column name -> value
-            ffdict = {}  # type: Dict[str, Any]
+            ffdict: dict[str, Any] = {}
             for i, ddr in enumerate(ddrows):
                 ffdict[ddr.src_field] = row[i]
             # Use that dictionary with the format string to make the filename

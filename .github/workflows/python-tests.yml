@@ -8,7 +8,6 @@ on:
             - '**.py'
             - .github/workflows/python-tests.yml
             - github_action_scripts/change_apt_mirror.sh
-            - github_action_scripts/install_wkhtmltopdf.sh
             - github_action_scripts/python_setup.sh
             - github_action_scripts/python_tests.sh
             - github_action_scripts/redis_setup.sh
@@ -18,25 +17,25 @@ jobs:
         strategy:
             matrix:
                 # Run tests with sqlite for all python versions
-                python-version: ["3.10", "3.11"]
+                python-version: ["3.11", "3.12", "3.13", "3.14"]
                 engine: ["sqlite"]
                 include:
                   # Just one python version for the other DB engines
                   - engine: mysql
                     scheme: mysql+mysqldb
                     port: 3306
-                    python-version: "3.10"
+                    python-version: "3.11"
                   - engine: sqlserver
                     scheme: mssql+pymssql
                     port: 1433
-                    python-version: "3.10"
+                    python-version: "3.11"
                   - engine: sqlserver
                     scheme: mssql+pyodbc
-                    python-version: "3.10"
+                    python-version: "3.11"
                   # - engine: postgres
                   #   scheme: postgresql
                   #   port: 5432
-                  # python-version: "3.10"
+                  # python-version: "3.11"
         steps:
             - uses: actions/checkout@v7
             - uses: actions/setup-python@v7
@@ -46,10 +45,6 @@ jobs:
               run: |
                   set -euo pipefail
                   ${GITHUB_WORKSPACE}/github_action_scripts/change_apt_mirror.sh
-            - name: Install wkhtmltopdf
-              run: |
-                set -euxo pipefail
-                ${GITHUB_WORKSPACE}/github_action_scripts/install_wkhtmltopdf.sh
             - name: Redis setup
               run: |
                 set -euxo pipefail
