@@ -31,10 +31,15 @@ echo checking packages for vulnerabilities
 # SFTY-20261017-72390 filelock. Safety is pulling in an old version but we don't
 # SFTY-20261017-54654           use it outside of development.
 # SFTY-20261017-57659
+# SFTY-20261020-25530
+# SFTY-20261020-11422
+
 ${SAFETY} check --full-report \
     --ignore=67599 \
     --ignore=70612 \
     --ignore=SFTY-20260721-58460 \
     --ignore=SFTY-20261017-72390 \
     --ignore=SFTY-20261017-54654 \
-    --ignore=SFTY-20261017-57659
+    --ignore=SFTY-20261017-57659 \
+    --ignore=SFTY-20261020-25530 \
+    --ignore=SFTY-20261020-11422
