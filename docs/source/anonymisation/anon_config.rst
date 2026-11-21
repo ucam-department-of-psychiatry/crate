@@ -95,8 +95,10 @@ data_dictionary_filename
 
 *String.*
 
-Specify the filename of a data dictionary in TSV (tab-separated value) format,
-with a header row. See :ref:`Data Dictionary <data_dictionary>`.
+Specify the filename of a data dictionary. Supported formats are Comma Separated
+Value (.csv), OpenDocument Spreadsheet (.ods), Tab Separated Value (.tsv) and
+Microsoft Excel (.xlsx). CSV and TSV require a header row. See :ref:`Data
+Dictionary <data_dictionary>`.
 
 
 Critical field types

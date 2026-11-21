@@ -54,8 +54,8 @@ like this:
     crate_anon_draft_dd --output crate_dd_DRAFT.tsv
 
 Both of these scripts generate a data dictionary in Tab Separated Value (TSV)
-format. OpenDocument Spreadsheet (.ods) and Microsoft Excel (.xlsx) are also
-supported.
+format. Comma Separated Value (.csv), OpenDocument Spreadsheet (.ods) and
+Microsoft Excel (.xlsx) are also supported.
 
 Now edit the data dictionary as required. (And then edit your config file so it
 points to the data dictionary you have created.)
