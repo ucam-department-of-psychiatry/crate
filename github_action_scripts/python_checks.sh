@@ -48,6 +48,8 @@ echo checking packages for vulnerabilities
 # SFTY-20261020-91319
 # SFTY-20261023-16869
 # SFTY-20261023-24590
+# SFTY-20261023-10299 setuptools. GHSA-xmj3-9gf7-h52w. Fixed in 84.1.0 but we
+#                     can't upgrade as above.
 
 ${SAFETY} check --full-report \
     --ignore=67599 \
@@ -63,6 +65,7 @@ ${SAFETY} check --full-report \
     --ignore=SFTY-20261020-34461 \
     --ignore=SFTY-20261020-81101 \
     --ignore=SFTY-20261020-91319 \
+    --ignore-SFTY-20261023-07051 \
     --ignore=SFTY-20261023-10299 \
     --ignore=SFTY-20261023-16869 \
     --ignore=SFTY-20261023-24590
