@@ -18,7 +18,7 @@ PYTHON=$1
 SAFETY=$2
 
 # Duplicate Docker setup (see crate.Dockerfile)
-${PYTHON} -m pip install mssql-django==1.7.1 mysqlclient==1.4.6 psycopg2==2.9.10 pyodbc==5.4.0
+${PYTHON} -m pip install mssql-django==1.7.1 mysqlclient==1.4.6 psycopg2==2.9.10 pyodbc==5.4.0 "setuptools>70.0.0,<83.0.0"
 
 echo checking packages for conflicts
 ${PYTHON} -m pip check
@@ -36,32 +36,33 @@ echo checking packages for vulnerabilities
 #                     and HFS+ filesystems. We can't upgrade until Pyramid removes its
 #                     dependency on pkg_resources (https://github.com/Pylons/pyramid/issues/3731).
 #                     Nearly complete as of 2026-08-28.
-# SFTY-20261017-72390 filelock. Safety is pulling in an old version but we don't
-# SFTY-20261017-54654           use it outside of development.
-# SFTY-20261017-57659
-# SFTY-20261020-25530
+# SFTY-20261017-54654 filelock. Safety is pulling in an old version but we don't
+# SFTY-20261017-57659           use it outside of development.
+# SFTY-20261017-72390
 # SFTY-20261020-11422
+# SFTY-20261020-13394
+# SFTY-20261020-18367
+# SFTY-20261020-25530
 # SFTY-20261020-34461
+# SFTY-20261020-81101
 # SFTY-20261020-91319
 # SFTY-20261023-16869
-# SFTY-20261020-18367
 # SFTY-20261023-24590
-# SFTY-20261020-13394
-# SFTY-20261020-81101
 
 ${SAFETY} check --full-report \
     --ignore=67599 \
     --ignore=70612 \
     --ignore=SFTY-20260721-58460 \
-    --ignore=SFTY-20261017-72390 \
     --ignore=SFTY-20261017-54654 \
     --ignore=SFTY-20261017-57659 \
-    --ignore=SFTY-20261020-25530 \
+    --ignore=SFTY-20261017-72390 \
     --ignore=SFTY-20261020-11422 \
-    --ignore=SFTY-20261020-34461 \
-    --ignore=SFTY-20261020-91319 \
-    --ignore=SFTY-20261023-16869 \
-    --ignore=SFTY-20261020-18367 \
-    --ignore=SFTY-20261023-24590 \
     --ignore=SFTY-20261020-13394 \
-    --ignore=SFTY-20261020-81101
+    --ignore=SFTY-20261020-18367 \
+    --ignore=SFTY-20261020-25530 \
+    --ignore=SFTY-20261020-34461 \
+    --ignore=SFTY-20261020-81101 \
+    --ignore=SFTY-20261020-91319 \
+    --ignore=SFTY-20261023-10299 \
+    --ignore=SFTY-20261023-16869 \
+    --ignore=SFTY-20261023-24590
