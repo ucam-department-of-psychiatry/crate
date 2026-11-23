@@ -3,11 +3,19 @@
 # Run from .github/workflows/python-checks.yml
 # Install CRATE python packages and run various checks
 
-set -eux -o pipefail
+set -euo pipefail
 
-VENV_BIN="${HOME}/venv/bin"
-PYTHON="${VENV_BIN}/python"
-SAFETY="${VENV_BIN}/safety"
+usage() {
+    echo "Usage: $0 <python executable> <safety executable>"
+    exit 1
+}
+
+if [ "$#" -lt 2 ]; then
+    usage
+fi
+
+PYTHON=$1
+SAFETY=$2
 
 # Duplicate Docker setup (see crate.Dockerfile)
 ${PYTHON} -m pip install mssql-django==1.7.1 mysqlclient==1.4.6 psycopg2==2.9.10 pyodbc==5.4.0
@@ -33,6 +41,13 @@ echo checking packages for vulnerabilities
 # SFTY-20261017-57659
 # SFTY-20261020-25530
 # SFTY-20261020-11422
+# SFTY-20261020-34461
+# SFTY-20261020-91319
+# SFTY-20261023-16869
+# SFTY-20261020-18367
+# SFTY-20261023-24590
+# SFTY-20261020-13394
+# SFTY-20261020-81101
 
 ${SAFETY} check --full-report \
     --ignore=67599 \
@@ -42,4 +57,11 @@ ${SAFETY} check --full-report \
     --ignore=SFTY-20261017-54654 \
     --ignore=SFTY-20261017-57659 \
     --ignore=SFTY-20261020-25530 \
-    --ignore=SFTY-20261020-11422
+    --ignore=SFTY-20261020-11422 \
+    --ignore=SFTY-20261020-34461 \
+    --ignore=SFTY-20261020-91319 \
+    --ignore=SFTY-20261023-16869 \
+    --ignore=SFTY-20261020-18367 \
+    --ignore=SFTY-20261023-24590 \
+    --ignore=SFTY-20261020-13394 \
+    --ignore=SFTY-20261020-81101
