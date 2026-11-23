@@ -65,7 +65,7 @@ ${SAFETY} check --full-report \
     --ignore=SFTY-20261020-34461 \
     --ignore=SFTY-20261020-81101 \
     --ignore=SFTY-20261020-91319 \
-    --ignore-SFTY-20261023-07051 \
+    --ignore=SFTY-20261023-07051 \
     --ignore=SFTY-20261023-10299 \
     --ignore=SFTY-20261023-16869 \
     --ignore=SFTY-20261023-24590
