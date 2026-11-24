@@ -47,7 +47,15 @@ like this:
 
 .. code-block:: bash
 
-    crate_anon_draft_dd --output mydd.xlsx
+    # If using the Docker-based CRATE installer (from the scripts directory)
+    ./generate_draft_data_dict.sh
+
+    # otherwise
+    crate_anon_draft_dd --output crate_dd_DRAFT.tsv
+
+Both of these scripts generate a data dictionary in Tab Separated Value (TSV)
+format. Comma Separated Value (.csv), OpenDocument Spreadsheet (.ods) and
+Microsoft Excel (.xlsx) are also supported.
 
 Now edit the data dictionary as required. (And then edit your config file so it
 points to the data dictionary you have created.)

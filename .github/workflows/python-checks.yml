@@ -24,4 +24,7 @@ jobs:
               run: |
                 set -euxo pipefail
                 ${GITHUB_WORKSPACE}/github_action_scripts/python_setup.sh
-                ${GITHUB_WORKSPACE}/github_action_scripts/python_checks.sh
+                VENV_BIN="${HOME}/venv/bin"
+                PYTHON="${VENV_BIN}/python"
+                SAFETY="${VENV_BIN}/safety"
+                ${GITHUB_WORKSPACE}/github_action_scripts/python_checks.sh ${PYTHON} ${SAFETY}
